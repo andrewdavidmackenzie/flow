@@ -421,11 +421,6 @@ correctly. Provided implementation skeletons compile.
   from unnamed output ports). Consider alternative approaches: distance-to-curve
   calculation, wider hit zones, or rendering connections to an off-screen buffer
   for pixel-precise hit testing.
-- Root flow background: draw the canvas background as a slightly different color
-  with a rounded border to visually suggest the root flow is itself a process,
-  just the one where we start viewing/editing
-- Canvas scroll bars: add visible horizontal and vertical scroll bars to the
-  main editing canvas (in addition to the existing mouse-wheel/middle-button pan)
 - Revisit hover tooltip: improve positioning (track cursor more closely), ensure
   text size matches the source label, and extend to show port data types on hover
 - Port inset so semi-circles sit inside the box border without breaking connection
@@ -434,21 +429,20 @@ correctly. Provided implementation skeletons compile.
   optional x, y, width, height fields on the root flow metadata) so the window
   reopens at the same position when editing is resumed
 - Prompt to save on window close (Cmd+Q or close button) when there are unsaved edits
-- Fix alias-vs-connection-route key mismatch: when a ProcessReference has no explicit
-  alias, the display alias is derived from the source URL, but connection routes may
-  use a different name. Need to align alias resolution with flowc's logic so port
-  lookups and connection drawing always match.
 - Add UI dialog to add custom library search paths or specific libraries at runtime
   (the `-L` CLI flag already supports this at startup, but there is no in-app way
   to add paths during an editing session)
-- Implement CLI options for loading, compiling and running a flow compatible with
-  flowrgui, to enable using the same automated tests for both editors
-- Flow hierarchy navigator panel: add a collapsible tree view above the Process
-  Library panel showing the structure of the loaded flow — root flow at the top,
-  child sub-flows and functions as children, recursively. Double-click to open
-  an editing window for that node. For library-defined functions/flows (lib://),
-  open a read-only view window similar to the existing editor windows.
+- Library function/flow editor: extend editing for library authoring — edit function/flow
+  library function in the Process Library panel to view its definition, source,
+  and docs. Extend to full editing for library authoring — edit function/flow
+  definitions, inputs/outputs, source files, and save changes back to the
+  library directory.
 - Automated UI testing for interactive features described in the user manual
+- Implement flow execution (Run button) — requires in-process coordinator
+  and context functions, similar to flowrgui's execution pipeline
+- Implement CLI options for loading, compiling and running a flow compatible
+  with flowrgui, to enable using the same automated tests for both editors
+  (depends on flow execution being implemented first)
 
 ## 9. Key Design Decisions
 

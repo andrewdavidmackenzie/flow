@@ -624,6 +624,7 @@ impl FlowCanvasState {
         &'a self,
         nodes: &'a [NodeLayout],
         edges: &'a [EdgeLayout],
+        flow_name: &'a str,
         flow_inputs: &'a [PortInfo],
         flow_outputs: &'a [PortInfo],
         is_subflow: bool,
@@ -634,6 +635,7 @@ impl FlowCanvasState {
             state: self,
             nodes,
             edges,
+            flow_name,
             flow_inputs,
             flow_outputs,
             is_subflow,
@@ -756,6 +758,8 @@ struct FlowCanvas<'a> {
     nodes: &'a [NodeLayout],
     /// Edges to render
     edges: &'a [EdgeLayout],
+    /// Flow name (displayed on sub-flow bounding box)
+    flow_name: &'a str,
     /// Flow-level input ports (displayed on left edge for sub-flows)
     flow_inputs: &'a [PortInfo],
     /// Flow-level output ports (displayed on right edge for sub-flows)
@@ -1500,6 +1504,7 @@ impl canvas::Program<CanvasMessage> for FlowCanvas<'_> {
             draw_nodes(frame, self.nodes, zoom, offset);
             draw_flow_io_ports(
                 frame,
+                self.flow_name,
                 self.flow_inputs,
                 self.flow_outputs,
                 self.nodes,
@@ -1891,6 +1896,7 @@ fn draw_nodes(frame: &mut Frame, nodes: &[NodeLayout], zoom: f32, offset: Point)
 #[allow(clippy::too_many_arguments)]
 fn draw_flow_io_ports(
     frame: &mut Frame,
+    flow_name: &str,
     flow_inputs: &[PortInfo],
     flow_outputs: &[PortInfo],
     nodes: &[NodeLayout],
@@ -1943,6 +1949,19 @@ fn draw_flow_io_ports(
             .with_color(Color::from_rgba(0.6, 0.6, 0.6, 0.5)),
     );
 
+    // Draw flow name at top center of the bounding box
+    if !flow_name.is_empty() {
+        let name_pos = transform_point(Point::new(box_x + box_w / 2.0, box_y + 8.0), zoom, offset);
+        frame.fill_text(CanvasText {
+            content: flow_name.to_string(),
+            position: name_pos,
+            color: Color::from_rgb(0.9, 0.6, 0.2),
+            size: (16.0 * zoom).into(),
+            align_x: iced::alignment::Horizontal::Center.into(),
+            ..CanvasText::default()
+        });
+    }
+
     let center_y = (min_y + max_y) / 2.0;
     let input_color = Color::from_rgb(0.4, 0.8, 1.0);
     let output_color = Color::from_rgb(1.0, 0.6, 0.3);
@@ -1962,8 +1981,8 @@ fn draw_flow_io_ports(
             builder.arc(canvas::path::Arc {
                 center: screen_pos,
                 radius: scaled_r,
-                start_angle: (PI / 2.0).into(),
-                end_angle: (3.0 * PI / 2.0).into(),
+                start_angle: (-PI / 2.0).into(),
+                end_angle: (PI / 2.0).into(),
             });
             builder.close();
         });
@@ -1997,8 +2016,8 @@ fn draw_flow_io_ports(
             builder.arc(canvas::path::Arc {
                 center: screen_pos,
                 radius: scaled_r,
-                start_angle: (-PI / 2.0).into(),
-                end_angle: (PI / 2.0).into(),
+                start_angle: (PI / 2.0).into(),
+                end_angle: (3.0 * PI / 2.0).into(),
             });
             builder.close();
         });

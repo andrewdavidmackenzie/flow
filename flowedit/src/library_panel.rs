@@ -20,6 +20,16 @@ pub(crate) enum LibraryMessage {
     ToggleCategory(usize, usize),
     /// Add a function to the canvas: (`source_url`, `function_name`).
     AddFunction(String, String),
+    /// View a library function/flow definition.
+    ViewFunction(String, String),
+}
+
+/// Result of a library panel interaction.
+#[derive(Debug, PartialEq)]
+pub(crate) enum LibraryAction {
+    None,
+    Add(String, String),
+    View(String, String),
 }
 
 /// A single function entry in the library tree.
@@ -117,15 +127,14 @@ impl LibraryTree {
 
     /// Handle a library message, updating expansion state.
     ///
-    /// Returns `Some((source, name))` if a function was clicked (for the caller
-    /// to create a node), or `None` if just a toggle.
-    pub(crate) fn update(&mut self, message: &LibraryMessage) -> Option<(String, String)> {
+    /// Result of a library panel interaction.
+    pub(crate) fn update(&mut self, message: &LibraryMessage) -> LibraryAction {
         match message {
             LibraryMessage::ToggleLibrary(lib_idx) => {
                 if let Some(lib) = self.libraries.get_mut(*lib_idx) {
                     lib.expanded = !lib.expanded;
                 }
-                None
+                LibraryAction::None
             }
             LibraryMessage::ToggleCategory(lib_idx, cat_idx) => {
                 if let Some(lib) = self.libraries.get_mut(*lib_idx) {
@@ -133,9 +142,14 @@ impl LibraryTree {
                         cat.expanded = !cat.expanded;
                     }
                 }
-                None
+                LibraryAction::None
             }
-            LibraryMessage::AddFunction(source, name) => Some((source.clone(), name.clone())),
+            LibraryMessage::AddFunction(source, name) => {
+                LibraryAction::Add(source.clone(), name.clone())
+            }
+            LibraryMessage::ViewFunction(source, name) => {
+                LibraryAction::View(source.clone(), name.clone())
+            }
         }
     }
 
@@ -194,20 +208,34 @@ impl LibraryTree {
 
                     if cat.expanded {
                         for func in &cat.functions {
+                            let view_btn = button(text("\u{270E}").size(10))
+                                .on_press(LibraryMessage::ViewFunction(
+                                    func.source.clone(),
+                                    func.name.clone(),
+                                ))
+                                .style(button::text)
+                                .padding([1, 3]);
+
                             let func_btn = button(text(&func.name).size(11))
                                 .on_press(LibraryMessage::AddFunction(
                                     func.source.clone(),
                                     func.name.clone(),
                                 ))
                                 .style(button::text)
-                                .padding(iced::Padding {
-                                    top: 2.0,
-                                    right: 6.0,
-                                    bottom: 2.0,
-                                    left: 28.0,
-                                });
+                                .padding([2, 4]);
 
-                            content = content.push(func_btn);
+                            let row = Row::new()
+                                .spacing(2)
+                                .align_y(iced::Alignment::Center)
+                                .push(view_btn)
+                                .push(func_btn);
+
+                            content = content.push(container(row).padding(iced::Padding {
+                                top: 0.0,
+                                right: 0.0,
+                                bottom: 0.0,
+                                left: 24.0,
+                            }));
                         }
                     }
                 }
@@ -231,6 +259,11 @@ impl LibraryTree {
 
 /// Resolve the library search path directories.
 ///
+/// Get the current library search paths.
+pub(crate) fn get_lib_paths() -> Vec<String> {
+    resolve_lib_path()
+}
+
 /// Reads `FLOW_LIB_PATH` as a comma-separated list and appends `~/.flow/lib`
 /// as a default if it exists.
 fn resolve_lib_path() -> Vec<String> {
@@ -453,7 +486,7 @@ mod test {
             }],
         };
         let result = tree.update(&LibraryMessage::ToggleLibrary(0));
-        assert!(result.is_none());
+        assert_eq!(result, LibraryAction::None);
         assert!(tree.libraries.first().is_some_and(|l| l.expanded));
     }
 
@@ -471,7 +504,7 @@ mod test {
             }],
         };
         let result = tree.update(&LibraryMessage::ToggleCategory(0, 0));
-        assert!(result.is_none());
+        assert_eq!(result, LibraryAction::None);
         assert!(tree
             .libraries
             .first()
@@ -490,7 +523,7 @@ mod test {
         ));
         assert_eq!(
             result,
-            Some(("lib://flowstdlib/math/add".into(), "add".into()))
+            LibraryAction::Add("lib://flowstdlib/math/add".into(), "add".into())
         );
     }
 
@@ -500,8 +533,8 @@ mod test {
             libraries: Vec::new(),
         };
         let result = tree.update(&LibraryMessage::ToggleLibrary(99));
-        assert!(result.is_none());
+        assert_eq!(result, LibraryAction::None);
         let result = tree.update(&LibraryMessage::ToggleCategory(99, 0));
-        assert!(result.is_none());
+        assert_eq!(result, LibraryAction::None);
     }
 }

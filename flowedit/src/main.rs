@@ -33,14 +33,16 @@ use flowcore::model::name::HasName;
 use flowcore::model::process::Process;
 use flowcore::model::process_reference::ProcessReference;
 mod canvas_view;
+mod hierarchy_panel;
 mod history;
 mod library_panel;
 use canvas_view::{
     build_edge_layouts, build_node_layouts, derive_short_name, CanvasMessage, EdgeLayout,
     FlowCanvasState, NodeLayout, PortInfo,
 };
+use hierarchy_panel::{FlowHierarchy, HierarchyMessage};
 use history::{EditAction, EditHistory};
-use library_panel::{LibraryMessage, LibraryTree};
+use library_panel::{LibraryAction, LibraryMessage, LibraryTree};
 
 /// Messages handled by the flowedit application
 #[derive(Debug, Clone)]
@@ -49,6 +51,8 @@ enum Message {
     WindowCanvas(window::Id, CanvasMessage),
     /// A message from the library side panel, tagged with the originating window ID
     Library(window::Id, LibraryMessage),
+    /// A message from the flow hierarchy panel, tagged with window ID
+    Hierarchy(window::Id, HierarchyMessage),
     /// Zoom in by one step, tagged with the originating window ID
     ZoomIn(window::Id),
     /// Zoom out by one step, tagged with the originating window ID
@@ -133,12 +137,24 @@ enum Message {
     FlowOutputTypeChanged(window::Id, usize, String),
     /// A window close was requested
     CloseRequested(window::Id),
+    /// A window was actually closed (cleanup stale state)
+    WindowClosed(window::Id),
     /// Close the currently focused window (Cmd+W)
     CloseActiveWindow,
     /// Quit the entire application (Cmd+Q)
     QuitAll,
     /// A window received focus
     WindowFocused(window::Id),
+    /// Window was resized — track the new size
+    WindowResized(window::Id, iced::Size),
+    /// Window was moved — track the new position
+    WindowMoved(window::Id, iced::Point),
+    /// Add a library search path via file dialog
+    AddLibraryPath,
+    /// Remove a library search path by index
+    RemoveLibraryPath(usize),
+    /// Toggle the library paths editor
+    ToggleLibPaths,
 }
 
 /// State for the initializer editing dialog.
@@ -217,6 +233,12 @@ struct WindowState {
     context_menu: Option<(f32, f32)>,
     /// Whether the metadata editor is visible
     show_metadata: bool,
+    /// Flow hierarchy tree for this window's navigation panel
+    flow_hierarchy: FlowHierarchy,
+    /// Last known window size (tracked via resize events)
+    last_size: Option<iced::Size>,
+    /// Last known window position (tracked via move events)
+    last_position: Option<iced::Point>,
 }
 
 /// Top-level application state
@@ -229,6 +251,10 @@ struct FlowEdit {
     focused_window: Option<window::Id>,
     /// Library panel tree for process discovery
     library_tree: LibraryTree,
+    /// Path to the root flow file (for rebuilding hierarchy)
+    root_flow_path: Option<PathBuf>,
+    show_lib_paths: bool,
+    lib_paths: Vec<String>,
 }
 
 /// Main entry point for the flowedit binary.
@@ -338,10 +364,29 @@ impl FlowEdit {
         let library_tree = LibraryTree::scan();
 
         // Open the root window via daemon API
+        let saved_prefs = file_path.as_ref().and_then(|p| load_editor_prefs(p));
+        let saved_size = saved_prefs
+            .as_ref()
+            .map(|p| iced::Size::new(p.width, p.height))
+            .unwrap_or_else(|| iced::Size::new(1024.0, 768.0));
+        let saved_position = saved_prefs
+            .as_ref()
+            .and_then(|p| match (p.x, p.y) {
+                (Some(x), Some(y)) => Some(window::Position::Specific(iced::Point::new(x, y))),
+                _ => None,
+            })
+            .unwrap_or(window::Position::Default);
         let (root_id, open_task) = window::open(window::Settings {
-            size: iced::Size::new(1024.0, 768.0),
+            size: saved_size,
+            position: saved_position,
             ..Default::default()
         });
+
+        let root_flow_path = file_path.clone();
+        let flow_hierarchy = file_path
+            .as_ref()
+            .map(|p| FlowHierarchy::build(p))
+            .unwrap_or_else(FlowHierarchy::empty);
 
         let (fi, fo) = extract_ports(&flow_definition.inputs, &flow_definition.outputs);
         let win_state = WindowState {
@@ -354,7 +399,7 @@ impl FlowEdit {
             selected_node: None,
             selected_connection: None,
             auto_fit_pending: has_nodes,
-            auto_fit_enabled: true, // Start in auto-fit mode
+            auto_fit_enabled: true,
             history: EditHistory::default(),
             unsaved_edits: 0,
             compiled_manifest: None,
@@ -367,6 +412,9 @@ impl FlowEdit {
             flow_outputs: fo,
             context_menu: None,
             show_metadata: false,
+            flow_hierarchy,
+            last_size: None,
+            last_position: None,
         };
 
         let mut windows = HashMap::new();
@@ -377,6 +425,9 @@ impl FlowEdit {
             root_window: Some(root_id),
             focused_window: Some(root_id),
             library_tree,
+            root_flow_path,
+            show_lib_paths: false,
+            lib_paths: library_panel::get_lib_paths(),
         };
 
         (app, open_task.discard())
@@ -636,13 +687,90 @@ impl FlowEdit {
                     }
                 }
             }
-            Message::Library(win_id, ref lib_msg) => {
-                if let Some((source, func_name)) = self.library_tree.update(lib_msg) {
+            Message::Hierarchy(hier_win_id, ref hier_msg) => {
+                let open_result = self
+                    .windows
+                    .get_mut(&hier_win_id)
+                    .and_then(|win| win.flow_hierarchy.update(hier_msg));
+                if let Some((_source, path)) = open_result {
+                    // Check if already open
+                    for (&win_id, win) in &self.windows {
+                        if win.file_path.as_ref() == Some(&path) {
+                            return window::gain_focus(win_id);
+                        }
+                    }
+                    // Open the flow or function
+                    match load_flow(&path) {
+                        Ok((name, nodes, edges, flow_def)) => {
+                            let (fi, fo) = extract_ports(&flow_def.inputs, &flow_def.outputs);
+                            let (new_id, open_task) =
+                                window::open(self.child_window_settings(1024.0, 768.0));
+                            let has_nodes = !nodes.is_empty();
+                            let nc = nodes.len();
+                            let ec = edges.len();
+                            let child = WindowState {
+                                kind: WindowKind::FlowEditor,
+                                flow_name: name,
+                                nodes,
+                                edges,
+                                canvas_state: FlowCanvasState::default(),
+                                status: format!("Ready - {nc} nodes, {ec} connections"),
+                                selected_node: None,
+                                selected_connection: None,
+                                history: EditHistory::default(),
+                                auto_fit_pending: has_nodes,
+                                auto_fit_enabled: true,
+                                unsaved_edits: 0,
+                                compiled_manifest: None,
+                                file_path: Some(path),
+                                flow_definition: flow_def,
+                                tooltip: None,
+                                initializer_editor: None,
+                                is_root: false,
+                                flow_inputs: fi,
+                                flow_outputs: fo,
+                                context_menu: None,
+                                show_metadata: false,
+                                flow_hierarchy: self.build_hierarchy(),
+                                last_size: None,
+                                last_position: None,
+                            };
+                            self.windows.insert(new_id, child);
+                            return open_task.discard();
+                        }
+                        Err(_) => {
+                            // Try as function definition
+                            let abs = std::fs::canonicalize(&path).unwrap_or_else(|_| path.clone());
+                            if let Ok(contents) = std::fs::read_to_string(&abs) {
+                                if let Ok(url) = Url::from_file_path(&abs) {
+                                    if let Ok(deser) = get::<Process>(&url) {
+                                        if let Ok(Process::FunctionProcess(ref func)) =
+                                            deser.deserialize(&contents, Some(&url))
+                                        {
+                                            return self.open_function_viewer(
+                                                hier_win_id,
+                                                &path,
+                                                func,
+                                            );
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            Message::Library(win_id, ref lib_msg) => match self.library_tree.update(lib_msg) {
+                LibraryAction::Add(source, func_name) => {
                     if let Some(win) = self.windows.get_mut(&win_id) {
                         add_library_function(win, &source, &func_name);
                     }
                 }
-            }
+                LibraryAction::View(source, _name) => {
+                    return self.open_library_function(&source);
+                }
+                LibraryAction::None => {}
+            },
             Message::ZoomIn(win_id) => {
                 if let Some(win) = self.windows.get_mut(&win_id) {
                     win.auto_fit_enabled = false;
@@ -702,8 +830,16 @@ impl FlowEdit {
                 }
             }
             Message::Open => {
-                if let Some(win) = self.root_window.and_then(|id| self.windows.get_mut(&id)) {
-                    perform_open(win);
+                if let Some(root_id) = self.root_window {
+                    if let Some(win) = self.windows.get_mut(&root_id) {
+                        perform_open(win);
+                        self.root_flow_path = win.file_path.clone();
+                        win.flow_hierarchy = win
+                            .file_path
+                            .as_ref()
+                            .map(|p| FlowHierarchy::build(p))
+                            .unwrap_or_else(FlowHierarchy::empty);
+                    }
                 }
             }
             Message::New => {
@@ -802,6 +938,35 @@ impl FlowEdit {
             }
             Message::WindowFocused(id) => {
                 self.focused_window = Some(id);
+            }
+            Message::WindowResized(id, size) => {
+                if let Some(win) = self.windows.get_mut(&id) {
+                    win.last_size = Some(size);
+                }
+            }
+            Message::WindowMoved(id, pos) => {
+                if let Some(win) = self.windows.get_mut(&id) {
+                    win.last_position = Some(pos);
+                }
+            }
+            Message::AddLibraryPath => {
+                let dialog = rfd::FileDialog::new();
+                if let Some(dir) = dialog.pick_folder() {
+                    let path_str = dir.to_string_lossy().to_string();
+                    if !self.lib_paths.contains(&path_str) {
+                        self.lib_paths.push(path_str);
+                        self.update_lib_paths();
+                    }
+                }
+            }
+            Message::RemoveLibraryPath(idx) => {
+                if idx < self.lib_paths.len() {
+                    self.lib_paths.remove(idx);
+                    self.update_lib_paths();
+                }
+            }
+            Message::ToggleLibPaths => {
+                self.show_lib_paths = !self.show_lib_paths;
             }
             Message::FunctionTabSelected(win_id, tab) => {
                 if let Some(win) = self.windows.get_mut(&win_id) {
@@ -992,6 +1157,15 @@ impl FlowEdit {
                     win.canvas_state.request_redraw();
                 }
             }
+            Message::WindowClosed(id) => {
+                self.windows.remove(&id);
+                if self.focused_window == Some(id) {
+                    self.focused_window = self.root_window;
+                }
+                if self.root_window == Some(id) || self.windows.is_empty() {
+                    return iced::exit();
+                }
+            }
             Message::CloseRequested(_) | Message::CloseActiveWindow => {
                 let target = match message {
                     Message::CloseRequested(win_id) => Some(win_id),
@@ -1055,6 +1229,7 @@ impl FlowEdit {
             .view(
                 &win.nodes,
                 &win.edges,
+                &win.flow_name,
                 &win.flow_inputs,
                 &win.flow_outputs,
                 !win.is_root,
@@ -1263,14 +1438,23 @@ impl FlowEdit {
 
         let canvas_with_controls = stack(canvas_stack);
 
+        let hierarchy_panel = win
+            .flow_hierarchy
+            .view()
+            .map(move |msg| Message::Hierarchy(window_id, msg));
+
         let library_panel = self
             .library_tree
             .view()
             .map(move |msg| Message::Library(window_id, msg));
 
-        let main_content = Row::new()
+        let left_panel = Column::new()
+            .push(hierarchy_panel)
             .push(library_panel)
-            .push(container(canvas_with_controls).width(Fill).height(Fill));
+            .height(Fill);
+
+        let mut right_col: Column<'_, Message> =
+            Column::new().push(container(canvas_with_controls).width(Fill).height(Fill));
 
         let edit_indicator = if win.unsaved_edits > 0 {
             format!("  |  {} unsaved edit(s)", win.unsaved_edits)
@@ -1348,6 +1532,16 @@ impl FlowEdit {
                 .push(Text::new(format!("{}{}", win.status, edit_indicator)).size(14))
                 .push(iced::widget::Space::new().width(Fill))
                 .push(info_btn)
+                .push(
+                    button(Text::new("\u{1F4C1} Libs").size(btn_size).center())
+                        .on_press(Message::ToggleLibPaths)
+                        .style(if self.show_lib_paths {
+                            toolbar_btn_active
+                        } else {
+                            toolbar_btn
+                        })
+                        .padding(btn_pad),
+                )
                 .push(new_subflow_btn)
                 .push(new_func_btn)
                 .push(compile_btn)
@@ -1359,11 +1553,9 @@ impl FlowEdit {
                 .push(iced::widget::Space::new().width(Fill))
         };
 
-        let mut layout = Column::new().push(container(main_content).width(Fill).height(Fill));
-
         // Flow I/O editor panel for sub-flow windows
         if !win.is_root && matches!(win.kind, WindowKind::FlowEditor) {
-            layout = layout.push(self.view_flow_io_panel(window_id, win));
+            right_col = right_col.push(self.view_flow_io_panel(window_id, win));
         }
 
         // Metadata editor panel (toggled by Info button)
@@ -1440,10 +1632,53 @@ impl FlowEdit {
             })
             .width(Fill);
 
-            layout = layout.push(meta_panel);
+            right_col = right_col.push(meta_panel);
         }
 
-        layout = layout.push(container(status_bar).width(Fill).padding(5));
+        // Library paths panel (toggled by Libs button)
+        if self.show_lib_paths {
+            let mut paths_col = Column::new().spacing(4).padding(12);
+            paths_col = paths_col.push(Text::new("Library Search Paths").size(14));
+
+            for (i, p) in self.lib_paths.iter().enumerate() {
+                let row = Row::new()
+                    .spacing(6)
+                    .align_y(iced::Alignment::Center)
+                    .push(Text::new(p).size(12))
+                    .push(iced::widget::Space::new().width(Fill))
+                    .push(
+                        button(Text::new("\u{2715}").size(10).center())
+                            .on_press(Message::RemoveLibraryPath(i))
+                            .style(button::danger)
+                            .padding([2, 5]),
+                    );
+                paths_col = paths_col.push(row);
+            }
+            paths_col = paths_col.push(
+                button(Text::new("+ Add Path...").size(12).center())
+                    .on_press(Message::AddLibraryPath)
+                    .style(button::secondary)
+                    .padding([4, 10]),
+            );
+
+            let lib_panel = container(paths_col)
+                .style(|_theme: &Theme| container::Style {
+                    background: Some(iced::Background::Color(Color::from_rgb(0.14, 0.14, 0.18))),
+                    border: iced::Border {
+                        color: Color::from_rgb(0.3, 0.3, 0.3),
+                        width: 1.0,
+                        radius: 0.0.into(),
+                    },
+                    ..Default::default()
+                })
+                .width(Fill);
+
+            right_col = right_col.push(lib_panel);
+        }
+
+        right_col = right_col.push(container(status_bar).width(Fill).padding(5));
+
+        let layout = Row::new().push(left_panel).push(right_col.width(Fill));
         layout.into()
     }
 
@@ -1527,23 +1762,15 @@ impl FlowEdit {
                 .padding([2, 8]),
         );
 
-        let flow_name_label = container(
-            Text::new(&win.flow_name)
-                .size(14)
-                .color(Color::from_rgb(0.9, 0.6, 0.2)),
-        )
-        .center_x(Fill);
-
         let io_box = container(
             Column::new()
                 .spacing(12)
                 .padding(iced::Padding {
-                    top: 12.0,
-                    bottom: 12.0,
+                    top: 8.0,
+                    bottom: 8.0,
                     left: 0.0,
                     right: 0.0,
                 })
-                .push(flow_name_label)
                 .push(
                     Row::new()
                         .push(input_col)
@@ -1810,17 +2037,137 @@ impl FlowEdit {
             _ => None,
         });
 
-        let close_sub = window::close_requests().map(Message::CloseRequested);
-
-        let focus_sub = iced::event::listen_with(|event, _status, id| {
-            if let iced::Event::Window(iced::window::Event::Focused) = event {
-                Some(Message::WindowFocused(id))
-            } else {
-                None
+        let window_events = iced::event::listen_with(|event, _status, id| match event {
+            iced::Event::Window(iced::window::Event::CloseRequested) => {
+                Some(Message::CloseRequested(id))
             }
+            iced::Event::Window(iced::window::Event::Closed) => Some(Message::WindowClosed(id)),
+            iced::Event::Window(iced::window::Event::Focused) => Some(Message::WindowFocused(id)),
+            iced::Event::Window(iced::window::Event::Resized(size)) => {
+                Some(Message::WindowResized(id, size))
+            }
+            iced::Event::Window(iced::window::Event::Moved(pos)) => {
+                Some(Message::WindowMoved(id, pos))
+            }
+            _ => None,
         });
 
-        Subscription::batch(vec![keyboard_sub, close_sub, focus_sub])
+        Subscription::batch(vec![keyboard_sub, window_events])
+    }
+
+    fn open_library_function(&mut self, source: &str) -> Task<Message> {
+        use flowcore::provider::Provider;
+
+        let provider = build_meta_provider();
+        let source_url = match Url::parse(source) {
+            Ok(u) => u,
+            Err(_) => return Task::none(),
+        };
+        let (resolved_url, _) = match provider.resolve_url(&source_url, "default", &["toml"]) {
+            Ok(r) => r,
+            Err(_) => return Task::none(),
+        };
+        let path = match resolved_url.to_file_path() {
+            Ok(p) => p,
+            Err(()) => return Task::none(),
+        };
+
+        // Check if already open
+        for (&win_id, win) in &self.windows {
+            if win.file_path.as_ref() == Some(&path) {
+                return window::gain_focus(win_id);
+            }
+        }
+
+        // Read and parse
+        let contents = match std::fs::read_to_string(&path) {
+            Ok(c) => c,
+            Err(_) => return Task::none(),
+        };
+        let url = match Url::from_file_path(&path) {
+            Ok(u) => u,
+            Err(()) => return Task::none(),
+        };
+        let deserializer = match get::<Process>(&url) {
+            Ok(d) => d,
+            Err(_) => return Task::none(),
+        };
+
+        match deserializer.deserialize(&contents, Some(&url)) {
+            Ok(Process::FunctionProcess(ref func)) => {
+                let parent = match self.root_window {
+                    Some(id) => id,
+                    None => return Task::none(),
+                };
+                self.open_function_viewer(parent, &path, func)
+            }
+            Ok(Process::FlowProcess(_)) => match load_flow(&path) {
+                Ok((name, nodes, edges, flow_def)) => {
+                    let (fi, fo) = extract_ports(&flow_def.inputs, &flow_def.outputs);
+                    let has_nodes = !nodes.is_empty();
+                    let nc = nodes.len();
+                    let ec = edges.len();
+                    let (new_id, open_task) =
+                        window::open(self.child_window_settings(1024.0, 768.0));
+                    let child = WindowState {
+                        kind: WindowKind::FlowEditor,
+                        flow_name: name,
+                        nodes,
+                        edges,
+                        canvas_state: FlowCanvasState::default(),
+                        status: format!("Library flow - {nc} nodes, {ec} connections"),
+                        selected_node: None,
+                        selected_connection: None,
+                        history: EditHistory::default(),
+                        auto_fit_pending: has_nodes,
+                        auto_fit_enabled: true,
+                        unsaved_edits: 0,
+                        compiled_manifest: None,
+                        file_path: Some(path),
+                        flow_definition: flow_def,
+                        tooltip: None,
+                        initializer_editor: None,
+                        is_root: false,
+                        flow_inputs: fi,
+                        flow_outputs: fo,
+                        context_menu: None,
+                        show_metadata: false,
+                        flow_hierarchy: self.build_hierarchy(),
+                        last_size: None,
+                        last_position: None,
+                    };
+                    self.windows.insert(new_id, child);
+                    open_task.discard()
+                }
+                Err(_) => Task::none(),
+            },
+            Err(_) => Task::none(),
+        }
+    }
+
+    fn update_lib_paths(&mut self) {
+        let path_str = self.lib_paths.join(",");
+        std::env::set_var("FLOW_LIB_PATH", &path_str);
+        self.library_tree = LibraryTree::scan();
+    }
+
+    fn build_hierarchy(&self) -> FlowHierarchy {
+        self.root_flow_path
+            .as_ref()
+            .map(|p| FlowHierarchy::build(p))
+            .unwrap_or_else(FlowHierarchy::empty)
+    }
+
+    fn child_window_settings(&self, width: f32, height: f32) -> window::Settings {
+        let n = self.windows.len() as f32;
+        window::Settings {
+            size: iced::Size::new(width, height),
+            position: window::Position::Specific(iced::Point::new(
+                200.0 + n * 30.0,
+                150.0 + n * 30.0,
+            )),
+            ..Default::default()
+        }
     }
 
     /// Open a sub-flow in a new in-process window, or show a status message
@@ -1874,10 +2221,7 @@ impl FlowEdit {
         match load_flow(&path) {
             Ok((name, nodes, edges, flow_def)) => {
                 let has_nodes = !nodes.is_empty();
-                let (new_id, open_task) = window::open(window::Settings {
-                    size: iced::Size::new(1024.0, 768.0),
-                    ..Default::default()
-                });
+                let (new_id, open_task) = window::open(self.child_window_settings(1024.0, 768.0));
                 let nc = nodes.len();
                 let ec = edges.len();
                 let (fi, fo) = extract_ports(&flow_def.inputs, &flow_def.outputs);
@@ -1904,6 +2248,9 @@ impl FlowEdit {
                     flow_outputs: fo,
                     context_menu: None,
                     show_metadata: false,
+                    flow_hierarchy: self.build_hierarchy(),
+                    last_size: None,
+                    last_position: None,
                 };
                 self.windows.insert(new_id, child);
                 if let Some(win) = self.windows.get_mut(&parent_win_id) {
@@ -1936,10 +2283,7 @@ impl FlowEdit {
 
         let (inputs, outputs) = extract_ports(&func.inputs, &func.outputs);
 
-        let (new_id, open_task) = window::open(window::Settings {
-            size: iced::Size::new(700.0, 500.0),
-            ..Default::default()
-        });
+        let (new_id, open_task) = window::open(self.child_window_settings(700.0, 500.0));
 
         let viewer = FunctionViewer {
             name: func_name.clone(),
@@ -1975,6 +2319,9 @@ impl FlowEdit {
             flow_outputs: Vec::new(),
             context_menu: None,
             show_metadata: false,
+            flow_hierarchy: self.build_hierarchy(),
+            last_size: None,
+            last_position: None,
         };
 
         self.windows.insert(new_id, child);
@@ -2075,10 +2422,7 @@ impl FlowEdit {
         }
 
         // Open the new sub-flow in a child window
-        let (new_id, open_task) = window::open(window::Settings {
-            size: iced::Size::new(1024.0, 768.0),
-            ..Default::default()
-        });
+        let (new_id, open_task) = window::open(self.child_window_settings(1024.0, 768.0));
 
         let child = WindowState {
             kind: WindowKind::FlowEditor,
@@ -2103,6 +2447,9 @@ impl FlowEdit {
             flow_outputs: Vec::new(),
             context_menu: None,
             show_metadata: false,
+            flow_hierarchy: self.build_hierarchy(),
+            last_size: None,
+            last_position: None,
         };
 
         self.windows.insert(new_id, child);
@@ -2184,10 +2531,7 @@ impl FlowEdit {
         }
 
         // Open the function viewer window
-        let (new_id, open_task) = window::open(window::Settings {
-            size: iced::Size::new(700.0, 500.0),
-            ..Default::default()
-        });
+        let (new_id, open_task) = window::open(self.child_window_settings(700.0, 500.0));
 
         let viewer = FunctionViewer {
             name: func_name.clone(),
@@ -2223,6 +2567,9 @@ impl FlowEdit {
             flow_outputs: Vec::new(),
             context_menu: None,
             show_metadata: false,
+            flow_hierarchy: self.build_hierarchy(),
+            last_size: None,
+            last_position: None,
         };
 
         self.windows.insert(new_id, child);
@@ -2319,6 +2666,7 @@ fn perform_save(win: &mut WindowState, path: &PathBuf) {
         Ok(()) => {
             win.unsaved_edits = 0;
             win.file_path = Some(path.clone());
+            save_editor_prefs(path, win.last_size, win.last_position);
             if let Some(name) = path.file_name().and_then(|n| n.to_str()) {
                 win.status = format!("Saved to {name}");
             } else {
@@ -3248,4 +3596,52 @@ fn save_function_definition(viewer: &FunctionViewer) -> Result<(), String> {
     }
 
     Ok(())
+}
+
+fn editor_prefs_path(flow_path: &Path) -> PathBuf {
+    let mut p = flow_path.to_path_buf();
+    let name = p
+        .file_name()
+        .map(|n| format!(".{}.flowedit", n.to_string_lossy()))
+        .unwrap_or_else(|| ".flowedit".to_string());
+    p.set_file_name(name);
+    p
+}
+
+fn save_editor_prefs(flow_path: &Path, size: Option<iced::Size>, position: Option<iced::Point>) {
+    let prefs_path = editor_prefs_path(flow_path);
+    let mut map = serde_json::Map::new();
+    if let Some(s) = size {
+        map.insert("width".into(), serde_json::json!(s.width));
+        map.insert("height".into(), serde_json::json!(s.height));
+    }
+    if let Some(p) = position {
+        map.insert("x".into(), serde_json::json!(p.x));
+        map.insert("y".into(), serde_json::json!(p.y));
+    }
+    let json = serde_json::Value::Object(map).to_string();
+    let _ = std::fs::write(prefs_path, json);
+}
+
+struct EditorPrefs {
+    width: f32,
+    height: f32,
+    x: Option<f32>,
+    y: Option<f32>,
+}
+
+fn load_editor_prefs(flow_path: &Path) -> Option<EditorPrefs> {
+    let prefs_path = editor_prefs_path(flow_path);
+    let content = std::fs::read_to_string(prefs_path).ok()?;
+    let val: serde_json::Value = serde_json::from_str(&content).ok()?;
+    let w = val.get("width")?.as_f64()? as f32;
+    let h = val.get("height")?.as_f64()? as f32;
+    let x = val.get("x").and_then(|v| v.as_f64()).map(|v| v as f32);
+    let y = val.get("y").and_then(|v| v.as_f64()).map(|v| v as f32);
+    Some(EditorPrefs {
+        width: w,
+        height: h,
+        x,
+        y,
+    })
 }
