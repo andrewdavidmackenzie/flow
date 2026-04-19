@@ -145,6 +145,10 @@ enum Message {
     QuitAll,
     /// A window received focus
     WindowFocused(window::Id),
+    /// Window was resized — track the new size
+    WindowResized(window::Id, iced::Size),
+    /// Window was moved — track the new position
+    WindowMoved(window::Id, iced::Point),
 }
 
 /// State for the initializer editing dialog.
@@ -225,6 +229,10 @@ struct WindowState {
     show_metadata: bool,
     /// Flow hierarchy tree for this window's navigation panel
     flow_hierarchy: FlowHierarchy,
+    /// Last known window size (tracked via resize events)
+    last_size: Option<iced::Size>,
+    /// Last known window position (tracked via move events)
+    last_position: Option<iced::Point>,
 }
 
 /// Top-level application state
@@ -348,8 +356,21 @@ impl FlowEdit {
         let library_tree = LibraryTree::scan();
 
         // Open the root window via daemon API
+        let saved_prefs = file_path.as_ref().and_then(|p| load_editor_prefs(p));
+        let saved_size = saved_prefs
+            .as_ref()
+            .map(|p| iced::Size::new(p.width, p.height))
+            .unwrap_or_else(|| iced::Size::new(1024.0, 768.0));
+        let saved_position = saved_prefs
+            .as_ref()
+            .and_then(|p| match (p.x, p.y) {
+                (Some(x), Some(y)) => Some(window::Position::Specific(iced::Point::new(x, y))),
+                _ => None,
+            })
+            .unwrap_or(window::Position::Default);
         let (root_id, open_task) = window::open(window::Settings {
-            size: iced::Size::new(1024.0, 768.0),
+            size: saved_size,
+            position: saved_position,
             ..Default::default()
         });
 
@@ -384,6 +405,8 @@ impl FlowEdit {
             context_menu: None,
             show_metadata: false,
             flow_hierarchy,
+            last_size: None,
+            last_position: None,
         };
 
         let mut windows = HashMap::new();
@@ -699,6 +722,8 @@ impl FlowEdit {
                                 context_menu: None,
                                 show_metadata: false,
                                 flow_hierarchy: self.build_hierarchy(),
+                                last_size: None,
+                                last_position: None,
                             };
                             self.windows.insert(new_id, child);
                             return open_task.discard();
@@ -878,6 +903,16 @@ impl FlowEdit {
             }
             Message::WindowFocused(id) => {
                 self.focused_window = Some(id);
+            }
+            Message::WindowResized(id, size) => {
+                if let Some(win) = self.windows.get_mut(&id) {
+                    win.last_size = Some(size);
+                }
+            }
+            Message::WindowMoved(id, pos) => {
+                if let Some(win) = self.windows.get_mut(&id) {
+                    win.last_position = Some(pos);
+                }
             }
             Message::FunctionTabSelected(win_id, tab) => {
                 if let Some(win) = self.windows.get_mut(&win_id) {
@@ -1900,6 +1935,12 @@ impl FlowEdit {
             }
             iced::Event::Window(iced::window::Event::Closed) => Some(Message::WindowClosed(id)),
             iced::Event::Window(iced::window::Event::Focused) => Some(Message::WindowFocused(id)),
+            iced::Event::Window(iced::window::Event::Resized(size)) => {
+                Some(Message::WindowResized(id, size))
+            }
+            iced::Event::Window(iced::window::Event::Moved(pos)) => {
+                Some(Message::WindowMoved(id, pos))
+            }
             _ => None,
         });
 
@@ -2004,6 +2045,8 @@ impl FlowEdit {
                     context_menu: None,
                     show_metadata: false,
                     flow_hierarchy: self.build_hierarchy(),
+                    last_size: None,
+                    last_position: None,
                 };
                 self.windows.insert(new_id, child);
                 if let Some(win) = self.windows.get_mut(&parent_win_id) {
@@ -2073,6 +2116,8 @@ impl FlowEdit {
             context_menu: None,
             show_metadata: false,
             flow_hierarchy: self.build_hierarchy(),
+            last_size: None,
+            last_position: None,
         };
 
         self.windows.insert(new_id, child);
@@ -2199,6 +2244,8 @@ impl FlowEdit {
             context_menu: None,
             show_metadata: false,
             flow_hierarchy: self.build_hierarchy(),
+            last_size: None,
+            last_position: None,
         };
 
         self.windows.insert(new_id, child);
@@ -2317,6 +2364,8 @@ impl FlowEdit {
             context_menu: None,
             show_metadata: false,
             flow_hierarchy: self.build_hierarchy(),
+            last_size: None,
+            last_position: None,
         };
 
         self.windows.insert(new_id, child);
@@ -2413,6 +2462,7 @@ fn perform_save(win: &mut WindowState, path: &PathBuf) {
         Ok(()) => {
             win.unsaved_edits = 0;
             win.file_path = Some(path.clone());
+            save_editor_prefs(path, win.last_size, win.last_position);
             if let Some(name) = path.file_name().and_then(|n| n.to_str()) {
                 win.status = format!("Saved to {name}");
             } else {
@@ -3342,4 +3392,52 @@ fn save_function_definition(viewer: &FunctionViewer) -> Result<(), String> {
     }
 
     Ok(())
+}
+
+fn editor_prefs_path(flow_path: &Path) -> PathBuf {
+    let mut p = flow_path.to_path_buf();
+    let name = p
+        .file_name()
+        .map(|n| format!(".{}.flowedit", n.to_string_lossy()))
+        .unwrap_or_else(|| ".flowedit".to_string());
+    p.set_file_name(name);
+    p
+}
+
+fn save_editor_prefs(flow_path: &Path, size: Option<iced::Size>, position: Option<iced::Point>) {
+    let prefs_path = editor_prefs_path(flow_path);
+    let mut map = serde_json::Map::new();
+    if let Some(s) = size {
+        map.insert("width".into(), serde_json::json!(s.width));
+        map.insert("height".into(), serde_json::json!(s.height));
+    }
+    if let Some(p) = position {
+        map.insert("x".into(), serde_json::json!(p.x));
+        map.insert("y".into(), serde_json::json!(p.y));
+    }
+    let json = serde_json::Value::Object(map).to_string();
+    let _ = std::fs::write(prefs_path, json);
+}
+
+struct EditorPrefs {
+    width: f32,
+    height: f32,
+    x: Option<f32>,
+    y: Option<f32>,
+}
+
+fn load_editor_prefs(flow_path: &Path) -> Option<EditorPrefs> {
+    let prefs_path = editor_prefs_path(flow_path);
+    let content = std::fs::read_to_string(prefs_path).ok()?;
+    let val: serde_json::Value = serde_json::from_str(&content).ok()?;
+    let w = val.get("width")?.as_f64()? as f32;
+    let h = val.get("height")?.as_f64()? as f32;
+    let x = val.get("x").and_then(|v| v.as_f64()).map(|v| v as f32);
+    let y = val.get("y").and_then(|v| v.as_f64()).map(|v| v as f32);
+    Some(EditorPrefs {
+        width: w,
+        height: h,
+        x,
+        y,
+    })
 }
