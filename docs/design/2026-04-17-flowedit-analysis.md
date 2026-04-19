@@ -356,17 +356,58 @@ Initializer values saved correctly.
 
 ### Phase 6: Nested flows, new processes & polish
 
-**Work** (for follow-up PR):
-- Double-click flow node to open nested editor
-- Nested editor shows flow inputs on left edge, outputs on right edge
-- Create new sub-flow: user specifies name, inputs, outputs; opens nested flow editor
-- Create new provided implementation: user specifies name, inputs, outputs, source files
-- Error display for compilation failures
-- Flow metadata editing (name, description, authors)
+**Step 1: Click the pencil icon on a sub-flow to open nested editor**
+- Click the pencil icon on a node whose source is a relative `.toml` (sub-flow) to open it
+  in a new editor window
+- Demo: `mandlebrot/root.toml` → double-click `generate_pixels` or `render`
+- Update user manual
 
-**Tests**: Nested flow can be edited and saved. New sub-flows and provided implementations
-can be created with correct definitions. Undo/redo works for node moves, connection
-changes, and process additions. Metadata saved correctly.
+**Step 2: Nested flow editor with input/output editing**
+- Nested editor shows the flow's declared `[[input]]` ports on the left edge
+  and `[[output]]` ports on the right edge as visual anchors (not process boxes)
+- Provide UI to add, edit (name, type), and delete flow inputs and outputs
+- Demo: open a sub-flow, modify its inputs/outputs, save, confirm parent
+  still compiles
+- Update user manual
+
+**Step 3: Click the pencil icon on a provided implementation to view/edit**
+- Click the pencil icon on a node whose source is a `.rs` file (provided implementation)
+  to open the function definition editor:
+  - Tab 1: TOML definition (function name, inputs, outputs, source)
+  - Tab 2: Rust source (`.rs` file)
+  - Tab 3: Documentation (`.md` file, if it exists)
+- Allow editing inputs/outputs (name, type) in the TOML tab
+- Demo: `reverse-echo/root.toml` → double-click `reverse`; also try a
+  flowstdlib function like `add` which has all three files
+- Update user manual
+
+**Step 4: Create new sub-flow**
+- User specifies: flow name, inputs (name + type), outputs (name + type),
+  and selects a filename/location for the new `.toml`
+- Save the new sub-flow `.toml` with declared inputs/outputs
+- Add a `source = "relative/path.toml"` process reference in the parent flow
+- Open the new sub-flow in a nested editor
+- Demo: create a sub-flow from scratch in a test flow
+- Update user manual
+
+**Step 5: Create new provided implementation**
+- User specifies: function name, inputs (name + type), outputs (name + type),
+  and selects a filename/location
+- Create the function `.toml` definition and a skeleton `.rs` source file
+  (with `#[flow_function]` boilerplate, correct input count, imports)
+- Allow editing inputs/outputs (name, type) — same UI as step 3
+- Add a `source = "relative/path"` process reference in the parent flow
+- Demo: create a new function from scratch, view the generated skeleton
+- Update user manual
+
+**Step 6: Flow metadata editing**
+- Edit flow name, description, authors on any flow
+- Update user manual
+
+**Tests**: Nested flow can be edited and saved. New sub-flows and provided
+implementations can be created with correct definitions. Undo/redo works
+for node moves, connection changes, and process additions. Metadata saved
+correctly. Provided implementation skeletons compile.
 
 **Deliverable**: Production-ready flow editor.
 
@@ -400,6 +441,14 @@ changes, and process additions. Metadata saved correctly.
 - Add UI dialog to add custom library search paths or specific libraries at runtime
   (the `-L` CLI flag already supports this at startup, but there is no in-app way
   to add paths during an editing session)
+- Implement CLI options for loading, compiling and running a flow compatible with
+  flowrgui, to enable using the same automated tests for both editors
+- Flow hierarchy navigator panel: add a collapsible tree view above the Process
+  Library panel showing the structure of the loaded flow — root flow at the top,
+  child sub-flows and functions as children, recursively. Double-click to open
+  an editing window for that node. For library-defined functions/flows (lib://),
+  open a read-only view window similar to the existing editor windows.
+- Automated UI testing for interactive features described in the user manual
 
 ## 9. Key Design Decisions
 

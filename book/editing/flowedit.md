@@ -38,7 +38,7 @@ The editor window has three main areas:
 
 The main editing area where flow process nodes and their connections are displayed.
 When a flow is loaded, each process appears as a colored rounded rectangle (a "node")
-with connection lines drawn between them as bezier curves.
+with connection lines drawn between them as Bézier curves.
 
 ### Status Bar
 
@@ -79,9 +79,8 @@ Ports are the connection points on the edges of a node:
 - **Input ports** — small circles on the **left** edge, labeled with the port name
 - **Output ports** — small circles on the **right** edge, labeled with the port name
 
-Ports are discovered from two sources:
-1. **Input initializers** defined on the process reference (e.g., `input.start = {once = 1}`)
-2. **Connections** in the flow definition that reference the node's ports
+Ports are resolved from the actual function or flow definition by loading
+each subprocess source. This provides real port names and data types.
 
 ### Input Initializers
 
@@ -90,12 +89,23 @@ Input ports that have initializer values show:
 - The initializer value and type displayed to the left of the port in yellow text
 
 Initializer types:
-- **once** — the value is provided once at flow startup (e.g., `1 once`)
-- **always** — the value is provided every time the function runs (e.g., `0 always`)
+- **once** — the value is provided once at flow startup (e.g., `once: 1`)
+- **always** — the value is provided every time the function runs (e.g., `always: 0`)
+
+**Right-click** on an input port to edit its initializer. A dialog appears with:
+- A dropdown to select the type (none, once, always)
+- A JSON value field (shown only when type is not "none")
+- Apply and Cancel buttons
+
+### Resizing Nodes
+
+When a node is selected, 8 yellow resize handles appear on its edges and corners.
+Drag any handle to resize the node. Edge handles resize one dimension, corner
+handles resize both.
 
 ## Connections
 
-Connections between nodes are drawn as smooth bezier curves from an output port on
+Connections between nodes are drawn as smooth Bézier curves from an output port on
 one node to an input port on another node. Each connection has a filled arrow head
 at the destination (input) end to indicate the direction of data flow.
 
@@ -134,8 +144,14 @@ and its name appears in the status bar. Click on empty canvas to deselect.
 Click and drag a selected node to reposition it on the canvas. All connections to
 and from the node are automatically redrawn as the node moves.
 
-The cursor changes to a grab hand when hovering over a node, and a grabbing hand
-while dragging.
+The cursor changes contextually:
+- **Grab hand** over nodes (draggable)
+- **Grabbing hand** while dragging a node or panning
+- **Crosshair** over ports or while connecting
+- **Directional resize arrows** over resize handles
+- **Pointer** over the pencil icon on openable nodes
+
+Hover over a node with a truncated source label to see the full path in a tooltip.
 
 ### Deleting Nodes
 
@@ -145,12 +161,15 @@ All connections to and from the deleted node are also removed.
 ### Creating Connections
 
 Click and drag from any port (input or output) to start creating a connection.
-A green bezier curve preview follows the cursor as you drag. Compatible target
-ports highlight when you hover over them.
+A green Bézier curve preview follows the cursor as you drag.
 
 - **Output → Input**: drag from a right-side port to a left-side port
 - **Input → Output**: drag from a left-side port to a right-side port (the
   connection direction is determined automatically)
+
+While dragging, **compatible target ports** are highlighted with a green circle.
+Port type compatibility is checked — if both ports have type information, at
+least one type must match. Ports with unknown types accept any connection.
 
 Release the mouse on a valid target port to complete the connection. Release on
 empty canvas or an incompatible port to cancel.
@@ -207,7 +226,8 @@ nodes on initial load.
 
 ### Zooming
 
-- **Ctrl + mouse wheel** (Cmd on macOS) — zoom in/out centered on cursor
+- **Cmd + mouse wheel** (Ctrl on Linux) — zoom in/out centered on cursor
+  (without modifier, scroll wheel pans the canvas)
 - **Zoom controls** — floating buttons in the bottom-right corner:
   - **+** — zoom in
   - **−** — zoom out
@@ -247,6 +267,67 @@ The left panel shows available processes organized in a collapsible tree:
 
 Click a function name to add it as a new node on the canvas. The node is
 placed to the right of existing nodes and auto-fit adjusts the view if enabled.
+If a function with the same name already exists, the new node gets a unique
+alias (e.g., `add_2`, `add_3`).
+
+## Opening Sub-flows and Functions
+
+Nodes that represent sub-flows (nested `.toml` files) or provided implementations
+(custom `.rs` functions) display a pencil icon (✎) in the top-right corner. The
+cursor changes to a pointer when hovering over the icon.
+
+### Sub-flow Windows
+
+Clicking the pencil on a sub-flow node opens it in a new editor window within
+the same process. The sub-flow window shows:
+
+- A **rounded bounding box** around all subprocess nodes
+- **Flow input ports** as blue semicircles on the left edge of the box
+- **Flow output ports** as orange semicircles on the right edge of the box
+- **Bezier connections** from the flow I/O ports to the internal subprocess ports
+
+Sub-flow windows do not show the Build button (only the root flow can be compiled).
+Clicking the pencil icon on an already-open sub-flow brings the existing window
+to the front instead of opening a duplicate.
+
+### Function Definition Editor
+
+Clicking the pencil on a provided implementation node opens a function definition
+editor showing:
+
+- **Editable function name** centered at the top
+- **Input ports** on the left with editable name and type fields
+- **Output ports** on the right with editable name and type fields
+- **+** buttons to add new input or output ports
+- **✕** buttons to delete existing ports
+- **Source file link** — click the filename to view the Rust source code,
+  or click "..." to browse for a different source file
+- **Docs tab** — if a `.md` documentation file exists alongside the function
+
+The **💾 Save** button writes the function definition to disk:
+- Updates the `.toml` definition file with the current name, inputs, and outputs
+- Generates a skeleton `.rs` source file if one doesn't exist (with the
+  `#[flow_function]` boilerplate and correct input bindings)
+- Generates a `function.toml` Cargo manifest if one doesn't exist
+
+## Compiling
+
+Click the **🔨 Build** button in the status bar (or press **Cmd+B**) to compile
+the current flow to a manifest. The flow must be saved before compiling — if the
+flow has never been saved, a Save As dialog appears first. Any unsaved edits are
+automatically saved before compilation.
+
+The compiled manifest is written to the same directory as the flow file.
+
+## Window Management
+
+`flowedit` uses multi-window support — sub-flows and functions open in separate
+windows within the same application process.
+
+- **Cmd+W** — close the currently focused window
+- **Cmd+Q** — quit the entire application (prompts to save if there are unsaved changes)
+- Closing the root window exits the entire application
+- Closing a child window only closes that window
 
 ## Keyboard Shortcuts
 
@@ -258,6 +339,9 @@ placed to the right of existing nodes and auto-fit adjusts the view if enabled.
 | Cmd+Shift+S | Save As |
 | Cmd+O | Open |
 | Cmd+N | New |
+| Cmd+B | Build (compile) |
+| Cmd+W | Close window |
+| Cmd+Q | Quit all |
 | Cmd+= | Zoom in |
 | Cmd+- | Zoom out |
 | Delete / Backspace | Delete selected node or connection |

@@ -19,6 +19,7 @@ use std::path::{Path, PathBuf};
 use clap::{Arg, ArgAction, Command as ClapCommand};
 use iced::keyboard;
 use iced::widget::{button, container, pick_list, stack, text_input, Column, Row, Text};
+use iced::window;
 use iced::{Color, Element, Fill, Subscription, Task, Theme};
 use log::info;
 use simpath::Simpath;
@@ -44,16 +45,16 @@ use library_panel::{LibraryMessage, LibraryTree};
 /// Messages handled by the flowedit application
 #[derive(Debug, Clone)]
 enum Message {
-    /// A message from the interactive canvas (select, move, delete)
-    Canvas(CanvasMessage),
-    /// A message from the library side panel
-    Library(LibraryMessage),
-    /// Zoom in by one step
-    ZoomIn,
-    /// Zoom out by one step
-    ZoomOut,
-    /// Toggle auto-fit mode
-    ToggleAutoFit,
+    /// A message from the interactive canvas, tagged with its window ID
+    WindowCanvas(window::Id, CanvasMessage),
+    /// A message from the library side panel, tagged with the originating window ID
+    Library(window::Id, LibraryMessage),
+    /// Zoom in by one step, tagged with the originating window ID
+    ZoomIn(window::Id),
+    /// Zoom out by one step, tagged with the originating window ID
+    ZoomOut(window::Id),
+    /// Toggle auto-fit mode, tagged with the originating window ID
+    ToggleAutoFit(window::Id),
     /// Undo the last edit action
     Undo,
     /// Redo the last undone action
@@ -68,14 +69,76 @@ enum Message {
     New,
     /// Compile the current flow
     Compile,
-    /// Initializer type changed in the editor dialog
-    InitializerTypeChanged(String),
-    /// Initializer value changed in the editor dialog
-    InitializerValueChanged(String),
-    /// Apply the initializer edit
-    InitializerApply,
-    /// Cancel the initializer edit
-    InitializerCancel,
+    /// Initializer type changed in the editor dialog, tagged with the originating window ID
+    InitializerTypeChanged(window::Id, String),
+    /// Initializer value changed in the editor dialog, tagged with the originating window ID
+    InitializerValueChanged(window::Id, String),
+    /// Apply the initializer edit, tagged with the originating window ID
+    InitializerApply(window::Id),
+    /// Cancel the initializer edit, tagged with the originating window ID
+    InitializerCancel(window::Id),
+    /// Switch tab in a function viewer window
+    FunctionTabSelected(window::Id, usize),
+    /// Function name edited
+    FunctionNameChanged(window::Id, String),
+    /// Browse for source file
+    FunctionBrowseSource(window::Id),
+    /// Add a new input port to a function
+    FunctionAddInput(window::Id),
+    /// Add a new output port to a function
+    FunctionAddOutput(window::Id),
+    /// Delete an input port from a function
+    FunctionDeleteInput(window::Id, usize),
+    /// Delete an output port from a function
+    FunctionDeleteOutput(window::Id, usize),
+    /// Input port name changed
+    FunctionInputNameChanged(window::Id, usize, String),
+    /// Input port type changed
+    FunctionInputTypeChanged(window::Id, usize, String),
+    /// Output port name changed
+    FunctionOutputNameChanged(window::Id, usize, String),
+    /// Output port type changed
+    FunctionOutputTypeChanged(window::Id, usize, String),
+    /// Save function definition to disk
+    FunctionSave(window::Id),
+    /// Create a new sub-flow and add it to the current flow
+    NewSubFlow,
+    /// Create a new provided implementation and add it to the current flow
+    NewFunction,
+    /// Flow name changed
+    FlowNameChanged(window::Id, String),
+    /// Flow version changed
+    FlowVersionChanged(window::Id, String),
+    /// Flow description changed
+    FlowDescriptionChanged(window::Id, String),
+    /// Flow authors changed
+    FlowAuthorsChanged(window::Id, String),
+    /// Toggle metadata editor visibility
+    ToggleMetadataEditor(window::Id),
+    /// Add a flow-level input port
+    FlowAddInput(window::Id),
+    /// Add a flow-level output port
+    FlowAddOutput(window::Id),
+    /// Delete a flow-level input port
+    FlowDeleteInput(window::Id, usize),
+    /// Delete a flow-level output port
+    FlowDeleteOutput(window::Id, usize),
+    /// Flow input port name changed
+    FlowInputNameChanged(window::Id, usize, String),
+    /// Flow input port type changed
+    FlowInputTypeChanged(window::Id, usize, String),
+    /// Flow output port name changed
+    FlowOutputNameChanged(window::Id, usize, String),
+    /// Flow output port type changed
+    FlowOutputTypeChanged(window::Id, usize, String),
+    /// A window close was requested
+    CloseRequested(window::Id),
+    /// Close the currently focused window (Cmd+W)
+    CloseActiveWindow,
+    /// Quit the entire application (Cmd+Q)
+    QuitAll,
+    /// A window received focus
+    WindowFocused(window::Id),
 }
 
 /// State for the initializer editing dialog.
@@ -90,8 +153,28 @@ struct InitializerEditor {
     value_text: String,
 }
 
-/// Top-level application state
-struct FlowEdit {
+/// State for a function definition viewer/editor window.
+struct FunctionViewer {
+    name: String,
+    source_file: String,
+    inputs: Vec<PortInfo>,
+    outputs: Vec<PortInfo>,
+    rs_content: String,
+    docs_content: Option<String>,
+    active_tab: usize,
+    toml_path: PathBuf,
+}
+
+/// What kind of content a window displays.
+enum WindowKind {
+    FlowEditor,
+    FunctionViewer(FunctionViewer),
+}
+
+/// Per-window state for the flow editor.
+struct WindowState {
+    /// What this window displays
+    kind: WindowKind,
     /// The name of the flow being viewed
     flow_name: String,
     /// Positioned nodes derived from the flow's process references
@@ -124,6 +207,26 @@ struct FlowEdit {
     tooltip: Option<(String, f32, f32)>,
     /// Active initializer editor dialog, if any
     initializer_editor: Option<InitializerEditor>,
+    /// Whether this is the root (main) window
+    is_root: bool,
+    /// Flow-level input ports (for sub-flow display)
+    flow_inputs: Vec<PortInfo>,
+    /// Flow-level output ports (for sub-flow display)
+    flow_outputs: Vec<PortInfo>,
+    /// Context menu position (screen coords), if showing
+    context_menu: Option<(f32, f32)>,
+    /// Whether the metadata editor is visible
+    show_metadata: bool,
+}
+
+/// Top-level application state
+struct FlowEdit {
+    /// Per-window states, keyed by window ID
+    windows: HashMap<window::Id, WindowState>,
+    /// The ID of the root (main) window, if known
+    root_window: Option<window::Id>,
+    /// The ID of the currently focused window (updated on focus events)
+    focused_window: Option<window::Id>,
     /// Library panel tree for process discovery
     library_tree: LibraryTree,
 }
@@ -133,7 +236,7 @@ struct FlowEdit {
 /// Parses CLI arguments, loads the flow definition, and launches the iced GUI.
 fn main() -> iced::Result {
     env_logger::init();
-    iced::application(FlowEdit::new, FlowEdit::update, FlowEdit::view)
+    iced::daemon(FlowEdit::new, FlowEdit::update, FlowEdit::view)
         .title(FlowEdit::title)
         .subscription(FlowEdit::subscription)
         .antialiasing(true)
@@ -233,7 +336,16 @@ impl FlowEdit {
 
         let has_nodes = !nodes.is_empty();
         let library_tree = LibraryTree::scan();
-        let app = FlowEdit {
+
+        // Open the root window via daemon API
+        let (root_id, open_task) = window::open(window::Settings {
+            size: iced::Size::new(1024.0, 768.0),
+            ..Default::default()
+        });
+
+        let (fi, fo) = extract_ports(&flow_definition.inputs, &flow_definition.outputs);
+        let win_state = WindowState {
+            kind: WindowKind::FlowEditor,
             flow_name,
             nodes,
             edges,
@@ -250,84 +362,99 @@ impl FlowEdit {
             flow_definition,
             tooltip: None,
             initializer_editor: None,
+            is_root: true,
+            flow_inputs: fi,
+            flow_outputs: fo,
+            context_menu: None,
+            show_metadata: false,
+        };
+
+        let mut windows = HashMap::new();
+        windows.insert(root_id, win_state);
+
+        let app = FlowEdit {
+            windows,
+            root_window: Some(root_id),
+            focused_window: Some(root_id),
             library_tree,
         };
 
-        (app, Task::none())
+        (app, open_task.discard())
     }
 
-    /// Return the window title, showing the file name and unsaved indicator.
-    fn title(&self) -> String {
-        let modified = if self.unsaved_edits > 0 { " *" } else { "" };
-        let name = self
-            .file_path
-            .as_ref()
-            .and_then(|p| p.file_name())
-            .and_then(|n| n.to_str())
-            .unwrap_or(&self.flow_name);
-        format!("flowedit - {name}{modified}")
+    /// Return the window title, showing the flow name, file name, and unsaved indicator.
+    fn title(&self, window_id: window::Id) -> String {
+        if let Some(win) = self.windows.get(&window_id) {
+            let modified = if win.unsaved_edits > 0 { " *" } else { "" };
+            let file = win
+                .file_path
+                .as_ref()
+                .and_then(|p| p.file_name())
+                .and_then(|n| n.to_str())
+                .unwrap_or("untitled");
+            format!("flowedit - {} ({}){modified}", win.flow_name, file)
+        } else {
+            String::from("flowedit")
+        }
     }
 
     /// Handle messages from canvas interactions.
     fn update(&mut self, message: Message) -> Task<Message> {
         match message {
-            Message::Canvas(canvas_msg) => match canvas_msg {
-                CanvasMessage::Selected(idx) => {
-                    self.selected_node = idx;
-                    if self.selected_connection.is_some() {
-                        self.selected_connection = None;
-                        self.canvas_state.request_redraw();
-                    }
-                    if let Some(i) = idx {
-                        if let Some(node) = self.nodes.get(i) {
-                            self.status = format!("Selected: {}", node.alias);
+            Message::WindowCanvas(win_id, canvas_msg) => {
+                let Some(win) = self.windows.get_mut(&win_id) else {
+                    return Task::none();
+                };
+                match canvas_msg {
+                    CanvasMessage::Selected(idx) => {
+                        win.selected_node = idx;
+                        win.context_menu = None;
+                        if win.selected_connection.is_some() {
+                            win.selected_connection = None;
+                            win.canvas_state.request_redraw();
                         }
-                    } else {
-                        self.status = String::from("Ready");
+                        if let Some(i) = idx {
+                            if let Some(node) = win.nodes.get(i) {
+                                win.status = format!("Selected: {}", node.alias);
+                            }
+                        } else {
+                            win.status = String::from("Ready");
+                        }
                     }
-                }
-                CanvasMessage::Moved(idx, x, y) => {
-                    if let Some(node) = self.nodes.get_mut(idx) {
-                        node.x = x;
-                        node.y = y;
-                        self.canvas_state.request_redraw();
+                    CanvasMessage::Moved(idx, x, y) => {
+                        if let Some(node) = win.nodes.get_mut(idx) {
+                            node.x = x;
+                            node.y = y;
+                            win.canvas_state.request_redraw();
+                        }
                     }
-                }
-                CanvasMessage::Resized(idx, x, y, w, h) => {
-                    if let Some(node) = self.nodes.get_mut(idx) {
-                        node.x = x;
-                        node.y = y;
-                        node.width = w;
-                        node.height = h;
-                        self.canvas_state.request_redraw();
+                    CanvasMessage::Resized(idx, x, y, w, h) => {
+                        if let Some(node) = win.nodes.get_mut(idx) {
+                            node.x = x;
+                            node.y = y;
+                            node.width = w;
+                            node.height = h;
+                            win.canvas_state.request_redraw();
+                        }
                     }
-                }
-                CanvasMessage::MoveCompleted(idx, old_x, old_y, new_x, new_y) => {
-                    info!("MoveCompleted: idx={idx}, ({old_x},{old_y}) -> ({new_x},{new_y})");
-                    if (old_x - new_x).abs() > 0.5 || (old_y - new_y).abs() > 0.5 {
-                        self.record_edit(EditAction::MoveNode {
-                            index: idx,
-                            old_x,
-                            old_y,
-                            new_x,
-                            new_y,
-                        });
+                    CanvasMessage::MoveCompleted(idx, old_x, old_y, new_x, new_y) => {
+                        info!("MoveCompleted: idx={idx}, ({old_x},{old_y}) -> ({new_x},{new_y})");
+                        if (old_x - new_x).abs() > 0.5 || (old_y - new_y).abs() > 0.5 {
+                            record_edit(
+                                win,
+                                EditAction::MoveNode {
+                                    index: idx,
+                                    old_x,
+                                    old_y,
+                                    new_x,
+                                    new_y,
+                                },
+                            );
+                        }
                     }
-                }
-                #[allow(clippy::similar_names)]
-                CanvasMessage::ResizeCompleted(
-                    idx,
-                    old_x,
-                    old_y,
-                    old_w,
-                    old_h,
-                    new_x,
-                    new_y,
-                    new_w,
-                    new_h,
-                ) => {
-                    self.record_edit(EditAction::ResizeNode {
-                        index: idx,
+                    #[allow(clippy::similar_names)]
+                    CanvasMessage::ResizeCompleted(
+                        idx,
                         old_x,
                         old_y,
                         old_w,
@@ -336,287 +463,674 @@ impl FlowEdit {
                         new_y,
                         new_w,
                         new_h,
-                    });
-                }
-                CanvasMessage::Deleted(idx) => {
-                    if idx < self.nodes.len() {
-                        let node = if let Some(node) = self.nodes.get(idx) {
-                            node.clone()
-                        } else {
-                            return Task::none();
-                        };
-                        let alias = node.alias.clone();
-                        let removed_edges: Vec<EdgeLayout> = self
-                            .edges
-                            .iter()
-                            .filter(|e| e.references_node(&alias))
-                            .cloned()
-                            .collect();
-                        self.nodes.remove(idx);
-                        self.edges.retain(|e| !e.references_node(&alias));
-                        self.record_edit(EditAction::DeleteNode {
-                            index: idx,
-                            node,
-                            removed_edges,
-                        });
-                        self.selected_node = None;
-                        self.selected_connection = None;
-                        self.canvas_state.request_redraw();
-                        let nc = self.nodes.len();
-                        let ec = self.edges.len();
-                        self.status = format!("Node deleted - {nc} nodes, {ec} connections");
-                        if self.auto_fit_enabled {
-                            self.auto_fit_pending = true;
-                        }
+                    ) => {
+                        record_edit(
+                            win,
+                            EditAction::ResizeNode {
+                                index: idx,
+                                old_x,
+                                old_y,
+                                old_w,
+                                old_h,
+                                new_x,
+                                new_y,
+                                new_w,
+                                new_h,
+                            },
+                        );
                     }
-                }
-                CanvasMessage::ConnectionCreated {
-                    from_node,
-                    from_port,
-                    to_node,
-                    to_port,
-                } => {
-                    let edge = EdgeLayout::new(
-                        from_node.clone(),
-                        from_port.clone(),
-                        to_node.clone(),
-                        to_port.clone(),
-                    );
-                    self.record_edit(EditAction::CreateConnection { edge: edge.clone() });
-                    self.edges.push(edge);
-                    self.canvas_state.request_redraw();
-                    let nc = self.nodes.len();
-                    let ec = self.edges.len();
-                    self.status = format!(
-                        "Connection created: {from_node}/{from_port} -> {to_node}/{to_port} - {nc} nodes, {ec} connections"
-                    );
-                }
-                CanvasMessage::ConnectionSelected(idx) => {
-                    self.selected_connection = idx;
-                    self.selected_node = None;
-                    self.canvas_state.request_redraw();
-                    if let Some(i) = idx {
-                        if let Some(edge) = self.edges.get(i) {
-                            self.status = format!(
-                                "Connection: {} -> {}",
-                                format_endpoint(&edge.from_node, &edge.from_port),
-                                format_endpoint(&edge.to_node, &edge.to_port),
-                            );
-                        }
-                    } else {
-                        self.status = String::from("Ready");
-                    }
-                }
-                CanvasMessage::ConnectionDeleted(idx) => {
-                    if idx < self.edges.len() {
-                        let edge = self.edges.remove(idx);
-                        self.record_edit(EditAction::DeleteConnection { index: idx, edge });
-                        self.selected_connection = None;
-                        self.canvas_state.request_redraw();
-                        let nc = self.nodes.len();
-                        let ec = self.edges.len();
-                        self.status = format!("Connection deleted - {nc} nodes, {ec} connections");
-                    }
-                }
-                CanvasMessage::HoverChanged(data) => {
-                    self.tooltip = data;
-                }
-                CanvasMessage::AutoFitViewport(viewport) => {
-                    if self.auto_fit_enabled || self.auto_fit_pending {
-                        self.canvas_state.auto_fit(&self.nodes, viewport);
-                        self.auto_fit_pending = false;
-                    }
-                }
-                CanvasMessage::Pan(dx, dy) => {
-                    self.auto_fit_enabled = false; // Manual pan disables auto-fit
-                    self.canvas_state.scroll_offset.x += dx;
-                    self.canvas_state.scroll_offset.y += dy;
-                    self.canvas_state.request_redraw();
-                }
-                CanvasMessage::ZoomBy(factor) => {
-                    self.auto_fit_enabled = false; // Manual zoom disables auto-fit
-                    self.canvas_state.zoom = (self.canvas_state.zoom * factor).clamp(0.1, 5.0);
-                    self.canvas_state.request_redraw();
-                    let pct = (self.canvas_state.zoom * 100.0) as u32;
-                    self.status = format!("Zoom: {pct}%");
-                }
-                CanvasMessage::InitializerEdit(node_idx, port_name) => {
-                    // Look up current initializer from the model (flow definition)
-                    let alias = self
-                        .nodes
-                        .get(node_idx)
-                        .map(|n| n.alias.clone())
-                        .unwrap_or_default();
-                    let (init_type, value_text) = self
-                        .flow_definition
-                        .process_refs
-                        .iter()
-                        .find(|pr| {
-                            let pr_alias = if pr.alias.is_empty() {
-                                derive_short_name(&pr.source)
+                    CanvasMessage::Deleted(idx) => {
+                        if idx < win.nodes.len() {
+                            let node = if let Some(node) = win.nodes.get(idx) {
+                                node.clone()
                             } else {
-                                pr.alias.to_string()
+                                return Task::none();
                             };
-                            pr_alias == alias
-                        })
-                        .and_then(|pr| pr.initializations.get(&port_name))
-                        .map(|init| match init {
-                            InputInitializer::Once(v) => (
-                                "once".to_string(),
-                                serde_json::to_string(v).unwrap_or_default(),
-                            ),
-                            InputInitializer::Always(v) => (
-                                "always".to_string(),
-                                serde_json::to_string(v).unwrap_or_default(),
-                            ),
-                        })
-                        .unwrap_or_else(|| ("none".to_string(), String::new()));
+                            let alias = node.alias.clone();
+                            let removed_edges: Vec<EdgeLayout> = win
+                                .edges
+                                .iter()
+                                .filter(|e| e.references_node(&alias))
+                                .cloned()
+                                .collect();
+                            win.nodes.remove(idx);
+                            win.edges.retain(|e| !e.references_node(&alias));
+                            record_edit(
+                                win,
+                                EditAction::DeleteNode {
+                                    index: idx,
+                                    node,
+                                    removed_edges,
+                                },
+                            );
+                            win.selected_node = None;
+                            win.selected_connection = None;
+                            win.canvas_state.request_redraw();
+                            let nc = win.nodes.len();
+                            let ec = win.edges.len();
+                            win.status = format!("Node deleted - {nc} nodes, {ec} connections");
+                            if win.auto_fit_enabled {
+                                win.auto_fit_pending = true;
+                            }
+                        }
+                    }
+                    CanvasMessage::ConnectionCreated {
+                        from_node,
+                        from_port,
+                        to_node,
+                        to_port,
+                    } => {
+                        let edge = EdgeLayout::new(
+                            from_node.clone(),
+                            from_port.clone(),
+                            to_node.clone(),
+                            to_port.clone(),
+                        );
+                        record_edit(win, EditAction::CreateConnection { edge: edge.clone() });
+                        win.edges.push(edge);
+                        win.canvas_state.request_redraw();
+                        let nc = win.nodes.len();
+                        let ec = win.edges.len();
+                        win.status = format!(
+                            "Connection created: {from_node}/{from_port} -> {to_node}/{to_port} - {nc} nodes, {ec} connections"
+                        );
+                    }
+                    CanvasMessage::ConnectionSelected(idx) => {
+                        win.selected_connection = idx;
+                        win.selected_node = None;
+                        win.canvas_state.request_redraw();
+                        if let Some(i) = idx {
+                            if let Some(edge) = win.edges.get(i) {
+                                win.status = format!(
+                                    "Connection: {} -> {}",
+                                    format_endpoint(&edge.from_node, &edge.from_port),
+                                    format_endpoint(&edge.to_node, &edge.to_port),
+                                );
+                            }
+                        } else {
+                            win.status = String::from("Ready");
+                        }
+                    }
+                    CanvasMessage::ConnectionDeleted(idx) => {
+                        if idx < win.edges.len() {
+                            let edge = win.edges.remove(idx);
+                            record_edit(win, EditAction::DeleteConnection { index: idx, edge });
+                            win.selected_connection = None;
+                            win.canvas_state.request_redraw();
+                            let nc = win.nodes.len();
+                            let ec = win.edges.len();
+                            win.status =
+                                format!("Connection deleted - {nc} nodes, {ec} connections");
+                        }
+                    }
+                    CanvasMessage::HoverChanged(data) => {
+                        win.tooltip = data;
+                    }
+                    CanvasMessage::AutoFitViewport(viewport) => {
+                        if win.auto_fit_enabled || win.auto_fit_pending {
+                            let has_flow_io =
+                                !win.flow_inputs.is_empty() || !win.flow_outputs.is_empty();
+                            win.canvas_state.auto_fit(&win.nodes, has_flow_io, viewport);
+                            win.auto_fit_pending = false;
+                        }
+                    }
+                    CanvasMessage::Pan(dx, dy) => {
+                        win.auto_fit_enabled = false; // Manual pan disables auto-fit
+                        win.canvas_state.scroll_offset.x += dx;
+                        win.canvas_state.scroll_offset.y += dy;
+                        win.canvas_state.request_redraw();
+                    }
+                    CanvasMessage::ZoomBy(factor) => {
+                        win.auto_fit_enabled = false; // Manual zoom disables auto-fit
+                        win.canvas_state.zoom = (win.canvas_state.zoom * factor).clamp(0.1, 5.0);
+                        win.canvas_state.request_redraw();
+                        let pct = (win.canvas_state.zoom * 100.0) as u32;
+                        win.status = format!("Zoom: {pct}%");
+                    }
+                    CanvasMessage::InitializerEdit(node_idx, port_name) => {
+                        // Look up current initializer from the model (flow definition)
+                        let alias = win
+                            .nodes
+                            .get(node_idx)
+                            .map(|n| n.alias.clone())
+                            .unwrap_or_default();
+                        let (init_type, value_text) = win
+                            .flow_definition
+                            .process_refs
+                            .iter()
+                            .find(|pr| {
+                                let pr_alias = if pr.alias.is_empty() {
+                                    derive_short_name(&pr.source)
+                                } else {
+                                    pr.alias.to_string()
+                                };
+                                pr_alias == alias
+                            })
+                            .and_then(|pr| pr.initializations.get(&port_name))
+                            .map(|init| match init {
+                                InputInitializer::Once(v) => (
+                                    "once".to_string(),
+                                    serde_json::to_string(v).unwrap_or_default(),
+                                ),
+                                InputInitializer::Always(v) => (
+                                    "always".to_string(),
+                                    serde_json::to_string(v).unwrap_or_default(),
+                                ),
+                            })
+                            .unwrap_or_else(|| ("none".to_string(), String::new()));
 
-                    self.initializer_editor = Some(InitializerEditor {
-                        node_index: node_idx,
-                        port_name,
-                        init_type,
-                        value_text,
-                    });
+                        win.initializer_editor = Some(InitializerEditor {
+                            node_index: node_idx,
+                            port_name,
+                            init_type,
+                            value_text,
+                        });
+                    }
+                    CanvasMessage::OpenNode(idx) => {
+                        return self.open_node(win_id, idx);
+                    }
+                    CanvasMessage::ContextMenu(x, y) => {
+                        if let Some(win) = self.windows.get_mut(&win_id) {
+                            win.context_menu = Some((x, y));
+                        }
+                    }
                 }
-            },
-            Message::Library(ref lib_msg) => {
+            }
+            Message::Library(win_id, ref lib_msg) => {
                 if let Some((source, func_name)) = self.library_tree.update(lib_msg) {
-                    self.add_library_function(&source, &func_name);
+                    if let Some(win) = self.windows.get_mut(&win_id) {
+                        add_library_function(win, &source, &func_name);
+                    }
                 }
             }
-            Message::ZoomIn => {
-                self.auto_fit_enabled = false;
-                self.canvas_state.zoom_in();
-                let pct = (self.canvas_state.zoom * 100.0) as u32;
-                self.status = format!("Zoom: {pct}%");
+            Message::ZoomIn(win_id) => {
+                if let Some(win) = self.windows.get_mut(&win_id) {
+                    win.auto_fit_enabled = false;
+                    win.canvas_state.zoom_in();
+                    let pct = (win.canvas_state.zoom * 100.0) as u32;
+                    win.status = format!("Zoom: {pct}%");
+                }
             }
-            Message::ZoomOut => {
-                self.auto_fit_enabled = false;
-                self.canvas_state.zoom_out();
-                let pct = (self.canvas_state.zoom * 100.0) as u32;
-                self.status = format!("Zoom: {pct}%");
+            Message::ZoomOut(win_id) => {
+                if let Some(win) = self.windows.get_mut(&win_id) {
+                    win.auto_fit_enabled = false;
+                    win.canvas_state.zoom_out();
+                    let pct = (win.canvas_state.zoom * 100.0) as u32;
+                    win.status = format!("Zoom: {pct}%");
+                }
             }
-            Message::ToggleAutoFit => {
-                self.auto_fit_enabled = !self.auto_fit_enabled;
-                if self.auto_fit_enabled {
-                    self.auto_fit_pending = true;
-                    self.canvas_state.request_redraw();
-                    self.status = String::from("Auto-fit enabled");
-                } else {
-                    self.status = String::from("Auto-fit disabled");
+            Message::ToggleAutoFit(win_id) => {
+                if let Some(win) = self.windows.get_mut(&win_id) {
+                    win.auto_fit_enabled = !win.auto_fit_enabled;
+                    if win.auto_fit_enabled {
+                        win.auto_fit_pending = true;
+                        win.canvas_state.request_redraw();
+                        win.status = String::from("Auto-fit enabled");
+                    } else {
+                        win.status = String::from("Auto-fit disabled");
+                    }
                 }
             }
             Message::Undo => {
-                self.apply_undo();
-                self.unsaved_edits = (self.unsaved_edits - 1).max(0);
+                let target = self.focused_window.or(self.root_window);
+                if let Some(win) = target.and_then(|id| self.windows.get_mut(&id)) {
+                    apply_undo(win);
+                    win.unsaved_edits = (win.unsaved_edits - 1).max(0);
+                }
             }
             Message::Redo => {
-                self.apply_redo();
-                self.unsaved_edits += 1;
+                let target = self.focused_window.or(self.root_window);
+                if let Some(win) = target.and_then(|id| self.windows.get_mut(&id)) {
+                    apply_redo(win);
+                    win.unsaved_edits += 1;
+                }
             }
             Message::Save => {
-                if let Some(path) = self.file_path.clone() {
-                    self.perform_save(&path);
-                } else {
-                    self.perform_save_as();
+                let target = self.focused_window.or(self.root_window);
+                if let Some(win) = target.and_then(|id| self.windows.get_mut(&id)) {
+                    if let Some(path) = win.file_path.clone() {
+                        perform_save(win, &path);
+                    } else {
+                        perform_save_as(win);
+                    }
                 }
             }
             Message::SaveAs => {
-                self.perform_save_as();
+                let target = self.focused_window.or(self.root_window);
+                if let Some(win) = target.and_then(|id| self.windows.get_mut(&id)) {
+                    perform_save_as(win);
+                }
             }
             Message::Open => {
-                self.perform_open();
+                if let Some(win) = self.root_window.and_then(|id| self.windows.get_mut(&id)) {
+                    perform_open(win);
+                }
             }
             Message::New => {
-                self.perform_new();
+                if let Some(win) = self.root_window.and_then(|id| self.windows.get_mut(&id)) {
+                    perform_new(win);
+                }
             }
             Message::Compile => {
-                if !self.nodes.is_empty() {
-                    match self.perform_compile() {
-                        Ok(path) => {
-                            self.compiled_manifest = Some(path.clone());
-                            self.status = format!("Compiled: {}", path.display());
-                        }
-                        Err(e) => {
-                            self.compiled_manifest = None;
-                            self.status = e.to_string();
+                let target = self.focused_window.or(self.root_window);
+                if let Some(win) = target.and_then(|id| self.windows.get_mut(&id)) {
+                    if !win.nodes.is_empty() {
+                        match perform_compile(win) {
+                            Ok(path) => {
+                                win.compiled_manifest = Some(path.clone());
+                                win.status = format!("Compiled: {}", path.display());
+                            }
+                            Err(e) => {
+                                win.compiled_manifest = None;
+                                win.status = e.to_string();
+                            }
                         }
                     }
                 }
             }
-            Message::InitializerTypeChanged(new_type) => {
-                if let Some(ref mut editor) = self.initializer_editor {
-                    editor.init_type = new_type;
+            Message::FlowNameChanged(win_id, new_name) => {
+                if let Some(win) = self.windows.get_mut(&win_id) {
+                    win.flow_name = new_name.clone();
+                    win.flow_definition.name = new_name;
+                    win.unsaved_edits += 1;
                 }
             }
-            Message::InitializerValueChanged(new_value) => {
-                if let Some(ref mut editor) = self.initializer_editor {
-                    editor.value_text = new_value;
+            Message::FlowVersionChanged(win_id, version) => {
+                if let Some(win) = self.windows.get_mut(&win_id) {
+                    win.flow_definition.metadata.version = version;
+                    win.unsaved_edits += 1;
                 }
             }
-            Message::InitializerApply => {
-                if let Some(editor) = self.initializer_editor.take() {
-                    self.apply_initializer_edit(&editor);
+            Message::FlowDescriptionChanged(win_id, desc) => {
+                if let Some(win) = self.windows.get_mut(&win_id) {
+                    win.flow_definition.metadata.description = desc;
+                    win.unsaved_edits += 1;
                 }
             }
-            Message::InitializerCancel => {
-                self.initializer_editor = None;
+            Message::FlowAuthorsChanged(win_id, authors_str) => {
+                if let Some(win) = self.windows.get_mut(&win_id) {
+                    win.flow_definition.metadata.authors = authors_str
+                        .split(',')
+                        .map(|s| s.trim().to_string())
+                        .filter(|s| !s.is_empty())
+                        .collect();
+                    win.unsaved_edits += 1;
+                }
+            }
+            Message::ToggleMetadataEditor(win_id) => {
+                if let Some(win) = self.windows.get_mut(&win_id) {
+                    win.show_metadata = !win.show_metadata;
+                }
+            }
+            Message::NewSubFlow => {
+                for win in self.windows.values_mut() {
+                    win.context_menu = None;
+                }
+                return self.create_new_subflow();
+            }
+            Message::NewFunction => {
+                for win in self.windows.values_mut() {
+                    win.context_menu = None;
+                }
+                return self.create_new_function();
+            }
+            Message::InitializerTypeChanged(win_id, new_type) => {
+                if let Some(win) = self.windows.get_mut(&win_id) {
+                    if let Some(ref mut editor) = win.initializer_editor {
+                        editor.init_type = new_type;
+                    }
+                }
+            }
+            Message::InitializerValueChanged(win_id, new_value) => {
+                if let Some(win) = self.windows.get_mut(&win_id) {
+                    if let Some(ref mut editor) = win.initializer_editor {
+                        editor.value_text = new_value;
+                    }
+                }
+            }
+            Message::InitializerApply(win_id) => {
+                if let Some(win) = self.windows.get_mut(&win_id) {
+                    if let Some(editor) = win.initializer_editor.take() {
+                        apply_initializer_edit(win, &editor);
+                    }
+                }
+            }
+            Message::InitializerCancel(win_id) => {
+                if let Some(win) = self.windows.get_mut(&win_id) {
+                    win.initializer_editor = None;
+                }
+            }
+            Message::WindowFocused(id) => {
+                self.focused_window = Some(id);
+            }
+            Message::FunctionTabSelected(win_id, tab) => {
+                if let Some(win) = self.windows.get_mut(&win_id) {
+                    if let WindowKind::FunctionViewer(ref mut viewer) = win.kind {
+                        viewer.active_tab = tab;
+                    }
+                }
+            }
+            Message::FunctionNameChanged(win_id, new_name) => {
+                if let Some(win) = self.windows.get_mut(&win_id) {
+                    if let WindowKind::FunctionViewer(ref mut viewer) = win.kind {
+                        viewer.name = new_name;
+                    }
+                    win.unsaved_edits += 1;
+                }
+            }
+            Message::FunctionBrowseSource(win_id) => {
+                let dialog = rfd::FileDialog::new().add_filter("Rust", &["rs"]);
+                if let Some(selected) = dialog.pick_file() {
+                    if let Some(win) = self.windows.get_mut(&win_id) {
+                        if let WindowKind::FunctionViewer(ref mut viewer) = win.kind {
+                            let base = viewer.toml_path.parent().unwrap_or(Path::new("."));
+                            let rel = selected
+                                .strip_prefix(base)
+                                .map(|p| p.to_string_lossy().to_string())
+                                .unwrap_or_else(|_| selected.to_string_lossy().to_string());
+                            viewer.source_file = rel;
+                            viewer.rs_content = std::fs::read_to_string(&selected)
+                                .unwrap_or_else(|_| String::from("// Could not read file"));
+                        }
+                        win.unsaved_edits += 1;
+                    }
+                }
+            }
+            Message::FunctionAddInput(win_id)
+            | Message::FunctionAddOutput(win_id)
+            | Message::FunctionDeleteInput(win_id, _)
+            | Message::FunctionDeleteOutput(win_id, _) => {
+                if let Some(win) = self.windows.get_mut(&win_id) {
+                    if let WindowKind::FunctionViewer(ref mut v) = win.kind {
+                        match message {
+                            Message::FunctionAddInput(_) => v.inputs.push(PortInfo {
+                                name: format!("input{}", v.inputs.len()),
+                                datatypes: vec![String::from("string")],
+                            }),
+                            Message::FunctionAddOutput(_) => v.outputs.push(PortInfo {
+                                name: format!("output{}", v.outputs.len()),
+                                datatypes: vec![String::from("string")],
+                            }),
+                            Message::FunctionDeleteInput(_, idx) if idx < v.inputs.len() => {
+                                v.inputs.remove(idx);
+                            }
+                            Message::FunctionDeleteOutput(_, idx) if idx < v.outputs.len() => {
+                                v.outputs.remove(idx);
+                            }
+                            _ => {}
+                        }
+                    }
+                    win.unsaved_edits += 1;
+                }
+            }
+            Message::FunctionInputNameChanged(win_id, idx, name) => {
+                if let Some(win) = self.windows.get_mut(&win_id) {
+                    if let WindowKind::FunctionViewer(ref mut v) = win.kind {
+                        if let Some(port) = v.inputs.get_mut(idx) {
+                            port.name = name;
+                        }
+                    }
+                    win.unsaved_edits += 1;
+                }
+            }
+            Message::FunctionInputTypeChanged(win_id, idx, dtype) => {
+                if let Some(win) = self.windows.get_mut(&win_id) {
+                    if let WindowKind::FunctionViewer(ref mut v) = win.kind {
+                        if let Some(port) = v.inputs.get_mut(idx) {
+                            port.datatypes = vec![dtype];
+                        }
+                    }
+                    win.unsaved_edits += 1;
+                }
+            }
+            Message::FunctionOutputNameChanged(win_id, idx, name) => {
+                if let Some(win) = self.windows.get_mut(&win_id) {
+                    if let WindowKind::FunctionViewer(ref mut v) = win.kind {
+                        if let Some(port) = v.outputs.get_mut(idx) {
+                            port.name = name;
+                        }
+                    }
+                    win.unsaved_edits += 1;
+                }
+            }
+            Message::FunctionOutputTypeChanged(win_id, idx, dtype) => {
+                if let Some(win) = self.windows.get_mut(&win_id) {
+                    if let WindowKind::FunctionViewer(ref mut v) = win.kind {
+                        if let Some(port) = v.outputs.get_mut(idx) {
+                            port.datatypes = vec![dtype];
+                        }
+                    }
+                    win.unsaved_edits += 1;
+                }
+            }
+            Message::FunctionSave(win_id) => {
+                if let Some(win) = self.windows.get_mut(&win_id) {
+                    if let WindowKind::FunctionViewer(ref v) = win.kind {
+                        match save_function_definition(v) {
+                            Ok(()) => {
+                                win.status = format!("Saved: {}", v.toml_path.display());
+                                win.unsaved_edits = 0;
+                            }
+                            Err(e) => {
+                                win.status = format!("Save failed: {e}");
+                            }
+                        }
+                    }
+                }
+            }
+            Message::FlowAddInput(win_id) => {
+                if let Some(win) = self.windows.get_mut(&win_id) {
+                    win.flow_inputs.push(PortInfo {
+                        name: format!("input{}", win.flow_inputs.len()),
+                        datatypes: vec![String::from("string")],
+                    });
+                    win.unsaved_edits += 1;
+                    win.canvas_state.request_redraw();
+                }
+            }
+            Message::FlowAddOutput(win_id) => {
+                if let Some(win) = self.windows.get_mut(&win_id) {
+                    win.flow_outputs.push(PortInfo {
+                        name: format!("output{}", win.flow_outputs.len()),
+                        datatypes: vec![String::from("string")],
+                    });
+                    win.unsaved_edits += 1;
+                    win.canvas_state.request_redraw();
+                }
+            }
+            Message::FlowDeleteInput(win_id, idx) => {
+                if let Some(win) = self.windows.get_mut(&win_id) {
+                    if idx < win.flow_inputs.len() {
+                        win.flow_inputs.remove(idx);
+                        win.unsaved_edits += 1;
+                        win.canvas_state.request_redraw();
+                    }
+                }
+            }
+            Message::FlowDeleteOutput(win_id, idx) => {
+                if let Some(win) = self.windows.get_mut(&win_id) {
+                    if idx < win.flow_outputs.len() {
+                        win.flow_outputs.remove(idx);
+                        win.unsaved_edits += 1;
+                        win.canvas_state.request_redraw();
+                    }
+                }
+            }
+            Message::FlowInputNameChanged(win_id, idx, name) => {
+                if let Some(win) = self.windows.get_mut(&win_id) {
+                    if let Some(port) = win.flow_inputs.get_mut(idx) {
+                        port.name = name;
+                    }
+                    win.unsaved_edits += 1;
+                    win.canvas_state.request_redraw();
+                }
+            }
+            Message::FlowInputTypeChanged(win_id, idx, dtype) => {
+                if let Some(win) = self.windows.get_mut(&win_id) {
+                    if let Some(port) = win.flow_inputs.get_mut(idx) {
+                        port.datatypes = vec![dtype];
+                    }
+                    win.unsaved_edits += 1;
+                    win.canvas_state.request_redraw();
+                }
+            }
+            Message::FlowOutputNameChanged(win_id, idx, name) => {
+                if let Some(win) = self.windows.get_mut(&win_id) {
+                    if let Some(port) = win.flow_outputs.get_mut(idx) {
+                        port.name = name;
+                    }
+                    win.unsaved_edits += 1;
+                    win.canvas_state.request_redraw();
+                }
+            }
+            Message::FlowOutputTypeChanged(win_id, idx, dtype) => {
+                if let Some(win) = self.windows.get_mut(&win_id) {
+                    if let Some(port) = win.flow_outputs.get_mut(idx) {
+                        port.datatypes = vec![dtype];
+                    }
+                    win.unsaved_edits += 1;
+                    win.canvas_state.request_redraw();
+                }
+            }
+            Message::CloseRequested(_) | Message::CloseActiveWindow => {
+                let target = match message {
+                    Message::CloseRequested(win_id) => Some(win_id),
+                    Message::CloseActiveWindow => self.focused_window.or(self.root_window),
+                    _ => None,
+                };
+                let Some(id) = target else {
+                    return Task::none();
+                };
+                if let Some(win) = self.windows.get(&id) {
+                    if win.unsaved_edits > 0 {
+                        let dialog = rfd::MessageDialog::new()
+                            .set_title("Unsaved Changes")
+                            .set_description(
+                                "This window has unsaved changes. Close without saving?",
+                            )
+                            .set_buttons(rfd::MessageButtons::YesNo)
+                            .set_level(rfd::MessageLevel::Warning);
+                        if dialog.show() != rfd::MessageDialogResult::Yes {
+                            return Task::none();
+                        }
+                    }
+                }
+                self.windows.remove(&id);
+                if self.root_window == Some(id) || self.windows.is_empty() {
+                    return iced::exit();
+                }
+                return window::close(id);
+            }
+            Message::QuitAll => {
+                // Check for unsaved edits in any window
+                let has_unsaved = self.windows.values().any(|w| w.unsaved_edits > 0);
+                if has_unsaved {
+                    let dialog = rfd::MessageDialog::new()
+                        .set_title("Unsaved Changes")
+                        .set_description("There are unsaved changes. Quit without saving?")
+                        .set_buttons(rfd::MessageButtons::YesNo)
+                        .set_level(rfd::MessageLevel::Warning);
+                    if dialog.show() != rfd::MessageDialogResult::Yes {
+                        return Task::none();
+                    }
+                }
+                return iced::exit();
             }
         }
         Task::none()
     }
 
-    /// Build the view: a canvas area with zoom controls overlaid, and a status bar at the bottom.
-    fn view(&self) -> Element<'_, Message> {
-        let canvas = self
+    /// Build the view for a window, dispatching based on window kind.
+    fn view(&self, window_id: window::Id) -> Element<'_, Message> {
+        let Some(win) = self.windows.get(&window_id) else {
+            return Text::new("Window not found").into();
+        };
+
+        if let WindowKind::FunctionViewer(ref viewer) = win.kind {
+            return self.view_function(window_id, viewer, &win.status);
+        }
+
+        let canvas = win
             .canvas_state
             .view(
-                &self.nodes,
-                &self.edges,
-                self.auto_fit_pending,
-                self.auto_fit_enabled,
+                &win.nodes,
+                &win.edges,
+                &win.flow_inputs,
+                &win.flow_outputs,
+                !win.is_root,
+                win.auto_fit_pending,
+                win.auto_fit_enabled,
             )
-            .map(Message::Canvas);
+            .map(move |msg| Message::WindowCanvas(window_id, msg));
 
+        let zoom_btn = |_theme: &Theme, status: button::Status| -> button::Style {
+            let is_hovered = matches!(status, button::Status::Hovered);
+            button::Style {
+                background: Some(iced::Background::Color(Color::from_rgb(0.25, 0.25, 0.30))),
+                text_color: Color::WHITE,
+                border: iced::Border {
+                    color: if is_hovered {
+                        Color::WHITE
+                    } else {
+                        Color::from_rgb(0.4, 0.4, 0.45)
+                    },
+                    width: 2.0,
+                    radius: 8.0.into(),
+                },
+                ..Default::default()
+            }
+        };
+        let zoom_btn_active = |_theme: &Theme, status: button::Status| -> button::Style {
+            let is_hovered = matches!(status, button::Status::Hovered);
+            button::Style {
+                background: Some(iced::Background::Color(Color::from_rgb(0.3, 0.35, 0.5))),
+                text_color: Color::WHITE,
+                border: iced::Border {
+                    color: if is_hovered {
+                        Color::WHITE
+                    } else {
+                        Color::from_rgb(0.4, 0.5, 0.7)
+                    },
+                    width: 2.0,
+                    radius: 8.0.into(),
+                },
+                ..Default::default()
+            }
+        };
         let btn_width = 40;
         let zoom_controls = container(
-            container(
-                Column::new()
-                    .spacing(4)
-                    .push(
-                        button(Text::new("+").center())
-                            .on_press(Message::ZoomIn)
-                            .width(btn_width)
-                            .style(button::secondary),
-                    )
-                    .push(
-                        button(Text::new("\u{2212}").center())
-                            .on_press(Message::ZoomOut)
-                            .width(btn_width)
-                            .style(button::secondary),
-                    )
-                    .push(
-                        button(Text::new("Fit").center())
-                            .on_press(Message::ToggleAutoFit)
-                            .width(btn_width)
-                            .style(if self.auto_fit_enabled {
-                                button::primary
-                            } else {
-                                button::secondary
-                            }),
-                    ),
-            )
-            .padding(6)
-            .style(container::rounded_box),
+            Column::new()
+                .spacing(4)
+                .push(
+                    button(Text::new("+").center())
+                        .on_press(Message::ZoomIn(window_id))
+                        .width(btn_width)
+                        .style(zoom_btn),
+                )
+                .push(
+                    button(Text::new("\u{2212}").center())
+                        .on_press(Message::ZoomOut(window_id))
+                        .width(btn_width)
+                        .style(zoom_btn),
+                )
+                .push(
+                    button(Text::new("Fit").center())
+                        .on_press(Message::ToggleAutoFit(window_id))
+                        .width(btn_width)
+                        .style(if win.auto_fit_enabled {
+                            zoom_btn_active
+                        } else {
+                            zoom_btn
+                        }),
+                ),
         )
         .align_right(Fill)
         .align_bottom(Fill)
         .padding(10);
 
-        let mut canvas_stack: Vec<Element<'_, Message>> = vec![canvas.into(), zoom_controls.into()];
+        let mut canvas_stack: Vec<Element<'_, Message>> = vec![canvas, zoom_controls.into()];
 
-        if let Some((ref tip_text, tx, ty)) = self.tooltip {
+        if let Some((ref tip_text, tx, ty)) = win.tooltip {
             let tooltip_widget = container(
                 container(Text::new(tip_text.clone()).size(20).color(Color::WHITE))
                     .padding(8)
@@ -633,17 +1147,17 @@ impl FlowEdit {
                     }),
             )
             .padding(iced::Padding {
-                top: ty + 20.0,
+                top: ty + 6.0,
                 right: 0.0,
                 bottom: 0.0,
-                left: tx + 16.0,
+                left: (tx - 80.0).max(0.0),
             });
             canvas_stack.push(tooltip_widget.into());
         }
 
         // Initializer editor dialog overlay
-        if let Some(ref editor) = self.initializer_editor {
-            let port_label = if let Some(node) = self.nodes.get(editor.node_index) {
+        if let Some(ref editor) = win.initializer_editor {
+            let port_label = if let Some(node) = win.nodes.get(editor.node_index) {
                 format!("{}/{}", node.alias, editor.port_name)
             } else {
                 editor.port_name.clone()
@@ -658,8 +1172,8 @@ impl FlowEdit {
                 .padding(12)
                 .push(Text::new(format!("Initializer: {port_label}")).size(14))
                 .push(
-                    pick_list(init_types, selected, |s: &str| {
-                        Message::InitializerTypeChanged(s.to_string())
+                    pick_list(init_types, selected, move |s: &str| {
+                        Message::InitializerTypeChanged(window_id, s.to_string())
                     })
                     .text_size(12),
                 );
@@ -667,7 +1181,7 @@ impl FlowEdit {
             if editor.init_type != "none" {
                 dialog_col = dialog_col.push(
                     text_input("JSON value (e.g. 42, \"hello\", true)", &editor.value_text)
-                        .on_input(Message::InitializerValueChanged)
+                        .on_input(move |v| Message::InitializerValueChanged(window_id, v))
                         .size(12)
                         .padding(6),
                 );
@@ -678,13 +1192,13 @@ impl FlowEdit {
                     .spacing(8)
                     .push(
                         button(Text::new("Apply").size(12).center())
-                            .on_press(Message::InitializerApply)
+                            .on_press(Message::InitializerApply(window_id))
                             .style(button::primary)
                             .padding(6),
                     )
                     .push(
                         button(Text::new("Cancel").size(12).center())
-                            .on_press(Message::InitializerCancel)
+                            .on_press(Message::InitializerCancel(window_id))
                             .style(button::secondary)
                             .padding(6),
                     ),
@@ -706,42 +1220,577 @@ impl FlowEdit {
             canvas_stack.push(dialog.into());
         }
 
+        // Context menu overlay (right-click on empty canvas)
+        if let Some((cx, cy)) = win.context_menu {
+            let menu = container(
+                Column::new()
+                    .spacing(2)
+                    .push(
+                        button(Text::new("+ New Sub-flow").size(13))
+                            .on_press(Message::NewSubFlow)
+                            .style(button::text)
+                            .padding([6, 16])
+                            .width(Fill),
+                    )
+                    .push(
+                        button(Text::new("+ New Function").size(13))
+                            .on_press(Message::NewFunction)
+                            .style(button::text)
+                            .padding([6, 16])
+                            .width(Fill),
+                    ),
+            )
+            .style(|_theme: &Theme| container::Style {
+                background: Some(iced::Background::Color(Color::from_rgb(0.18, 0.18, 0.22))),
+                border: iced::Border {
+                    color: Color::from_rgb(0.4, 0.4, 0.4),
+                    width: 1.0,
+                    radius: 6.0.into(),
+                },
+                ..Default::default()
+            })
+            .width(160)
+            .padding(4);
+
+            let positioned = container(menu).padding(iced::Padding {
+                top: cy,
+                left: cx,
+                right: 0.0,
+                bottom: 0.0,
+            });
+            canvas_stack.push(positioned.into());
+        }
+
         let canvas_with_controls = stack(canvas_stack);
 
-        let library_panel = self.library_tree.view().map(Message::Library);
+        let library_panel = self
+            .library_tree
+            .view()
+            .map(move |msg| Message::Library(window_id, msg));
 
         let main_content = Row::new()
             .push(library_panel)
             .push(container(canvas_with_controls).width(Fill).height(Fill));
 
-        let edit_indicator = if self.unsaved_edits > 0 {
-            format!("  |  {} unsaved edit(s)", self.unsaved_edits)
+        let edit_indicator = if win.unsaved_edits > 0 {
+            format!("  |  {} unsaved edit(s)", win.unsaved_edits)
         } else {
             String::from("  |  saved")
         };
 
-        // Compile button — enabled when there are nodes
-        let mut compile_btn = button(Text::new("Compile").size(12).center())
-            .style(button::secondary)
-            .padding(4);
-        if !self.nodes.is_empty() {
-            compile_btn = compile_btn.on_press(Message::Compile);
-        }
+        // Build status bar — action buttons only for root windows
+        let btn_pad = [6, 14];
+        let btn_size = 13;
+        let toolbar_btn = |_theme: &Theme, status: button::Status| -> button::Style {
+            let is_hovered = matches!(status, button::Status::Hovered);
+            button::Style {
+                background: Some(iced::Background::Color(Color::from_rgb(0.25, 0.25, 0.30))),
+                text_color: Color::WHITE,
+                border: iced::Border {
+                    color: if is_hovered {
+                        Color::WHITE
+                    } else {
+                        Color::from_rgb(0.4, 0.4, 0.45)
+                    },
+                    width: 2.0,
+                    radius: 8.0.into(),
+                },
+                ..Default::default()
+            }
+        };
+        let toolbar_btn_active = |_theme: &Theme, status: button::Status| -> button::Style {
+            let is_hovered = matches!(status, button::Status::Hovered);
+            button::Style {
+                background: Some(iced::Background::Color(Color::from_rgb(0.3, 0.35, 0.5))),
+                text_color: Color::WHITE,
+                border: iced::Border {
+                    color: if is_hovered {
+                        Color::WHITE
+                    } else {
+                        Color::from_rgb(0.4, 0.5, 0.7)
+                    },
+                    width: 2.0,
+                    radius: 8.0.into(),
+                },
+                ..Default::default()
+            }
+        };
+        let status_bar: Row<'_, Message> = if win.is_root {
+            let mut compile_btn = button(Text::new("\u{1F528} Build").size(btn_size).center())
+                .padding(btn_pad)
+                .style(toolbar_btn);
+            if !win.nodes.is_empty() {
+                compile_btn = compile_btn.on_press(Message::Compile);
+            }
 
-        let status_bar: Row<'_, Message> = Row::new()
-            .spacing(8)
-            .push(Text::new(format!("{}{}", self.status, edit_indicator)).size(14))
-            .push(iced::widget::Space::new().width(Fill))
-            .push(compile_btn);
+            let new_subflow_btn = button(Text::new("+ Sub-flow").size(btn_size).center())
+                .on_press(Message::NewSubFlow)
+                .style(toolbar_btn)
+                .padding(btn_pad);
+
+            let new_func_btn = button(Text::new("+ Function").size(btn_size).center())
+                .on_press(Message::NewFunction)
+                .style(toolbar_btn)
+                .padding(btn_pad);
+
+            let info_btn = button(Text::new("\u{2139} Info").size(btn_size).center())
+                .on_press(Message::ToggleMetadataEditor(window_id))
+                .style(if win.show_metadata {
+                    toolbar_btn_active
+                } else {
+                    toolbar_btn
+                })
+                .padding(btn_pad);
+
+            Row::new()
+                .spacing(8)
+                .padding([4, 8])
+                .push(Text::new(format!("{}{}", win.status, edit_indicator)).size(14))
+                .push(iced::widget::Space::new().width(Fill))
+                .push(info_btn)
+                .push(new_subflow_btn)
+                .push(new_func_btn)
+                .push(compile_btn)
+        } else {
+            Row::new()
+                .spacing(8)
+                .padding([4, 8])
+                .push(Text::new(format!("{}{}", win.status, edit_indicator)).size(14))
+                .push(iced::widget::Space::new().width(Fill))
+        };
 
         let mut layout = Column::new().push(container(main_content).width(Fill).height(Fill));
+
+        // Flow I/O editor panel for sub-flow windows
+        if !win.is_root && matches!(win.kind, WindowKind::FlowEditor) {
+            layout = layout.push(self.view_flow_io_panel(window_id, win));
+        }
+
+        // Metadata editor panel (toggled by Info button)
+        if win.show_metadata && matches!(win.kind, WindowKind::FlowEditor) {
+            let authors_str = win.flow_definition.metadata.authors.join(", ");
+            let meta_panel = container(
+                Column::new()
+                    .spacing(6)
+                    .padding(12)
+                    .push(
+                        Row::new()
+                            .spacing(8)
+                            .align_y(iced::Alignment::Center)
+                            .push(Text::new("Name:").size(12).width(70))
+                            .push(
+                                text_input("Flow name", &win.flow_name)
+                                    .on_input(move |s| Message::FlowNameChanged(window_id, s))
+                                    .size(13)
+                                    .padding(4)
+                                    .width(250),
+                            ),
+                    )
+                    .push(
+                        Row::new()
+                            .spacing(8)
+                            .align_y(iced::Alignment::Center)
+                            .push(Text::new("Version:").size(12).width(70))
+                            .push(
+                                text_input("0.1.0", &win.flow_definition.metadata.version)
+                                    .on_input(move |s| Message::FlowVersionChanged(window_id, s))
+                                    .size(13)
+                                    .padding(4)
+                                    .width(120),
+                            ),
+                    )
+                    .push(
+                        Row::new()
+                            .spacing(8)
+                            .align_y(iced::Alignment::Center)
+                            .push(Text::new("Description:").size(12).width(70))
+                            .push(
+                                text_input(
+                                    "A short description",
+                                    &win.flow_definition.metadata.description,
+                                )
+                                .on_input(move |s| Message::FlowDescriptionChanged(window_id, s))
+                                .size(13)
+                                .padding(4)
+                                .width(Fill),
+                            ),
+                    )
+                    .push(
+                        Row::new()
+                            .spacing(8)
+                            .align_y(iced::Alignment::Center)
+                            .push(Text::new("Authors:").size(12).width(70))
+                            .push(
+                                text_input("Name <email>, ...", &authors_str)
+                                    .on_input(move |s| Message::FlowAuthorsChanged(window_id, s))
+                                    .size(13)
+                                    .padding(4)
+                                    .width(Fill),
+                            ),
+                    ),
+            )
+            .style(|_theme: &Theme| container::Style {
+                background: Some(iced::Background::Color(Color::from_rgb(0.14, 0.14, 0.18))),
+                border: iced::Border {
+                    color: Color::from_rgb(0.3, 0.3, 0.3),
+                    width: 1.0,
+                    radius: 0.0.into(),
+                },
+                ..Default::default()
+            })
+            .width(Fill);
+
+            layout = layout.push(meta_panel);
+        }
 
         layout = layout.push(container(status_bar).width(Fill).padding(5));
         layout.into()
     }
 
+    fn view_flow_io_panel<'a>(
+        &'a self,
+        window_id: window::Id,
+        win: &'a WindowState,
+    ) -> Element<'a, Message> {
+        let input_color = Color::from_rgb(0.4, 0.8, 1.0);
+        let output_color = Color::from_rgb(1.0, 0.6, 0.3);
+
+        let mut input_col = Column::new().spacing(4);
+        for (i, port) in win.flow_inputs.iter().enumerate() {
+            let dtype = port.datatypes.first().cloned().unwrap_or_default();
+            let row = Row::new()
+                .spacing(4)
+                .align_y(iced::Alignment::Center)
+                .push(Text::new("\u{25D7}").size(18).color(input_color))
+                .push(
+                    text_input("name", &port.name)
+                        .on_input(move |s| Message::FlowInputNameChanged(window_id, i, s))
+                        .size(12)
+                        .padding(3)
+                        .width(80),
+                )
+                .push(
+                    text_input("type", &dtype)
+                        .on_input(move |s| Message::FlowInputTypeChanged(window_id, i, s))
+                        .size(11)
+                        .padding(3)
+                        .width(70),
+                )
+                .push(
+                    button(Text::new("\u{2715}").size(10).center())
+                        .on_press(Message::FlowDeleteInput(window_id, i))
+                        .style(button::danger)
+                        .padding([2, 5]),
+                );
+            input_col = input_col.push(row);
+        }
+        input_col = input_col.push(
+            button(Text::new("+ Input").size(11).center())
+                .on_press(Message::FlowAddInput(window_id))
+                .style(button::secondary)
+                .padding([2, 8]),
+        );
+
+        let mut output_col = Column::new().spacing(4).align_x(iced::Alignment::End);
+        for (i, port) in win.flow_outputs.iter().enumerate() {
+            let dtype = port.datatypes.first().cloned().unwrap_or_default();
+            let row = Row::new()
+                .spacing(4)
+                .align_y(iced::Alignment::Center)
+                .push(
+                    button(Text::new("\u{2715}").size(10).center())
+                        .on_press(Message::FlowDeleteOutput(window_id, i))
+                        .style(button::danger)
+                        .padding([2, 5]),
+                )
+                .push(
+                    text_input("type", &dtype)
+                        .on_input(move |s| Message::FlowOutputTypeChanged(window_id, i, s))
+                        .size(11)
+                        .padding(3)
+                        .width(70),
+                )
+                .push(
+                    text_input("name", &port.name)
+                        .on_input(move |s| Message::FlowOutputNameChanged(window_id, i, s))
+                        .size(12)
+                        .padding(3)
+                        .width(80),
+                )
+                .push(Text::new("\u{25D6}").size(18).color(output_color));
+            output_col = output_col.push(row);
+        }
+        output_col = output_col.push(
+            button(Text::new("+ Output").size(11).center())
+                .on_press(Message::FlowAddOutput(window_id))
+                .style(button::secondary)
+                .padding([2, 8]),
+        );
+
+        let flow_name_label = container(
+            Text::new(&win.flow_name)
+                .size(14)
+                .color(Color::from_rgb(0.9, 0.6, 0.2)),
+        )
+        .center_x(Fill);
+
+        let io_box = container(
+            Column::new()
+                .spacing(12)
+                .padding(iced::Padding {
+                    top: 12.0,
+                    bottom: 12.0,
+                    left: 0.0,
+                    right: 0.0,
+                })
+                .push(flow_name_label)
+                .push(
+                    Row::new()
+                        .push(input_col)
+                        .push(iced::widget::Space::new().width(Fill))
+                        .push(output_col),
+                ),
+        )
+        .style(|_theme: &Theme| container::Style {
+            background: Some(iced::Background::Color(Color::from_rgb(0.18, 0.18, 0.22))),
+            border: iced::Border {
+                color: Color::from_rgb(0.9, 0.6, 0.2),
+                width: 2.0,
+                radius: 12.0.into(),
+            },
+            ..Default::default()
+        })
+        .width(Fill)
+        .padding([0, 8]);
+
+        container(io_box).padding([6, 12]).width(Fill).into()
+    }
+
+    fn view_function<'a>(
+        &'a self,
+        window_id: window::Id,
+        viewer: &'a FunctionViewer,
+        status: &'a str,
+    ) -> Element<'a, Message> {
+        let content: Element<'_, Message> = match viewer.active_tab {
+            0 => {
+                let input_color = Color::from_rgb(0.4, 0.8, 1.0);
+                let output_color = Color::from_rgb(1.0, 0.6, 0.3);
+
+                // Input ports inside box: semicircle ◗ (flat left), name, type, delete
+                let mut input_col = Column::new().spacing(6);
+                for (i, port) in viewer.inputs.iter().enumerate() {
+                    let dtype = port.datatypes.first().cloned().unwrap_or_default();
+                    let row = Row::new()
+                        .spacing(4)
+                        .align_y(iced::Alignment::Center)
+                        .push(Text::new("\u{25D7}").size(24).color(input_color))
+                        .push(
+                            text_input("name", &port.name)
+                                .on_input(move |s| {
+                                    Message::FunctionInputNameChanged(window_id, i, s)
+                                })
+                                .size(13)
+                                .padding(3)
+                                .width(90),
+                        )
+                        .push(
+                            text_input("type", &dtype)
+                                .on_input(move |s| {
+                                    Message::FunctionInputTypeChanged(window_id, i, s)
+                                })
+                                .size(11)
+                                .padding(3)
+                                .width(75),
+                        )
+                        .push(
+                            button(Text::new("\u{2715}").size(10).center())
+                                .on_press(Message::FunctionDeleteInput(window_id, i))
+                                .style(button::danger)
+                                .padding([2, 5]),
+                        );
+                    input_col = input_col.push(row);
+                }
+                input_col = input_col.push(
+                    button(Text::new("+ Input").size(11).center())
+                        .on_press(Message::FunctionAddInput(window_id))
+                        .style(button::secondary)
+                        .padding([2, 8]),
+                );
+
+                // Output ports inside box: delete, type, name, semicircle ◖ (flat right)
+                let mut output_col = Column::new().spacing(6).align_x(iced::Alignment::End);
+                for (i, port) in viewer.outputs.iter().enumerate() {
+                    let dtype = port.datatypes.first().cloned().unwrap_or_default();
+                    let row = Row::new()
+                        .spacing(4)
+                        .align_y(iced::Alignment::Center)
+                        .push(
+                            button(Text::new("\u{2715}").size(10).center())
+                                .on_press(Message::FunctionDeleteOutput(window_id, i))
+                                .style(button::danger)
+                                .padding([2, 5]),
+                        )
+                        .push(
+                            text_input("type", &dtype)
+                                .on_input(move |s| {
+                                    Message::FunctionOutputTypeChanged(window_id, i, s)
+                                })
+                                .size(11)
+                                .padding(3)
+                                .width(75),
+                        )
+                        .push(
+                            text_input("name", &port.name)
+                                .on_input(move |s| {
+                                    Message::FunctionOutputNameChanged(window_id, i, s)
+                                })
+                                .size(13)
+                                .padding(3)
+                                .width(90),
+                        )
+                        .push(Text::new("\u{25D6}").size(24).color(output_color));
+                    output_col = output_col.push(row);
+                }
+                output_col = output_col.push(
+                    button(Text::new("+ Output").size(11).center())
+                        .on_press(Message::FunctionAddOutput(window_id))
+                        .style(button::secondary)
+                        .padding([2, 8]),
+                );
+
+                let name_input = container(
+                    text_input("Function name", &viewer.name)
+                        .on_input(move |s| Message::FunctionNameChanged(window_id, s))
+                        .size(16)
+                        .padding(6)
+                        .width(250),
+                )
+                .center_x(Fill);
+
+                let mut source_row = Row::new()
+                    .spacing(6)
+                    .align_y(iced::Alignment::Center)
+                    .push(
+                        button(
+                            Text::new(&viewer.source_file)
+                                .size(13)
+                                .color(Color::from_rgb(0.6, 0.8, 1.0)),
+                        )
+                        .on_press(Message::FunctionTabSelected(window_id, 1))
+                        .style(button::text)
+                        .padding(0),
+                    )
+                    .push(
+                        button(Text::new("...").size(12).center())
+                            .on_press(Message::FunctionBrowseSource(window_id))
+                            .style(button::secondary)
+                            .padding([3, 8]),
+                    );
+                if viewer.docs_content.is_some() {
+                    source_row = source_row.push(
+                        button(Text::new("Docs").size(12).center())
+                            .on_press(Message::FunctionTabSelected(window_id, 2))
+                            .style(button::secondary)
+                            .padding([3, 8]),
+                    );
+                }
+
+                let func_box = container(
+                    Column::new()
+                        .spacing(20)
+                        .padding(iced::Padding {
+                            top: 24.0,
+                            bottom: 24.0,
+                            left: 0.0,
+                            right: 0.0,
+                        })
+                        .push(name_input)
+                        .push(
+                            Row::new()
+                                .push(input_col)
+                                .push(iced::widget::Space::new().width(Fill))
+                                .push(output_col),
+                        )
+                        .push(container(source_row).center_x(Fill)),
+                )
+                .style(|_theme: &Theme| container::Style {
+                    background: Some(iced::Background::Color(Color::from_rgb(0.18, 0.18, 0.22))),
+                    border: iced::Border {
+                        color: Color::from_rgb(0.5, 0.3, 0.7),
+                        width: 2.0,
+                        radius: 12.0.into(),
+                    },
+                    ..Default::default()
+                })
+                .width(550);
+
+                container(func_box).center(Fill).padding(40).into()
+            }
+            1 => {
+                let back_btn = button(Text::new("\u{2190} Definition").size(13).center())
+                    .on_press(Message::FunctionTabSelected(window_id, 0))
+                    .style(button::secondary)
+                    .padding([6, 14]);
+                Column::new()
+                    .push(container(back_btn).padding([8, 12]))
+                    .push(
+                        container(
+                            iced::widget::scrollable(
+                                Text::new(&viewer.rs_content)
+                                    .size(14)
+                                    .font(iced::Font::MONOSPACE),
+                            )
+                            .width(Fill)
+                            .height(Fill),
+                        )
+                        .width(Fill)
+                        .height(Fill)
+                        .padding(12),
+                    )
+                    .into()
+            }
+            _ => {
+                let back_btn = button(Text::new("\u{2190} Definition").size(13).center())
+                    .on_press(Message::FunctionTabSelected(window_id, 0))
+                    .style(button::secondary)
+                    .padding([6, 14]);
+                let docs = viewer.docs_content.as_deref().unwrap_or("");
+                Column::new()
+                    .push(container(back_btn).padding([8, 12]))
+                    .push(
+                        container(
+                            iced::widget::scrollable(Text::new(docs).size(14))
+                                .width(Fill)
+                                .height(Fill),
+                        )
+                        .width(Fill)
+                        .height(Fill)
+                        .padding(12),
+                    )
+                    .into()
+            }
+        };
+
+        let save_btn = button(Text::new("\u{1F4BE} Save").size(14).center())
+            .on_press(Message::FunctionSave(window_id))
+            .style(button::primary)
+            .padding([6, 14]);
+
+        let status_bar = Row::new()
+            .spacing(8)
+            .push(Text::new(status).size(14))
+            .push(iced::widget::Space::new().width(Fill))
+            .push(save_btn);
+
+        Column::new()
+            .push(container(content).width(Fill).height(Fill))
+            .push(container(status_bar).width(Fill).padding(5))
+            .into()
+    }
+
     fn subscription(&self) -> Subscription<Message> {
-        keyboard::listen().filter_map(|event| match event {
+        let keyboard_sub = keyboard::listen().filter_map(|event| match event {
             keyboard::Event::KeyPressed {
                 key: keyboard::Key::Character(ref c),
                 modifiers,
@@ -754,556 +1803,998 @@ impl FlowEdit {
                 "o" => Some(Message::Open),
                 "n" => Some(Message::New),
                 "b" => Some(Message::Compile),
-                "=" | "+" => Some(Message::ZoomIn),
-                "-" => Some(Message::ZoomOut),
+                "w" => Some(Message::CloseActiveWindow),
+                "q" => Some(Message::QuitAll),
                 _ => None,
             },
             _ => None,
+        });
+
+        let close_sub = window::close_requests().map(Message::CloseRequested);
+
+        let focus_sub = iced::event::listen_with(|event, _status, id| {
+            if let iced::Event::Window(iced::window::Event::Focused) = event {
+                Some(Message::WindowFocused(id))
+            } else {
+                None
+            }
+        });
+
+        Subscription::batch(vec![keyboard_sub, close_sub, focus_sub])
+    }
+
+    /// Open a sub-flow in a new in-process window, or show a status message
+    /// if the node resolves to a function rather than a flow.
+    fn open_node(&mut self, parent_win_id: window::Id, idx: usize) -> Task<Message> {
+        // Extract source and resolved path from the parent window (immutable borrow)
+        let (source, resolved_path) = {
+            let Some(win) = self.windows.get(&parent_win_id) else {
+                return Task::none();
+            };
+            let Some(node) = win.nodes.get(idx) else {
+                return Task::none();
+            };
+            let source = node.source.clone();
+            let path = resolve_node_source(win, &source);
+            (source, path)
+        };
+
+        let Some(path) = resolved_path else {
+            if let Some(win) = self.windows.get_mut(&parent_win_id) {
+                win.status = format!("Could not resolve source: {source}");
+            }
+            return Task::none();
+        };
+
+        // If a window already has this file open, focus it instead of opening a duplicate
+        for (&win_id, win) in &self.windows {
+            if win.file_path.as_ref() == Some(&path) && win_id != parent_win_id {
+                return window::gain_focus(win_id);
+            }
+        }
+
+        // Check whether the resolved file is a flow or a function
+        let abs_path = match std::fs::canonicalize(&path) {
+            Ok(p) => p,
+            Err(_) => path.clone(),
+        };
+        if let Ok(contents) = std::fs::read_to_string(&abs_path) {
+            if let Ok(url) = Url::from_file_path(&abs_path) {
+                if let Ok(deserializer) = get::<Process>(&url) {
+                    if let Ok(Process::FunctionProcess(ref func)) =
+                        deserializer.deserialize(&contents, Some(&url))
+                    {
+                        return self.open_function_viewer(parent_win_id, &path, func);
+                    }
+                }
+            }
+        }
+
+        // Load the sub-flow and open it in a new window
+        match load_flow(&path) {
+            Ok((name, nodes, edges, flow_def)) => {
+                let has_nodes = !nodes.is_empty();
+                let (new_id, open_task) = window::open(window::Settings {
+                    size: iced::Size::new(1024.0, 768.0),
+                    ..Default::default()
+                });
+                let nc = nodes.len();
+                let ec = edges.len();
+                let (fi, fo) = extract_ports(&flow_def.inputs, &flow_def.outputs);
+                let child = WindowState {
+                    kind: WindowKind::FlowEditor,
+                    flow_name: name,
+                    nodes,
+                    edges,
+                    canvas_state: FlowCanvasState::default(),
+                    status: format!("Ready - {nc} nodes, {ec} connections"),
+                    selected_node: None,
+                    selected_connection: None,
+                    history: EditHistory::default(),
+                    auto_fit_pending: has_nodes,
+                    auto_fit_enabled: true,
+                    unsaved_edits: 0,
+                    compiled_manifest: None,
+                    file_path: Some(path.clone()),
+                    flow_definition: flow_def,
+                    tooltip: None,
+                    initializer_editor: None,
+                    is_root: false,
+                    flow_inputs: fi,
+                    flow_outputs: fo,
+                    context_menu: None,
+                    show_metadata: false,
+                };
+                self.windows.insert(new_id, child);
+                if let Some(win) = self.windows.get_mut(&parent_win_id) {
+                    win.status = format!("Opened: {}", path.display());
+                }
+                open_task.discard()
+            }
+            Err(e) => {
+                if let Some(win) = self.windows.get_mut(&parent_win_id) {
+                    win.status = format!("Could not open '{}': {e}", source);
+                }
+                Task::none()
+            }
+        }
+    }
+
+    fn open_function_viewer(
+        &mut self,
+        parent_win_id: window::Id,
+        toml_path: &Path,
+        func: &flowcore::model::function_definition::FunctionDefinition,
+    ) -> Task<Message> {
+        let dir = toml_path.parent().unwrap_or(Path::new("."));
+        let func_name = &func.name;
+
+        let rs_path = dir.join(&func.source);
+        let rs_content = std::fs::read_to_string(&rs_path)
+            .unwrap_or_else(|_| String::from("// Source file not found"));
+        let docs_content = std::fs::read_to_string(dir.join(format!("{func_name}.md"))).ok();
+
+        let (inputs, outputs) = extract_ports(&func.inputs, &func.outputs);
+
+        let (new_id, open_task) = window::open(window::Settings {
+            size: iced::Size::new(700.0, 500.0),
+            ..Default::default()
+        });
+
+        let viewer = FunctionViewer {
+            name: func_name.clone(),
+            source_file: func.source.clone(),
+            inputs,
+            outputs,
+            rs_content,
+            docs_content,
+            active_tab: 0,
+            toml_path: toml_path.to_path_buf(),
+        };
+
+        let child = WindowState {
+            kind: WindowKind::FunctionViewer(viewer),
+            flow_name: func_name.clone(),
+            nodes: Vec::new(),
+            edges: Vec::new(),
+            canvas_state: FlowCanvasState::default(),
+            status: format!("Function: {func_name}"),
+            selected_node: None,
+            selected_connection: None,
+            history: EditHistory::default(),
+            auto_fit_pending: false,
+            auto_fit_enabled: false,
+            unsaved_edits: 0,
+            compiled_manifest: None,
+            file_path: Some(toml_path.to_path_buf()),
+            flow_definition: FlowDefinition::default(),
+            tooltip: None,
+            initializer_editor: None,
+            is_root: false,
+            flow_inputs: Vec::new(),
+            flow_outputs: Vec::new(),
+            context_menu: None,
+            show_metadata: false,
+        };
+
+        self.windows.insert(new_id, child);
+        if let Some(win) = self.windows.get_mut(&parent_win_id) {
+            win.status = format!("Opened function: {func_name}");
+        }
+        open_task.discard()
+    }
+
+    fn create_new_subflow(&mut self) -> Task<Message> {
+        let Some(root_id) = self.root_window else {
+            return Task::none();
+        };
+
+        // Get the parent flow's directory for relative path resolution
+        let base_dir = self
+            .windows
+            .get(&root_id)
+            .and_then(|w| w.file_path.as_ref())
+            .and_then(|p| p.parent())
+            .map(Path::to_path_buf);
+
+        let Some(base) = base_dir else {
+            if let Some(win) = self.windows.get_mut(&root_id) {
+                win.status = String::from("Save the flow first before creating a sub-flow");
+            }
+            return Task::none();
+        };
+
+        // Prompt user to choose where to save the new sub-flow
+        let dialog = rfd::FileDialog::new()
+            .add_filter("Flow", &["toml"])
+            .set_directory(&base)
+            .set_file_name("new_subflow.toml");
+        let Some(path) = dialog.save_file() else {
+            return Task::none();
+        };
+
+        // Derive flow name from filename
+        let flow_name = path
+            .file_stem()
+            .and_then(|s| s.to_str())
+            .unwrap_or("subflow")
+            .to_string();
+
+        // Create the sub-flow definition with empty content
+        let flow_def = FlowDefinition {
+            name: flow_name.clone(),
+            ..FlowDefinition::default()
+        };
+
+        // Write the initial TOML file
+        let toml = format!("flow = \"{flow_name}\"\n");
+        if let Err(e) = std::fs::write(&path, &toml) {
+            if let Some(win) = self.windows.get_mut(&root_id) {
+                win.status = format!("Could not create sub-flow: {e}");
+            }
+            return Task::none();
+        }
+
+        // Compute relative source path from parent flow to new sub-flow
+        let source = path
+            .strip_prefix(&base)
+            .map(|p| p.to_string_lossy().to_string())
+            .unwrap_or_else(|_| path.to_string_lossy().to_string());
+        // Strip .toml extension for the source reference
+        let source = source.strip_suffix(".toml").unwrap_or(&source).to_string();
+
+        // Add a process reference in the parent flow
+        if let Some(win) = self.windows.get_mut(&root_id) {
+            let alias = generate_unique_alias(&flow_name, &win.nodes);
+            let (x, y) = next_node_position(&win.nodes);
+
+            let node = NodeLayout {
+                alias: alias.clone(),
+                source: source.clone(),
+                x,
+                y,
+                width: 180.0,
+                height: 120.0,
+                inputs: Vec::new(),
+                outputs: Vec::new(),
+                initializers: HashMap::new(),
+            };
+            win.nodes.push(node);
+            win.flow_definition.process_refs.push(ProcessReference {
+                alias: alias.clone(),
+                source,
+                initializations: std::collections::BTreeMap::new(),
+                x: Some(x),
+                y: Some(y),
+                width: Some(180.0),
+                height: Some(120.0),
+            });
+            win.unsaved_edits += 1;
+            win.canvas_state.request_redraw();
+            win.status = format!("Created sub-flow: {alias}");
+        }
+
+        // Open the new sub-flow in a child window
+        let (new_id, open_task) = window::open(window::Settings {
+            size: iced::Size::new(1024.0, 768.0),
+            ..Default::default()
+        });
+
+        let child = WindowState {
+            kind: WindowKind::FlowEditor,
+            flow_name: flow_name.clone(),
+            nodes: Vec::new(),
+            edges: Vec::new(),
+            canvas_state: FlowCanvasState::default(),
+            status: format!("New sub-flow: {flow_name}"),
+            selected_node: None,
+            selected_connection: None,
+            history: EditHistory::default(),
+            auto_fit_pending: false,
+            auto_fit_enabled: true,
+            unsaved_edits: 0,
+            compiled_manifest: None,
+            file_path: Some(path),
+            flow_definition: flow_def,
+            tooltip: None,
+            initializer_editor: None,
+            is_root: false,
+            flow_inputs: Vec::new(),
+            flow_outputs: Vec::new(),
+            context_menu: None,
+            show_metadata: false,
+        };
+
+        self.windows.insert(new_id, child);
+        open_task.discard()
+    }
+
+    fn create_new_function(&mut self) -> Task<Message> {
+        let Some(root_id) = self.root_window else {
+            return Task::none();
+        };
+
+        let base_dir = self
+            .windows
+            .get(&root_id)
+            .and_then(|w| w.file_path.as_ref())
+            .and_then(|p| p.parent())
+            .map(Path::to_path_buf);
+
+        let Some(base) = base_dir else {
+            if let Some(win) = self.windows.get_mut(&root_id) {
+                win.status = String::from("Save the flow first before creating a function");
+            }
+            return Task::none();
+        };
+
+        // Prompt user to choose where to save the new function definition
+        let dialog = rfd::FileDialog::new()
+            .add_filter("Flow Function", &["toml"])
+            .set_directory(&base)
+            .set_file_name("new_function.toml");
+        let Some(path) = dialog.save_file() else {
+            return Task::none();
+        };
+
+        let func_name = path
+            .file_stem()
+            .and_then(|s| s.to_str())
+            .unwrap_or("function")
+            .to_string();
+
+        let rs_filename = format!("{func_name}.rs");
+
+        // Compute relative source from parent flow
+        let source = path
+            .strip_prefix(&base)
+            .map(|p| p.to_string_lossy().to_string())
+            .unwrap_or_else(|_| path.to_string_lossy().to_string());
+        let source = source.strip_suffix(".toml").unwrap_or(&source).to_string();
+
+        // Add process reference in the parent flow
+        if let Some(win) = self.windows.get_mut(&root_id) {
+            let alias = generate_unique_alias(&func_name, &win.nodes);
+            let (x, y) = next_node_position(&win.nodes);
+
+            let node = NodeLayout {
+                alias: alias.clone(),
+                source: source.clone(),
+                x,
+                y,
+                width: 180.0,
+                height: 120.0,
+                inputs: Vec::new(),
+                outputs: Vec::new(),
+                initializers: HashMap::new(),
+            };
+            win.nodes.push(node);
+            win.flow_definition.process_refs.push(ProcessReference {
+                alias: alias.clone(),
+                source,
+                initializations: std::collections::BTreeMap::new(),
+                x: Some(x),
+                y: Some(y),
+                width: Some(180.0),
+                height: Some(120.0),
+            });
+            win.unsaved_edits += 1;
+            win.canvas_state.request_redraw();
+            win.status = format!("Created function: {alias}");
+        }
+
+        // Open the function viewer window
+        let (new_id, open_task) = window::open(window::Settings {
+            size: iced::Size::new(700.0, 500.0),
+            ..Default::default()
+        });
+
+        let viewer = FunctionViewer {
+            name: func_name.clone(),
+            source_file: rs_filename,
+            inputs: Vec::new(),
+            outputs: Vec::new(),
+            rs_content: String::from("// Save to generate skeleton source"),
+            docs_content: None,
+            active_tab: 0,
+            toml_path: path.clone(),
+        };
+
+        let child = WindowState {
+            kind: WindowKind::FunctionViewer(viewer),
+            flow_name: func_name,
+            nodes: Vec::new(),
+            edges: Vec::new(),
+            canvas_state: FlowCanvasState::default(),
+            status: String::from("New function — add ports and Save"),
+            selected_node: None,
+            selected_connection: None,
+            history: EditHistory::default(),
+            auto_fit_pending: false,
+            auto_fit_enabled: false,
+            unsaved_edits: 1,
+            compiled_manifest: None,
+            file_path: Some(path),
+            flow_definition: FlowDefinition::default(),
+            tooltip: None,
+            initializer_editor: None,
+            is_root: false,
+            flow_inputs: Vec::new(),
+            flow_outputs: Vec::new(),
+            context_menu: None,
+            show_metadata: false,
+        };
+
+        self.windows.insert(new_id, child);
+        open_task.discard()
+    }
+}
+
+/// Record an edit action in the history and increment the unsaved edit count.
+fn record_edit(win: &mut WindowState, action: EditAction) {
+    win.history.record(action);
+    win.unsaved_edits += 1;
+    win.compiled_manifest = None; // Invalidate compilation on any edit
+}
+
+/// Apply an undo action -- reverse the last edit.
+fn apply_undo(win: &mut WindowState) {
+    if let Some(action) = win.history.undo() {
+        match action {
+            EditAction::MoveNode {
+                index,
+                old_x,
+                old_y,
+                ..
+            } => {
+                if let Some(node) = win.nodes.get_mut(index) {
+                    node.x = old_x;
+                    node.y = old_y;
+                }
+                win.status = String::from("Undo: move");
+            }
+            EditAction::ResizeNode {
+                index,
+                old_x,
+                old_y,
+                old_w,
+                old_h,
+                ..
+            } => {
+                if let Some(node) = win.nodes.get_mut(index) {
+                    node.x = old_x;
+                    node.y = old_y;
+                    node.width = old_w;
+                    node.height = old_h;
+                }
+                win.status = String::from("Undo: resize");
+            }
+            EditAction::DeleteNode {
+                index,
+                node,
+                removed_edges,
+            } => {
+                win.nodes.insert(index, node);
+                win.edges.extend(removed_edges);
+                win.status = String::from("Undo: delete node");
+            }
+            EditAction::CreateConnection { edge } => {
+                win.edges.retain(|e| {
+                    e.from_node != edge.from_node
+                        || e.from_port != edge.from_port
+                        || e.to_node != edge.to_node
+                        || e.to_port != edge.to_port
+                });
+                win.status = String::from("Undo: create connection");
+            }
+            EditAction::DeleteConnection { index, edge } => {
+                win.edges.insert(index, edge);
+                win.status = String::from("Undo: delete connection");
+            }
+            EditAction::EditInitializer {
+                node_index,
+                ref port_name,
+                ref old_init,
+                ref old_display,
+                ..
+            } => {
+                apply_initializer_state(
+                    win,
+                    node_index,
+                    port_name,
+                    old_init.as_ref(),
+                    old_display.as_ref(),
+                );
+                win.status = String::from("Undo: initializer");
+            }
+        }
+        win.canvas_state.request_redraw();
+    }
+}
+
+/// Save the current flow to the given path.
+fn perform_save(win: &mut WindowState, path: &PathBuf) {
+    sync_flow_definition(win);
+    match save_flow_toml(&win.flow_definition, &win.edges, path) {
+        Ok(()) => {
+            win.unsaved_edits = 0;
+            win.file_path = Some(path.clone());
+            if let Some(name) = path.file_name().and_then(|n| n.to_str()) {
+                win.status = format!("Saved to {name}");
+            } else {
+                win.status = String::from("Saved");
+            }
+        }
+        Err(e) => {
+            win.status = format!("Save failed: {e}");
+        }
+    }
+}
+
+/// Prompt the user with a save dialog and save to the chosen path.
+fn perform_save_as(win: &mut WindowState) {
+    let dialog = rfd::FileDialog::new()
+        .add_filter("Flow", &["toml"])
+        .set_file_name(format!("{}.toml", win.flow_name));
+    if let Some(path) = dialog.save_file() {
+        perform_save(win, &path);
+    }
+}
+
+/// Prompt the user with an open dialog and load the selected flow file.
+fn perform_open(win: &mut WindowState) {
+    let dialog = rfd::FileDialog::new().add_filter("Flow", &["toml"]);
+    if let Some(path) = dialog.pick_file() {
+        match load_flow(&path) {
+            Ok((name, node_list, edge_list, flow_def)) => {
+                let nc = node_list.len();
+                let ec = edge_list.len();
+                let (fi, fo) = extract_ports(&flow_def.inputs, &flow_def.outputs);
+                win.flow_name = name;
+                win.nodes = node_list;
+                win.edges = edge_list;
+                win.flow_definition = flow_def;
+                win.file_path = Some(path);
+                win.flow_inputs = fi;
+                win.flow_outputs = fo;
+                win.selected_node = None;
+                win.selected_connection = None;
+                win.history = EditHistory::default();
+                win.unsaved_edits = 0;
+                win.auto_fit_pending = true;
+                win.auto_fit_enabled = true;
+                win.canvas_state = FlowCanvasState::default();
+                win.status = format!("Loaded - {nc} nodes, {ec} connections");
+            }
+            Err(e) => {
+                win.status = format!("Open failed: {e}");
+            }
+        }
+    }
+}
+
+/// Clear the canvas and reset to an empty flow state.
+fn perform_new(win: &mut WindowState) {
+    win.flow_name = String::from("(new flow)");
+    win.nodes = Vec::new();
+    win.edges = Vec::new();
+    win.flow_definition = FlowDefinition::default();
+    win.file_path = None;
+    win.flow_inputs = Vec::new();
+    win.flow_outputs = Vec::new();
+    win.selected_node = None;
+    win.selected_connection = None;
+    win.history = EditHistory::default();
+    win.unsaved_edits = 0;
+    win.auto_fit_pending = false;
+    win.auto_fit_enabled = true;
+    win.canvas_state = FlowCanvasState::default();
+    win.status = String::from("New flow");
+}
+
+/// Compile the current flow to a manifest.
+///
+/// Writes a temporary copy of the current editor state for the compiler
+/// to parse -- the user's flow definition file is never modified.
+///
+/// Returns the path to the generated manifest on success, or a human-readable
+/// error message on failure.
+fn perform_compile(win: &mut WindowState) -> Result<PathBuf, String> {
+    // New flows must be saved first so the compiler has a real file path
+    if win.file_path.is_none() {
+        perform_save_as(win);
+    }
+    let Some(flow_path) = win.file_path.clone() else {
+        return Err("Flow must be saved before compiling".to_string());
+    };
+
+    // Save any unsaved edits so the file on disk matches the editor state
+    if win.unsaved_edits > 0 {
+        perform_save(win, &flow_path);
+    }
+
+    let flow_path = &flow_path;
+    let abs_path = if flow_path.is_absolute() {
+        flow_path.clone()
+    } else {
+        std::env::current_dir()
+            .map_err(|e| format!("Could not get current directory: {e}"))?
+            .join(flow_path)
+    };
+
+    let provider = build_meta_provider();
+
+    let url = Url::from_file_path(&abs_path)
+        .map_err(|()| format!("Invalid file path: {}", abs_path.display()))?;
+    let process = flowrclib::compiler::parser::parse(&url, &provider)
+        .map_err(|e| format!("Parse error: {e}"))?;
+    let flow = match process {
+        Process::FlowProcess(f) => f,
+        Process::FunctionProcess(_) => return Err("Not a flow definition".to_string()),
+    };
+
+    let output_dir = abs_path.parent().unwrap_or(Path::new(".")).to_path_buf();
+    let mut source_urls = BTreeMap::<String, Url>::new();
+    let tables =
+        flowrclib::compiler::compile::compile(&flow, &output_dir, false, false, &mut source_urls)
+            .map_err(|e| e.to_string())?;
+
+    let manifest_path = flowrclib::generator::generate::write_flow_manifest(
+        &flow,
+        false,
+        &output_dir,
+        &tables,
+        source_urls,
+    )
+    .map_err(|e| format!("Manifest error: {e}"))?;
+
+    Ok(manifest_path)
+}
+
+/// Add a function from the library panel as a new node on the canvas.
+///
+/// Creates a `NodeLayout` at a default position and a `ProcessReference`
+/// in the flow definition, and records the action in the edit history.
+fn add_library_function(win: &mut WindowState, source: &str, func_name: &str) {
+    // Generate a unique alias: if the name already exists, append a number
+    let alias = generate_unique_alias(func_name, &win.nodes);
+
+    // Place the new node at a default position offset from existing nodes
+    let (x, y) = next_node_position(&win.nodes);
+
+    // Resolve port info from the function definition
+    let (inputs, outputs) = resolve_single_function_ports(source, None);
+
+    let node = NodeLayout {
+        alias: alias.clone(),
+        source: source.to_string(),
+        x,
+        y,
+        width: 180.0,
+        height: 120.0,
+        inputs,
+        outputs,
+        initializers: HashMap::new(),
+    };
+
+    let index = win.nodes.len();
+    win.nodes.push(node.clone());
+
+    // Also add to the flow definition
+    let pref = ProcessReference {
+        alias: alias.clone(),
+        source: source.to_string(),
+        initializations: std::collections::BTreeMap::new(),
+        x: Some(x),
+        y: Some(y),
+        width: Some(180.0),
+        height: Some(120.0),
+    };
+    win.flow_definition.process_refs.push(pref);
+
+    record_edit(
+        win,
+        EditAction::DeleteNode {
+            index,
+            node,
+            removed_edges: Vec::new(),
+        },
+    );
+    // Note: We record a DeleteNode so that *undo* removes the added node.
+    // This is intentional: undoing an "add" means deleting what was added.
+
+    win.selected_node = Some(index);
+    win.canvas_state.request_redraw();
+    // Trigger auto-fit if enabled so the new node is visible
+    if win.auto_fit_enabled {
+        win.auto_fit_pending = true;
+    }
+    let nc = win.nodes.len();
+    win.status = format!("Added {alias} from library - {nc} nodes");
+}
+
+/// Resolve a node's source path relative to the current flow file.
+fn resolve_node_source(win: &WindowState, source: &str) -> Option<PathBuf> {
+    let base_dir = win.file_path.as_ref()?.parent()?;
+    let canonicalize = |p: PathBuf| std::fs::canonicalize(&p).unwrap_or(p);
+    let candidate = base_dir.join(source);
+    if candidate.exists() {
+        return Some(canonicalize(candidate));
+    }
+    let with_ext = base_dir.join(format!("{source}.toml"));
+    if with_ext.exists() {
+        return Some(canonicalize(with_ext));
+    }
+    let dir_default = base_dir.join(source).join("default.toml");
+    if dir_default.exists() {
+        return Some(canonicalize(dir_default));
+    }
+    None
+}
+
+/// Apply an initializer edit to the flow definition and update the node display.
+fn apply_initializer_edit(win: &mut WindowState, editor: &InitializerEditor) {
+    let alias = win
+        .nodes
+        .get(editor.node_index)
+        .map(|n| n.alias.clone())
+        .unwrap_or_default();
+
+    // Capture old state for undo
+    let old_init = win
+        .flow_definition
+        .process_refs
+        .iter()
+        .find(|pr| {
+            let pr_alias = if pr.alias.is_empty() {
+                derive_short_name(&pr.source)
+            } else {
+                pr.alias.to_string()
+            };
+            pr_alias == alias
         })
+        .and_then(|pr| pr.initializations.get(&editor.port_name).cloned());
+    let old_display = win
+        .nodes
+        .get(editor.node_index)
+        .and_then(|n| n.initializers.get(&editor.port_name).cloned());
+
+    // Compute new initializer and display
+    let (new_init, new_display) = match editor.init_type.as_str() {
+        "none" => (None, None),
+        "once" | "always" => {
+            let value = serde_json::from_str(&editor.value_text)
+                .unwrap_or_else(|_| serde_json::Value::String(editor.value_text.clone()));
+            let init = if editor.init_type == "once" {
+                InputInitializer::Once(value)
+            } else {
+                InputInitializer::Always(value)
+            };
+            let display = format!("{}: {}", editor.init_type, editor.value_text);
+            (Some(init), Some(display))
+        }
+        _ => return,
+    };
+
+    // Apply to model
+    if let Some(pref) = win.flow_definition.process_refs.iter_mut().find(|pr| {
+        let pr_alias = if pr.alias.is_empty() {
+            derive_short_name(&pr.source)
+        } else {
+            pr.alias.to_string()
+        };
+        pr_alias == alias
+    }) {
+        match &new_init {
+            Some(init) => {
+                pref.initializations
+                    .insert(editor.port_name.clone(), init.clone());
+            }
+            None => {
+                pref.initializations.remove(&editor.port_name);
+            }
+        }
     }
 
-    /// Record an edit action in the history and increment the unsaved edit count.
-    fn record_edit(&mut self, action: EditAction) {
-        self.history.record(action);
-        self.unsaved_edits += 1;
-        self.compiled_manifest = None; // Invalidate compilation on any edit
+    // Apply to display
+    if let Some(node) = win.nodes.get_mut(editor.node_index) {
+        match &new_display {
+            Some(display) => {
+                node.initializers
+                    .insert(editor.port_name.clone(), display.clone());
+            }
+            None => {
+                node.initializers.remove(&editor.port_name);
+            }
+        }
     }
 
-    /// Apply an undo action — reverse the last edit.
-    fn apply_undo(&mut self) {
-        if let Some(action) = self.history.undo() {
-            match action {
-                EditAction::MoveNode {
-                    index,
-                    old_x,
-                    old_y,
-                    ..
-                } => {
-                    if let Some(node) = self.nodes.get_mut(index) {
-                        node.x = old_x;
-                        node.y = old_y;
-                    }
-                    self.status = String::from("Undo: move");
+    win.history.record(EditAction::EditInitializer {
+        node_index: editor.node_index,
+        port_name: editor.port_name.clone(),
+        old_init,
+        old_display,
+        new_init,
+        new_display,
+    });
+    win.unsaved_edits += 1;
+    win.compiled_manifest = None;
+    win.canvas_state.request_redraw();
+    win.status = format!("Initializer updated on {}/{}", alias, editor.port_name);
+}
+
+/// Synchronize the in-memory `FlowDefinition` with the current editor state
+/// so that process references and the flow name are up to date.
+/// Connections are handled separately via `EdgeLayout` during save.
+fn sync_flow_definition(win: &mut WindowState) {
+    // Update or rebuild process_refs from current NodeLayout data
+    let mut new_refs: Vec<ProcessReference> = Vec::with_capacity(win.nodes.len());
+    for node in &win.nodes {
+        // Try to find the original ProcessReference by alias to preserve initializations
+        let original = win
+            .flow_definition
+            .process_refs
+            .iter()
+            .find(|pr| {
+                let alias = if pr.alias.is_empty() {
+                    derive_short_name(&pr.source)
+                } else {
+                    pr.alias.to_string()
+                };
+                alias == node.alias
+            })
+            .cloned();
+
+        let pref = if let Some(mut orig) = original {
+            orig.x = Some(node.x);
+            orig.y = Some(node.y);
+            orig.width = Some(node.width);
+            orig.height = Some(node.height);
+            orig
+        } else {
+            // New node without an original -- build from scratch
+            ProcessReference {
+                alias: node.alias.clone(),
+                source: node.source.clone(),
+                initializations: std::collections::BTreeMap::new(),
+                x: Some(node.x),
+                y: Some(node.y),
+                width: Some(node.width),
+                height: Some(node.height),
+            }
+        };
+        new_refs.push(pref);
+    }
+    win.flow_definition.process_refs = new_refs;
+
+    // Update the flow name
+    win.flow_definition.name = win.flow_name.clone();
+}
+
+/// Apply a redo action -- re-apply the last undone edit.
+fn apply_redo(win: &mut WindowState) {
+    if let Some(action) = win.history.redo() {
+        match action {
+            EditAction::MoveNode {
+                index,
+                new_x,
+                new_y,
+                ..
+            } => {
+                if let Some(node) = win.nodes.get_mut(index) {
+                    node.x = new_x;
+                    node.y = new_y;
                 }
-                EditAction::ResizeNode {
-                    index,
-                    old_x,
-                    old_y,
-                    old_w,
-                    old_h,
-                    ..
-                } => {
-                    if let Some(node) = self.nodes.get_mut(index) {
-                        node.x = old_x;
-                        node.y = old_y;
-                        node.width = old_w;
-                        node.height = old_h;
-                    }
-                    self.status = String::from("Undo: resize");
+                win.status = String::from("Redo: move");
+            }
+            EditAction::ResizeNode {
+                index,
+                new_x,
+                new_y,
+                new_w,
+                new_h,
+                ..
+            } => {
+                if let Some(node) = win.nodes.get_mut(index) {
+                    node.x = new_x;
+                    node.y = new_y;
+                    node.width = new_w;
+                    node.height = new_h;
                 }
-                EditAction::DeleteNode {
-                    index,
-                    node,
-                    removed_edges,
-                } => {
-                    self.nodes.insert(index, node);
-                    self.edges.extend(removed_edges);
-                    self.status = String::from("Undo: delete node");
+                win.status = String::from("Redo: resize");
+            }
+            EditAction::DeleteNode {
+                index,
+                removed_edges,
+                node,
+                ..
+            } => {
+                let alias = node.alias.clone();
+                if index <= win.nodes.len() {
+                    win.nodes.remove(index);
                 }
-                EditAction::CreateConnection { edge } => {
-                    self.edges.retain(|e| {
+                for edge in &removed_edges {
+                    win.edges.retain(|e| {
                         e.from_node != edge.from_node
                             || e.from_port != edge.from_port
                             || e.to_node != edge.to_node
                             || e.to_port != edge.to_port
                     });
-                    self.status = String::from("Undo: create connection");
                 }
-                EditAction::DeleteConnection { index, edge } => {
-                    self.edges.insert(index, edge);
-                    self.status = String::from("Undo: delete connection");
+                let _ = alias; // used for edge cleanup above
+                win.status = String::from("Redo: delete node");
+            }
+            EditAction::CreateConnection { edge } => {
+                win.edges.push(edge);
+                win.status = String::from("Redo: create connection");
+            }
+            EditAction::DeleteConnection { index, .. } => {
+                if index < win.edges.len() {
+                    win.edges.remove(index);
                 }
-                EditAction::EditInitializer {
+                win.status = String::from("Redo: delete connection");
+            }
+            EditAction::EditInitializer {
+                node_index,
+                ref port_name,
+                ref new_init,
+                ref new_display,
+                ..
+            } => {
+                apply_initializer_state(
+                    win,
                     node_index,
-                    ref port_name,
-                    ref old_init,
-                    ref old_display,
-                    ..
-                } => {
-                    self.apply_initializer_state(
-                        node_index,
-                        port_name,
-                        old_init.as_ref(),
-                        old_display.as_ref(),
-                    );
-                    self.status = String::from("Undo: initializer");
-                }
-            }
-            self.canvas_state.request_redraw();
-        }
-    }
-
-    /// Save the current flow to the given path.
-    fn perform_save(&mut self, path: &PathBuf) {
-        self.sync_flow_definition();
-        match save_flow_toml(&self.flow_definition, &self.edges, path) {
-            Ok(()) => {
-                self.unsaved_edits = 0;
-                self.file_path = Some(path.clone());
-                if let Some(name) = path.file_name().and_then(|n| n.to_str()) {
-                    self.status = format!("Saved to {name}");
-                } else {
-                    self.status = String::from("Saved");
-                }
-            }
-            Err(e) => {
-                self.status = format!("Save failed: {e}");
+                    port_name,
+                    new_init.as_ref(),
+                    new_display.as_ref(),
+                );
+                win.status = String::from("Redo: initializer");
             }
         }
+        win.canvas_state.request_redraw();
     }
+}
 
-    /// Prompt the user with a save dialog and save to the chosen path.
-    fn perform_save_as(&mut self) {
-        let dialog = rfd::FileDialog::new()
-            .add_filter("Flow", &["toml"])
-            .set_file_name(format!("{}.toml", self.flow_name));
-        if let Some(path) = dialog.save_file() {
-            self.perform_save(&path);
-        }
-    }
+/// Apply an initializer state to both the model and display.
+fn apply_initializer_state(
+    win: &mut WindowState,
+    node_index: usize,
+    port_name: &str,
+    init: Option<&InputInitializer>,
+    display: Option<&String>,
+) {
+    let alias = win
+        .nodes
+        .get(node_index)
+        .map(|n| n.alias.clone())
+        .unwrap_or_default();
 
-    /// Prompt the user with an open dialog and load the selected flow file.
-    fn perform_open(&mut self) {
-        let dialog = rfd::FileDialog::new().add_filter("Flow", &["toml"]);
-        if let Some(path) = dialog.pick_file() {
-            match load_flow(&path) {
-                Ok((name, node_list, edge_list, flow_def)) => {
-                    let nc = node_list.len();
-                    let ec = edge_list.len();
-                    self.flow_name = name;
-                    self.nodes = node_list;
-                    self.edges = edge_list;
-                    self.flow_definition = flow_def;
-                    self.file_path = Some(path);
-                    self.selected_node = None;
-                    self.selected_connection = None;
-                    self.history = EditHistory::default();
-                    self.unsaved_edits = 0;
-                    self.auto_fit_pending = true;
-                    self.auto_fit_enabled = true;
-                    self.canvas_state = FlowCanvasState::default();
-                    self.status = format!("Loaded - {nc} nodes, {ec} connections");
-                }
-                Err(e) => {
-                    self.status = format!("Open failed: {e}");
-                }
-            }
-        }
-    }
-
-    /// Clear the canvas and reset to an empty flow state.
-    fn perform_new(&mut self) {
-        self.flow_name = String::from("(new flow)");
-        self.nodes = Vec::new();
-        self.edges = Vec::new();
-        self.flow_definition = FlowDefinition::default();
-        self.file_path = None;
-        self.selected_node = None;
-        self.selected_connection = None;
-        self.history = EditHistory::default();
-        self.unsaved_edits = 0;
-        self.auto_fit_pending = false;
-        self.auto_fit_enabled = true;
-        self.canvas_state = FlowCanvasState::default();
-        self.status = String::from("New flow");
-    }
-
-    /// Compile the current flow to a manifest.
-    ///
-    /// Writes a temporary copy of the current editor state for the compiler
-    /// to parse — the user's flow definition file is never modified.
-    ///
-    /// Returns the path to the generated manifest on success, or a human-readable
-    /// error message on failure.
-    fn perform_compile(&mut self) -> Result<PathBuf, String> {
-        // New flows must be saved first so the compiler has a real file path
-        if self.file_path.is_none() {
-            self.perform_save_as();
-        }
-        let Some(flow_path) = self.file_path.clone() else {
-            return Err("Flow must be saved before compiling".to_string());
-        };
-
-        // Save any unsaved edits so the file on disk matches the editor state
-        if self.unsaved_edits > 0 {
-            self.perform_save(&flow_path);
-        }
-
-        let flow_path = &flow_path;
-        let abs_path = if flow_path.is_absolute() {
-            flow_path.clone()
+    if let Some(pref) = win.flow_definition.process_refs.iter_mut().find(|pr| {
+        let pr_alias = if pr.alias.is_empty() {
+            derive_short_name(&pr.source)
         } else {
-            std::env::current_dir()
-                .map_err(|e| format!("Could not get current directory: {e}"))?
-                .join(flow_path)
+            pr.alias.to_string()
         };
-
-        let provider = build_meta_provider();
-
-        let url = Url::from_file_path(&abs_path)
-            .map_err(|()| format!("Invalid file path: {}", abs_path.display()))?;
-        let process = flowrclib::compiler::parser::parse(&url, &provider)
-            .map_err(|e| format!("Parse error: {e}"))?;
-        let flow = match process {
-            Process::FlowProcess(f) => f,
-            Process::FunctionProcess(_) => return Err("Not a flow definition".to_string()),
-        };
-
-        let output_dir = abs_path.parent().unwrap_or(Path::new(".")).to_path_buf();
-        let mut source_urls = BTreeMap::<String, Url>::new();
-        let tables = flowrclib::compiler::compile::compile(
-            &flow,
-            &output_dir,
-            false,
-            false,
-            &mut source_urls,
-        )
-        .map_err(|e| e.to_string())?;
-
-        let manifest_path = flowrclib::generator::generate::write_flow_manifest(
-            &flow,
-            false,
-            &output_dir,
-            &tables,
-            source_urls,
-        )
-        .map_err(|e| format!("Manifest error: {e}"))?;
-
-        Ok(manifest_path)
-    }
-
-    /// Add a function from the library panel as a new node on the canvas.
-    ///
-    /// Creates a `NodeLayout` at a default position and a `ProcessReference`
-    /// in the flow definition, and records the action in the edit history.
-    fn add_library_function(&mut self, source: &str, func_name: &str) {
-        // Generate a unique alias: if the name already exists, append a number
-        let alias = generate_unique_alias(func_name, &self.nodes);
-
-        // Place the new node at a default position offset from existing nodes
-        let (x, y) = next_node_position(&self.nodes);
-
-        // Resolve port info from the function definition
-        let (inputs, outputs) = resolve_single_function_ports(source, None);
-
-        let node = NodeLayout {
-            alias: alias.clone(),
-            source: source.to_string(),
-            x,
-            y,
-            width: 180.0,
-            height: 120.0,
-            inputs,
-            outputs,
-            initializers: HashMap::new(),
-        };
-
-        let index = self.nodes.len();
-        self.nodes.push(node.clone());
-
-        // Also add to the flow definition
-        let pref = ProcessReference {
-            alias: alias.clone(),
-            source: source.to_string(),
-            initializations: std::collections::BTreeMap::new(),
-            x: Some(x),
-            y: Some(y),
-            width: Some(180.0),
-            height: Some(120.0),
-        };
-        self.flow_definition.process_refs.push(pref);
-
-        self.record_edit(EditAction::DeleteNode {
-            index,
-            node,
-            removed_edges: Vec::new(),
-        });
-        // Note: We record a DeleteNode so that *undo* removes the added node.
-        // This is intentional: undoing an "add" means deleting what was added.
-
-        self.selected_node = Some(index);
-        self.canvas_state.request_redraw();
-        // Trigger auto-fit if enabled so the new node is visible
-        if self.auto_fit_enabled {
-            self.auto_fit_pending = true;
-        }
-        let nc = self.nodes.len();
-        self.status = format!("Added {alias} from library - {nc} nodes");
-    }
-
-    /// Apply an initializer edit to the flow definition and update the node display.
-    fn apply_initializer_edit(&mut self, editor: &InitializerEditor) {
-        let alias = self
-            .nodes
-            .get(editor.node_index)
-            .map(|n| n.alias.clone())
-            .unwrap_or_default();
-
-        // Capture old state for undo
-        let old_init = self
-            .flow_definition
-            .process_refs
-            .iter()
-            .find(|pr| {
-                let pr_alias = if pr.alias.is_empty() {
-                    derive_short_name(&pr.source)
-                } else {
-                    pr.alias.to_string()
-                };
-                pr_alias == alias
-            })
-            .and_then(|pr| pr.initializations.get(&editor.port_name).cloned());
-        let old_display = self
-            .nodes
-            .get(editor.node_index)
-            .and_then(|n| n.initializers.get(&editor.port_name).cloned());
-
-        // Compute new initializer and display
-        let (new_init, new_display) = match editor.init_type.as_str() {
-            "none" => (None, None),
-            "once" | "always" => {
-                let value = serde_json::from_str(&editor.value_text)
-                    .unwrap_or_else(|_| serde_json::Value::String(editor.value_text.clone()));
-                let init = if editor.init_type == "once" {
-                    InputInitializer::Once(value)
-                } else {
-                    InputInitializer::Always(value)
-                };
-                let display = format!("{}: {}", editor.init_type, editor.value_text);
-                (Some(init), Some(display))
+        pr_alias == alias
+    }) {
+        match init {
+            Some(i) => {
+                pref.initializations
+                    .insert(port_name.to_string(), i.clone());
             }
-            _ => return,
-        };
-
-        // Apply to model
-        if let Some(pref) = self.flow_definition.process_refs.iter_mut().find(|pr| {
-            let pr_alias = if pr.alias.is_empty() {
-                derive_short_name(&pr.source)
-            } else {
-                pr.alias.to_string()
-            };
-            pr_alias == alias
-        }) {
-            match &new_init {
-                Some(init) => {
-                    pref.initializations
-                        .insert(editor.port_name.clone(), init.clone());
-                }
-                None => {
-                    pref.initializations.remove(&editor.port_name);
-                }
+            None => {
+                pref.initializations.remove(port_name);
             }
-        }
-
-        // Apply to display
-        if let Some(node) = self.nodes.get_mut(editor.node_index) {
-            match &new_display {
-                Some(display) => {
-                    node.initializers
-                        .insert(editor.port_name.clone(), display.clone());
-                }
-                None => {
-                    node.initializers.remove(&editor.port_name);
-                }
-            }
-        }
-
-        self.history.record(EditAction::EditInitializer {
-            node_index: editor.node_index,
-            port_name: editor.port_name.clone(),
-            old_init,
-            old_display,
-            new_init,
-            new_display,
-        });
-        self.unsaved_edits += 1;
-        self.compiled_manifest = None;
-        self.canvas_state.request_redraw();
-        self.status = format!("Initializer updated on {}/{}", alias, editor.port_name);
-    }
-
-    /// Synchronize the in-memory `FlowDefinition` with the current editor state
-    /// so that process references and the flow name are up to date.
-    /// Connections are handled separately via `EdgeLayout` during save.
-    fn sync_flow_definition(&mut self) {
-        // Update or rebuild process_refs from current NodeLayout data
-        let mut new_refs: Vec<ProcessReference> = Vec::with_capacity(self.nodes.len());
-        for node in &self.nodes {
-            // Try to find the original ProcessReference by alias to preserve initializations
-            let original = self
-                .flow_definition
-                .process_refs
-                .iter()
-                .find(|pr| {
-                    let alias = if pr.alias.is_empty() {
-                        derive_short_name(&pr.source)
-                    } else {
-                        pr.alias.to_string()
-                    };
-                    alias == node.alias
-                })
-                .cloned();
-
-            let pref = if let Some(mut orig) = original {
-                orig.x = Some(node.x);
-                orig.y = Some(node.y);
-                orig.width = Some(node.width);
-                orig.height = Some(node.height);
-                orig
-            } else {
-                // New node without an original -- build from scratch
-                ProcessReference {
-                    alias: node.alias.clone(),
-                    source: node.source.clone(),
-                    initializations: std::collections::BTreeMap::new(),
-                    x: Some(node.x),
-                    y: Some(node.y),
-                    width: Some(node.width),
-                    height: Some(node.height),
-                }
-            };
-            new_refs.push(pref);
-        }
-        self.flow_definition.process_refs = new_refs;
-
-        // Update the flow name
-        self.flow_definition.name = self.flow_name.clone();
-    }
-
-    /// Apply a redo action — re-apply the last undone edit.
-    fn apply_redo(&mut self) {
-        if let Some(action) = self.history.redo() {
-            match action {
-                EditAction::MoveNode {
-                    index,
-                    new_x,
-                    new_y,
-                    ..
-                } => {
-                    if let Some(node) = self.nodes.get_mut(index) {
-                        node.x = new_x;
-                        node.y = new_y;
-                    }
-                    self.status = String::from("Redo: move");
-                }
-                EditAction::ResizeNode {
-                    index,
-                    new_x,
-                    new_y,
-                    new_w,
-                    new_h,
-                    ..
-                } => {
-                    if let Some(node) = self.nodes.get_mut(index) {
-                        node.x = new_x;
-                        node.y = new_y;
-                        node.width = new_w;
-                        node.height = new_h;
-                    }
-                    self.status = String::from("Redo: resize");
-                }
-                EditAction::DeleteNode {
-                    index,
-                    removed_edges,
-                    node,
-                    ..
-                } => {
-                    let alias = node.alias.clone();
-                    if index <= self.nodes.len() {
-                        self.nodes.remove(index);
-                    }
-                    for edge in &removed_edges {
-                        self.edges.retain(|e| {
-                            e.from_node != edge.from_node
-                                || e.from_port != edge.from_port
-                                || e.to_node != edge.to_node
-                                || e.to_port != edge.to_port
-                        });
-                    }
-                    let _ = alias; // used for edge cleanup above
-                    self.status = String::from("Redo: delete node");
-                }
-                EditAction::CreateConnection { edge } => {
-                    self.edges.push(edge);
-                    self.status = String::from("Redo: create connection");
-                }
-                EditAction::DeleteConnection { index, .. } => {
-                    if index < self.edges.len() {
-                        self.edges.remove(index);
-                    }
-                    self.status = String::from("Redo: delete connection");
-                }
-                EditAction::EditInitializer {
-                    node_index,
-                    ref port_name,
-                    ref new_init,
-                    ref new_display,
-                    ..
-                } => {
-                    self.apply_initializer_state(
-                        node_index,
-                        port_name,
-                        new_init.as_ref(),
-                        new_display.as_ref(),
-                    );
-                    self.status = String::from("Redo: initializer");
-                }
-            }
-            self.canvas_state.request_redraw();
         }
     }
 
-    /// Apply an initializer state to both the model and display.
-    fn apply_initializer_state(
-        &mut self,
-        node_index: usize,
-        port_name: &str,
-        init: Option<&InputInitializer>,
-        display: Option<&String>,
-    ) {
-        let alias = self
-            .nodes
-            .get(node_index)
-            .map(|n| n.alias.clone())
-            .unwrap_or_default();
-
-        if let Some(pref) = self.flow_definition.process_refs.iter_mut().find(|pr| {
-            let pr_alias = if pr.alias.is_empty() {
-                derive_short_name(&pr.source)
-            } else {
-                pr.alias.to_string()
-            };
-            pr_alias == alias
-        }) {
-            match init {
-                Some(i) => {
-                    pref.initializations
-                        .insert(port_name.to_string(), i.clone());
-                }
-                None => {
-                    pref.initializations.remove(port_name);
-                }
+    if let Some(node) = win.nodes.get_mut(node_index) {
+        match display {
+            Some(d) => {
+                node.initializers.insert(port_name.to_string(), d.clone());
             }
-        }
-
-        if let Some(node) = self.nodes.get_mut(node_index) {
-            match display {
-                Some(d) => {
-                    node.initializers.insert(port_name.to_string(), d.clone());
-                }
-                None => {
-                    node.initializers.remove(port_name);
-                }
+            None => {
+                node.initializers.remove(port_name);
             }
         }
     }
@@ -1663,4 +3154,98 @@ fn format_endpoint(node: &str, port: &str) -> String {
     } else {
         format!("{node}/{port}")
     }
+}
+
+fn save_function_definition(viewer: &FunctionViewer) -> Result<(), String> {
+    let dir = viewer
+        .toml_path
+        .parent()
+        .ok_or_else(|| "Invalid path".to_string())?;
+    std::fs::create_dir_all(dir).map_err(|e| format!("Could not create directory: {e}"))?;
+
+    // 1. Write the function definition TOML
+    let mut toml = format!(
+        "function = \"{}\"\nsource = \"{}\"\ntype = \"rust\"\n",
+        viewer.name, viewer.source_file
+    );
+    for input in &viewer.inputs {
+        let dtype = input.datatypes.first().map_or("", String::as_str);
+        if input.name.is_empty() || input.name == "input" || input.name == "name" {
+            toml.push_str(&format!("\n[[input]]\ntype = \"{dtype}\"\n"));
+        } else {
+            toml.push_str(&format!(
+                "\n[[input]]\nname = \"{}\"\ntype = \"{dtype}\"\n",
+                input.name
+            ));
+        }
+    }
+    for output in &viewer.outputs {
+        let dtype = output.datatypes.first().map_or("", String::as_str);
+        if output.name.is_empty() || output.name == "output" || output.name == "name" {
+            toml.push_str(&format!("\n[[output]]\ntype = \"{dtype}\"\n"));
+        } else {
+            toml.push_str(&format!(
+                "\n[[output]]\nname = \"{}\"\ntype = \"{dtype}\"\n",
+                output.name
+            ));
+        }
+    }
+    std::fs::write(&viewer.toml_path, &toml)
+        .map_err(|e| format!("Could not write {}: {e}", viewer.toml_path.display()))?;
+
+    // 2. Generate skeleton .rs if it doesn't exist
+    let rs_path = dir.join(&viewer.source_file);
+    if !rs_path.exists() {
+        let input_count = viewer.inputs.len();
+        let skeleton = format!(
+            "use flowcore::{{RUN_AGAIN, RunAgain}};\n\
+             use flowcore::errors::*;\n\
+             use flowmacro::flow_function;\n\
+             use serde_json::Value;\n\
+             \n\
+             #[flow_function]\n\
+             fn _{name}(inputs: &[Value]) -> Result<(Option<Value>, RunAgain)> {{\n\
+             {input_bindings}\
+             \n    // TODO: implement function logic\n\
+             \n    Ok((None, RUN_AGAIN))\n\
+             }}\n",
+            name = viewer.name,
+            input_bindings = (0..input_count)
+                .map(|i| format!("    let _input{i} = &inputs[{i}];\n"))
+                .collect::<String>(),
+        );
+        std::fs::write(&rs_path, &skeleton)
+            .map_err(|e| format!("Could not write {}: {e}", rs_path.display()))?;
+    }
+
+    // 3. Generate function.toml (Cargo manifest) if it doesn't exist
+    let cargo_path = dir.join("function.toml");
+    if !cargo_path.exists() {
+        let stem = viewer
+            .source_file
+            .strip_suffix(".rs")
+            .unwrap_or(&viewer.source_file);
+        let cargo = format!(
+            "[package]\n\
+             name = \"{name}\"\n\
+             version = \"0.1.0\"\n\
+             edition = \"2021\"\n\
+             \n\
+             [lib]\n\
+             name = \"{name}\"\n\
+             crate-type = [\"cdylib\"]\n\
+             path = \"{source}\"\n\
+             \n\
+             [dependencies]\n\
+             flowcore = {{version = \"0\"}}\n\
+             flowmacro = {{version = \"0\"}}\n\
+             serde_json = {{version = \"1.0\", default-features = false}}\n",
+            name = viewer.name,
+            source = stem,
+        );
+        std::fs::write(&cargo_path, &cargo)
+            .map_err(|e| format!("Could not write {}: {e}", cargo_path.display()))?;
+    }
+
+    Ok(())
 }

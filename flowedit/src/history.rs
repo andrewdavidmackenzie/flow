@@ -84,20 +84,12 @@ pub(crate) enum EditAction {
 }
 
 /// Edit history supporting undo and redo.
+#[derive(Default)]
 pub(crate) struct EditHistory {
     /// Stack of actions that can be undone (most recent last)
     undo_stack: Vec<EditAction>,
     /// Stack of actions that can be redone (most recent last)
     redo_stack: Vec<EditAction>,
-}
-
-impl Default for EditHistory {
-    fn default() -> Self {
-        Self {
-            undo_stack: Vec::new(),
-            redo_stack: Vec::new(),
-        }
-    }
 }
 
 impl EditHistory {
@@ -121,13 +113,13 @@ impl EditHistory {
         Some(action)
     }
 
-    /// Whether there are actions to undo.
-    pub(crate) fn can_undo(&self) -> bool {
+    #[cfg(test)]
+    fn can_undo(&self) -> bool {
         !self.undo_stack.is_empty()
     }
 
-    /// Whether there are actions to redo.
-    pub(crate) fn can_redo(&self) -> bool {
+    #[cfg(test)]
+    fn can_redo(&self) -> bool {
         !self.redo_stack.is_empty()
     }
 }
