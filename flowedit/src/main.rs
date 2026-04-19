@@ -926,44 +926,32 @@ impl FlowEdit {
     /// Returns the path to the generated manifest on success, or a human-readable
     /// error message on failure.
     fn perform_compile(&mut self) -> Result<PathBuf, String> {
-        // 1. Write a temp copy for the compiler in the same directory as the
-        //    original flow so that relative source paths resolve correctly.
-        self.sync_flow_definition();
-        let flow_path = if let Some(ref original) = self.file_path {
-            let abs_original = if original.is_absolute() {
-                original.clone()
-            } else {
-                std::env::current_dir()
-                    .map_err(|e| format!("Could not get current directory: {e}"))?
-                    .join(original)
-            };
-            let dir = abs_original.parent().unwrap_or(Path::new("/"));
-            let pid = std::process::id();
-            let temp_name = format!(
-                ".flowedit_compile_{}_{pid}.toml",
-                abs_original
-                    .file_stem()
-                    .and_then(|s| s.to_str())
-                    .unwrap_or("flow")
-            );
-            dir.join(temp_name)
-        } else {
-            let pid = std::process::id();
-            let temp_dir = std::env::temp_dir().join("flowedit");
-            std::fs::create_dir_all(&temp_dir).map_err(|e| e.to_string())?;
-            temp_dir.join(format!("flow_{pid}.toml"))
+        // New flows must be saved first so the compiler has a real file path
+        if self.file_path.is_none() {
+            self.perform_save_as();
+        }
+        let Some(flow_path) = self.file_path.clone() else {
+            return Err("Flow must be saved before compiling".to_string());
         };
-        save_flow_toml(&self.flow_definition, &self.edges, &flow_path)?;
 
-        // Ensure temp compile file is cleaned up on all paths
-        let _cleanup = TempFileCleanup(&flow_path);
+        // Save any unsaved edits so the file on disk matches the editor state
+        if self.unsaved_edits > 0 {
+            self.perform_save(&flow_path);
+        }
+
+        let flow_path = &flow_path;
+        let abs_path = if flow_path.is_absolute() {
+            flow_path.clone()
+        } else {
+            std::env::current_dir()
+                .map_err(|e| format!("Could not get current directory: {e}"))?
+                .join(flow_path)
+        };
 
         let provider = build_meta_provider();
 
-        // 3. Parse — ensure absolute path
-        // flow_path is always absolute (temp dir)
-        let url = Url::from_file_path(&flow_path)
-            .map_err(|()| format!("Invalid file path: {}", flow_path.display()))?;
+        let url = Url::from_file_path(&abs_path)
+            .map_err(|()| format!("Invalid file path: {}", abs_path.display()))?;
         let process = flowrclib::compiler::parser::parse(&url, &provider)
             .map_err(|e| format!("Parse error: {e}"))?;
         let flow = match process {
@@ -971,8 +959,7 @@ impl FlowEdit {
             Process::FunctionProcess(_) => return Err("Not a flow definition".to_string()),
         };
 
-        // 4. Compile
-        let output_dir = flow_path.parent().unwrap_or(Path::new(".")).to_path_buf();
+        let output_dir = abs_path.parent().unwrap_or(Path::new(".")).to_path_buf();
         let mut source_urls = BTreeMap::<String, Url>::new();
         let tables = flowrclib::compiler::compile::compile(
             &flow,
@@ -983,7 +970,6 @@ impl FlowEdit {
         )
         .map_err(|e| e.to_string())?;
 
-        // 5. Generate manifest
         let manifest_path = flowrclib::generator::generate::write_flow_manifest(
             &flow,
             false,
@@ -1668,14 +1654,6 @@ fn next_node_position(nodes: &[NodeLayout]) -> (f32, f32) {
     // Find the rightmost node and place the new one to its right
     let max_right = nodes.iter().map(|n| n.x + n.width).fold(0.0_f32, f32::max);
     (max_right + 50.0, 100.0)
-}
-
-struct TempFileCleanup<'a>(&'a Path);
-
-impl Drop for TempFileCleanup<'_> {
-    fn drop(&mut self) {
-        let _ = std::fs::remove_file(self.0);
-    }
 }
 
 /// Format a connection endpoint for display, omitting "default" or empty port names.
