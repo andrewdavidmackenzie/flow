@@ -105,6 +105,16 @@ enum Message {
     NewSubFlow,
     /// Create a new provided implementation and add it to the current flow
     NewFunction,
+    /// Flow name changed
+    FlowNameChanged(window::Id, String),
+    /// Flow version changed
+    FlowVersionChanged(window::Id, String),
+    /// Flow description changed
+    FlowDescriptionChanged(window::Id, String),
+    /// Flow authors changed
+    FlowAuthorsChanged(window::Id, String),
+    /// Toggle metadata editor visibility
+    ToggleMetadataEditor(window::Id),
     /// Add a flow-level input port
     FlowAddInput(window::Id),
     /// Add a flow-level output port
@@ -205,6 +215,8 @@ struct WindowState {
     flow_outputs: Vec<PortInfo>,
     /// Context menu position (screen coords), if showing
     context_menu: Option<(f32, f32)>,
+    /// Whether the metadata editor is visible
+    show_metadata: bool,
 }
 
 /// Top-level application state
@@ -354,6 +366,7 @@ impl FlowEdit {
             flow_inputs: fi,
             flow_outputs: fo,
             context_menu: None,
+            show_metadata: false,
         };
 
         let mut windows = HashMap::new();
@@ -715,8 +728,41 @@ impl FlowEdit {
                     }
                 }
             }
+            Message::FlowNameChanged(win_id, new_name) => {
+                if let Some(win) = self.windows.get_mut(&win_id) {
+                    win.flow_name = new_name.clone();
+                    win.flow_definition.name = new_name;
+                    win.unsaved_edits += 1;
+                }
+            }
+            Message::FlowVersionChanged(win_id, version) => {
+                if let Some(win) = self.windows.get_mut(&win_id) {
+                    win.flow_definition.metadata.version = version;
+                    win.unsaved_edits += 1;
+                }
+            }
+            Message::FlowDescriptionChanged(win_id, desc) => {
+                if let Some(win) = self.windows.get_mut(&win_id) {
+                    win.flow_definition.metadata.description = desc;
+                    win.unsaved_edits += 1;
+                }
+            }
+            Message::FlowAuthorsChanged(win_id, authors_str) => {
+                if let Some(win) = self.windows.get_mut(&win_id) {
+                    win.flow_definition.metadata.authors = authors_str
+                        .split(',')
+                        .map(|s| s.trim().to_string())
+                        .filter(|s| !s.is_empty())
+                        .collect();
+                    win.unsaved_edits += 1;
+                }
+            }
+            Message::ToggleMetadataEditor(win_id) => {
+                if let Some(win) = self.windows.get_mut(&win_id) {
+                    win.show_metadata = !win.show_metadata;
+                }
+            }
             Message::NewSubFlow => {
-                // Dismiss any open context menu
                 for win in self.windows.values_mut() {
                     win.context_menu = None;
                 }
@@ -1017,36 +1063,66 @@ impl FlowEdit {
             )
             .map(move |msg| Message::WindowCanvas(window_id, msg));
 
+        let zoom_btn = |_theme: &Theme, status: button::Status| -> button::Style {
+            let is_hovered = matches!(status, button::Status::Hovered);
+            button::Style {
+                background: Some(iced::Background::Color(Color::from_rgb(0.25, 0.25, 0.30))),
+                text_color: Color::WHITE,
+                border: iced::Border {
+                    color: if is_hovered {
+                        Color::WHITE
+                    } else {
+                        Color::from_rgb(0.4, 0.4, 0.45)
+                    },
+                    width: 2.0,
+                    radius: 8.0.into(),
+                },
+                ..Default::default()
+            }
+        };
+        let zoom_btn_active = |_theme: &Theme, status: button::Status| -> button::Style {
+            let is_hovered = matches!(status, button::Status::Hovered);
+            button::Style {
+                background: Some(iced::Background::Color(Color::from_rgb(0.3, 0.35, 0.5))),
+                text_color: Color::WHITE,
+                border: iced::Border {
+                    color: if is_hovered {
+                        Color::WHITE
+                    } else {
+                        Color::from_rgb(0.4, 0.5, 0.7)
+                    },
+                    width: 2.0,
+                    radius: 8.0.into(),
+                },
+                ..Default::default()
+            }
+        };
         let btn_width = 40;
         let zoom_controls = container(
-            container(
-                Column::new()
-                    .spacing(4)
-                    .push(
-                        button(Text::new("+").center())
-                            .on_press(Message::ZoomIn(window_id))
-                            .width(btn_width)
-                            .style(button::secondary),
-                    )
-                    .push(
-                        button(Text::new("\u{2212}").center())
-                            .on_press(Message::ZoomOut(window_id))
-                            .width(btn_width)
-                            .style(button::secondary),
-                    )
-                    .push(
-                        button(Text::new("Fit").center())
-                            .on_press(Message::ToggleAutoFit(window_id))
-                            .width(btn_width)
-                            .style(if win.auto_fit_enabled {
-                                button::primary
-                            } else {
-                                button::secondary
-                            }),
-                    ),
-            )
-            .padding(6)
-            .style(container::rounded_box),
+            Column::new()
+                .spacing(4)
+                .push(
+                    button(Text::new("+").center())
+                        .on_press(Message::ZoomIn(window_id))
+                        .width(btn_width)
+                        .style(zoom_btn),
+                )
+                .push(
+                    button(Text::new("\u{2212}").center())
+                        .on_press(Message::ZoomOut(window_id))
+                        .width(btn_width)
+                        .style(zoom_btn),
+                )
+                .push(
+                    button(Text::new("Fit").center())
+                        .on_press(Message::ToggleAutoFit(window_id))
+                        .width(btn_width)
+                        .style(if win.auto_fit_enabled {
+                            zoom_btn_active
+                        } else {
+                            zoom_btn
+                        }),
+                ),
         )
         .align_right(Fill)
         .align_bottom(Fill)
@@ -1202,39 +1278,83 @@ impl FlowEdit {
             String::from("  |  saved")
         };
 
-        // Build status bar — compile button only for root windows
+        // Build status bar — action buttons only for root windows
+        let btn_pad = [6, 14];
+        let btn_size = 13;
+        let toolbar_btn = |_theme: &Theme, status: button::Status| -> button::Style {
+            let is_hovered = matches!(status, button::Status::Hovered);
+            button::Style {
+                background: Some(iced::Background::Color(Color::from_rgb(0.25, 0.25, 0.30))),
+                text_color: Color::WHITE,
+                border: iced::Border {
+                    color: if is_hovered {
+                        Color::WHITE
+                    } else {
+                        Color::from_rgb(0.4, 0.4, 0.45)
+                    },
+                    width: 2.0,
+                    radius: 8.0.into(),
+                },
+                ..Default::default()
+            }
+        };
+        let toolbar_btn_active = |_theme: &Theme, status: button::Status| -> button::Style {
+            let is_hovered = matches!(status, button::Status::Hovered);
+            button::Style {
+                background: Some(iced::Background::Color(Color::from_rgb(0.3, 0.35, 0.5))),
+                text_color: Color::WHITE,
+                border: iced::Border {
+                    color: if is_hovered {
+                        Color::WHITE
+                    } else {
+                        Color::from_rgb(0.4, 0.5, 0.7)
+                    },
+                    width: 2.0,
+                    radius: 8.0.into(),
+                },
+                ..Default::default()
+            }
+        };
         let status_bar: Row<'_, Message> = if win.is_root {
-            let mut compile_btn = button(Text::new("\u{1F528} Build").size(14).center())
-                .padding([6, 14])
-                .style(if win.nodes.is_empty() {
-                    button::secondary
-                } else {
-                    button::primary
-                });
+            let mut compile_btn = button(Text::new("\u{1F528} Build").size(btn_size).center())
+                .padding(btn_pad)
+                .style(toolbar_btn);
             if !win.nodes.is_empty() {
                 compile_btn = compile_btn.on_press(Message::Compile);
             }
 
-            let new_subflow_btn = button(Text::new("+ Sub-flow").size(12).center())
+            let new_subflow_btn = button(Text::new("+ Sub-flow").size(btn_size).center())
                 .on_press(Message::NewSubFlow)
-                .style(button::secondary)
-                .padding([4, 10]);
+                .style(toolbar_btn)
+                .padding(btn_pad);
 
-            let new_func_btn = button(Text::new("+ Function").size(12).center())
+            let new_func_btn = button(Text::new("+ Function").size(btn_size).center())
                 .on_press(Message::NewFunction)
-                .style(button::secondary)
-                .padding([4, 10]);
+                .style(toolbar_btn)
+                .padding(btn_pad);
+
+            let info_btn = button(Text::new("\u{2139} Info").size(btn_size).center())
+                .on_press(Message::ToggleMetadataEditor(window_id))
+                .style(if win.show_metadata {
+                    toolbar_btn_active
+                } else {
+                    toolbar_btn
+                })
+                .padding(btn_pad);
 
             Row::new()
                 .spacing(8)
+                .padding([4, 8])
                 .push(Text::new(format!("{}{}", win.status, edit_indicator)).size(14))
                 .push(iced::widget::Space::new().width(Fill))
+                .push(info_btn)
                 .push(new_subflow_btn)
                 .push(new_func_btn)
                 .push(compile_btn)
         } else {
             Row::new()
                 .spacing(8)
+                .padding([4, 8])
                 .push(Text::new(format!("{}{}", win.status, edit_indicator)).size(14))
                 .push(iced::widget::Space::new().width(Fill))
         };
@@ -1244,6 +1364,83 @@ impl FlowEdit {
         // Flow I/O editor panel for sub-flow windows
         if !win.is_root && matches!(win.kind, WindowKind::FlowEditor) {
             layout = layout.push(self.view_flow_io_panel(window_id, win));
+        }
+
+        // Metadata editor panel (toggled by Info button)
+        if win.show_metadata && matches!(win.kind, WindowKind::FlowEditor) {
+            let authors_str = win.flow_definition.metadata.authors.join(", ");
+            let meta_panel = container(
+                Column::new()
+                    .spacing(6)
+                    .padding(12)
+                    .push(
+                        Row::new()
+                            .spacing(8)
+                            .align_y(iced::Alignment::Center)
+                            .push(Text::new("Name:").size(12).width(70))
+                            .push(
+                                text_input("Flow name", &win.flow_name)
+                                    .on_input(move |s| Message::FlowNameChanged(window_id, s))
+                                    .size(13)
+                                    .padding(4)
+                                    .width(250),
+                            ),
+                    )
+                    .push(
+                        Row::new()
+                            .spacing(8)
+                            .align_y(iced::Alignment::Center)
+                            .push(Text::new("Version:").size(12).width(70))
+                            .push(
+                                text_input("0.1.0", &win.flow_definition.metadata.version)
+                                    .on_input(move |s| Message::FlowVersionChanged(window_id, s))
+                                    .size(13)
+                                    .padding(4)
+                                    .width(120),
+                            ),
+                    )
+                    .push(
+                        Row::new()
+                            .spacing(8)
+                            .align_y(iced::Alignment::Center)
+                            .push(Text::new("Description:").size(12).width(70))
+                            .push(
+                                text_input(
+                                    "A short description",
+                                    &win.flow_definition.metadata.description,
+                                )
+                                .on_input(move |s| Message::FlowDescriptionChanged(window_id, s))
+                                .size(13)
+                                .padding(4)
+                                .width(Fill),
+                            ),
+                    )
+                    .push(
+                        Row::new()
+                            .spacing(8)
+                            .align_y(iced::Alignment::Center)
+                            .push(Text::new("Authors:").size(12).width(70))
+                            .push(
+                                text_input("Name <email>, ...", &authors_str)
+                                    .on_input(move |s| Message::FlowAuthorsChanged(window_id, s))
+                                    .size(13)
+                                    .padding(4)
+                                    .width(Fill),
+                            ),
+                    ),
+            )
+            .style(|_theme: &Theme| container::Style {
+                background: Some(iced::Background::Color(Color::from_rgb(0.14, 0.14, 0.18))),
+                border: iced::Border {
+                    color: Color::from_rgb(0.3, 0.3, 0.3),
+                    width: 1.0,
+                    radius: 0.0.into(),
+                },
+                ..Default::default()
+            })
+            .width(Fill);
+
+            layout = layout.push(meta_panel);
         }
 
         layout = layout.push(container(status_bar).width(Fill).padding(5));
@@ -1706,6 +1903,7 @@ impl FlowEdit {
                     flow_inputs: fi,
                     flow_outputs: fo,
                     context_menu: None,
+                    show_metadata: false,
                 };
                 self.windows.insert(new_id, child);
                 if let Some(win) = self.windows.get_mut(&parent_win_id) {
@@ -1776,6 +1974,7 @@ impl FlowEdit {
             flow_inputs: Vec::new(),
             flow_outputs: Vec::new(),
             context_menu: None,
+            show_metadata: false,
         };
 
         self.windows.insert(new_id, child);
@@ -1903,6 +2102,7 @@ impl FlowEdit {
             flow_inputs: Vec::new(),
             flow_outputs: Vec::new(),
             context_menu: None,
+            show_metadata: false,
         };
 
         self.windows.insert(new_id, child);
@@ -2022,6 +2222,7 @@ impl FlowEdit {
             flow_inputs: Vec::new(),
             flow_outputs: Vec::new(),
             context_menu: None,
+            show_metadata: false,
         };
 
         self.windows.insert(new_id, child);
