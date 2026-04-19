@@ -1288,7 +1288,7 @@ impl FlowEdit {
             input_col = input_col.push(row);
         }
         input_col = input_col.push(
-            button(Text::new("+").size(12).center())
+            button(Text::new("+ Input").size(11).center())
                 .on_press(Message::FlowAddInput(window_id))
                 .style(button::secondary)
                 .padding([2, 8]),
@@ -1324,7 +1324,7 @@ impl FlowEdit {
             output_col = output_col.push(row);
         }
         output_col = output_col.push(
-            button(Text::new("+").size(12).center())
+            button(Text::new("+ Output").size(11).center())
                 .on_press(Message::FlowAddOutput(window_id))
                 .style(button::secondary)
                 .padding([2, 8]),
@@ -1415,10 +1415,10 @@ impl FlowEdit {
                     input_col = input_col.push(row);
                 }
                 input_col = input_col.push(
-                    button(Text::new("+").size(14).center())
+                    button(Text::new("+ Input").size(11).center())
                         .on_press(Message::FunctionAddInput(window_id))
                         .style(button::secondary)
-                        .padding([2, 10]),
+                        .padding([2, 8]),
                 );
 
                 // Output ports inside box: delete, type, name, semicircle ◖ (flat right)
@@ -1456,10 +1456,10 @@ impl FlowEdit {
                     output_col = output_col.push(row);
                 }
                 output_col = output_col.push(
-                    button(Text::new("+").size(14).center())
+                    button(Text::new("+ Output").size(11).center())
                         .on_press(Message::FunctionAddOutput(window_id))
                         .style(button::secondary)
-                        .padding([2, 10]),
+                        .padding([2, 8]),
                 );
 
                 let name_input = container(
