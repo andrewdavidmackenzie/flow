@@ -448,6 +448,11 @@ correctly. Provided implementation skeletons compile.
   child sub-flows and functions as children, recursively. Double-click to open
   an editing window for that node. For library-defined functions/flows (lib://),
   open a read-only view window similar to the existing editor windows.
+- Library function/flow viewer and editor: right-click (or view icon) on a
+  library function in the Process Library panel to view its definition, source,
+  and docs. Extend to full editing for library authoring — edit function/flow
+  definitions, inputs/outputs, source files, and save changes back to the
+  library directory.
 - Automated UI testing for interactive features described in the user manual
 
 ## 9. Key Design Decisions
