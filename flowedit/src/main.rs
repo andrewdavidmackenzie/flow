@@ -42,7 +42,7 @@ use canvas_view::{
 };
 use hierarchy_panel::{FlowHierarchy, HierarchyMessage};
 use history::{EditAction, EditHistory};
-use library_panel::{LibraryMessage, LibraryTree};
+use library_panel::{LibraryAction, LibraryMessage, LibraryTree};
 
 /// Messages handled by the flowedit application
 #[derive(Debug, Clone)]
@@ -737,13 +737,17 @@ impl FlowEdit {
                     }
                 }
             }
-            Message::Library(win_id, ref lib_msg) => {
-                if let Some((source, func_name)) = self.library_tree.update(lib_msg) {
+            Message::Library(win_id, ref lib_msg) => match self.library_tree.update(lib_msg) {
+                LibraryAction::Add(source, func_name) => {
                     if let Some(win) = self.windows.get_mut(&win_id) {
                         add_library_function(win, &source, &func_name);
                     }
                 }
-            }
+                LibraryAction::View(source, _name) => {
+                    return self.open_library_function(&source);
+                }
+                LibraryAction::None => {}
+            },
             Message::ZoomIn(win_id) => {
                 if let Some(win) = self.windows.get_mut(&win_id) {
                     win.auto_fit_enabled = false;
@@ -1945,6 +1949,96 @@ impl FlowEdit {
         });
 
         Subscription::batch(vec![keyboard_sub, window_events])
+    }
+
+    fn open_library_function(&mut self, source: &str) -> Task<Message> {
+        use flowcore::provider::Provider;
+
+        let provider = build_meta_provider();
+        let source_url = match Url::parse(source) {
+            Ok(u) => u,
+            Err(_) => return Task::none(),
+        };
+        let (resolved_url, _) = match provider.resolve_url(&source_url, "default", &["toml"]) {
+            Ok(r) => r,
+            Err(_) => return Task::none(),
+        };
+        let path = match resolved_url.to_file_path() {
+            Ok(p) => p,
+            Err(()) => return Task::none(),
+        };
+
+        // Check if already open
+        for (&win_id, win) in &self.windows {
+            if win.file_path.as_ref() == Some(&path) {
+                return window::gain_focus(win_id);
+            }
+        }
+
+        // Read and parse
+        let contents = match std::fs::read_to_string(&path) {
+            Ok(c) => c,
+            Err(_) => return Task::none(),
+        };
+        let url = match Url::from_file_path(&path) {
+            Ok(u) => u,
+            Err(()) => return Task::none(),
+        };
+        let deserializer = match get::<Process>(&url) {
+            Ok(d) => d,
+            Err(_) => return Task::none(),
+        };
+
+        match deserializer.deserialize(&contents, Some(&url)) {
+            Ok(Process::FunctionProcess(ref func)) => {
+                let parent = match self.root_window {
+                    Some(id) => id,
+                    None => return Task::none(),
+                };
+                self.open_function_viewer(parent, &path, func)
+            }
+            Ok(Process::FlowProcess(_)) => match load_flow(&path) {
+                Ok((name, nodes, edges, flow_def)) => {
+                    let (fi, fo) = extract_ports(&flow_def.inputs, &flow_def.outputs);
+                    let has_nodes = !nodes.is_empty();
+                    let nc = nodes.len();
+                    let ec = edges.len();
+                    let (new_id, open_task) =
+                        window::open(self.child_window_settings(1024.0, 768.0));
+                    let child = WindowState {
+                        kind: WindowKind::FlowEditor,
+                        flow_name: name,
+                        nodes,
+                        edges,
+                        canvas_state: FlowCanvasState::default(),
+                        status: format!("Library flow - {nc} nodes, {ec} connections"),
+                        selected_node: None,
+                        selected_connection: None,
+                        history: EditHistory::default(),
+                        auto_fit_pending: has_nodes,
+                        auto_fit_enabled: true,
+                        unsaved_edits: 0,
+                        compiled_manifest: None,
+                        file_path: Some(path),
+                        flow_definition: flow_def,
+                        tooltip: None,
+                        initializer_editor: None,
+                        is_root: false,
+                        flow_inputs: fi,
+                        flow_outputs: fo,
+                        context_menu: None,
+                        show_metadata: false,
+                        flow_hierarchy: self.build_hierarchy(),
+                        last_size: None,
+                        last_position: None,
+                    };
+                    self.windows.insert(new_id, child);
+                    open_task.discard()
+                }
+                Err(_) => Task::none(),
+            },
+            Err(_) => Task::none(),
+        }
     }
 
     fn build_hierarchy(&self) -> FlowHierarchy {
