@@ -782,12 +782,12 @@ fn hit_test_open_icon(nodes: &[NodeLayout], point: Point) -> Option<usize> {
         if !node.is_openable() {
             return None;
         }
-        let icon_x = node.x + node.width - 20.0;
-        let icon_y = node.y + 4.0;
+        let icon_x = node.x + node.width - 24.0;
+        let icon_y = node.y + 2.0;
         if point.x >= icon_x
-            && point.x <= icon_x + 16.0
+            && point.x <= icon_x + 22.0
             && point.y >= icon_y
-            && point.y <= icon_y + 16.0
+            && point.y <= icon_y + 22.0
         {
             Some(i)
         } else {
@@ -2071,13 +2071,13 @@ fn draw_node(frame: &mut Frame, node: &NodeLayout, zoom: f32, offset: Point) {
 
     // Draw open icon for sub-flows and provided implementations
     if node.is_openable() {
-        let icon_size = 14.0 * zoom;
-        let icon_x = node.x + node.width - 18.0;
-        let icon_y = node.y + 6.0;
+        let icon_size = 26.0 * zoom;
+        let icon_x = node.x + node.width - 22.0;
+        let icon_y = node.y + 4.0;
         let icon_pos = transform_point(Point::new(icon_x, icon_y), zoom, offset);
 
         let icon_text = CanvasText {
-            content: "\u{2197}".to_string(), // ↗ arrow
+            content: "\u{270E}".to_string(), // ✎ pencil
             position: icon_pos,
             color: Color::from_rgba(1.0, 1.0, 1.0, 0.8),
             size: icon_size.into(),

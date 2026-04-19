@@ -77,10 +77,36 @@ enum Message {
     InitializerApply(window::Id),
     /// Cancel the initializer edit, tagged with the originating window ID
     InitializerCancel(window::Id),
+    /// Switch tab in a function viewer window
+    FunctionTabSelected(window::Id, usize),
+    /// Function name edited
+    FunctionNameChanged(window::Id, String),
+    /// Browse for source file
+    FunctionBrowseSource(window::Id),
+    /// Add a new input port to a function
+    FunctionAddInput(window::Id),
+    /// Add a new output port to a function
+    FunctionAddOutput(window::Id),
+    /// Delete an input port from a function
+    FunctionDeleteInput(window::Id, usize),
+    /// Delete an output port from a function
+    FunctionDeleteOutput(window::Id, usize),
+    /// Input port name changed
+    FunctionInputNameChanged(window::Id, usize, String),
+    /// Input port type changed
+    FunctionInputTypeChanged(window::Id, usize, String),
+    /// Output port name changed
+    FunctionOutputNameChanged(window::Id, usize, String),
+    /// Output port type changed
+    FunctionOutputTypeChanged(window::Id, usize, String),
+    /// Save function definition to disk
+    FunctionSave(window::Id),
     /// A window close was requested
     CloseRequested(window::Id),
     /// Close the currently focused window (Cmd+W)
     CloseActiveWindow,
+    /// Quit the entire application (Cmd+Q)
+    QuitAll,
     /// A window received focus
     WindowFocused(window::Id),
 }
@@ -97,8 +123,28 @@ struct InitializerEditor {
     value_text: String,
 }
 
+/// State for a function definition viewer/editor window.
+struct FunctionViewer {
+    name: String,
+    source_file: String,
+    inputs: Vec<PortInfo>,
+    outputs: Vec<PortInfo>,
+    rs_content: String,
+    docs_content: Option<String>,
+    active_tab: usize,
+    toml_path: PathBuf,
+}
+
+/// What kind of content a window displays.
+enum WindowKind {
+    FlowEditor,
+    FunctionViewer(FunctionViewer),
+}
+
 /// Per-window state for the flow editor.
 struct WindowState {
+    /// What this window displays
+    kind: WindowKind,
     /// The name of the flow being viewed
     flow_name: String,
     /// Positioned nodes derived from the flow's process references
@@ -265,6 +311,7 @@ impl FlowEdit {
 
         let (fi, fo) = extract_ports(&flow_definition.inputs, &flow_definition.outputs);
         let win_state = WindowState {
+            kind: WindowKind::FlowEditor,
             flow_name,
             nodes,
             edges,
@@ -668,6 +715,127 @@ impl FlowEdit {
             Message::WindowFocused(id) => {
                 self.focused_window = Some(id);
             }
+            Message::FunctionTabSelected(win_id, tab) => {
+                if let Some(win) = self.windows.get_mut(&win_id) {
+                    if let WindowKind::FunctionViewer(ref mut viewer) = win.kind {
+                        viewer.active_tab = tab;
+                    }
+                }
+            }
+            Message::FunctionNameChanged(win_id, new_name) => {
+                if let Some(win) = self.windows.get_mut(&win_id) {
+                    if let WindowKind::FunctionViewer(ref mut viewer) = win.kind {
+                        viewer.name = new_name;
+                    }
+                }
+            }
+            Message::FunctionBrowseSource(win_id) => {
+                let dialog = rfd::FileDialog::new().add_filter("Rust", &["rs"]);
+                if let Some(selected) = dialog.pick_file() {
+                    if let Some(win) = self.windows.get_mut(&win_id) {
+                        if let WindowKind::FunctionViewer(ref mut viewer) = win.kind {
+                            // Make path relative to the TOML directory if possible
+                            let base = viewer.toml_path.parent().unwrap_or(Path::new("."));
+                            let rel = selected
+                                .strip_prefix(base)
+                                .map(|p| p.to_string_lossy().to_string())
+                                .unwrap_or_else(|_| selected.to_string_lossy().to_string());
+                            viewer.source_file = rel;
+                            // Reload the source content
+                            viewer.rs_content = std::fs::read_to_string(&selected)
+                                .unwrap_or_else(|_| String::from("// Could not read file"));
+                        }
+                    }
+                }
+            }
+            Message::FunctionAddInput(win_id) => {
+                if let Some(win) = self.windows.get_mut(&win_id) {
+                    if let WindowKind::FunctionViewer(ref mut v) = win.kind {
+                        v.inputs.push(PortInfo {
+                            name: format!("input{}", v.inputs.len()),
+                            datatypes: vec![String::from("string")],
+                        });
+                    }
+                }
+            }
+            Message::FunctionAddOutput(win_id) => {
+                if let Some(win) = self.windows.get_mut(&win_id) {
+                    if let WindowKind::FunctionViewer(ref mut v) = win.kind {
+                        v.outputs.push(PortInfo {
+                            name: format!("output{}", v.outputs.len()),
+                            datatypes: vec![String::from("string")],
+                        });
+                    }
+                }
+            }
+            Message::FunctionDeleteInput(win_id, idx) => {
+                if let Some(win) = self.windows.get_mut(&win_id) {
+                    if let WindowKind::FunctionViewer(ref mut v) = win.kind {
+                        if idx < v.inputs.len() {
+                            v.inputs.remove(idx);
+                        }
+                    }
+                }
+            }
+            Message::FunctionDeleteOutput(win_id, idx) => {
+                if let Some(win) = self.windows.get_mut(&win_id) {
+                    if let WindowKind::FunctionViewer(ref mut v) = win.kind {
+                        if idx < v.outputs.len() {
+                            v.outputs.remove(idx);
+                        }
+                    }
+                }
+            }
+            Message::FunctionInputNameChanged(win_id, idx, name) => {
+                if let Some(win) = self.windows.get_mut(&win_id) {
+                    if let WindowKind::FunctionViewer(ref mut v) = win.kind {
+                        if let Some(port) = v.inputs.get_mut(idx) {
+                            port.name = name;
+                        }
+                    }
+                }
+            }
+            Message::FunctionInputTypeChanged(win_id, idx, dtype) => {
+                if let Some(win) = self.windows.get_mut(&win_id) {
+                    if let WindowKind::FunctionViewer(ref mut v) = win.kind {
+                        if let Some(port) = v.inputs.get_mut(idx) {
+                            port.datatypes = vec![dtype];
+                        }
+                    }
+                }
+            }
+            Message::FunctionOutputNameChanged(win_id, idx, name) => {
+                if let Some(win) = self.windows.get_mut(&win_id) {
+                    if let WindowKind::FunctionViewer(ref mut v) = win.kind {
+                        if let Some(port) = v.outputs.get_mut(idx) {
+                            port.name = name;
+                        }
+                    }
+                }
+            }
+            Message::FunctionOutputTypeChanged(win_id, idx, dtype) => {
+                if let Some(win) = self.windows.get_mut(&win_id) {
+                    if let WindowKind::FunctionViewer(ref mut v) = win.kind {
+                        if let Some(port) = v.outputs.get_mut(idx) {
+                            port.datatypes = vec![dtype];
+                        }
+                    }
+                }
+            }
+            Message::FunctionSave(win_id) => {
+                if let Some(win) = self.windows.get_mut(&win_id) {
+                    if let WindowKind::FunctionViewer(ref v) = win.kind {
+                        match save_function_definition(v) {
+                            Ok(()) => {
+                                win.status = format!("Saved: {}", v.toml_path.display());
+                            }
+                            Err(e) => {
+                                win.status = format!("Save failed: {e}");
+                            }
+                        }
+                    }
+                }
+            }
             Message::CloseRequested(id) => {
                 self.windows.remove(&id);
                 if self.root_window == Some(id) || self.windows.is_empty() {
@@ -684,15 +852,34 @@ impl FlowEdit {
                     return window::close(id);
                 }
             }
+            Message::QuitAll => {
+                // Check for unsaved edits in any window
+                let has_unsaved = self.windows.values().any(|w| w.unsaved_edits > 0);
+                if has_unsaved {
+                    let dialog = rfd::MessageDialog::new()
+                        .set_title("Unsaved Changes")
+                        .set_description("There are unsaved changes. Quit without saving?")
+                        .set_buttons(rfd::MessageButtons::YesNo)
+                        .set_level(rfd::MessageLevel::Warning);
+                    if dialog.show() != rfd::MessageDialogResult::Yes {
+                        return Task::none();
+                    }
+                }
+                return iced::exit();
+            }
         }
         Task::none()
     }
 
-    /// Build the view: a canvas area with zoom controls overlaid, and a status bar at the bottom.
+    /// Build the view for a window, dispatching based on window kind.
     fn view(&self, window_id: window::Id) -> Element<'_, Message> {
         let Some(win) = self.windows.get(&window_id) else {
             return Text::new("Window not found").into();
         };
+
+        if let WindowKind::FunctionViewer(ref viewer) = win.kind {
+            return self.view_function(window_id, viewer, &win.status);
+        }
 
         let canvas = win
             .canvas_state
@@ -881,6 +1068,229 @@ impl FlowEdit {
         layout.into()
     }
 
+    fn view_function<'a>(
+        &'a self,
+        window_id: window::Id,
+        viewer: &'a FunctionViewer,
+        status: &'a str,
+    ) -> Element<'a, Message> {
+        let content: Element<'_, Message> = match viewer.active_tab {
+            0 => {
+                let input_color = Color::from_rgb(0.4, 0.8, 1.0);
+                let output_color = Color::from_rgb(1.0, 0.6, 0.3);
+
+                // Input ports inside box: semicircle ◗ (flat left), name, type, delete
+                let mut input_col = Column::new().spacing(6);
+                for (i, port) in viewer.inputs.iter().enumerate() {
+                    let dtype = port.datatypes.first().cloned().unwrap_or_default();
+                    let row = Row::new()
+                        .spacing(4)
+                        .align_y(iced::Alignment::Center)
+                        .push(Text::new("\u{25D7}").size(24).color(input_color))
+                        .push(
+                            text_input("name", &port.name)
+                                .on_input(move |s| {
+                                    Message::FunctionInputNameChanged(window_id, i, s)
+                                })
+                                .size(13)
+                                .padding(3)
+                                .width(90),
+                        )
+                        .push(
+                            text_input("type", &dtype)
+                                .on_input(move |s| {
+                                    Message::FunctionInputTypeChanged(window_id, i, s)
+                                })
+                                .size(11)
+                                .padding(3)
+                                .width(75),
+                        )
+                        .push(
+                            button(Text::new("\u{2715}").size(10).center())
+                                .on_press(Message::FunctionDeleteInput(window_id, i))
+                                .style(button::danger)
+                                .padding([2, 5]),
+                        );
+                    input_col = input_col.push(row);
+                }
+                input_col = input_col.push(
+                    button(Text::new("+").size(14).center())
+                        .on_press(Message::FunctionAddInput(window_id))
+                        .style(button::secondary)
+                        .padding([2, 10]),
+                );
+
+                // Output ports inside box: delete, type, name, semicircle ◖ (flat right)
+                let mut output_col = Column::new().spacing(6).align_x(iced::Alignment::End);
+                for (i, port) in viewer.outputs.iter().enumerate() {
+                    let dtype = port.datatypes.first().cloned().unwrap_or_default();
+                    let row = Row::new()
+                        .spacing(4)
+                        .align_y(iced::Alignment::Center)
+                        .push(
+                            button(Text::new("\u{2715}").size(10).center())
+                                .on_press(Message::FunctionDeleteOutput(window_id, i))
+                                .style(button::danger)
+                                .padding([2, 5]),
+                        )
+                        .push(
+                            text_input("type", &dtype)
+                                .on_input(move |s| {
+                                    Message::FunctionOutputTypeChanged(window_id, i, s)
+                                })
+                                .size(11)
+                                .padding(3)
+                                .width(75),
+                        )
+                        .push(
+                            text_input("name", &port.name)
+                                .on_input(move |s| {
+                                    Message::FunctionOutputNameChanged(window_id, i, s)
+                                })
+                                .size(13)
+                                .padding(3)
+                                .width(90),
+                        )
+                        .push(Text::new("\u{25D6}").size(24).color(output_color));
+                    output_col = output_col.push(row);
+                }
+                output_col = output_col.push(
+                    button(Text::new("+").size(14).center())
+                        .on_press(Message::FunctionAddOutput(window_id))
+                        .style(button::secondary)
+                        .padding([2, 10]),
+                );
+
+                let name_input = container(
+                    text_input("Function name", &viewer.name)
+                        .on_input(move |s| Message::FunctionNameChanged(window_id, s))
+                        .size(16)
+                        .padding(6)
+                        .width(250),
+                )
+                .center_x(Fill);
+
+                let mut source_row = Row::new()
+                    .spacing(6)
+                    .align_y(iced::Alignment::Center)
+                    .push(
+                        button(
+                            Text::new(&viewer.source_file)
+                                .size(13)
+                                .color(Color::from_rgb(0.6, 0.8, 1.0)),
+                        )
+                        .on_press(Message::FunctionTabSelected(window_id, 1))
+                        .style(button::text)
+                        .padding(0),
+                    )
+                    .push(
+                        button(Text::new("...").size(12).center())
+                            .on_press(Message::FunctionBrowseSource(window_id))
+                            .style(button::secondary)
+                            .padding([3, 8]),
+                    );
+                if viewer.docs_content.is_some() {
+                    source_row = source_row.push(
+                        button(Text::new("Docs").size(12).center())
+                            .on_press(Message::FunctionTabSelected(window_id, 2))
+                            .style(button::secondary)
+                            .padding([3, 8]),
+                    );
+                }
+
+                let func_box = container(
+                    Column::new()
+                        .spacing(20)
+                        .padding(iced::Padding {
+                            top: 24.0,
+                            bottom: 24.0,
+                            left: 0.0,
+                            right: 0.0,
+                        })
+                        .push(name_input)
+                        .push(
+                            Row::new()
+                                .push(input_col)
+                                .push(iced::widget::Space::new().width(Fill))
+                                .push(output_col),
+                        )
+                        .push(container(source_row).center_x(Fill)),
+                )
+                .style(|_theme: &Theme| container::Style {
+                    background: Some(iced::Background::Color(Color::from_rgb(0.18, 0.18, 0.22))),
+                    border: iced::Border {
+                        color: Color::from_rgb(0.5, 0.3, 0.7),
+                        width: 2.0,
+                        radius: 12.0.into(),
+                    },
+                    ..Default::default()
+                })
+                .width(550);
+
+                container(func_box).center(Fill).padding(40).into()
+            }
+            1 => {
+                let back_btn = button(Text::new("\u{2190} Definition").size(13).center())
+                    .on_press(Message::FunctionTabSelected(window_id, 0))
+                    .style(button::secondary)
+                    .padding([6, 14]);
+                Column::new()
+                    .push(container(back_btn).padding([8, 12]))
+                    .push(
+                        container(
+                            iced::widget::scrollable(
+                                Text::new(&viewer.rs_content)
+                                    .size(14)
+                                    .font(iced::Font::MONOSPACE),
+                            )
+                            .width(Fill)
+                            .height(Fill),
+                        )
+                        .width(Fill)
+                        .height(Fill)
+                        .padding(12),
+                    )
+                    .into()
+            }
+            _ => {
+                let back_btn = button(Text::new("\u{2190} Definition").size(13).center())
+                    .on_press(Message::FunctionTabSelected(window_id, 0))
+                    .style(button::secondary)
+                    .padding([6, 14]);
+                let docs = viewer.docs_content.as_deref().unwrap_or("");
+                Column::new()
+                    .push(container(back_btn).padding([8, 12]))
+                    .push(
+                        container(
+                            iced::widget::scrollable(Text::new(docs).size(14))
+                                .width(Fill)
+                                .height(Fill),
+                        )
+                        .width(Fill)
+                        .height(Fill)
+                        .padding(12),
+                    )
+                    .into()
+            }
+        };
+
+        let save_btn = button(Text::new("\u{1F4BE} Save").size(14).center())
+            .on_press(Message::FunctionSave(window_id))
+            .style(button::primary)
+            .padding([6, 14]);
+
+        let status_bar = Row::new()
+            .spacing(8)
+            .push(Text::new(status).size(14))
+            .push(iced::widget::Space::new().width(Fill))
+            .push(save_btn);
+
+        Column::new()
+            .push(container(content).width(Fill).height(Fill))
+            .push(container(status_bar).width(Fill).padding(5))
+            .into()
+    }
+
     fn subscription(&self) -> Subscription<Message> {
         let keyboard_sub = keyboard::listen().filter_map(|event| match event {
             keyboard::Event::KeyPressed {
@@ -896,6 +1306,7 @@ impl FlowEdit {
                 "n" => Some(Message::New),
                 "b" => Some(Message::Compile),
                 "w" => Some(Message::CloseActiveWindow),
+                "q" => Some(Message::QuitAll),
                 _ => None,
             },
             _ => None,
@@ -945,17 +1356,17 @@ impl FlowEdit {
         }
 
         // Check whether the resolved file is a flow or a function
-        if let Ok(contents) = std::fs::read_to_string(&path) {
-            if let Ok(url) = Url::from_file_path(&path) {
+        let abs_path = match std::fs::canonicalize(&path) {
+            Ok(p) => p,
+            Err(_) => path.clone(),
+        };
+        if let Ok(contents) = std::fs::read_to_string(&abs_path) {
+            if let Ok(url) = Url::from_file_path(&abs_path) {
                 if let Ok(deserializer) = get::<Process>(&url) {
-                    if let Ok(Process::FunctionProcess(_)) =
+                    if let Ok(Process::FunctionProcess(ref func)) =
                         deserializer.deserialize(&contents, Some(&url))
                     {
-                        if let Some(win) = self.windows.get_mut(&parent_win_id) {
-                            win.status =
-                                format!("'{}' is a function -- viewer not yet implemented", source);
-                        }
-                        return Task::none();
+                        return self.open_function_viewer(parent_win_id, &path, func);
                     }
                 }
             }
@@ -965,19 +1376,15 @@ impl FlowEdit {
         match load_flow(&path) {
             Ok((name, nodes, edges, flow_def)) => {
                 let has_nodes = !nodes.is_empty();
-                let cascade = self.windows.len() as f32;
                 let (new_id, open_task) = window::open(window::Settings {
                     size: iced::Size::new(1024.0, 768.0),
-                    position: window::Position::Specific(iced::Point::new(
-                        80.0 + cascade * 30.0,
-                        60.0 + cascade * 30.0,
-                    )),
                     ..Default::default()
                 });
                 let nc = nodes.len();
                 let ec = edges.len();
                 let (fi, fo) = extract_ports(&flow_def.inputs, &flow_def.outputs);
                 let child = WindowState {
+                    kind: WindowKind::FlowEditor,
                     flow_name: name,
                     nodes,
                     edges,
@@ -1011,6 +1418,68 @@ impl FlowEdit {
                 Task::none()
             }
         }
+    }
+
+    fn open_function_viewer(
+        &mut self,
+        parent_win_id: window::Id,
+        toml_path: &Path,
+        func: &flowcore::model::function_definition::FunctionDefinition,
+    ) -> Task<Message> {
+        let dir = toml_path.parent().unwrap_or(Path::new("."));
+        let func_name = &func.name;
+
+        let rs_path = dir.join(&func.source);
+        let rs_content = std::fs::read_to_string(&rs_path)
+            .unwrap_or_else(|_| String::from("// Source file not found"));
+        let docs_content = std::fs::read_to_string(dir.join(format!("{func_name}.md"))).ok();
+
+        let (inputs, outputs) = extract_ports(&func.inputs, &func.outputs);
+
+        let (new_id, open_task) = window::open(window::Settings {
+            size: iced::Size::new(700.0, 500.0),
+            ..Default::default()
+        });
+
+        let viewer = FunctionViewer {
+            name: func_name.clone(),
+            source_file: func.source.clone(),
+            inputs,
+            outputs,
+            rs_content,
+            docs_content,
+            active_tab: 0,
+            toml_path: toml_path.to_path_buf(),
+        };
+
+        let child = WindowState {
+            kind: WindowKind::FunctionViewer(viewer),
+            flow_name: func_name.clone(),
+            nodes: Vec::new(),
+            edges: Vec::new(),
+            canvas_state: FlowCanvasState::default(),
+            status: format!("Function: {func_name}"),
+            selected_node: None,
+            selected_connection: None,
+            history: EditHistory::default(),
+            auto_fit_pending: false,
+            auto_fit_enabled: false,
+            unsaved_edits: 0,
+            compiled_manifest: None,
+            file_path: Some(toml_path.to_path_buf()),
+            flow_definition: FlowDefinition::default(),
+            tooltip: None,
+            initializer_editor: None,
+            is_root: false,
+            flow_inputs: Vec::new(),
+            flow_outputs: Vec::new(),
+        };
+
+        self.windows.insert(new_id, child);
+        if let Some(win) = self.windows.get_mut(&parent_win_id) {
+            win.status = format!("Opened function: {func_name}");
+        }
+        open_task.discard()
     }
 }
 
@@ -1938,4 +2407,98 @@ fn format_endpoint(node: &str, port: &str) -> String {
     } else {
         format!("{node}/{port}")
     }
+}
+
+fn save_function_definition(viewer: &FunctionViewer) -> Result<(), String> {
+    let dir = viewer
+        .toml_path
+        .parent()
+        .ok_or_else(|| "Invalid path".to_string())?;
+    std::fs::create_dir_all(dir).map_err(|e| format!("Could not create directory: {e}"))?;
+
+    // 1. Write the function definition TOML
+    let mut toml = format!(
+        "function = \"{}\"\nsource = \"{}\"\ntype = \"rust\"\n",
+        viewer.name, viewer.source_file
+    );
+    for input in &viewer.inputs {
+        let dtype = input.datatypes.first().map_or("", String::as_str);
+        if input.name.is_empty() || input.name == "input" || input.name == "name" {
+            toml.push_str(&format!("\n[[input]]\ntype = \"{dtype}\"\n"));
+        } else {
+            toml.push_str(&format!(
+                "\n[[input]]\nname = \"{}\"\ntype = \"{dtype}\"\n",
+                input.name
+            ));
+        }
+    }
+    for output in &viewer.outputs {
+        let dtype = output.datatypes.first().map_or("", String::as_str);
+        if output.name.is_empty() || output.name == "output" || output.name == "name" {
+            toml.push_str(&format!("\n[[output]]\ntype = \"{dtype}\"\n"));
+        } else {
+            toml.push_str(&format!(
+                "\n[[output]]\nname = \"{}\"\ntype = \"{dtype}\"\n",
+                output.name
+            ));
+        }
+    }
+    std::fs::write(&viewer.toml_path, &toml)
+        .map_err(|e| format!("Could not write {}: {e}", viewer.toml_path.display()))?;
+
+    // 2. Generate skeleton .rs if it doesn't exist
+    let rs_path = dir.join(&viewer.source_file);
+    if !rs_path.exists() {
+        let input_count = viewer.inputs.len();
+        let skeleton = format!(
+            "use flowcore::{{RUN_AGAIN, RunAgain}};\n\
+             use flowcore::errors::*;\n\
+             use flowmacro::flow_function;\n\
+             use serde_json::Value;\n\
+             \n\
+             #[flow_function]\n\
+             fn _{name}(inputs: &[Value]) -> Result<(Option<Value>, RunAgain)> {{\n\
+             {input_bindings}\
+             \n    // TODO: implement function logic\n\
+             \n    Ok((None, RUN_AGAIN))\n\
+             }}\n",
+            name = viewer.name,
+            input_bindings = (0..input_count)
+                .map(|i| format!("    let _input{i} = &inputs[{i}];\n"))
+                .collect::<String>(),
+        );
+        std::fs::write(&rs_path, &skeleton)
+            .map_err(|e| format!("Could not write {}: {e}", rs_path.display()))?;
+    }
+
+    // 3. Generate function.toml (Cargo manifest) if it doesn't exist
+    let cargo_path = dir.join("function.toml");
+    if !cargo_path.exists() {
+        let stem = viewer
+            .source_file
+            .strip_suffix(".rs")
+            .unwrap_or(&viewer.source_file);
+        let cargo = format!(
+            "[package]\n\
+             name = \"{name}\"\n\
+             version = \"0.1.0\"\n\
+             edition = \"2021\"\n\
+             \n\
+             [lib]\n\
+             name = \"{name}\"\n\
+             crate-type = [\"cdylib\"]\n\
+             path = \"{source}\"\n\
+             \n\
+             [dependencies]\n\
+             flowcore = {{version = \"0\"}}\n\
+             flowmacro = {{version = \"0\"}}\n\
+             serde_json = {{version = \"1.0\", default-features = false}}\n",
+            name = viewer.name,
+            source = stem,
+        );
+        std::fs::write(&cargo_path, &cargo)
+            .map_err(|e| format!("Could not write {}: {e}", cargo_path.display()))?;
+    }
+
+    Ok(())
 }
