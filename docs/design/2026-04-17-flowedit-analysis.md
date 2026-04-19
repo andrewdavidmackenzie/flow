@@ -434,10 +434,6 @@ correctly. Provided implementation skeletons compile.
   optional x, y, width, height fields on the root flow metadata) so the window
   reopens at the same position when editing is resumed
 - Prompt to save on window close (Cmd+Q or close button) when there are unsaved edits
-- Fix alias-vs-connection-route key mismatch: when a ProcessReference has no explicit
-  alias, the display alias is derived from the source URL, but connection routes may
-  use a different name. Need to align alias resolution with flowc's logic so port
-  lookups and connection drawing always match.
 - Add UI dialog to add custom library search paths or specific libraries at runtime
   (the `-L` CLI flag already supports this at startup, but there is no in-app way
   to add paths during an editing session)
