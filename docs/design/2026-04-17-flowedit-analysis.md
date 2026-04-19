@@ -421,8 +421,6 @@ correctly. Provided implementation skeletons compile.
   from unnamed output ports). Consider alternative approaches: distance-to-curve
   calculation, wider hit zones, or rendering connections to an off-screen buffer
   for pixel-precise hit testing.
-- Canvas scroll bars: add visible horizontal and vertical scroll bars to the
-  main editing canvas (in addition to the existing mouse-wheel/middle-button pan)
 - Revisit hover tooltip: improve positioning (track cursor more closely), ensure
   text size matches the source label, and extend to show port data types on hover
 - Port inset so semi-circles sit inside the box border without breaking connection
