@@ -13,14 +13,14 @@
 //! is displayed as a colored, rounded rectangle on the canvas, with connections
 //! drawn as bezier curves between nodes.
 
-use std::collections::HashMap;
-use std::path::PathBuf;
+use std::collections::{BTreeMap, HashMap};
+use std::path::{Path, PathBuf};
 
-use clap::{Arg, Command as ClapCommand};
+use clap::{Arg, ArgAction, Command as ClapCommand};
 use iced::keyboard;
-use iced::widget::{button, container, stack, Column, Row, Text};
+use iced::widget::{button, container, pick_list, stack, text_input, Column, Row, Text};
 use iced::{Color, Element, Fill, Subscription, Task, Theme};
-use log::{info, warn};
+use log::info;
 use simpath::Simpath;
 use url::Url;
 
@@ -66,6 +66,28 @@ enum Message {
     Open,
     /// Create a new empty flow
     New,
+    /// Compile the current flow
+    Compile,
+    /// Initializer type changed in the editor dialog
+    InitializerTypeChanged(String),
+    /// Initializer value changed in the editor dialog
+    InitializerValueChanged(String),
+    /// Apply the initializer edit
+    InitializerApply,
+    /// Cancel the initializer edit
+    InitializerCancel,
+}
+
+/// State for the initializer editing dialog.
+struct InitializerEditor {
+    /// Index of the node being edited
+    node_index: usize,
+    /// Name of the input port being edited
+    port_name: String,
+    /// Selected type: "none", "once", or "always"
+    init_type: String,
+    /// The value as a string (JSON)
+    value_text: String,
 }
 
 /// Top-level application state
@@ -92,12 +114,16 @@ struct FlowEdit {
     auto_fit_enabled: bool,
     /// Count of unsaved edits (increments on edit/redo, decrements on undo)
     unsaved_edits: i32,
+    /// Path to the last compiled manifest (None if not compiled or edited since)
+    compiled_manifest: Option<PathBuf>,
     /// Path to the currently loaded flow file, if any
     file_path: Option<PathBuf>,
     /// The original flow definition, used to preserve metadata when saving
     flow_definition: FlowDefinition,
     /// Tooltip text and screen position to display (full source path on hover)
     tooltip: Option<(String, f32, f32)>,
+    /// Active initializer editor dialog, if any
+    initializer_editor: Option<InitializerEditor>,
     /// Library panel tree for process discovery
     library_tree: LibraryTree,
 }
@@ -125,7 +151,49 @@ impl FlowEdit {
                     .required(false)
                     .help("Path to the flow definition file (.toml, .yaml, or .json)"),
             )
+            .arg(
+                Arg::new("lib_dir")
+                    .short('L')
+                    .long("libdir")
+                    .num_args(1)
+                    .action(ArgAction::Append)
+                    .value_name("LIB_DIR")
+                    .help("Add a directory to the Library Search path"),
+            )
             .get_matches();
+
+        // Collect -L library directories, same as flowrgui
+        let lib_dirs: Vec<String> = if matches.contains_id("lib_dir") {
+            matches
+                .get_many::<String>("lib_dir")
+                .map(|dirs| dirs.map(std::string::ToString::to_string).collect())
+                .unwrap_or_default()
+        } else {
+            vec![]
+        };
+
+        // Build the library search path from FLOW_LIB_PATH + -L args
+        let mut lib_search_path = Simpath::new_with_separator("FLOW_LIB_PATH", ',');
+        for addition in &lib_dirs {
+            lib_search_path.add(addition);
+            info!("'{addition}' added to the Library Search Path");
+        }
+        if lib_search_path.is_empty() {
+            if let Ok(home) = std::env::var("HOME") {
+                lib_search_path.add(&format!("{home}/.flow/lib"));
+            }
+        }
+
+        // Set FLOW_LIB_PATH with any -L additions so other code can find libraries
+        if !lib_dirs.is_empty() {
+            let current = std::env::var("FLOW_LIB_PATH").unwrap_or_default();
+            let additions = lib_dirs.join(",");
+            if current.is_empty() {
+                std::env::set_var("FLOW_LIB_PATH", additions);
+            } else {
+                std::env::set_var("FLOW_LIB_PATH", format!("{current},{additions}"));
+            }
+        }
 
         let (flow_name, nodes, edges, status, file_path, flow_definition) =
             if let Some(flow_path_str) = matches.get_one::<String>("flow-file") {
@@ -177,9 +245,11 @@ impl FlowEdit {
             auto_fit_enabled: true, // Start in auto-fit mode
             history: EditHistory::default(),
             unsaved_edits: 0,
+            compiled_manifest: None,
             file_path,
             flow_definition,
             tooltip: None,
+            initializer_editor: None,
             library_tree,
         };
 
@@ -370,6 +440,45 @@ impl FlowEdit {
                     let pct = (self.canvas_state.zoom * 100.0) as u32;
                     self.status = format!("Zoom: {pct}%");
                 }
+                CanvasMessage::InitializerEdit(node_idx, port_name) => {
+                    // Look up current initializer from the model (flow definition)
+                    let alias = self
+                        .nodes
+                        .get(node_idx)
+                        .map(|n| n.alias.clone())
+                        .unwrap_or_default();
+                    let (init_type, value_text) = self
+                        .flow_definition
+                        .process_refs
+                        .iter()
+                        .find(|pr| {
+                            let pr_alias = if pr.alias.is_empty() {
+                                derive_short_name(&pr.source)
+                            } else {
+                                pr.alias.to_string()
+                            };
+                            pr_alias == alias
+                        })
+                        .and_then(|pr| pr.initializations.get(&port_name))
+                        .map(|init| match init {
+                            InputInitializer::Once(v) => (
+                                "once".to_string(),
+                                serde_json::to_string(v).unwrap_or_default(),
+                            ),
+                            InputInitializer::Always(v) => (
+                                "always".to_string(),
+                                serde_json::to_string(v).unwrap_or_default(),
+                            ),
+                        })
+                        .unwrap_or_else(|| ("none".to_string(), String::new()));
+
+                    self.initializer_editor = Some(InitializerEditor {
+                        node_index: node_idx,
+                        port_name,
+                        init_type,
+                        value_text,
+                    });
+                }
             },
             Message::Library(ref lib_msg) => {
                 if let Some((source, func_name)) = self.library_tree.update(lib_msg) {
@@ -407,8 +516,8 @@ impl FlowEdit {
                 self.unsaved_edits += 1;
             }
             Message::Save => {
-                if let Some(ref path) = self.file_path.clone() {
-                    self.perform_save(path);
+                if let Some(path) = self.file_path.clone() {
+                    self.perform_save(&path);
                 } else {
                     self.perform_save_as();
                 }
@@ -421,6 +530,38 @@ impl FlowEdit {
             }
             Message::New => {
                 self.perform_new();
+            }
+            Message::Compile => {
+                if !self.nodes.is_empty() {
+                    match self.perform_compile() {
+                        Ok(path) => {
+                            self.compiled_manifest = Some(path.clone());
+                            self.status = format!("Compiled: {}", path.display());
+                        }
+                        Err(e) => {
+                            self.compiled_manifest = None;
+                            self.status = e.to_string();
+                        }
+                    }
+                }
+            }
+            Message::InitializerTypeChanged(new_type) => {
+                if let Some(ref mut editor) = self.initializer_editor {
+                    editor.init_type = new_type;
+                }
+            }
+            Message::InitializerValueChanged(new_value) => {
+                if let Some(ref mut editor) = self.initializer_editor {
+                    editor.value_text = new_value;
+                }
+            }
+            Message::InitializerApply => {
+                if let Some(editor) = self.initializer_editor.take() {
+                    self.apply_initializer_edit(&editor);
+                }
+            }
+            Message::InitializerCancel => {
+                self.initializer_editor = None;
             }
         }
         Task::none()
@@ -473,7 +614,9 @@ impl FlowEdit {
         .align_bottom(Fill)
         .padding(10);
 
-        let canvas_with_controls = if let Some((ref tip_text, tx, ty)) = self.tooltip {
+        let mut canvas_stack: Vec<Element<'_, Message>> = vec![canvas.into(), zoom_controls.into()];
+
+        if let Some((ref tip_text, tx, ty)) = self.tooltip {
             let tooltip_widget = container(
                 container(Text::new(tip_text.clone()).size(20).color(Color::WHITE))
                     .padding(8)
@@ -495,10 +638,75 @@ impl FlowEdit {
                 bottom: 0.0,
                 left: tx + 16.0,
             });
-            stack![canvas, zoom_controls, tooltip_widget]
-        } else {
-            stack![canvas, zoom_controls]
-        };
+            canvas_stack.push(tooltip_widget.into());
+        }
+
+        // Initializer editor dialog overlay
+        if let Some(ref editor) = self.initializer_editor {
+            let port_label = if let Some(node) = self.nodes.get(editor.node_index) {
+                format!("{}/{}", node.alias, editor.port_name)
+            } else {
+                editor.port_name.clone()
+            };
+
+            let init_types = vec!["none", "once", "always"];
+            let selected: Option<&str> =
+                init_types.iter().find(|&&t| t == editor.init_type).copied();
+
+            let mut dialog_col = Column::new()
+                .spacing(8)
+                .padding(12)
+                .push(Text::new(format!("Initializer: {port_label}")).size(14))
+                .push(
+                    pick_list(init_types, selected, |s: &str| {
+                        Message::InitializerTypeChanged(s.to_string())
+                    })
+                    .text_size(12),
+                );
+
+            if editor.init_type != "none" {
+                dialog_col = dialog_col.push(
+                    text_input("JSON value (e.g. 42, \"hello\", true)", &editor.value_text)
+                        .on_input(Message::InitializerValueChanged)
+                        .size(12)
+                        .padding(6),
+                );
+            }
+
+            dialog_col = dialog_col.push(
+                Row::new()
+                    .spacing(8)
+                    .push(
+                        button(Text::new("Apply").size(12).center())
+                            .on_press(Message::InitializerApply)
+                            .style(button::primary)
+                            .padding(6),
+                    )
+                    .push(
+                        button(Text::new("Cancel").size(12).center())
+                            .on_press(Message::InitializerCancel)
+                            .style(button::secondary)
+                            .padding(6),
+                    ),
+            );
+
+            let dialog = container(container(dialog_col).width(280).style(|_theme: &Theme| {
+                container::Style {
+                    background: Some(iced::Background::Color(Color::from_rgb(0.15, 0.15, 0.15))),
+                    border: iced::Border {
+                        color: Color::from_rgb(0.4, 0.4, 0.4),
+                        width: 1.0,
+                        radius: 8.0.into(),
+                    },
+                    ..Default::default()
+                }
+            }))
+            .center(Fill);
+
+            canvas_stack.push(dialog.into());
+        }
+
+        let canvas_with_controls = stack(canvas_stack);
 
         let library_panel = self.library_tree.view().map(Message::Library);
 
@@ -511,17 +719,27 @@ impl FlowEdit {
         } else {
             String::from("  |  saved")
         };
-        let status_bar: Row<'_, Message> =
-            Row::new().push(Text::new(format!("{}{}", self.status, edit_indicator)).size(14));
 
-        Column::new()
-            .push(container(main_content).width(Fill).height(Fill))
-            .push(container(status_bar).width(Fill).padding(5))
-            .into()
+        // Compile button — enabled when there are nodes
+        let mut compile_btn = button(Text::new("Compile").size(12).center())
+            .style(button::secondary)
+            .padding(4);
+        if !self.nodes.is_empty() {
+            compile_btn = compile_btn.on_press(Message::Compile);
+        }
+
+        let status_bar: Row<'_, Message> = Row::new()
+            .spacing(8)
+            .push(Text::new(format!("{}{}", self.status, edit_indicator)).size(14))
+            .push(iced::widget::Space::new().width(Fill))
+            .push(compile_btn);
+
+        let mut layout = Column::new().push(container(main_content).width(Fill).height(Fill));
+
+        layout = layout.push(container(status_bar).width(Fill).padding(5));
+        layout.into()
     }
 
-    /// Listen for keyboard shortcuts: Cmd+Z undo, Cmd+Shift+Z redo,
-    /// Cmd+S save, Cmd+Shift+S save-as, Cmd+O open, Cmd+N new.
     fn subscription(&self) -> Subscription<Message> {
         keyboard::listen().filter_map(|event| match event {
             keyboard::Event::KeyPressed {
@@ -535,6 +753,7 @@ impl FlowEdit {
                 "s" => Some(Message::Save),
                 "o" => Some(Message::Open),
                 "n" => Some(Message::New),
+                "b" => Some(Message::Compile),
                 "=" | "+" => Some(Message::ZoomIn),
                 "-" => Some(Message::ZoomOut),
                 _ => None,
@@ -547,6 +766,7 @@ impl FlowEdit {
     fn record_edit(&mut self, action: EditAction) {
         self.history.record(action);
         self.unsaved_edits += 1;
+        self.compiled_manifest = None; // Invalidate compilation on any edit
     }
 
     /// Apply an undo action — reverse the last edit.
@@ -602,6 +822,21 @@ impl FlowEdit {
                 EditAction::DeleteConnection { index, edge } => {
                     self.edges.insert(index, edge);
                     self.status = String::from("Undo: delete connection");
+                }
+                EditAction::EditInitializer {
+                    node_index,
+                    ref port_name,
+                    ref old_init,
+                    ref old_display,
+                    ..
+                } => {
+                    self.apply_initializer_state(
+                        node_index,
+                        port_name,
+                        old_init.as_ref(),
+                        old_display.as_ref(),
+                    );
+                    self.status = String::from("Undo: initializer");
                 }
             }
             self.canvas_state.request_redraw();
@@ -683,6 +918,70 @@ impl FlowEdit {
         self.status = String::from("New flow");
     }
 
+    /// Compile the current flow to a manifest.
+    ///
+    /// Writes a temporary copy of the current editor state for the compiler
+    /// to parse — the user's flow definition file is never modified.
+    ///
+    /// Returns the path to the generated manifest on success, or a human-readable
+    /// error message on failure.
+    fn perform_compile(&mut self) -> Result<PathBuf, String> {
+        // New flows must be saved first so the compiler has a real file path
+        if self.file_path.is_none() {
+            self.perform_save_as();
+        }
+        let Some(flow_path) = self.file_path.clone() else {
+            return Err("Flow must be saved before compiling".to_string());
+        };
+
+        // Save any unsaved edits so the file on disk matches the editor state
+        if self.unsaved_edits > 0 {
+            self.perform_save(&flow_path);
+        }
+
+        let flow_path = &flow_path;
+        let abs_path = if flow_path.is_absolute() {
+            flow_path.clone()
+        } else {
+            std::env::current_dir()
+                .map_err(|e| format!("Could not get current directory: {e}"))?
+                .join(flow_path)
+        };
+
+        let provider = build_meta_provider();
+
+        let url = Url::from_file_path(&abs_path)
+            .map_err(|()| format!("Invalid file path: {}", abs_path.display()))?;
+        let process = flowrclib::compiler::parser::parse(&url, &provider)
+            .map_err(|e| format!("Parse error: {e}"))?;
+        let flow = match process {
+            Process::FlowProcess(f) => f,
+            Process::FunctionProcess(_) => return Err("Not a flow definition".to_string()),
+        };
+
+        let output_dir = abs_path.parent().unwrap_or(Path::new(".")).to_path_buf();
+        let mut source_urls = BTreeMap::<String, Url>::new();
+        let tables = flowrclib::compiler::compile::compile(
+            &flow,
+            &output_dir,
+            false,
+            false,
+            &mut source_urls,
+        )
+        .map_err(|e| e.to_string())?;
+
+        let manifest_path = flowrclib::generator::generate::write_flow_manifest(
+            &flow,
+            false,
+            &output_dir,
+            &tables,
+            source_urls,
+        )
+        .map_err(|e| format!("Manifest error: {e}"))?;
+
+        Ok(manifest_path)
+    }
+
     /// Add a function from the library panel as a new node on the canvas.
     ///
     /// Creates a `NodeLayout` at a default position and a `ProcessReference`
@@ -694,6 +993,9 @@ impl FlowEdit {
         // Place the new node at a default position offset from existing nodes
         let (x, y) = next_node_position(&self.nodes);
 
+        // Resolve port info from the function definition
+        let (inputs, outputs) = resolve_single_function_ports(source, None);
+
         let node = NodeLayout {
             alias: alias.clone(),
             source: source.to_string(),
@@ -701,8 +1003,8 @@ impl FlowEdit {
             y,
             width: 180.0,
             height: 120.0,
-            inputs: Vec::new(),
-            outputs: Vec::new(),
+            inputs,
+            outputs,
             initializers: HashMap::new(),
         };
 
@@ -737,6 +1039,97 @@ impl FlowEdit {
         }
         let nc = self.nodes.len();
         self.status = format!("Added {alias} from library - {nc} nodes");
+    }
+
+    /// Apply an initializer edit to the flow definition and update the node display.
+    fn apply_initializer_edit(&mut self, editor: &InitializerEditor) {
+        let alias = self
+            .nodes
+            .get(editor.node_index)
+            .map(|n| n.alias.clone())
+            .unwrap_or_default();
+
+        // Capture old state for undo
+        let old_init = self
+            .flow_definition
+            .process_refs
+            .iter()
+            .find(|pr| {
+                let pr_alias = if pr.alias.is_empty() {
+                    derive_short_name(&pr.source)
+                } else {
+                    pr.alias.to_string()
+                };
+                pr_alias == alias
+            })
+            .and_then(|pr| pr.initializations.get(&editor.port_name).cloned());
+        let old_display = self
+            .nodes
+            .get(editor.node_index)
+            .and_then(|n| n.initializers.get(&editor.port_name).cloned());
+
+        // Compute new initializer and display
+        let (new_init, new_display) = match editor.init_type.as_str() {
+            "none" => (None, None),
+            "once" | "always" => {
+                let value = serde_json::from_str(&editor.value_text)
+                    .unwrap_or_else(|_| serde_json::Value::String(editor.value_text.clone()));
+                let init = if editor.init_type == "once" {
+                    InputInitializer::Once(value)
+                } else {
+                    InputInitializer::Always(value)
+                };
+                let display = format!("{}: {}", editor.init_type, editor.value_text);
+                (Some(init), Some(display))
+            }
+            _ => return,
+        };
+
+        // Apply to model
+        if let Some(pref) = self.flow_definition.process_refs.iter_mut().find(|pr| {
+            let pr_alias = if pr.alias.is_empty() {
+                derive_short_name(&pr.source)
+            } else {
+                pr.alias.to_string()
+            };
+            pr_alias == alias
+        }) {
+            match &new_init {
+                Some(init) => {
+                    pref.initializations
+                        .insert(editor.port_name.clone(), init.clone());
+                }
+                None => {
+                    pref.initializations.remove(&editor.port_name);
+                }
+            }
+        }
+
+        // Apply to display
+        if let Some(node) = self.nodes.get_mut(editor.node_index) {
+            match &new_display {
+                Some(display) => {
+                    node.initializers
+                        .insert(editor.port_name.clone(), display.clone());
+                }
+                None => {
+                    node.initializers.remove(&editor.port_name);
+                }
+            }
+        }
+
+        self.history.record(EditAction::EditInitializer {
+            node_index: editor.node_index,
+            port_name: editor.port_name.clone(),
+            old_init,
+            old_display,
+            new_init,
+            new_display,
+        });
+        self.unsaved_edits += 1;
+        self.compiled_manifest = None;
+        self.canvas_state.request_redraw();
+        self.status = format!("Initializer updated on {}/{}", alias, editor.port_name);
     }
 
     /// Synchronize the in-memory `FlowDefinition` with the current editor state
@@ -850,104 +1243,171 @@ impl FlowEdit {
                     }
                     self.status = String::from("Redo: delete connection");
                 }
+                EditAction::EditInitializer {
+                    node_index,
+                    ref port_name,
+                    ref new_init,
+                    ref new_display,
+                    ..
+                } => {
+                    self.apply_initializer_state(
+                        node_index,
+                        port_name,
+                        new_init.as_ref(),
+                        new_display.as_ref(),
+                    );
+                    self.status = String::from("Redo: initializer");
+                }
             }
             self.canvas_state.request_redraw();
         }
     }
-}
 
-/// Resolve port information for subprocesses by parsing the flow with `flowrclib`.
-///
-/// Returns a map from subprocess alias to (inputs, outputs) port info.
-/// If parsing fails, returns an empty map so the caller can fall back to guessing.
-fn resolve_subprocess_ports(url: &Url) -> HashMap<String, (Vec<PortInfo>, Vec<PortInfo>)> {
-    let mut resolved = HashMap::new();
+    /// Apply an initializer state to both the model and display.
+    fn apply_initializer_state(
+        &mut self,
+        node_index: usize,
+        port_name: &str,
+        init: Option<&InputInitializer>,
+        display: Option<&String>,
+    ) {
+        let alias = self
+            .nodes
+            .get(node_index)
+            .map(|n| n.alias.clone())
+            .unwrap_or_default();
 
-    // Set up the library search path from FLOW_LIB_PATH, with ~/.flow/lib as default
-    let mut lib_search_path = Simpath::new_with_separator("FLOW_LIB_PATH", ',');
-    if let Ok(home) = std::env::var("HOME") {
-        let default_lib = PathBuf::from(home).join(".flow").join("lib");
-        if default_lib.exists() {
-            if let Some(path_str) = default_lib.to_str() {
-                lib_search_path.add_directory(path_str);
-                info!("Added default library path: {path_str}");
-            }
-        }
-    }
-
-    let provider = MetaProvider::new(lib_search_path, PathBuf::from("/"));
-
-    match flowrclib::compiler::parser::parse(url, &provider) {
-        Ok(Process::FlowProcess(flow)) => {
-            info!(
-                "Parsed flow '{}' with {} subprocesses",
-                flow.name,
-                flow.subprocesses.len()
-            );
-            for (alias, subprocess) in &flow.subprocesses {
-                match subprocess {
-                    Process::FunctionProcess(func) => {
-                        let inputs: Vec<PortInfo> = func
-                            .inputs
-                            .iter()
-                            .map(|io| PortInfo {
-                                name: io.name().to_string(),
-                                datatypes: io.datatypes().iter().map(|dt| dt.to_string()).collect(),
-                            })
-                            .collect();
-                        let outputs: Vec<PortInfo> = func
-                            .outputs
-                            .iter()
-                            .map(|io| PortInfo {
-                                name: io.name().to_string(),
-                                datatypes: io.datatypes().iter().map(|dt| dt.to_string()).collect(),
-                            })
-                            .collect();
-                        info!(
-                            "Resolved function '{}': {} inputs, {} outputs",
-                            alias,
-                            inputs.len(),
-                            outputs.len()
-                        );
-                        resolved.insert(alias.clone(), (inputs, outputs));
-                    }
-                    Process::FlowProcess(sub_flow) => {
-                        let inputs: Vec<PortInfo> = sub_flow
-                            .inputs
-                            .iter()
-                            .map(|io| PortInfo {
-                                name: io.name().to_string(),
-                                datatypes: io.datatypes().iter().map(|dt| dt.to_string()).collect(),
-                            })
-                            .collect();
-                        let outputs: Vec<PortInfo> = sub_flow
-                            .outputs
-                            .iter()
-                            .map(|io| PortInfo {
-                                name: io.name().to_string(),
-                                datatypes: io.datatypes().iter().map(|dt| dt.to_string()).collect(),
-                            })
-                            .collect();
-                        info!(
-                            "Resolved sub-flow '{}': {} inputs, {} outputs",
-                            alias,
-                            inputs.len(),
-                            outputs.len()
-                        );
-                        resolved.insert(alias.clone(), (inputs, outputs));
-                    }
+        if let Some(pref) = self.flow_definition.process_refs.iter_mut().find(|pr| {
+            let pr_alias = if pr.alias.is_empty() {
+                derive_short_name(&pr.source)
+            } else {
+                pr.alias.to_string()
+            };
+            pr_alias == alias
+        }) {
+            match init {
+                Some(i) => {
+                    pref.initializations
+                        .insert(port_name.to_string(), i.clone());
+                }
+                None => {
+                    pref.initializations.remove(port_name);
                 }
             }
         }
-        Ok(Process::FunctionProcess(_)) => {
-            warn!("Parser returned a FunctionProcess instead of FlowProcess");
-        }
-        Err(e) => {
-            warn!("Could not fully parse flow for port resolution, falling back to guessing: {e}");
+
+        if let Some(node) = self.nodes.get_mut(node_index) {
+            match display {
+                Some(d) => {
+                    node.initializers.insert(port_name.to_string(), d.clone());
+                }
+                None => {
+                    node.initializers.remove(port_name);
+                }
+            }
         }
     }
+}
 
-    resolved
+/// Build a `MetaProvider` with `FLOW_LIB_PATH` (plus `~/.flow/lib` default)
+/// and the default flowrcli context root.
+fn build_meta_provider() -> MetaProvider {
+    let mut lib_search_path = Simpath::new_with_separator("FLOW_LIB_PATH", ',');
+    if let Ok(home) = std::env::var("HOME") {
+        let default_lib = PathBuf::from(&home).join(".flow").join("lib");
+        if default_lib.exists() {
+            if let Some(path_str) = default_lib.to_str() {
+                lib_search_path.add_directory(path_str);
+            }
+        }
+    }
+    let context_root = std::env::var("HOME")
+        .map(|h| {
+            PathBuf::from(h)
+                .join(".flow")
+                .join("runner")
+                .join("flowrcli")
+        })
+        .unwrap_or_else(|_| PathBuf::from("/"));
+    MetaProvider::new(lib_search_path, context_root)
+}
+
+/// Resolve port info for a single function/flow from its source string.
+///
+/// If `base_url` is provided, relative source paths are resolved against it.
+/// For `lib://` and `context://` sources, the base URL is not needed.
+fn resolve_single_function_ports(
+    source: &str,
+    base_url: Option<&Url>,
+) -> (Vec<PortInfo>, Vec<PortInfo>) {
+    use flowcore::provider::Provider;
+
+    let provider = build_meta_provider();
+
+    // Parse the source as a URL; for relative paths, resolve against the base URL
+    let source_url = match Url::parse(source) {
+        Ok(u) => u,
+        Err(_) => {
+            match base_url.and_then(|base| base.join(source).ok()) {
+                Some(u) => u,
+                None => {
+                    info!("resolve_single_function_ports: could not resolve relative source '{source}'");
+                    return (Vec::new(), Vec::new());
+                }
+            }
+        }
+    };
+
+    let (resolved_url, _) = match provider.resolve_url(&source_url, "default", &["toml"]) {
+        Ok(r) => r,
+        Err(e) => {
+            info!("resolve_single_function_ports: could not resolve '{source_url}': {e}");
+            return (Vec::new(), Vec::new());
+        }
+    };
+
+    let content_bytes = match provider.get_contents(&resolved_url) {
+        Ok(bytes) => bytes,
+        Err(e) => {
+            info!(
+                "resolve_single_function_ports: could not get contents from '{resolved_url}': {e}"
+            );
+            return (Vec::new(), Vec::new());
+        }
+    };
+    let content = String::from_utf8_lossy(&content_bytes);
+
+    let deserializer = match get::<Process>(&resolved_url) {
+        Ok(d) => d,
+        Err(_) => return (Vec::new(), Vec::new()),
+    };
+
+    match deserializer.deserialize(&content, Some(&resolved_url)) {
+        Ok(Process::FunctionProcess(func)) => extract_ports(&func.inputs, &func.outputs),
+        Ok(Process::FlowProcess(flow)) => extract_ports(&flow.inputs, &flow.outputs),
+        Err(_) => (Vec::new(), Vec::new()),
+    }
+}
+
+fn extract_ports(
+    inputs: &[flowcore::model::io::IO],
+    outputs: &[flowcore::model::io::IO],
+) -> (Vec<PortInfo>, Vec<PortInfo>) {
+    let input_ports = inputs
+        .iter()
+        .map(|io| PortInfo {
+            name: io.name().to_string(),
+            datatypes: io.datatypes().iter().map(|dt| dt.to_string()).collect(),
+        })
+        .collect();
+    let output_ports = outputs
+        .iter()
+        .map(|io| PortInfo {
+            name: io.name().to_string(),
+            datatypes: io.datatypes().iter().map(|dt| dt.to_string()).collect(),
+        })
+        .collect();
+    (input_ports, output_ports)
 }
 
 /// Load a flow definition file and return the flow name, node layouts, edge layouts,
@@ -978,13 +1438,25 @@ fn load_flow(
 
     match process {
         Process::FlowProcess(flow) => {
-            // Attempt to resolve real port definitions via the full parser
-            let resolved_ports = resolve_subprocess_ports(&url);
-            info!(
-                "Resolved ports for {} of {} subprocesses",
-                resolved_ports.len(),
-                flow.process_refs.len()
-            );
+            // Resolve port definitions for each subprocess by loading its definition
+            let mut resolved_ports = HashMap::new();
+            for pref in &flow.process_refs {
+                let alias = if pref.alias.is_empty() {
+                    derive_short_name(&pref.source)
+                } else {
+                    pref.alias.to_string()
+                };
+                let (inputs, outputs) =
+                    resolve_single_function_ports(&pref.source, Some(&url));
+                info!(
+                    "Resolved '{}' ({}): {} inputs, {} outputs",
+                    alias,
+                    pref.source,
+                    inputs.len(),
+                    outputs.len()
+                );
+                resolved_ports.insert(alias, (inputs, outputs));
+            }
 
             let edges = build_edge_layouts(&flow.connections);
             let nodes =
