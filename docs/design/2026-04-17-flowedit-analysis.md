@@ -443,6 +443,12 @@ correctly. Provided implementation skeletons compile.
   to add paths during an editing session)
 - Implement CLI options for loading, compiling and running a flow compatible with
   flowrgui, to enable using the same automated tests for both editors
+- Flow hierarchy navigator panel: add a collapsible tree view above the Process
+  Library panel showing the structure of the loaded flow — root flow at the top,
+  child sub-flows and functions as children, recursively. Double-click to open
+  an editing window for that node. For library-defined functions/flows (lib://),
+  open a read-only view window similar to the existing editor windows.
+- Automated UI testing for interactive features described in the user manual
 
 ## 9. Key Design Decisions
 
