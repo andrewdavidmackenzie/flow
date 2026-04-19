@@ -38,7 +38,7 @@ The editor window has three main areas:
 
 The main editing area where flow process nodes and their connections are displayed.
 When a flow is loaded, each process appears as a colored rounded rectangle (a "node")
-with connection lines drawn between them as bezier curves.
+with connection lines drawn between them as Bézier curves.
 
 ### Status Bar
 
@@ -105,7 +105,7 @@ handles resize both.
 
 ## Connections
 
-Connections between nodes are drawn as smooth bezier curves from an output port on
+Connections between nodes are drawn as smooth Bézier curves from an output port on
 one node to an input port on another node. Each connection has a filled arrow head
 at the destination (input) end to indicate the direction of data flow.
 
@@ -161,7 +161,7 @@ All connections to and from the deleted node are also removed.
 ### Creating Connections
 
 Click and drag from any port (input or output) to start creating a connection.
-A green bezier curve preview follows the cursor as you drag.
+A green Bézier curve preview follows the cursor as you drag.
 
 - **Output → Input**: drag from a right-side port to a left-side port
 - **Input → Output**: drag from a left-side port to a right-side port (the
@@ -302,7 +302,7 @@ editor showing:
 - **✕** buttons to delete existing ports
 - **Source file link** — click the filename to view the Rust source code,
   or click "..." to browse for a different source file
-- **Docs button** — if a `.md` documentation file exists alongside the function
+- **Docs tab** — if a `.md` documentation file exists alongside the function
 
 The **💾 Save** button writes the function definition to disk:
 - Updates the `.toml` definition file with the current name, inputs, and outputs

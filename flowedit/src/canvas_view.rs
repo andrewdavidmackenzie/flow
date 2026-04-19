@@ -677,7 +677,7 @@ impl FlowCanvasState {
         let flow_io_margin = if has_flow_io { 200.0 } else { 0.0 };
 
         let (mut min_x, mut min_y, mut max_x, mut max_y) = if nodes.is_empty() {
-            (100.0, 100.0, 400.0, 250.0)
+            (150.0, 50.0, 350.0, 450.0)
         } else {
             (f32::MAX, f32::MAX, f32::MIN, f32::MIN)
         };
@@ -790,12 +790,12 @@ fn hit_test_open_icon(nodes: &[NodeLayout], point: Point) -> Option<usize> {
         if !node.is_openable() {
             return None;
         }
-        let icon_x = node.x + node.width - 24.0;
-        let icon_y = node.y + 2.0;
+        let icon_x = node.x + node.width - 22.0;
+        let icon_y = node.y + 4.0;
         if point.x >= icon_x
-            && point.x <= icon_x + 22.0
+            && point.x <= icon_x + 24.0
             && point.y >= icon_y
-            && point.y <= icon_y + 22.0
+            && point.y <= icon_y + 24.0
         {
             Some(i)
         } else {
@@ -1909,8 +1909,10 @@ fn draw_flow_io_ports(
     let padding = 80.0;
     let corner = 16.0;
 
+    let max_ports = flow_inputs.len().max(flow_outputs.len()).max(1) as f32;
+    let default_h = max_ports * spacing + 60.0;
     let (min_x, max_x, min_y, max_y) = if nodes.is_empty() {
-        (100.0, 400.0, 100.0, 250.0)
+        (150.0, 350.0, 100.0, 100.0 + default_h)
     } else {
         (
             nodes.iter().map(|n| n.x).fold(f32::MAX, f32::min),
