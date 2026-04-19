@@ -1627,6 +1627,7 @@ impl canvas::Program<CanvasMessage> for FlowCanvas<'_> {
                 self.nodes,
                 self.edges,
                 self.is_subflow,
+                state.selected_connection,
                 zoom,
                 offset,
             );
@@ -2016,6 +2017,7 @@ fn draw_flow_io_ports(
     nodes: &[NodeLayout],
     edges: &[EdgeLayout],
     is_subflow: bool,
+    selected_connection: Option<usize>,
     zoom: f32,
     offset: Point,
 ) {
@@ -2148,27 +2150,28 @@ fn draw_flow_io_ports(
         });
     }
 
-    // Draw bezier connections from flow inputs to internal node ports
+    // Draw bezier connections from flow inputs/outputs to internal node ports
     let conn_color = Color::from_rgba(0.7, 0.7, 0.7, 0.6);
-    for edge in edges {
-        // Connections from flow inputs: from_node == "input"
+    let sel_color = Color::from_rgb(1.0, 0.85, 0.0);
+    for (edge_idx, edge) in edges.iter().enumerate() {
+        let is_selected = selected_connection == Some(edge_idx);
+        let color = if is_selected { sel_color } else { conn_color };
+        let width = if is_selected { 3.0 } else { 1.5 };
         if edge.from_node == "input" {
-            // from_port is "name/subroute" — extract the input name (first segment)
             let input_name = base_port_name(&edge.from_port);
             if let Some(&from_world) = input_positions.get(input_name) {
                 if let Some(to_world) = find_node_input_pos(nodes, &edge.to_node, &edge.to_port) {
-                    draw_flow_io_bezier(frame, from_world, to_world, zoom, offset, conn_color);
+                    draw_flow_io_bezier(frame, from_world, to_world, zoom, offset, color, width);
                 }
             }
         }
-        // Connections to flow outputs: to_node == "output"
         if edge.to_node == "output" {
             let output_name = base_port_name(&edge.to_port);
             if let Some(&to_world) = output_positions.get(output_name) {
                 if let Some(from_world) =
                     find_node_output_pos(nodes, &edge.from_node, &edge.from_port)
                 {
-                    draw_flow_io_bezier(frame, from_world, to_world, zoom, offset, conn_color);
+                    draw_flow_io_bezier(frame, from_world, to_world, zoom, offset, color, width);
                 }
             }
         }
@@ -2204,6 +2207,7 @@ fn draw_flow_io_bezier(
     zoom: f32,
     offset: Point,
     color: Color,
+    stroke_width: f32,
 ) {
     let from_s = transform_point(from, zoom, offset);
     let to_s = transform_point(to, zoom, offset);
@@ -2216,7 +2220,10 @@ fn draw_flow_io_bezier(
             to_s,
         );
     });
-    frame.stroke(&path, Stroke::default().with_width(1.5).with_color(color));
+    frame.stroke(
+        &path,
+        Stroke::default().with_width(stroke_width).with_color(color),
+    );
 }
 
 /// Draw a single node as a rounded rectangle with title, source, and ports.
