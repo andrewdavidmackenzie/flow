@@ -669,7 +669,7 @@ impl FlowCanvasState {
         }
 
         // Extra margin when flow I/O bounding box is drawn (padding + port labels)
-        let flow_io_margin = if has_flow_io { 160.0 } else { 0.0 };
+        let flow_io_margin = if has_flow_io { 200.0 } else { 0.0 };
 
         let mut min_x = f32::MAX;
         let mut min_y = f32::MAX;
@@ -1278,14 +1278,49 @@ impl canvas::Program<CanvasMessage> for FlowCanvas<'_> {
                         .and_capture(),
                     )
                 } else {
-                    // Track hover for tooltip
+                    // Check port hover for type tooltip
+                    if let Some((node_idx, port_name, is_output)) =
+                        hit_test_port(self.nodes, cursor_position, zoom, offset)
+                    {
+                        if let Some(node) = self.nodes.get(node_idx) {
+                            let ports = if is_output {
+                                &node.outputs
+                            } else {
+                                &node.inputs
+                            };
+                            let type_text = ports
+                                .iter()
+                                .find(|p| p.name == port_name)
+                                .map(|p| {
+                                    if p.datatypes.is_empty() {
+                                        format!("{port_name}: (any)")
+                                    } else {
+                                        format!("{port_name}: {}", p.datatypes.join(", "))
+                                    }
+                                })
+                                .unwrap_or_else(|| port_name.clone());
+                            state.hover_node = None;
+                            return Some(canvas::Action::publish(CanvasMessage::HoverChanged(
+                                Some((type_text, cursor_position.x, cursor_position.y - 20.0)),
+                            )));
+                        }
+                    }
+
+                    // Track hover for node source tooltip
                     let new_hover = hit_test_node(self.nodes, world_pos);
                     if new_hover != state.hover_node {
                         state.hover_node = new_hover;
                         let tooltip_data = new_hover
                             .and_then(|idx| self.nodes.get(idx))
                             .filter(|n| n.source.len() > MAX_SOURCE_CHARS)
-                            .map(|n| (n.source.clone(), cursor_position.x, cursor_position.y));
+                            .map(|n| {
+                                let bottom_center = transform_point(
+                                    Point::new(n.x + n.width / 2.0, n.y + n.height),
+                                    zoom,
+                                    offset,
+                                );
+                                (n.source.clone(), bottom_center.x, bottom_center.y)
+                            });
                         return Some(canvas::Action::publish(CanvasMessage::HoverChanged(
                             tooltip_data,
                         )));
@@ -1911,12 +1946,13 @@ fn draw_flow_io_ports(
         });
         frame.fill(&semi, input_color);
 
-        let label_pos = Point::new(screen_pos.x + scaled_r + 4.0, screen_pos.y);
+        let label_pos = Point::new(screen_pos.x - scaled_r - 4.0, screen_pos.y);
         frame.fill_text(CanvasText {
             content: input.name.clone(),
             position: label_pos,
             color: input_color,
             size: (font_size * zoom).into(),
+            align_x: iced::alignment::Horizontal::Right.into(),
             align_y: iced::alignment::Vertical::Center,
             ..CanvasText::default()
         });
@@ -1945,13 +1981,12 @@ fn draw_flow_io_ports(
         });
         frame.fill(&semi, output_color);
 
-        let label_pos = Point::new(screen_pos.x - scaled_r - 4.0, screen_pos.y);
+        let label_pos = Point::new(screen_pos.x + scaled_r + 4.0, screen_pos.y);
         frame.fill_text(CanvasText {
             content: output.name.clone(),
             position: label_pos,
             color: output_color,
             size: (font_size * zoom).into(),
-            align_x: iced::alignment::Horizontal::Right.into(),
             align_y: iced::alignment::Vertical::Center,
             ..CanvasText::default()
         });

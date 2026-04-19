@@ -101,6 +101,22 @@ enum Message {
     FunctionOutputTypeChanged(window::Id, usize, String),
     /// Save function definition to disk
     FunctionSave(window::Id),
+    /// Add a flow-level input port
+    FlowAddInput(window::Id),
+    /// Add a flow-level output port
+    FlowAddOutput(window::Id),
+    /// Delete a flow-level input port
+    FlowDeleteInput(window::Id, usize),
+    /// Delete a flow-level output port
+    FlowDeleteOutput(window::Id, usize),
+    /// Flow input port name changed
+    FlowInputNameChanged(window::Id, usize, String),
+    /// Flow input port type changed
+    FlowInputTypeChanged(window::Id, usize, String),
+    /// Flow output port name changed
+    FlowOutputNameChanged(window::Id, usize, String),
+    /// Flow output port type changed
+    FlowOutputTypeChanged(window::Id, usize, String),
     /// A window close was requested
     CloseRequested(window::Id),
     /// Close the currently focused window (Cmd+W)
@@ -830,6 +846,80 @@ impl FlowEdit {
                     }
                 }
             }
+            Message::FlowAddInput(win_id) => {
+                if let Some(win) = self.windows.get_mut(&win_id) {
+                    win.flow_inputs.push(PortInfo {
+                        name: format!("input{}", win.flow_inputs.len()),
+                        datatypes: vec![String::from("string")],
+                    });
+                    win.unsaved_edits += 1;
+                    win.canvas_state.request_redraw();
+                }
+            }
+            Message::FlowAddOutput(win_id) => {
+                if let Some(win) = self.windows.get_mut(&win_id) {
+                    win.flow_outputs.push(PortInfo {
+                        name: format!("output{}", win.flow_outputs.len()),
+                        datatypes: vec![String::from("string")],
+                    });
+                    win.unsaved_edits += 1;
+                    win.canvas_state.request_redraw();
+                }
+            }
+            Message::FlowDeleteInput(win_id, idx) => {
+                if let Some(win) = self.windows.get_mut(&win_id) {
+                    if idx < win.flow_inputs.len() {
+                        win.flow_inputs.remove(idx);
+                        win.unsaved_edits += 1;
+                        win.canvas_state.request_redraw();
+                    }
+                }
+            }
+            Message::FlowDeleteOutput(win_id, idx) => {
+                if let Some(win) = self.windows.get_mut(&win_id) {
+                    if idx < win.flow_outputs.len() {
+                        win.flow_outputs.remove(idx);
+                        win.unsaved_edits += 1;
+                        win.canvas_state.request_redraw();
+                    }
+                }
+            }
+            Message::FlowInputNameChanged(win_id, idx, name) => {
+                if let Some(win) = self.windows.get_mut(&win_id) {
+                    if let Some(port) = win.flow_inputs.get_mut(idx) {
+                        port.name = name;
+                    }
+                    win.unsaved_edits += 1;
+                    win.canvas_state.request_redraw();
+                }
+            }
+            Message::FlowInputTypeChanged(win_id, idx, dtype) => {
+                if let Some(win) = self.windows.get_mut(&win_id) {
+                    if let Some(port) = win.flow_inputs.get_mut(idx) {
+                        port.datatypes = vec![dtype];
+                    }
+                    win.unsaved_edits += 1;
+                    win.canvas_state.request_redraw();
+                }
+            }
+            Message::FlowOutputNameChanged(win_id, idx, name) => {
+                if let Some(win) = self.windows.get_mut(&win_id) {
+                    if let Some(port) = win.flow_outputs.get_mut(idx) {
+                        port.name = name;
+                    }
+                    win.unsaved_edits += 1;
+                    win.canvas_state.request_redraw();
+                }
+            }
+            Message::FlowOutputTypeChanged(win_id, idx, dtype) => {
+                if let Some(win) = self.windows.get_mut(&win_id) {
+                    if let Some(port) = win.flow_outputs.get_mut(idx) {
+                        port.datatypes = vec![dtype];
+                    }
+                    win.unsaved_edits += 1;
+                    win.canvas_state.request_redraw();
+                }
+            }
             Message::CloseRequested(_) | Message::CloseActiveWindow => {
                 let target = match message {
                     Message::CloseRequested(win_id) => Some(win_id),
@@ -954,10 +1044,10 @@ impl FlowEdit {
                     }),
             )
             .padding(iced::Padding {
-                top: ty + 20.0,
+                top: ty + 6.0,
                 right: 0.0,
                 bottom: 0.0,
-                left: tx + 16.0,
+                left: (tx - 80.0).max(0.0),
             });
             canvas_stack.push(tooltip_widget.into());
         }
@@ -1071,8 +1161,113 @@ impl FlowEdit {
 
         let mut layout = Column::new().push(container(main_content).width(Fill).height(Fill));
 
+        // Flow I/O editor panel for sub-flow windows
+        if !win.is_root && matches!(win.kind, WindowKind::FlowEditor) {
+            layout = layout.push(self.view_flow_io_panel(window_id, win));
+        }
+
         layout = layout.push(container(status_bar).width(Fill).padding(5));
         layout.into()
+    }
+
+    fn view_flow_io_panel<'a>(
+        &'a self,
+        window_id: window::Id,
+        win: &'a WindowState,
+    ) -> Element<'a, Message> {
+        let input_color = Color::from_rgb(0.4, 0.8, 1.0);
+        let output_color = Color::from_rgb(1.0, 0.6, 0.3);
+
+        let mut input_col = Column::new().spacing(4);
+        for (i, port) in win.flow_inputs.iter().enumerate() {
+            let dtype = port.datatypes.first().cloned().unwrap_or_default();
+            let row = Row::new()
+                .spacing(4)
+                .align_y(iced::Alignment::Center)
+                .push(Text::new("\u{25D7}").size(18).color(input_color))
+                .push(
+                    text_input("name", &port.name)
+                        .on_input(move |s| Message::FlowInputNameChanged(window_id, i, s))
+                        .size(12)
+                        .padding(3)
+                        .width(80),
+                )
+                .push(
+                    text_input("type", &dtype)
+                        .on_input(move |s| Message::FlowInputTypeChanged(window_id, i, s))
+                        .size(11)
+                        .padding(3)
+                        .width(70),
+                )
+                .push(
+                    button(Text::new("\u{2715}").size(10).center())
+                        .on_press(Message::FlowDeleteInput(window_id, i))
+                        .style(button::danger)
+                        .padding([2, 5]),
+                );
+            input_col = input_col.push(row);
+        }
+        input_col = input_col.push(
+            button(Text::new("+").size(12).center())
+                .on_press(Message::FlowAddInput(window_id))
+                .style(button::secondary)
+                .padding([2, 8]),
+        );
+
+        let mut output_col = Column::new().spacing(4).align_x(iced::Alignment::End);
+        for (i, port) in win.flow_outputs.iter().enumerate() {
+            let dtype = port.datatypes.first().cloned().unwrap_or_default();
+            let row = Row::new()
+                .spacing(4)
+                .align_y(iced::Alignment::Center)
+                .push(
+                    button(Text::new("\u{2715}").size(10).center())
+                        .on_press(Message::FlowDeleteOutput(window_id, i))
+                        .style(button::danger)
+                        .padding([2, 5]),
+                )
+                .push(
+                    text_input("type", &dtype)
+                        .on_input(move |s| Message::FlowOutputTypeChanged(window_id, i, s))
+                        .size(11)
+                        .padding(3)
+                        .width(70),
+                )
+                .push(
+                    text_input("name", &port.name)
+                        .on_input(move |s| Message::FlowOutputNameChanged(window_id, i, s))
+                        .size(12)
+                        .padding(3)
+                        .width(80),
+                )
+                .push(Text::new("\u{25D6}").size(18).color(output_color));
+            output_col = output_col.push(row);
+        }
+        output_col = output_col.push(
+            button(Text::new("+").size(12).center())
+                .on_press(Message::FlowAddOutput(window_id))
+                .style(button::secondary)
+                .padding([2, 8]),
+        );
+
+        container(
+            Row::new()
+                .padding([6, 12])
+                .push(input_col)
+                .push(iced::widget::Space::new().width(Fill))
+                .push(output_col),
+        )
+        .style(|_theme: &Theme| container::Style {
+            background: Some(iced::Background::Color(Color::from_rgb(0.14, 0.14, 0.18))),
+            border: iced::Border {
+                color: Color::from_rgb(0.3, 0.3, 0.3),
+                width: 1.0,
+                radius: 0.0.into(),
+            },
+            ..Default::default()
+        })
+        .width(Fill)
+        .into()
     }
 
     fn view_function<'a>(
