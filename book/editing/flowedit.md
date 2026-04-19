@@ -89,8 +89,19 @@ Input ports that have initializer values show:
 - The initializer value and type displayed to the left of the port in yellow text
 
 Initializer types:
-- **once** — the value is provided once at flow startup (e.g., `1 once`)
-- **always** — the value is provided every time the function runs (e.g., `0 always`)
+- **once** — the value is provided once at flow startup (e.g., `once: 1`)
+- **always** — the value is provided every time the function runs (e.g., `always: 0`)
+
+**Right-click** on an input port to edit its initializer. A dialog appears with:
+- A dropdown to select the type (none, once, always)
+- A JSON value field (shown only when type is not "none")
+- Apply and Cancel buttons
+
+### Resizing Nodes
+
+When a node is selected, 8 yellow resize handles appear on its edges and corners.
+Drag any handle to resize the node. Edge handles resize one dimension, corner
+handles resize both.
 
 ## Connections
 
@@ -133,8 +144,14 @@ and its name appears in the status bar. Click on empty canvas to deselect.
 Click and drag a selected node to reposition it on the canvas. All connections to
 and from the node are automatically redrawn as the node moves.
 
-The cursor changes to a grab hand when hovering over a node, and a grabbing hand
-while dragging.
+The cursor changes contextually:
+- **Grab hand** over nodes (draggable)
+- **Grabbing hand** while dragging a node or panning
+- **Crosshair** over ports or while connecting
+- **Directional resize arrows** over resize handles
+- **Pointer** over the pencil icon on openable nodes
+
+Hover over a node with a truncated source label to see the full path in a tooltip.
 
 ### Deleting Nodes
 
@@ -144,12 +161,15 @@ All connections to and from the deleted node are also removed.
 ### Creating Connections
 
 Click and drag from any port (input or output) to start creating a connection.
-A green bezier curve preview follows the cursor as you drag. Compatible target
-ports highlight when you hover over them.
+A green bezier curve preview follows the cursor as you drag.
 
 - **Output → Input**: drag from a right-side port to a left-side port
 - **Input → Output**: drag from a left-side port to a right-side port (the
   connection direction is determined automatically)
+
+While dragging, **compatible target ports** are highlighted with a green circle.
+Port type compatibility is checked — if both ports have type information, at
+least one type must match. Ports with unknown types accept any connection.
 
 Release the mouse on a valid target port to complete the connection. Release on
 empty canvas or an incompatible port to cancel.
@@ -206,7 +226,8 @@ nodes on initial load.
 
 ### Zooming
 
-- **Ctrl + mouse wheel** (Cmd on macOS) — zoom in/out centered on cursor
+- **Cmd + mouse wheel** (Ctrl on Linux) — zoom in/out centered on cursor
+  (without modifier, scroll wheel pans the canvas)
 - **Zoom controls** — floating buttons in the bottom-right corner:
   - **+** — zoom in
   - **−** — zoom out
@@ -246,6 +267,8 @@ The left panel shows available processes organized in a collapsible tree:
 
 Click a function name to add it as a new node on the canvas. The node is
 placed to the right of existing nodes and auto-fit adjusts the view if enabled.
+If a function with the same name already exists, the new node gets a unique
+alias (e.g., `add_2`, `add_3`).
 
 ## Opening Sub-flows and Functions
 
