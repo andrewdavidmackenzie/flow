@@ -621,6 +621,8 @@ impl FlowCanvasState {
         &'a self,
         nodes: &'a [NodeLayout],
         edges: &'a [EdgeLayout],
+        flow_inputs: &'a [PortInfo],
+        flow_outputs: &'a [PortInfo],
         auto_fit_pending: bool,
         auto_fit_enabled: bool,
     ) -> Element<'a, CanvasMessage> {
@@ -628,6 +630,8 @@ impl FlowCanvasState {
             state: self,
             nodes,
             edges,
+            flow_inputs,
+            flow_outputs,
             auto_fit_pending,
             auto_fit_enabled,
         })
@@ -656,7 +660,7 @@ impl FlowCanvasState {
     /// Compute zoom and offset so that all nodes fit within the given viewport with padding.
     ///
     /// If `nodes` is empty, resets to default zoom and offset.
-    pub(crate) fn auto_fit(&mut self, nodes: &[NodeLayout], viewport: Size) {
+    pub(crate) fn auto_fit(&mut self, nodes: &[NodeLayout], has_flow_io: bool, viewport: Size) {
         if nodes.is_empty() {
             self.zoom = 1.0;
             self.scroll_offset = Point::new(0.0, 0.0);
@@ -664,14 +668,14 @@ impl FlowCanvasState {
             return;
         }
 
-        // Find bounding box of all nodes in world coordinates,
-        // accounting for initializer text drawn to the left of input ports.
+        // Extra margin when flow I/O bounding box is drawn (padding + port labels)
+        let flow_io_margin = if has_flow_io { 160.0 } else { 0.0 };
+
         let mut min_x = f32::MAX;
         let mut min_y = f32::MAX;
         let mut max_x = f32::MIN;
         let mut max_y = f32::MIN;
         for node in nodes {
-            // Estimate extra left margin for initializer text (~8px per character)
             let init_margin = if node.initializers.is_empty() {
                 0.0
             } else {
@@ -697,8 +701,8 @@ impl FlowCanvasState {
             }
         }
 
-        let content_width = max_x - min_x + AUTO_FIT_PADDING * 2.0;
-        let content_height = max_y - min_y + AUTO_FIT_PADDING * 2.0;
+        let content_width = max_x - min_x + AUTO_FIT_PADDING * 2.0 + flow_io_margin * 2.0;
+        let content_height = max_y - min_y + AUTO_FIT_PADDING * 2.0 + flow_io_margin;
 
         // Avoid division by zero
         if content_width <= 0.0 || content_height <= 0.0 {
@@ -746,6 +750,10 @@ struct FlowCanvas<'a> {
     nodes: &'a [NodeLayout],
     /// Edges to render
     edges: &'a [EdgeLayout],
+    /// Flow-level input ports (displayed on left edge for sub-flows)
+    flow_inputs: &'a [PortInfo],
+    /// Flow-level output ports (displayed on right edge for sub-flows)
+    flow_outputs: &'a [PortInfo],
     /// Whether an auto-fit should be triggered on the next event
     auto_fit_pending: bool,
     /// Whether auto-fit mode is active (continuously fits to window)
@@ -1434,9 +1442,18 @@ impl canvas::Program<CanvasMessage> for FlowCanvas<'_> {
         let zoom = self.state.zoom;
         let offset = self.state.scroll_offset;
 
-        // Draw the main cached content (edges and nodes) with zoom/scroll transform
+        // Draw the main cached content (edges, nodes, and flow I/O ports)
         let content = self.state.cache.draw(renderer, bounds.size(), |frame| {
             draw_nodes(frame, self.nodes, zoom, offset);
+            draw_flow_io_ports(
+                frame,
+                self.flow_inputs,
+                self.flow_outputs,
+                self.nodes,
+                self.edges,
+                zoom,
+                offset,
+            );
             draw_edges(
                 frame,
                 self.edges,
@@ -1604,6 +1621,11 @@ impl canvas::Program<CanvasMessage> for FlowCanvas<'_> {
             }
 
             let world_pos = screen_to_world(pos, self.state.zoom, self.state.scroll_offset);
+
+            if hit_test_open_icon(self.nodes, world_pos).is_some() {
+                return mouse::Interaction::Pointer;
+            }
+
             if hit_test_node(self.nodes, world_pos).is_some() {
                 return mouse::Interaction::Grab;
             }
@@ -1808,6 +1830,193 @@ fn draw_nodes(frame: &mut Frame, nodes: &[NodeLayout], zoom: f32, offset: Point)
     for node in nodes {
         draw_node(frame, node, zoom, offset);
     }
+}
+
+/// Draw a rounded bounding box around all subprocess nodes with flow I/O
+/// ports on the box edges and bezier connections to internal nodes.
+fn draw_flow_io_ports(
+    frame: &mut Frame,
+    flow_inputs: &[PortInfo],
+    flow_outputs: &[PortInfo],
+    nodes: &[NodeLayout],
+    edges: &[EdgeLayout],
+    zoom: f32,
+    offset: Point,
+) {
+    if (flow_inputs.is_empty() && flow_outputs.is_empty()) || nodes.is_empty() {
+        return;
+    }
+
+    let port_radius = 6.0;
+    let font_size = 13.0;
+    let spacing = 28.0;
+    let padding = 80.0;
+    let corner = 16.0;
+
+    let min_x = nodes.iter().map(|n| n.x).fold(f32::MAX, f32::min);
+    let max_x = nodes.iter().map(|n| n.x + n.width).fold(f32::MIN, f32::max);
+    let min_y = nodes.iter().map(|n| n.y).fold(f32::MAX, f32::min);
+    let max_y = nodes
+        .iter()
+        .map(|n| n.y + n.height)
+        .fold(f32::MIN, f32::max);
+
+    let box_x = min_x - padding;
+    let box_y = min_y - padding;
+    let box_w = (max_x - min_x) + 2.0 * padding;
+    let box_h = (max_y - min_y) + 2.0 * padding;
+
+    // Draw the rounded bounding box
+    let top_left = transform_point(Point::new(box_x, box_y), zoom, offset);
+    let size = Size::new(box_w * zoom, box_h * zoom);
+    let border_path = Path::new(|builder| {
+        rounded_rect(builder, top_left, size, corner * zoom);
+    });
+    frame.stroke(
+        &border_path,
+        Stroke::default()
+            .with_width(2.0)
+            .with_color(Color::from_rgba(0.6, 0.6, 0.6, 0.5)),
+    );
+
+    let center_y = (min_y + max_y) / 2.0;
+    let input_color = Color::from_rgb(0.4, 0.8, 1.0);
+    let output_color = Color::from_rgb(1.0, 0.6, 0.3);
+
+    // Compute and draw flow input ports on the left edge
+    let mut input_positions: HashMap<String, Point> = HashMap::new();
+    let input_start_y = center_y - (flow_inputs.len() as f32 - 1.0) * spacing / 2.0;
+    for (i, input) in flow_inputs.iter().enumerate() {
+        let world_y = input_start_y + i as f32 * spacing;
+        let world_pos = Point::new(box_x, world_y);
+        input_positions.insert(input.name.clone(), world_pos);
+        let screen_pos = transform_point(world_pos, zoom, offset);
+        let scaled_r = port_radius * zoom;
+
+        use std::f32::consts::PI;
+        let semi = Path::new(|builder| {
+            builder.arc(canvas::path::Arc {
+                center: screen_pos,
+                radius: scaled_r,
+                start_angle: (PI / 2.0).into(),
+                end_angle: (3.0 * PI / 2.0).into(),
+            });
+            builder.close();
+        });
+        frame.fill(&semi, input_color);
+
+        let label_pos = Point::new(screen_pos.x + scaled_r + 4.0, screen_pos.y);
+        frame.fill_text(CanvasText {
+            content: input.name.clone(),
+            position: label_pos,
+            color: input_color,
+            size: (font_size * zoom).into(),
+            align_y: iced::alignment::Vertical::Center,
+            ..CanvasText::default()
+        });
+    }
+
+    // Compute and draw flow output ports on the right edge
+    let mut output_positions: HashMap<String, Point> = HashMap::new();
+    let right_x = box_x + box_w;
+    let output_start_y = center_y - (flow_outputs.len() as f32 - 1.0) * spacing / 2.0;
+    for (i, output) in flow_outputs.iter().enumerate() {
+        let world_y = output_start_y + i as f32 * spacing;
+        let world_pos = Point::new(right_x, world_y);
+        output_positions.insert(output.name.clone(), world_pos);
+        let screen_pos = transform_point(world_pos, zoom, offset);
+        let scaled_r = port_radius * zoom;
+
+        use std::f32::consts::PI;
+        let semi = Path::new(|builder| {
+            builder.arc(canvas::path::Arc {
+                center: screen_pos,
+                radius: scaled_r,
+                start_angle: (-PI / 2.0).into(),
+                end_angle: (PI / 2.0).into(),
+            });
+            builder.close();
+        });
+        frame.fill(&semi, output_color);
+
+        let label_pos = Point::new(screen_pos.x - scaled_r - 4.0, screen_pos.y);
+        frame.fill_text(CanvasText {
+            content: output.name.clone(),
+            position: label_pos,
+            color: output_color,
+            size: (font_size * zoom).into(),
+            align_x: iced::alignment::Horizontal::Right.into(),
+            align_y: iced::alignment::Vertical::Center,
+            ..CanvasText::default()
+        });
+    }
+
+    // Draw bezier connections from flow inputs to internal node ports
+    let conn_color = Color::from_rgba(0.7, 0.7, 0.7, 0.6);
+    for edge in edges {
+        // Connections from flow inputs: from_node == "input"
+        if edge.from_node == "input" {
+            // from_port is "name/subroute" — extract the input name (first segment)
+            let input_name = edge.from_port.split('/').next().unwrap_or(&edge.from_port);
+            if let Some(&from_world) = input_positions.get(input_name) {
+                if let Some(to_world) = find_node_input_pos(nodes, &edge.to_node, &edge.to_port) {
+                    draw_flow_io_bezier(frame, from_world, to_world, zoom, offset, conn_color);
+                }
+            }
+        }
+        // Connections to flow outputs: to_node == "output"
+        if edge.to_node == "output" {
+            if let Some(&to_world) = output_positions.get(&edge.to_port) {
+                if let Some(from_world) =
+                    find_node_output_pos(nodes, &edge.from_node, &edge.from_port)
+                {
+                    draw_flow_io_bezier(frame, from_world, to_world, zoom, offset, conn_color);
+                }
+            }
+        }
+    }
+}
+
+fn find_node_input_pos(nodes: &[NodeLayout], alias: &str, port: &str) -> Option<Point> {
+    let node = nodes.iter().find(|n| n.alias == alias)?;
+    let port_idx = node.inputs.iter().position(|p| p.name == port).unwrap_or(0);
+    Some(node.input_port_position(port_idx))
+}
+
+fn find_node_output_pos(nodes: &[NodeLayout], alias: &str, port: &str) -> Option<Point> {
+    let node = nodes.iter().find(|n| n.alias == alias)?;
+    if port.is_empty() {
+        Some(node.output_port_position(0))
+    } else {
+        let port_idx = node
+            .outputs
+            .iter()
+            .position(|p| p.name == port)
+            .unwrap_or(0);
+        Some(node.output_port_position(port_idx))
+    }
+}
+
+fn draw_flow_io_bezier(
+    frame: &mut Frame,
+    from: Point,
+    to: Point,
+    zoom: f32,
+    offset: Point,
+    color: Color,
+) {
+    let from_s = transform_point(from, zoom, offset);
+    let to_s = transform_point(to, zoom, offset);
+    let dx = (to_s.x - from_s.x).abs().max(40.0 * zoom) * 0.4;
+    let path = Path::new(|builder| {
+        builder.move_to(from_s);
+        builder.bezier_curve_to(
+            Point::new(from_s.x + dx, from_s.y),
+            Point::new(to_s.x - dx, to_s.y),
+            to_s,
+        );
+    });
+    frame.stroke(&path, Stroke::default().with_width(1.5).with_color(color));
 }
 
 /// Draw a single node as a rounded rectangle with title, source, and ports.

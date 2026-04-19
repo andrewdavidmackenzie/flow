@@ -79,6 +79,8 @@ enum Message {
     InitializerCancel(window::Id),
     /// A window close was requested
     CloseRequested(window::Id),
+    /// Close the currently focused window (Cmd+W)
+    CloseActiveWindow,
     /// A window received focus
     WindowFocused(window::Id),
 }
@@ -131,6 +133,10 @@ struct WindowState {
     initializer_editor: Option<InitializerEditor>,
     /// Whether this is the root (main) window
     is_root: bool,
+    /// Flow-level input ports (for sub-flow display)
+    flow_inputs: Vec<PortInfo>,
+    /// Flow-level output ports (for sub-flow display)
+    flow_outputs: Vec<PortInfo>,
 }
 
 /// Top-level application state
@@ -257,6 +263,7 @@ impl FlowEdit {
             ..Default::default()
         });
 
+        let (fi, fo) = extract_ports(&flow_definition.inputs, &flow_definition.outputs);
         let win_state = WindowState {
             flow_name,
             nodes,
@@ -275,6 +282,8 @@ impl FlowEdit {
             tooltip: None,
             initializer_editor: None,
             is_root: true,
+            flow_inputs: fi,
+            flow_outputs: fo,
         };
 
         let mut windows = HashMap::new();
@@ -475,7 +484,9 @@ impl FlowEdit {
                     }
                     CanvasMessage::AutoFitViewport(viewport) => {
                         if win.auto_fit_enabled || win.auto_fit_pending {
-                            win.canvas_state.auto_fit(&win.nodes, viewport);
+                            let has_flow_io =
+                                !win.flow_inputs.is_empty() || !win.flow_outputs.is_empty();
+                            win.canvas_state.auto_fit(&win.nodes, has_flow_io, viewport);
                             win.auto_fit_pending = false;
                         }
                     }
@@ -658,13 +669,20 @@ impl FlowEdit {
                 self.focused_window = Some(id);
             }
             Message::CloseRequested(id) => {
-                // Check if this is the root window
-                if self.root_window == Some(id) {
+                self.windows.remove(&id);
+                if self.root_window == Some(id) || self.windows.is_empty() {
                     return iced::exit();
                 }
-                // Otherwise, close the child window and remove its state
-                self.windows.remove(&id);
                 return window::close(id);
+            }
+            Message::CloseActiveWindow => {
+                if let Some(id) = self.focused_window.or(self.root_window) {
+                    self.windows.remove(&id);
+                    if self.root_window == Some(id) || self.windows.is_empty() {
+                        return iced::exit();
+                    }
+                    return window::close(id);
+                }
             }
         }
         Task::none()
@@ -681,6 +699,8 @@ impl FlowEdit {
             .view(
                 &win.nodes,
                 &win.edges,
+                &win.flow_inputs,
+                &win.flow_outputs,
                 win.auto_fit_pending,
                 win.auto_fit_enabled,
             )
@@ -832,9 +852,13 @@ impl FlowEdit {
 
         // Build status bar — compile button only for root windows
         let status_bar: Row<'_, Message> = if win.is_root {
-            let mut compile_btn = button(Text::new("Compile").size(12).center())
-                .style(button::secondary)
-                .padding(4);
+            let mut compile_btn = button(Text::new("\u{1F528} Build").size(14).center())
+                .padding([6, 14])
+                .style(if win.nodes.is_empty() {
+                    button::secondary
+                } else {
+                    button::primary
+                });
             if !win.nodes.is_empty() {
                 compile_btn = compile_btn.on_press(Message::Compile);
             }
@@ -871,6 +895,7 @@ impl FlowEdit {
                 "o" => Some(Message::Open),
                 "n" => Some(Message::New),
                 "b" => Some(Message::Compile),
+                "w" => Some(Message::CloseActiveWindow),
                 _ => None,
             },
             _ => None,
@@ -912,6 +937,13 @@ impl FlowEdit {
             return Task::none();
         };
 
+        // If a window already has this file open, focus it instead of opening a duplicate
+        for (&win_id, win) in &self.windows {
+            if win.file_path.as_ref() == Some(&path) && win_id != parent_win_id {
+                return window::gain_focus(win_id);
+            }
+        }
+
         // Check whether the resolved file is a flow or a function
         if let Ok(contents) = std::fs::read_to_string(&path) {
             if let Ok(url) = Url::from_file_path(&path) {
@@ -933,12 +965,18 @@ impl FlowEdit {
         match load_flow(&path) {
             Ok((name, nodes, edges, flow_def)) => {
                 let has_nodes = !nodes.is_empty();
+                let cascade = self.windows.len() as f32;
                 let (new_id, open_task) = window::open(window::Settings {
                     size: iced::Size::new(1024.0, 768.0),
+                    position: window::Position::Specific(iced::Point::new(
+                        80.0 + cascade * 30.0,
+                        60.0 + cascade * 30.0,
+                    )),
                     ..Default::default()
                 });
                 let nc = nodes.len();
                 let ec = edges.len();
+                let (fi, fo) = extract_ports(&flow_def.inputs, &flow_def.outputs);
                 let child = WindowState {
                     flow_name: name,
                     nodes,
@@ -957,6 +995,8 @@ impl FlowEdit {
                     tooltip: None,
                     initializer_editor: None,
                     is_root: false,
+                    flow_inputs: fi,
+                    flow_outputs: fo,
                 };
                 self.windows.insert(new_id, child);
                 if let Some(win) = self.windows.get_mut(&parent_win_id) {
@@ -1093,11 +1133,14 @@ fn perform_open(win: &mut WindowState) {
             Ok((name, node_list, edge_list, flow_def)) => {
                 let nc = node_list.len();
                 let ec = edge_list.len();
+                let (fi, fo) = extract_ports(&flow_def.inputs, &flow_def.outputs);
                 win.flow_name = name;
                 win.nodes = node_list;
                 win.edges = edge_list;
                 win.flow_definition = flow_def;
                 win.file_path = Some(path);
+                win.flow_inputs = fi;
+                win.flow_outputs = fo;
                 win.selected_node = None;
                 win.selected_connection = None;
                 win.history = EditHistory::default();
@@ -1121,6 +1164,8 @@ fn perform_new(win: &mut WindowState) {
     win.edges = Vec::new();
     win.flow_definition = FlowDefinition::default();
     win.file_path = None;
+    win.flow_inputs = Vec::new();
+    win.flow_outputs = Vec::new();
     win.selected_node = None;
     win.selected_connection = None;
     win.history = EditHistory::default();
