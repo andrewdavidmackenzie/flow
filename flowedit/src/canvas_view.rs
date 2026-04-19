@@ -35,12 +35,13 @@ const RESIZE_HANDLE_HIT: f32 = 6.0;
 /// Hit test radius for port semi-circles in screen pixels
 const PORT_HIT_RADIUS: f32 = 8.0;
 /// Hit test distance for connection bezier curves in screen pixels
-const CONNECTION_HIT_DISTANCE: f32 = 6.0;
+const CONNECTION_HIT_DISTANCE: f32 = 8.0;
 /// Number of sample points along a bezier curve for hit testing
-const BEZIER_SAMPLES: usize = 32;
+const BEZIER_SAMPLES: usize = 64;
 
 use flowcore::model::connection::Connection;
 use flowcore::model::process_reference::ProcessReference;
+use flowcore::model::route::Route;
 
 /// Messages produced by the canvas interaction layer.
 #[derive(Debug, Clone)]
@@ -875,6 +876,102 @@ fn quadratic_bezier_pt(p0: Point, p1: Point, p2: Point, t: f32) -> Point {
 }
 
 /// Evaluate a cubic bezier curve at parameter `t` (0.0..=1.0).
+/// Compute flow I/O port world positions (same layout as draw_flow_io_ports).
+fn compute_flow_io_positions(
+    nodes: &[NodeLayout],
+    flow_inputs: &[PortInfo],
+    flow_outputs: &[PortInfo],
+) -> (HashMap<String, Point>, HashMap<String, Point>) {
+    use std::collections::HashMap;
+
+    let mut input_positions = HashMap::new();
+    let mut output_positions = HashMap::new();
+
+    if nodes.is_empty() || (flow_inputs.is_empty() && flow_outputs.is_empty()) {
+        return (input_positions, output_positions);
+    }
+
+    let padding = 80.0;
+    let spacing = 28.0;
+    let min_x = nodes.iter().map(|n| n.x).fold(f32::MAX, f32::min);
+    let max_x = nodes.iter().map(|n| n.x + n.width).fold(f32::MIN, f32::max);
+    let min_y = nodes.iter().map(|n| n.y).fold(f32::MAX, f32::min);
+    let max_y = nodes
+        .iter()
+        .map(|n| n.y + n.height)
+        .fold(f32::MIN, f32::max);
+    let box_x = min_x - padding;
+    let box_w = (max_x - min_x) + 2.0 * padding;
+    let center_y = (min_y + max_y) / 2.0;
+
+    let input_start_y = center_y - (flow_inputs.len() as f32 - 1.0) * spacing / 2.0;
+    for (i, input) in flow_inputs.iter().enumerate() {
+        let y = input_start_y + i as f32 * spacing;
+        input_positions.insert(input.name.clone(), Point::new(box_x, y));
+    }
+
+    let right_x = box_x + box_w;
+    let output_start_y = center_y - (flow_outputs.len() as f32 - 1.0) * spacing / 2.0;
+    for (i, output) in flow_outputs.iter().enumerate() {
+        let y = output_start_y + i as f32 * spacing;
+        output_positions.insert(output.name.clone(), Point::new(right_x, y));
+    }
+
+    (input_positions, output_positions)
+}
+
+/// Extract the base port name, stripping any trailing array index.
+/// Uses flowcore's Route to detect array selectors properly.
+fn base_port_name(port: &str) -> &str {
+    if Route::from(port).is_array_selector() {
+        port.rsplit_once('/').map_or(port, |(base, _)| base)
+    } else {
+        port
+    }
+}
+
+fn find_node_output_pos_inline(node: &NodeLayout, port: &str) -> Point {
+    if port.is_empty() {
+        node.output_port_position(0)
+    } else {
+        let base = base_port_name(port);
+        let idx = node
+            .outputs
+            .iter()
+            .position(|p| p.name == base)
+            .unwrap_or(0);
+        node.output_port_position(idx)
+    }
+}
+
+fn find_node_input_pos_inline(node: &NodeLayout, port: &str) -> Point {
+    if port.is_empty() {
+        node.input_port_position(0)
+    } else {
+        let base = base_port_name(port);
+        let idx = node.inputs.iter().position(|p| p.name == base).unwrap_or(0);
+        node.input_port_position(idx)
+    }
+}
+
+/// Squared distance from point `p` to the line segment `a`–`b`.
+fn distance_to_segment_sq(p: Point, a: Point, b: Point) -> f32 {
+    let ab_x = b.x - a.x;
+    let ab_y = b.y - a.y;
+    let ap_x = p.x - a.x;
+    let ap_y = p.y - a.y;
+    let ab_len_sq = ab_x * ab_x + ab_y * ab_y;
+    if ab_len_sq < 0.001 {
+        return ap_x * ap_x + ap_y * ap_y;
+    }
+    let t = ((ap_x * ab_x + ap_y * ab_y) / ab_len_sq).clamp(0.0, 1.0);
+    let proj_x = a.x + t * ab_x;
+    let proj_y = a.y + t * ab_y;
+    let dx = p.x - proj_x;
+    let dy = p.y - proj_y;
+    dx * dx + dy * dy
+}
+
 fn cubic_bezier(p0: Point, p1: Point, p2: Point, p3: Point, t: f32) -> Point {
     let u = 1.0 - t;
     let uu = u * u;
@@ -891,9 +988,12 @@ fn cubic_bezier(p0: Point, p1: Point, p2: Point, p3: Point, t: f32) -> Point {
 ///
 /// Returns the edge index if the cursor is within [`CONNECTION_HIT_DISTANCE`]
 /// screen pixels of any sample point on the curve.
+#[allow(clippy::too_many_arguments)]
 fn hit_test_connection(
     edges: &[EdgeLayout],
     nodes: &[NodeLayout],
+    flow_inputs: &[PortInfo],
+    flow_outputs: &[PortInfo],
     screen_pos: Point,
     zoom: f32,
     offset: Point,
@@ -902,35 +1002,32 @@ fn hit_test_connection(
     let node_map: HashMap<&str, &NodeLayout> =
         nodes.iter().map(|n| (n.alias.as_str(), n)).collect();
 
+    // Compute flow I/O port positions (same layout as draw_flow_io_ports)
+    let flow_io_positions = compute_flow_io_positions(nodes, flow_inputs, flow_outputs);
+
     let threshold_sq = CONNECTION_HIT_DISTANCE * CONNECTION_HIT_DISTANCE;
 
     for (edge_idx, edge) in edges.iter().enumerate() {
-        let from_node = node_map.get(edge.from_node.as_str());
-        let to_node = node_map.get(edge.to_node.as_str());
+        // Resolve from_point
+        let from_point = if edge.from_node == "input" {
+            let input_name = base_port_name(&edge.from_port);
+            flow_io_positions.0.get(input_name).copied()
+        } else {
+            node_map
+                .get(edge.from_node.as_str())
+                .map(|n| find_node_output_pos_inline(n, &edge.from_port))
+        };
 
-        if let (Some(from), Some(to)) = (from_node, to_node) {
-            let from_point = if edge.from_port.is_empty() {
-                from.output_port_position(0)
-            } else {
-                let port_idx = from
-                    .outputs
-                    .iter()
-                    .position(|p| p.name == edge.from_port)
-                    .unwrap_or(0);
-                from.output_port_position(port_idx)
-            };
+        let to_point = if edge.to_node == "output" {
+            let output_name = base_port_name(&edge.to_port);
+            flow_io_positions.1.get(output_name).copied()
+        } else {
+            node_map
+                .get(edge.to_node.as_str())
+                .map(|n| find_node_input_pos_inline(n, &edge.to_port))
+        };
 
-            let to_point = if edge.to_port.is_empty() {
-                to.input_port_position(0)
-            } else {
-                let port_idx = to
-                    .inputs
-                    .iter()
-                    .position(|p| p.name == edge.to_port)
-                    .unwrap_or(0);
-                to.input_port_position(port_idx)
-            };
-
+        if let (Some(from_point), Some(to_point)) = (from_point, to_point) {
             let from_s = transform_point(from_point, zoom, offset);
             let to_s = transform_point(to_point, zoom, offset);
 
@@ -938,9 +1035,18 @@ fn hit_test_connection(
 
             // Build sample points along the actual drawn path
             let sample_points: Vec<Point> = if is_self {
-                // Loopback: same routing as draw_bezier_connection
-                let (box_right, box_bottom, box_left, mid_x) =
-                    loopback_waypoints(from.x, from.y, from.width, from.height, zoom, offset);
+                let from_node_ref = node_map.get(edge.from_node.as_str());
+                let Some(from_n) = from_node_ref else {
+                    continue;
+                };
+                let (box_right, box_bottom, box_left, mid_x) = loopback_waypoints(
+                    from_n.x,
+                    from_n.y,
+                    from_n.width,
+                    from_n.height,
+                    zoom,
+                    offset,
+                );
 
                 // Sample the path: from -> right -> curve down -> bottom -> curve up -> to
                 let mut pts = Vec::with_capacity(BEZIER_SAMPLES + 1);
@@ -979,8 +1085,13 @@ fn hit_test_connection(
                 }
                 pts
             } else {
-                // Normal bezier
-                let dx_ctrl = (to_s.x - from_s.x).abs().max(60.0 * zoom) * 0.5;
+                // Use matching control points for flow I/O vs normal connections
+                let is_flow_io = edge.from_node == "input" || edge.to_node == "output";
+                let dx_ctrl = if is_flow_io {
+                    (to_s.x - from_s.x).abs().max(40.0 * zoom) * 0.4
+                } else {
+                    (to_s.x - from_s.x).abs().max(60.0 * zoom) * 0.5
+                };
                 let control1 = Point::new(from_s.x + dx_ctrl, from_s.y);
                 let control2 = Point::new(to_s.x - dx_ctrl, to_s.y);
                 (0..=BEZIER_SAMPLES)
@@ -991,11 +1102,11 @@ fn hit_test_connection(
                     .collect()
             };
 
-            for pt in &sample_points {
-                let dx = screen_pos.x - pt.x;
-                let dy = screen_pos.y - pt.y;
-                if dx * dx + dy * dy <= threshold_sq {
-                    return Some(edge_idx);
+            for pair in sample_points.windows(2) {
+                if let [a, b] = *pair {
+                    if distance_to_segment_sq(screen_pos, a, b) <= threshold_sq {
+                        return Some(edge_idx);
+                    }
                 }
             }
         }
@@ -1111,9 +1222,15 @@ impl canvas::Program<CanvasMessage> for FlowCanvas<'_> {
                 // 2. Check if cursor is near a connection line (but NOT on a port) — select it
                 let on_a_port = hit_test_port(self.nodes, cursor_position, zoom, offset).is_some();
                 if !on_a_port {
-                    if let Some(edge_idx) =
-                        hit_test_connection(self.edges, self.nodes, cursor_position, zoom, offset)
-                    {
+                    if let Some(edge_idx) = hit_test_connection(
+                        self.edges,
+                        self.nodes,
+                        self.flow_inputs,
+                        self.flow_outputs,
+                        cursor_position,
+                        zoom,
+                        offset,
+                    ) {
                         state.selected_connection = Some(edge_idx);
                         state.selected_node = None;
                         state.dragging = None;
@@ -1727,10 +1844,11 @@ fn draw_edges(
             let from_point = if edge.from_port.is_empty() {
                 from.output_port_position(0)
             } else {
+                let base = base_port_name(&edge.from_port);
                 let port_idx = from
                     .outputs
                     .iter()
-                    .position(|p| p.name == edge.from_port)
+                    .position(|p| p.name == base)
                     .unwrap_or(0);
                 from.output_port_position(port_idx)
             };
@@ -1738,12 +1856,8 @@ fn draw_edges(
             let to_point = if edge.to_port.is_empty() {
                 to.input_port_position(0)
             } else {
-                // Find the input port index by name
-                let port_idx = to
-                    .inputs
-                    .iter()
-                    .position(|p| p.name == edge.to_port)
-                    .unwrap_or(0);
+                let base = base_port_name(&edge.to_port);
+                let port_idx = to.inputs.iter().position(|p| p.name == base).unwrap_or(0);
                 to.input_port_position(port_idx)
             };
 
@@ -2040,7 +2154,7 @@ fn draw_flow_io_ports(
         // Connections from flow inputs: from_node == "input"
         if edge.from_node == "input" {
             // from_port is "name/subroute" — extract the input name (first segment)
-            let input_name = edge.from_port.split('/').next().unwrap_or(&edge.from_port);
+            let input_name = base_port_name(&edge.from_port);
             if let Some(&from_world) = input_positions.get(input_name) {
                 if let Some(to_world) = find_node_input_pos(nodes, &edge.to_node, &edge.to_port) {
                     draw_flow_io_bezier(frame, from_world, to_world, zoom, offset, conn_color);
@@ -2049,7 +2163,7 @@ fn draw_flow_io_ports(
         }
         // Connections to flow outputs: to_node == "output"
         if edge.to_node == "output" {
-            let output_name = edge.to_port.split('/').next().unwrap_or(&edge.to_port);
+            let output_name = base_port_name(&edge.to_port);
             if let Some(&to_world) = output_positions.get(output_name) {
                 if let Some(from_world) =
                     find_node_output_pos(nodes, &edge.from_node, &edge.from_port)
@@ -2063,7 +2177,8 @@ fn draw_flow_io_ports(
 
 fn find_node_input_pos(nodes: &[NodeLayout], alias: &str, port: &str) -> Option<Point> {
     let node = nodes.iter().find(|n| n.alias == alias)?;
-    let port_idx = node.inputs.iter().position(|p| p.name == port).unwrap_or(0);
+    let base = base_port_name(port);
+    let port_idx = node.inputs.iter().position(|p| p.name == base).unwrap_or(0);
     Some(node.input_port_position(port_idx))
 }
 
@@ -2072,10 +2187,11 @@ fn find_node_output_pos(nodes: &[NodeLayout], alias: &str, port: &str) -> Option
     if port.is_empty() {
         Some(node.output_port_position(0))
     } else {
+        let base = base_port_name(port);
         let port_idx = node
             .outputs
             .iter()
-            .position(|p| p.name == port)
+            .position(|p| p.name == base)
             .unwrap_or(0);
         Some(node.output_port_position(port_idx))
     }
