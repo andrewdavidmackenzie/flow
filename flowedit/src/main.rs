@@ -137,6 +137,8 @@ enum Message {
     FlowOutputTypeChanged(window::Id, usize, String),
     /// A window close was requested
     CloseRequested(window::Id),
+    /// A window was actually closed (cleanup stale state)
+    WindowClosed(window::Id),
     /// Close the currently focused window (Cmd+W)
     CloseActiveWindow,
     /// Quit the entire application (Cmd+Q)
@@ -1066,6 +1068,12 @@ impl FlowEdit {
                     win.canvas_state.request_redraw();
                 }
             }
+            Message::WindowClosed(id) => {
+                self.windows.remove(&id);
+                if self.root_window == Some(id) || self.windows.is_empty() {
+                    return iced::exit();
+                }
+            }
             Message::CloseRequested(_) | Message::CloseActiveWindow => {
                 let target = match message {
                     Message::CloseRequested(win_id) => Some(win_id),
@@ -1886,17 +1894,16 @@ impl FlowEdit {
             _ => None,
         });
 
-        let close_sub = window::close_requests().map(Message::CloseRequested);
-
-        let focus_sub = iced::event::listen_with(|event, _status, id| {
-            if let iced::Event::Window(iced::window::Event::Focused) = event {
-                Some(Message::WindowFocused(id))
-            } else {
-                None
+        let window_events = iced::event::listen_with(|event, _status, id| match event {
+            iced::Event::Window(iced::window::Event::CloseRequested) => {
+                Some(Message::CloseRequested(id))
             }
+            iced::Event::Window(iced::window::Event::Closed) => Some(Message::WindowClosed(id)),
+            iced::Event::Window(iced::window::Event::Focused) => Some(Message::WindowFocused(id)),
+            _ => None,
         });
 
-        Subscription::batch(vec![keyboard_sub, close_sub, focus_sub])
+        Subscription::batch(vec![keyboard_sub, window_events])
     }
 
     fn build_hierarchy(&self) -> FlowHierarchy {
