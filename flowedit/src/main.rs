@@ -763,15 +763,11 @@ impl FlowEdit {
                                 name: format!("output{}", v.outputs.len()),
                                 datatypes: vec![String::from("string")],
                             }),
-                            Message::FunctionDeleteInput(_, idx) => {
-                                if idx < v.inputs.len() {
-                                    v.inputs.remove(idx);
-                                }
+                            Message::FunctionDeleteInput(_, idx) if idx < v.inputs.len() => {
+                                v.inputs.remove(idx);
                             }
-                            Message::FunctionDeleteOutput(_, idx) => {
-                                if idx < v.outputs.len() {
-                                    v.outputs.remove(idx);
-                                }
+                            Message::FunctionDeleteOutput(_, idx) if idx < v.outputs.len() => {
+                                v.outputs.remove(idx);
                             }
                             _ => {}
                         }
@@ -834,21 +830,34 @@ impl FlowEdit {
                     }
                 }
             }
-            Message::CloseRequested(id) => {
+            Message::CloseRequested(_) | Message::CloseActiveWindow => {
+                let target = match message {
+                    Message::CloseRequested(win_id) => Some(win_id),
+                    Message::CloseActiveWindow => self.focused_window.or(self.root_window),
+                    _ => None,
+                };
+                let Some(id) = target else {
+                    return Task::none();
+                };
+                if let Some(win) = self.windows.get(&id) {
+                    if win.unsaved_edits > 0 {
+                        let dialog = rfd::MessageDialog::new()
+                            .set_title("Unsaved Changes")
+                            .set_description(
+                                "This window has unsaved changes. Close without saving?",
+                            )
+                            .set_buttons(rfd::MessageButtons::YesNo)
+                            .set_level(rfd::MessageLevel::Warning);
+                        if dialog.show() != rfd::MessageDialogResult::Yes {
+                            return Task::none();
+                        }
+                    }
+                }
                 self.windows.remove(&id);
                 if self.root_window == Some(id) || self.windows.is_empty() {
                     return iced::exit();
                 }
                 return window::close(id);
-            }
-            Message::CloseActiveWindow => {
-                if let Some(id) = self.focused_window.or(self.root_window) {
-                    self.windows.remove(&id);
-                    if self.root_window == Some(id) || self.windows.is_empty() {
-                        return iced::exit();
-                    }
-                    return window::close(id);
-                }
             }
             Message::QuitAll => {
                 // Check for unsaved edits in any window

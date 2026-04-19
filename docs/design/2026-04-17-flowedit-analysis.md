@@ -356,8 +356,8 @@ Initializer values saved correctly.
 
 ### Phase 6: Nested flows, new processes & polish
 
-**Step 1: Double-click sub-flow to open nested editor**
-- Double-click a node whose source is a relative `.toml` (sub-flow) to open it
+**Step 1: Click the pencil icon on a sub-flow to open nested editor**
+- Click the pencil icon on a node whose source is a relative `.toml` (sub-flow) to open it
   in a new editor window
 - Demo: `mandlebrot/root.toml` → double-click `generate_pixels` or `render`
 - Update user manual
@@ -370,9 +370,9 @@ Initializer values saved correctly.
   still compiles
 - Update user manual
 
-**Step 3: Double-click provided implementation to view/edit**
-- Double-click a node whose source is a `.rs` file (provided implementation)
-  to open a tabbed viewer/editor:
+**Step 3: Click the pencil icon on a provided implementation to view/edit**
+- Click the pencil icon on a node whose source is a `.rs` file (provided implementation)
+  to open the function definition editor:
   - Tab 1: TOML definition (function name, inputs, outputs, source)
   - Tab 2: Rust source (`.rs` file)
   - Tab 3: Documentation (`.md` file, if it exists)

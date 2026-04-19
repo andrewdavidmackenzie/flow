@@ -661,7 +661,7 @@ impl FlowCanvasState {
     ///
     /// If `nodes` is empty, resets to default zoom and offset.
     pub(crate) fn auto_fit(&mut self, nodes: &[NodeLayout], has_flow_io: bool, viewport: Size) {
-        if nodes.is_empty() {
+        if nodes.is_empty() && !has_flow_io {
             self.zoom = 1.0;
             self.scroll_offset = Point::new(0.0, 0.0);
             self.cache.clear();
@@ -1843,7 +1843,7 @@ fn draw_flow_io_ports(
     zoom: f32,
     offset: Point,
 ) {
-    if (flow_inputs.is_empty() && flow_outputs.is_empty()) || nodes.is_empty() {
+    if flow_inputs.is_empty() && flow_outputs.is_empty() {
         return;
     }
 
@@ -1853,13 +1853,19 @@ fn draw_flow_io_ports(
     let padding = 80.0;
     let corner = 16.0;
 
-    let min_x = nodes.iter().map(|n| n.x).fold(f32::MAX, f32::min);
-    let max_x = nodes.iter().map(|n| n.x + n.width).fold(f32::MIN, f32::max);
-    let min_y = nodes.iter().map(|n| n.y).fold(f32::MAX, f32::min);
-    let max_y = nodes
-        .iter()
-        .map(|n| n.y + n.height)
-        .fold(f32::MIN, f32::max);
+    let (min_x, max_x, min_y, max_y) = if nodes.is_empty() {
+        (0.0, 200.0, 0.0, 100.0)
+    } else {
+        (
+            nodes.iter().map(|n| n.x).fold(f32::MAX, f32::min),
+            nodes.iter().map(|n| n.x + n.width).fold(f32::MIN, f32::max),
+            nodes.iter().map(|n| n.y).fold(f32::MAX, f32::min),
+            nodes
+                .iter()
+                .map(|n| n.y + n.height)
+                .fold(f32::MIN, f32::max),
+        )
+    };
 
     let box_x = min_x - padding;
     let box_y = min_y - padding;
@@ -1966,7 +1972,8 @@ fn draw_flow_io_ports(
         }
         // Connections to flow outputs: to_node == "output"
         if edge.to_node == "output" {
-            if let Some(&to_world) = output_positions.get(&edge.to_port) {
+            let output_name = edge.to_port.split('/').next().unwrap_or(&edge.to_port);
+            if let Some(&to_world) = output_positions.get(output_name) {
                 if let Some(from_world) =
                     find_node_output_pos(nodes, &edge.from_node, &edge.from_port)
                 {
