@@ -101,6 +101,10 @@ enum Message {
     FunctionOutputTypeChanged(window::Id, usize, String),
     /// Save function definition to disk
     FunctionSave(window::Id),
+    /// Create a new sub-flow and add it to the current flow
+    NewSubFlow,
+    /// Create a new provided implementation and add it to the current flow
+    NewFunction,
     /// Add a flow-level input port
     FlowAddInput(window::Id),
     /// Add a flow-level output port
@@ -199,6 +203,8 @@ struct WindowState {
     flow_inputs: Vec<PortInfo>,
     /// Flow-level output ports (for sub-flow display)
     flow_outputs: Vec<PortInfo>,
+    /// Context menu position (screen coords), if showing
+    context_menu: Option<(f32, f32)>,
 }
 
 /// Top-level application state
@@ -347,6 +353,7 @@ impl FlowEdit {
             is_root: true,
             flow_inputs: fi,
             flow_outputs: fo,
+            context_menu: None,
         };
 
         let mut windows = HashMap::new();
@@ -388,6 +395,7 @@ impl FlowEdit {
                 match canvas_msg {
                     CanvasMessage::Selected(idx) => {
                         win.selected_node = idx;
+                        win.context_menu = None;
                         if win.selected_connection.is_some() {
                             win.selected_connection = None;
                             win.canvas_state.request_redraw();
@@ -608,6 +616,11 @@ impl FlowEdit {
                     CanvasMessage::OpenNode(idx) => {
                         return self.open_node(win_id, idx);
                     }
+                    CanvasMessage::ContextMenu(x, y) => {
+                        if let Some(win) = self.windows.get_mut(&win_id) {
+                            win.context_menu = Some((x, y));
+                        }
+                    }
                 }
             }
             Message::Library(win_id, ref lib_msg) => {
@@ -701,6 +714,19 @@ impl FlowEdit {
                         }
                     }
                 }
+            }
+            Message::NewSubFlow => {
+                // Dismiss any open context menu
+                for win in self.windows.values_mut() {
+                    win.context_menu = None;
+                }
+                return self.create_new_subflow();
+            }
+            Message::NewFunction => {
+                for win in self.windows.values_mut() {
+                    win.context_menu = None;
+                }
+                return self.create_new_function();
             }
             Message::InitializerTypeChanged(win_id, new_type) => {
                 if let Some(win) = self.windows.get_mut(&win_id) {
@@ -985,6 +1011,7 @@ impl FlowEdit {
                 &win.edges,
                 &win.flow_inputs,
                 &win.flow_outputs,
+                !win.is_root,
                 win.auto_fit_pending,
                 win.auto_fit_enabled,
             )
@@ -1117,6 +1144,47 @@ impl FlowEdit {
             canvas_stack.push(dialog.into());
         }
 
+        // Context menu overlay (right-click on empty canvas)
+        if let Some((cx, cy)) = win.context_menu {
+            let menu = container(
+                Column::new()
+                    .spacing(2)
+                    .push(
+                        button(Text::new("+ New Sub-flow").size(13))
+                            .on_press(Message::NewSubFlow)
+                            .style(button::text)
+                            .padding([6, 16])
+                            .width(Fill),
+                    )
+                    .push(
+                        button(Text::new("+ New Function").size(13))
+                            .on_press(Message::NewFunction)
+                            .style(button::text)
+                            .padding([6, 16])
+                            .width(Fill),
+                    ),
+            )
+            .style(|_theme: &Theme| container::Style {
+                background: Some(iced::Background::Color(Color::from_rgb(0.18, 0.18, 0.22))),
+                border: iced::Border {
+                    color: Color::from_rgb(0.4, 0.4, 0.4),
+                    width: 1.0,
+                    radius: 6.0.into(),
+                },
+                ..Default::default()
+            })
+            .width(160)
+            .padding(4);
+
+            let positioned = container(menu).padding(iced::Padding {
+                top: cy,
+                left: cx,
+                right: 0.0,
+                bottom: 0.0,
+            });
+            canvas_stack.push(positioned.into());
+        }
+
         let canvas_with_controls = stack(canvas_stack);
 
         let library_panel = self
@@ -1147,10 +1215,22 @@ impl FlowEdit {
                 compile_btn = compile_btn.on_press(Message::Compile);
             }
 
+            let new_subflow_btn = button(Text::new("+ Sub-flow").size(12).center())
+                .on_press(Message::NewSubFlow)
+                .style(button::secondary)
+                .padding([4, 10]);
+
+            let new_func_btn = button(Text::new("+ Function").size(12).center())
+                .on_press(Message::NewFunction)
+                .style(button::secondary)
+                .padding([4, 10]);
+
             Row::new()
                 .spacing(8)
                 .push(Text::new(format!("{}{}", win.status, edit_indicator)).size(14))
                 .push(iced::widget::Space::new().width(Fill))
+                .push(new_subflow_btn)
+                .push(new_func_btn)
                 .push(compile_btn)
         } else {
             Row::new()
@@ -1250,24 +1330,43 @@ impl FlowEdit {
                 .padding([2, 8]),
         );
 
-        container(
-            Row::new()
-                .padding([6, 12])
-                .push(input_col)
-                .push(iced::widget::Space::new().width(Fill))
-                .push(output_col),
+        let flow_name_label = container(
+            Text::new(&win.flow_name)
+                .size(14)
+                .color(Color::from_rgb(0.9, 0.6, 0.2)),
+        )
+        .center_x(Fill);
+
+        let io_box = container(
+            Column::new()
+                .spacing(12)
+                .padding(iced::Padding {
+                    top: 12.0,
+                    bottom: 12.0,
+                    left: 0.0,
+                    right: 0.0,
+                })
+                .push(flow_name_label)
+                .push(
+                    Row::new()
+                        .push(input_col)
+                        .push(iced::widget::Space::new().width(Fill))
+                        .push(output_col),
+                ),
         )
         .style(|_theme: &Theme| container::Style {
-            background: Some(iced::Background::Color(Color::from_rgb(0.14, 0.14, 0.18))),
+            background: Some(iced::Background::Color(Color::from_rgb(0.18, 0.18, 0.22))),
             border: iced::Border {
-                color: Color::from_rgb(0.3, 0.3, 0.3),
-                width: 1.0,
-                radius: 0.0.into(),
+                color: Color::from_rgb(0.9, 0.6, 0.2),
+                width: 2.0,
+                radius: 12.0.into(),
             },
             ..Default::default()
         })
         .width(Fill)
-        .into()
+        .padding([0, 8]);
+
+        container(io_box).padding([6, 12]).width(Fill).into()
     }
 
     fn view_function<'a>(
@@ -1606,6 +1705,7 @@ impl FlowEdit {
                     is_root: false,
                     flow_inputs: fi,
                     flow_outputs: fo,
+                    context_menu: None,
                 };
                 self.windows.insert(new_id, child);
                 if let Some(win) = self.windows.get_mut(&parent_win_id) {
@@ -1675,12 +1775,256 @@ impl FlowEdit {
             is_root: false,
             flow_inputs: Vec::new(),
             flow_outputs: Vec::new(),
+            context_menu: None,
         };
 
         self.windows.insert(new_id, child);
         if let Some(win) = self.windows.get_mut(&parent_win_id) {
             win.status = format!("Opened function: {func_name}");
         }
+        open_task.discard()
+    }
+
+    fn create_new_subflow(&mut self) -> Task<Message> {
+        let Some(root_id) = self.root_window else {
+            return Task::none();
+        };
+
+        // Get the parent flow's directory for relative path resolution
+        let base_dir = self
+            .windows
+            .get(&root_id)
+            .and_then(|w| w.file_path.as_ref())
+            .and_then(|p| p.parent())
+            .map(Path::to_path_buf);
+
+        let Some(base) = base_dir else {
+            if let Some(win) = self.windows.get_mut(&root_id) {
+                win.status = String::from("Save the flow first before creating a sub-flow");
+            }
+            return Task::none();
+        };
+
+        // Prompt user to choose where to save the new sub-flow
+        let dialog = rfd::FileDialog::new()
+            .add_filter("Flow", &["toml"])
+            .set_directory(&base)
+            .set_file_name("new_subflow.toml");
+        let Some(path) = dialog.save_file() else {
+            return Task::none();
+        };
+
+        // Derive flow name from filename
+        let flow_name = path
+            .file_stem()
+            .and_then(|s| s.to_str())
+            .unwrap_or("subflow")
+            .to_string();
+
+        // Create the sub-flow definition with empty content
+        let flow_def = FlowDefinition {
+            name: flow_name.clone(),
+            ..FlowDefinition::default()
+        };
+
+        // Write the initial TOML file
+        let toml = format!("flow = \"{flow_name}\"\n");
+        if let Err(e) = std::fs::write(&path, &toml) {
+            if let Some(win) = self.windows.get_mut(&root_id) {
+                win.status = format!("Could not create sub-flow: {e}");
+            }
+            return Task::none();
+        }
+
+        // Compute relative source path from parent flow to new sub-flow
+        let source = path
+            .strip_prefix(&base)
+            .map(|p| p.to_string_lossy().to_string())
+            .unwrap_or_else(|_| path.to_string_lossy().to_string());
+        // Strip .toml extension for the source reference
+        let source = source.strip_suffix(".toml").unwrap_or(&source).to_string();
+
+        // Add a process reference in the parent flow
+        if let Some(win) = self.windows.get_mut(&root_id) {
+            let alias = generate_unique_alias(&flow_name, &win.nodes);
+            let (x, y) = next_node_position(&win.nodes);
+
+            let node = NodeLayout {
+                alias: alias.clone(),
+                source: source.clone(),
+                x,
+                y,
+                width: 180.0,
+                height: 120.0,
+                inputs: Vec::new(),
+                outputs: Vec::new(),
+                initializers: HashMap::new(),
+            };
+            win.nodes.push(node);
+            win.flow_definition.process_refs.push(ProcessReference {
+                alias: alias.clone(),
+                source,
+                initializations: std::collections::BTreeMap::new(),
+                x: Some(x),
+                y: Some(y),
+                width: Some(180.0),
+                height: Some(120.0),
+            });
+            win.unsaved_edits += 1;
+            win.canvas_state.request_redraw();
+            win.status = format!("Created sub-flow: {alias}");
+        }
+
+        // Open the new sub-flow in a child window
+        let (new_id, open_task) = window::open(window::Settings {
+            size: iced::Size::new(1024.0, 768.0),
+            ..Default::default()
+        });
+
+        let child = WindowState {
+            kind: WindowKind::FlowEditor,
+            flow_name: flow_name.clone(),
+            nodes: Vec::new(),
+            edges: Vec::new(),
+            canvas_state: FlowCanvasState::default(),
+            status: format!("New sub-flow: {flow_name}"),
+            selected_node: None,
+            selected_connection: None,
+            history: EditHistory::default(),
+            auto_fit_pending: false,
+            auto_fit_enabled: true,
+            unsaved_edits: 0,
+            compiled_manifest: None,
+            file_path: Some(path),
+            flow_definition: flow_def,
+            tooltip: None,
+            initializer_editor: None,
+            is_root: false,
+            flow_inputs: Vec::new(),
+            flow_outputs: Vec::new(),
+            context_menu: None,
+        };
+
+        self.windows.insert(new_id, child);
+        open_task.discard()
+    }
+
+    fn create_new_function(&mut self) -> Task<Message> {
+        let Some(root_id) = self.root_window else {
+            return Task::none();
+        };
+
+        let base_dir = self
+            .windows
+            .get(&root_id)
+            .and_then(|w| w.file_path.as_ref())
+            .and_then(|p| p.parent())
+            .map(Path::to_path_buf);
+
+        let Some(base) = base_dir else {
+            if let Some(win) = self.windows.get_mut(&root_id) {
+                win.status = String::from("Save the flow first before creating a function");
+            }
+            return Task::none();
+        };
+
+        // Prompt user to choose where to save the new function definition
+        let dialog = rfd::FileDialog::new()
+            .add_filter("Flow Function", &["toml"])
+            .set_directory(&base)
+            .set_file_name("new_function.toml");
+        let Some(path) = dialog.save_file() else {
+            return Task::none();
+        };
+
+        let func_name = path
+            .file_stem()
+            .and_then(|s| s.to_str())
+            .unwrap_or("function")
+            .to_string();
+
+        let rs_filename = format!("{func_name}.rs");
+
+        // Compute relative source from parent flow
+        let source = path
+            .strip_prefix(&base)
+            .map(|p| p.to_string_lossy().to_string())
+            .unwrap_or_else(|_| path.to_string_lossy().to_string());
+        let source = source.strip_suffix(".toml").unwrap_or(&source).to_string();
+
+        // Add process reference in the parent flow
+        if let Some(win) = self.windows.get_mut(&root_id) {
+            let alias = generate_unique_alias(&func_name, &win.nodes);
+            let (x, y) = next_node_position(&win.nodes);
+
+            let node = NodeLayout {
+                alias: alias.clone(),
+                source: source.clone(),
+                x,
+                y,
+                width: 180.0,
+                height: 120.0,
+                inputs: Vec::new(),
+                outputs: Vec::new(),
+                initializers: HashMap::new(),
+            };
+            win.nodes.push(node);
+            win.flow_definition.process_refs.push(ProcessReference {
+                alias: alias.clone(),
+                source,
+                initializations: std::collections::BTreeMap::new(),
+                x: Some(x),
+                y: Some(y),
+                width: Some(180.0),
+                height: Some(120.0),
+            });
+            win.unsaved_edits += 1;
+            win.canvas_state.request_redraw();
+            win.status = format!("Created function: {alias}");
+        }
+
+        // Open the function viewer window
+        let (new_id, open_task) = window::open(window::Settings {
+            size: iced::Size::new(700.0, 500.0),
+            ..Default::default()
+        });
+
+        let viewer = FunctionViewer {
+            name: func_name.clone(),
+            source_file: rs_filename,
+            inputs: Vec::new(),
+            outputs: Vec::new(),
+            rs_content: String::from("// Save to generate skeleton source"),
+            docs_content: None,
+            active_tab: 0,
+            toml_path: path.clone(),
+        };
+
+        let child = WindowState {
+            kind: WindowKind::FunctionViewer(viewer),
+            flow_name: func_name,
+            nodes: Vec::new(),
+            edges: Vec::new(),
+            canvas_state: FlowCanvasState::default(),
+            status: String::from("New function — add ports and Save"),
+            selected_node: None,
+            selected_connection: None,
+            history: EditHistory::default(),
+            auto_fit_pending: false,
+            auto_fit_enabled: false,
+            unsaved_edits: 1,
+            compiled_manifest: None,
+            file_path: Some(path),
+            flow_definition: FlowDefinition::default(),
+            tooltip: None,
+            initializer_editor: None,
+            is_root: false,
+            flow_inputs: Vec::new(),
+            flow_outputs: Vec::new(),
+            context_menu: None,
+        };
+
+        self.windows.insert(new_id, child);
         open_task.discard()
     }
 }
@@ -1971,18 +2315,18 @@ fn add_library_function(win: &mut WindowState, source: &str, func_name: &str) {
 /// Resolve a node's source path relative to the current flow file.
 fn resolve_node_source(win: &WindowState, source: &str) -> Option<PathBuf> {
     let base_dir = win.file_path.as_ref()?.parent()?;
+    let canonicalize = |p: PathBuf| std::fs::canonicalize(&p).unwrap_or(p);
     let candidate = base_dir.join(source);
     if candidate.exists() {
-        return Some(candidate);
+        return Some(canonicalize(candidate));
     }
     let with_ext = base_dir.join(format!("{source}.toml"));
     if with_ext.exists() {
-        return Some(with_ext);
+        return Some(canonicalize(with_ext));
     }
-    // Try as directory/default.toml
     let dir_default = base_dir.join(source).join("default.toml");
     if dir_default.exists() {
-        return Some(dir_default);
+        return Some(canonicalize(dir_default));
     }
     None
 }

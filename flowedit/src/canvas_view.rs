@@ -85,6 +85,8 @@ pub(crate) enum CanvasMessage {
     AutoFitViewport(Size),
     /// Hover state changed — full source path and screen position for tooltip (or None to hide)
     HoverChanged(Option<(String, f32, f32)>),
+    /// Right-click on empty canvas — show context menu at screen position
+    ContextMenu(f32, f32),
 }
 
 /// Tracks the drag-in-progress state: which node and the cursor offset from its origin.
@@ -617,12 +619,14 @@ impl Default for FlowCanvasState {
 
 impl FlowCanvasState {
     /// Create the canvas [`Element`] for displaying the given nodes and edges.
+    #[allow(clippy::too_many_arguments)]
     pub(crate) fn view<'a>(
         &'a self,
         nodes: &'a [NodeLayout],
         edges: &'a [EdgeLayout],
         flow_inputs: &'a [PortInfo],
         flow_outputs: &'a [PortInfo],
+        is_subflow: bool,
         auto_fit_pending: bool,
         auto_fit_enabled: bool,
     ) -> Element<'a, CanvasMessage> {
@@ -632,6 +636,7 @@ impl FlowCanvasState {
             edges,
             flow_inputs,
             flow_outputs,
+            is_subflow,
             auto_fit_pending,
             auto_fit_enabled,
         })
@@ -671,10 +676,11 @@ impl FlowCanvasState {
         // Extra margin when flow I/O bounding box is drawn (padding + port labels)
         let flow_io_margin = if has_flow_io { 200.0 } else { 0.0 };
 
-        let mut min_x = f32::MAX;
-        let mut min_y = f32::MAX;
-        let mut max_x = f32::MIN;
-        let mut max_y = f32::MIN;
+        let (mut min_x, mut min_y, mut max_x, mut max_y) = if nodes.is_empty() {
+            (100.0, 100.0, 400.0, 250.0)
+        } else {
+            (f32::MAX, f32::MAX, f32::MIN, f32::MIN)
+        };
         for node in nodes {
             let init_margin = if node.initializers.is_empty() {
                 0.0
@@ -754,6 +760,8 @@ struct FlowCanvas<'a> {
     flow_inputs: &'a [PortInfo],
     /// Flow-level output ports (displayed on right edge for sub-flows)
     flow_outputs: &'a [PortInfo],
+    /// Whether this is a sub-flow (always draws bounding box)
+    is_subflow: bool,
     /// Whether an auto-fit should be triggered on the next event
     auto_fit_pending: bool,
     /// Whether auto-fit mode is active (continuously fits to window)
@@ -1174,7 +1182,7 @@ impl canvas::Program<CanvasMessage> for FlowCanvas<'_> {
                 }
             }
 
-            // Right mouse button pressed — edit initializer on input port
+            // Right mouse button pressed — edit initializer on input port, or context menu
             Event::Mouse(mouse::Event::ButtonPressed(mouse::Button::Right)) => {
                 if let Some((node_idx, port_name, is_output)) =
                     hit_test_port(self.nodes, cursor_position, zoom, offset)
@@ -1187,6 +1195,16 @@ impl canvas::Program<CanvasMessage> for FlowCanvas<'_> {
                             .and_capture(),
                         );
                     }
+                }
+                // Right-click on empty canvas — show context menu
+                if hit_test_node(self.nodes, world_pos).is_none() {
+                    return Some(
+                        canvas::Action::publish(CanvasMessage::ContextMenu(
+                            cursor_position.x,
+                            cursor_position.y,
+                        ))
+                        .and_capture(),
+                    );
                 }
                 None
             }
@@ -1486,6 +1504,7 @@ impl canvas::Program<CanvasMessage> for FlowCanvas<'_> {
                 self.flow_outputs,
                 self.nodes,
                 self.edges,
+                self.is_subflow,
                 zoom,
                 offset,
             );
@@ -1869,16 +1888,18 @@ fn draw_nodes(frame: &mut Frame, nodes: &[NodeLayout], zoom: f32, offset: Point)
 
 /// Draw a rounded bounding box around all subprocess nodes with flow I/O
 /// ports on the box edges and bezier connections to internal nodes.
+#[allow(clippy::too_many_arguments)]
 fn draw_flow_io_ports(
     frame: &mut Frame,
     flow_inputs: &[PortInfo],
     flow_outputs: &[PortInfo],
     nodes: &[NodeLayout],
     edges: &[EdgeLayout],
+    is_subflow: bool,
     zoom: f32,
     offset: Point,
 ) {
-    if flow_inputs.is_empty() && flow_outputs.is_empty() {
+    if !is_subflow {
         return;
     }
 
@@ -1889,7 +1910,7 @@ fn draw_flow_io_ports(
     let corner = 16.0;
 
     let (min_x, max_x, min_y, max_y) = if nodes.is_empty() {
-        (0.0, 200.0, 0.0, 100.0)
+        (100.0, 400.0, 100.0, 250.0)
     } else {
         (
             nodes.iter().map(|n| n.x).fold(f32::MAX, f32::min),
