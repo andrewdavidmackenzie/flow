@@ -149,6 +149,12 @@ enum Message {
     WindowResized(window::Id, iced::Size),
     /// Window was moved — track the new position
     WindowMoved(window::Id, iced::Point),
+    /// Add a library search path via file dialog
+    AddLibraryPath,
+    /// Remove a library search path by index
+    RemoveLibraryPath(usize),
+    /// Toggle the library paths editor
+    ToggleLibPaths,
 }
 
 /// State for the initializer editing dialog.
@@ -247,6 +253,8 @@ struct FlowEdit {
     library_tree: LibraryTree,
     /// Path to the root flow file (for rebuilding hierarchy)
     root_flow_path: Option<PathBuf>,
+    show_lib_paths: bool,
+    lib_paths: Vec<String>,
 }
 
 /// Main entry point for the flowedit binary.
@@ -418,6 +426,8 @@ impl FlowEdit {
             focused_window: Some(root_id),
             library_tree,
             root_flow_path,
+            show_lib_paths: false,
+            lib_paths: library_panel::get_lib_paths(),
         };
 
         (app, open_task.discard())
@@ -917,6 +927,25 @@ impl FlowEdit {
                 if let Some(win) = self.windows.get_mut(&id) {
                     win.last_position = Some(pos);
                 }
+            }
+            Message::AddLibraryPath => {
+                let dialog = rfd::FileDialog::new();
+                if let Some(dir) = dialog.pick_folder() {
+                    let path_str = dir.to_string_lossy().to_string();
+                    if !self.lib_paths.contains(&path_str) {
+                        self.lib_paths.push(path_str);
+                        self.update_lib_paths();
+                    }
+                }
+            }
+            Message::RemoveLibraryPath(idx) => {
+                if idx < self.lib_paths.len() {
+                    self.lib_paths.remove(idx);
+                    self.update_lib_paths();
+                }
+            }
+            Message::ToggleLibPaths => {
+                self.show_lib_paths = !self.show_lib_paths;
             }
             Message::FunctionTabSelected(win_id, tab) => {
                 if let Some(win) = self.windows.get_mut(&win_id) {
@@ -1479,6 +1508,16 @@ impl FlowEdit {
                 .push(Text::new(format!("{}{}", win.status, edit_indicator)).size(14))
                 .push(iced::widget::Space::new().width(Fill))
                 .push(info_btn)
+                .push(
+                    button(Text::new("\u{1F4C1} Libs").size(btn_size).center())
+                        .on_press(Message::ToggleLibPaths)
+                        .style(if self.show_lib_paths {
+                            toolbar_btn_active
+                        } else {
+                            toolbar_btn
+                        })
+                        .padding(btn_pad),
+                )
                 .push(new_subflow_btn)
                 .push(new_func_btn)
                 .push(compile_btn)
@@ -1570,6 +1609,47 @@ impl FlowEdit {
             .width(Fill);
 
             right_col = right_col.push(meta_panel);
+        }
+
+        // Library paths panel (toggled by Libs button)
+        if self.show_lib_paths {
+            let mut paths_col = Column::new().spacing(4).padding(12);
+            paths_col = paths_col.push(Text::new("Library Search Paths").size(14));
+
+            for (i, p) in self.lib_paths.iter().enumerate() {
+                let row = Row::new()
+                    .spacing(6)
+                    .align_y(iced::Alignment::Center)
+                    .push(Text::new(p).size(12))
+                    .push(iced::widget::Space::new().width(Fill))
+                    .push(
+                        button(Text::new("\u{2715}").size(10).center())
+                            .on_press(Message::RemoveLibraryPath(i))
+                            .style(button::danger)
+                            .padding([2, 5]),
+                    );
+                paths_col = paths_col.push(row);
+            }
+            paths_col = paths_col.push(
+                button(Text::new("+ Add Path...").size(12).center())
+                    .on_press(Message::AddLibraryPath)
+                    .style(button::secondary)
+                    .padding([4, 10]),
+            );
+
+            let lib_panel = container(paths_col)
+                .style(|_theme: &Theme| container::Style {
+                    background: Some(iced::Background::Color(Color::from_rgb(0.14, 0.14, 0.18))),
+                    border: iced::Border {
+                        color: Color::from_rgb(0.3, 0.3, 0.3),
+                        width: 1.0,
+                        radius: 0.0.into(),
+                    },
+                    ..Default::default()
+                })
+                .width(Fill);
+
+            right_col = right_col.push(lib_panel);
         }
 
         right_col = right_col.push(container(status_bar).width(Fill).padding(5));
@@ -2039,6 +2119,12 @@ impl FlowEdit {
             },
             Err(_) => Task::none(),
         }
+    }
+
+    fn update_lib_paths(&mut self) {
+        let path_str = self.lib_paths.join(",");
+        std::env::set_var("FLOW_LIB_PATH", &path_str);
+        self.library_tree = LibraryTree::scan();
     }
 
     fn build_hierarchy(&self) -> FlowHierarchy {

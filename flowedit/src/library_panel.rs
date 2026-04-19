@@ -259,6 +259,11 @@ impl LibraryTree {
 
 /// Resolve the library search path directories.
 ///
+/// Get the current library search paths.
+pub(crate) fn get_lib_paths() -> Vec<String> {
+    resolve_lib_path()
+}
+
 /// Reads `FLOW_LIB_PATH` as a comma-separated list and appends `~/.flow/lib`
 /// as a default if it exists.
 fn resolve_lib_path() -> Vec<String> {
