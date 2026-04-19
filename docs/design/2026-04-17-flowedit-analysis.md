@@ -441,8 +441,6 @@ correctly. Provided implementation skeletons compile.
 - Add UI dialog to add custom library search paths or specific libraries at runtime
   (the `-L` CLI flag already supports this at startup, but there is no in-app way
   to add paths during an editing session)
-- Implement CLI options for loading, compiling and running a flow compatible with
-  flowrgui, to enable using the same automated tests for both editors
 - Flow hierarchy navigator panel: add a collapsible tree view above the Process
   Library panel showing the structure of the loaded flow — root flow at the top,
   child sub-flows and functions as children, recursively. Double-click to open
@@ -454,6 +452,11 @@ correctly. Provided implementation skeletons compile.
   definitions, inputs/outputs, source files, and save changes back to the
   library directory.
 - Automated UI testing for interactive features described in the user manual
+- Implement flow execution (Run button) — requires in-process coordinator
+  and context functions, similar to flowrgui's execution pipeline
+- Implement CLI options for loading, compiling and running a flow compatible
+  with flowrgui, to enable using the same automated tests for both editors
+  (depends on flow execution being implemented first)
 
 ## 9. Key Design Decisions
 
