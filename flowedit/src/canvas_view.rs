@@ -75,6 +75,8 @@ pub(crate) enum CanvasMessage {
     /// Right-click on an input port to edit its initializer.
     /// (node_index, port_name)
     InitializerEdit(usize, String),
+    /// Open a sub-flow or provided implementation in a new editor.
+    OpenNode(usize),
     /// Pan the canvas by a world-space delta.
     Pan(f32, f32),
     /// Zoom the canvas by a multiplicative factor.
@@ -165,8 +167,6 @@ pub(crate) struct CanvasInteractionState {
     last_bounds: Option<Size>,
     /// Index of the node currently under the cursor (for hover tooltip)
     hover_node: Option<usize>,
-    /// Current cursor screen position (for tooltip placement)
-    hover_screen_pos: Point,
 }
 
 /// Tracks a middle-mouse-button pan in progress.
@@ -207,8 +207,6 @@ const GRID_ORIGIN_X: f32 = 50.0;
 const GRID_ORIGIN_Y: f32 = 50.0;
 /// Corner radius for rounded rectangles
 const CORNER_RADIUS: f32 = 10.0;
-/// Border stroke width for node rectangles
-const BORDER_WIDTH: f32 = 2.0;
 /// Title font size (minimum readable)
 const TITLE_FONT_SIZE: f32 = 16.0;
 /// Source label font size (minimum readable)
@@ -279,6 +277,11 @@ impl NodeLayout {
         } else {
             Color::from_rgb(0.9, 0.6, 0.2) // Orange for nested flows
         }
+    }
+
+    /// Whether this node's source can be opened (sub-flow or provided implementation).
+    pub(crate) fn is_openable(&self) -> bool {
+        !self.source.starts_with("lib://") && !self.source.starts_with("context://")
     }
 
     /// Get the position of an output port (right edge of node)
@@ -764,6 +767,27 @@ fn hit_test_node(nodes: &[NodeLayout], point: Point) -> Option<usize> {
     })
 }
 
+/// Check whether `point` (world coords) is on the open icon of an openable node.
+/// The icon occupies a 16x16 area in the top-right corner of the node.
+fn hit_test_open_icon(nodes: &[NodeLayout], point: Point) -> Option<usize> {
+    nodes.iter().enumerate().find_map(|(i, node)| {
+        if !node.is_openable() {
+            return None;
+        }
+        let icon_x = node.x + node.width - 20.0;
+        let icon_y = node.y + 4.0;
+        if point.x >= icon_x
+            && point.x <= icon_x + 16.0
+            && point.y >= icon_y
+            && point.y <= icon_y + 16.0
+        {
+            Some(i)
+        } else {
+            None
+        }
+    })
+}
+
 /// Check whether `screen_pos` is within [`RESIZE_HANDLE_HIT`] pixels of any resize handle
 /// on the node at `node_index`. Returns the handle variant if hit.
 ///
@@ -1113,7 +1137,14 @@ impl canvas::Program<CanvasMessage> for FlowCanvas<'_> {
                     }
                 }
 
-                // 4. Check if cursor is on a node — select/drag it
+                // 4. Check if cursor is on an openable node's open icon
+                if let Some(idx) = hit_test_open_icon(self.nodes, world_pos) {
+                    return Some(
+                        canvas::Action::publish(CanvasMessage::OpenNode(idx)).and_capture(),
+                    );
+                }
+
+                // 6. Check if cursor is on a node — select/drag it
                 if let Some(idx) = hit_test_node(self.nodes, world_pos) {
                     let node = self.nodes.get(idx)?;
                     state.selected_node = Some(idx);
@@ -1127,7 +1158,7 @@ impl canvas::Program<CanvasMessage> for FlowCanvas<'_> {
                     });
                     Some(canvas::Action::publish(CanvasMessage::Selected(Some(idx))).and_capture())
                 } else {
-                    // 5. Clicked empty canvas — deselect all
+                    // 7. Clicked empty canvas — deselect all
                     state.selected_node = None;
                     state.selected_connection = None;
                     state.dragging = None;
@@ -1727,7 +1758,7 @@ fn draw_bezier_connection(
         .with_color(conn_color);
 
     if let Some((nx, ny, nw, nh)) = node_bounds {
-        let (box_right, box_bottom, box_left, mid_x) =
+        let (box_right, box_bottom, box_left, _mid_x) =
             loopback_waypoints(nx, ny, nw, nh, zoom, offset);
 
         let path = Path::new(|builder| {
@@ -1828,6 +1859,23 @@ fn draw_node(frame: &mut Frame, node: &NodeLayout, zoom: f32, offset: Point) {
         ..CanvasText::default()
     };
     frame.fill_text(source_label);
+
+    // Draw open icon for sub-flows and provided implementations
+    if node.is_openable() {
+        let icon_size = 14.0 * zoom;
+        let icon_x = node.x + node.width - 18.0;
+        let icon_y = node.y + 6.0;
+        let icon_pos = transform_point(Point::new(icon_x, icon_y), zoom, offset);
+
+        let icon_text = CanvasText {
+            content: "\u{2197}".to_string(), // ↗ arrow
+            position: icon_pos,
+            color: Color::from_rgba(1.0, 1.0, 1.0, 0.8),
+            size: icon_size.into(),
+            ..CanvasText::default()
+        };
+        frame.fill_text(icon_text);
+    }
 
     // Draw input ports on the left edge
     for (i, input_port) in node.inputs.iter().enumerate() {
