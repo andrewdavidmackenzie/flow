@@ -1981,8 +1981,8 @@ fn draw_flow_io_ports(
             builder.arc(canvas::path::Arc {
                 center: screen_pos,
                 radius: scaled_r,
-                start_angle: (PI / 2.0).into(),
-                end_angle: (3.0 * PI / 2.0).into(),
+                start_angle: (-PI / 2.0).into(),
+                end_angle: (PI / 2.0).into(),
             });
             builder.close();
         });
@@ -2016,8 +2016,8 @@ fn draw_flow_io_ports(
             builder.arc(canvas::path::Arc {
                 center: screen_pos,
                 radius: scaled_r,
-                start_angle: (-PI / 2.0).into(),
-                end_angle: (PI / 2.0).into(),
+                start_angle: (PI / 2.0).into(),
+                end_angle: (3.0 * PI / 2.0).into(),
             });
             builder.close();
         });
