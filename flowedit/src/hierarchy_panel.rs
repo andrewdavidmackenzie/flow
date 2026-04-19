@@ -246,6 +246,15 @@ fn build_node_from_path(flow_path: &Path, depth: usize) -> Option<HierarchyNode>
                                 expanded: false,
                             });
                         }
+                    } else {
+                        children.push(HierarchyNode {
+                            name: alias,
+                            kind: NodeKind::Function,
+                            source: pref.source.clone(),
+                            path: None,
+                            children: Vec::new(),
+                            expanded: false,
+                        });
                     }
                 }
             }

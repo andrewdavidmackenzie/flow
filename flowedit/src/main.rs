@@ -739,9 +739,22 @@ impl FlowEdit {
                             return open_task.discard();
                         }
                         Err(_) => {
-                            // Try as function
-                            if let Some(root_id) = self.root_window {
-                                return self.open_node(root_id, 0);
+                            // Try as function definition
+                            let abs = std::fs::canonicalize(&path).unwrap_or_else(|_| path.clone());
+                            if let Ok(contents) = std::fs::read_to_string(&abs) {
+                                if let Ok(url) = Url::from_file_path(&abs) {
+                                    if let Ok(deser) = get::<Process>(&url) {
+                                        if let Ok(Process::FunctionProcess(ref func)) =
+                                            deser.deserialize(&contents, Some(&url))
+                                        {
+                                            return self.open_function_viewer(
+                                                hier_win_id,
+                                                &path,
+                                                func,
+                                            );
+                                        }
+                                    }
+                                }
                             }
                         }
                     }
@@ -817,8 +830,16 @@ impl FlowEdit {
                 }
             }
             Message::Open => {
-                if let Some(win) = self.root_window.and_then(|id| self.windows.get_mut(&id)) {
-                    perform_open(win);
+                if let Some(root_id) = self.root_window {
+                    if let Some(win) = self.windows.get_mut(&root_id) {
+                        perform_open(win);
+                        self.root_flow_path = win.file_path.clone();
+                        win.flow_hierarchy = win
+                            .file_path
+                            .as_ref()
+                            .map(|p| FlowHierarchy::build(p))
+                            .unwrap_or_else(FlowHierarchy::empty);
+                    }
                 }
             }
             Message::New => {
@@ -1138,6 +1159,9 @@ impl FlowEdit {
             }
             Message::WindowClosed(id) => {
                 self.windows.remove(&id);
+                if self.focused_window == Some(id) {
+                    self.focused_window = self.root_window;
+                }
                 if self.root_window == Some(id) || self.windows.is_empty() {
                     return iced::exit();
                 }
