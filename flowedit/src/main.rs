@@ -727,6 +727,7 @@ impl FlowEdit {
                     if let WindowKind::FunctionViewer(ref mut viewer) = win.kind {
                         viewer.name = new_name;
                     }
+                    win.unsaved_edits += 1;
                 }
             }
             Message::FunctionBrowseSource(win_id) => {
@@ -734,56 +735,48 @@ impl FlowEdit {
                 if let Some(selected) = dialog.pick_file() {
                     if let Some(win) = self.windows.get_mut(&win_id) {
                         if let WindowKind::FunctionViewer(ref mut viewer) = win.kind {
-                            // Make path relative to the TOML directory if possible
                             let base = viewer.toml_path.parent().unwrap_or(Path::new("."));
                             let rel = selected
                                 .strip_prefix(base)
                                 .map(|p| p.to_string_lossy().to_string())
                                 .unwrap_or_else(|_| selected.to_string_lossy().to_string());
                             viewer.source_file = rel;
-                            // Reload the source content
                             viewer.rs_content = std::fs::read_to_string(&selected)
                                 .unwrap_or_else(|_| String::from("// Could not read file"));
                         }
+                        win.unsaved_edits += 1;
                     }
                 }
             }
-            Message::FunctionAddInput(win_id) => {
+            Message::FunctionAddInput(win_id)
+            | Message::FunctionAddOutput(win_id)
+            | Message::FunctionDeleteInput(win_id, _)
+            | Message::FunctionDeleteOutput(win_id, _) => {
                 if let Some(win) = self.windows.get_mut(&win_id) {
                     if let WindowKind::FunctionViewer(ref mut v) = win.kind {
-                        v.inputs.push(PortInfo {
-                            name: format!("input{}", v.inputs.len()),
-                            datatypes: vec![String::from("string")],
-                        });
-                    }
-                }
-            }
-            Message::FunctionAddOutput(win_id) => {
-                if let Some(win) = self.windows.get_mut(&win_id) {
-                    if let WindowKind::FunctionViewer(ref mut v) = win.kind {
-                        v.outputs.push(PortInfo {
-                            name: format!("output{}", v.outputs.len()),
-                            datatypes: vec![String::from("string")],
-                        });
-                    }
-                }
-            }
-            Message::FunctionDeleteInput(win_id, idx) => {
-                if let Some(win) = self.windows.get_mut(&win_id) {
-                    if let WindowKind::FunctionViewer(ref mut v) = win.kind {
-                        if idx < v.inputs.len() {
-                            v.inputs.remove(idx);
+                        match message {
+                            Message::FunctionAddInput(_) => v.inputs.push(PortInfo {
+                                name: format!("input{}", v.inputs.len()),
+                                datatypes: vec![String::from("string")],
+                            }),
+                            Message::FunctionAddOutput(_) => v.outputs.push(PortInfo {
+                                name: format!("output{}", v.outputs.len()),
+                                datatypes: vec![String::from("string")],
+                            }),
+                            Message::FunctionDeleteInput(_, idx) => {
+                                if idx < v.inputs.len() {
+                                    v.inputs.remove(idx);
+                                }
+                            }
+                            Message::FunctionDeleteOutput(_, idx) => {
+                                if idx < v.outputs.len() {
+                                    v.outputs.remove(idx);
+                                }
+                            }
+                            _ => {}
                         }
                     }
-                }
-            }
-            Message::FunctionDeleteOutput(win_id, idx) => {
-                if let Some(win) = self.windows.get_mut(&win_id) {
-                    if let WindowKind::FunctionViewer(ref mut v) = win.kind {
-                        if idx < v.outputs.len() {
-                            v.outputs.remove(idx);
-                        }
-                    }
+                    win.unsaved_edits += 1;
                 }
             }
             Message::FunctionInputNameChanged(win_id, idx, name) => {
@@ -793,6 +786,7 @@ impl FlowEdit {
                             port.name = name;
                         }
                     }
+                    win.unsaved_edits += 1;
                 }
             }
             Message::FunctionInputTypeChanged(win_id, idx, dtype) => {
@@ -802,6 +796,7 @@ impl FlowEdit {
                             port.datatypes = vec![dtype];
                         }
                     }
+                    win.unsaved_edits += 1;
                 }
             }
             Message::FunctionOutputNameChanged(win_id, idx, name) => {
@@ -811,6 +806,7 @@ impl FlowEdit {
                             port.name = name;
                         }
                     }
+                    win.unsaved_edits += 1;
                 }
             }
             Message::FunctionOutputTypeChanged(win_id, idx, dtype) => {
@@ -820,6 +816,7 @@ impl FlowEdit {
                             port.datatypes = vec![dtype];
                         }
                     }
+                    win.unsaved_edits += 1;
                 }
             }
             Message::FunctionSave(win_id) => {
@@ -828,6 +825,7 @@ impl FlowEdit {
                         match save_function_definition(v) {
                             Ok(()) => {
                                 win.status = format!("Saved: {}", v.toml_path.display());
+                                win.unsaved_edits = 0;
                             }
                             Err(e) => {
                                 win.status = format!("Save failed: {e}");

@@ -441,6 +441,8 @@ correctly. Provided implementation skeletons compile.
 - Add UI dialog to add custom library search paths or specific libraries at runtime
   (the `-L` CLI flag already supports this at startup, but there is no in-app way
   to add paths during an editing session)
+- Implement CLI options for loading, compiling and running a flow compatible with
+  flowrgui, to enable using the same automated tests for both editors
 
 ## 9. Key Design Decisions
 

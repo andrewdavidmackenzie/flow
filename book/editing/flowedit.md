@@ -79,9 +79,8 @@ Ports are the connection points on the edges of a node:
 - **Input ports** — small circles on the **left** edge, labeled with the port name
 - **Output ports** — small circles on the **right** edge, labeled with the port name
 
-Ports are discovered from two sources:
-1. **Input initializers** defined on the process reference (e.g., `input.start = {once = 1}`)
-2. **Connections** in the flow definition that reference the node's ports
+Ports are resolved from the actual function or flow definition by loading
+each subprocess source. This provides real port names and data types.
 
 ### Input Initializers
 
@@ -248,6 +247,65 @@ The left panel shows available processes organized in a collapsible tree:
 Click a function name to add it as a new node on the canvas. The node is
 placed to the right of existing nodes and auto-fit adjusts the view if enabled.
 
+## Opening Sub-flows and Functions
+
+Nodes that represent sub-flows (nested `.toml` files) or provided implementations
+(custom `.rs` functions) display a pencil icon (✎) in the top-right corner. The
+cursor changes to a pointer when hovering over the icon.
+
+### Sub-flow Windows
+
+Clicking the pencil on a sub-flow node opens it in a new editor window within
+the same process. The sub-flow window shows:
+
+- A **rounded bounding box** around all subprocess nodes
+- **Flow input ports** as blue semicircles on the left edge of the box
+- **Flow output ports** as orange semicircles on the right edge of the box
+- **Bezier connections** from the flow I/O ports to the internal subprocess ports
+
+Sub-flow windows do not show the Build button (only the root flow can be compiled).
+Clicking the pencil icon on an already-open sub-flow brings the existing window
+to the front instead of opening a duplicate.
+
+### Function Definition Editor
+
+Clicking the pencil on a provided implementation node opens a function definition
+editor showing:
+
+- **Editable function name** centered at the top
+- **Input ports** on the left with editable name and type fields
+- **Output ports** on the right with editable name and type fields
+- **+** buttons to add new input or output ports
+- **✕** buttons to delete existing ports
+- **Source file link** — click the filename to view the Rust source code,
+  or click "..." to browse for a different source file
+- **Docs button** — if a `.md` documentation file exists alongside the function
+
+The **💾 Save** button writes the function definition to disk:
+- Updates the `.toml` definition file with the current name, inputs, and outputs
+- Generates a skeleton `.rs` source file if one doesn't exist (with the
+  `#[flow_function]` boilerplate and correct input bindings)
+- Generates a `function.toml` Cargo manifest if one doesn't exist
+
+## Compiling
+
+Click the **🔨 Build** button in the status bar (or press **Cmd+B**) to compile
+the current flow to a manifest. The flow must be saved before compiling — if the
+flow has never been saved, a Save As dialog appears first. Any unsaved edits are
+automatically saved before compilation.
+
+The compiled manifest is written to the same directory as the flow file.
+
+## Window Management
+
+`flowedit` uses multi-window support — sub-flows and functions open in separate
+windows within the same application process.
+
+- **Cmd+W** — close the currently focused window
+- **Cmd+Q** — quit the entire application (prompts to save if there are unsaved changes)
+- Closing the root window exits the entire application
+- Closing a child window only closes that window
+
 ## Keyboard Shortcuts
 
 | Shortcut | Action |
@@ -258,6 +316,9 @@ placed to the right of existing nodes and auto-fit adjusts the view if enabled.
 | Cmd+Shift+S | Save As |
 | Cmd+O | Open |
 | Cmd+N | New |
+| Cmd+B | Build (compile) |
+| Cmd+W | Close window |
+| Cmd+Q | Quit all |
 | Cmd+= | Zoom in |
 | Cmd+- | Zoom out |
 | Delete / Backspace | Delete selected node or connection |
