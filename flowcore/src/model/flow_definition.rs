@@ -54,6 +54,9 @@ pub struct FlowDefinition {
     /// Name of any docs file associated with this Flow
     #[serde(default)]
     pub docs: String,
+    /// Optional description of what this flow does
+    #[serde(default)]
+    pub description: String,
 
     /// When the same process is used multiple times within a single flow, to disambiguate
     /// between them each one must be given an alias that is used to refer to it
@@ -137,6 +140,7 @@ impl Default for FlowDefinition {
             connections: vec![],
             metadata: MetaData::default(),
             docs: String::new(),
+            description: String::new(),
             alias: String::default(),
             id: 0,
             source_url: Url::parse("file://").expect("Could not create Url"),
@@ -771,5 +775,40 @@ mod test {
             flow.connections = vec![connection1];
             assert!(flow.build_connections(0).is_err());
         }
+    }
+
+    #[test]
+    fn deserialize_with_description() {
+        use crate::deserializers::deserializer::get;
+        use url::Url;
+
+        let toml_str = r#"
+        flow = "described_flow"
+        description = "A flow that does something useful"
+        "#;
+
+        let url = Url::parse("file:///fake.toml").expect("Could not parse URL");
+        let deserializer = get::<FlowDefinition>(&url).expect("Could not get deserializer");
+        let flow: FlowDefinition = deserializer
+            .deserialize(toml_str, Some(&url))
+            .expect("Could not deserialize FlowDefinition with description");
+        assert_eq!(flow.description, "A flow that does something useful");
+    }
+
+    #[test]
+    fn deserialize_without_description() {
+        use crate::deserializers::deserializer::get;
+        use url::Url;
+
+        let toml_str = r#"
+        flow = "no_desc_flow"
+        "#;
+
+        let url = Url::parse("file:///fake.toml").expect("Could not parse URL");
+        let deserializer = get::<FlowDefinition>(&url).expect("Could not get deserializer");
+        let flow: FlowDefinition = deserializer
+            .deserialize(toml_str, Some(&url))
+            .expect("Could not deserialize FlowDefinition without description");
+        assert_eq!(flow.description, "");
     }
 }
