@@ -2810,8 +2810,24 @@ fn add_library_function(win: &mut WindowState, source: &str, func_name: &str) {
     // Place the new node at a default position offset from existing nodes
     let (x, y) = next_node_position(&win.nodes);
 
-    // Resolve port info from the function definition
-    let (inputs, outputs) = resolve_single_function_ports(source, None);
+    // Resolve port info by parsing the function/flow definition
+    let (inputs, outputs) = match Url::parse(source) {
+        Ok(url) => {
+            let provider = build_meta_provider();
+            match flowrclib::compiler::parser::parse(&url, &provider) {
+                Ok(Process::FunctionProcess(func)) => extract_ports(&func.inputs, &func.outputs),
+                Ok(Process::FlowProcess(flow)) => extract_ports(&flow.inputs, &flow.outputs),
+                Err(e) => {
+                    info!("add_library_function: could not parse '{source}': {e}");
+                    (Vec::new(), Vec::new())
+                }
+            }
+        }
+        Err(e) => {
+            info!("add_library_function: could not parse URL '{source}': {e}");
+            (Vec::new(), Vec::new())
+        }
+    };
 
     let node = NodeLayout {
         alias: alias.clone(),
@@ -3171,63 +3187,6 @@ fn build_meta_provider() -> MetaProvider {
     MetaProvider::new(lib_search_path, context_root)
 }
 
-/// Resolve port info for a single function/flow from its source string.
-///
-/// If `base_url` is provided, relative source paths are resolved against it.
-/// For `lib://` and `context://` sources, the base URL is not needed.
-fn resolve_single_function_ports(
-    source: &str,
-    base_url: Option<&Url>,
-) -> (Vec<PortInfo>, Vec<PortInfo>) {
-    use flowcore::provider::Provider;
-
-    let provider = build_meta_provider();
-
-    // Parse the source as a URL; for relative paths, resolve against the base URL
-    let source_url = match Url::parse(source) {
-        Ok(u) => u,
-        Err(_) => {
-            match base_url.and_then(|base| base.join(source).ok()) {
-                Some(u) => u,
-                None => {
-                    info!("resolve_single_function_ports: could not resolve relative source '{source}'");
-                    return (Vec::new(), Vec::new());
-                }
-            }
-        }
-    };
-
-    let (resolved_url, _) = match provider.resolve_url(&source_url, "default", &["toml"]) {
-        Ok(r) => r,
-        Err(e) => {
-            info!("resolve_single_function_ports: could not resolve '{source_url}': {e}");
-            return (Vec::new(), Vec::new());
-        }
-    };
-
-    let content_bytes = match provider.get_contents(&resolved_url) {
-        Ok(bytes) => bytes,
-        Err(e) => {
-            info!(
-                "resolve_single_function_ports: could not get contents from '{resolved_url}': {e}"
-            );
-            return (Vec::new(), Vec::new());
-        }
-    };
-    let content = String::from_utf8_lossy(&content_bytes);
-
-    let deserializer = match get::<Process>(&resolved_url) {
-        Ok(d) => d,
-        Err(_) => return (Vec::new(), Vec::new()),
-    };
-
-    match deserializer.deserialize(&content, Some(&resolved_url)) {
-        Ok(Process::FunctionProcess(func)) => extract_ports(&func.inputs, &func.outputs),
-        Ok(Process::FlowProcess(flow)) => extract_ports(&flow.inputs, &flow.outputs),
-        Err(_) => (Vec::new(), Vec::new()),
-    }
-}
-
 fn extract_ports(
     inputs: &[flowcore::model::io::IO],
     outputs: &[flowcore::model::io::IO],
@@ -3265,36 +3224,30 @@ fn load_flow(
     let url =
         Url::from_file_path(&abs_path).map_err(|()| format!("Invalid file path: {abs_path:?}"))?;
 
-    let contents =
-        std::fs::read_to_string(&abs_path).map_err(|e| format!("Could not read file: {e}"))?;
-
-    let deserializer =
-        get::<Process>(&url).map_err(|e| format!("Could not get deserializer: {e}"))?;
-
-    let process = deserializer
-        .deserialize(&contents, Some(&url))
+    let provider = build_meta_provider();
+    let process = flowrclib::compiler::parser::parse(&url, &provider)
         .map_err(|e| format!("Could not parse flow definition: {e}"))?;
 
     match process {
         Process::FlowProcess(flow) => {
-            // Resolve port definitions for each subprocess by loading its definition
+            // Extract port definitions from the fully-resolved subprocesses
             let mut resolved_ports = HashMap::new();
-            for pref in &flow.process_refs {
-                let alias = if pref.alias.is_empty() {
-                    derive_short_name(&pref.source)
-                } else {
-                    pref.alias.to_string()
+            for (alias, subprocess) in &flow.subprocesses {
+                let (inputs, outputs) = match subprocess {
+                    Process::FunctionProcess(func) => {
+                        extract_ports(&func.inputs, &func.outputs)
+                    }
+                    Process::FlowProcess(sub_flow) => {
+                        extract_ports(&sub_flow.inputs, &sub_flow.outputs)
+                    }
                 };
-                let (inputs, outputs) =
-                    resolve_single_function_ports(&pref.source, Some(&url));
                 info!(
-                    "Resolved '{}' ({}): {} inputs, {} outputs",
+                    "Resolved '{}': {} inputs, {} outputs",
                     alias,
-                    pref.source,
                     inputs.len(),
                     outputs.len()
                 );
-                resolved_ports.insert(alias, (inputs, outputs));
+                resolved_ports.insert(alias.to_string(), (inputs, outputs));
             }
 
             let edges = build_edge_layouts(&flow.connections);
