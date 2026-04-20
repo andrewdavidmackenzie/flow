@@ -3926,7 +3926,18 @@ mod test {
             root_window: Some(win_id),
             focused_window: Some(win_id),
             library_tree: LibraryTree {
-                libraries: Vec::new(),
+                libraries: vec![library_panel::LibraryEntry {
+                    name: "test_lib".into(),
+                    categories: vec![library_panel::CategoryEntry {
+                        name: "math".into(),
+                        functions: vec![library_panel::FunctionEntry {
+                            name: "add".into(),
+                            source: "lib://test_lib/math/add".into(),
+                        }],
+                        expanded: true,
+                    }],
+                    expanded: true,
+                }],
             },
             root_flow_path: None,
             show_lib_paths: false,
