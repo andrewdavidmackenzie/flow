@@ -192,29 +192,33 @@ git commit -m "Replace custom flow parsing with flowrclib parser::parse() (#2574
 
 ---
 
-### Task 3: Lazy library loading and shared definition cache
+### Task 3: Load full library catalogs and shared definition cache
 
-When the parsed flow has `lib_references` or `context_references`, load the corresponding `LibraryManifest` on first encounter and cache it. The library panel displays from these cached manifests — no filesystem scanning.
+After `parser::parse()` loads the flow, `flow.lib_references` contains the `lib://` URLs of referenced functions. But the library panel needs to show ALL functions in each referenced library — not just the ones used by the flow — so the user can add new ones.
+
+For each unique library found in `lib_references`, use `LibraryManifest::load()` to get the full catalog of functions/flows in that library. Then use `parser::parse()` on each locator URL to get the complete `FunctionDefinition`/`FlowDefinition` (with description, ports, etc.). Cache both the manifest and the parsed definitions so they're loaded once and shared across all windows.
+
+Same approach for context functions via `context_references`.
 
 **Files:**
 - Modify: `flowedit/src/main.rs` (FlowEdit struct, initialization)
-- Rewrite: `flowedit/src/library_panel.rs` (remove filesystem scanning, reference cached manifests)
+- Rewrite: `flowedit/src/library_panel.rs` (remove filesystem scanning, reference cached definitions)
 
 - [ ] **Step 1: Add library cache to `FlowEdit`**
 
 In `flowedit/src/main.rs`, add a library cache to the `FlowEdit` struct (around line 245):
 
 ```rust
-use std::sync::{Arc, RwLock};
 use flowcore::model::lib_manifest::LibraryManifest;
 
 struct FlowEdit {
     windows: HashMap<window::Id, WindowState>,
     root_window: Option<window::Id>,
     focused_window: Option<window::Id>,
-    /// Cached library manifests, keyed by library URL
+    /// Cached library manifests, keyed by library root URL (e.g., lib://flowstdlib)
     library_cache: HashMap<Url, LibraryManifest>,
-    /// Parsed definitions from libraries, keyed by lib:// URL
+    /// All parsed definitions from loaded libraries, keyed by lib:// URL
+    /// (e.g., lib://flowstdlib/math/add -> Process::FunctionProcess(FunctionDefinition))
     lib_definitions: HashMap<Url, Process>,
     root_flow_path: Option<PathBuf>,
     show_lib_paths: bool,
@@ -222,52 +226,49 @@ struct FlowEdit {
 }
 ```
 
-- [ ] **Step 2: Populate cache after flow is loaded**
+- [ ] **Step 2: Load full library catalogs after flow is parsed**
 
-After `parser::parse()` returns the flow, iterate `flow.lib_references` and `flow.context_references`. For each unique library, call `LibraryManifest::load()` and cache the result. Then for each locator in the manifest, call `parser::parse()` to get the definition and cache it in `lib_definitions`.
+After `parser::parse()` returns the flow, extract unique library roots from `flow.lib_references` (e.g., `lib://flowstdlib` from `lib://flowstdlib/math/add`). For each library root, load the manifest and parse all its definitions:
 
 ```rust
-fn load_libraries(
-    lib_refs: &BTreeSet<Url>,
-    provider: &dyn Provider,
+fn load_library(
+    lib_root: &Url,
+    provider: &Arc<dyn Provider>,
     cache: &mut HashMap<Url, LibraryManifest>,
     definitions: &mut HashMap<Url, Process>,
 ) {
-    for lib_ref in lib_refs {
-        // Extract library root URL (e.g., lib://flowstdlib from lib://flowstdlib/math/add)
-        let lib_root = // ... extract library root from lib_ref
-        if cache.contains_key(&lib_root) {
-            continue; // Already loaded
-        }
+    if cache.contains_key(lib_root) {
+        return; // Already loaded
+    }
 
-        let arc_provider = Arc::new(/* provider */);
-        if let Ok((manifest, _)) = LibraryManifest::load(&arc_provider, &lib_root) {
-            for (func_url, _locator) in &manifest.locators {
-                if let Ok(process) = parser::parse(func_url, provider) {
-                    definitions.insert(func_url.clone(), process);
-                }
+    if let Ok((manifest, _)) = LibraryManifest::load(provider, lib_root) {
+        for (func_url, _locator) in &manifest.locators {
+            if let Ok(process) = parser::parse(func_url, provider.as_ref()) {
+                definitions.insert(func_url.clone(), process);
             }
-            cache.insert(lib_root, manifest);
         }
+        cache.insert(lib_root.clone(), manifest);
     }
 }
 ```
 
+Call this for each unique library root found in `flow.lib_references`. Same approach for `flow.context_references`.
+
 - [ ] **Step 3: Rewrite `library_panel.rs` to display from cached definitions**
 
-Replace the entire filesystem scanning approach. The `LibraryTree` no longer scans — it receives references to the cached manifests and definitions. Build the tree structure from manifest locator URLs (extracting library/category/function names from the URL hierarchy).
+Replace the entire filesystem scanning approach. The `LibraryTree` no longer scans — it receives references to the cached manifests and definitions. Build the tree structure from manifest locator URLs (extracting library/category/function names from the URL path hierarchy).
 
-Remove `scan_functions()`, `scan_context_functions()`, `scan_categories()`, `resolve_lib_path()` and all filesystem code. The `FunctionEntry` struct reads name, source, and description from the referenced definition — no copied fields needed.
+Remove `scan_functions()`, `scan_context_functions()`, `scan_categories()`, `resolve_lib_path()`, and all filesystem/TOML code. The panel reads name, source, and description directly from the referenced `FunctionDefinition`/`FlowDefinition` — no copied fields.
 
 - [ ] **Step 4: Test with line-echo (no lib references)**
 
 Run: `cargo run -p flowedit -- examples/line-echo/line-echo.toml`
-Expected: Library panel is empty (or shows only context functions if referenced). No library manifests loaded.
+Expected: Library panel shows no library functions (only context functions if referenced). No library manifests loaded.
 
 - [ ] **Step 5: Test with fibonacci (has lib references)**
 
 Run: `cargo run -p flowedit -- examples/fibonacci/fibonacci.toml`
-Expected: Library panel shows flowstdlib functions referenced by the flow. Hover tooltips show descriptions.
+Expected: Library panel shows ALL flowstdlib functions (not just the ones used by fibonacci), organized by category.
 
 - [ ] **Step 6: Run tests**
 
@@ -283,14 +284,14 @@ Expected: No warnings or errors
 
 ```bash
 git add flowedit/src/main.rs flowedit/src/library_panel.rs
-git commit -m "Replace filesystem scanning with lazy library loading from manifests (#2574)"
+git commit -m "Load full library catalogs via LibraryManifest and cache definitions (#2574)"
 ```
 
 ---
 
 ### Task 4: Add library manually via button
 
-The library panel only shows libraries referenced by the current flow. Add a button (e.g., "+ Library") that lets the user browse to a library root or enter a `lib://` URL, loads its manifest, and adds it to the cache — making its functions available to drag onto the canvas.
+The library panel shows libraries referenced by the current flow. Add a button (e.g., "+ Library") that lets the user browse to a library root or enter a `lib://` URL, loads its full manifest and definitions via the same `load_library()` function from Task 3, and adds them to the cache — making all functions from that library available to drag onto the canvas.
 
 **Files:**
 - Modify: `flowedit/src/library_panel.rs` (add button to panel)
