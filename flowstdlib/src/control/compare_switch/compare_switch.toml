@@ -1,5 +1,5 @@
 function = "compare_switch"
-description = "Compares two input values and outputs the right hand and left hand values on different outputs, "
+description = "Compares two input values and routes the left-hand and right-hand values to outputs based on the comparison"
 source = "compare_switch.rs"
 docs = "compare_switch.md"
 type = "rust"

@@ -1,5 +1,5 @@
 function = "divide"
-description = "Divide one input by another, producing outputs for the dividend, divisor, result and the remainder "
+description = "Divide one input by another, producing the quotient and remainder"
 source = "divide.rs"
 docs = "divide.md"
 type = "rust"

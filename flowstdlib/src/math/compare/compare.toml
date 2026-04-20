@@ -1,5 +1,5 @@
 function = "compare"
-description = "Compare two input values and output different boolean values depending on if the comparison"
+description = "Compare two input values and emit boolean outputs for equality and ordering relations"
 source = "compare.rs"
 docs = "compare.md"
 type = "rust"
