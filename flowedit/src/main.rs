@@ -187,6 +187,10 @@ pub(crate) struct FunctionViewer {
     pub(crate) docs_content: Option<String>,
     pub(crate) active_tab: usize,
     pub(crate) toml_path: PathBuf,
+    /// Parent window that opened this viewer (for propagating edits back to canvas)
+    pub(crate) parent_window: Option<window::Id>,
+    /// Source string of the node this viewer is editing (to find the NodeLayout)
+    pub(crate) node_source: String,
 }
 
 /// What kind of content a window displays.
@@ -788,6 +792,7 @@ impl FlowEdit {
                                                 hier_win_id,
                                                 &path,
                                                 func,
+                                                &path.to_string_lossy(),
                                             );
                                         }
                                     }
@@ -1149,11 +1154,33 @@ impl FlowEdit {
                 }
             }
             Message::FunctionDescriptionChanged(win_id, new_desc) => {
+                // Extract parent info before mutating
+                let parent_info = self.windows.get(&win_id).and_then(|win| {
+                    if let WindowKind::FunctionViewer(ref viewer) = win.kind {
+                        viewer
+                            .parent_window
+                            .map(|pid| (pid, viewer.node_source.clone()))
+                    } else {
+                        None
+                    }
+                });
                 if let Some(win) = self.windows.get_mut(&win_id) {
                     if let WindowKind::FunctionViewer(ref mut viewer) = win.kind {
-                        viewer.description = new_desc;
+                        viewer.description = new_desc.clone();
                     }
                     win.unsaved_edits += 1;
+                }
+                // Propagate to the parent window's NodeLayout
+                if let Some((parent_id, node_source)) = parent_info {
+                    if let Some(parent_win) = self.windows.get_mut(&parent_id) {
+                        for node in &mut parent_win.nodes {
+                            if node.source == node_source {
+                                node.description = new_desc.clone();
+                                parent_win.canvas_state.request_redraw();
+                                break;
+                            }
+                        }
+                    }
                 }
             }
             Message::FunctionBrowseSource(win_id) => {
@@ -2288,7 +2315,7 @@ impl FlowEdit {
                     Some(id) => id,
                     None => return Task::none(),
                 };
-                self.open_function_viewer(parent, &path, func)
+                self.open_function_viewer(parent, &path, func, &path.to_string_lossy())
             }
             Ok(Process::FlowProcess(_)) => match flow_io::load_flow(&path) {
                 Ok(loaded) => {
@@ -2417,7 +2444,7 @@ impl FlowEdit {
                     if let Ok(Process::FunctionProcess(ref func)) =
                         deserializer.deserialize(&contents, Some(&url))
                     {
-                        return self.open_function_viewer(parent_win_id, &path, func);
+                        return self.open_function_viewer(parent_win_id, &path, func, &source);
                     }
                 }
             }
@@ -2479,6 +2506,7 @@ impl FlowEdit {
         parent_win_id: window::Id,
         toml_path: &Path,
         func: &flowcore::model::function_definition::FunctionDefinition,
+        node_source: &str,
     ) -> Task<Message> {
         let dir = toml_path.parent().unwrap_or(Path::new("."));
         let func_name = &func.name;
@@ -2502,6 +2530,8 @@ impl FlowEdit {
             docs_content,
             active_tab: 0,
             toml_path: toml_path.to_path_buf(),
+            parent_window: Some(parent_win_id),
+            node_source: node_source.to_string(),
         };
 
         let child = WindowState {
@@ -2746,13 +2776,15 @@ impl FlowEdit {
         let viewer = FunctionViewer {
             name: func_name.clone(),
             description: String::new(),
-            source_file: rs_filename,
+            source_file: rs_filename.clone(),
             inputs: Vec::new(),
             outputs: Vec::new(),
             rs_content: String::from("// Save to generate skeleton source"),
             docs_content: None,
             active_tab: 0,
             toml_path: path.clone(),
+            parent_window: Some(root_id),
+            node_source: rs_filename,
         };
 
         let child = WindowState {

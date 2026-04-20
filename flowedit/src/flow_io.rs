@@ -1006,6 +1006,8 @@ mod test {
             docs_content: None,
             active_tab: 0,
             toml_path: toml_path.clone(),
+            parent_window: None,
+            node_source: String::new(),
         };
 
         save_function_definition(&viewer).expect("save failed");
@@ -1055,6 +1057,8 @@ mod test {
             docs_content: None,
             active_tab: 0,
             toml_path,
+            parent_window: None,
+            node_source: String::new(),
         };
 
         save_function_definition(&viewer).expect("save failed");
