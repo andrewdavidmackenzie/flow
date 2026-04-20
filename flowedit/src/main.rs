@@ -1421,7 +1421,7 @@ impl FlowEdit {
         };
 
         if let WindowKind::FunctionViewer(ref viewer) = win.kind {
-            return self.view_function(window_id, viewer, &win.status);
+            return self.view_function(window_id, viewer, &win.status, win.unsaved_edits);
         }
 
         let canvas = win
@@ -1998,6 +1998,7 @@ impl FlowEdit {
         window_id: window::Id,
         viewer: &'a FunctionViewer,
         status: &'a str,
+        unsaved_edits: i32,
     ) -> Element<'a, Message> {
         let content: Element<'_, Message> = match viewer.active_tab {
             0 => {
@@ -2215,10 +2216,16 @@ impl FlowEdit {
             }
         };
 
-        let save_btn = button(Text::new("\u{1F4BE} Save").size(14).center())
-            .on_press(Message::FunctionSave(window_id))
-            .style(button::primary)
+        let mut save_btn = button(Text::new("\u{1F4BE} Save").size(14).center())
+            .style(if unsaved_edits > 0 {
+                button::primary
+            } else {
+                button::secondary
+            })
             .padding([6, 14]);
+        if unsaved_edits > 0 {
+            save_btn = save_btn.on_press(Message::FunctionSave(window_id));
+        }
 
         let status_bar = Row::new()
             .spacing(8)
