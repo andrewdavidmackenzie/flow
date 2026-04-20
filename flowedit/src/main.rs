@@ -39,6 +39,7 @@ mod flow_io;
 mod hierarchy_panel;
 mod history;
 mod initializer;
+mod library_mgmt;
 mod library_panel;
 mod undo_redo;
 use canvas_view::{
@@ -384,7 +385,7 @@ impl FlowEdit {
 
         // Load full library catalogs from manifests and parse all definitions
         let (library_cache, lib_definitions, context_definitions) =
-            load_library_catalogs(&lib_refs, &ctx_refs);
+            library_mgmt::load_library_catalogs(&lib_refs, &ctx_refs);
         let library_tree =
             LibraryTree::from_cache(&library_cache, &lib_definitions, &context_definitions);
 
@@ -793,7 +794,7 @@ impl FlowEdit {
             Message::Library(win_id, ref lib_msg) => match self.library_tree.update(lib_msg) {
                 LibraryAction::Add(source, func_name) => {
                     if let Some(win) = self.windows.get_mut(&win_id) {
-                        add_library_function(win, &source, &func_name);
+                        library_mgmt::add_library_function(win, &source, &func_name);
                     }
                 }
                 LibraryAction::View(source, _name) => {
@@ -978,7 +979,7 @@ impl FlowEdit {
                                 .unwrap_or_else(FlowHierarchy::empty);
 
                             // Rebuild library cache with new flow's references
-                            let (lc, ld, cd) = load_library_catalogs(&lib_refs, &ctx_refs);
+                            let (lc, ld, cd) = library_mgmt::load_library_catalogs(&lib_refs, &ctx_refs);
                             self.library_cache = lc;
                             self.lib_definitions = ld;
                             self.context_definitions = cd;
@@ -2343,7 +2344,7 @@ impl FlowEdit {
                 )
             })
             .unwrap_or_default();
-        let (lc, ld, cd) = load_library_catalogs(&lib_refs, &ctx_refs);
+        let (lc, ld, cd) = library_mgmt::load_library_catalogs(&lib_refs, &ctx_refs);
         self.library_cache = lc;
         self.lib_definitions = ld;
         self.context_definitions = cd;
@@ -2385,7 +2386,7 @@ impl FlowEdit {
                 return Task::none();
             };
             let source = node.source.clone();
-            let path = resolve_node_source(win, &source);
+            let path = library_mgmt::resolve_node_source(win, &source);
             (source, path)
         };
 
@@ -2782,188 +2783,6 @@ impl FlowEdit {
         self.windows.insert(new_id, child);
         open_task.discard()
     }
-}
-
-/// Add a function from the library panel as a new node on the canvas.
-///
-/// Creates a `NodeLayout` at a default position and a `ProcessReference`
-/// in the flow definition, and records the action in the edit history.
-fn add_library_function(win: &mut WindowState, source: &str, func_name: &str) {
-    // Generate a unique alias: if the name already exists, append a number
-    let alias = flow_io::generate_unique_alias(func_name, &win.nodes);
-
-    // Place the new node at a default position offset from existing nodes
-    let (x, y) = flow_io::next_node_position(&win.nodes);
-
-    // Resolve port info by parsing the function/flow definition
-    let (inputs, outputs) = match Url::parse(source) {
-        Ok(url) => {
-            let provider = flow_io::build_meta_provider();
-            match flowrclib::compiler::parser::parse(&url, &provider) {
-                Ok(Process::FunctionProcess(func)) => flow_io::extract_ports(&func.inputs, &func.outputs),
-                Ok(Process::FlowProcess(flow)) => flow_io::extract_ports(&flow.inputs, &flow.outputs),
-                Err(e) => {
-                    info!("add_library_function: could not parse '{source}': {e}");
-                    (Vec::new(), Vec::new())
-                }
-            }
-        }
-        Err(e) => {
-            info!("add_library_function: could not parse URL '{source}': {e}");
-            (Vec::new(), Vec::new())
-        }
-    };
-
-    let node = NodeLayout {
-        alias: alias.clone(),
-        source: source.to_string(),
-        description: String::new(),
-        x,
-        y,
-        width: 180.0,
-        height: 120.0,
-        inputs,
-        outputs,
-        initializers: HashMap::new(),
-    };
-
-    let index = win.nodes.len();
-    win.nodes.push(node.clone());
-
-    // Also add to the flow definition
-    let pref = ProcessReference {
-        alias: alias.clone(),
-        source: source.to_string(),
-        initializations: std::collections::BTreeMap::new(),
-        x: Some(x),
-        y: Some(y),
-        width: Some(180.0),
-        height: Some(120.0),
-    };
-    win.flow_definition.process_refs.push(pref);
-
-    undo_redo::record_edit(
-        win,
-        EditAction::DeleteNode {
-            index,
-            node,
-            removed_edges: Vec::new(),
-        },
-    );
-    // Note: We record a DeleteNode so that *undo* removes the added node.
-    // This is intentional: undoing an "add" means deleting what was added.
-
-    win.selected_node = Some(index);
-    win.canvas_state.request_redraw();
-    // Trigger auto-fit if enabled so the new node is visible
-    if win.auto_fit_enabled {
-        win.auto_fit_pending = true;
-    }
-    let nc = win.nodes.len();
-    win.status = format!("Added {alias} from library - {nc} nodes");
-}
-
-/// Resolve a node's source path relative to the current flow file.
-fn resolve_node_source(win: &WindowState, source: &str) -> Option<PathBuf> {
-    let base_dir = win.file_path.as_ref()?.parent()?;
-    let canonicalize = |p: PathBuf| std::fs::canonicalize(&p).unwrap_or(p);
-    let candidate = base_dir.join(source);
-    if candidate.exists() {
-        return Some(canonicalize(candidate));
-    }
-    let with_ext = base_dir.join(format!("{source}.toml"));
-    if with_ext.exists() {
-        return Some(canonicalize(with_ext));
-    }
-    let dir_default = base_dir.join(source).join("default.toml");
-    if dir_default.exists() {
-        return Some(canonicalize(dir_default));
-    }
-    None
-}
-
-
-/// Load full library catalogs and cache all definitions.
-///
-/// For each unique library root URL found in `lib_references`, loads the library
-/// manifest and parses every function/flow definition in that library. For each
-/// URL in `context_references`, parses the context function definition.
-fn load_library_catalogs(
-    lib_references: &BTreeSet<Url>,
-    context_references: &BTreeSet<Url>,
-) -> (
-    HashMap<Url, LibraryManifest>,
-    HashMap<Url, Process>,
-    HashMap<Url, Process>,
-) {
-    let provider = flow_io::build_meta_provider();
-    let arc_provider: Arc<dyn Provider> = Arc::new(provider);
-    let mut library_cache = HashMap::new();
-    let mut lib_definitions = HashMap::new();
-    let mut context_definitions = HashMap::new();
-
-    // Extract unique library root URLs from lib_references
-    // e.g., "lib://flowstdlib/math/add" -> "lib://flowstdlib"
-    let mut lib_roots: BTreeSet<Url> = BTreeSet::new();
-    for lib_ref in lib_references {
-        if let Some(host) = lib_ref.host_str() {
-            if let Ok(root_url) = Url::parse(&format!("lib://{host}")) {
-                lib_roots.insert(root_url);
-            }
-        }
-    }
-
-    // Load each library's full manifest
-    for lib_root in &lib_roots {
-        match LibraryManifest::load(&arc_provider, lib_root) {
-            Ok((manifest, _manifest_url)) => {
-                info!(
-                    "Loaded library manifest for '{}' with {} locators",
-                    lib_root,
-                    manifest.locators.len()
-                );
-
-                // Parse each function/flow in the manifest
-                let meta_provider = flow_io::build_meta_provider();
-                for locator_url in manifest.locators.keys() {
-                    match flowrclib::compiler::parser::parse(locator_url, &meta_provider) {
-                        Ok(process) => {
-                            lib_definitions.insert(locator_url.clone(), process);
-                        }
-                        Err(e) => {
-                            warn!(
-                                "Could not parse library definition '{}': {}",
-                                locator_url, e
-                            );
-                        }
-                    }
-                }
-
-                library_cache.insert(lib_root.clone(), manifest);
-            }
-            Err(e) => {
-                warn!("Could not load library manifest for '{}': {}", lib_root, e);
-            }
-        }
-    }
-
-    // Parse each context function definition
-    let ctx_provider = flow_io::build_meta_provider();
-    for context_ref in context_references {
-        match flowrclib::compiler::parser::parse(context_ref, &ctx_provider) {
-            Ok(process) => {
-                context_definitions.insert(context_ref.clone(), process);
-            }
-            Err(e) => {
-                warn!(
-                    "Could not parse context definition '{}': {}",
-                    context_ref, e
-                );
-            }
-        }
-    }
-
-    (library_cache, lib_definitions, context_definitions)
 }
 
 #[cfg(test)]

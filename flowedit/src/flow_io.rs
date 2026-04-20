@@ -668,6 +668,11 @@ mod test {
 
     use flowcore::model::process_reference::ProcessReference;
 
+    use crate::canvas_view::FlowCanvasState;
+    use crate::hierarchy_panel::FlowHierarchy;
+    use crate::history::EditHistory;
+    use crate::WindowKind;
+
     fn test_node(alias: &str, source: &str) -> NodeLayout {
         NodeLayout {
             alias: alias.into(),
@@ -1055,6 +1060,58 @@ mod test {
         // Existing .rs should NOT be overwritten
         let rs = std::fs::read_to_string(&rs_path).expect("read rs");
         assert_eq!(rs, "// existing code");
+
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    fn test_win_state() -> WindowState {
+        WindowState {
+            kind: WindowKind::FlowEditor,
+            flow_name: String::from("test"),
+            nodes: vec![
+                test_node("add", "lib://flowstdlib/math/add"),
+                test_node("stdout", "context://stdio/stdout"),
+            ],
+            edges: Vec::new(),
+            canvas_state: FlowCanvasState::default(),
+            status: String::new(),
+            selected_node: None,
+            selected_connection: None,
+            history: EditHistory::default(),
+            auto_fit_pending: false,
+            auto_fit_enabled: false,
+            unsaved_edits: 0,
+            compiled_manifest: None,
+            file_path: None,
+            flow_definition: FlowDefinition::default(),
+            tooltip: None,
+            initializer_editor: None,
+            is_root: true,
+            flow_inputs: Vec::new(),
+            flow_outputs: Vec::new(),
+            context_menu: None,
+            show_metadata: false,
+            flow_hierarchy: FlowHierarchy::empty(),
+            last_size: None,
+            last_position: None,
+        }
+    }
+
+    #[test]
+    fn perform_save_updates_state() {
+        let dir = temp_dir("perform_save");
+        let path = dir.join("saved.toml");
+
+        let mut win = test_win_state();
+        win.unsaved_edits = 5;
+        win.flow_name = "saved_flow".into();
+
+        perform_save(&mut win, &path);
+        assert_eq!(win.unsaved_edits, 0);
+        assert_eq!(win.file_path, Some(path.clone()));
+
+        let contents = std::fs::read_to_string(&path).expect("read failed");
+        assert!(contents.contains("flow = \"saved_flow\""));
 
         let _ = std::fs::remove_dir_all(&dir);
     }
