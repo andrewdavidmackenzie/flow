@@ -338,7 +338,7 @@ impl FlowEdit {
             }
         }
 
-        let (flow_name, nodes, edges, status, file_path, flow_definition, lib_refs, ctx_refs) =
+        let (flow_name, nodes, edges, status, file_path, flow_definition, lib_refs) =
             if let Some(flow_path_str) = matches.get_one::<String>("flow-file") {
                 let flow_path = PathBuf::from(flow_path_str);
                 match flow_io::load_flow(&flow_path) {
@@ -353,7 +353,6 @@ impl FlowEdit {
                             Some(flow_path),
                             loaded.flow_def,
                             loaded.lib_references,
-                            loaded.context_references,
                         )
                     }
                     Err(e) => (
@@ -363,7 +362,6 @@ impl FlowEdit {
                         format!("Error loading flow: {e}"),
                         None,
                         FlowDefinition::default(),
-                        BTreeSet::new(),
                         BTreeSet::new(),
                     ),
                 }
@@ -376,7 +374,6 @@ impl FlowEdit {
                     None,
                     FlowDefinition::default(),
                     BTreeSet::new(),
-                    BTreeSet::new(),
                 )
             };
 
@@ -384,7 +381,7 @@ impl FlowEdit {
 
         // Load full library catalogs from manifests and parse all definitions
         let (library_cache, lib_definitions, context_definitions) =
-            library_mgmt::load_library_catalogs(&lib_refs, &ctx_refs);
+            library_mgmt::load_library_catalogs(&lib_refs);
         let library_tree =
             LibraryTree::from_cache(&library_cache, &lib_definitions, &context_definitions);
 
@@ -979,7 +976,7 @@ impl FlowEdit {
             Message::Open => {
                 if let Some(root_id) = self.root_window {
                     if let Some(win) = self.windows.get_mut(&root_id) {
-                        if let Some((lib_refs, ctx_refs)) = flow_io::perform_open(win) {
+                        if let Some((lib_refs, _ctx_refs)) = flow_io::perform_open(win) {
                             self.root_flow_path = win.file_path.clone();
                             win.flow_hierarchy = win
                                 .file_path
@@ -988,8 +985,7 @@ impl FlowEdit {
                                 .unwrap_or_else(FlowHierarchy::empty);
 
                             // Rebuild library cache with new flow's references
-                            let (lc, ld, cd) =
-                                library_mgmt::load_library_catalogs(&lib_refs, &ctx_refs);
+                            let (lc, ld, cd) = library_mgmt::load_library_catalogs(&lib_refs);
                             self.library_cache = lc;
                             self.lib_definitions = ld;
                             self.context_definitions = cd;
@@ -2344,18 +2340,13 @@ impl FlowEdit {
         std::env::set_var("FLOW_LIB_PATH", &path_str);
 
         // Reload library catalogs with the updated search paths.
-        // Gather lib_references and context_references from the root window's flow.
-        let (lib_refs, ctx_refs) = self
+        // Gather lib_references from the root window's flow.
+        let lib_refs = self
             .root_window
             .and_then(|id| self.windows.get(&id))
-            .map(|win| {
-                (
-                    win.flow_definition.lib_references.clone(),
-                    win.flow_definition.context_references.clone(),
-                )
-            })
+            .map(|win| win.flow_definition.lib_references.clone())
             .unwrap_or_default();
-        let (lc, ld, cd) = library_mgmt::load_library_catalogs(&lib_refs, &ctx_refs);
+        let (lc, ld, cd) = library_mgmt::load_library_catalogs(&lib_refs);
         self.library_cache = lc;
         self.lib_definitions = ld;
         self.context_definitions = cd;
