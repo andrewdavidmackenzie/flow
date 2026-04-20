@@ -3764,10 +3764,9 @@ mod test {
 
     #[test]
     fn editor_prefs_roundtrip() {
-        let dir = std::env::temp_dir().join("flowedit_test_prefs");
-        let _ = std::fs::create_dir_all(&dir);
+        let dir = temp_dir("prefs_roundtrip");
         let flow_path = dir.join("test_flow.toml");
-        let _ = std::fs::write(&flow_path, "flow = \"test\"");
+        std::fs::write(&flow_path, "flow = \"test\"").expect("write test flow");
 
         save_editor_prefs(
             &flow_path,
