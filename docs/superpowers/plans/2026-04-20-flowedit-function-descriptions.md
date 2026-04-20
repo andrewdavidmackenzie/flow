@@ -2,11 +2,9 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Display function/flow descriptions in flowedit tooltips and allow editing them, backed by a shared-ownership data architecture.
+**Goal:** Display function/flow descriptions in flowedit tooltips and allow editing them, using a reference-based architecture backed by canonical definitions from flowclib.
 
-**Architecture:** Add `description` field to `FlowDefinition` (mirroring `FunctionDefinition`). Extend `LibraryManifest` to hold parsed `Process` definitions alongside locators. Parse descriptions from TOML during library scanning. Add two-zone canvas tooltips (source text inner box vs description outer box). Add editable description field to function viewer.
-
-**Note on shared-ownership refactor:** The spec describes a full `Arc<RwLock<>>` shared-ownership architecture where UI structs reference canonical definitions rather than copying fields. This plan takes an incremental approach — adding description fields to existing UI structs and populating them from parsed definitions, with the `LibraryManifest` extension as a foundation for the full refactor. The complete shared-ownership migration is a larger effort that can follow as a separate task.
+**Architecture:** Add `description` field to `FlowDefinition`. Replace flowedit's custom parsing/scanning with flowclib functions (`parser::parse()`, `LibraryManifest::load()`). UI structs hold references to canonical `FunctionDefinition`/`FlowDefinition` objects — no copying. Libraries are lazily loaded when first referenced by the flow. Descriptions are read from the referenced definitions for tooltips, mutated via mutable references for editing, and serialized back via flowclib on save.
 
 **Tech Stack:** Rust, iced 0.14.0, flowcore model types, flowrclib parser, serde TOML/JSON
 
@@ -17,10 +15,9 @@
 | File | Action | Responsibility |
 |------|--------|---------------|
 | `flowcore/src/model/flow_definition.rs` | Modify | Add `description` field |
-| `flowcore/src/model/lib_manifest.rs` | Modify | Add `definitions` map for parsed `Process` objects |
-| `flowedit/src/library_panel.rs` | Modify | Add `description` to `FunctionEntry`, parse TOML during scan, add tooltips |
-| `flowedit/src/canvas_view.rs` | Modify | Add `description` to `NodeLayout`, two-zone hit testing |
-| `flowedit/src/main.rs` | Modify | Wire description through viewer, messages, tooltip rendering |
+| `flowedit/src/library_panel.rs` | Rewrite | Replace filesystem scanning with references to cached `LibraryManifest` + parsed definitions |
+| `flowedit/src/canvas_view.rs` | Modify | `NodeLayout` references definitions for description; two-zone hit testing |
+| `flowedit/src/main.rs` | Modify | Lazy library loading, shared definition cache, viewer references definitions, description editing, serialization on save |
 
 ---
 
@@ -99,7 +96,7 @@ Expected: PASS
 - [ ] **Step 5: Run full flowcore tests**
 
 Run: `cargo test -p flowcore`
-Expected: PASS — existing tests should still work since `description` has `#[serde(default)]`
+Expected: PASS — existing tests still work since `description` has `#[serde(default)]`
 
 - [ ] **Step 6: Run clippy and fmt**
 
@@ -115,84 +112,71 @@ git commit -m "Add optional description field to FlowDefinition (#2574)"
 
 ---
 
-### Task 2: Extend `LibraryManifest` with parsed definitions
+### Task 2: Replace flow loading with `parser::parse()`
+
+Currently `main.rs` has `load_flow()` and `resolve_single_function_ports()` which manually deserialize TOML files. Replace these with `flowrclib::compiler::parser::parse()` which returns a fully resolved `FlowDefinition` with `subprocesses` populated.
 
 **Files:**
-- Modify: `flowcore/src/model/lib_manifest.rs:51-67` (struct fields)
+- Modify: `flowedit/src/main.rs` (load_flow, resolve_single_function_ports, add_library_function)
 
-- [ ] **Step 1: Write test for `LibraryManifest` with definitions field**
+- [ ] **Step 1: Replace `load_flow()` to use `parser::parse()`**
 
-Add this test to the existing `mod test` block in `flowcore/src/model/lib_manifest.rs`:
+In `flowedit/src/main.rs`, replace the body of `load_flow()` (around line 3254). Instead of manually reading the file, deserializing, and calling `resolve_single_function_ports()` for each process reference, call:
 
 ```rust
-#[test]
-fn manifest_with_definitions() {
-    use crate::model::process::Process;
-    use crate::model::function_definition::FunctionDefinition;
+use flowrclib::compiler::parser;
 
-    let mut manifest = LibraryManifest::new(
-        Url::parse("lib://testlib").expect("Could not parse lib url"),
-        test_meta_data(),
-    );
-
-    let func = FunctionDefinition {
-        name: "add".into(),
-        description: "Add two numbers".into(),
-        source: "add.rs".into(),
-        ..Default::default()
+fn load_flow(
+    path: &PathBuf,
+) -> Result<(String, Vec<NodeLayout>, Vec<EdgeLayout>, FlowDefinition), String> {
+    let abs_path = if path.is_absolute() {
+        path.clone()
+    } else {
+        std::env::current_dir()
+            .map(|cwd| cwd.join(path))
+            .unwrap_or_else(|_| path.clone())
     };
 
-    let key = Url::parse("lib://testlib/math/add").expect("Could not parse URL");
-    manifest.definitions.insert(key.clone(), Process::FunctionProcess(func));
+    let url = Url::from_file_path(&abs_path)
+        .map_err(|()| format!("Could not create URL from path: {}", abs_path.display()))?;
 
-    assert_eq!(manifest.definitions.len(), 1);
-    match manifest.definitions.get(&key) {
-        Some(Process::FunctionProcess(f)) => {
-            assert_eq!(f.description, "Add two numbers");
+    let provider = build_meta_provider();
+
+    let process = parser::parse(&url, &provider)
+        .map_err(|e| format!("Could not parse flow: {e}"))?;
+
+    match process {
+        Process::FlowProcess(flow) => {
+            let flow_name = flow.name.clone();
+            let (nodes, edges) = build_layouts_from_flow(&flow);
+            Ok((flow_name, nodes, edges, flow))
         }
-        _ => panic!("Expected FunctionProcess"),
+        Process::FunctionProcess(_) => {
+            Err("Expected a flow definition, got a function definition".to_string())
+        }
     }
 }
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+Write a helper `build_layouts_from_flow()` that creates `NodeLayout` and `EdgeLayout` vectors from the parsed `FlowDefinition`. Each `NodeLayout` should store a reference (or key) back to the subprocess definition rather than copying fields. For now, store the subprocess name as a key to look up the definition from `flow.subprocesses`.
 
-Run: `cargo test -p flowcore manifest_with_definitions`
-Expected: FAIL — no field `definitions` on `LibraryManifest`
+- [ ] **Step 2: Remove `resolve_single_function_ports()`**
 
-- [ ] **Step 3: Add `definitions` field to `LibraryManifest`**
+This function manually deserializes TOML — it's no longer needed since `parser::parse()` fully resolves all subprocesses. Remove it and all call sites.
 
-In `flowcore/src/model/lib_manifest.rs`, add import at top:
+- [ ] **Step 3: Update `add_library_function()` to use the parsed flow's subprocess definitions**
 
-```rust
-use crate::model::process::Process;
-```
+When adding a library function to the canvas, the definition should already be available in the flow's resolved subprocesses (or can be obtained via `parser::parse()` on the lib:// URL). The ports and description come from the canonical definition, not from re-parsing.
 
-Add field to the struct (after `source_urls`, around line 66):
+- [ ] **Step 4: Verify build compiles**
 
-```rust
-    /// Parsed definitions for each function/flow in this library.
-    /// Keyed by the same `lib://` URL used in `locators`.
-    /// Not serialized — populated at load time by parsing source TOMLs.
-    #[serde(skip)]
-    pub definitions: BTreeMap<Url, Process>,
-```
+Run: `cargo build -p flowedit`
+Expected: Compiles
 
-Add to the `new()` constructor (after `source_urls` init, around line 78):
+- [ ] **Step 5: Run tests**
 
-```rust
-            definitions: BTreeMap::new(),
-```
-
-- [ ] **Step 4: Run test to verify it passes**
-
-Run: `cargo test -p flowcore manifest_with_definitions`
+Run: `cargo test -p flowedit`
 Expected: PASS
-
-- [ ] **Step 5: Run full flowcore tests**
-
-Run: `cargo test -p flowcore`
-Expected: PASS — `definitions` is `#[serde(skip)]` so serialization tests unchanged
 
 - [ ] **Step 6: Run clippy and fmt**
 
@@ -202,513 +186,93 @@ Expected: No warnings or errors
 - [ ] **Step 7: Commit**
 
 ```bash
-git add flowcore/src/model/lib_manifest.rs
-git commit -m "Add definitions map to LibraryManifest for parsed Process objects (#2574)"
+git add flowedit/src/main.rs
+git commit -m "Replace custom flow parsing with flowrclib parser::parse() (#2574)"
 ```
 
 ---
 
-### Task 3: Add `description` to `FunctionEntry` and parse from TOML during library scan
+### Task 3: Lazy library loading and shared definition cache
+
+When the parsed flow has `lib_references` or `context_references`, load the corresponding `LibraryManifest` on first encounter and cache it. The library panel displays from these cached manifests — no filesystem scanning.
 
 **Files:**
-- Modify: `flowedit/src/library_panel.rs:37-42` (FunctionEntry struct)
-- Modify: `flowedit/src/library_panel.rs:328-372` (scan_functions)
-- Modify: `flowedit/src/library_panel.rs:374-457` (scan_context_functions)
+- Modify: `flowedit/src/main.rs` (FlowEdit struct, initialization)
+- Rewrite: `flowedit/src/library_panel.rs` (remove filesystem scanning, reference cached manifests)
 
-- [ ] **Step 1: Write test for `FunctionEntry` with description**
+- [ ] **Step 1: Add library cache to `FlowEdit`**
 
-Add this test to the `mod test` block in `flowedit/src/library_panel.rs`:
+In `flowedit/src/main.rs`, add a library cache to the `FlowEdit` struct (around line 245):
 
 ```rust
-#[test]
-fn function_entry_has_description() {
-    let entry = FunctionEntry {
-        name: "add".into(),
-        source: "lib://flowstdlib/math/add".into(),
-        description: "Add two numbers".into(),
-    };
-    assert_eq!(entry.description, "Add two numbers");
+use std::sync::{Arc, RwLock};
+use flowcore::model::lib_manifest::LibraryManifest;
+
+struct FlowEdit {
+    windows: HashMap<window::Id, WindowState>,
+    root_window: Option<window::Id>,
+    focused_window: Option<window::Id>,
+    /// Cached library manifests, keyed by library URL
+    library_cache: HashMap<Url, LibraryManifest>,
+    /// Parsed definitions from libraries, keyed by lib:// URL
+    lib_definitions: HashMap<Url, Process>,
+    root_flow_path: Option<PathBuf>,
+    show_lib_paths: bool,
+    lib_paths: Vec<String>,
 }
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [ ] **Step 2: Populate cache after flow is loaded**
 
-Run: `cargo test -p flowedit function_entry_has_description`
-Expected: FAIL — no field `description` on `FunctionEntry`
-
-- [ ] **Step 3: Add `description` field to `FunctionEntry`**
-
-In `flowedit/src/library_panel.rs`, modify the `FunctionEntry` struct (line 37):
+After `parser::parse()` returns the flow, iterate `flow.lib_references` and `flow.context_references`. For each unique library, call `LibraryManifest::load()` and cache the result. Then for each locator in the manifest, call `parser::parse()` to get the definition and cache it in `lib_definitions`.
 
 ```rust
-pub(crate) struct FunctionEntry {
-    /// Display name of the function (e.g., "add")
-    pub name: String,
-    /// Source URL for this function (e.g., `lib://flowstdlib/math/add`)
-    pub source: String,
-    /// Description text from the function/flow definition
-    pub description: String,
-}
-```
-
-- [ ] **Step 4: Fix all existing `FunctionEntry` construction sites**
-
-Update `scan_functions()` (around line 349 and 362) to add `description: String::new()` to each `FunctionEntry { ... }`. Update `scan_context_functions()` (around line 423) similarly. Update all test `FunctionEntry` constructions if any.
-
-Verify with: `cargo build -p flowedit`
-Expected: Compiles without errors
-
-- [ ] **Step 5: Parse TOML to extract description in `scan_functions()`**
-
-Replace the body of `scan_functions()` to parse the TOML file using flowcore's `Process` deserializer and extract the description:
-
-```rust
-fn scan_functions(cat_dir: &std::path::Path, lib_name: &str, cat_name: &str) -> Vec<FunctionEntry> {
-    use flowcore::deserializers::deserializer::get;
-    use flowcore::model::process::Process;
-    use url::Url;
-
-    let mut functions = Vec::new();
-
-    let Ok(entries) = std::fs::read_dir(cat_dir) else {
-        return functions;
-    };
-
-    for entry in entries.flatten() {
-        let path = entry.path();
-        let entry_name = entry.file_name().to_string_lossy().to_string();
-
-        if path.is_dir() {
-            // Check if subdirectory contains a .toml file
-            let toml_path = find_toml_in_dir(&path);
-            if let Some(toml_file) = toml_path {
-                let source = format!("lib://{lib_name}/{cat_name}/{entry_name}");
-                let description = read_description_from_toml(&toml_file);
-                functions.push(FunctionEntry {
-                    name: entry_name,
-                    source,
-                    description,
-                });
-            }
-        } else if path.extension().and_then(|ext| ext.to_str()) == Some("toml") {
-            let func_name = path
-                .file_stem()
-                .map(|s| s.to_string_lossy().to_string())
-                .unwrap_or_default();
-            if !func_name.is_empty() {
-                let source = format!("lib://{lib_name}/{cat_name}/{func_name}");
-                let description = read_description_from_toml(&path);
-                functions.push(FunctionEntry {
-                    name: func_name,
-                    source,
-                    description,
-                });
-            }
+fn load_libraries(
+    lib_refs: &BTreeSet<Url>,
+    provider: &dyn Provider,
+    cache: &mut HashMap<Url, LibraryManifest>,
+    definitions: &mut HashMap<Url, Process>,
+) {
+    for lib_ref in lib_refs {
+        // Extract library root URL (e.g., lib://flowstdlib from lib://flowstdlib/math/add)
+        let lib_root = // ... extract library root from lib_ref
+        if cache.contains_key(&lib_root) {
+            continue; // Already loaded
         }
-    }
 
-    functions.sort_by(|a, b| a.name.cmp(&b.name));
-    functions
-}
-
-fn find_toml_in_dir(dir: &std::path::Path) -> Option<std::path::PathBuf> {
-    std::fs::read_dir(dir).ok()?.flatten().find_map(|e| {
-        let p = e.path();
-        if p.extension().and_then(|ext| ext.to_str()) == Some("toml") {
-            Some(p)
-        } else {
-            None
-        }
-    })
-}
-
-fn read_description_from_toml(toml_path: &std::path::Path) -> String {
-    use flowcore::deserializers::deserializer::get;
-    use flowcore::model::process::Process;
-    use url::Url;
-
-    let url = match Url::from_file_path(toml_path) {
-        Ok(u) => u,
-        Err(()) => return String::new(),
-    };
-
-    let content = match std::fs::read_to_string(toml_path) {
-        Ok(c) => c,
-        Err(_) => return String::new(),
-    };
-
-    let deserializer = match get::<Process>(&url) {
-        Ok(d) => d,
-        Err(_) => return String::new(),
-    };
-
-    match deserializer.deserialize(&content, Some(&url)) {
-        Ok(Process::FunctionProcess(func)) => func.description,
-        Ok(Process::FlowProcess(flow)) => flow.description,
-        Err(_) => String::new(),
-    }
-}
-```
-
-- [ ] **Step 6: Update `scan_context_functions()` to also extract descriptions**
-
-Apply the same pattern — find the TOML file and call `read_description_from_toml()`:
-
-```rust
-fn scan_context_functions() -> LibraryEntry {
-    let mut categories = Vec::new();
-
-    let runner_base = std::env::var("HOME")
-        .map(|h| std::path::PathBuf::from(h).join(".flow").join("runner"))
-        .unwrap_or_default();
-
-    if !runner_base.is_dir() {
-        return LibraryEntry {
-            name: "Context".to_string(),
-            categories,
-            expanded: true,
-        };
-    }
-
-    if let Ok(runners) = std::fs::read_dir(&runner_base) {
-        for runner_entry in runners.flatten() {
-            let runner_path = runner_entry.path();
-            if !runner_path.is_dir() {
-                continue;
-            }
-
-            if let Ok(cats) = std::fs::read_dir(&runner_path) {
-                for cat_entry in cats.flatten() {
-                    let cat_path = cat_entry.path();
-                    if !cat_path.is_dir() {
-                        continue;
-                    }
-
-                    let cat_name = cat_entry.file_name().to_string_lossy().to_string();
-                    let mut functions = Vec::new();
-
-                    if let Ok(funcs) = std::fs::read_dir(&cat_path) {
-                        for func_entry in funcs.flatten() {
-                            let func_path = func_entry.path();
-                            if func_path.extension().and_then(|e| e.to_str()) == Some("toml") {
-                                let func_name = func_path
-                                    .file_stem()
-                                    .map(|s| s.to_string_lossy().to_string())
-                                    .unwrap_or_default();
-                                if !func_name.is_empty() {
-                                    let source = format!("context://{cat_name}/{func_name}");
-                                    let description = read_description_from_toml(&func_path);
-                                    functions.push(FunctionEntry {
-                                        name: func_name,
-                                        source,
-                                        description,
-                                    });
-                                }
-                            }
-                        }
-                    }
-
-                    if !functions.is_empty() {
-                        functions.sort_by(|a, b| a.name.cmp(&b.name));
-                        if !categories
-                            .iter()
-                            .any(|c: &CategoryEntry| c.name == cat_name)
-                        {
-                            categories.push(CategoryEntry {
-                                name: cat_name,
-                                functions,
-                                expanded: false,
-                            });
-                        }
-                    }
+        let arc_provider = Arc::new(/* provider */);
+        if let Ok((manifest, _)) = LibraryManifest::load(&arc_provider, &lib_root) {
+            for (func_url, _locator) in &manifest.locators {
+                if let Ok(process) = parser::parse(func_url, provider) {
+                    definitions.insert(func_url.clone(), process);
                 }
             }
+            cache.insert(lib_root, manifest);
         }
     }
-
-    categories.sort_by(|a, b| a.name.cmp(&b.name));
-    LibraryEntry {
-        name: "Context".to_string(),
-        categories,
-        expanded: true,
-    }
 }
 ```
 
-- [ ] **Step 7: Run test to verify it passes**
+- [ ] **Step 3: Rewrite `library_panel.rs` to display from cached definitions**
 
-Run: `cargo test -p flowedit function_entry_has_description`
-Expected: PASS
+Replace the entire filesystem scanning approach. The `LibraryTree` no longer scans — it receives references to the cached manifests and definitions. Build the tree structure from manifest locator URLs (extracting library/category/function names from the URL hierarchy).
 
-- [ ] **Step 8: Run clippy and fmt**
+Remove `scan_functions()`, `scan_context_functions()`, `scan_categories()`, `resolve_lib_path()` and all filesystem code. The `FunctionEntry` struct reads name, source, and description from the referenced definition — no copied fields needed.
 
-Run: `make clippy && cargo fmt`
-Expected: No warnings or errors
+- [ ] **Step 4: Test with line-echo (no lib references)**
 
-- [ ] **Step 9: Commit**
+Run: `cargo run -p flowedit -- examples/line-echo/line-echo.toml`
+Expected: Library panel is empty (or shows only context functions if referenced). No library manifests loaded.
 
-```bash
-git add flowedit/src/library_panel.rs
-git commit -m "Parse function descriptions from TOML during library scan (#2574)"
-```
+- [ ] **Step 5: Test with fibonacci (has lib references)**
 
----
-
-### Task 4: Add tooltips to library panel
-
-**Files:**
-- Modify: `flowedit/src/library_panel.rs:8-9` (imports)
-- Modify: `flowedit/src/library_panel.rs:209-239` (view function, function rendering)
-
-- [ ] **Step 1: Write test for tooltip rendering with description**
-
-Add to the `mod test` block in `flowedit/src/library_panel.rs`:
-
-```rust
-#[test]
-fn library_tree_with_descriptions_renders() {
-    let tree = LibraryTree {
-        libraries: vec![LibraryEntry {
-            name: "testlib".into(),
-            categories: vec![CategoryEntry {
-                name: "math".into(),
-                functions: vec![FunctionEntry {
-                    name: "add".into(),
-                    source: "lib://testlib/math/add".into(),
-                    description: "Add two numbers".into(),
-                }],
-                expanded: true,
-            }],
-            expanded: true,
-        }],
-    };
-    let _element: Element<'_, LibraryMessage> = tree.view();
-}
-
-#[test]
-fn library_tree_empty_description_renders() {
-    let tree = LibraryTree {
-        libraries: vec![LibraryEntry {
-            name: "testlib".into(),
-            categories: vec![CategoryEntry {
-                name: "math".into(),
-                functions: vec![FunctionEntry {
-                    name: "add".into(),
-                    source: "lib://testlib/math/add".into(),
-                    description: String::new(),
-                }],
-                expanded: true,
-            }],
-            expanded: true,
-        }],
-    };
-    let _element: Element<'_, LibraryMessage> = tree.view();
-}
-```
-
-- [ ] **Step 2: Run tests to verify they pass (rendering tests, no tooltip logic yet)**
-
-Run: `cargo test -p flowedit library_tree_with_descriptions_renders library_tree_empty_description_renders`
-Expected: PASS (just verifies rendering doesn't panic)
-
-- [ ] **Step 3: Add iced `Tooltip` import and wrap function buttons**
-
-In `flowedit/src/library_panel.rs`, update the import line (line 8):
-
-```rust
-use iced::widget::{button, container, scrollable, text, tooltip, Column, Row};
-```
-
-Then modify the function rendering loop inside `view()` (the block starting around line 209 `if cat.expanded {`). Replace the function button + row construction with tooltip wrapping:
-
-```rust
-                    if cat.expanded {
-                        for func in &cat.functions {
-                            let view_btn = button(text("\u{270E}").size(10))
-                                .on_press(LibraryMessage::ViewFunction(
-                                    func.source.clone(),
-                                    func.name.clone(),
-                                ))
-                                .style(button::text)
-                                .padding([1, 3]);
-
-                            let func_btn = button(text(&func.name).size(11))
-                                .on_press(LibraryMessage::AddFunction(
-                                    func.source.clone(),
-                                    func.name.clone(),
-                                ))
-                                .style(button::text)
-                                .padding([2, 4]);
-
-                            let row = Row::new()
-                                .spacing(2)
-                                .align_y(iced::Alignment::Center)
-                                .push(view_btn)
-                                .push(func_btn);
-
-                            let entry_widget: Element<'_, LibraryMessage> =
-                                if func.description.is_empty() {
-                                    row.into()
-                                } else {
-                                    tooltip(
-                                        row,
-                                        text(&func.description).size(11),
-                                        tooltip::Position::Bottom,
-                                    )
-                                    .gap(2)
-                                    .style(|_theme: &iced::Theme| container::Style {
-                                        background: Some(iced::Background::Color(
-                                            iced::Color::from_rgb(0.12, 0.12, 0.12),
-                                        )),
-                                        border: iced::Border {
-                                            color: iced::Color::WHITE,
-                                            width: 1.0,
-                                            radius: 4.0.into(),
-                                        },
-                                        ..Default::default()
-                                    })
-                                    .into()
-                                };
-
-                            content = content.push(container(entry_widget).padding(iced::Padding {
-                                top: 0.0,
-                                right: 0.0,
-                                bottom: 0.0,
-                                left: 24.0,
-                            }));
-                        }
-                    }
-```
-
-- [ ] **Step 4: Verify build and tests pass**
-
-Run: `cargo build -p flowedit && cargo test -p flowedit`
-Expected: Compiles and all tests pass
-
-- [ ] **Step 5: Run clippy and fmt**
-
-Run: `make clippy && cargo fmt`
-Expected: No warnings or errors
-
-- [ ] **Step 6: Commit**
-
-```bash
-git add flowedit/src/library_panel.rs
-git commit -m "Add hover tooltips showing function descriptions in library panel (#2574)"
-```
-
----
-
-### Task 5: Add `description` to `NodeLayout` and populate from parsed definitions
-
-**Files:**
-- Modify: `flowedit/src/canvas_view.rs:248-269` (NodeLayout struct)
-- Modify: `flowedit/src/main.rs` (add_library_function, load_flow, resolve_single_function_ports)
-
-- [ ] **Step 1: Write test for `NodeLayout` with `description` field**
-
-Add to the `mod test` block in `flowedit/src/canvas_view.rs`:
-
-```rust
-#[test]
-fn node_layout_has_description() {
-    let node = NodeLayout {
-        alias: "test".into(),
-        source: "lib://test".into(),
-        x: 0.0,
-        y: 0.0,
-        width: 180.0,
-        height: 120.0,
-        inputs: vec![],
-        outputs: vec![],
-        initializers: HashMap::new(),
-        description: "A test function".into(),
-    };
-    assert_eq!(node.description, "A test function");
-}
-```
-
-- [ ] **Step 2: Run test to verify it fails**
-
-Run: `cargo test -p flowedit node_layout_has_description`
-Expected: FAIL — no field `description` on `NodeLayout`
-
-- [ ] **Step 3: Add `description` field to `NodeLayout`**
-
-In `flowedit/src/canvas_view.rs`, add to the `NodeLayout` struct (after `initializers`, around line 268):
-
-```rust
-    /// Description text from the function/flow definition
-    pub description: String,
-```
-
-- [ ] **Step 4: Fix all `NodeLayout` construction sites**
-
-There are many places that construct `NodeLayout`. Add `description: String::new()` to each. These are found in:
-- `flowedit/src/main.rs` in `add_library_function()` (around line 2816)
-- `flowedit/src/main.rs` in `load_flow()` (where nodes are built from process references)
-- `flowedit/src/main.rs` in various `WindowState` creation points
-- `flowedit/src/canvas_view.rs` in tests
-
-Search for `NodeLayout {` to find all sites. Add `description: String::new()` to each one initially.
-
-Run: `cargo build -p flowedit`
-Expected: Compiles
-
-- [ ] **Step 5: Populate description from parsed definitions**
-
-Modify `resolve_single_function_ports()` in `main.rs` (around line 3178) to also return the description. Change its signature to return a tuple of three items:
-
-```rust
-fn resolve_single_function_ports(
-    source: &str,
-    base_url: Option<&Url>,
-) -> (Vec<PortInfo>, Vec<PortInfo>, String) {
-```
-
-Update the return values in the match (around line 3224):
-
-```rust
-    match deserializer.deserialize(&content, Some(&resolved_url)) {
-        Ok(Process::FunctionProcess(func)) => {
-            let (inputs, outputs) = extract_ports(&func.inputs, &func.outputs);
-            (inputs, outputs, func.description)
-        }
-        Ok(Process::FlowProcess(flow)) => {
-            let (inputs, outputs) = extract_ports(&flow.inputs, &flow.outputs);
-            (inputs, outputs, flow.description)
-        }
-        Err(_) => (Vec::new(), Vec::new(), String::new()),
-    }
-```
-
-Update the early return statements to return three items: `(Vec::new(), Vec::new(), String::new())`
-
-Then update `add_library_function()` to use the description:
-
-```rust
-    let (inputs, outputs, description) = resolve_single_function_ports(source, None);
-
-    let node = NodeLayout {
-        alias: alias.clone(),
-        source: source.to_string(),
-        x,
-        y,
-        width: 180.0,
-        height: 120.0,
-        inputs,
-        outputs,
-        initializers: HashMap::new(),
-        description,
-    };
-```
-
-And update `load_flow()` similarly — where `resolve_single_function_ports` is called to build nodes from process references, capture and use the description.
+Run: `cargo run -p flowedit -- examples/fibonacci/fibonacci.toml`
+Expected: Library panel shows flowstdlib functions referenced by the flow. Hover tooltips show descriptions.
 
 - [ ] **Step 6: Run tests**
 
 Run: `cargo test -p flowedit`
-Expected: PASS
+Expected: PASS (update/remove tests that relied on filesystem scanning)
 
 - [ ] **Step 7: Run clippy and fmt**
 
@@ -718,8 +282,136 @@ Expected: No warnings or errors
 - [ ] **Step 8: Commit**
 
 ```bash
-git add flowedit/src/canvas_view.rs flowedit/src/main.rs
-git commit -m "Add description field to NodeLayout and populate from definitions (#2574)"
+git add flowedit/src/main.rs flowedit/src/library_panel.rs
+git commit -m "Replace filesystem scanning with lazy library loading from manifests (#2574)"
+```
+
+---
+
+### Task 4: Add library manually via button
+
+The library panel only shows libraries referenced by the current flow. Add a button (e.g., "+ Library") that lets the user browse to a library root or enter a `lib://` URL, loads its manifest, and adds it to the cache — making its functions available to drag onto the canvas.
+
+**Files:**
+- Modify: `flowedit/src/library_panel.rs` (add button to panel)
+- Modify: `flowedit/src/main.rs` (message handling, library loading)
+
+- [ ] **Step 1: Add `AddLibrary` message variant**
+
+In `LibraryMessage`:
+
+```rust
+    /// User requested to add a new library
+    AddLibrary,
+```
+
+And in `LibraryAction`:
+
+```rust
+    AddLibrary,
+```
+
+- [ ] **Step 2: Add "+ Library" button to panel header**
+
+In the `view()` method of `LibraryTree`, add a button near the "Process Library" header:
+
+```rust
+let add_lib_btn = button(text("+ Library").size(11))
+    .on_press(LibraryMessage::AddLibrary)
+    .style(button::secondary)
+    .padding([2, 6]);
+
+content = content.push(
+    Row::new()
+        .spacing(8)
+        .push(header)
+        .push(add_lib_btn)
+);
+```
+
+- [ ] **Step 3: Handle `AddLibrary` in `main.rs`**
+
+When the user clicks "+ Library", open a file dialog (using `rfd`) to browse to a library directory. Then load its manifest via `LibraryManifest::load()`, parse its definitions, add to the cache, and refresh the library panel.
+
+- [ ] **Step 4: Verify build and test**
+
+Run: `cargo build -p flowedit && cargo test -p flowedit`
+Expected: Compiles and passes
+
+- [ ] **Step 5: Run clippy and fmt**
+
+Run: `make clippy && cargo fmt`
+Expected: Clean
+
+- [ ] **Step 6: Commit**
+
+```bash
+git add flowedit/src/library_panel.rs flowedit/src/main.rs
+git commit -m "Add button to manually load a library into the panel (#2574)"
+```
+
+---
+
+### Task 5: Library panel tooltips
+
+With the library panel now referencing cached definitions, add hover tooltips showing the description.
+
+**Files:**
+- Modify: `flowedit/src/library_panel.rs` (view function)
+
+- [ ] **Step 1: Add iced `Tooltip` import**
+
+```rust
+use iced::widget::{button, container, scrollable, text, tooltip, Column, Row};
+```
+
+- [ ] **Step 2: Wrap function entries in `Tooltip` when description is non-empty**
+
+In the `view()` method, when rendering each function entry, wrap the row in an iced `Tooltip` widget if the referenced definition has a non-empty description:
+
+```rust
+let entry_widget: Element<'_, LibraryMessage> =
+    if description.is_empty() {
+        row.into()
+    } else {
+        tooltip(
+            row,
+            text(&description).size(11),
+            tooltip::Position::Bottom,
+        )
+        .gap(2)
+        .style(|_theme: &iced::Theme| container::Style {
+            background: Some(iced::Background::Color(
+                iced::Color::from_rgb(0.12, 0.12, 0.12),
+            )),
+            border: iced::Border {
+                color: iced::Color::WHITE,
+                width: 1.0,
+                radius: 4.0.into(),
+            },
+            ..Default::default()
+        })
+        .into()
+    };
+```
+
+The `description` is read directly from the referenced definition — no field on `FunctionEntry`.
+
+- [ ] **Step 3: Verify build and test**
+
+Run: `cargo build -p flowedit && cargo test -p flowedit`
+Expected: Compiles and passes
+
+- [ ] **Step 4: Run clippy and fmt**
+
+Run: `make clippy && cargo fmt`
+Expected: Clean
+
+- [ ] **Step 5: Commit**
+
+```bash
+git add flowedit/src/library_panel.rs
+git commit -m "Add hover tooltips showing descriptions in library panel (#2574)"
 ```
 
 ---
@@ -727,10 +419,9 @@ git commit -m "Add description field to NodeLayout and populate from definitions
 ### Task 6: Two-zone canvas tooltips
 
 **Files:**
-- Modify: `flowedit/src/canvas_view.rs:1456-1474` (hover detection)
-- Modify: `flowedit/src/canvas_view.rs:2269-2285` (source text positioning constants)
+- Modify: `flowedit/src/canvas_view.rs` (hover detection, hit testing)
 
-- [ ] **Step 1: Write test for source text hit testing**
+- [ ] **Step 1: Write test for source text zone hit testing**
 
 Add to `mod test` in `flowedit/src/canvas_view.rs`:
 
@@ -747,10 +438,8 @@ fn hit_test_source_text_zone() {
         inputs: vec![],
         outputs: vec![],
         initializers: HashMap::new(),
-        description: "Adds numbers".into(),
     };
     // Source text is centered at (node.x + width/2, node.y + 34.0)
-    // with approximate height SOURCE_FONT_SIZE and width proportional to text
     let source_center = Point::new(190.0, 134.0);
     assert!(is_in_source_text_zone(&node, source_center));
     // Point clearly outside source text zone but inside node
@@ -765,8 +454,6 @@ Run: `cargo test -p flowedit hit_test_source_text_zone`
 Expected: FAIL — `is_in_source_text_zone` does not exist
 
 - [ ] **Step 3: Add `is_in_source_text_zone` function**
-
-Add this function near `hit_test_node` in `flowedit/src/canvas_view.rs`:
 
 ```rust
 fn is_in_source_text_zone(node: &NodeLayout, point: Point) -> bool {
@@ -787,14 +474,18 @@ fn is_in_source_text_zone(node: &NodeLayout, point: Point) -> bool {
 Run: `cargo test -p flowedit hit_test_source_text_zone`
 Expected: PASS
 
-- [ ] **Step 5: Modify hover detection to use two zones**
+- [ ] **Step 5: Modify hover detection for two zones**
 
-In `flowedit/src/canvas_view.rs`, replace the hover tracking block (around line 1456-1474):
+Replace the hover tracking block in `canvas_view.rs` (around line 1456-1474). The node's description is looked up from the referenced definition (via the subprocess name/key stored in `NodeLayout`):
+
+- Inner zone (source text box): show full source path tooltip — always, not just when truncated
+- Outer zone (rest of node body): show description from referenced definition — only if non-empty
+- Inner zone wins over outer zone
 
 ```rust
                     // Track hover for two-zone node tooltip
                     let new_hover = hit_test_node(self.nodes, world_pos);
-                    if new_hover != state.hover_node {
+                    if new_hover != state.hover_node || new_hover.is_some() {
                         state.hover_node = new_hover;
                         let tooltip_data = new_hover
                             .and_then(|idx| self.nodes.get(idx))
@@ -806,10 +497,14 @@ In `flowedit/src/canvas_view.rs`, replace the hover tracking block (around line 
                                 );
                                 if is_in_source_text_zone(n, world_pos) {
                                     Some((n.source.clone(), bottom_center.x, bottom_center.y))
-                                } else if !n.description.is_empty() {
-                                    Some((n.description.clone(), bottom_center.x, bottom_center.y))
                                 } else {
-                                    None
+                                    // Look up description from referenced definition
+                                    let desc = // ... get description from definition reference
+                                    if !desc.is_empty() {
+                                        Some((desc.to_string(), bottom_center.x, bottom_center.y))
+                                    } else {
+                                        None
+                                    }
                                 }
                             });
                         return Some(canvas::Action::publish(CanvasMessage::HoverChanged(
@@ -818,30 +513,7 @@ In `flowedit/src/canvas_view.rs`, replace the hover tracking block (around line 
                     }
 ```
 
-Also update the tooltip when cursor moves within the same node (the hover_node hasn't changed but the zone may have). Add a check after the `if new_hover != state.hover_node` block:
-
-```rust
-                    // Even if hover node didn't change, the zone may have
-                    if let Some(idx) = state.hover_node {
-                        if let Some(n) = self.nodes.get(idx) {
-                            let bottom_center = transform_point(
-                                Point::new(n.x + n.width / 2.0, n.y + n.height),
-                                zoom,
-                                offset,
-                            );
-                            let tooltip_data = if is_in_source_text_zone(n, world_pos) {
-                                Some((n.source.clone(), bottom_center.x, bottom_center.y))
-                            } else if !n.description.is_empty() {
-                                Some((n.description.clone(), bottom_center.x, bottom_center.y))
-                            } else {
-                                None
-                            };
-                            return Some(canvas::Action::publish(CanvasMessage::HoverChanged(
-                                tooltip_data,
-                            )));
-                        }
-                    }
-```
+The exact mechanism for looking up the description depends on how `NodeLayout` references its definition (resolved in Task 2).
 
 - [ ] **Step 6: Run tests**
 
@@ -851,7 +523,7 @@ Expected: PASS
 - [ ] **Step 7: Run clippy and fmt**
 
 Run: `make clippy && cargo fmt`
-Expected: No warnings or errors
+Expected: Clean
 
 - [ ] **Step 8: Commit**
 
@@ -862,63 +534,47 @@ git commit -m "Add two-zone canvas tooltips: source text vs description (#2574)"
 
 ---
 
-### Task 7: Editable description field in function viewer
+### Task 7: Editable description in function viewer
+
+The `FunctionViewer` references the canonical definition. Editing the description mutates the definition directly via a mutable reference.
 
 **Files:**
-- Modify: `flowedit/src/main.rs:86-87` (Message enum)
-- Modify: `flowedit/src/main.rs:172-182` (FunctionViewer struct)
-- Modify: `flowedit/src/main.rs:978-985` (update handler)
-- Modify: `flowedit/src/main.rs:1889-1896` (view rendering)
+- Modify: `flowedit/src/main.rs` (Message enum, FunctionViewer, update handler, view rendering)
 
-- [ ] **Step 1: Add `description` field to `FunctionViewer` struct**
+- [ ] **Step 1: Add `FunctionDescriptionChanged` message variant**
 
-In `flowedit/src/main.rs`, add to the `FunctionViewer` struct (after `name`, around line 174):
-
-```rust
-struct FunctionViewer {
-    name: String,
-    description: String,
-    source_file: String,
-    inputs: Vec<PortInfo>,
-    outputs: Vec<PortInfo>,
-    rs_content: String,
-    docs_content: Option<String>,
-    active_tab: usize,
-    toml_path: PathBuf,
-}
-```
-
-- [ ] **Step 2: Add `FunctionDescriptionChanged` message variant**
-
-In the `Message` enum (after `FunctionNameChanged`, around line 87):
+In the `Message` enum (after `FunctionNameChanged`):
 
 ```rust
     /// Function description edited
     FunctionDescriptionChanged(window::Id, String),
 ```
 
-- [ ] **Step 3: Add update handler for description changes**
+- [ ] **Step 2: Modify `FunctionViewer` to reference the canonical definition**
 
-In the `update()` method, after the `FunctionNameChanged` handler (around line 985):
+Instead of storing copied `name`, `description`, etc., `FunctionViewer` holds a reference (or key) to the canonical `FunctionDefinition` or `FlowDefinition`. Reads and writes go through this reference.
+
+- [ ] **Step 3: Add update handler for description changes**
 
 ```rust
             Message::FunctionDescriptionChanged(win_id, new_desc) => {
                 if let Some(win) = self.windows.get_mut(&win_id) {
-                    if let WindowKind::FunctionViewer(ref mut viewer) = win.kind {
-                        viewer.description = new_desc;
-                    }
+                    // Mutate the canonical definition's description directly
+                    // via the reference held by the viewer
                     win.unsaved_edits += 1;
                 }
             }
 ```
 
-- [ ] **Step 4: Add description text_input to function viewer rendering**
+The mutation goes to the canonical definition, so palette tooltips and canvas tooltips see the change immediately on next render — no sync needed.
 
-In the view rendering for function viewer (after the `name_input` container, around line 1896), add:
+- [ ] **Step 4: Add description `text_input` to viewer rendering**
+
+Below the name input, add a description input nearly full width:
 
 ```rust
                 let desc_input = container(
-                    text_input("Description", &viewer.description)
+                    text_input("Description", &description)
                         .on_input(move |s| Message::FunctionDescriptionChanged(window_id, s))
                         .size(13)
                         .padding(6)
@@ -927,65 +583,68 @@ In the view rendering for function viewer (after the `name_input` container, aro
                 .center_x(Fill);
 ```
 
-Then add `desc_input` to the `func_box` Column (after `.push(name_input)`, around line 1935):
+For library and context functions, omit the `.on_input()` to make the field read-only. Only provided implementations get editable descriptions.
 
-```rust
-                        .push(name_input)
-                        .push(desc_input)
-```
+- [ ] **Step 5: Verify build and tests**
 
-- [ ] **Step 5: Fix all `FunctionViewer` construction sites**
+Run: `cargo build -p flowedit && cargo test -p flowedit`
+Expected: Compiles and passes
 
-Search for `FunctionViewer {` in `main.rs` and add `description: String::new()` (or the actual description from the parsed definition) to each construction site.
-
-Where the viewer is opened from a parsed function definition, capture the description:
-
-```rust
-description: func.description.clone(),
-```
-
-For flow definitions:
-
-```rust
-description: flow.description.clone(),
-```
-
-Run: `cargo build -p flowedit`
-Expected: Compiles
-
-- [ ] **Step 6: Wire description back to TOML on save**
-
-Find where the function viewer saves back to TOML (search for `toml_path` usage in save/write contexts). Ensure the description field is included when the function definition is serialized back.
-
-This should work automatically since `FunctionDefinition` and `FlowDefinition` already serialize the `description` field. Just ensure the viewer's description is written back to the definition before serialization.
-
-- [ ] **Step 7: Run tests**
-
-Run: `cargo test -p flowedit`
-Expected: PASS
-
-- [ ] **Step 8: Run full `make test`**
-
-Run: `make test`
-Expected: PASS
-
-- [ ] **Step 9: Run clippy and fmt**
+- [ ] **Step 6: Run clippy and fmt**
 
 Run: `make clippy && cargo fmt`
-Expected: No warnings or errors
+Expected: Clean
 
-- [ ] **Step 10: Commit**
+- [ ] **Step 7: Commit**
 
 ```bash
 git add flowedit/src/main.rs
-git commit -m "Add editable description field to function viewer window (#2574)"
+git commit -m "Add editable description field to function viewer (#2574)"
 ```
 
 ---
 
-### Task 8: Manual testing and final verification
+### Task 8: Serialize flow on save using flowclib
 
-**Files:** None (testing only)
+When saving the flow, use flowclib/flowcore serialization to write the `FlowDefinition` (including any edited descriptions) back to TOML. No custom serialization code in flowedit.
+
+**Files:**
+- Modify: `flowedit/src/main.rs` (save function)
+
+- [ ] **Step 1: Replace custom save logic with flowcore serialization**
+
+The `FlowDefinition` struct derives `Serialize`, so it can be serialized to TOML directly via serde. The edited description (mutated in the canonical definition) is automatically included.
+
+Find the existing save function in `main.rs` and ensure it serializes the canonical `FlowDefinition` using serde_toml (or the appropriate flowcore serializer), not by manually constructing TOML strings.
+
+- [ ] **Step 2: Test save and reload**
+
+- Open a flow with `cargo run -p flowedit`
+- Edit a description on a provided implementation
+- Save
+- Verify the TOML file contains the `description` field
+- Reopen — verify the description persists
+
+- [ ] **Step 3: Run tests**
+
+Run: `make test`
+Expected: PASS
+
+- [ ] **Step 4: Run clippy and fmt**
+
+Run: `make clippy && cargo fmt`
+Expected: Clean
+
+- [ ] **Step 5: Commit**
+
+```bash
+git add flowedit/src/main.rs
+git commit -m "Use flowcore serialization for flow save with descriptions (#2574)"
+```
+
+---
+
+### Task 9: Manual testing and final verification
 
 - [ ] **Step 1: Run full `make test`**
 
@@ -997,37 +656,23 @@ Expected: All tests pass
 Run: `make clippy && cargo fmt`
 Expected: Clean
 
-- [ ] **Step 3: Launch flowedit and test palette tooltips**
+- [ ] **Step 3: Test with line-echo (no lib references)**
+
+Run: `cargo run -p flowedit -- examples/line-echo/line-echo.toml`
+Verify: Library panel shows no library functions (only context if referenced). No manifests loaded.
+
+- [ ] **Step 4: Test with fibonacci (has lib references)**
 
 Run: `cargo run -p flowedit -- examples/fibonacci/fibonacci.toml`
-
 Verify:
-- Hover over functions in the library panel — tooltip shows description text
-- Functions with no description show no tooltip
-- Context functions show descriptions (read-only)
+- Library panel shows flowstdlib functions used by the flow
+- Hover over functions in palette — tooltip shows description
+- Hover over source text on canvas node — full source path tooltip
+- Hover over rest of node — description tooltip
+- Edit description in viewer — tooltips update immediately
+- Save and reload — description persists
 
-- [ ] **Step 4: Test canvas two-zone tooltips**
-
-In the loaded flow:
-- Hover over a node's source text — tooltip shows the full source path
-- Hover over rest of node — tooltip shows the description
-- Nodes with empty descriptions show no tooltip on the body area
-
-- [ ] **Step 5: Test description editing in function viewer**
-
-- Click the pencil icon on a function node to open the viewer
-- Verify description text_input appears below the name
-- Edit the description
-- Verify the canvas tooltip updates with the new description
-
-- [ ] **Step 6: Test saving and reloading**
-
-- Edit a description on a provided implementation node
-- Save the flow
-- Close and reopen the flow
-- Verify the description persists
-
-- [ ] **Step 7: Final commit if any adjustments were needed**
+- [ ] **Step 5: Final commit if any adjustments were needed**
 
 ```bash
 git add -A
