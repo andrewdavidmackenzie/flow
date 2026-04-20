@@ -1,12 +1,19 @@
-//! Library panel module that discovers and displays available flow processes
-//! from installed libraries in a collapsible tree view.
+//! Library panel module that displays available flow processes from cached
+//! library manifests and parsed definitions in a collapsible tree view.
 //!
-//! The panel scans `FLOW_LIB_PATH` (defaulting to `~/.flow/lib`) for installed
-//! library directories and builds a tree of Library > Category > Function entries.
-//! Clicking a function emits a message to add it as a new node on the canvas.
+//! The panel is built from library manifests loaded after parsing a flow file.
+//! Each library's full catalog of functions is shown (not just those used by the
+//! flow), organized as Library > Category > Function. Clicking a function emits
+//! a message to add it as a new node on the canvas.
+
+use std::collections::{BTreeMap, HashMap};
 
 use iced::widget::{button, container, scrollable, text, Column, Row};
 use iced::{Element, Length};
+use url::Url;
+
+use flowcore::model::lib_manifest::LibraryManifest;
+use flowcore::model::process::Process;
 
 /// Width of the library side panel in pixels.
 const PANEL_WIDTH: f32 = 220.0;
@@ -63,7 +70,7 @@ pub(crate) struct LibraryEntry {
     pub expanded: bool,
 }
 
-/// The complete library tree discovered from the filesystem.
+/// The complete library tree built from cached manifests and definitions.
 #[derive(Debug, Clone)]
 pub(crate) struct LibraryTree {
     /// All discovered libraries
@@ -71,57 +78,43 @@ pub(crate) struct LibraryTree {
 }
 
 impl LibraryTree {
-    /// Scan the library path and build the tree structure.
+    /// Build a library tree from cached manifests and parsed definitions.
     ///
-    /// Looks in `FLOW_LIB_PATH` (comma-separated) with `~/.flow/lib` as the
-    /// default fallback. Each top-level directory is a library; subdirectories
-    /// are categories; subdirectories of categories containing `.toml` files
-    /// are functions. TOML files directly in a category directory are also
-    /// treated as functions (e.g., flow definitions like `sequence.toml`).
-    pub(crate) fn scan() -> Self {
-        let lib_path = resolve_lib_path();
+    /// For each library manifest, all locator URLs are used to build the tree
+    /// (library > category > function). Context functions are shown under a
+    /// "Context" library entry, derived from the parsed context definitions.
+    pub(crate) fn from_cache(
+        library_cache: &HashMap<Url, LibraryManifest>,
+        _lib_definitions: &HashMap<Url, Process>,
+        context_definitions: &HashMap<Url, Process>,
+    ) -> Self {
         let mut libraries = Vec::new();
 
-        for dir in &lib_path {
-            let lib_dir = std::path::Path::new(dir);
-            if !lib_dir.is_dir() {
-                continue;
-            }
+        // Build tree entries from library manifests
+        for manifest in library_cache.values() {
+            let lib_name = manifest.lib_url.host_str().unwrap_or("unknown").to_string();
+            let categories = build_categories_from_manifest(&manifest.locators);
 
-            // Each subdirectory of a lib path entry is a library
-            let Ok(entries) = std::fs::read_dir(lib_dir) else {
-                continue;
-            };
-
-            for lib_entry in entries.flatten() {
-                let lib_path_buf = lib_entry.path();
-                if !lib_path_buf.is_dir() {
-                    continue;
-                }
-
-                let lib_name = lib_entry.file_name().to_string_lossy().to_string();
-                let categories = scan_categories(&lib_path_buf, &lib_name);
-
-                if !categories.is_empty() {
-                    libraries.push(LibraryEntry {
-                        name: lib_name,
-                        categories,
-                        expanded: true,
-                    });
-                }
+            if !categories.is_empty() {
+                libraries.push(LibraryEntry {
+                    name: lib_name,
+                    categories,
+                    expanded: true,
+                });
             }
         }
 
-        // Add context functions from runner specifications
-        let context_entry = scan_context_functions();
+        // Build context functions entry from parsed context definitions
+        let context_entry = build_context_entry(context_definitions);
         if !context_entry.categories.is_empty() {
-            libraries.insert(0, context_entry); // Context at the top
+            libraries.insert(0, context_entry);
         }
 
         // Sort non-context libraries by name for consistent display
         if let Some(rest) = libraries.get_mut(1..) {
             rest.sort_by(|a, b| a.name.cmp(&b.name));
         }
+
         LibraryTree { libraries }
     }
 
@@ -162,7 +155,7 @@ impl LibraryTree {
 
         if self.libraries.is_empty() {
             content = content.push(
-                text("No libraries found.\nCheck FLOW_LIB_PATH or\n~/.flow/lib")
+                text("No libraries referenced\nby this flow.")
                     .size(12)
                     .color(iced::Color::from_rgb(0.6, 0.6, 0.6)),
             );
@@ -257,198 +250,100 @@ impl LibraryTree {
     }
 }
 
-/// Resolve the library search path directories.
+/// Build category entries from a manifest's locator map.
 ///
-/// Get the current library search paths.
-pub(crate) fn get_lib_paths() -> Vec<String> {
-    resolve_lib_path()
-}
+/// Each locator URL has the form `lib://library/category/function`.
+/// We extract category and function names from the URL path segments.
+fn build_categories_from_manifest(
+    locators: &BTreeMap<Url, flowcore::model::lib_manifest::ImplementationLocator>,
+) -> Vec<CategoryEntry> {
+    // Group functions by category
+    let mut category_map: BTreeMap<String, Vec<FunctionEntry>> = BTreeMap::new();
 
-/// Reads `FLOW_LIB_PATH` as a comma-separated list and appends `~/.flow/lib`
-/// as a default if it exists.
-fn resolve_lib_path() -> Vec<String> {
-    let mut paths = Vec::new();
+    for url in locators.keys() {
+        // URL path looks like "/category/function" (leading slash)
+        let path = url.path();
+        let segments: Vec<&str> = path.trim_start_matches('/').split('/').collect();
 
-    // Check FLOW_LIB_PATH environment variable
-    if let Ok(env_path) = std::env::var("FLOW_LIB_PATH") {
-        for p in env_path.split(',') {
-            let trimmed = p.trim();
-            if !trimmed.is_empty() {
-                paths.push(trimmed.to_string());
-            }
-        }
-    }
+        let (cat_name, func_name) = match segments.as_slice() {
+            [] => continue,
+            [single] => ("general".to_string(), (*single).to_string()),
+            [first, rest @ ..] => ((*first).to_string(), rest.join("/")),
+        };
 
-    // Add ~/.flow/lib as default
-    if let Ok(home) = std::env::var("HOME") {
-        let default_lib = format!("{home}/.flow/lib");
-        if std::path::Path::new(&default_lib).is_dir() && !paths.contains(&default_lib) {
-            paths.push(default_lib);
-        }
-    }
-
-    paths
-}
-
-/// Scan a library directory for categories and their functions.
-fn scan_categories(lib_dir: &std::path::Path, lib_name: &str) -> Vec<CategoryEntry> {
-    let mut categories = Vec::new();
-
-    let Ok(entries) = std::fs::read_dir(lib_dir) else {
-        return categories;
-    };
-
-    for entry in entries.flatten() {
-        let path = entry.path();
-        if !path.is_dir() {
+        if func_name.is_empty() {
             continue;
         }
 
-        let cat_name = entry.file_name().to_string_lossy().to_string();
-        let functions = scan_functions(&path, lib_name, &cat_name);
+        category_map
+            .entry(cat_name)
+            .or_default()
+            .push(FunctionEntry {
+                name: func_name,
+                source: url.to_string(),
+            });
+    }
 
-        if !functions.is_empty() {
-            categories.push(CategoryEntry {
-                name: cat_name,
+    let mut categories: Vec<CategoryEntry> = category_map
+        .into_iter()
+        .map(|(name, mut functions)| {
+            functions.sort_by(|a, b| a.name.cmp(&b.name));
+            CategoryEntry {
+                name,
                 functions,
                 expanded: false,
-            });
-        }
-    }
+            }
+        })
+        .collect();
 
     categories.sort_by(|a, b| a.name.cmp(&b.name));
     categories
 }
 
-/// Scan a category directory for functions.
+/// Build a "Context" library entry from parsed context definitions.
 ///
-/// A function is either:
-/// - A subdirectory containing a `.toml` file (e.g., `add/add.toml`)
-/// - A `.toml` file directly in the category directory (e.g., `sequence.toml`)
-fn scan_functions(cat_dir: &std::path::Path, lib_name: &str, cat_name: &str) -> Vec<FunctionEntry> {
-    let mut functions = Vec::new();
+/// Context URLs have the form `context://category/function`.
+fn build_context_entry(context_definitions: &HashMap<Url, Process>) -> LibraryEntry {
+    let mut category_map: BTreeMap<String, Vec<FunctionEntry>> = BTreeMap::new();
 
-    let Ok(entries) = std::fs::read_dir(cat_dir) else {
-        return functions;
-    };
+    for url in context_definitions.keys() {
+        // context://category/function
+        let cat_name = url.host_str().unwrap_or("general").to_string();
+        let func_name = url
+            .path()
+            .trim_start_matches('/')
+            .split('/')
+            .last()
+            .unwrap_or("")
+            .to_string();
 
-    for entry in entries.flatten() {
-        let path = entry.path();
-        let entry_name = entry.file_name().to_string_lossy().to_string();
+        if func_name.is_empty() {
+            continue;
+        }
 
-        if path.is_dir() {
-            // Check if subdirectory contains a .toml file
-            let has_toml = std::fs::read_dir(&path).is_ok_and(|entries| {
-                entries
-                    .flatten()
-                    .any(|e| e.path().extension().and_then(|ext| ext.to_str()) == Some("toml"))
+        category_map
+            .entry(cat_name)
+            .or_default()
+            .push(FunctionEntry {
+                name: func_name,
+                source: url.to_string(),
             });
-
-            if has_toml {
-                let source = format!("lib://{lib_name}/{cat_name}/{entry_name}");
-                functions.push(FunctionEntry {
-                    name: entry_name,
-                    source,
-                });
-            }
-        } else if path.extension().and_then(|ext| ext.to_str()) == Some("toml") {
-            // TOML file directly in category (e.g., sequence.toml, range.toml)
-            let func_name = path
-                .file_stem()
-                .map(|s| s.to_string_lossy().to_string())
-                .unwrap_or_default();
-            if !func_name.is_empty() {
-                let source = format!("lib://{lib_name}/{cat_name}/{func_name}");
-                functions.push(FunctionEntry {
-                    name: func_name,
-                    source,
-                });
-            }
-        }
     }
 
-    functions.sort_by(|a, b| a.name.cmp(&b.name));
-    functions
-}
-
-/// Scan context functions from runner specifications.
-///
-/// Looks in `~/.flow/runner/` for runner directories. Each runner has context
-/// function categories (stdio, file, image, args). Returns a `LibraryEntry`
-/// with "Context" as the library name.
-fn scan_context_functions() -> LibraryEntry {
-    let mut categories = Vec::new();
-
-    let runner_base = std::env::var("HOME")
-        .map(|h| std::path::PathBuf::from(h).join(".flow").join("runner"))
-        .unwrap_or_default();
-
-    if !runner_base.is_dir() {
-        return LibraryEntry {
-            name: "Context".to_string(),
-            categories,
-            expanded: true,
-        };
-    }
-
-    // Scan each runner directory
-    if let Ok(runners) = std::fs::read_dir(&runner_base) {
-        for runner_entry in runners.flatten() {
-            let runner_path = runner_entry.path();
-            if !runner_path.is_dir() {
-                continue;
+    let mut categories: Vec<CategoryEntry> = category_map
+        .into_iter()
+        .map(|(name, mut functions)| {
+            functions.sort_by(|a, b| a.name.cmp(&b.name));
+            CategoryEntry {
+                name,
+                functions,
+                expanded: false,
             }
-
-            // Scan categories within this runner
-            if let Ok(cats) = std::fs::read_dir(&runner_path) {
-                for cat_entry in cats.flatten() {
-                    let cat_path = cat_entry.path();
-                    if !cat_path.is_dir() {
-                        continue;
-                    }
-
-                    let cat_name = cat_entry.file_name().to_string_lossy().to_string();
-                    let mut functions = Vec::new();
-
-                    if let Ok(funcs) = std::fs::read_dir(&cat_path) {
-                        for func_entry in funcs.flatten() {
-                            let func_path = func_entry.path();
-                            if func_path.extension().and_then(|e| e.to_str()) == Some("toml") {
-                                let func_name = func_path
-                                    .file_stem()
-                                    .map(|s| s.to_string_lossy().to_string())
-                                    .unwrap_or_default();
-                                if !func_name.is_empty() {
-                                    let source = format!("context://{cat_name}/{func_name}");
-                                    functions.push(FunctionEntry {
-                                        name: func_name,
-                                        source,
-                                    });
-                                }
-                            }
-                        }
-                    }
-
-                    if !functions.is_empty() {
-                        functions.sort_by(|a, b| a.name.cmp(&b.name));
-                        // Avoid duplicate categories from multiple runners
-                        if !categories
-                            .iter()
-                            .any(|c: &CategoryEntry| c.name == cat_name)
-                        {
-                            categories.push(CategoryEntry {
-                                name: cat_name,
-                                functions,
-                                expanded: false,
-                            });
-                        }
-                    }
-                }
-            }
-        }
-    }
+        })
+        .collect();
 
     categories.sort_by(|a, b| a.name.cmp(&b.name));
+
     LibraryEntry {
         name: "Context".to_string(),
         categories,
@@ -457,15 +352,9 @@ fn scan_context_functions() -> LibraryEntry {
 }
 
 #[cfg(test)]
+#[allow(clippy::indexing_slicing)]
 mod test {
     use super::*;
-
-    #[test]
-    fn resolve_lib_path_includes_default() {
-        let paths = resolve_lib_path();
-        // Should at least not panic; whether ~/.flow/lib exists depends on environment
-        let _ = paths;
-    }
 
     #[test]
     fn empty_library_tree_view() {
@@ -536,5 +425,62 @@ mod test {
         assert_eq!(result, LibraryAction::None);
         let result = tree.update(&LibraryMessage::ToggleCategory(99, 0));
         assert_eq!(result, LibraryAction::None);
+    }
+
+    #[test]
+    fn from_cache_empty() {
+        let tree = LibraryTree::from_cache(&HashMap::new(), &HashMap::new(), &HashMap::new());
+        assert!(tree.libraries.is_empty());
+    }
+
+    #[test]
+    fn from_cache_with_context_only() {
+        let mut context_defs = HashMap::new();
+        let url = Url::parse("context://stdio/stdout").expect("valid url");
+        context_defs.insert(
+            url,
+            Process::FunctionProcess(
+                flowcore::model::function_definition::FunctionDefinition::default(),
+            ),
+        );
+        let tree = LibraryTree::from_cache(&HashMap::new(), &HashMap::new(), &context_defs);
+        assert_eq!(tree.libraries.len(), 1);
+        assert_eq!(tree.libraries[0].name, "Context");
+        assert_eq!(tree.libraries[0].categories.len(), 1);
+        assert_eq!(tree.libraries[0].categories[0].name, "stdio");
+        assert_eq!(tree.libraries[0].categories[0].functions.len(), 1);
+        assert_eq!(tree.libraries[0].categories[0].functions[0].name, "stdout");
+    }
+
+    #[test]
+    fn build_categories_from_locators() {
+        let mut locators = BTreeMap::new();
+        locators.insert(
+            Url::parse("lib://flowstdlib/math/add").expect("valid url"),
+            flowcore::model::lib_manifest::ImplementationLocator::RelativePath(
+                "math/add.wasm".into(),
+            ),
+        );
+        locators.insert(
+            Url::parse("lib://flowstdlib/math/subtract").expect("valid url"),
+            flowcore::model::lib_manifest::ImplementationLocator::RelativePath(
+                "math/subtract.wasm".into(),
+            ),
+        );
+        locators.insert(
+            Url::parse("lib://flowstdlib/control/tap").expect("valid url"),
+            flowcore::model::lib_manifest::ImplementationLocator::RelativePath(
+                "control/tap.wasm".into(),
+            ),
+        );
+
+        let categories = build_categories_from_manifest(&locators);
+        assert_eq!(categories.len(), 2);
+        // Categories should be sorted alphabetically
+        assert_eq!(categories[0].name, "control");
+        assert_eq!(categories[1].name, "math");
+        assert_eq!(categories[1].functions.len(), 2);
+        assert_eq!(categories[1].functions[0].name, "add");
+        assert_eq!(categories[1].functions[1].name, "subtract");
     }
 }

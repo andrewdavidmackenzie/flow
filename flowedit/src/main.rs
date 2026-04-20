@@ -13,15 +13,16 @@
 //! is displayed as a colored, rounded rectangle on the canvas, with connections
 //! drawn as bezier curves between nodes.
 
-use std::collections::{BTreeMap, HashMap};
+use std::collections::{BTreeMap, BTreeSet, HashMap};
 use std::path::{Path, PathBuf};
+use std::sync::Arc;
 
 use clap::{Arg, ArgAction, Command as ClapCommand};
 use iced::keyboard;
 use iced::widget::{button, container, pick_list, stack, text_input, Column, Row, Text};
 use iced::window;
 use iced::{Color, Element, Fill, Subscription, Task, Theme};
-use log::info;
+use log::{info, warn};
 use simpath::Simpath;
 use url::Url;
 
@@ -29,9 +30,11 @@ use flowcore::deserializers::deserializer::get;
 use flowcore::meta_provider::MetaProvider;
 use flowcore::model::flow_definition::FlowDefinition;
 use flowcore::model::input::InputInitializer;
+use flowcore::model::lib_manifest::LibraryManifest;
 use flowcore::model::name::HasName;
 use flowcore::model::process::Process;
 use flowcore::model::process_reference::ProcessReference;
+use flowcore::provider::Provider;
 mod canvas_view;
 mod hierarchy_panel;
 mod history;
@@ -255,6 +258,12 @@ struct FlowEdit {
     root_flow_path: Option<PathBuf>,
     show_lib_paths: bool,
     lib_paths: Vec<String>,
+    /// Cached library manifests, keyed by library root URL (e.g., `lib://flowstdlib`)
+    library_cache: HashMap<Url, LibraryManifest>,
+    /// Cached parsed definitions for library functions/flows, keyed by lib:// URL
+    lib_definitions: HashMap<Url, Process>,
+    /// Cached parsed definitions for context functions, keyed by context:// URL
+    context_definitions: HashMap<Url, Process>,
 }
 
 /// Main entry point for the flowedit binary.
@@ -324,20 +333,22 @@ impl FlowEdit {
             }
         }
 
-        let (flow_name, nodes, edges, status, file_path, flow_definition) =
+        let (flow_name, nodes, edges, status, file_path, flow_definition, lib_refs, ctx_refs) =
             if let Some(flow_path_str) = matches.get_one::<String>("flow-file") {
                 let flow_path = PathBuf::from(flow_path_str);
                 match load_flow(&flow_path) {
-                    Ok((name, node_list, edge_list, flow_def)) => {
-                        let nc = node_list.len();
-                        let ec = edge_list.len();
+                    Ok(loaded) => {
+                        let nc = loaded.nodes.len();
+                        let ec = loaded.edges.len();
                         (
-                            name,
-                            node_list,
-                            edge_list,
+                            loaded.name,
+                            loaded.nodes,
+                            loaded.edges,
                             format!("Ready - {nc} nodes, {ec} connections"),
                             Some(flow_path),
-                            flow_def,
+                            loaded.flow_def,
+                            loaded.lib_references,
+                            loaded.context_references,
                         )
                     }
                     Err(e) => (
@@ -347,6 +358,8 @@ impl FlowEdit {
                         format!("Error loading flow: {e}"),
                         None,
                         FlowDefinition::default(),
+                        BTreeSet::new(),
+                        BTreeSet::new(),
                     ),
                 }
             } else {
@@ -357,11 +370,18 @@ impl FlowEdit {
                     String::from("Ready"),
                     None,
                     FlowDefinition::default(),
+                    BTreeSet::new(),
+                    BTreeSet::new(),
                 )
             };
 
         let has_nodes = !nodes.is_empty();
-        let library_tree = LibraryTree::scan();
+
+        // Load full library catalogs from manifests and parse all definitions
+        let (library_cache, lib_definitions, context_definitions) =
+            load_library_catalogs(&lib_refs, &ctx_refs);
+        let library_tree =
+            LibraryTree::from_cache(&library_cache, &lib_definitions, &context_definitions);
 
         // Open the root window via daemon API
         let saved_prefs = file_path.as_ref().and_then(|p| load_editor_prefs(p));
@@ -420,6 +440,7 @@ impl FlowEdit {
         let mut windows = HashMap::new();
         windows.insert(root_id, win_state);
 
+        let lib_paths = resolve_lib_paths();
         let app = FlowEdit {
             windows,
             root_window: Some(root_id),
@@ -427,7 +448,10 @@ impl FlowEdit {
             library_tree,
             root_flow_path,
             show_lib_paths: false,
-            lib_paths: library_panel::get_lib_paths(),
+            lib_paths,
+            library_cache,
+            lib_definitions,
+            context_definitions,
         };
 
         (app, open_task.discard())
@@ -701,18 +725,19 @@ impl FlowEdit {
                     }
                     // Open the flow or function
                     match load_flow(&path) {
-                        Ok((name, nodes, edges, flow_def)) => {
-                            let (fi, fo) = extract_ports(&flow_def.inputs, &flow_def.outputs);
+                        Ok(loaded) => {
+                            let (fi, fo) =
+                                extract_ports(&loaded.flow_def.inputs, &loaded.flow_def.outputs);
                             let (new_id, open_task) =
                                 window::open(self.child_window_settings(1024.0, 768.0));
-                            let has_nodes = !nodes.is_empty();
-                            let nc = nodes.len();
-                            let ec = edges.len();
+                            let has_nodes = !loaded.nodes.is_empty();
+                            let nc = loaded.nodes.len();
+                            let ec = loaded.edges.len();
                             let child = WindowState {
                                 kind: WindowKind::FlowEditor,
-                                flow_name: name,
-                                nodes,
-                                edges,
+                                flow_name: loaded.name,
+                                nodes: loaded.nodes,
+                                edges: loaded.edges,
                                 canvas_state: FlowCanvasState::default(),
                                 status: format!("Ready - {nc} nodes, {ec} connections"),
                                 selected_node: None,
@@ -723,7 +748,7 @@ impl FlowEdit {
                                 unsaved_edits: 0,
                                 compiled_manifest: None,
                                 file_path: Some(path),
-                                flow_definition: flow_def,
+                                flow_definition: loaded.flow_def,
                                 tooltip: None,
                                 initializer_editor: None,
                                 is_root: false,
@@ -832,19 +857,40 @@ impl FlowEdit {
             Message::Open => {
                 if let Some(root_id) = self.root_window {
                     if let Some(win) = self.windows.get_mut(&root_id) {
-                        perform_open(win);
-                        self.root_flow_path = win.file_path.clone();
-                        win.flow_hierarchy = win
-                            .file_path
-                            .as_ref()
-                            .map(|p| FlowHierarchy::build(p))
-                            .unwrap_or_else(FlowHierarchy::empty);
+                        if let Some((lib_refs, ctx_refs)) = perform_open(win) {
+                            self.root_flow_path = win.file_path.clone();
+                            win.flow_hierarchy = win
+                                .file_path
+                                .as_ref()
+                                .map(|p| FlowHierarchy::build(p))
+                                .unwrap_or_else(FlowHierarchy::empty);
+
+                            // Rebuild library cache with new flow's references
+                            let (lc, ld, cd) = load_library_catalogs(&lib_refs, &ctx_refs);
+                            self.library_cache = lc;
+                            self.lib_definitions = ld;
+                            self.context_definitions = cd;
+                            self.library_tree = LibraryTree::from_cache(
+                                &self.library_cache,
+                                &self.lib_definitions,
+                                &self.context_definitions,
+                            );
+                        }
                     }
                 }
             }
             Message::New => {
                 if let Some(win) = self.root_window.and_then(|id| self.windows.get_mut(&id)) {
                     perform_new(win);
+                    // Clear the library cache for a new (empty) flow
+                    self.library_cache.clear();
+                    self.lib_definitions.clear();
+                    self.context_definitions.clear();
+                    self.library_tree = LibraryTree::from_cache(
+                        &self.library_cache,
+                        &self.lib_definitions,
+                        &self.context_definitions,
+                    );
                 }
             }
             Message::Compile => {
@@ -2102,18 +2148,18 @@ impl FlowEdit {
                 self.open_function_viewer(parent, &path, func)
             }
             Ok(Process::FlowProcess(_)) => match load_flow(&path) {
-                Ok((name, nodes, edges, flow_def)) => {
-                    let (fi, fo) = extract_ports(&flow_def.inputs, &flow_def.outputs);
-                    let has_nodes = !nodes.is_empty();
-                    let nc = nodes.len();
-                    let ec = edges.len();
+                Ok(loaded) => {
+                    let (fi, fo) = extract_ports(&loaded.flow_def.inputs, &loaded.flow_def.outputs);
+                    let has_nodes = !loaded.nodes.is_empty();
+                    let nc = loaded.nodes.len();
+                    let ec = loaded.edges.len();
                     let (new_id, open_task) =
                         window::open(self.child_window_settings(1024.0, 768.0));
                     let child = WindowState {
                         kind: WindowKind::FlowEditor,
-                        flow_name: name,
-                        nodes,
-                        edges,
+                        flow_name: loaded.name,
+                        nodes: loaded.nodes,
+                        edges: loaded.edges,
                         canvas_state: FlowCanvasState::default(),
                         status: format!("Library flow - {nc} nodes, {ec} connections"),
                         selected_node: None,
@@ -2124,7 +2170,7 @@ impl FlowEdit {
                         unsaved_edits: 0,
                         compiled_manifest: None,
                         file_path: Some(path),
-                        flow_definition: flow_def,
+                        flow_definition: loaded.flow_def,
                         tooltip: None,
                         initializer_editor: None,
                         is_root: false,
@@ -2148,7 +2194,28 @@ impl FlowEdit {
     fn update_lib_paths(&mut self) {
         let path_str = self.lib_paths.join(",");
         std::env::set_var("FLOW_LIB_PATH", &path_str);
-        self.library_tree = LibraryTree::scan();
+
+        // Reload library catalogs with the updated search paths.
+        // Gather lib_references and context_references from the root window's flow.
+        let (lib_refs, ctx_refs) = self
+            .root_window
+            .and_then(|id| self.windows.get(&id))
+            .map(|win| {
+                (
+                    win.flow_definition.lib_references.clone(),
+                    win.flow_definition.context_references.clone(),
+                )
+            })
+            .unwrap_or_default();
+        let (lc, ld, cd) = load_library_catalogs(&lib_refs, &ctx_refs);
+        self.library_cache = lc;
+        self.lib_definitions = ld;
+        self.context_definitions = cd;
+        self.library_tree = LibraryTree::from_cache(
+            &self.library_cache,
+            &self.lib_definitions,
+            &self.context_definitions,
+        );
     }
 
     fn build_hierarchy(&self) -> FlowHierarchy {
@@ -2219,17 +2286,17 @@ impl FlowEdit {
 
         // Load the sub-flow and open it in a new window
         match load_flow(&path) {
-            Ok((name, nodes, edges, flow_def)) => {
-                let has_nodes = !nodes.is_empty();
+            Ok(loaded) => {
+                let has_nodes = !loaded.nodes.is_empty();
                 let (new_id, open_task) = window::open(self.child_window_settings(1024.0, 768.0));
-                let nc = nodes.len();
-                let ec = edges.len();
-                let (fi, fo) = extract_ports(&flow_def.inputs, &flow_def.outputs);
+                let nc = loaded.nodes.len();
+                let ec = loaded.edges.len();
+                let (fi, fo) = extract_ports(&loaded.flow_def.inputs, &loaded.flow_def.outputs);
                 let child = WindowState {
                     kind: WindowKind::FlowEditor,
-                    flow_name: name,
-                    nodes,
-                    edges,
+                    flow_name: loaded.name,
+                    nodes: loaded.nodes,
+                    edges: loaded.edges,
                     canvas_state: FlowCanvasState::default(),
                     status: format!("Ready - {nc} nodes, {ec} connections"),
                     selected_node: None,
@@ -2240,7 +2307,7 @@ impl FlowEdit {
                     unsaved_edits: 0,
                     compiled_manifest: None,
                     file_path: Some(path.clone()),
-                    flow_definition: flow_def,
+                    flow_definition: loaded.flow_def,
                     tooltip: None,
                     initializer_editor: None,
                     is_root: false,
@@ -2690,18 +2757,20 @@ fn perform_save_as(win: &mut WindowState) {
 }
 
 /// Prompt the user with an open dialog and load the selected flow file.
-fn perform_open(win: &mut WindowState) {
+/// Open a flow file and update the window state.
+/// Returns the lib and context references if successful, for rebuilding the library cache.
+fn perform_open(win: &mut WindowState) -> Option<(BTreeSet<Url>, BTreeSet<Url>)> {
     let dialog = rfd::FileDialog::new().add_filter("Flow", &["toml"]);
     if let Some(path) = dialog.pick_file() {
         match load_flow(&path) {
-            Ok((name, node_list, edge_list, flow_def)) => {
-                let nc = node_list.len();
-                let ec = edge_list.len();
-                let (fi, fo) = extract_ports(&flow_def.inputs, &flow_def.outputs);
-                win.flow_name = name;
-                win.nodes = node_list;
-                win.edges = edge_list;
-                win.flow_definition = flow_def;
+            Ok(loaded) => {
+                let nc = loaded.nodes.len();
+                let ec = loaded.edges.len();
+                let (fi, fo) = extract_ports(&loaded.flow_def.inputs, &loaded.flow_def.outputs);
+                win.flow_name = loaded.name;
+                win.nodes = loaded.nodes;
+                win.edges = loaded.edges;
+                win.flow_definition = loaded.flow_def;
                 win.file_path = Some(path);
                 win.flow_inputs = fi;
                 win.flow_outputs = fo;
@@ -2713,12 +2782,14 @@ fn perform_open(win: &mut WindowState) {
                 win.auto_fit_enabled = true;
                 win.canvas_state = FlowCanvasState::default();
                 win.status = format!("Loaded - {nc} nodes, {ec} connections");
+                return Some((loaded.lib_references, loaded.context_references));
             }
             Err(e) => {
                 win.status = format!("Open failed: {e}");
             }
         }
     }
+    None
 }
 
 /// Clear the canvas and reset to an empty flow state.
@@ -3187,6 +3258,30 @@ fn build_meta_provider() -> MetaProvider {
     MetaProvider::new(lib_search_path, context_root)
 }
 
+/// Resolve the library search paths from the `FLOW_LIB_PATH` environment variable
+/// and the default `~/.flow/lib` directory.
+fn resolve_lib_paths() -> Vec<String> {
+    let mut paths = Vec::new();
+
+    if let Ok(env_path) = std::env::var("FLOW_LIB_PATH") {
+        for p in env_path.split(',') {
+            let trimmed = p.trim();
+            if !trimmed.is_empty() {
+                paths.push(trimmed.to_string());
+            }
+        }
+    }
+
+    if let Ok(home) = std::env::var("HOME") {
+        let default_lib = format!("{home}/.flow/lib");
+        if std::path::Path::new(&default_lib).is_dir() && !paths.contains(&default_lib) {
+            paths.push(default_lib);
+        }
+    }
+
+    paths
+}
+
 fn extract_ports(
     inputs: &[flowcore::model::io::IO],
     outputs: &[flowcore::model::io::IO],
@@ -3208,11 +3303,19 @@ fn extract_ports(
     (input_ports, output_ports)
 }
 
+/// Result of loading a flow definition file.
+struct LoadedFlow {
+    name: String,
+    nodes: Vec<NodeLayout>,
+    edges: Vec<EdgeLayout>,
+    flow_def: FlowDefinition,
+    lib_references: BTreeSet<Url>,
+    context_references: BTreeSet<Url>,
+}
+
 /// Load a flow definition file and return the flow name, node layouts, edge layouts,
-/// and the original `FlowDefinition` for use when saving.
-fn load_flow(
-    path: &PathBuf,
-) -> Result<(String, Vec<NodeLayout>, Vec<EdgeLayout>, FlowDefinition), String> {
+/// the original `FlowDefinition`, and the library/context references for catalog loading.
+fn load_flow(path: &PathBuf) -> Result<LoadedFlow, String> {
     let abs_path = if path.is_absolute() {
         path.clone()
     } else {
@@ -3254,13 +3357,105 @@ fn load_flow(
             let nodes =
                 build_node_layouts(&flow.process_refs, &flow.connections, &resolved_ports);
             let name = flow.name.clone();
-            Ok((name, nodes, edges, flow))
+            let lib_references = flow.lib_references.clone();
+            let context_references = flow.context_references.clone();
+            Ok(LoadedFlow {
+                name,
+                nodes,
+                edges,
+                flow_def: flow,
+                lib_references,
+                context_references,
+            })
         }
         Process::FunctionProcess(_) => Err(
             "The specified file defines a Function, not a Flow. flowedit requires a flow definition."
                 .to_string(),
         ),
     }
+}
+
+/// Load full library catalogs and cache all definitions.
+///
+/// For each unique library root URL found in `lib_references`, loads the library
+/// manifest and parses every function/flow definition in that library. For each
+/// URL in `context_references`, parses the context function definition.
+fn load_library_catalogs(
+    lib_references: &BTreeSet<Url>,
+    context_references: &BTreeSet<Url>,
+) -> (
+    HashMap<Url, LibraryManifest>,
+    HashMap<Url, Process>,
+    HashMap<Url, Process>,
+) {
+    let provider = build_meta_provider();
+    let arc_provider: Arc<dyn Provider> = Arc::new(provider);
+    let mut library_cache = HashMap::new();
+    let mut lib_definitions = HashMap::new();
+    let mut context_definitions = HashMap::new();
+
+    // Extract unique library root URLs from lib_references
+    // e.g., "lib://flowstdlib/math/add" -> "lib://flowstdlib"
+    let mut lib_roots: BTreeSet<Url> = BTreeSet::new();
+    for lib_ref in lib_references {
+        if let Some(host) = lib_ref.host_str() {
+            if let Ok(root_url) = Url::parse(&format!("lib://{host}")) {
+                lib_roots.insert(root_url);
+            }
+        }
+    }
+
+    // Load each library's full manifest
+    for lib_root in &lib_roots {
+        match LibraryManifest::load(&arc_provider, lib_root) {
+            Ok((manifest, _manifest_url)) => {
+                info!(
+                    "Loaded library manifest for '{}' with {} locators",
+                    lib_root,
+                    manifest.locators.len()
+                );
+
+                // Parse each function/flow in the manifest
+                let meta_provider = build_meta_provider();
+                for locator_url in manifest.locators.keys() {
+                    match flowrclib::compiler::parser::parse(locator_url, &meta_provider) {
+                        Ok(process) => {
+                            lib_definitions.insert(locator_url.clone(), process);
+                        }
+                        Err(e) => {
+                            warn!(
+                                "Could not parse library definition '{}': {}",
+                                locator_url, e
+                            );
+                        }
+                    }
+                }
+
+                library_cache.insert(lib_root.clone(), manifest);
+            }
+            Err(e) => {
+                warn!("Could not load library manifest for '{}': {}", lib_root, e);
+            }
+        }
+    }
+
+    // Parse each context function definition
+    let ctx_provider = build_meta_provider();
+    for context_ref in context_references {
+        match flowrclib::compiler::parser::parse(context_ref, &ctx_provider) {
+            Ok(process) => {
+                context_definitions.insert(context_ref.clone(), process);
+            }
+            Err(e) => {
+                warn!(
+                    "Could not parse context definition '{}': {}",
+                    context_ref, e
+                );
+            }
+        }
+    }
+
+    (library_cache, lib_definitions, context_definitions)
 }
 
 /// Serialize a `serde_json::Value` into a TOML-compatible inline value string.
@@ -3884,6 +4079,9 @@ mod test {
             root_flow_path: None,
             show_lib_paths: false,
             lib_paths: Vec::new(),
+            library_cache: HashMap::new(),
+            lib_definitions: HashMap::new(),
+            context_definitions: HashMap::new(),
         };
         (app, win_id)
     }
@@ -4326,11 +4524,11 @@ mod test {
         assert!(contents.contains("Test Author"));
         assert!(contents.contains("lib://flowstdlib/math/add"));
 
-        let (name, nodes, loaded_edges, loaded_flow) = load_flow(&path).expect("load failed");
-        assert_eq!(name, "roundtrip_test");
-        assert_eq!(nodes.len(), 1);
-        assert_eq!(loaded_edges.len(), 1);
-        assert_eq!(loaded_flow.metadata.version, "1.0.0");
+        let loaded = load_flow(&path).expect("load failed");
+        assert_eq!(loaded.name, "roundtrip_test");
+        assert_eq!(loaded.nodes.len(), 1);
+        assert_eq!(loaded.edges.len(), 1);
+        assert_eq!(loaded.flow_def.metadata.version, "1.0.0");
 
         let _ = std::fs::remove_dir_all(&dir);
     }
