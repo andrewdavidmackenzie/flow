@@ -1,4 +1,5 @@
 function = "multiply_row"
+description = "Multiply two matrix rows to a product"
 source = "multiply_row.rs"
 docs = "multiply_row.md"
 type = "rust"

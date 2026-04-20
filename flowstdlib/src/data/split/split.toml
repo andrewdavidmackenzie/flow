@@ -1,4 +1,5 @@
 function = "split"
+description = "Split a string into (possibly) two parts and a possible token, based on a separator."
 source = "split.rs"
 docs = "split.md"
 type = "rust"

@@ -1,4 +1,5 @@
 function = "to_json"
+description = "Convert a String to Json"
 source = "to_json.rs"
 docs = "to_json.md"
 type = "rust"

@@ -1,4 +1,5 @@
 function = "file_write"
+description = "Write content to a file"
 source = "file_write.rs"
 docs = "file_write.md"
 impure = true

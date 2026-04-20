@@ -1,4 +1,5 @@
 function = "test"
+description = "A test function used in compiler tests"
 source = "test.rs"
 type = "rust"
 impure = true

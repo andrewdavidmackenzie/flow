@@ -1,4 +1,5 @@
 function = "range_split"
+description = "Split a range of numbers into two sub-ranges, or output the number if they are the same"
 source = "range_split.rs"
 docs = "range_split.md"
 type = "rust"

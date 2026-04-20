@@ -1,4 +1,5 @@
 function = "index"
+description = "Pass through a value based on its index in the stream"
 source = "index.rs"
 docs = "index.md"
 type = "rust"

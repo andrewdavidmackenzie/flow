@@ -1,4 +1,5 @@
 function = "subtract"
+description = "Subtract one input from another to produce a new output"
 source = "subtract.rs"
 docs = "subtract.md"
 type = "rust"

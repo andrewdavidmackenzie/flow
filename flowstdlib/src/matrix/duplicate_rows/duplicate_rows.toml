@@ -1,4 +1,5 @@
 function = "duplicate_rows"
+description = "Duplicate the rows of a matrix"
 source = "duplicate_rows.rs"
 docs = "duplicate_rows.md"
 type = "rust"

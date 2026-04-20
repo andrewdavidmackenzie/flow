@@ -1,4 +1,5 @@
 function = "file_read"
+description = "Read the contents of a file"
 source = "file_read.rs"
 docs = "file_read.md"
 impure = true

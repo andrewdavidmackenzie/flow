@@ -1,4 +1,5 @@
 function = "sort"
+description = "Sort an array of numbers"
 source = "sort.rs"
 docs = "sort.md"
 type = "rust"

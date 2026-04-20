@@ -1,4 +1,5 @@
 function = "accumulate"
+description = "Accumulate input values into an array up to the specified limit"
 source = "accumulate.rs"
 docs = "accumulate.md"
 type = "rust"

@@ -1,4 +1,5 @@
 function = "readline"
+description = "Read a line of text with an optional prompt"
 source = "readline.rs"
 docs = "readline.md"
 impure = true

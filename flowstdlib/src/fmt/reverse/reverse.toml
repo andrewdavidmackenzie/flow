@@ -1,4 +1,5 @@
 function = "reverse"
+description = "Reverse a String"
 source = "reverse.rs"
 docs = "reverse.md"
 type = "rust"

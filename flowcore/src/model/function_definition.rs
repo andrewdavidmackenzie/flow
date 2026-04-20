@@ -33,6 +33,9 @@ pub struct FunctionDefinition {
     /// Name of any docs file associated with this Function
     #[serde(default)]
     pub docs: String,
+    /// Optional description of what this function does
+    #[serde(default)]
+    pub description: String,
     /// Type of build used to compile Function's implementation to WASM from source
     #[serde(default, rename = "type")]
     pub build_type: String,
@@ -79,6 +82,7 @@ impl Default for FunctionDefinition {
             impure: false,
             source: String::new(),
             docs: String::new(),
+            description: String::new(),
             build_type: String::new(),
             inputs: vec![],
             outputs: vec![],
@@ -153,6 +157,7 @@ impl FunctionDefinition {
             function_id: id,
             flow_id,
             build_type: String::default(),
+            description: String::default(),
         }
     }
 

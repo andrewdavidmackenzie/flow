@@ -1,4 +1,5 @@
 function = "remove"
+description = "Remove a value from an array of values"
 source = "remove.rs"
 docs = "remove.md"
 type = "rust"

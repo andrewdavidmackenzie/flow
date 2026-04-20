@@ -1,4 +1,5 @@
 function = "image_buffer"
+description = "Create an image buffer and write pixels to it"
 source = "image_buffer.rs"
 docs = "image_buffer.md"
 impure = true

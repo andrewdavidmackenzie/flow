@@ -1,4 +1,5 @@
 function = "escapes"
+description = "Calculate the escape value for a point in the Mandelbrot set"
 source = "escapes.rs"
 docs = "escapes.md"
 type = "rust"

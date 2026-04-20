@@ -1,4 +1,5 @@
 function = "join"
+description = "Control the flow of a piece of data by waiting for a second value to be available"
 source = "join.rs"
 docs = "join.md"
 type = "rust"

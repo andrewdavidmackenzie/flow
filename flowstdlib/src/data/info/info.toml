@@ -1,4 +1,5 @@
 function = "info"
+description = "Output info about the input value"
 source = "info.rs"
 docs = "info.md"
 type = "rust"

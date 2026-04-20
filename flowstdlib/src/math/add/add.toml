@@ -1,4 +1,5 @@
 function = "add"
+description = "Add two inputs to produce a new output"
 source = "add.rs"
 docs = "add.md"
 type = "rust"

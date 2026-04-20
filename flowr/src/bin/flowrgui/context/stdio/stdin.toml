@@ -1,4 +1,5 @@
 function = "stdin"
+description = "Read a line of text from standard input"
 source = "stdin.rs"
 docs = "stdin.md"
 impure = true

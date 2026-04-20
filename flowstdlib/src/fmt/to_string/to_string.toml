@@ -1,4 +1,5 @@
 function = "to_string"
+description = "Convert an input type to a String"
 source = "to_string.rs"
 docs = "to_string.md"
 type = "rust"

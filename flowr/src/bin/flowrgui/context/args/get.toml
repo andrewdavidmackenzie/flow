@@ -1,4 +1,5 @@
 function = "get"
+description = "Get command line arguments"
 source = "get.rs"
 docs = "get.md"
 impure = true

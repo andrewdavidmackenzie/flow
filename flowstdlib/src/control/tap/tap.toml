@@ -1,4 +1,5 @@
 function = "tap"
+description = "Control the flow of data (flow it through this function, or have it disappear) based on a boolean control value."
 source = "tap.rs"
 docs = "tap.md"
 type = "rust"
