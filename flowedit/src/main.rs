@@ -3649,6 +3649,11 @@ fn save_flow_toml(
     // Flow name
     out.push_str(&format!("flow = \"{}\"\n", flow.name));
 
+    // Description
+    if !flow.description.is_empty() {
+        out.push_str(&format!("description = \"{}\"\n", flow.description));
+    }
+
     // Docs
     if !flow.docs.is_empty() {
         out.push_str(&format!("docs = \"{}\"\n", flow.docs));
@@ -4692,6 +4697,23 @@ mod test {
         save_flow_toml(&flow, &[], &path).expect("save failed");
         let contents = std::fs::read_to_string(&path).expect("read failed");
         assert!(contents.contains("description = \"A test description\""));
+
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn save_flow_with_description() {
+        let dir = temp_dir("description");
+        let path = dir.join("test_flow.toml");
+
+        let mut flow = FlowDefinition::default();
+        flow.name = "described_flow".into();
+        flow.description = "A test flow that does something".into();
+
+        save_flow_toml(&flow, &[], &path).expect("Could not save flow");
+
+        let content = std::fs::read_to_string(&path).expect("Could not read saved file");
+        assert!(content.contains("description = \"A test flow that does something\""));
 
         let _ = std::fs::remove_dir_all(&dir);
     }
