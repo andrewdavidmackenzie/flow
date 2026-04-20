@@ -2572,6 +2572,7 @@ impl FlowEdit {
             let node = NodeLayout {
                 alias: alias.clone(),
                 source: source.clone(),
+                description: String::new(),
                 x,
                 y,
                 width: 180.0,
@@ -2681,6 +2682,7 @@ impl FlowEdit {
             let node = NodeLayout {
                 alias: alias.clone(),
                 source: source.clone(),
+                description: String::new(),
                 x,
                 y,
                 width: 180.0,
@@ -3010,6 +3012,7 @@ fn add_library_function(win: &mut WindowState, source: &str, func_name: &str) {
     let node = NodeLayout {
         alias: alias.clone(),
         source: source.to_string(),
+        description: String::new(),
         x,
         y,
         width: 180.0,
@@ -3461,8 +3464,12 @@ fn load_flow(path: &PathBuf) -> Result<LoadedFlow, String> {
             }
 
             let edges = build_edge_layouts(&flow.connections);
-            let nodes =
-                build_node_layouts(&flow.process_refs, &flow.connections, &resolved_ports);
+            let nodes = build_node_layouts(
+                &flow.process_refs,
+                &flow.connections,
+                &resolved_ports,
+                &flow.subprocesses,
+            );
             let name = flow.name.clone();
             let lib_references = flow.lib_references.clone();
             let context_references = flow.context_references.clone();
@@ -3911,6 +3918,7 @@ mod test {
         NodeLayout {
             alias: alias.into(),
             source: source.into(),
+            description: String::new(),
             x: 100.0,
             y: 100.0,
             width: 180.0,
