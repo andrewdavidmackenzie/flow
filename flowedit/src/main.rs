@@ -3645,3 +3645,244 @@ fn load_editor_prefs(flow_path: &Path) -> Option<EditorPrefs> {
         y,
     })
 }
+
+#[cfg(test)]
+mod test {
+    use super::*;
+    use std::collections::HashMap;
+
+    fn test_node(alias: &str, source: &str) -> NodeLayout {
+        NodeLayout {
+            alias: alias.into(),
+            source: source.into(),
+            x: 100.0,
+            y: 100.0,
+            width: 180.0,
+            height: 120.0,
+            inputs: Vec::new(),
+            outputs: Vec::new(),
+            initializers: HashMap::new(),
+        }
+    }
+
+    #[test]
+    fn unique_alias_no_conflict() {
+        let nodes = vec![test_node("add", "lib://test")];
+        assert_eq!(generate_unique_alias("subtract", &nodes), "subtract");
+    }
+
+    #[test]
+    fn unique_alias_with_conflict() {
+        let nodes = vec![test_node("add", "lib://test")];
+        assert_eq!(generate_unique_alias("add", &nodes), "add_2");
+    }
+
+    #[test]
+    fn unique_alias_multiple_conflicts() {
+        let nodes = vec![
+            test_node("add", "lib://test"),
+            test_node("add_2", "lib://test"),
+        ];
+        assert_eq!(generate_unique_alias("add", &nodes), "add_3");
+    }
+
+    #[test]
+    fn next_position_empty() {
+        let (x, y) = next_node_position(&[]);
+        assert!((x - 100.0).abs() < 0.01);
+        assert!((y - 100.0).abs() < 0.01);
+    }
+
+    #[test]
+    fn next_position_after_nodes() {
+        let nodes = vec![test_node("a", "lib://test")];
+        let (x, _y) = next_node_position(&nodes);
+        assert!(x > 280.0); // right of existing node + gap
+    }
+
+    #[test]
+    fn format_endpoint_with_port() {
+        assert_eq!(format_endpoint("add", "i1"), "add/i1");
+    }
+
+    #[test]
+    fn format_endpoint_empty_port() {
+        assert_eq!(format_endpoint("add", ""), "add");
+    }
+
+    #[test]
+    fn format_endpoint_default_port() {
+        assert_eq!(format_endpoint("add", "default"), "add");
+    }
+
+    #[test]
+    fn format_endpoint_output_port() {
+        assert_eq!(format_endpoint("add", "output"), "add");
+    }
+
+    #[test]
+    fn value_to_toml_string() {
+        assert_eq!(value_to_toml(&serde_json::json!("hello")), "\"hello\"");
+    }
+
+    #[test]
+    fn value_to_toml_number() {
+        assert_eq!(value_to_toml(&serde_json::json!(42)), "42");
+    }
+
+    #[test]
+    fn value_to_toml_bool() {
+        assert_eq!(value_to_toml(&serde_json::json!(true)), "true");
+    }
+
+    #[test]
+    fn value_to_toml_array() {
+        assert_eq!(value_to_toml(&serde_json::json!([1, 2, 3])), "[1, 2, 3]");
+    }
+
+    #[test]
+    fn initializer_to_toml_once() {
+        let init = InputInitializer::Once(serde_json::json!(42));
+        assert_eq!(initializer_to_toml(&init), "{ once = 42 }");
+    }
+
+    #[test]
+    fn initializer_to_toml_always() {
+        let init = InputInitializer::Always(serde_json::json!("hello"));
+        assert_eq!(initializer_to_toml(&init), "{ always = \"hello\" }");
+    }
+
+    #[test]
+    fn editor_prefs_path_format() {
+        let path = editor_prefs_path(Path::new("/tmp/test/root.toml"));
+        assert_eq!(
+            path.file_name().and_then(|n| n.to_str()),
+            Some(".root.toml.flowedit")
+        );
+    }
+
+    #[test]
+    fn editor_prefs_roundtrip() {
+        let dir = std::env::temp_dir().join("flowedit_test_prefs");
+        let _ = std::fs::create_dir_all(&dir);
+        let flow_path = dir.join("test_flow.toml");
+        let _ = std::fs::write(&flow_path, "flow = \"test\"");
+
+        save_editor_prefs(
+            &flow_path,
+            Some(iced::Size::new(800.0, 600.0)),
+            Some(iced::Point::new(100.0, 200.0)),
+        );
+
+        let prefs = load_editor_prefs(&flow_path);
+        assert!(prefs.is_some());
+        let p = prefs.expect("prefs should load");
+        assert!((p.width - 800.0).abs() < 0.01);
+        assert!((p.height - 600.0).abs() < 0.01);
+        assert_eq!(p.x, Some(100.0));
+        assert_eq!(p.y, Some(200.0));
+
+        // Cleanup
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn editor_prefs_no_file() {
+        let prefs = load_editor_prefs(Path::new("/nonexistent/path.toml"));
+        assert!(prefs.is_none());
+    }
+
+    #[test]
+    fn sync_flow_definition_preserves_nodes() {
+        let mut win = WindowState {
+            kind: WindowKind::FlowEditor,
+            flow_name: String::from("test"),
+            nodes: vec![
+                test_node("add", "lib://flowstdlib/math/add"),
+                test_node("stdout", "context://stdio/stdout"),
+            ],
+            edges: Vec::new(),
+            canvas_state: FlowCanvasState::default(),
+            status: String::new(),
+            selected_node: None,
+            selected_connection: None,
+            history: EditHistory::default(),
+            auto_fit_pending: false,
+            auto_fit_enabled: false,
+            unsaved_edits: 0,
+            compiled_manifest: None,
+            file_path: None,
+            flow_definition: FlowDefinition::default(),
+            tooltip: None,
+            initializer_editor: None,
+            is_root: true,
+            flow_inputs: Vec::new(),
+            flow_outputs: Vec::new(),
+            context_menu: None,
+            show_metadata: false,
+            flow_hierarchy: FlowHierarchy::empty(),
+            last_size: None,
+            last_position: None,
+        };
+
+        sync_flow_definition(&mut win);
+        assert_eq!(win.flow_definition.process_refs.len(), 2);
+        assert_eq!(win.flow_definition.name, "test");
+    }
+
+    #[test]
+    fn record_and_undo_edit() {
+        let mut win = WindowState {
+            kind: WindowKind::FlowEditor,
+            flow_name: String::from("test"),
+            nodes: vec![test_node("a", "lib://test")],
+            edges: Vec::new(),
+            canvas_state: FlowCanvasState::default(),
+            status: String::new(),
+            selected_node: None,
+            selected_connection: None,
+            history: EditHistory::default(),
+            auto_fit_pending: false,
+            auto_fit_enabled: false,
+            unsaved_edits: 0,
+            compiled_manifest: None,
+            file_path: None,
+            flow_definition: FlowDefinition::default(),
+            tooltip: None,
+            initializer_editor: None,
+            is_root: true,
+            flow_inputs: Vec::new(),
+            flow_outputs: Vec::new(),
+            context_menu: None,
+            show_metadata: false,
+            flow_hierarchy: FlowHierarchy::empty(),
+            last_size: None,
+            last_position: None,
+        };
+
+        // Move node
+        win.nodes[0].x = 200.0;
+        win.nodes[0].y = 300.0;
+        record_edit(
+            &mut win,
+            EditAction::MoveNode {
+                index: 0,
+                old_x: 100.0,
+                old_y: 100.0,
+                new_x: 200.0,
+                new_y: 300.0,
+            },
+        );
+        assert_eq!(win.unsaved_edits, 1);
+
+        // Undo
+        apply_undo(&mut win);
+        assert!((win.nodes[0].x - 100.0).abs() < 0.01);
+        assert!((win.nodes[0].y - 100.0).abs() < 0.01);
+
+        // Redo
+        apply_redo(&mut win);
+        assert!((win.nodes[0].x - 200.0).abs() < 0.01);
+        assert!((win.nodes[0].y - 300.0).abs() < 0.01);
+    }
+}
