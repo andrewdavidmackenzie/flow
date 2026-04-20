@@ -111,12 +111,15 @@ impl LibraryTree {
 
         // Build context functions entry from parsed context definitions
         let context_entry = build_context_entry(context_definitions);
-        if !context_entry.categories.is_empty() {
+        let has_context = !context_entry.categories.is_empty();
+        if has_context {
             libraries.insert(0, context_entry);
         }
 
-        // Sort non-context libraries by name for consistent display
-        if let Some(rest) = libraries.get_mut(1..) {
+        // Sort non-context libraries by name for consistent display.
+        // Skip index 0 only if we actually inserted a Context entry there.
+        let sort_start = if has_context { 1 } else { 0 };
+        if let Some(rest) = libraries.get_mut(sort_start..) {
             rest.sort_by(|a, b| a.name.cmp(&b.name));
         }
 

@@ -191,6 +191,8 @@ pub(crate) struct FunctionViewer {
     pub(crate) parent_window: Option<window::Id>,
     /// Source string of the node this viewer is editing (to find the NodeLayout)
     pub(crate) node_source: String,
+    /// Whether this viewer is read-only (library/context functions cannot be edited)
+    pub(crate) read_only: bool,
 }
 
 /// What kind of content a window displays.
@@ -889,6 +891,14 @@ impl FlowEdit {
                                             // Add to library cache
                                             self.library_cache.insert(lib_url.clone(), manifest);
 
+                                            // Persist the parent directory so that
+                                            // subsequent MetaProvider rebuilds can
+                                            // resolve this library.
+                                            if !self.lib_paths.contains(&parent_str.to_string()) {
+                                                self.lib_paths.push(parent_str.to_string());
+                                                self.update_lib_paths();
+                                            }
+
                                             // Rebuild the library tree
                                             self.library_tree = LibraryTree::from_cache(
                                                 &self.library_cache,
@@ -1170,16 +1180,16 @@ impl FlowEdit {
                     }
                     win.unsaved_edits += 1;
                 }
-                // Propagate to the parent window's NodeLayout
+                // Propagate to the parent window's NodeLayout for ALL nodes
+                // with the same source (multiple nodes may reference it)
                 if let Some((parent_id, node_source)) = parent_info {
                     if let Some(parent_win) = self.windows.get_mut(&parent_id) {
                         for node in &mut parent_win.nodes {
                             if node.source == node_source {
                                 node.description = new_desc.clone();
-                                parent_win.canvas_state.request_redraw();
-                                break;
                             }
                         }
+                        parent_win.canvas_state.request_redraw();
                     }
                 }
             }
@@ -2005,131 +2015,127 @@ impl FlowEdit {
                 let input_color = Color::from_rgb(0.4, 0.8, 1.0);
                 let output_color = Color::from_rgb(1.0, 0.6, 0.3);
 
-                // Input ports inside box: semicircle ◗ (flat left), name, type, delete
+                // Input ports inside box: semicircle, name, type, (delete if editable)
+                let editable = !viewer.read_only;
                 let mut input_col = Column::new().spacing(6);
                 for (i, port) in viewer.inputs.iter().enumerate() {
                     let dtype = port.datatypes.first().cloned().unwrap_or_default();
-                    let row = Row::new()
+                    let mut name_widget =
+                        text_input("name", &port.name).size(13).padding(3).width(90);
+                    let mut type_widget = text_input("type", &dtype).size(11).padding(3).width(75);
+                    if editable {
+                        name_widget = name_widget
+                            .on_input(move |s| Message::FunctionInputNameChanged(window_id, i, s));
+                        type_widget = type_widget
+                            .on_input(move |s| Message::FunctionInputTypeChanged(window_id, i, s));
+                    }
+                    let mut row = Row::new()
                         .spacing(4)
                         .align_y(iced::Alignment::Center)
                         .push(Text::new("\u{25D7}").size(24).color(input_color))
-                        .push(
-                            text_input("name", &port.name)
-                                .on_input(move |s| {
-                                    Message::FunctionInputNameChanged(window_id, i, s)
-                                })
-                                .size(13)
-                                .padding(3)
-                                .width(90),
-                        )
-                        .push(
-                            text_input("type", &dtype)
-                                .on_input(move |s| {
-                                    Message::FunctionInputTypeChanged(window_id, i, s)
-                                })
-                                .size(11)
-                                .padding(3)
-                                .width(75),
-                        )
-                        .push(
+                        .push(name_widget)
+                        .push(type_widget);
+                    if editable {
+                        row = row.push(
                             button(Text::new("\u{2715}").size(10).center())
                                 .on_press(Message::FunctionDeleteInput(window_id, i))
                                 .style(button::danger)
                                 .padding([2, 5]),
                         );
+                    }
                     input_col = input_col.push(row);
                 }
-                input_col = input_col.push(
-                    button(Text::new("+ Input").size(11).center())
-                        .on_press(Message::FunctionAddInput(window_id))
-                        .style(button::secondary)
-                        .padding([2, 8]),
-                );
+                if editable {
+                    input_col = input_col.push(
+                        button(Text::new("+ Input").size(11).center())
+                            .on_press(Message::FunctionAddInput(window_id))
+                            .style(button::secondary)
+                            .padding([2, 8]),
+                    );
+                }
 
-                // Output ports inside box: delete, type, name, semicircle ◖ (flat right)
+                // Output ports inside box: (delete if editable), type, name, semicircle
                 let mut output_col = Column::new().spacing(6).align_x(iced::Alignment::End);
                 for (i, port) in viewer.outputs.iter().enumerate() {
                     let dtype = port.datatypes.first().cloned().unwrap_or_default();
-                    let row = Row::new()
-                        .spacing(4)
-                        .align_y(iced::Alignment::Center)
-                        .push(
+                    let mut type_widget = text_input("type", &dtype).size(11).padding(3).width(75);
+                    let mut name_widget =
+                        text_input("name", &port.name).size(13).padding(3).width(90);
+                    if editable {
+                        type_widget = type_widget
+                            .on_input(move |s| Message::FunctionOutputTypeChanged(window_id, i, s));
+                        name_widget = name_widget
+                            .on_input(move |s| Message::FunctionOutputNameChanged(window_id, i, s));
+                    }
+                    let mut row = Row::new().spacing(4).align_y(iced::Alignment::Center);
+                    if editable {
+                        row = row.push(
                             button(Text::new("\u{2715}").size(10).center())
                                 .on_press(Message::FunctionDeleteOutput(window_id, i))
                                 .style(button::danger)
                                 .padding([2, 5]),
-                        )
-                        .push(
-                            text_input("type", &dtype)
-                                .on_input(move |s| {
-                                    Message::FunctionOutputTypeChanged(window_id, i, s)
-                                })
-                                .size(11)
-                                .padding(3)
-                                .width(75),
-                        )
-                        .push(
-                            text_input("name", &port.name)
-                                .on_input(move |s| {
-                                    Message::FunctionOutputNameChanged(window_id, i, s)
-                                })
-                                .size(13)
-                                .padding(3)
-                                .width(90),
-                        )
+                        );
+                    }
+                    row = row
+                        .push(type_widget)
+                        .push(name_widget)
                         .push(Text::new("\u{25D6}").size(24).color(output_color));
                     output_col = output_col.push(row);
                 }
-                output_col = output_col.push(
-                    button(Text::new("+ Output").size(11).center())
-                        .on_press(Message::FunctionAddOutput(window_id))
-                        .style(button::secondary)
-                        .padding([2, 8]),
-                );
+                if editable {
+                    output_col = output_col.push(
+                        button(Text::new("+ Output").size(11).center())
+                            .on_press(Message::FunctionAddOutput(window_id))
+                            .style(button::secondary)
+                            .padding([2, 8]),
+                    );
+                }
 
-                let name_input = container(
-                    text_input("Function name", &viewer.name)
-                        .on_input(move |s| Message::FunctionNameChanged(window_id, s))
-                        .size(16)
-                        .padding(6)
-                        .width(250),
-                )
-                .center_x(Fill);
+                let mut name_widget = text_input("Function name", &viewer.name)
+                    .size(16)
+                    .padding(6)
+                    .width(250);
+                if editable {
+                    name_widget =
+                        name_widget.on_input(move |s| Message::FunctionNameChanged(window_id, s));
+                }
+                let name_input = container(name_widget).center_x(Fill);
 
-                let ext = std::path::Path::new(&viewer.source_file)
-                    .extension()
-                    .unwrap_or_default();
-                let is_provided =
-                    ext.eq_ignore_ascii_case("rs") || ext.eq_ignore_ascii_case("wasm");
                 let mut desc_widget = text_input("Description", &viewer.description)
                     .size(13)
                     .padding(6)
                     .width(480);
-                if is_provided {
-                    desc_widget = desc_widget
-                        .on_input(move |s| Message::FunctionDescriptionChanged(window_id, s));
+                if editable {
+                    let ext = std::path::Path::new(&viewer.source_file)
+                        .extension()
+                        .unwrap_or_default();
+                    let is_provided =
+                        ext.eq_ignore_ascii_case("rs") || ext.eq_ignore_ascii_case("wasm");
+                    if is_provided {
+                        desc_widget = desc_widget
+                            .on_input(move |s| Message::FunctionDescriptionChanged(window_id, s));
+                    }
                 }
                 let desc_input = container(desc_widget).center_x(Fill);
 
-                let mut source_row = Row::new()
-                    .spacing(6)
-                    .align_y(iced::Alignment::Center)
-                    .push(
-                        button(
-                            Text::new(&viewer.source_file)
-                                .size(13)
-                                .color(Color::from_rgb(0.6, 0.8, 1.0)),
-                        )
-                        .on_press(Message::FunctionTabSelected(window_id, 1))
-                        .style(button::text)
-                        .padding(0),
+                let mut source_row = Row::new().spacing(6).align_y(iced::Alignment::Center).push(
+                    button(
+                        Text::new(&viewer.source_file)
+                            .size(13)
+                            .color(Color::from_rgb(0.6, 0.8, 1.0)),
                     )
-                    .push(
+                    .on_press(Message::FunctionTabSelected(window_id, 1))
+                    .style(button::text)
+                    .padding(0),
+                );
+                if editable {
+                    source_row = source_row.push(
                         button(Text::new("...").size(12).center())
                             .on_press(Message::FunctionBrowseSource(window_id))
                             .style(button::secondary)
                             .padding([3, 8]),
                     );
+                }
                 if viewer.docs_content.is_some() {
                     source_row = source_row.push(
                         button(Text::new("Docs").size(12).center())
@@ -2217,13 +2223,13 @@ impl FlowEdit {
         };
 
         let mut save_btn = button(Text::new("\u{1F4BE} Save").size(14).center())
-            .style(if unsaved_edits > 0 {
+            .style(if unsaved_edits > 0 && !viewer.read_only {
                 button::primary
             } else {
                 button::secondary
             })
             .padding([6, 14]);
-        if unsaved_edits > 0 {
+        if unsaved_edits > 0 && !viewer.read_only {
             save_btn = save_btn.on_press(Message::FunctionSave(window_id));
         }
 
@@ -2527,6 +2533,7 @@ impl FlowEdit {
 
         let (new_id, open_task) = window::open(self.child_window_settings(700.0, 500.0));
 
+        let read_only = node_source.starts_with("lib://") || node_source.starts_with("context://");
         let viewer = FunctionViewer {
             name: func_name.clone(),
             description: func.description.clone(),
@@ -2539,6 +2546,7 @@ impl FlowEdit {
             toml_path: toml_path.to_path_buf(),
             parent_window: Some(parent_win_id),
             node_source: node_source.to_string(),
+            read_only,
         };
 
         let child = WindowState {
@@ -2792,6 +2800,7 @@ impl FlowEdit {
             toml_path: path.clone(),
             parent_window: Some(root_id),
             node_source: rs_filename,
+            read_only: false,
         };
 
         let child = WindowState {

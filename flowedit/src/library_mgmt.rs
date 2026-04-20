@@ -81,55 +81,50 @@ pub(crate) fn load_library_catalogs(
         }
     }
 
-    // Discover and parse ALL context functions from runner directories.
-    // Scan ~/.flow/runner/*/category/function.toml and construct context:// URLs,
-    // then parse each with parser::parse().
+    // Discover and parse context functions from the flowrcli runner directory.
+    // Only scan ~/.flow/runner/flowrcli/ since flowedit only supports the flowrcli runner,
+    // and the MetaProvider is configured with that context root.
     let ctx_provider = flow_io::build_meta_provider();
-    let runner_base = std::env::var("HOME")
-        .map(|h| std::path::PathBuf::from(h).join(".flow").join("runner"))
+    let runner_dir = std::env::var("HOME")
+        .map(|h| {
+            std::path::PathBuf::from(h)
+                .join(".flow")
+                .join("runner")
+                .join("flowrcli")
+        })
         .unwrap_or_default();
-    if runner_base.is_dir() {
-        if let Ok(runners) = std::fs::read_dir(&runner_base) {
-            for runner_entry in runners.flatten() {
-                let runner_path = runner_entry.path();
-                if !runner_path.is_dir() {
+    if runner_dir.is_dir() {
+        if let Ok(cats) = std::fs::read_dir(&runner_dir) {
+            for cat_entry in cats.flatten() {
+                let cat_path = cat_entry.path();
+                if !cat_path.is_dir() {
                     continue;
                 }
-                if let Ok(cats) = std::fs::read_dir(&runner_path) {
-                    for cat_entry in cats.flatten() {
-                        let cat_path = cat_entry.path();
-                        if !cat_path.is_dir() {
-                            continue;
-                        }
-                        let cat_name = cat_entry.file_name().to_string_lossy().to_string();
-                        if let Ok(funcs) = std::fs::read_dir(&cat_path) {
-                            for func_entry in funcs.flatten() {
-                                let func_path = func_entry.path();
-                                if func_path.extension().and_then(|e| e.to_str()) == Some("toml") {
-                                    let func_name = func_path
-                                        .file_stem()
-                                        .map(|s| s.to_string_lossy().to_string())
-                                        .unwrap_or_default();
-                                    if !func_name.is_empty() {
-                                        let ctx_url_str =
-                                            format!("context://{cat_name}/{func_name}");
-                                        if let Ok(ctx_url) = Url::parse(&ctx_url_str) {
-                                            if !context_definitions.contains_key(&ctx_url) {
-                                                match flowrclib::compiler::parser::parse(
-                                                    &ctx_url,
-                                                    &ctx_provider,
-                                                ) {
-                                                    Ok(process) => {
-                                                        context_definitions
-                                                            .insert(ctx_url, process);
-                                                    }
-                                                    Err(e) => {
-                                                        warn!(
-                                                            "Could not parse context function '{}': {}",
-                                                            ctx_url_str, e
-                                                        );
-                                                    }
-                                                }
+                let cat_name = cat_entry.file_name().to_string_lossy().to_string();
+                if let Ok(funcs) = std::fs::read_dir(&cat_path) {
+                    for func_entry in funcs.flatten() {
+                        let func_path = func_entry.path();
+                        if func_path.extension().and_then(|e| e.to_str()) == Some("toml") {
+                            let func_name = func_path
+                                .file_stem()
+                                .map(|s| s.to_string_lossy().to_string())
+                                .unwrap_or_default();
+                            if !func_name.is_empty() {
+                                let ctx_url_str = format!("context://{cat_name}/{func_name}");
+                                if let Ok(ctx_url) = Url::parse(&ctx_url_str) {
+                                    if !context_definitions.contains_key(&ctx_url) {
+                                        match flowrclib::compiler::parser::parse(
+                                            &ctx_url,
+                                            &ctx_provider,
+                                        ) {
+                                            Ok(process) => {
+                                                context_definitions.insert(ctx_url, process);
+                                            }
+                                            Err(e) => {
+                                                warn!(
+                                                    "Could not parse context function '{}': {}",
+                                                    ctx_url_str, e
+                                                );
                                             }
                                         }
                                     }
@@ -156,33 +151,35 @@ pub(crate) fn add_library_function(win: &mut WindowState, source: &str, func_nam
     // Place the new node at a default position offset from existing nodes
     let (x, y) = flow_io::next_node_position(&win.nodes);
 
-    // Resolve port info by parsing the function/flow definition
-    let (inputs, outputs) = match Url::parse(source) {
+    // Resolve port info and description by parsing the function/flow definition
+    let (inputs, outputs, description) = match Url::parse(source) {
         Ok(url) => {
             let provider = flow_io::build_meta_provider();
             match flowrclib::compiler::parser::parse(&url, &provider) {
                 Ok(Process::FunctionProcess(func)) => {
-                    flow_io::extract_ports(&func.inputs, &func.outputs)
+                    let ports = flow_io::extract_ports(&func.inputs, &func.outputs);
+                    (ports.0, ports.1, func.description.clone())
                 }
                 Ok(Process::FlowProcess(flow)) => {
-                    flow_io::extract_ports(&flow.inputs, &flow.outputs)
+                    let ports = flow_io::extract_ports(&flow.inputs, &flow.outputs);
+                    (ports.0, ports.1, flow.description.clone())
                 }
                 Err(e) => {
                     info!("add_library_function: could not parse '{source}': {e}");
-                    (Vec::new(), Vec::new())
+                    (Vec::new(), Vec::new(), String::new())
                 }
             }
         }
         Err(e) => {
             info!("add_library_function: could not parse URL '{source}': {e}");
-            (Vec::new(), Vec::new())
+            (Vec::new(), Vec::new(), String::new())
         }
     };
 
     let node = NodeLayout {
         alias: alias.clone(),
         source: source.to_string(),
-        description: String::new(),
+        description,
         x,
         y,
         width: 180.0,

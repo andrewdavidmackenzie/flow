@@ -121,11 +121,9 @@ pub(crate) fn apply_redo(win: &mut WindowState) {
             EditAction::DeleteNode {
                 index,
                 removed_edges,
-                node,
                 ..
             } => {
-                let alias = node.alias.clone();
-                if index <= win.nodes.len() {
+                if index < win.nodes.len() {
                     win.nodes.remove(index);
                 }
                 for edge in &removed_edges {
@@ -136,7 +134,6 @@ pub(crate) fn apply_redo(win: &mut WindowState) {
                             || e.to_port != edge.to_port
                     });
                 }
-                let _ = alias; // used for edge cleanup above
                 win.status = String::from("Redo: delete node");
             }
             EditAction::CreateConnection { edge } => {

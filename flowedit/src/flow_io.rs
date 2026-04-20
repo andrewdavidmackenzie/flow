@@ -142,6 +142,9 @@ pub(crate) fn perform_compile(win: &mut WindowState) -> Result<PathBuf, String> 
     // Save any unsaved edits so the file on disk matches the editor state
     if win.unsaved_edits > 0 {
         perform_save(win, &flow_path);
+        if win.unsaved_edits > 0 {
+            return Err("Save failed — cannot compile stale content".to_string());
+        }
     }
 
     let flow_path = &flow_path;
@@ -317,6 +320,27 @@ pub(crate) fn load_flow(path: &PathBuf) -> Result<LoadedFlow, String> {
     }
 }
 
+/// Escape a string value for embedding inside a TOML quoted string (`"..."`).
+///
+/// Handles backslash, double-quote, and common control characters (newline,
+/// carriage return, tab, backspace, form feed).
+fn escape_toml_string(s: &str) -> String {
+    let mut out = String::with_capacity(s.len());
+    for ch in s.chars() {
+        match ch {
+            '\\' => out.push_str("\\\\"),
+            '"' => out.push_str("\\\""),
+            '\n' => out.push_str("\\n"),
+            '\r' => out.push_str("\\r"),
+            '\t' => out.push_str("\\t"),
+            '\u{0008}' => out.push_str("\\b"),
+            '\u{000C}' => out.push_str("\\f"),
+            other => out.push(other),
+        }
+    }
+    out
+}
+
 /// Serialize a `serde_json::Value` into a TOML-compatible inline value string.
 pub(crate) fn value_to_toml(v: &serde_json::Value) -> String {
     match v {
@@ -363,16 +387,19 @@ pub(crate) fn save_flow_toml(
     let mut out = String::new();
 
     // Flow name
-    out.push_str(&format!("flow = \"{}\"\n", flow.name));
+    out.push_str(&format!("flow = \"{}\"\n", escape_toml_string(&flow.name)));
 
     // Description
     if !flow.description.is_empty() {
-        out.push_str(&format!("description = \"{}\"\n", flow.description));
+        out.push_str(&format!(
+            "description = \"{}\"\n",
+            escape_toml_string(&flow.description)
+        ));
     }
 
     // Docs
     if !flow.docs.is_empty() {
-        out.push_str(&format!("docs = \"{}\"\n", flow.docs));
+        out.push_str(&format!("docs = \"{}\"\n", escape_toml_string(&flow.docs)));
     }
 
     // Metadata (only if any field is non-empty)
@@ -380,13 +407,23 @@ pub(crate) fn save_flow_toml(
     if !md.version.is_empty() || !md.description.is_empty() || !md.authors.is_empty() {
         out.push_str("\n[metadata]\n");
         if !md.version.is_empty() {
-            out.push_str(&format!("version = \"{}\"\n", md.version));
+            out.push_str(&format!(
+                "version = \"{}\"\n",
+                escape_toml_string(&md.version)
+            ));
         }
         if !md.description.is_empty() {
-            out.push_str(&format!("description = \"{}\"\n", md.description));
+            out.push_str(&format!(
+                "description = \"{}\"\n",
+                escape_toml_string(&md.description)
+            ));
         }
         if !md.authors.is_empty() {
-            let authors: Vec<String> = md.authors.iter().map(|a| format!("\"{a}\"")).collect();
+            let authors: Vec<String> = md
+                .authors
+                .iter()
+                .map(|a| format!("\"{}\"", escape_toml_string(a)))
+                .collect();
             out.push_str(&format!("authors = [{}]\n", authors.join(", ")));
         }
     }
@@ -527,10 +564,14 @@ pub(crate) fn save_function_definition(viewer: &FunctionViewer) -> Result<(), St
     // 1. Write the function definition TOML
     let mut toml = format!(
         "function = \"{}\"\nsource = \"{}\"\ntype = \"rust\"\n",
-        viewer.name, viewer.source_file
+        escape_toml_string(&viewer.name),
+        escape_toml_string(&viewer.source_file)
     );
     if !viewer.description.is_empty() {
-        toml.push_str(&format!("description = \"{}\"\n", viewer.description));
+        toml.push_str(&format!(
+            "description = \"{}\"\n",
+            escape_toml_string(&viewer.description)
+        ));
     }
     for input in &viewer.inputs {
         let dtype = input.datatypes.first().map_or("", String::as_str);
@@ -604,8 +645,8 @@ pub(crate) fn save_function_definition(viewer: &FunctionViewer) -> Result<(), St
              flowcore = {{version = \"0\"}}\n\
              flowmacro = {{version = \"0\"}}\n\
              serde_json = {{version = \"1.0\", default-features = false}}\n",
-            name = viewer.name,
-            source = stem,
+            name = escape_toml_string(&viewer.name),
+            source = escape_toml_string(stem),
         );
         std::fs::write(&cargo_path, &cargo)
             .map_err(|e| format!("Could not write {}: {e}", cargo_path.display()))?;
@@ -749,6 +790,16 @@ mod test {
     #[test]
     fn format_endpoint_output_port() {
         assert_eq!(format_endpoint("add", "output"), "add");
+    }
+
+    #[test]
+    fn escape_toml_string_special_chars() {
+        assert_eq!(escape_toml_string("hello"), "hello");
+        assert_eq!(escape_toml_string("say \"hi\""), "say \\\"hi\\\"");
+        assert_eq!(escape_toml_string("back\\slash"), "back\\\\slash");
+        assert_eq!(escape_toml_string("line\nnewline"), "line\\nnewline");
+        assert_eq!(escape_toml_string("tab\there"), "tab\\there");
+        assert_eq!(escape_toml_string("cr\rreturn"), "cr\\rreturn");
     }
 
     #[test]
@@ -1008,6 +1059,7 @@ mod test {
             toml_path: toml_path.clone(),
             parent_window: None,
             node_source: String::new(),
+            read_only: false,
         };
 
         save_function_definition(&viewer).expect("save failed");
@@ -1059,6 +1111,7 @@ mod test {
             toml_path,
             parent_window: None,
             node_source: String::new(),
+            read_only: false,
         };
 
         save_function_definition(&viewer).expect("save failed");
