@@ -8,7 +8,7 @@
 
 use std::collections::{BTreeMap, HashMap};
 
-use iced::widget::{button, container, scrollable, text, Column, Row};
+use iced::widget::{button, container, scrollable, text, tooltip, Column, Row};
 use iced::{Element, Length};
 use url::Url;
 
@@ -49,6 +49,8 @@ pub(crate) struct FunctionEntry {
     pub name: String,
     /// Source URL for this function (e.g., `lib://flowstdlib/math/add`)
     pub source: String,
+    /// Description from the canonical definition
+    pub description: String,
 }
 
 /// A category grouping functions within a library.
@@ -88,7 +90,7 @@ impl LibraryTree {
     /// "Context" library entry, derived from the parsed context definitions.
     pub(crate) fn from_cache(
         library_cache: &HashMap<Url, LibraryManifest>,
-        _lib_definitions: &HashMap<Url, Process>,
+        lib_definitions: &HashMap<Url, Process>,
         context_definitions: &HashMap<Url, Process>,
     ) -> Self {
         let mut libraries = Vec::new();
@@ -96,7 +98,7 @@ impl LibraryTree {
         // Build tree entries from library manifests
         for manifest in library_cache.values() {
             let lib_name = manifest.lib_url.host_str().unwrap_or("unknown").to_string();
-            let categories = build_categories_from_manifest(&manifest.locators);
+            let categories = build_categories_from_manifest(&manifest.locators, lib_definitions);
 
             if !categories.is_empty() {
                 libraries.push(LibraryEntry {
@@ -232,12 +234,37 @@ impl LibraryTree {
                                 .push(view_btn)
                                 .push(func_btn);
 
-                            content = content.push(container(row).padding(iced::Padding {
-                                top: 0.0,
-                                right: 0.0,
-                                bottom: 0.0,
-                                left: 24.0,
-                            }));
+                            let entry_widget: Element<'_, LibraryMessage> =
+                                if func.description.is_empty() {
+                                    row.into()
+                                } else {
+                                    tooltip(
+                                        row,
+                                        text(&func.description).size(11),
+                                        tooltip::Position::Bottom,
+                                    )
+                                    .gap(2)
+                                    .style(|_theme: &iced::Theme| container::Style {
+                                        background: Some(iced::Background::Color(
+                                            iced::Color::from_rgb(0.12, 0.12, 0.12),
+                                        )),
+                                        border: iced::Border {
+                                            color: iced::Color::WHITE,
+                                            width: 1.0,
+                                            radius: 4.0.into(),
+                                        },
+                                        ..Default::default()
+                                    })
+                                    .into()
+                                };
+
+                            content =
+                                content.push(container(entry_widget).padding(iced::Padding {
+                                    top: 0.0,
+                                    right: 0.0,
+                                    bottom: 0.0,
+                                    left: 24.0,
+                                }));
                         }
                     }
                 }
@@ -265,6 +292,7 @@ impl LibraryTree {
 /// We extract category and function names from the URL path segments.
 fn build_categories_from_manifest(
     locators: &BTreeMap<Url, flowcore::model::lib_manifest::ImplementationLocator>,
+    lib_definitions: &HashMap<Url, Process>,
 ) -> Vec<CategoryEntry> {
     // Group functions by category
     let mut category_map: BTreeMap<String, Vec<FunctionEntry>> = BTreeMap::new();
@@ -284,12 +312,22 @@ fn build_categories_from_manifest(
             continue;
         }
 
+        // Extract description from definition if available
+        let description = lib_definitions
+            .get(url)
+            .map(|process| match process {
+                Process::FlowProcess(flow_def) => flow_def.description.clone(),
+                Process::FunctionProcess(func_def) => func_def.description.clone(),
+            })
+            .unwrap_or_default();
+
         category_map
             .entry(cat_name)
             .or_default()
             .push(FunctionEntry {
                 name: func_name,
                 source: url.to_string(),
+                description,
             });
     }
 
@@ -315,7 +353,7 @@ fn build_categories_from_manifest(
 fn build_context_entry(context_definitions: &HashMap<Url, Process>) -> LibraryEntry {
     let mut category_map: BTreeMap<String, Vec<FunctionEntry>> = BTreeMap::new();
 
-    for url in context_definitions.keys() {
+    for (url, process) in context_definitions {
         // context://category/function
         let cat_name = url.host_str().unwrap_or("general").to_string();
         let func_name = url
@@ -330,12 +368,19 @@ fn build_context_entry(context_definitions: &HashMap<Url, Process>) -> LibraryEn
             continue;
         }
 
+        // Extract description from definition
+        let description = match process {
+            Process::FlowProcess(flow_def) => flow_def.description.clone(),
+            Process::FunctionProcess(func_def) => func_def.description.clone(),
+        };
+
         category_map
             .entry(cat_name)
             .or_default()
             .push(FunctionEntry {
                 name: func_name,
                 source: url.to_string(),
+                description,
             });
     }
 
@@ -483,7 +528,7 @@ mod test {
             ),
         );
 
-        let categories = build_categories_from_manifest(&locators);
+        let categories = build_categories_from_manifest(&locators, &HashMap::new());
         assert_eq!(categories.len(), 2);
         // Categories should be sorted alphabetically
         assert_eq!(categories[0].name, "control");
