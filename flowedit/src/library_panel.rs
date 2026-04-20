@@ -29,6 +29,8 @@ pub(crate) enum LibraryMessage {
     AddFunction(String, String),
     /// View a library function/flow definition.
     ViewFunction(String, String),
+    /// Add a library manually via file dialog.
+    AddLibrary,
 }
 
 /// Result of a library panel interaction.
@@ -37,6 +39,7 @@ pub(crate) enum LibraryAction {
     None,
     Add(String, String),
     View(String, String),
+    AddLibrary,
 }
 
 /// A single function entry in the library tree.
@@ -143,6 +146,7 @@ impl LibraryTree {
             LibraryMessage::ViewFunction(source, name) => {
                 LibraryAction::View(source.clone(), name.clone())
             }
+            LibraryMessage::AddLibrary => LibraryAction::AddLibrary,
         }
     }
 
@@ -151,7 +155,12 @@ impl LibraryTree {
         let mut content = Column::new().spacing(2).padding(6);
 
         let header = text("Process Library").size(14);
-        content = content.push(header);
+        let add_lib_btn = button(text("+ Library").size(11))
+            .on_press(LibraryMessage::AddLibrary)
+            .style(button::secondary)
+            .padding([2, 6]);
+
+        content = content.push(Row::new().spacing(8).push(header).push(add_lib_btn));
 
         if self.libraries.is_empty() {
             content = content.push(

@@ -794,6 +794,113 @@ impl FlowEdit {
                 LibraryAction::View(source, _name) => {
                     return self.open_library_function(&source);
                 }
+                LibraryAction::AddLibrary => {
+                    let dialog = rfd::FileDialog::new();
+                    if let Some(dir) = dialog.pick_folder() {
+                        let lib_name = dir
+                            .file_name()
+                            .and_then(|n| n.to_str())
+                            .unwrap_or("unknown")
+                            .to_string();
+
+                        // Construct lib:// URL from directory name
+                        if let Ok(lib_url) = Url::parse(&format!("lib://{}", lib_name)) {
+                            // Add parent directory to provider's search path
+                            if let Some(parent) = dir.parent() {
+                                if let Some(parent_str) = parent.to_str() {
+                                    let mut lib_search_path =
+                                        Simpath::new_with_separator("FLOW_LIB_PATH", ',');
+                                    lib_search_path.add_directory(parent_str);
+
+                                    // Add default lib path if it exists
+                                    if let Ok(home) = std::env::var("HOME") {
+                                        let default_lib =
+                                            PathBuf::from(&home).join(".flow").join("lib");
+                                        if default_lib.exists() {
+                                            if let Some(path_str) = default_lib.to_str() {
+                                                lib_search_path.add_directory(path_str);
+                                            }
+                                        }
+                                    }
+
+                                    let context_root = std::env::var("HOME")
+                                        .map(|h| {
+                                            PathBuf::from(h)
+                                                .join(".flow")
+                                                .join("runner")
+                                                .join("flowrcli")
+                                        })
+                                        .unwrap_or_else(|_| PathBuf::from("/"));
+                                    let provider = MetaProvider::new(
+                                        lib_search_path.clone(),
+                                        context_root.clone(),
+                                    );
+                                    let arc_provider: Arc<dyn Provider> = Arc::new(provider);
+
+                                    // Load the library manifest
+                                    match LibraryManifest::load(&arc_provider, &lib_url) {
+                                        Ok((manifest, _manifest_url)) => {
+                                            info!(
+                                                "Loaded library manifest for '{}' with {} locators",
+                                                lib_url,
+                                                manifest.locators.len()
+                                            );
+
+                                            // Parse all definitions in the manifest
+                                            for locator_url in manifest.locators.keys() {
+                                                let meta_provider = MetaProvider::new(
+                                                    lib_search_path.clone(),
+                                                    context_root.clone(),
+                                                );
+                                                match flowrclib::compiler::parser::parse(
+                                                    locator_url,
+                                                    &meta_provider,
+                                                ) {
+                                                    Ok(process) => {
+                                                        self.lib_definitions
+                                                            .insert(locator_url.clone(), process);
+                                                    }
+                                                    Err(e) => {
+                                                        warn!(
+                                                            "Could not parse library definition '{}': {}",
+                                                            locator_url, e
+                                                        );
+                                                    }
+                                                }
+                                            }
+
+                                            // Add to library cache
+                                            self.library_cache.insert(lib_url.clone(), manifest);
+
+                                            // Rebuild the library tree
+                                            self.library_tree = LibraryTree::from_cache(
+                                                &self.library_cache,
+                                                &self.lib_definitions,
+                                                &self.context_definitions,
+                                            );
+
+                                            if let Some(win) = self.windows.get_mut(&win_id) {
+                                                win.status = format!("Added library: {}", lib_name);
+                                            }
+                                        }
+                                        Err(e) => {
+                                            warn!(
+                                                "Could not load library manifest for '{}': {}",
+                                                lib_url, e
+                                            );
+                                            if let Some(win) = self.windows.get_mut(&win_id) {
+                                                win.status = format!(
+                                                    "Failed to load library '{}': {}",
+                                                    lib_name, e
+                                                );
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
                 LibraryAction::None => {}
             },
             Message::ZoomIn(win_id) => {
