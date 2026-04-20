@@ -3647,6 +3647,7 @@ fn load_editor_prefs(flow_path: &Path) -> Option<EditorPrefs> {
 }
 
 #[cfg(test)]
+#[allow(clippy::indexing_slicing)]
 mod test {
     use super::*;
     use std::collections::HashMap;

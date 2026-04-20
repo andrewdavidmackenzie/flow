@@ -2537,6 +2537,7 @@ fn check_port_type_compatibility(
 }
 
 #[cfg(test)]
+#[allow(clippy::indexing_slicing)]
 mod test {
     use super::*;
     use iced::Point;
@@ -2953,7 +2954,7 @@ mod test {
         let nodes = vec![
             NodeLayout {
                 alias: "a".into(),
-                source: "".into(),
+                source: String::new(),
                 x: 0.0,
                 y: 0.0,
                 width: 180.0,
@@ -2967,7 +2968,7 @@ mod test {
             },
             NodeLayout {
                 alias: "b".into(),
-                source: "".into(),
+                source: String::new(),
                 x: 0.0,
                 y: 0.0,
                 width: 180.0,
@@ -2995,7 +2996,7 @@ mod test {
         let nodes = vec![
             NodeLayout {
                 alias: "a".into(),
-                source: "".into(),
+                source: String::new(),
                 x: 0.0,
                 y: 0.0,
                 width: 180.0,
@@ -3009,7 +3010,7 @@ mod test {
             },
             NodeLayout {
                 alias: "b".into(),
-                source: "".into(),
+                source: String::new(),
                 x: 0.0,
                 y: 0.0,
                 width: 180.0,
@@ -3037,7 +3038,7 @@ mod test {
         let nodes = vec![
             NodeLayout {
                 alias: "a".into(),
-                source: "".into(),
+                source: String::new(),
                 x: 0.0,
                 y: 0.0,
                 width: 180.0,
@@ -3051,7 +3052,7 @@ mod test {
             },
             NodeLayout {
                 alias: "b".into(),
-                source: "".into(),
+                source: String::new(),
                 x: 0.0,
                 y: 0.0,
                 width: 180.0,
@@ -3078,7 +3079,7 @@ mod test {
     fn compute_flow_io_positions_with_nodes() {
         let nodes = vec![NodeLayout {
             alias: "n".into(),
-            source: "".into(),
+            source: String::new(),
             x: 100.0,
             y: 100.0,
             width: 180.0,
@@ -3130,7 +3131,7 @@ mod test {
     fn find_node_output_inline_with_subroute() {
         let node = NodeLayout {
             alias: "get".into(),
-            source: "".into(),
+            source: String::new(),
             x: 100.0,
             y: 100.0,
             width: 180.0,
