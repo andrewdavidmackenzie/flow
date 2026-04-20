@@ -4332,4 +4332,283 @@ mod test {
             .and_then(|w| w.initializer_editor.as_ref())
             .is_none());
     }
+
+    fn temp_dir(name: &str) -> PathBuf {
+        let dir = std::env::temp_dir().join("flowedit_tests").join(name);
+        let _ = std::fs::create_dir_all(&dir);
+        dir
+    }
+
+    #[test]
+    fn save_and_load_flow_roundtrip() {
+        let dir = temp_dir("save_load");
+        let path = dir.join("test.toml");
+
+        let mut flow = FlowDefinition::default();
+        flow.name = "roundtrip_test".into();
+        flow.metadata.version = "1.0.0".into();
+        flow.metadata.authors = vec!["Test Author".into()];
+        flow.process_refs.push(ProcessReference {
+            alias: "add1".into(),
+            source: "lib://flowstdlib/math/add".into(),
+            initializations: std::collections::BTreeMap::new(),
+            x: Some(100.0),
+            y: Some(200.0),
+            width: Some(180.0),
+            height: Some(120.0),
+        });
+
+        let edges = vec![EdgeLayout::new(
+            "add1".into(),
+            "".into(),
+            "add1".into(),
+            "i1".into(),
+        )];
+
+        save_flow_toml(&flow, &edges, &path).expect("save failed");
+
+        let contents = std::fs::read_to_string(&path).expect("read failed");
+        assert!(contents.contains("flow = \"roundtrip_test\""));
+        assert!(contents.contains("version = \"1.0.0\""));
+        assert!(contents.contains("Test Author"));
+        assert!(contents.contains("lib://flowstdlib/math/add"));
+
+        let (name, nodes, loaded_edges, loaded_flow) = load_flow(&path).expect("load failed");
+        assert_eq!(name, "roundtrip_test");
+        assert_eq!(nodes.len(), 1);
+        assert_eq!(loaded_edges.len(), 1);
+        assert_eq!(loaded_flow.metadata.version, "1.0.0");
+
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn save_flow_with_metadata() {
+        let dir = temp_dir("metadata");
+        let path = dir.join("meta.toml");
+
+        let mut flow = FlowDefinition::default();
+        flow.name = "meta_flow".into();
+        flow.metadata.description = "A test description".into();
+
+        save_flow_toml(&flow, &[], &path).expect("save failed");
+        let contents = std::fs::read_to_string(&path).expect("read failed");
+        assert!(contents.contains("description = \"A test description\""));
+
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn save_flow_with_initializers() {
+        let dir = temp_dir("initializers");
+        let path = dir.join("init.toml");
+
+        let mut flow = FlowDefinition::default();
+        flow.name = "init_flow".into();
+        let mut inits = std::collections::BTreeMap::new();
+        inits.insert(
+            "start".to_string(),
+            InputInitializer::Once(serde_json::json!(42)),
+        );
+        flow.process_refs.push(ProcessReference {
+            alias: "seq".into(),
+            source: "lib://flowstdlib/math/sequence".into(),
+            initializations: inits,
+            x: Some(50.0),
+            y: Some(50.0),
+            width: Some(180.0),
+            height: Some(120.0),
+        });
+
+        save_flow_toml(&flow, &[], &path).expect("save failed");
+        let contents = std::fs::read_to_string(&path).expect("read failed");
+        assert!(contents.contains("input.start"));
+        assert!(contents.contains("once"));
+
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn save_flow_with_connections() {
+        let dir = temp_dir("connections");
+        let path = dir.join("conn.toml");
+
+        let mut flow = FlowDefinition::default();
+        flow.name = "conn_flow".into();
+        flow.process_refs.push(ProcessReference {
+            alias: "a".into(),
+            source: "lib://test/a".into(),
+            initializations: std::collections::BTreeMap::new(),
+            x: Some(0.0),
+            y: Some(0.0),
+            width: None,
+            height: None,
+        });
+        flow.process_refs.push(ProcessReference {
+            alias: "b".into(),
+            source: "lib://test/b".into(),
+            initializations: std::collections::BTreeMap::new(),
+            x: None,
+            y: None,
+            width: None,
+            height: None,
+        });
+
+        let edges = vec![EdgeLayout::new(
+            "a".into(),
+            "out".into(),
+            "b".into(),
+            "in".into(),
+        )];
+
+        save_flow_toml(&flow, &edges, &path).expect("save failed");
+        let contents = std::fs::read_to_string(&path).expect("read failed");
+        assert!(contents.contains("from = \"a/out\""));
+        assert!(contents.contains("to = \"b/in\""));
+
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn load_flow_nonexistent() {
+        let result = load_flow(&PathBuf::from("/nonexistent/flow.toml"));
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn load_flow_invalid_toml() {
+        let dir = temp_dir("invalid");
+        let path = dir.join("bad.toml");
+        std::fs::write(&path, "this is not valid toml {{{{").expect("write failed");
+        let result = load_flow(&path);
+        assert!(result.is_err());
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn perform_save_updates_state() {
+        let dir = temp_dir("perform_save");
+        let path = dir.join("saved.toml");
+
+        let mut win = test_win_state();
+        win.unsaved_edits = 5;
+        win.flow_name = "saved_flow".into();
+
+        perform_save(&mut win, &path);
+        assert_eq!(win.unsaved_edits, 0);
+        assert_eq!(win.file_path, Some(path.clone()));
+
+        let contents = std::fs::read_to_string(&path).expect("read failed");
+        assert!(contents.contains("flow = \"saved_flow\""));
+
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn save_function_definition_creates_files() {
+        let dir = temp_dir("func_def");
+        let toml_path = dir.join("myfunc.toml");
+
+        let viewer = FunctionViewer {
+            name: "myfunc".into(),
+            source_file: "myfunc.rs".into(),
+            inputs: vec![PortInfo {
+                name: "data".into(),
+                datatypes: vec!["string".into()],
+            }],
+            outputs: vec![PortInfo {
+                name: "result".into(),
+                datatypes: vec!["number".into()],
+            }],
+            rs_content: String::new(),
+            docs_content: None,
+            active_tab: 0,
+            toml_path: toml_path.clone(),
+        };
+
+        save_function_definition(&viewer).expect("save failed");
+
+        // Check TOML was created
+        let toml = std::fs::read_to_string(&toml_path).expect("read toml");
+        assert!(toml.contains("function = \"myfunc\""));
+        assert!(toml.contains("source = \"myfunc.rs\""));
+        assert!(toml.contains("name = \"data\""));
+        assert!(toml.contains("type = \"string\""));
+        assert!(toml.contains("type = \"number\""));
+
+        // Check skeleton .rs was created
+        let rs_path = dir.join("myfunc.rs");
+        assert!(rs_path.exists());
+        let rs = std::fs::read_to_string(&rs_path).expect("read rs");
+        assert!(rs.contains("#[flow_function]"));
+        assert!(rs.contains("_myfunc"));
+        assert!(rs.contains("_input0"));
+
+        // Check function.toml was created
+        let cargo_path = dir.join("function.toml");
+        assert!(cargo_path.exists());
+        let cargo = std::fs::read_to_string(&cargo_path).expect("read cargo");
+        assert!(cargo.contains("name = \"myfunc\""));
+        assert!(cargo.contains("crate-type = [\"cdylib\"]"));
+
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn save_function_no_overwrite_existing_rs() {
+        let dir = temp_dir("func_no_overwrite");
+        let toml_path = dir.join("existing.toml");
+        let rs_path = dir.join("existing.rs");
+
+        // Create existing .rs
+        std::fs::write(&rs_path, "// existing code").expect("write rs");
+
+        let viewer = FunctionViewer {
+            name: "existing".into(),
+            source_file: "existing.rs".into(),
+            inputs: Vec::new(),
+            outputs: Vec::new(),
+            rs_content: String::new(),
+            docs_content: None,
+            active_tab: 0,
+            toml_path,
+        };
+
+        save_function_definition(&viewer).expect("save failed");
+
+        // Existing .rs should NOT be overwritten
+        let rs = std::fs::read_to_string(&rs_path).expect("read rs");
+        assert_eq!(rs, "// existing code");
+
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn resolve_node_source_toml_extension() {
+        let dir = temp_dir("resolve_src");
+        let flow_path = dir.join("root.toml");
+        std::fs::write(&flow_path, "flow = \"root\"").expect("write");
+        let sub_path = dir.join("sub.toml");
+        std::fs::write(&sub_path, "flow = \"sub\"").expect("write");
+
+        let win = WindowState {
+            file_path: Some(flow_path),
+            ..test_win_state()
+        };
+
+        let resolved = resolve_node_source(&win, "sub");
+        assert!(resolved.is_some());
+
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn resolve_node_source_not_found() {
+        let win = WindowState {
+            file_path: Some(PathBuf::from("/tmp/flowedit_tests/nonexistent/root.toml")),
+            ..test_win_state()
+        };
+        let resolved = resolve_node_source(&win, "missing");
+        assert!(resolved.is_none());
+    }
 }
