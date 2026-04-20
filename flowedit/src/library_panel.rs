@@ -240,7 +240,7 @@ impl LibraryTree {
                                 } else {
                                     tooltip(
                                         row,
-                                        text(&func.description).size(11),
+                                        text(&func.description).size(14),
                                         tooltip::Position::Bottom,
                                     )
                                     .gap(2)
