@@ -1,4 +1,5 @@
 function = "zip"
+description = "Takes two arrays of values and produce an array of tuples of pairs of values from each input array."
 source = "zip.rs"
 docs = "zip.md"
 type = "rust"

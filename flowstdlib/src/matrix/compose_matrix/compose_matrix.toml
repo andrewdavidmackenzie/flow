@@ -1,4 +1,5 @@
 function = "compose_matrix"
+description = "Compose a matrix from a set of matrix elements"
 source = "compose_matrix.rs"
 docs = "compose_matrix.md"
 type = "rust"

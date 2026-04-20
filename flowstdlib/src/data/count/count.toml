@@ -1,4 +1,5 @@
 function = "count"
+description = "Takes a value on it's input and sends the same value on it's output and adds one to the count"
 source = "count.rs"
 docs = "count.md"
 type = "rust"

@@ -1,4 +1,5 @@
 function = "enumerate"
+description = "Enumerate the elements of an array"
 source = "enumerate.rs"
 docs = "enumerate.md"
 type = "rust"

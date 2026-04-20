@@ -1,4 +1,5 @@
 function = "route"
+description = "Route data to one or another based on a boolean control value."
 source = "route.rs"
 docs = "route.md"
 type = "rust"

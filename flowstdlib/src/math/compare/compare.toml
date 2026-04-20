@@ -1,4 +1,5 @@
 function = "compare"
+description = "Compare two input values and output different boolean values depending on if the comparison"
 source = "compare.rs"
 docs = "compare.md"
 type = "rust"

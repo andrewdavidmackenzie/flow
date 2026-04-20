@@ -1,4 +1,5 @@
 function = "multiply"
+description = "Multiply one input by another"
 source = "multiply.rs"
 docs = "multiply.md"
 type = "rust"

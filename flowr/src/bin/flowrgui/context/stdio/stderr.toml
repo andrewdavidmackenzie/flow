@@ -1,4 +1,5 @@
 function = "stderr"
+description = "Write a value to standard error"
 source = "stderr.rs"
 docs = "stderr.md"
 impure = true

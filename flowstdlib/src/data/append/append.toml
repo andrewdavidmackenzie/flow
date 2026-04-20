@@ -1,4 +1,5 @@
 function = "append"
+description = "Append two strings"
 source = "append.rs"
 docs = "append.md"
 type = "rust"

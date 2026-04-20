@@ -1,4 +1,5 @@
 function = "transpose"
+description = "Transpose a matrix's rows and columns"
 source = "transpose.rs"
 docs = "transpose.md"
 type = "rust"

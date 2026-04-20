@@ -1,4 +1,5 @@
 function = "duplicate"
+description = "Takes a value on it's input and sends the same value `factor` times in an array output"
 source = "duplicate.rs"
 docs = "duplicate.md"
 type = "rust"

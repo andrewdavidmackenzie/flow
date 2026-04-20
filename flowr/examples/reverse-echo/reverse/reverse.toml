@@ -1,4 +1,5 @@
 function = "reverse"
+description = "Reverse the characters in a string"
 source = "reverse.rs"
 type = "rust"
 

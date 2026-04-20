@@ -1,4 +1,5 @@
 function = "select"
+description = "Select which data to output, based on a boolean control value."
 source = "select.rs"
 docs = "select.md"
 type = "rust"

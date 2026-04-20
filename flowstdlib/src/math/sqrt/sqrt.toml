@@ -1,4 +1,5 @@
 function = "sqrt"
+description = "Calculate the square root of a number"
 source = "sqrt.rs"
 docs = "sqrt.md"
 type = "rust"

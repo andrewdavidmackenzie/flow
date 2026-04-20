@@ -1,4 +1,5 @@
 function = "pixel_to_point"
+description = "Convert a pixel coordinate to a point in the complex plane"
 source = "pixel_to_point.rs"
 docs = "pixel_to_point.md"
 type = "rust"

@@ -1,4 +1,5 @@
 function = "ordered_split"
+description = "Split a string into (possibly) its constituent parts based on a separator."
 source = "ordered_split.rs"
 docs = "ordered_split.md"
 type = "rust"
