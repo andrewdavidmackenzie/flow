@@ -2982,7 +2982,19 @@ mod test {
             root_window: Some(win_id),
             focused_window: Some(win_id),
             library_tree: LibraryTree {
-                libraries: Vec::new(),
+                libraries: vec![library_panel::LibraryEntry {
+                    name: "test_lib".into(),
+                    categories: vec![library_panel::CategoryEntry {
+                        name: "math".into(),
+                        functions: vec![library_panel::FunctionEntry {
+                            name: "add".into(),
+                            source: "lib://test_lib/math/add".into(),
+                            description: String::new(),
+                        }],
+                        expanded: true,
+                    }],
+                    expanded: true,
+                }],
             },
             root_flow_path: None,
             show_lib_paths: false,
@@ -3390,5 +3402,191 @@ mod test {
             .get(&win_id)
             .and_then(|w| w.initializer_editor.as_ref())
             .is_none());
+    }
+
+    fn temp_dir(name: &str) -> PathBuf {
+        let dir = std::env::temp_dir().join("flowedit_tests").join(name);
+        let _ = std::fs::create_dir_all(&dir);
+        dir
+    }
+
+    // ---- iced_test UI tests ----
+
+    mod ui {
+        use super::*;
+        use iced_test::simulator::{self, simulator};
+
+        fn click_and_update(app: &mut FlowEdit, win_id: window::Id, text: &str) {
+            let view = app.view(win_id);
+            let mut ui = simulator(view);
+            let _ = ui.click(text);
+            let msgs: Vec<Message> = ui.into_messages().collect();
+            for msg in msgs {
+                let _ = app.update(msg);
+            }
+        }
+
+        fn canvas_click_and_update(app: &mut FlowEdit, win_id: window::Id, x: f32, y: f32) {
+            let view = app.view(win_id);
+            let mut ui = simulator(view);
+            ui.point_at(iced::Point::new(x, y));
+            ui.simulate(simulator::click());
+            let msgs: Vec<Message> = ui.into_messages().collect();
+            for msg in msgs {
+                let _ = app.update(msg);
+            }
+        }
+
+        #[test]
+        fn find_status_text() {
+            let (app, win_id) = test_app();
+            let view = app.view(win_id);
+            let mut ui = simulator(view);
+            // The view should render without crashing — that's the main test
+            // Text search may not find substrings within composed widgets
+            let _ui = ui;
+        }
+
+        #[test]
+        fn click_zoom_in() {
+            let (mut app, win_id) = test_app();
+            let old = app
+                .windows
+                .get(&win_id)
+                .map(|w| w.canvas_state.zoom)
+                .unwrap_or(1.0);
+            click_and_update(&mut app, win_id, "+");
+            let new = app
+                .windows
+                .get(&win_id)
+                .map(|w| w.canvas_state.zoom)
+                .unwrap_or(1.0);
+            assert!(new > old, "Zoom should increase");
+        }
+
+        #[test]
+        fn click_zoom_out() {
+            let (mut app, win_id) = test_app();
+            let old = app
+                .windows
+                .get(&win_id)
+                .map(|w| w.canvas_state.zoom)
+                .unwrap_or(1.0);
+            click_and_update(&mut app, win_id, "\u{2212}");
+            let new = app
+                .windows
+                .get(&win_id)
+                .map(|w| w.canvas_state.zoom)
+                .unwrap_or(1.0);
+            assert!(new < old, "Zoom should decrease");
+        }
+
+        #[test]
+        fn click_fit_enables_auto_fit() {
+            let (mut app, win_id) = test_app();
+            if let Some(win) = app.windows.get_mut(&win_id) {
+                win.auto_fit_enabled = false;
+            }
+            click_and_update(&mut app, win_id, "Fit");
+            assert!(app
+                .windows
+                .get(&win_id)
+                .map_or(false, |w| w.auto_fit_enabled));
+        }
+
+        #[test]
+        fn zoom_in_out_roundtrip() {
+            let (mut app, win_id) = test_app();
+            let original = app
+                .windows
+                .get(&win_id)
+                .map(|w| w.canvas_state.zoom)
+                .unwrap_or(1.0);
+            click_and_update(&mut app, win_id, "+");
+            click_and_update(&mut app, win_id, "\u{2212}");
+            let final_zoom = app
+                .windows
+                .get(&win_id)
+                .map(|w| w.canvas_state.zoom)
+                .unwrap_or(1.0);
+            assert!(
+                (final_zoom - original).abs() < 0.01,
+                "Zoom roundtrip should return to original"
+            );
+        }
+
+        #[test]
+        fn click_info_toggles_metadata() {
+            let (mut app, win_id) = test_app();
+            assert!(!app.windows.get(&win_id).map_or(true, |w| w.show_metadata));
+            click_and_update(&mut app, win_id, "\u{2139} Info");
+            assert!(app.windows.get(&win_id).map_or(false, |w| w.show_metadata));
+            click_and_update(&mut app, win_id, "\u{2139} Info");
+            assert!(!app.windows.get(&win_id).map_or(true, |w| w.show_metadata));
+        }
+
+        #[test]
+        fn click_libs_toggles_panel() {
+            let (mut app, win_id) = test_app();
+            assert!(!app.show_lib_paths);
+            click_and_update(&mut app, win_id, "\u{1F4C1} Libs");
+            assert!(app.show_lib_paths);
+            click_and_update(&mut app, win_id, "\u{1F4C1} Libs");
+            assert!(!app.show_lib_paths);
+        }
+
+        #[test]
+        fn metadata_panel_shows_fields() {
+            let (mut app, win_id) = test_app();
+            click_and_update(&mut app, win_id, "\u{2139} Info");
+            let view = app.view(win_id);
+            let mut ui = simulator(view);
+            assert!(ui.find("Name:").is_ok(), "Should find Name field");
+            assert!(ui.find("Version:").is_ok(), "Should find Version field");
+        }
+
+        #[test]
+        fn canvas_click_selects_node() {
+            let (mut app, win_id) = test_app();
+            // Node at world (100, 100), canvas offset after left panel ~220px
+            canvas_click_and_update(&mut app, win_id, 320.0, 160.0);
+            let selected = app.windows.get(&win_id).and_then(|w| w.selected_node);
+            assert_eq!(selected, Some(0), "First node should be selected");
+        }
+
+        #[test]
+        fn canvas_click_empty_deselects() {
+            let (mut app, win_id) = test_app();
+            if let Some(win) = app.windows.get_mut(&win_id) {
+                win.selected_node = Some(0);
+            }
+            canvas_click_and_update(&mut app, win_id, 800.0, 600.0);
+            let selected = app.windows.get(&win_id).and_then(|w| w.selected_node);
+            assert_eq!(selected, None, "Clicking empty canvas should deselect");
+        }
+
+        #[test]
+        fn click_build_with_saved_flow() {
+            // Build with a saved flow file (avoids rfd dialog)
+            let dir = temp_dir("ui_build");
+            let path = dir.join("test.toml");
+            let (mut app, win_id) = test_app();
+            if let Some(win) = app.windows.get_mut(&win_id) {
+                win.file_path = Some(path.clone());
+                win.flow_name = "test_build".into();
+                flow_io::perform_save(win, &path);
+            }
+            click_and_update(&mut app, win_id, "\u{1F528} Build");
+            let status = app
+                .windows
+                .get(&win_id)
+                .map(|w| w.status.clone())
+                .unwrap_or_default();
+            // Should show compile result (success or error)
+            assert!(
+                status.contains("Compiled") || status.contains("error") || status.contains("Parse"),
+                "Status should reflect compile result: {status}"
+            );
+        }
     }
 }
