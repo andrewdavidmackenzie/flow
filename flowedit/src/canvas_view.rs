@@ -887,19 +887,27 @@ fn compute_flow_io_positions(
     let mut input_positions = HashMap::new();
     let mut output_positions = HashMap::new();
 
-    if nodes.is_empty() || (flow_inputs.is_empty() && flow_outputs.is_empty()) {
+    if flow_inputs.is_empty() && flow_outputs.is_empty() {
         return (input_positions, output_positions);
     }
 
     let padding = 80.0;
     let spacing = 28.0;
-    let min_x = nodes.iter().map(|n| n.x).fold(f32::MAX, f32::min);
-    let max_x = nodes.iter().map(|n| n.x + n.width).fold(f32::MIN, f32::max);
-    let min_y = nodes.iter().map(|n| n.y).fold(f32::MAX, f32::min);
-    let max_y = nodes
-        .iter()
-        .map(|n| n.y + n.height)
-        .fold(f32::MIN, f32::max);
+    let max_ports = flow_inputs.len().max(flow_outputs.len()).max(1) as f32;
+    let default_h = max_ports * spacing + 60.0;
+    let (min_x, max_x, min_y, max_y) = if nodes.is_empty() {
+        (150.0, 350.0, 100.0, 100.0 + default_h)
+    } else {
+        (
+            nodes.iter().map(|n| n.x).fold(f32::MAX, f32::min),
+            nodes.iter().map(|n| n.x + n.width).fold(f32::MIN, f32::max),
+            nodes.iter().map(|n| n.y).fold(f32::MAX, f32::min),
+            nodes
+                .iter()
+                .map(|n| n.y + n.height)
+                .fold(f32::MIN, f32::max),
+        )
+    };
     let box_x = min_x - padding;
     let box_w = (max_x - min_x) + 2.0 * padding;
     let center_y = (min_y + max_y) / 2.0;
