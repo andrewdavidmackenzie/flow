@@ -270,6 +270,32 @@ placed to the right of existing nodes and auto-fit adjusts the view if enabled.
 If a function with the same name already exists, the new node gets a unique
 alias (e.g., `add_2`, `add_3`).
 
+Each function also has a pencil icon (✎) that opens the function definition
+in a viewer window, showing its TOML definition, Rust source, and documentation.
+
+## Flow Hierarchy
+
+Above the Process Library, a collapsible tree view shows the structure of the
+loaded flow. The root flow is at the top, with child sub-flows and functions
+as children, recursively.
+
+- **Orange** nodes are flows — click to expand/collapse, pencil icon to open
+- **Purple** nodes are provided implementations — click to open in editor
+- **Blue** nodes are library/context functions (display only)
+
+## Creating New Processes
+
+New sub-flows and functions can be created from:
+- **Toolbar buttons**: "+ Sub-flow" and "+ Function" in the status bar
+- **Right-click context menu**: right-click on empty canvas for the same options
+
+Creating a new sub-flow prompts for a filename, writes an empty flow TOML,
+adds a node to the canvas, and opens the sub-flow in a new editor window.
+
+Creating a new function prompts for a filename, adds a node to the canvas,
+and opens the function definition editor. Clicking Save generates the
+function TOML, skeleton Rust source, and Cargo manifest.
+
 ## Opening Sub-flows and Functions
 
 Nodes that represent sub-flows (nested `.toml` files) or provided implementations
@@ -285,6 +311,13 @@ the same process. The sub-flow window shows:
 - **Flow input ports** as blue semicircles on the left edge of the box
 - **Flow output ports** as orange semicircles on the right edge of the box
 - **Bezier connections** from the flow I/O ports to the internal subprocess ports
+
+Below the canvas, an I/O editor panel allows editing the flow's declared
+inputs and outputs:
+- **+ Input** / **+ Output** buttons to add new ports
+- Editable name and type fields for each port
+- **✕** buttons to delete ports
+- Changes are reflected in the canvas bounding box semicircles
 
 Sub-flow windows do not show the Build button (only the root flow can be compiled).
 Clicking the pencil icon on an already-open sub-flow brings the existing window
@@ -318,6 +351,35 @@ flow has never been saved, a Save As dialog appears first. Any unsaved edits are
 automatically saved before compilation.
 
 The compiled manifest is written to the same directory as the flow file.
+
+## Metadata Editor
+
+Click the **ℹ Info** button in the toolbar to toggle the metadata editor panel.
+It shows editable fields for:
+
+- **Name** — the flow name (also updates the window title)
+- **Version** — semantic version string
+- **Description** — human-readable description
+- **Authors** — comma-separated list of author names
+
+Changes are saved when the flow is saved (Cmd+S).
+
+## Library Paths
+
+Click the **📁 Libs** button in the toolbar to toggle the library search paths
+panel. It shows the current library directories from `FLOW_LIB_PATH` and
+`~/.flow/lib`.
+
+- **+ Add Path...** — opens a folder picker to add a new library directory
+- **✕** — removes a path from the search list
+
+Adding or removing a path rescans the Process Library panel immediately.
+
+## Window Position Persistence
+
+Window size and position are saved to a sidecar file (`.filename.flowedit`)
+alongside the flow TOML when saving. The next time the same flow is opened,
+the window reopens at the saved size and position.
 
 ## Window Management
 
