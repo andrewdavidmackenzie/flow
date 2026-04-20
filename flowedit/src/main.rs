@@ -88,6 +88,8 @@ enum Message {
     FunctionTabSelected(window::Id, usize),
     /// Function name edited
     FunctionNameChanged(window::Id, String),
+    /// Function description edited
+    FunctionDescriptionChanged(window::Id, String),
     /// Browse for source file
     FunctionBrowseSource(window::Id),
     /// Add a new input port to a function
@@ -175,6 +177,7 @@ struct InitializerEditor {
 /// State for a function definition viewer/editor window.
 struct FunctionViewer {
     name: String,
+    description: String,
     source_file: String,
     inputs: Vec<PortInfo>,
     outputs: Vec<PortInfo>,
@@ -1136,6 +1139,14 @@ impl FlowEdit {
                     win.unsaved_edits += 1;
                 }
             }
+            Message::FunctionDescriptionChanged(win_id, new_desc) => {
+                if let Some(win) = self.windows.get_mut(&win_id) {
+                    if let WindowKind::FunctionViewer(ref mut viewer) = win.kind {
+                        viewer.description = new_desc;
+                    }
+                    win.unsaved_edits += 1;
+                }
+            }
             Message::FunctionBrowseSource(win_id) => {
                 let dialog = rfd::FileDialog::new().add_filter("Rust", &["rs"]);
                 if let Some(selected) = dialog.pick_file() {
@@ -2048,6 +2059,21 @@ impl FlowEdit {
                 )
                 .center_x(Fill);
 
+                let ext = std::path::Path::new(&viewer.source_file)
+                    .extension()
+                    .unwrap_or_default();
+                let is_provided =
+                    ext.eq_ignore_ascii_case("rs") || ext.eq_ignore_ascii_case("wasm");
+                let mut desc_widget = text_input("Description", &viewer.description)
+                    .size(13)
+                    .padding(6)
+                    .width(480);
+                if is_provided {
+                    desc_widget = desc_widget
+                        .on_input(move |s| Message::FunctionDescriptionChanged(window_id, s));
+                }
+                let desc_input = container(desc_widget).center_x(Fill);
+
                 let mut source_row = Row::new()
                     .spacing(6)
                     .align_y(iced::Alignment::Center)
@@ -2086,6 +2112,7 @@ impl FlowEdit {
                             right: 0.0,
                         })
                         .push(name_input)
+                        .push(desc_input)
                         .push(
                             Row::new()
                                 .push(input_col)
@@ -2461,6 +2488,7 @@ impl FlowEdit {
 
         let viewer = FunctionViewer {
             name: func_name.clone(),
+            description: func.description.clone(),
             source_file: func.source.clone(),
             inputs,
             outputs,
@@ -2711,6 +2739,7 @@ impl FlowEdit {
 
         let viewer = FunctionViewer {
             name: func_name.clone(),
+            description: String::new(),
             source_file: rs_filename,
             inputs: Vec::new(),
             outputs: Vec::new(),
@@ -3778,6 +3807,9 @@ fn save_function_definition(viewer: &FunctionViewer) -> Result<(), String> {
         "function = \"{}\"\nsource = \"{}\"\ntype = \"rust\"\n",
         viewer.name, viewer.source_file
     );
+    if !viewer.description.is_empty() {
+        toml.push_str(&format!("description = \"{}\"\n", viewer.description));
+    }
     for input in &viewer.inputs {
         let dtype = input.datatypes.first().map_or("", String::as_str);
         if input.name.is_empty() || input.name == "input" || input.name == "name" {
@@ -4777,6 +4809,7 @@ mod test {
 
         let viewer = FunctionViewer {
             name: "myfunc".into(),
+            description: String::new(),
             source_file: "myfunc.rs".into(),
             inputs: vec![PortInfo {
                 name: "data".into(),
@@ -4831,6 +4864,7 @@ mod test {
 
         let viewer = FunctionViewer {
             name: "existing".into(),
+            description: String::new(),
             source_file: "existing.rs".into(),
             inputs: Vec::new(),
             outputs: Vec::new(),
