@@ -40,6 +40,7 @@ mod hierarchy_panel;
 mod history;
 mod initializer;
 mod library_panel;
+mod undo_redo;
 use canvas_view::{
     build_edge_layouts, build_node_layouts, derive_short_name, CanvasMessage, EdgeLayout,
     FlowCanvasState, NodeLayout, PortInfo,
@@ -519,7 +520,7 @@ impl FlowEdit {
                     CanvasMessage::MoveCompleted(idx, old_x, old_y, new_x, new_y) => {
                         info!("MoveCompleted: idx={idx}, ({old_x},{old_y}) -> ({new_x},{new_y})");
                         if (old_x - new_x).abs() > 0.5 || (old_y - new_y).abs() > 0.5 {
-                            record_edit(
+                            undo_redo::record_edit(
                                 win,
                                 EditAction::MoveNode {
                                     index: idx,
@@ -543,7 +544,7 @@ impl FlowEdit {
                         new_w,
                         new_h,
                     ) => {
-                        record_edit(
+                        undo_redo::record_edit(
                             win,
                             EditAction::ResizeNode {
                                 index: idx,
@@ -574,7 +575,7 @@ impl FlowEdit {
                                 .collect();
                             win.nodes.remove(idx);
                             win.edges.retain(|e| !e.references_node(&alias));
-                            record_edit(
+                            undo_redo::record_edit(
                                 win,
                                 EditAction::DeleteNode {
                                     index: idx,
@@ -605,7 +606,7 @@ impl FlowEdit {
                             to_node.clone(),
                             to_port.clone(),
                         );
-                        record_edit(win, EditAction::CreateConnection { edge: edge.clone() });
+                        undo_redo::record_edit(win, EditAction::CreateConnection { edge: edge.clone() });
                         win.edges.push(edge);
                         win.canvas_state.request_redraw();
                         let nc = win.nodes.len();
@@ -633,7 +634,7 @@ impl FlowEdit {
                     CanvasMessage::ConnectionDeleted(idx) => {
                         if idx < win.edges.len() {
                             let edge = win.edges.remove(idx);
-                            record_edit(win, EditAction::DeleteConnection { index: idx, edge });
+                            undo_redo::record_edit(win, EditAction::DeleteConnection { index: idx, edge });
                             win.selected_connection = None;
                             win.canvas_state.request_redraw();
                             let nc = win.nodes.len();
@@ -938,14 +939,14 @@ impl FlowEdit {
             Message::Undo => {
                 let target = self.focused_window.or(self.root_window);
                 if let Some(win) = target.and_then(|id| self.windows.get_mut(&id)) {
-                    apply_undo(win);
+                    undo_redo::apply_undo(win);
                     win.unsaved_edits = (win.unsaved_edits - 1).max(0);
                 }
             }
             Message::Redo => {
                 let target = self.focused_window.or(self.root_window);
                 if let Some(win) = target.and_then(|id| self.windows.get_mut(&id)) {
-                    apply_redo(win);
+                    undo_redo::apply_redo(win);
                     win.unsaved_edits += 1;
                 }
             }
@@ -2783,88 +2784,6 @@ impl FlowEdit {
     }
 }
 
-/// Record an edit action in the history and increment the unsaved edit count.
-fn record_edit(win: &mut WindowState, action: EditAction) {
-    win.history.record(action);
-    win.unsaved_edits += 1;
-    win.compiled_manifest = None; // Invalidate compilation on any edit
-}
-
-/// Apply an undo action -- reverse the last edit.
-fn apply_undo(win: &mut WindowState) {
-    if let Some(action) = win.history.undo() {
-        match action {
-            EditAction::MoveNode {
-                index,
-                old_x,
-                old_y,
-                ..
-            } => {
-                if let Some(node) = win.nodes.get_mut(index) {
-                    node.x = old_x;
-                    node.y = old_y;
-                }
-                win.status = String::from("Undo: move");
-            }
-            EditAction::ResizeNode {
-                index,
-                old_x,
-                old_y,
-                old_w,
-                old_h,
-                ..
-            } => {
-                if let Some(node) = win.nodes.get_mut(index) {
-                    node.x = old_x;
-                    node.y = old_y;
-                    node.width = old_w;
-                    node.height = old_h;
-                }
-                win.status = String::from("Undo: resize");
-            }
-            EditAction::DeleteNode {
-                index,
-                node,
-                removed_edges,
-            } => {
-                win.nodes.insert(index, node);
-                win.edges.extend(removed_edges);
-                win.status = String::from("Undo: delete node");
-            }
-            EditAction::CreateConnection { edge } => {
-                win.edges.retain(|e| {
-                    e.from_node != edge.from_node
-                        || e.from_port != edge.from_port
-                        || e.to_node != edge.to_node
-                        || e.to_port != edge.to_port
-                });
-                win.status = String::from("Undo: create connection");
-            }
-            EditAction::DeleteConnection { index, edge } => {
-                win.edges.insert(index, edge);
-                win.status = String::from("Undo: delete connection");
-            }
-            EditAction::EditInitializer {
-                node_index,
-                ref port_name,
-                ref old_init,
-                ref old_display,
-                ..
-            } => {
-                initializer::apply_initializer_state(
-                    win,
-                    node_index,
-                    port_name,
-                    old_init.as_ref(),
-                    old_display.as_ref(),
-                );
-                win.status = String::from("Undo: initializer");
-            }
-        }
-        win.canvas_state.request_redraw();
-    }
-}
-
 /// Save the current flow to the given path.
 fn perform_save(win: &mut WindowState, path: &PathBuf) {
     initializer::sync_flow_definition(win);
@@ -3067,7 +2986,7 @@ fn add_library_function(win: &mut WindowState, source: &str, func_name: &str) {
     };
     win.flow_definition.process_refs.push(pref);
 
-    record_edit(
+    undo_redo::record_edit(
         win,
         EditAction::DeleteNode {
             index,
@@ -3107,90 +3026,6 @@ fn resolve_node_source(win: &WindowState, source: &str) -> Option<PathBuf> {
     None
 }
 
-
-/// Apply a redo action -- re-apply the last undone edit.
-fn apply_redo(win: &mut WindowState) {
-    if let Some(action) = win.history.redo() {
-        match action {
-            EditAction::MoveNode {
-                index,
-                new_x,
-                new_y,
-                ..
-            } => {
-                if let Some(node) = win.nodes.get_mut(index) {
-                    node.x = new_x;
-                    node.y = new_y;
-                }
-                win.status = String::from("Redo: move");
-            }
-            EditAction::ResizeNode {
-                index,
-                new_x,
-                new_y,
-                new_w,
-                new_h,
-                ..
-            } => {
-                if let Some(node) = win.nodes.get_mut(index) {
-                    node.x = new_x;
-                    node.y = new_y;
-                    node.width = new_w;
-                    node.height = new_h;
-                }
-                win.status = String::from("Redo: resize");
-            }
-            EditAction::DeleteNode {
-                index,
-                removed_edges,
-                node,
-                ..
-            } => {
-                let alias = node.alias.clone();
-                if index <= win.nodes.len() {
-                    win.nodes.remove(index);
-                }
-                for edge in &removed_edges {
-                    win.edges.retain(|e| {
-                        e.from_node != edge.from_node
-                            || e.from_port != edge.from_port
-                            || e.to_node != edge.to_node
-                            || e.to_port != edge.to_port
-                    });
-                }
-                let _ = alias; // used for edge cleanup above
-                win.status = String::from("Redo: delete node");
-            }
-            EditAction::CreateConnection { edge } => {
-                win.edges.push(edge);
-                win.status = String::from("Redo: create connection");
-            }
-            EditAction::DeleteConnection { index, .. } => {
-                if index < win.edges.len() {
-                    win.edges.remove(index);
-                }
-                win.status = String::from("Redo: delete connection");
-            }
-            EditAction::EditInitializer {
-                node_index,
-                ref port_name,
-                ref new_init,
-                ref new_display,
-                ..
-            } => {
-                initializer::apply_initializer_state(
-                    win,
-                    node_index,
-                    port_name,
-                    new_init.as_ref(),
-                    new_display.as_ref(),
-                );
-                win.status = String::from("Redo: initializer");
-            }
-        }
-        win.canvas_state.request_redraw();
-    }
-}
 
 /// Build a `MetaProvider` with `FLOW_LIB_PATH` (plus `~/.flow/lib` default)
 /// and the default flowrcli context root.
@@ -3981,7 +3816,7 @@ mod test {
         // Move node
         win.nodes[0].x = 200.0;
         win.nodes[0].y = 300.0;
-        record_edit(
+        undo_redo::record_edit(
             &mut win,
             EditAction::MoveNode {
                 index: 0,
@@ -3994,12 +3829,12 @@ mod test {
         assert_eq!(win.unsaved_edits, 1);
 
         // Undo
-        apply_undo(&mut win);
+        undo_redo::apply_undo(&mut win);
         assert!((win.nodes[0].x - 100.0).abs() < 0.01);
         assert!((win.nodes[0].y - 100.0).abs() < 0.01);
 
         // Redo
-        apply_redo(&mut win);
+        undo_redo::apply_redo(&mut win);
         assert!((win.nodes[0].x - 200.0).abs() < 0.01);
         assert!((win.nodes[0].y - 300.0).abs() < 0.01);
     }
