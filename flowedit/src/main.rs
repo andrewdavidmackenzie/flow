@@ -13,7 +13,7 @@
 //! is displayed as a colored, rounded rectangle on the canvas, with connections
 //! drawn as bezier curves between nodes.
 
-use std::collections::{BTreeMap, BTreeSet, HashMap};
+use std::collections::{BTreeSet, HashMap};
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
@@ -31,18 +31,18 @@ use flowcore::meta_provider::MetaProvider;
 use flowcore::model::flow_definition::FlowDefinition;
 use flowcore::model::input::InputInitializer;
 use flowcore::model::lib_manifest::LibraryManifest;
-use flowcore::model::name::HasName;
 use flowcore::model::process::Process;
 use flowcore::model::process_reference::ProcessReference;
 use flowcore::provider::Provider;
 mod canvas_view;
+mod flow_io;
 mod hierarchy_panel;
 mod history;
 mod initializer;
 mod library_panel;
 mod undo_redo;
 use canvas_view::{
-    build_edge_layouts, build_node_layouts, derive_short_name, CanvasMessage, EdgeLayout,
+    derive_short_name, CanvasMessage, EdgeLayout,
     FlowCanvasState, NodeLayout, PortInfo,
 };
 use hierarchy_panel::{FlowHierarchy, HierarchyMessage};
@@ -341,7 +341,7 @@ impl FlowEdit {
         let (flow_name, nodes, edges, status, file_path, flow_definition, lib_refs, ctx_refs) =
             if let Some(flow_path_str) = matches.get_one::<String>("flow-file") {
                 let flow_path = PathBuf::from(flow_path_str);
-                match load_flow(&flow_path) {
+                match flow_io::load_flow(&flow_path) {
                     Ok(loaded) => {
                         let nc = loaded.nodes.len();
                         let ec = loaded.edges.len();
@@ -389,7 +389,7 @@ impl FlowEdit {
             LibraryTree::from_cache(&library_cache, &lib_definitions, &context_definitions);
 
         // Open the root window via daemon API
-        let saved_prefs = file_path.as_ref().and_then(|p| load_editor_prefs(p));
+        let saved_prefs = file_path.as_ref().and_then(|p| flow_io::load_editor_prefs(p));
         let saved_size = saved_prefs
             .as_ref()
             .map(|p| iced::Size::new(p.width, p.height))
@@ -413,7 +413,7 @@ impl FlowEdit {
             .map(|p| FlowHierarchy::build(p))
             .unwrap_or_else(FlowHierarchy::empty);
 
-        let (fi, fo) = extract_ports(&flow_definition.inputs, &flow_definition.outputs);
+        let (fi, fo) = flow_io::extract_ports(&flow_definition.inputs, &flow_definition.outputs);
         let win_state = WindowState {
             kind: WindowKind::FlowEditor,
             flow_name,
@@ -445,7 +445,7 @@ impl FlowEdit {
         let mut windows = HashMap::new();
         windows.insert(root_id, win_state);
 
-        let lib_paths = resolve_lib_paths();
+        let lib_paths = flow_io::resolve_lib_paths();
         let app = FlowEdit {
             windows,
             root_window: Some(root_id),
@@ -623,8 +623,8 @@ impl FlowEdit {
                             if let Some(edge) = win.edges.get(i) {
                                 win.status = format!(
                                     "Connection: {} -> {}",
-                                    format_endpoint(&edge.from_node, &edge.from_port),
-                                    format_endpoint(&edge.to_node, &edge.to_port),
+                                    flow_io::format_endpoint(&edge.from_node, &edge.from_port),
+                                    flow_io::format_endpoint(&edge.to_node, &edge.to_port),
                                 );
                             }
                         } else {
@@ -729,10 +729,10 @@ impl FlowEdit {
                         }
                     }
                     // Open the flow or function
-                    match load_flow(&path) {
+                    match flow_io::load_flow(&path) {
                         Ok(loaded) => {
                             let (fi, fo) =
-                                extract_ports(&loaded.flow_def.inputs, &loaded.flow_def.outputs);
+                                flow_io::extract_ports(&loaded.flow_def.inputs, &loaded.flow_def.outputs);
                             let (new_id, open_task) =
                                 window::open(self.child_window_settings(1024.0, 768.0));
                             let has_nodes = !loaded.nodes.is_empty();
@@ -954,22 +954,22 @@ impl FlowEdit {
                 let target = self.focused_window.or(self.root_window);
                 if let Some(win) = target.and_then(|id| self.windows.get_mut(&id)) {
                     if let Some(path) = win.file_path.clone() {
-                        perform_save(win, &path);
+                        flow_io::perform_save(win, &path);
                     } else {
-                        perform_save_as(win);
+                        flow_io::perform_save_as(win);
                     }
                 }
             }
             Message::SaveAs => {
                 let target = self.focused_window.or(self.root_window);
                 if let Some(win) = target.and_then(|id| self.windows.get_mut(&id)) {
-                    perform_save_as(win);
+                    flow_io::perform_save_as(win);
                 }
             }
             Message::Open => {
                 if let Some(root_id) = self.root_window {
                     if let Some(win) = self.windows.get_mut(&root_id) {
-                        if let Some((lib_refs, ctx_refs)) = perform_open(win) {
+                        if let Some((lib_refs, ctx_refs)) = flow_io::perform_open(win) {
                             self.root_flow_path = win.file_path.clone();
                             win.flow_hierarchy = win
                                 .file_path
@@ -993,7 +993,7 @@ impl FlowEdit {
             }
             Message::New => {
                 if let Some(win) = self.root_window.and_then(|id| self.windows.get_mut(&id)) {
-                    perform_new(win);
+                    flow_io::perform_new(win);
                     // Clear the library cache for a new (empty) flow
                     self.library_cache.clear();
                     self.lib_definitions.clear();
@@ -1009,7 +1009,7 @@ impl FlowEdit {
                 let target = self.focused_window.or(self.root_window);
                 if let Some(win) = target.and_then(|id| self.windows.get_mut(&id)) {
                     if !win.nodes.is_empty() {
-                        match perform_compile(win) {
+                        match flow_io::perform_compile(win) {
                             Ok(path) => {
                                 win.compiled_manifest = Some(path.clone());
                                 win.status = format!("Compiled: {}", path.display());
@@ -1237,7 +1237,7 @@ impl FlowEdit {
             Message::FunctionSave(win_id) => {
                 if let Some(win) = self.windows.get_mut(&win_id) {
                     if let WindowKind::FunctionViewer(ref v) = win.kind {
-                        match save_function_definition(v) {
+                        match flow_io::save_function_definition(v) {
                             Ok(()) => {
                                 win.status = format!("Saved: {}", v.toml_path.display());
                                 win.unsaved_edits = 0;
@@ -2240,7 +2240,7 @@ impl FlowEdit {
     fn open_library_function(&mut self, source: &str) -> Task<Message> {
         use flowcore::provider::Provider;
 
-        let provider = build_meta_provider();
+        let provider = flow_io::build_meta_provider();
         let source_url = match Url::parse(source) {
             Ok(u) => u,
             Err(_) => return Task::none(),
@@ -2283,9 +2283,9 @@ impl FlowEdit {
                 };
                 self.open_function_viewer(parent, &path, func)
             }
-            Ok(Process::FlowProcess(_)) => match load_flow(&path) {
+            Ok(Process::FlowProcess(_)) => match flow_io::load_flow(&path) {
                 Ok(loaded) => {
-                    let (fi, fo) = extract_ports(&loaded.flow_def.inputs, &loaded.flow_def.outputs);
+                    let (fi, fo) = flow_io::extract_ports(&loaded.flow_def.inputs, &loaded.flow_def.outputs);
                     let has_nodes = !loaded.nodes.is_empty();
                     let nc = loaded.nodes.len();
                     let ec = loaded.edges.len();
@@ -2421,13 +2421,13 @@ impl FlowEdit {
         }
 
         // Load the sub-flow and open it in a new window
-        match load_flow(&path) {
+        match flow_io::load_flow(&path) {
             Ok(loaded) => {
                 let has_nodes = !loaded.nodes.is_empty();
                 let (new_id, open_task) = window::open(self.child_window_settings(1024.0, 768.0));
                 let nc = loaded.nodes.len();
                 let ec = loaded.edges.len();
-                let (fi, fo) = extract_ports(&loaded.flow_def.inputs, &loaded.flow_def.outputs);
+                let (fi, fo) = flow_io::extract_ports(&loaded.flow_def.inputs, &loaded.flow_def.outputs);
                 let child = WindowState {
                     kind: WindowKind::FlowEditor,
                     flow_name: loaded.name,
@@ -2484,7 +2484,7 @@ impl FlowEdit {
             .unwrap_or_else(|_| String::from("// Source file not found"));
         let docs_content = std::fs::read_to_string(dir.join(format!("{func_name}.md"))).ok();
 
-        let (inputs, outputs) = extract_ports(&func.inputs, &func.outputs);
+        let (inputs, outputs) = flow_io::extract_ports(&func.inputs, &func.outputs);
 
         let (new_id, open_task) = window::open(self.child_window_settings(700.0, 500.0));
 
@@ -2596,8 +2596,8 @@ impl FlowEdit {
 
         // Add a process reference in the parent flow
         if let Some(win) = self.windows.get_mut(&root_id) {
-            let alias = generate_unique_alias(&flow_name, &win.nodes);
-            let (x, y) = next_node_position(&win.nodes);
+            let alias = flow_io::generate_unique_alias(&flow_name, &win.nodes);
+            let (x, y) = flow_io::next_node_position(&win.nodes);
 
             let node = NodeLayout {
                 alias: alias.clone(),
@@ -2706,8 +2706,8 @@ impl FlowEdit {
 
         // Add process reference in the parent flow
         if let Some(win) = self.windows.get_mut(&root_id) {
-            let alias = generate_unique_alias(&func_name, &win.nodes);
-            let (x, y) = next_node_position(&win.nodes);
+            let alias = flow_io::generate_unique_alias(&func_name, &win.nodes);
+            let (x, y) = flow_io::next_node_position(&win.nodes);
 
             let node = NodeLayout {
                 alias: alias.clone(),
@@ -2784,168 +2784,24 @@ impl FlowEdit {
     }
 }
 
-/// Save the current flow to the given path.
-fn perform_save(win: &mut WindowState, path: &PathBuf) {
-    initializer::sync_flow_definition(win);
-    match save_flow_toml(&win.flow_definition, &win.edges, path) {
-        Ok(()) => {
-            win.unsaved_edits = 0;
-            win.file_path = Some(path.clone());
-            save_editor_prefs(path, win.last_size, win.last_position);
-            if let Some(name) = path.file_name().and_then(|n| n.to_str()) {
-                win.status = format!("Saved to {name}");
-            } else {
-                win.status = String::from("Saved");
-            }
-        }
-        Err(e) => {
-            win.status = format!("Save failed: {e}");
-        }
-    }
-}
-
-/// Prompt the user with a save dialog and save to the chosen path.
-fn perform_save_as(win: &mut WindowState) {
-    let dialog = rfd::FileDialog::new()
-        .add_filter("Flow", &["toml"])
-        .set_file_name(format!("{}.toml", win.flow_name));
-    if let Some(path) = dialog.save_file() {
-        perform_save(win, &path);
-    }
-}
-
-/// Prompt the user with an open dialog and load the selected flow file.
-/// Open a flow file and update the window state.
-/// Returns the lib and context references if successful, for rebuilding the library cache.
-fn perform_open(win: &mut WindowState) -> Option<(BTreeSet<Url>, BTreeSet<Url>)> {
-    let dialog = rfd::FileDialog::new().add_filter("Flow", &["toml"]);
-    if let Some(path) = dialog.pick_file() {
-        match load_flow(&path) {
-            Ok(loaded) => {
-                let nc = loaded.nodes.len();
-                let ec = loaded.edges.len();
-                let (fi, fo) = extract_ports(&loaded.flow_def.inputs, &loaded.flow_def.outputs);
-                win.flow_name = loaded.name;
-                win.nodes = loaded.nodes;
-                win.edges = loaded.edges;
-                win.flow_definition = loaded.flow_def;
-                win.file_path = Some(path);
-                win.flow_inputs = fi;
-                win.flow_outputs = fo;
-                win.selected_node = None;
-                win.selected_connection = None;
-                win.history = EditHistory::default();
-                win.unsaved_edits = 0;
-                win.auto_fit_pending = true;
-                win.auto_fit_enabled = true;
-                win.canvas_state = FlowCanvasState::default();
-                win.status = format!("Loaded - {nc} nodes, {ec} connections");
-                return Some((loaded.lib_references, loaded.context_references));
-            }
-            Err(e) => {
-                win.status = format!("Open failed: {e}");
-            }
-        }
-    }
-    None
-}
-
-/// Clear the canvas and reset to an empty flow state.
-fn perform_new(win: &mut WindowState) {
-    win.flow_name = String::from("(new flow)");
-    win.nodes = Vec::new();
-    win.edges = Vec::new();
-    win.flow_definition = FlowDefinition::default();
-    win.file_path = None;
-    win.flow_inputs = Vec::new();
-    win.flow_outputs = Vec::new();
-    win.selected_node = None;
-    win.selected_connection = None;
-    win.history = EditHistory::default();
-    win.unsaved_edits = 0;
-    win.auto_fit_pending = false;
-    win.auto_fit_enabled = true;
-    win.canvas_state = FlowCanvasState::default();
-    win.status = String::from("New flow");
-}
-
-/// Compile the current flow to a manifest.
-///
-/// Writes a temporary copy of the current editor state for the compiler
-/// to parse -- the user's flow definition file is never modified.
-///
-/// Returns the path to the generated manifest on success, or a human-readable
-/// error message on failure.
-fn perform_compile(win: &mut WindowState) -> Result<PathBuf, String> {
-    // New flows must be saved first so the compiler has a real file path
-    if win.file_path.is_none() {
-        perform_save_as(win);
-    }
-    let Some(flow_path) = win.file_path.clone() else {
-        return Err("Flow must be saved before compiling".to_string());
-    };
-
-    // Save any unsaved edits so the file on disk matches the editor state
-    if win.unsaved_edits > 0 {
-        perform_save(win, &flow_path);
-    }
-
-    let flow_path = &flow_path;
-    let abs_path = if flow_path.is_absolute() {
-        flow_path.clone()
-    } else {
-        std::env::current_dir()
-            .map_err(|e| format!("Could not get current directory: {e}"))?
-            .join(flow_path)
-    };
-
-    let provider = build_meta_provider();
-
-    let url = Url::from_file_path(&abs_path)
-        .map_err(|()| format!("Invalid file path: {}", abs_path.display()))?;
-    let process = flowrclib::compiler::parser::parse(&url, &provider)
-        .map_err(|e| format!("Parse error: {e}"))?;
-    let flow = match process {
-        Process::FlowProcess(f) => f,
-        Process::FunctionProcess(_) => return Err("Not a flow definition".to_string()),
-    };
-
-    let output_dir = abs_path.parent().unwrap_or(Path::new(".")).to_path_buf();
-    let mut source_urls = BTreeMap::<String, Url>::new();
-    let tables =
-        flowrclib::compiler::compile::compile(&flow, &output_dir, false, false, &mut source_urls)
-            .map_err(|e| e.to_string())?;
-
-    let manifest_path = flowrclib::generator::generate::write_flow_manifest(
-        &flow,
-        false,
-        &output_dir,
-        &tables,
-        source_urls,
-    )
-    .map_err(|e| format!("Manifest error: {e}"))?;
-
-    Ok(manifest_path)
-}
-
 /// Add a function from the library panel as a new node on the canvas.
 ///
 /// Creates a `NodeLayout` at a default position and a `ProcessReference`
 /// in the flow definition, and records the action in the edit history.
 fn add_library_function(win: &mut WindowState, source: &str, func_name: &str) {
     // Generate a unique alias: if the name already exists, append a number
-    let alias = generate_unique_alias(func_name, &win.nodes);
+    let alias = flow_io::generate_unique_alias(func_name, &win.nodes);
 
     // Place the new node at a default position offset from existing nodes
-    let (x, y) = next_node_position(&win.nodes);
+    let (x, y) = flow_io::next_node_position(&win.nodes);
 
     // Resolve port info by parsing the function/flow definition
     let (inputs, outputs) = match Url::parse(source) {
         Ok(url) => {
-            let provider = build_meta_provider();
+            let provider = flow_io::build_meta_provider();
             match flowrclib::compiler::parser::parse(&url, &provider) {
-                Ok(Process::FunctionProcess(func)) => extract_ports(&func.inputs, &func.outputs),
-                Ok(Process::FlowProcess(flow)) => extract_ports(&flow.inputs, &flow.outputs),
+                Ok(Process::FunctionProcess(func)) => flow_io::extract_ports(&func.inputs, &func.outputs),
+                Ok(Process::FlowProcess(flow)) => flow_io::extract_ports(&flow.inputs, &flow.outputs),
                 Err(e) => {
                     info!("add_library_function: could not parse '{source}': {e}");
                     (Vec::new(), Vec::new())
@@ -3027,150 +2883,6 @@ fn resolve_node_source(win: &WindowState, source: &str) -> Option<PathBuf> {
 }
 
 
-/// Build a `MetaProvider` with `FLOW_LIB_PATH` (plus `~/.flow/lib` default)
-/// and the default flowrcli context root.
-fn build_meta_provider() -> MetaProvider {
-    let mut lib_search_path = Simpath::new_with_separator("FLOW_LIB_PATH", ',');
-    if let Ok(home) = std::env::var("HOME") {
-        let default_lib = PathBuf::from(&home).join(".flow").join("lib");
-        if default_lib.exists() {
-            if let Some(path_str) = default_lib.to_str() {
-                lib_search_path.add_directory(path_str);
-            }
-        }
-    }
-    let context_root = std::env::var("HOME")
-        .map(|h| {
-            PathBuf::from(h)
-                .join(".flow")
-                .join("runner")
-                .join("flowrcli")
-        })
-        .unwrap_or_else(|_| PathBuf::from("/"));
-    MetaProvider::new(lib_search_path, context_root)
-}
-
-/// Resolve the library search paths from the `FLOW_LIB_PATH` environment variable
-/// and the default `~/.flow/lib` directory.
-fn resolve_lib_paths() -> Vec<String> {
-    let mut paths = Vec::new();
-
-    if let Ok(env_path) = std::env::var("FLOW_LIB_PATH") {
-        for p in env_path.split(',') {
-            let trimmed = p.trim();
-            if !trimmed.is_empty() {
-                paths.push(trimmed.to_string());
-            }
-        }
-    }
-
-    if let Ok(home) = std::env::var("HOME") {
-        let default_lib = format!("{home}/.flow/lib");
-        if std::path::Path::new(&default_lib).is_dir() && !paths.contains(&default_lib) {
-            paths.push(default_lib);
-        }
-    }
-
-    paths
-}
-
-fn extract_ports(
-    inputs: &[flowcore::model::io::IO],
-    outputs: &[flowcore::model::io::IO],
-) -> (Vec<PortInfo>, Vec<PortInfo>) {
-    let input_ports = inputs
-        .iter()
-        .map(|io| PortInfo {
-            name: io.name().to_string(),
-            datatypes: io.datatypes().iter().map(|dt| dt.to_string()).collect(),
-        })
-        .collect();
-    let output_ports = outputs
-        .iter()
-        .map(|io| PortInfo {
-            name: io.name().to_string(),
-            datatypes: io.datatypes().iter().map(|dt| dt.to_string()).collect(),
-        })
-        .collect();
-    (input_ports, output_ports)
-}
-
-/// Result of loading a flow definition file.
-struct LoadedFlow {
-    name: String,
-    nodes: Vec<NodeLayout>,
-    edges: Vec<EdgeLayout>,
-    flow_def: FlowDefinition,
-    lib_references: BTreeSet<Url>,
-    context_references: BTreeSet<Url>,
-}
-
-/// Load a flow definition file and return the flow name, node layouts, edge layouts,
-/// the original `FlowDefinition`, and the library/context references for catalog loading.
-fn load_flow(path: &PathBuf) -> Result<LoadedFlow, String> {
-    let abs_path = if path.is_absolute() {
-        path.clone()
-    } else {
-        std::env::current_dir()
-            .map_err(|e| format!("Could not get current directory: {e}"))?
-            .join(path)
-    };
-
-    let url =
-        Url::from_file_path(&abs_path).map_err(|()| format!("Invalid file path: {abs_path:?}"))?;
-
-    let provider = build_meta_provider();
-    let process = flowrclib::compiler::parser::parse(&url, &provider)
-        .map_err(|e| format!("Could not parse flow definition: {e}"))?;
-
-    match process {
-        Process::FlowProcess(flow) => {
-            // Extract port definitions from the fully-resolved subprocesses
-            let mut resolved_ports = HashMap::new();
-            for (alias, subprocess) in &flow.subprocesses {
-                let (inputs, outputs) = match subprocess {
-                    Process::FunctionProcess(func) => {
-                        extract_ports(&func.inputs, &func.outputs)
-                    }
-                    Process::FlowProcess(sub_flow) => {
-                        extract_ports(&sub_flow.inputs, &sub_flow.outputs)
-                    }
-                };
-                info!(
-                    "Resolved '{}': {} inputs, {} outputs",
-                    alias,
-                    inputs.len(),
-                    outputs.len()
-                );
-                resolved_ports.insert(alias.to_string(), (inputs, outputs));
-            }
-
-            let edges = build_edge_layouts(&flow.connections);
-            let nodes = build_node_layouts(
-                &flow.process_refs,
-                &flow.connections,
-                &resolved_ports,
-                &flow.subprocesses,
-            );
-            let name = flow.name.clone();
-            let lib_references = flow.lib_references.clone();
-            let context_references = flow.context_references.clone();
-            Ok(LoadedFlow {
-                name,
-                nodes,
-                edges,
-                flow_def: flow,
-                lib_references,
-                context_references,
-            })
-        }
-        Process::FunctionProcess(_) => Err(
-            "The specified file defines a Function, not a Flow. flowedit requires a flow definition."
-                .to_string(),
-        ),
-    }
-}
-
 /// Load full library catalogs and cache all definitions.
 ///
 /// For each unique library root URL found in `lib_references`, loads the library
@@ -3184,7 +2896,7 @@ fn load_library_catalogs(
     HashMap<Url, Process>,
     HashMap<Url, Process>,
 ) {
-    let provider = build_meta_provider();
+    let provider = flow_io::build_meta_provider();
     let arc_provider: Arc<dyn Provider> = Arc::new(provider);
     let mut library_cache = HashMap::new();
     let mut lib_definitions = HashMap::new();
@@ -3212,7 +2924,7 @@ fn load_library_catalogs(
                 );
 
                 // Parse each function/flow in the manifest
-                let meta_provider = build_meta_provider();
+                let meta_provider = flow_io::build_meta_provider();
                 for locator_url in manifest.locators.keys() {
                     match flowrclib::compiler::parser::parse(locator_url, &meta_provider) {
                         Ok(process) => {
@@ -3236,7 +2948,7 @@ fn load_library_catalogs(
     }
 
     // Parse each context function definition
-    let ctx_provider = build_meta_provider();
+    let ctx_provider = flow_io::build_meta_provider();
     for context_ref in context_references {
         match flowrclib::compiler::parser::parse(context_ref, &ctx_provider) {
             Ok(process) => {
@@ -3252,350 +2964,6 @@ fn load_library_catalogs(
     }
 
     (library_cache, lib_definitions, context_definitions)
-}
-
-/// Serialize a `serde_json::Value` into a TOML-compatible inline value string.
-fn value_to_toml(v: &serde_json::Value) -> String {
-    match v {
-        serde_json::Value::String(s) => {
-            format!("\"{}\"", s.replace('\\', "\\\\").replace('"', "\\\""))
-        }
-        serde_json::Value::Number(n) => n.to_string(),
-        serde_json::Value::Bool(b) => b.to_string(),
-        serde_json::Value::Null => "\"null\"".to_string(),
-        serde_json::Value::Array(a) => {
-            let items: Vec<String> = a.iter().map(value_to_toml).collect();
-            format!("[{}]", items.join(", "))
-        }
-        serde_json::Value::Object(m) => {
-            let items: Vec<String> = m
-                .iter()
-                .map(|(k, val)| format!("{k} = {}", value_to_toml(val)))
-                .collect();
-            format!("{{ {} }}", items.join(", "))
-        }
-    }
-}
-
-/// Format an `InputInitializer` as a TOML inline table string.
-fn initializer_to_toml(init: &InputInitializer) -> String {
-    match init {
-        InputInitializer::Once(v) => format!("{{ once = {} }}", value_to_toml(v)),
-        InputInitializer::Always(v) => format!("{{ always = {} }}", value_to_toml(v)),
-    }
-}
-
-/// Save a `FlowDefinition` to a TOML file at the given path.
-///
-/// Builds the TOML text manually to match the expected flow format
-/// (the derived `Serialize` on some flowcore types produces struct-style
-/// output that is not compatible with the flow deserializer).
-/// Connections are written from `edges` to preserve names that would be lost
-/// when roundtripping through `Connection::new`.
-fn save_flow_toml(
-    flow: &FlowDefinition,
-    edges: &[EdgeLayout],
-    path: &PathBuf,
-) -> Result<(), String> {
-    let mut out = String::new();
-
-    // Flow name
-    out.push_str(&format!("flow = \"{}\"\n", flow.name));
-
-    // Description
-    if !flow.description.is_empty() {
-        out.push_str(&format!("description = \"{}\"\n", flow.description));
-    }
-
-    // Docs
-    if !flow.docs.is_empty() {
-        out.push_str(&format!("docs = \"{}\"\n", flow.docs));
-    }
-
-    // Metadata (only if any field is non-empty)
-    let md = &flow.metadata;
-    if !md.version.is_empty() || !md.description.is_empty() || !md.authors.is_empty() {
-        out.push_str("\n[metadata]\n");
-        if !md.version.is_empty() {
-            out.push_str(&format!("version = \"{}\"\n", md.version));
-        }
-        if !md.description.is_empty() {
-            out.push_str(&format!("description = \"{}\"\n", md.description));
-        }
-        if !md.authors.is_empty() {
-            let authors: Vec<String> = md.authors.iter().map(|a| format!("\"{a}\"")).collect();
-            out.push_str(&format!("authors = [{}]\n", authors.join(", ")));
-        }
-    }
-
-    // Flow-level inputs
-    for input in &flow.inputs {
-        out.push_str("\n[[input]]\n");
-        let name = input.name();
-        if !name.is_empty() {
-            out.push_str(&format!("name = \"{name}\"\n"));
-        }
-        let types = input.datatypes();
-        if types.len() == 1 {
-            if let Some(t) = types.first() {
-                out.push_str(&format!("type = \"{t}\"\n"));
-            }
-        } else if types.len() > 1 {
-            let ts: Vec<String> = types.iter().map(|t| format!("\"{t}\"")).collect();
-            out.push_str(&format!("type = [{}]\n", ts.join(", ")));
-        }
-    }
-
-    // Flow-level outputs
-    for output in &flow.outputs {
-        out.push_str("\n[[output]]\n");
-        let name = output.name();
-        if !name.is_empty() {
-            out.push_str(&format!("name = \"{name}\"\n"));
-        }
-        let types = output.datatypes();
-        if types.len() == 1 {
-            if let Some(t) = types.first() {
-                out.push_str(&format!("type = \"{t}\"\n"));
-            }
-        } else if types.len() > 1 {
-            let ts: Vec<String> = types.iter().map(|t| format!("\"{t}\"")).collect();
-            out.push_str(&format!("type = [{}]\n", ts.join(", ")));
-        }
-    }
-
-    // Processes
-    for pref in &flow.process_refs {
-        out.push_str("\n[[process]]\n");
-        if !pref.alias.is_empty() {
-            out.push_str(&format!("alias = \"{}\"\n", pref.alias));
-        }
-        out.push_str(&format!("source = \"{}\"\n", pref.source));
-
-        // Layout positions
-        if let Some(x) = pref.x {
-            out.push_str(&format!("x = {x}\n"));
-        }
-        if let Some(y) = pref.y {
-            out.push_str(&format!("y = {y}\n"));
-        }
-        if let Some(w) = pref.width {
-            out.push_str(&format!("width = {w}\n"));
-        }
-        if let Some(h) = pref.height {
-            out.push_str(&format!("height = {h}\n"));
-        }
-
-        // Initializations
-        for (port_name, init) in &pref.initializations {
-            out.push_str(&format!(
-                "input.{port_name} = {}\n",
-                initializer_to_toml(init)
-            ));
-        }
-    }
-
-    // Connections (from EdgeLayout to preserve names)
-    for edge in edges {
-        out.push_str("\n[[connection]]\n");
-        if !edge.name.is_empty() {
-            out.push_str(&format!("name = \"{}\"\n", edge.name));
-        }
-        let from = if edge.from_port.is_empty() {
-            edge.from_node.clone()
-        } else {
-            format!("{}/{}", edge.from_node, edge.from_port)
-        };
-        out.push_str(&format!("from = \"{from}\"\n"));
-        let to = if edge.to_port.is_empty() {
-            edge.to_node.clone()
-        } else {
-            format!("{}/{}", edge.to_node, edge.to_port)
-        };
-        out.push_str(&format!("to = \"{to}\"\n"));
-    }
-
-    std::fs::write(path, out).map_err(|e| format!("Could not write file: {e}"))
-}
-
-/// Generate a unique alias for a new node, appending a numeric suffix if needed.
-fn generate_unique_alias(base_name: &str, nodes: &[NodeLayout]) -> String {
-    let existing: Vec<&str> = nodes.iter().map(|n| n.alias.as_str()).collect();
-    if !existing.contains(&base_name) {
-        return base_name.to_string();
-    }
-    let mut counter = 2u32;
-    loop {
-        let candidate = format!("{base_name}_{counter}");
-        if !existing.iter().any(|a| *a == candidate) {
-            return candidate;
-        }
-        counter = counter.saturating_add(1);
-    }
-}
-
-/// Compute a default position for a new node, offset from the last node or at a default origin.
-fn next_node_position(nodes: &[NodeLayout]) -> (f32, f32) {
-    if nodes.is_empty() {
-        return (100.0, 100.0);
-    }
-    // Find the rightmost node and place the new one to its right
-    let max_right = nodes.iter().map(|n| n.x + n.width).fold(0.0_f32, f32::max);
-    (max_right + 50.0, 100.0)
-}
-
-/// Format a connection endpoint for display, omitting "default" or empty port names.
-fn format_endpoint(node: &str, port: &str) -> String {
-    if port.is_empty() || port == "default" || port == "output" {
-        node.to_string()
-    } else {
-        format!("{node}/{port}")
-    }
-}
-
-fn save_function_definition(viewer: &FunctionViewer) -> Result<(), String> {
-    let dir = viewer
-        .toml_path
-        .parent()
-        .ok_or_else(|| "Invalid path".to_string())?;
-    std::fs::create_dir_all(dir).map_err(|e| format!("Could not create directory: {e}"))?;
-
-    // 1. Write the function definition TOML
-    let mut toml = format!(
-        "function = \"{}\"\nsource = \"{}\"\ntype = \"rust\"\n",
-        viewer.name, viewer.source_file
-    );
-    if !viewer.description.is_empty() {
-        toml.push_str(&format!("description = \"{}\"\n", viewer.description));
-    }
-    for input in &viewer.inputs {
-        let dtype = input.datatypes.first().map_or("", String::as_str);
-        if input.name.is_empty() || input.name == "input" || input.name == "name" {
-            toml.push_str(&format!("\n[[input]]\ntype = \"{dtype}\"\n"));
-        } else {
-            toml.push_str(&format!(
-                "\n[[input]]\nname = \"{}\"\ntype = \"{dtype}\"\n",
-                input.name
-            ));
-        }
-    }
-    for output in &viewer.outputs {
-        let dtype = output.datatypes.first().map_or("", String::as_str);
-        if output.name.is_empty() || output.name == "output" || output.name == "name" {
-            toml.push_str(&format!("\n[[output]]\ntype = \"{dtype}\"\n"));
-        } else {
-            toml.push_str(&format!(
-                "\n[[output]]\nname = \"{}\"\ntype = \"{dtype}\"\n",
-                output.name
-            ));
-        }
-    }
-    std::fs::write(&viewer.toml_path, &toml)
-        .map_err(|e| format!("Could not write {}: {e}", viewer.toml_path.display()))?;
-
-    // 2. Generate skeleton .rs if it doesn't exist
-    let rs_path = dir.join(&viewer.source_file);
-    if !rs_path.exists() {
-        let input_count = viewer.inputs.len();
-        let skeleton = format!(
-            "use flowcore::{{RUN_AGAIN, RunAgain}};\n\
-             use flowcore::errors::*;\n\
-             use flowmacro::flow_function;\n\
-             use serde_json::Value;\n\
-             \n\
-             #[flow_function]\n\
-             fn _{name}(inputs: &[Value]) -> Result<(Option<Value>, RunAgain)> {{\n\
-             {input_bindings}\
-             \n    // TODO: implement function logic\n\
-             \n    Ok((None, RUN_AGAIN))\n\
-             }}\n",
-            name = viewer.name,
-            input_bindings = (0..input_count)
-                .map(|i| format!("    let _input{i} = &inputs[{i}];\n"))
-                .collect::<String>(),
-        );
-        std::fs::write(&rs_path, &skeleton)
-            .map_err(|e| format!("Could not write {}: {e}", rs_path.display()))?;
-    }
-
-    // 3. Generate function.toml (Cargo manifest) if it doesn't exist
-    let cargo_path = dir.join("function.toml");
-    if !cargo_path.exists() {
-        let stem = viewer
-            .source_file
-            .strip_suffix(".rs")
-            .unwrap_or(&viewer.source_file);
-        let cargo = format!(
-            "[package]\n\
-             name = \"{name}\"\n\
-             version = \"0.1.0\"\n\
-             edition = \"2021\"\n\
-             \n\
-             [lib]\n\
-             name = \"{name}\"\n\
-             crate-type = [\"cdylib\"]\n\
-             path = \"{source}\"\n\
-             \n\
-             [dependencies]\n\
-             flowcore = {{version = \"0\"}}\n\
-             flowmacro = {{version = \"0\"}}\n\
-             serde_json = {{version = \"1.0\", default-features = false}}\n",
-            name = viewer.name,
-            source = stem,
-        );
-        std::fs::write(&cargo_path, &cargo)
-            .map_err(|e| format!("Could not write {}: {e}", cargo_path.display()))?;
-    }
-
-    Ok(())
-}
-
-fn editor_prefs_path(flow_path: &Path) -> PathBuf {
-    let mut p = flow_path.to_path_buf();
-    let name = p
-        .file_name()
-        .map(|n| format!(".{}.flowedit", n.to_string_lossy()))
-        .unwrap_or_else(|| ".flowedit".to_string());
-    p.set_file_name(name);
-    p
-}
-
-fn save_editor_prefs(flow_path: &Path, size: Option<iced::Size>, position: Option<iced::Point>) {
-    let prefs_path = editor_prefs_path(flow_path);
-    let mut map = serde_json::Map::new();
-    if let Some(s) = size {
-        map.insert("width".into(), serde_json::json!(s.width));
-        map.insert("height".into(), serde_json::json!(s.height));
-    }
-    if let Some(p) = position {
-        map.insert("x".into(), serde_json::json!(p.x));
-        map.insert("y".into(), serde_json::json!(p.y));
-    }
-    let json = serde_json::Value::Object(map).to_string();
-    let _ = std::fs::write(prefs_path, json);
-}
-
-struct EditorPrefs {
-    width: f32,
-    height: f32,
-    x: Option<f32>,
-    y: Option<f32>,
-}
-
-fn load_editor_prefs(flow_path: &Path) -> Option<EditorPrefs> {
-    let prefs_path = editor_prefs_path(flow_path);
-    let content = std::fs::read_to_string(prefs_path).ok()?;
-    let val: serde_json::Value = serde_json::from_str(&content).ok()?;
-    let w = val.get("width")?.as_f64()? as f32;
-    let h = val.get("height")?.as_f64()? as f32;
-    let x = val.get("x").and_then(|v| v.as_f64()).map(|v| v as f32);
-    let y = val.get("y").and_then(|v| v.as_f64()).map(|v| v as f32);
-    Some(EditorPrefs {
-        width: w,
-        height: h,
-        x,
-        y,
-    })
 }
 
 #[cfg(test)]
@@ -3617,132 +2985,6 @@ mod test {
             outputs: Vec::new(),
             initializers: HashMap::new(),
         }
-    }
-
-    #[test]
-    fn unique_alias_no_conflict() {
-        let nodes = vec![test_node("add", "lib://test")];
-        assert_eq!(generate_unique_alias("subtract", &nodes), "subtract");
-    }
-
-    #[test]
-    fn unique_alias_with_conflict() {
-        let nodes = vec![test_node("add", "lib://test")];
-        assert_eq!(generate_unique_alias("add", &nodes), "add_2");
-    }
-
-    #[test]
-    fn unique_alias_multiple_conflicts() {
-        let nodes = vec![
-            test_node("add", "lib://test"),
-            test_node("add_2", "lib://test"),
-        ];
-        assert_eq!(generate_unique_alias("add", &nodes), "add_3");
-    }
-
-    #[test]
-    fn next_position_empty() {
-        let (x, y) = next_node_position(&[]);
-        assert!((x - 100.0).abs() < 0.01);
-        assert!((y - 100.0).abs() < 0.01);
-    }
-
-    #[test]
-    fn next_position_after_nodes() {
-        let nodes = vec![test_node("a", "lib://test")];
-        let (x, _y) = next_node_position(&nodes);
-        assert!(x > 280.0); // right of existing node + gap
-    }
-
-    #[test]
-    fn format_endpoint_with_port() {
-        assert_eq!(format_endpoint("add", "i1"), "add/i1");
-    }
-
-    #[test]
-    fn format_endpoint_empty_port() {
-        assert_eq!(format_endpoint("add", ""), "add");
-    }
-
-    #[test]
-    fn format_endpoint_default_port() {
-        assert_eq!(format_endpoint("add", "default"), "add");
-    }
-
-    #[test]
-    fn format_endpoint_output_port() {
-        assert_eq!(format_endpoint("add", "output"), "add");
-    }
-
-    #[test]
-    fn value_to_toml_string() {
-        assert_eq!(value_to_toml(&serde_json::json!("hello")), "\"hello\"");
-    }
-
-    #[test]
-    fn value_to_toml_number() {
-        assert_eq!(value_to_toml(&serde_json::json!(42)), "42");
-    }
-
-    #[test]
-    fn value_to_toml_bool() {
-        assert_eq!(value_to_toml(&serde_json::json!(true)), "true");
-    }
-
-    #[test]
-    fn value_to_toml_array() {
-        assert_eq!(value_to_toml(&serde_json::json!([1, 2, 3])), "[1, 2, 3]");
-    }
-
-    #[test]
-    fn initializer_to_toml_once() {
-        let init = InputInitializer::Once(serde_json::json!(42));
-        assert_eq!(initializer_to_toml(&init), "{ once = 42 }");
-    }
-
-    #[test]
-    fn initializer_to_toml_always() {
-        let init = InputInitializer::Always(serde_json::json!("hello"));
-        assert_eq!(initializer_to_toml(&init), "{ always = \"hello\" }");
-    }
-
-    #[test]
-    fn editor_prefs_path_format() {
-        let path = editor_prefs_path(Path::new("/tmp/test/root.toml"));
-        assert_eq!(
-            path.file_name().and_then(|n| n.to_str()),
-            Some(".root.toml.flowedit")
-        );
-    }
-
-    #[test]
-    fn editor_prefs_roundtrip() {
-        let dir = temp_dir("prefs_roundtrip");
-        let flow_path = dir.join("test_flow.toml");
-        std::fs::write(&flow_path, "flow = \"test\"").expect("write test flow");
-
-        save_editor_prefs(
-            &flow_path,
-            Some(iced::Size::new(800.0, 600.0)),
-            Some(iced::Point::new(100.0, 200.0)),
-        );
-
-        let prefs = load_editor_prefs(&flow_path);
-        assert!(prefs.is_some());
-        let p = prefs.expect("prefs should load");
-        assert!((p.width - 800.0).abs() < 0.01);
-        assert!((p.height - 600.0).abs() < 0.01);
-        assert_eq!(p.x, Some(100.0));
-        assert_eq!(p.y, Some(200.0));
-
-        // Cleanup
-        let _ = std::fs::remove_dir_all(&dir);
-    }
-
-    #[test]
-    fn editor_prefs_no_file() {
-        let prefs = load_editor_prefs(Path::new("/nonexistent/path.toml"));
-        assert!(prefs.is_none());
     }
 
     #[test]
@@ -4289,301 +3531,4 @@ mod test {
             .is_none());
     }
 
-    fn temp_dir(name: &str) -> PathBuf {
-        let dir = std::env::temp_dir().join("flowedit_tests").join(name);
-        let _ = std::fs::create_dir_all(&dir);
-        dir
-    }
-
-    #[test]
-    fn save_and_load_flow_roundtrip() {
-        let dir = temp_dir("save_load");
-        let path = dir.join("test.toml");
-
-        let mut flow = FlowDefinition::default();
-        flow.name = "roundtrip_test".into();
-        flow.metadata.version = "1.0.0".into();
-        flow.metadata.authors = vec!["Test Author".into()];
-        flow.process_refs.push(ProcessReference {
-            alias: "add1".into(),
-            source: "lib://flowstdlib/math/add".into(),
-            initializations: std::collections::BTreeMap::new(),
-            x: Some(100.0),
-            y: Some(200.0),
-            width: Some(180.0),
-            height: Some(120.0),
-        });
-
-        let edges = vec![EdgeLayout::new(
-            "add1".into(),
-            "".into(),
-            "add1".into(),
-            "i1".into(),
-        )];
-
-        save_flow_toml(&flow, &edges, &path).expect("save failed");
-
-        let contents = std::fs::read_to_string(&path).expect("read failed");
-        assert!(contents.contains("flow = \"roundtrip_test\""));
-        assert!(contents.contains("version = \"1.0.0\""));
-        assert!(contents.contains("Test Author"));
-        assert!(contents.contains("lib://flowstdlib/math/add"));
-
-        let loaded = load_flow(&path).expect("load failed");
-        assert_eq!(loaded.name, "roundtrip_test");
-        assert_eq!(loaded.nodes.len(), 1);
-        assert_eq!(loaded.edges.len(), 1);
-        assert_eq!(loaded.flow_def.metadata.version, "1.0.0");
-
-        let _ = std::fs::remove_dir_all(&dir);
-    }
-
-    #[test]
-    fn save_flow_with_metadata() {
-        let dir = temp_dir("metadata");
-        let path = dir.join("meta.toml");
-
-        let mut flow = FlowDefinition::default();
-        flow.name = "meta_flow".into();
-        flow.metadata.description = "A test description".into();
-
-        save_flow_toml(&flow, &[], &path).expect("save failed");
-        let contents = std::fs::read_to_string(&path).expect("read failed");
-        assert!(contents.contains("description = \"A test description\""));
-
-        let _ = std::fs::remove_dir_all(&dir);
-    }
-
-    #[test]
-    fn save_flow_with_description() {
-        let dir = temp_dir("description");
-        let path = dir.join("test_flow.toml");
-
-        let mut flow = FlowDefinition::default();
-        flow.name = "described_flow".into();
-        flow.description = "A test flow that does something".into();
-
-        save_flow_toml(&flow, &[], &path).expect("Could not save flow");
-
-        let content = std::fs::read_to_string(&path).expect("Could not read saved file");
-        assert!(content.contains("description = \"A test flow that does something\""));
-
-        let _ = std::fs::remove_dir_all(&dir);
-    }
-
-    #[test]
-    fn save_flow_with_initializers() {
-        let dir = temp_dir("initializers");
-        let path = dir.join("init.toml");
-
-        let mut flow = FlowDefinition::default();
-        flow.name = "init_flow".into();
-        let mut inits = std::collections::BTreeMap::new();
-        inits.insert(
-            "start".to_string(),
-            InputInitializer::Once(serde_json::json!(42)),
-        );
-        flow.process_refs.push(ProcessReference {
-            alias: "seq".into(),
-            source: "lib://flowstdlib/math/sequence".into(),
-            initializations: inits,
-            x: Some(50.0),
-            y: Some(50.0),
-            width: Some(180.0),
-            height: Some(120.0),
-        });
-
-        save_flow_toml(&flow, &[], &path).expect("save failed");
-        let contents = std::fs::read_to_string(&path).expect("read failed");
-        assert!(contents.contains("input.start"));
-        assert!(contents.contains("once"));
-
-        let _ = std::fs::remove_dir_all(&dir);
-    }
-
-    #[test]
-    fn save_flow_with_connections() {
-        let dir = temp_dir("connections");
-        let path = dir.join("conn.toml");
-
-        let mut flow = FlowDefinition::default();
-        flow.name = "conn_flow".into();
-        flow.process_refs.push(ProcessReference {
-            alias: "a".into(),
-            source: "lib://test/a".into(),
-            initializations: std::collections::BTreeMap::new(),
-            x: Some(0.0),
-            y: Some(0.0),
-            width: None,
-            height: None,
-        });
-        flow.process_refs.push(ProcessReference {
-            alias: "b".into(),
-            source: "lib://test/b".into(),
-            initializations: std::collections::BTreeMap::new(),
-            x: None,
-            y: None,
-            width: None,
-            height: None,
-        });
-
-        let edges = vec![EdgeLayout::new(
-            "a".into(),
-            "out".into(),
-            "b".into(),
-            "in".into(),
-        )];
-
-        save_flow_toml(&flow, &edges, &path).expect("save failed");
-        let contents = std::fs::read_to_string(&path).expect("read failed");
-        assert!(contents.contains("from = \"a/out\""));
-        assert!(contents.contains("to = \"b/in\""));
-
-        let _ = std::fs::remove_dir_all(&dir);
-    }
-
-    #[test]
-    fn load_flow_nonexistent() {
-        let result = load_flow(&PathBuf::from("/nonexistent/flow.toml"));
-        assert!(result.is_err());
-    }
-
-    #[test]
-    fn load_flow_invalid_toml() {
-        let dir = temp_dir("invalid");
-        let path = dir.join("bad.toml");
-        std::fs::write(&path, "this is not valid toml {{{{").expect("write failed");
-        let result = load_flow(&path);
-        assert!(result.is_err());
-        let _ = std::fs::remove_dir_all(&dir);
-    }
-
-    #[test]
-    fn perform_save_updates_state() {
-        let dir = temp_dir("perform_save");
-        let path = dir.join("saved.toml");
-
-        let mut win = test_win_state();
-        win.unsaved_edits = 5;
-        win.flow_name = "saved_flow".into();
-
-        perform_save(&mut win, &path);
-        assert_eq!(win.unsaved_edits, 0);
-        assert_eq!(win.file_path, Some(path.clone()));
-
-        let contents = std::fs::read_to_string(&path).expect("read failed");
-        assert!(contents.contains("flow = \"saved_flow\""));
-
-        let _ = std::fs::remove_dir_all(&dir);
-    }
-
-    #[test]
-    fn save_function_definition_creates_files() {
-        let dir = temp_dir("func_def");
-        let toml_path = dir.join("myfunc.toml");
-
-        let viewer = FunctionViewer {
-            name: "myfunc".into(),
-            description: String::new(),
-            source_file: "myfunc.rs".into(),
-            inputs: vec![PortInfo {
-                name: "data".into(),
-                datatypes: vec!["string".into()],
-            }],
-            outputs: vec![PortInfo {
-                name: "result".into(),
-                datatypes: vec!["number".into()],
-            }],
-            rs_content: String::new(),
-            docs_content: None,
-            active_tab: 0,
-            toml_path: toml_path.clone(),
-        };
-
-        save_function_definition(&viewer).expect("save failed");
-
-        // Check TOML was created
-        let toml = std::fs::read_to_string(&toml_path).expect("read toml");
-        assert!(toml.contains("function = \"myfunc\""));
-        assert!(toml.contains("source = \"myfunc.rs\""));
-        assert!(toml.contains("name = \"data\""));
-        assert!(toml.contains("type = \"string\""));
-        assert!(toml.contains("type = \"number\""));
-
-        // Check skeleton .rs was created
-        let rs_path = dir.join("myfunc.rs");
-        assert!(rs_path.exists());
-        let rs = std::fs::read_to_string(&rs_path).expect("read rs");
-        assert!(rs.contains("#[flow_function]"));
-        assert!(rs.contains("_myfunc"));
-        assert!(rs.contains("_input0"));
-
-        // Check function.toml was created
-        let cargo_path = dir.join("function.toml");
-        assert!(cargo_path.exists());
-        let cargo = std::fs::read_to_string(&cargo_path).expect("read cargo");
-        assert!(cargo.contains("name = \"myfunc\""));
-        assert!(cargo.contains("crate-type = [\"cdylib\"]"));
-
-        let _ = std::fs::remove_dir_all(&dir);
-    }
-
-    #[test]
-    fn save_function_no_overwrite_existing_rs() {
-        let dir = temp_dir("func_no_overwrite");
-        let toml_path = dir.join("existing.toml");
-        let rs_path = dir.join("existing.rs");
-
-        // Create existing .rs
-        std::fs::write(&rs_path, "// existing code").expect("write rs");
-
-        let viewer = FunctionViewer {
-            name: "existing".into(),
-            description: String::new(),
-            source_file: "existing.rs".into(),
-            inputs: Vec::new(),
-            outputs: Vec::new(),
-            rs_content: String::new(),
-            docs_content: None,
-            active_tab: 0,
-            toml_path,
-        };
-
-        save_function_definition(&viewer).expect("save failed");
-
-        // Existing .rs should NOT be overwritten
-        let rs = std::fs::read_to_string(&rs_path).expect("read rs");
-        assert_eq!(rs, "// existing code");
-
-        let _ = std::fs::remove_dir_all(&dir);
-    }
-
-    #[test]
-    fn resolve_node_source_toml_extension() {
-        let dir = temp_dir("resolve_src");
-        let flow_path = dir.join("root.toml");
-        std::fs::write(&flow_path, "flow = \"root\"").expect("write");
-        let sub_path = dir.join("sub.toml");
-        std::fs::write(&sub_path, "flow = \"sub\"").expect("write");
-
-        let win = WindowState {
-            file_path: Some(flow_path),
-            ..test_win_state()
-        };
-
-        let resolved = resolve_node_source(&win, "sub");
-        assert!(resolved.is_some());
-
-        let _ = std::fs::remove_dir_all(&dir);
-    }
-
-    #[test]
-    fn resolve_node_source_not_found() {
-        let win = WindowState {
-            file_path: Some(PathBuf::from("/tmp/flowedit_tests/nonexistent/root.toml")),
-            ..test_win_state()
-        };
-        let resolved = resolve_node_source(&win, "missing");
-        assert!(resolved.is_none());
-    }
 }
