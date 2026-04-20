@@ -4,8 +4,8 @@ use flowcore::model::input::InputInitializer;
 use flowcore::model::process_reference::ProcessReference;
 
 use crate::canvas_view::derive_short_name;
-use crate::{InitializerEditor, WindowState};
 use crate::history::EditAction;
+use crate::{InitializerEditor, WindowState};
 
 /// Apply an initializer edit to the flow definition and update the node display.
 pub(crate) fn apply_initializer_edit(win: &mut WindowState, editor: &InitializerEditor) {
@@ -182,8 +182,7 @@ pub(crate) fn apply_initializer_state(
     if let Some(node) = win.nodes.get_mut(node_index) {
         match display {
             Some(d) => {
-                node.initializers
-                    .insert(port_name.to_string(), d.clone());
+                node.initializers.insert(port_name.to_string(), d.clone());
             }
             None => {
                 node.initializers.remove(port_name);

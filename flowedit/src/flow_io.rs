@@ -7,16 +7,18 @@ use log::info;
 use simpath::Simpath;
 use url::Url;
 
+use crate::canvas_view::FlowCanvasState;
+use crate::canvas_view::{
+    build_edge_layouts, build_node_layouts, EdgeLayout, NodeLayout, PortInfo,
+};
+use crate::history::EditHistory;
+use crate::initializer;
+use crate::{FunctionViewer, WindowState};
 use flowcore::meta_provider::MetaProvider;
 use flowcore::model::flow_definition::FlowDefinition;
 use flowcore::model::input::InputInitializer;
 use flowcore::model::name::HasName;
 use flowcore::model::process::Process;
-use crate::canvas_view::{build_edge_layouts, build_node_layouts, EdgeLayout, NodeLayout, PortInfo};
-use crate::canvas_view::FlowCanvasState;
-use crate::history::EditHistory;
-use crate::initializer;
-use crate::{FunctionViewer, WindowState};
 
 /// Result of loading a flow definition file.
 pub(crate) struct LoadedFlow {

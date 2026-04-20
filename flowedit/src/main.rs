@@ -43,8 +43,7 @@ mod library_mgmt;
 mod library_panel;
 mod undo_redo;
 use canvas_view::{
-    derive_short_name, CanvasMessage, EdgeLayout,
-    FlowCanvasState, NodeLayout, PortInfo,
+    derive_short_name, CanvasMessage, EdgeLayout, FlowCanvasState, NodeLayout, PortInfo,
 };
 use hierarchy_panel::{FlowHierarchy, HierarchyMessage};
 use history::{EditAction, EditHistory};
@@ -390,7 +389,9 @@ impl FlowEdit {
             LibraryTree::from_cache(&library_cache, &lib_definitions, &context_definitions);
 
         // Open the root window via daemon API
-        let saved_prefs = file_path.as_ref().and_then(|p| flow_io::load_editor_prefs(p));
+        let saved_prefs = file_path
+            .as_ref()
+            .and_then(|p| flow_io::load_editor_prefs(p));
         let saved_size = saved_prefs
             .as_ref()
             .map(|p| iced::Size::new(p.width, p.height))
@@ -607,7 +608,10 @@ impl FlowEdit {
                             to_node.clone(),
                             to_port.clone(),
                         );
-                        undo_redo::record_edit(win, EditAction::CreateConnection { edge: edge.clone() });
+                        undo_redo::record_edit(
+                            win,
+                            EditAction::CreateConnection { edge: edge.clone() },
+                        );
                         win.edges.push(edge);
                         win.canvas_state.request_redraw();
                         let nc = win.nodes.len();
@@ -635,7 +639,10 @@ impl FlowEdit {
                     CanvasMessage::ConnectionDeleted(idx) => {
                         if idx < win.edges.len() {
                             let edge = win.edges.remove(idx);
-                            undo_redo::record_edit(win, EditAction::DeleteConnection { index: idx, edge });
+                            undo_redo::record_edit(
+                                win,
+                                EditAction::DeleteConnection { index: idx, edge },
+                            );
                             win.selected_connection = None;
                             win.canvas_state.request_redraw();
                             let nc = win.nodes.len();
@@ -732,8 +739,10 @@ impl FlowEdit {
                     // Open the flow or function
                     match flow_io::load_flow(&path) {
                         Ok(loaded) => {
-                            let (fi, fo) =
-                                flow_io::extract_ports(&loaded.flow_def.inputs, &loaded.flow_def.outputs);
+                            let (fi, fo) = flow_io::extract_ports(
+                                &loaded.flow_def.inputs,
+                                &loaded.flow_def.outputs,
+                            );
                             let (new_id, open_task) =
                                 window::open(self.child_window_settings(1024.0, 768.0));
                             let has_nodes = !loaded.nodes.is_empty();
@@ -979,7 +988,8 @@ impl FlowEdit {
                                 .unwrap_or_else(FlowHierarchy::empty);
 
                             // Rebuild library cache with new flow's references
-                            let (lc, ld, cd) = library_mgmt::load_library_catalogs(&lib_refs, &ctx_refs);
+                            let (lc, ld, cd) =
+                                library_mgmt::load_library_catalogs(&lib_refs, &ctx_refs);
                             self.library_cache = lc;
                             self.lib_definitions = ld;
                             self.context_definitions = cd;
@@ -2286,7 +2296,8 @@ impl FlowEdit {
             }
             Ok(Process::FlowProcess(_)) => match flow_io::load_flow(&path) {
                 Ok(loaded) => {
-                    let (fi, fo) = flow_io::extract_ports(&loaded.flow_def.inputs, &loaded.flow_def.outputs);
+                    let (fi, fo) =
+                        flow_io::extract_ports(&loaded.flow_def.inputs, &loaded.flow_def.outputs);
                     let has_nodes = !loaded.nodes.is_empty();
                     let nc = loaded.nodes.len();
                     let ec = loaded.edges.len();
@@ -2428,7 +2439,8 @@ impl FlowEdit {
                 let (new_id, open_task) = window::open(self.child_window_settings(1024.0, 768.0));
                 let nc = loaded.nodes.len();
                 let ec = loaded.edges.len();
-                let (fi, fo) = flow_io::extract_ports(&loaded.flow_def.inputs, &loaded.flow_def.outputs);
+                let (fi, fo) =
+                    flow_io::extract_ports(&loaded.flow_def.inputs, &loaded.flow_def.outputs);
                 let child = WindowState {
                     kind: WindowKind::FlowEditor,
                     flow_name: loaded.name,
@@ -3349,5 +3361,4 @@ mod test {
             .and_then(|w| w.initializer_editor.as_ref())
             .is_none());
     }
-
 }
