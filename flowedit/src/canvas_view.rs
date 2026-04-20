@@ -2537,6 +2537,7 @@ fn check_port_type_compatibility(
 }
 
 #[cfg(test)]
+#[allow(clippy::indexing_slicing)]
 mod test {
     use super::*;
     use iced::Point;
@@ -2747,5 +2748,433 @@ mod test {
         assert!((op0.x - 280.0).abs() < 0.01);
         // Ports vertically spaced
         assert!(ip1.y > ip0.y);
+    }
+
+    #[test]
+    fn base_port_name_simple() {
+        assert_eq!(base_port_name("string"), "string");
+    }
+
+    #[test]
+    fn base_port_name_with_array_index() {
+        assert_eq!(base_port_name("string/1"), "string");
+    }
+
+    #[test]
+    fn base_port_name_with_deep_array_index() {
+        assert_eq!(base_port_name("json/3"), "json");
+    }
+
+    #[test]
+    fn base_port_name_no_index() {
+        assert_eq!(base_port_name("array/number"), "array/number");
+    }
+
+    #[test]
+    fn base_port_name_empty() {
+        assert_eq!(base_port_name(""), "");
+    }
+
+    #[test]
+    fn transform_and_inverse() {
+        let p = Point::new(100.0, 200.0);
+        let zoom = 2.0;
+        let offset = Point::new(10.0, 20.0);
+        let screen = transform_point(p, zoom, offset);
+        let back = screen_to_world(screen, zoom, offset);
+        assert!((back.x - p.x).abs() < 0.01);
+        assert!((back.y - p.y).abs() < 0.01);
+    }
+
+    #[test]
+    fn distance_to_segment_on_segment() {
+        let a = Point::new(0.0, 0.0);
+        let b = Point::new(10.0, 0.0);
+        let p = Point::new(5.0, 0.0);
+        assert!(distance_to_segment_sq(p, a, b) < 0.01);
+    }
+
+    #[test]
+    fn distance_to_segment_perpendicular() {
+        let a = Point::new(0.0, 0.0);
+        let b = Point::new(10.0, 0.0);
+        let p = Point::new(5.0, 3.0);
+        assert!((distance_to_segment_sq(p, a, b) - 9.0).abs() < 0.01);
+    }
+
+    #[test]
+    fn distance_to_segment_beyond_endpoint() {
+        let a = Point::new(0.0, 0.0);
+        let b = Point::new(10.0, 0.0);
+        let p = Point::new(15.0, 0.0);
+        assert!((distance_to_segment_sq(p, a, b) - 25.0).abs() < 0.01);
+    }
+
+    #[test]
+    fn distance_to_segment_zero_length() {
+        let a = Point::new(5.0, 5.0);
+        let p = Point::new(8.0, 5.0);
+        assert!((distance_to_segment_sq(p, a, a) - 9.0).abs() < 0.01);
+    }
+
+    #[test]
+    fn cubic_bezier_endpoints() {
+        let p0 = Point::new(0.0, 0.0);
+        let p1 = Point::new(1.0, 2.0);
+        let p2 = Point::new(3.0, 2.0);
+        let p3 = Point::new(4.0, 0.0);
+        let start = cubic_bezier(p0, p1, p2, p3, 0.0);
+        let end = cubic_bezier(p0, p1, p2, p3, 1.0);
+        assert!((start.x - p0.x).abs() < 0.01);
+        assert!((start.y - p0.y).abs() < 0.01);
+        assert!((end.x - p3.x).abs() < 0.01);
+        assert!((end.y - p3.y).abs() < 0.01);
+    }
+
+    #[test]
+    fn quadratic_bezier_endpoints() {
+        let p0 = Point::new(0.0, 0.0);
+        let p1 = Point::new(2.0, 4.0);
+        let p2 = Point::new(4.0, 0.0);
+        let start = quadratic_bezier_pt(p0, p1, p2, 0.0);
+        let end = quadratic_bezier_pt(p0, p1, p2, 1.0);
+        assert!((start.x - p0.x).abs() < 0.01);
+        assert!((end.x - p2.x).abs() < 0.01);
+    }
+
+    #[test]
+    fn hit_test_node_miss() {
+        let node = NodeLayout {
+            alias: "n".into(),
+            source: "lib://test".into(),
+            x: 100.0,
+            y: 100.0,
+            width: 180.0,
+            height: 120.0,
+            inputs: Vec::new(),
+            outputs: Vec::new(),
+            initializers: HashMap::new(),
+        };
+        assert_eq!(
+            hit_test_node(&[node.clone()], Point::new(150.0, 150.0)),
+            Some(0)
+        );
+        assert_eq!(hit_test_node(&[node], Point::new(50.0, 50.0)), None);
+    }
+
+    #[test]
+    fn hit_test_open_icon_only_openable() {
+        let lib_node = NodeLayout {
+            alias: "n".into(),
+            source: "lib://test".into(),
+            x: 100.0,
+            y: 100.0,
+            width: 180.0,
+            height: 120.0,
+            inputs: Vec::new(),
+            outputs: Vec::new(),
+            initializers: HashMap::new(),
+        };
+        let local_node = NodeLayout {
+            source: "subflow".into(),
+            ..lib_node.clone()
+        };
+        // lib:// nodes are not openable
+        assert_eq!(
+            hit_test_open_icon(&[lib_node], Point::new(278.0, 104.0)),
+            None
+        );
+        // Local nodes are openable
+        assert!(hit_test_open_icon(&[local_node], Point::new(278.0, 104.0)).is_some());
+    }
+
+    #[test]
+    fn is_openable_lib() {
+        let node = NodeLayout {
+            alias: "n".into(),
+            source: "lib://flowstdlib/math/add".into(),
+            x: 0.0,
+            y: 0.0,
+            width: 180.0,
+            height: 120.0,
+            inputs: Vec::new(),
+            outputs: Vec::new(),
+            initializers: HashMap::new(),
+        };
+        assert!(!node.is_openable());
+    }
+
+    #[test]
+    fn is_openable_context() {
+        let node = NodeLayout {
+            alias: "n".into(),
+            source: "context://stdio/stdout".into(),
+            x: 0.0,
+            y: 0.0,
+            width: 180.0,
+            height: 120.0,
+            inputs: Vec::new(),
+            outputs: Vec::new(),
+            initializers: HashMap::new(),
+        };
+        assert!(!node.is_openable());
+    }
+
+    #[test]
+    fn is_openable_local() {
+        let node = NodeLayout {
+            alias: "n".into(),
+            source: "subflow/subflow".into(),
+            x: 0.0,
+            y: 0.0,
+            width: 180.0,
+            height: 120.0,
+            inputs: Vec::new(),
+            outputs: Vec::new(),
+            initializers: HashMap::new(),
+        };
+        assert!(node.is_openable());
+    }
+
+    #[test]
+    fn truncate_source_under_limit() {
+        assert_eq!(truncate_source("short", 22), "short");
+    }
+
+    #[test]
+    fn truncate_source_with_ellipsis() {
+        let long = "lib://flowstdlib/math/very_long_function_name";
+        let result = truncate_source(long, 22);
+        assert!(result.len() <= 25); // with ellipsis
+        assert!(result.contains("..."));
+    }
+
+    #[test]
+    fn check_type_compat_same_type() {
+        let nodes = vec![
+            NodeLayout {
+                alias: "a".into(),
+                source: String::new(),
+                x: 0.0,
+                y: 0.0,
+                width: 180.0,
+                height: 120.0,
+                inputs: Vec::new(),
+                outputs: vec![PortInfo {
+                    name: "out".into(),
+                    datatypes: vec!["number".into()],
+                }],
+                initializers: HashMap::new(),
+            },
+            NodeLayout {
+                alias: "b".into(),
+                source: String::new(),
+                x: 0.0,
+                y: 0.0,
+                width: 180.0,
+                height: 120.0,
+                inputs: vec![PortInfo {
+                    name: "in".into(),
+                    datatypes: vec!["number".into()],
+                }],
+                outputs: Vec::new(),
+                initializers: HashMap::new(),
+            },
+        ];
+        assert!(check_port_type_compatibility(
+            Some(&nodes[0]),
+            "out",
+            true,
+            &nodes[1],
+            "in",
+            false
+        ));
+    }
+
+    #[test]
+    fn check_type_compat_different_type() {
+        let nodes = vec![
+            NodeLayout {
+                alias: "a".into(),
+                source: String::new(),
+                x: 0.0,
+                y: 0.0,
+                width: 180.0,
+                height: 120.0,
+                inputs: Vec::new(),
+                outputs: vec![PortInfo {
+                    name: "out".into(),
+                    datatypes: vec!["number".into()],
+                }],
+                initializers: HashMap::new(),
+            },
+            NodeLayout {
+                alias: "b".into(),
+                source: String::new(),
+                x: 0.0,
+                y: 0.0,
+                width: 180.0,
+                height: 120.0,
+                inputs: vec![PortInfo {
+                    name: "in".into(),
+                    datatypes: vec!["string".into()],
+                }],
+                outputs: Vec::new(),
+                initializers: HashMap::new(),
+            },
+        ];
+        assert!(!check_port_type_compatibility(
+            Some(&nodes[0]),
+            "out",
+            true,
+            &nodes[1],
+            "in",
+            false
+        ));
+    }
+
+    #[test]
+    fn check_type_compat_untyped_allows_any() {
+        let nodes = vec![
+            NodeLayout {
+                alias: "a".into(),
+                source: String::new(),
+                x: 0.0,
+                y: 0.0,
+                width: 180.0,
+                height: 120.0,
+                inputs: Vec::new(),
+                outputs: vec![PortInfo {
+                    name: "out".into(),
+                    datatypes: vec![],
+                }],
+                initializers: HashMap::new(),
+            },
+            NodeLayout {
+                alias: "b".into(),
+                source: String::new(),
+                x: 0.0,
+                y: 0.0,
+                width: 180.0,
+                height: 120.0,
+                inputs: vec![PortInfo {
+                    name: "in".into(),
+                    datatypes: vec!["string".into()],
+                }],
+                outputs: Vec::new(),
+                initializers: HashMap::new(),
+            },
+        ];
+        assert!(check_port_type_compatibility(
+            Some(&nodes[0]),
+            "out",
+            true,
+            &nodes[1],
+            "in",
+            false
+        ));
+    }
+
+    #[test]
+    fn compute_flow_io_positions_with_nodes() {
+        let nodes = vec![NodeLayout {
+            alias: "n".into(),
+            source: String::new(),
+            x: 100.0,
+            y: 100.0,
+            width: 180.0,
+            height: 120.0,
+            inputs: Vec::new(),
+            outputs: Vec::new(),
+            initializers: HashMap::new(),
+        }];
+        let inputs = vec![PortInfo {
+            name: "data".into(),
+            datatypes: vec![],
+        }];
+        let outputs = vec![PortInfo {
+            name: "result".into(),
+            datatypes: vec![],
+        }];
+        let (inp, outp) = compute_flow_io_positions(&nodes, &inputs, &outputs);
+        assert!(inp.contains_key("data"));
+        assert!(outp.contains_key("result"));
+        // Input on the left of nodes
+        assert!(inp["data"].x < 100.0);
+        // Output on the right of nodes
+        assert!(outp["result"].x > 280.0);
+    }
+
+    #[test]
+    fn compute_flow_io_positions_empty_nodes() {
+        let inputs = vec![PortInfo {
+            name: "in".into(),
+            datatypes: vec![],
+        }];
+        let outputs = vec![PortInfo {
+            name: "out".into(),
+            datatypes: vec![],
+        }];
+        let (inp, outp) = compute_flow_io_positions(&[], &inputs, &outputs);
+        assert!(inp.contains_key("in"));
+        assert!(outp.contains_key("out"));
+    }
+
+    #[test]
+    fn compute_flow_io_positions_no_ports() {
+        let (inp, outp) = compute_flow_io_positions(&[], &[], &[]);
+        assert!(inp.is_empty());
+        assert!(outp.is_empty());
+    }
+
+    #[test]
+    fn find_node_output_inline_with_subroute() {
+        let node = NodeLayout {
+            alias: "get".into(),
+            source: String::new(),
+            x: 100.0,
+            y: 100.0,
+            width: 180.0,
+            height: 120.0,
+            inputs: Vec::new(),
+            outputs: vec![
+                PortInfo {
+                    name: "string".into(),
+                    datatypes: vec![],
+                },
+                PortInfo {
+                    name: "json".into(),
+                    datatypes: vec![],
+                },
+            ],
+            initializers: HashMap::new(),
+        };
+        let string_pos = find_node_output_pos_inline(&node, "string/1");
+        let json_pos = find_node_output_pos_inline(&node, "json/2");
+        // string is output 0, json is output 1 — different y positions
+        assert!((json_pos.y - string_pos.y).abs() > 1.0);
+    }
+
+    #[test]
+    fn fill_color_by_source() {
+        let make = |source: &str| NodeLayout {
+            alias: "n".into(),
+            source: source.into(),
+            x: 0.0,
+            y: 0.0,
+            width: 180.0,
+            height: 120.0,
+            inputs: Vec::new(),
+            outputs: Vec::new(),
+            initializers: HashMap::new(),
+        };
+        let lib = make("lib://flowstdlib/math/add");
+        let ctx = make("context://stdio/stdout");
+        let rs = make("impl.rs");
+        let flow = make("subflow");
+        // Different sources should produce different colors
+        assert_ne!(lib.fill_color(), ctx.fill_color());
+        assert_ne!(lib.fill_color(), rs.fill_color());
+        assert_ne!(lib.fill_color(), flow.fill_color());
     }
 }

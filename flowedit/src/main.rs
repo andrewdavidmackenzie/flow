@@ -3645,3 +3645,970 @@ fn load_editor_prefs(flow_path: &Path) -> Option<EditorPrefs> {
         y,
     })
 }
+
+#[cfg(test)]
+#[allow(clippy::indexing_slicing)]
+mod test {
+    use super::*;
+    use std::collections::HashMap;
+
+    fn test_node(alias: &str, source: &str) -> NodeLayout {
+        NodeLayout {
+            alias: alias.into(),
+            source: source.into(),
+            x: 100.0,
+            y: 100.0,
+            width: 180.0,
+            height: 120.0,
+            inputs: Vec::new(),
+            outputs: Vec::new(),
+            initializers: HashMap::new(),
+        }
+    }
+
+    #[test]
+    fn unique_alias_no_conflict() {
+        let nodes = vec![test_node("add", "lib://test")];
+        assert_eq!(generate_unique_alias("subtract", &nodes), "subtract");
+    }
+
+    #[test]
+    fn unique_alias_with_conflict() {
+        let nodes = vec![test_node("add", "lib://test")];
+        assert_eq!(generate_unique_alias("add", &nodes), "add_2");
+    }
+
+    #[test]
+    fn unique_alias_multiple_conflicts() {
+        let nodes = vec![
+            test_node("add", "lib://test"),
+            test_node("add_2", "lib://test"),
+        ];
+        assert_eq!(generate_unique_alias("add", &nodes), "add_3");
+    }
+
+    #[test]
+    fn next_position_empty() {
+        let (x, y) = next_node_position(&[]);
+        assert!((x - 100.0).abs() < 0.01);
+        assert!((y - 100.0).abs() < 0.01);
+    }
+
+    #[test]
+    fn next_position_after_nodes() {
+        let nodes = vec![test_node("a", "lib://test")];
+        let (x, _y) = next_node_position(&nodes);
+        assert!(x > 280.0); // right of existing node + gap
+    }
+
+    #[test]
+    fn format_endpoint_with_port() {
+        assert_eq!(format_endpoint("add", "i1"), "add/i1");
+    }
+
+    #[test]
+    fn format_endpoint_empty_port() {
+        assert_eq!(format_endpoint("add", ""), "add");
+    }
+
+    #[test]
+    fn format_endpoint_default_port() {
+        assert_eq!(format_endpoint("add", "default"), "add");
+    }
+
+    #[test]
+    fn format_endpoint_output_port() {
+        assert_eq!(format_endpoint("add", "output"), "add");
+    }
+
+    #[test]
+    fn value_to_toml_string() {
+        assert_eq!(value_to_toml(&serde_json::json!("hello")), "\"hello\"");
+    }
+
+    #[test]
+    fn value_to_toml_number() {
+        assert_eq!(value_to_toml(&serde_json::json!(42)), "42");
+    }
+
+    #[test]
+    fn value_to_toml_bool() {
+        assert_eq!(value_to_toml(&serde_json::json!(true)), "true");
+    }
+
+    #[test]
+    fn value_to_toml_array() {
+        assert_eq!(value_to_toml(&serde_json::json!([1, 2, 3])), "[1, 2, 3]");
+    }
+
+    #[test]
+    fn initializer_to_toml_once() {
+        let init = InputInitializer::Once(serde_json::json!(42));
+        assert_eq!(initializer_to_toml(&init), "{ once = 42 }");
+    }
+
+    #[test]
+    fn initializer_to_toml_always() {
+        let init = InputInitializer::Always(serde_json::json!("hello"));
+        assert_eq!(initializer_to_toml(&init), "{ always = \"hello\" }");
+    }
+
+    #[test]
+    fn editor_prefs_path_format() {
+        let path = editor_prefs_path(Path::new("/tmp/test/root.toml"));
+        assert_eq!(
+            path.file_name().and_then(|n| n.to_str()),
+            Some(".root.toml.flowedit")
+        );
+    }
+
+    #[test]
+    fn editor_prefs_roundtrip() {
+        let dir = temp_dir("prefs_roundtrip");
+        let flow_path = dir.join("test_flow.toml");
+        std::fs::write(&flow_path, "flow = \"test\"").expect("write test flow");
+
+        save_editor_prefs(
+            &flow_path,
+            Some(iced::Size::new(800.0, 600.0)),
+            Some(iced::Point::new(100.0, 200.0)),
+        );
+
+        let prefs = load_editor_prefs(&flow_path);
+        assert!(prefs.is_some());
+        let p = prefs.expect("prefs should load");
+        assert!((p.width - 800.0).abs() < 0.01);
+        assert!((p.height - 600.0).abs() < 0.01);
+        assert_eq!(p.x, Some(100.0));
+        assert_eq!(p.y, Some(200.0));
+
+        // Cleanup
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn editor_prefs_no_file() {
+        let prefs = load_editor_prefs(Path::new("/nonexistent/path.toml"));
+        assert!(prefs.is_none());
+    }
+
+    #[test]
+    fn sync_flow_definition_preserves_nodes() {
+        let mut win = WindowState {
+            kind: WindowKind::FlowEditor,
+            flow_name: String::from("test"),
+            nodes: vec![
+                test_node("add", "lib://flowstdlib/math/add"),
+                test_node("stdout", "context://stdio/stdout"),
+            ],
+            edges: Vec::new(),
+            canvas_state: FlowCanvasState::default(),
+            status: String::new(),
+            selected_node: None,
+            selected_connection: None,
+            history: EditHistory::default(),
+            auto_fit_pending: false,
+            auto_fit_enabled: false,
+            unsaved_edits: 0,
+            compiled_manifest: None,
+            file_path: None,
+            flow_definition: FlowDefinition::default(),
+            tooltip: None,
+            initializer_editor: None,
+            is_root: true,
+            flow_inputs: Vec::new(),
+            flow_outputs: Vec::new(),
+            context_menu: None,
+            show_metadata: false,
+            flow_hierarchy: FlowHierarchy::empty(),
+            last_size: None,
+            last_position: None,
+        };
+
+        sync_flow_definition(&mut win);
+        assert_eq!(win.flow_definition.process_refs.len(), 2);
+        assert_eq!(win.flow_definition.name, "test");
+    }
+
+    #[test]
+    fn record_and_undo_edit() {
+        let mut win = WindowState {
+            kind: WindowKind::FlowEditor,
+            flow_name: String::from("test"),
+            nodes: vec![test_node("a", "lib://test")],
+            edges: Vec::new(),
+            canvas_state: FlowCanvasState::default(),
+            status: String::new(),
+            selected_node: None,
+            selected_connection: None,
+            history: EditHistory::default(),
+            auto_fit_pending: false,
+            auto_fit_enabled: false,
+            unsaved_edits: 0,
+            compiled_manifest: None,
+            file_path: None,
+            flow_definition: FlowDefinition::default(),
+            tooltip: None,
+            initializer_editor: None,
+            is_root: true,
+            flow_inputs: Vec::new(),
+            flow_outputs: Vec::new(),
+            context_menu: None,
+            show_metadata: false,
+            flow_hierarchy: FlowHierarchy::empty(),
+            last_size: None,
+            last_position: None,
+        };
+
+        // Move node
+        win.nodes[0].x = 200.0;
+        win.nodes[0].y = 300.0;
+        record_edit(
+            &mut win,
+            EditAction::MoveNode {
+                index: 0,
+                old_x: 100.0,
+                old_y: 100.0,
+                new_x: 200.0,
+                new_y: 300.0,
+            },
+        );
+        assert_eq!(win.unsaved_edits, 1);
+
+        // Undo
+        apply_undo(&mut win);
+        assert!((win.nodes[0].x - 100.0).abs() < 0.01);
+        assert!((win.nodes[0].y - 100.0).abs() < 0.01);
+
+        // Redo
+        apply_redo(&mut win);
+        assert!((win.nodes[0].x - 200.0).abs() < 0.01);
+        assert!((win.nodes[0].y - 300.0).abs() < 0.01);
+    }
+
+    fn test_win_state() -> WindowState {
+        WindowState {
+            kind: WindowKind::FlowEditor,
+            flow_name: String::from("test"),
+            nodes: vec![
+                test_node("add", "lib://flowstdlib/math/add"),
+                test_node("stdout", "context://stdio/stdout"),
+            ],
+            edges: Vec::new(),
+            canvas_state: FlowCanvasState::default(),
+            status: String::new(),
+            selected_node: None,
+            selected_connection: None,
+            history: EditHistory::default(),
+            auto_fit_pending: false,
+            auto_fit_enabled: false,
+            unsaved_edits: 0,
+            compiled_manifest: None,
+            file_path: None,
+            flow_definition: FlowDefinition::default(),
+            tooltip: None,
+            initializer_editor: None,
+            is_root: true,
+            flow_inputs: Vec::new(),
+            flow_outputs: Vec::new(),
+            context_menu: None,
+            show_metadata: false,
+            flow_hierarchy: FlowHierarchy::empty(),
+            last_size: None,
+            last_position: None,
+        }
+    }
+
+    fn test_app() -> (FlowEdit, window::Id) {
+        let win_id = window::Id::unique();
+        let app = FlowEdit {
+            windows: HashMap::from([(win_id, test_win_state())]),
+            root_window: Some(win_id),
+            focused_window: Some(win_id),
+            library_tree: LibraryTree {
+                libraries: Vec::new(),
+            },
+            root_flow_path: None,
+            show_lib_paths: false,
+            lib_paths: Vec::new(),
+        };
+        (app, win_id)
+    }
+
+    #[test]
+    fn update_zoom_in() {
+        let (mut app, win_id) = test_app();
+        let old_zoom = app
+            .windows
+            .get(&win_id)
+            .map(|w| w.canvas_state.zoom)
+            .unwrap_or(1.0);
+        app.update(Message::ZoomIn(win_id));
+        let new_zoom = app
+            .windows
+            .get(&win_id)
+            .map(|w| w.canvas_state.zoom)
+            .unwrap_or(1.0);
+        assert!(new_zoom > old_zoom);
+    }
+
+    #[test]
+    fn update_zoom_out() {
+        let (mut app, win_id) = test_app();
+        let old_zoom = app
+            .windows
+            .get(&win_id)
+            .map(|w| w.canvas_state.zoom)
+            .unwrap_or(1.0);
+        app.update(Message::ZoomOut(win_id));
+        let new_zoom = app
+            .windows
+            .get(&win_id)
+            .map(|w| w.canvas_state.zoom)
+            .unwrap_or(1.0);
+        assert!(new_zoom < old_zoom);
+    }
+
+    #[test]
+    fn update_toggle_auto_fit() {
+        let (mut app, win_id) = test_app();
+        app.windows
+            .get_mut(&win_id)
+            .map(|w| w.auto_fit_enabled = false);
+        app.update(Message::ToggleAutoFit(win_id));
+        assert!(app
+            .windows
+            .get(&win_id)
+            .map_or(false, |w| w.auto_fit_enabled));
+    }
+
+    #[test]
+    fn update_canvas_select_node() {
+        let (mut app, win_id) = test_app();
+        app.update(Message::WindowCanvas(
+            win_id,
+            CanvasMessage::Selected(Some(0)),
+        ));
+        assert_eq!(
+            app.windows.get(&win_id).and_then(|w| w.selected_node),
+            Some(0)
+        );
+    }
+
+    #[test]
+    fn update_canvas_deselect() {
+        let (mut app, win_id) = test_app();
+        app.windows
+            .get_mut(&win_id)
+            .map(|w| w.selected_node = Some(0));
+        app.update(Message::WindowCanvas(win_id, CanvasMessage::Selected(None)));
+        assert_eq!(app.windows.get(&win_id).and_then(|w| w.selected_node), None);
+    }
+
+    #[test]
+    fn update_canvas_move_node() {
+        let (mut app, win_id) = test_app();
+        app.update(Message::WindowCanvas(
+            win_id,
+            CanvasMessage::Moved(0, 200.0, 300.0),
+        ));
+        let node = app.windows.get(&win_id).and_then(|w| w.nodes.first());
+        assert!((node.map(|n| n.x).unwrap_or(0.0) - 200.0).abs() < 0.01);
+        assert!((node.map(|n| n.y).unwrap_or(0.0) - 300.0).abs() < 0.01);
+    }
+
+    #[test]
+    fn update_canvas_move_completed_records_history() {
+        let (mut app, win_id) = test_app();
+        app.update(Message::WindowCanvas(
+            win_id,
+            CanvasMessage::MoveCompleted(0, 100.0, 100.0, 200.0, 300.0),
+        ));
+        assert_eq!(app.windows.get(&win_id).map(|w| w.unsaved_edits), Some(1));
+    }
+
+    #[test]
+    fn update_canvas_delete_node() {
+        let (mut app, win_id) = test_app();
+        assert_eq!(app.windows.get(&win_id).map(|w| w.nodes.len()), Some(2));
+        app.update(Message::WindowCanvas(win_id, CanvasMessage::Deleted(0)));
+        assert_eq!(app.windows.get(&win_id).map(|w| w.nodes.len()), Some(1));
+        assert_eq!(app.windows.get(&win_id).map(|w| w.unsaved_edits), Some(1));
+    }
+
+    #[test]
+    fn update_canvas_create_connection() {
+        let (mut app, win_id) = test_app();
+        app.update(Message::WindowCanvas(
+            win_id,
+            CanvasMessage::ConnectionCreated {
+                from_node: "add".into(),
+                from_port: "".into(),
+                to_node: "stdout".into(),
+                to_port: "".into(),
+            },
+        ));
+        assert_eq!(app.windows.get(&win_id).map(|w| w.edges.len()), Some(1));
+        assert_eq!(app.windows.get(&win_id).map(|w| w.unsaved_edits), Some(1));
+    }
+
+    #[test]
+    fn update_canvas_select_connection() {
+        let (mut app, win_id) = test_app();
+        // Add a connection first
+        if let Some(win) = app.windows.get_mut(&win_id) {
+            win.edges.push(EdgeLayout::new(
+                "add".into(),
+                "".into(),
+                "stdout".into(),
+                "".into(),
+            ));
+        }
+        app.update(Message::WindowCanvas(
+            win_id,
+            CanvasMessage::ConnectionSelected(Some(0)),
+        ));
+        assert_eq!(
+            app.windows.get(&win_id).and_then(|w| w.selected_connection),
+            Some(0)
+        );
+    }
+
+    #[test]
+    fn update_canvas_delete_connection() {
+        let (mut app, win_id) = test_app();
+        if let Some(win) = app.windows.get_mut(&win_id) {
+            win.edges.push(EdgeLayout::new(
+                "add".into(),
+                "".into(),
+                "stdout".into(),
+                "".into(),
+            ));
+        }
+        app.update(Message::WindowCanvas(
+            win_id,
+            CanvasMessage::ConnectionDeleted(0),
+        ));
+        assert_eq!(app.windows.get(&win_id).map(|w| w.edges.len()), Some(0));
+    }
+
+    #[test]
+    fn update_undo_redo_cycle() {
+        let (mut app, win_id) = test_app();
+        // Move node and record
+        app.update(Message::WindowCanvas(
+            win_id,
+            CanvasMessage::Moved(0, 200.0, 300.0),
+        ));
+        app.update(Message::WindowCanvas(
+            win_id,
+            CanvasMessage::MoveCompleted(0, 100.0, 100.0, 200.0, 300.0),
+        ));
+        assert_eq!(app.windows.get(&win_id).map(|w| w.unsaved_edits), Some(1));
+
+        // Undo
+        app.update(Message::Undo);
+        let node = app.windows.get(&win_id).and_then(|w| w.nodes.first());
+        assert!((node.map(|n| n.x).unwrap_or(0.0) - 100.0).abs() < 0.01);
+
+        // Redo
+        app.update(Message::Redo);
+        let node = app.windows.get(&win_id).and_then(|w| w.nodes.first());
+        assert!((node.map(|n| n.x).unwrap_or(0.0) - 200.0).abs() < 0.01);
+    }
+
+    #[test]
+    fn update_toggle_metadata() {
+        let (mut app, win_id) = test_app();
+        assert!(!app.windows.get(&win_id).map_or(true, |w| w.show_metadata));
+        app.update(Message::ToggleMetadataEditor(win_id));
+        assert!(app.windows.get(&win_id).map_or(false, |w| w.show_metadata));
+        app.update(Message::ToggleMetadataEditor(win_id));
+        assert!(!app.windows.get(&win_id).map_or(true, |w| w.show_metadata));
+    }
+
+    #[test]
+    fn update_flow_name_changed() {
+        let (mut app, win_id) = test_app();
+        app.update(Message::FlowNameChanged(win_id, "new_name".into()));
+        assert_eq!(
+            app.windows.get(&win_id).map(|w| w.flow_name.as_str()),
+            Some("new_name")
+        );
+        assert_eq!(app.windows.get(&win_id).map(|w| w.unsaved_edits), Some(1));
+    }
+
+    #[test]
+    fn update_flow_version_changed() {
+        let (mut app, win_id) = test_app();
+        app.update(Message::FlowVersionChanged(win_id, "2.0.0".into()));
+        assert_eq!(
+            app.windows
+                .get(&win_id)
+                .map(|w| w.flow_definition.metadata.version.as_str()),
+            Some("2.0.0")
+        );
+    }
+
+    #[test]
+    fn update_flow_description_changed() {
+        let (mut app, win_id) = test_app();
+        app.update(Message::FlowDescriptionChanged(
+            win_id,
+            "A test flow".into(),
+        ));
+        assert_eq!(
+            app.windows
+                .get(&win_id)
+                .map(|w| w.flow_definition.metadata.description.as_str()),
+            Some("A test flow")
+        );
+    }
+
+    #[test]
+    fn update_flow_authors_changed() {
+        let (mut app, win_id) = test_app();
+        app.update(Message::FlowAuthorsChanged(win_id, "Alice, Bob".into()));
+        let authors = app
+            .windows
+            .get(&win_id)
+            .map(|w| w.flow_definition.metadata.authors.clone())
+            .unwrap_or_default();
+        assert_eq!(authors, vec!["Alice", "Bob"]);
+    }
+
+    #[test]
+    fn update_flow_add_input() {
+        let (mut app, win_id) = test_app();
+        app.update(Message::FlowAddInput(win_id));
+        assert_eq!(
+            app.windows.get(&win_id).map(|w| w.flow_inputs.len()),
+            Some(1)
+        );
+        assert_eq!(app.windows.get(&win_id).map(|w| w.unsaved_edits), Some(1));
+    }
+
+    #[test]
+    fn update_flow_add_output() {
+        let (mut app, win_id) = test_app();
+        app.update(Message::FlowAddOutput(win_id));
+        assert_eq!(
+            app.windows.get(&win_id).map(|w| w.flow_outputs.len()),
+            Some(1)
+        );
+    }
+
+    #[test]
+    fn update_flow_delete_input() {
+        let (mut app, win_id) = test_app();
+        app.update(Message::FlowAddInput(win_id));
+        app.update(Message::FlowDeleteInput(win_id, 0));
+        assert_eq!(
+            app.windows.get(&win_id).map(|w| w.flow_inputs.len()),
+            Some(0)
+        );
+    }
+
+    #[test]
+    fn update_flow_input_name_changed() {
+        let (mut app, win_id) = test_app();
+        app.update(Message::FlowAddInput(win_id));
+        app.update(Message::FlowInputNameChanged(win_id, 0, "data".into()));
+        assert_eq!(
+            app.windows
+                .get(&win_id)
+                .and_then(|w| w.flow_inputs.first().map(|p| p.name.as_str())),
+            Some("data")
+        );
+    }
+
+    #[test]
+    fn update_window_focused() {
+        let (mut app, win_id) = test_app();
+        let other_id = window::Id::unique();
+        app.update(Message::WindowFocused(other_id));
+        assert_eq!(app.focused_window, Some(other_id));
+    }
+
+    #[test]
+    fn update_window_resized() {
+        let (mut app, win_id) = test_app();
+        app.update(Message::WindowResized(
+            win_id,
+            iced::Size::new(800.0, 600.0),
+        ));
+        let size = app.windows.get(&win_id).and_then(|w| w.last_size);
+        assert!(size.is_some());
+        assert!((size.map(|s| s.width).unwrap_or(0.0) - 800.0).abs() < 0.01);
+    }
+
+    #[test]
+    fn update_window_moved() {
+        let (mut app, win_id) = test_app();
+        app.update(Message::WindowMoved(win_id, iced::Point::new(100.0, 200.0)));
+        let pos = app.windows.get(&win_id).and_then(|w| w.last_position);
+        assert!(pos.is_some());
+    }
+
+    #[test]
+    fn update_toggle_lib_paths() {
+        let (mut app, _win_id) = test_app();
+        assert!(!app.show_lib_paths);
+        app.update(Message::ToggleLibPaths);
+        assert!(app.show_lib_paths);
+        app.update(Message::ToggleLibPaths);
+        assert!(!app.show_lib_paths);
+    }
+
+    #[test]
+    fn update_context_menu() {
+        let (mut app, win_id) = test_app();
+        app.update(Message::WindowCanvas(
+            win_id,
+            CanvasMessage::ContextMenu(100.0, 200.0),
+        ));
+        assert!(app
+            .windows
+            .get(&win_id)
+            .and_then(|w| w.context_menu)
+            .is_some());
+        // Clicking deselects context menu
+        app.update(Message::WindowCanvas(win_id, CanvasMessage::Selected(None)));
+        assert!(app
+            .windows
+            .get(&win_id)
+            .and_then(|w| w.context_menu)
+            .is_none());
+    }
+
+    #[test]
+    fn update_canvas_resize_node() {
+        let (mut app, win_id) = test_app();
+        app.update(Message::WindowCanvas(
+            win_id,
+            CanvasMessage::Resized(0, 50.0, 50.0, 200.0, 150.0),
+        ));
+        let node = app.windows.get(&win_id).and_then(|w| w.nodes.first());
+        assert!((node.map(|n| n.width).unwrap_or(0.0) - 200.0).abs() < 0.01);
+        assert!((node.map(|n| n.height).unwrap_or(0.0) - 150.0).abs() < 0.01);
+    }
+
+    #[test]
+    fn update_initializer_type_changed() {
+        let (mut app, win_id) = test_app();
+        // Open initializer editor
+        if let Some(win) = app.windows.get_mut(&win_id) {
+            win.initializer_editor = Some(InitializerEditor {
+                node_index: 0,
+                port_name: "i1".into(),
+                init_type: "none".into(),
+                value_text: String::new(),
+            });
+        }
+        app.update(Message::InitializerTypeChanged(win_id, "once".into()));
+        let init_type = app
+            .windows
+            .get(&win_id)
+            .and_then(|w| w.initializer_editor.as_ref())
+            .map(|e| e.init_type.as_str());
+        assert_eq!(init_type, Some("once"));
+    }
+
+    #[test]
+    fn update_initializer_cancel() {
+        let (mut app, win_id) = test_app();
+        if let Some(win) = app.windows.get_mut(&win_id) {
+            win.initializer_editor = Some(InitializerEditor {
+                node_index: 0,
+                port_name: "i1".into(),
+                init_type: "once".into(),
+                value_text: "42".into(),
+            });
+        }
+        app.update(Message::InitializerCancel(win_id));
+        assert!(app
+            .windows
+            .get(&win_id)
+            .and_then(|w| w.initializer_editor.as_ref())
+            .is_none());
+    }
+
+    fn temp_dir(name: &str) -> PathBuf {
+        let dir = std::env::temp_dir().join("flowedit_tests").join(name);
+        let _ = std::fs::create_dir_all(&dir);
+        dir
+    }
+
+    #[test]
+    fn save_and_load_flow_roundtrip() {
+        let dir = temp_dir("save_load");
+        let path = dir.join("test.toml");
+
+        let mut flow = FlowDefinition::default();
+        flow.name = "roundtrip_test".into();
+        flow.metadata.version = "1.0.0".into();
+        flow.metadata.authors = vec!["Test Author".into()];
+        flow.process_refs.push(ProcessReference {
+            alias: "add1".into(),
+            source: "lib://flowstdlib/math/add".into(),
+            initializations: std::collections::BTreeMap::new(),
+            x: Some(100.0),
+            y: Some(200.0),
+            width: Some(180.0),
+            height: Some(120.0),
+        });
+
+        let edges = vec![EdgeLayout::new(
+            "add1".into(),
+            "".into(),
+            "add1".into(),
+            "i1".into(),
+        )];
+
+        save_flow_toml(&flow, &edges, &path).expect("save failed");
+
+        let contents = std::fs::read_to_string(&path).expect("read failed");
+        assert!(contents.contains("flow = \"roundtrip_test\""));
+        assert!(contents.contains("version = \"1.0.0\""));
+        assert!(contents.contains("Test Author"));
+        assert!(contents.contains("lib://flowstdlib/math/add"));
+
+        let (name, nodes, loaded_edges, loaded_flow) = load_flow(&path).expect("load failed");
+        assert_eq!(name, "roundtrip_test");
+        assert_eq!(nodes.len(), 1);
+        assert_eq!(loaded_edges.len(), 1);
+        assert_eq!(loaded_flow.metadata.version, "1.0.0");
+
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn save_flow_with_metadata() {
+        let dir = temp_dir("metadata");
+        let path = dir.join("meta.toml");
+
+        let mut flow = FlowDefinition::default();
+        flow.name = "meta_flow".into();
+        flow.metadata.description = "A test description".into();
+
+        save_flow_toml(&flow, &[], &path).expect("save failed");
+        let contents = std::fs::read_to_string(&path).expect("read failed");
+        assert!(contents.contains("description = \"A test description\""));
+
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn save_flow_with_initializers() {
+        let dir = temp_dir("initializers");
+        let path = dir.join("init.toml");
+
+        let mut flow = FlowDefinition::default();
+        flow.name = "init_flow".into();
+        let mut inits = std::collections::BTreeMap::new();
+        inits.insert(
+            "start".to_string(),
+            InputInitializer::Once(serde_json::json!(42)),
+        );
+        flow.process_refs.push(ProcessReference {
+            alias: "seq".into(),
+            source: "lib://flowstdlib/math/sequence".into(),
+            initializations: inits,
+            x: Some(50.0),
+            y: Some(50.0),
+            width: Some(180.0),
+            height: Some(120.0),
+        });
+
+        save_flow_toml(&flow, &[], &path).expect("save failed");
+        let contents = std::fs::read_to_string(&path).expect("read failed");
+        assert!(contents.contains("input.start"));
+        assert!(contents.contains("once"));
+
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn save_flow_with_connections() {
+        let dir = temp_dir("connections");
+        let path = dir.join("conn.toml");
+
+        let mut flow = FlowDefinition::default();
+        flow.name = "conn_flow".into();
+        flow.process_refs.push(ProcessReference {
+            alias: "a".into(),
+            source: "lib://test/a".into(),
+            initializations: std::collections::BTreeMap::new(),
+            x: Some(0.0),
+            y: Some(0.0),
+            width: None,
+            height: None,
+        });
+        flow.process_refs.push(ProcessReference {
+            alias: "b".into(),
+            source: "lib://test/b".into(),
+            initializations: std::collections::BTreeMap::new(),
+            x: None,
+            y: None,
+            width: None,
+            height: None,
+        });
+
+        let edges = vec![EdgeLayout::new(
+            "a".into(),
+            "out".into(),
+            "b".into(),
+            "in".into(),
+        )];
+
+        save_flow_toml(&flow, &edges, &path).expect("save failed");
+        let contents = std::fs::read_to_string(&path).expect("read failed");
+        assert!(contents.contains("from = \"a/out\""));
+        assert!(contents.contains("to = \"b/in\""));
+
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn load_flow_nonexistent() {
+        let result = load_flow(&PathBuf::from("/nonexistent/flow.toml"));
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn load_flow_invalid_toml() {
+        let dir = temp_dir("invalid");
+        let path = dir.join("bad.toml");
+        std::fs::write(&path, "this is not valid toml {{{{").expect("write failed");
+        let result = load_flow(&path);
+        assert!(result.is_err());
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn perform_save_updates_state() {
+        let dir = temp_dir("perform_save");
+        let path = dir.join("saved.toml");
+
+        let mut win = test_win_state();
+        win.unsaved_edits = 5;
+        win.flow_name = "saved_flow".into();
+
+        perform_save(&mut win, &path);
+        assert_eq!(win.unsaved_edits, 0);
+        assert_eq!(win.file_path, Some(path.clone()));
+
+        let contents = std::fs::read_to_string(&path).expect("read failed");
+        assert!(contents.contains("flow = \"saved_flow\""));
+
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn save_function_definition_creates_files() {
+        let dir = temp_dir("func_def");
+        let toml_path = dir.join("myfunc.toml");
+
+        let viewer = FunctionViewer {
+            name: "myfunc".into(),
+            source_file: "myfunc.rs".into(),
+            inputs: vec![PortInfo {
+                name: "data".into(),
+                datatypes: vec!["string".into()],
+            }],
+            outputs: vec![PortInfo {
+                name: "result".into(),
+                datatypes: vec!["number".into()],
+            }],
+            rs_content: String::new(),
+            docs_content: None,
+            active_tab: 0,
+            toml_path: toml_path.clone(),
+        };
+
+        save_function_definition(&viewer).expect("save failed");
+
+        // Check TOML was created
+        let toml = std::fs::read_to_string(&toml_path).expect("read toml");
+        assert!(toml.contains("function = \"myfunc\""));
+        assert!(toml.contains("source = \"myfunc.rs\""));
+        assert!(toml.contains("name = \"data\""));
+        assert!(toml.contains("type = \"string\""));
+        assert!(toml.contains("type = \"number\""));
+
+        // Check skeleton .rs was created
+        let rs_path = dir.join("myfunc.rs");
+        assert!(rs_path.exists());
+        let rs = std::fs::read_to_string(&rs_path).expect("read rs");
+        assert!(rs.contains("#[flow_function]"));
+        assert!(rs.contains("_myfunc"));
+        assert!(rs.contains("_input0"));
+
+        // Check function.toml was created
+        let cargo_path = dir.join("function.toml");
+        assert!(cargo_path.exists());
+        let cargo = std::fs::read_to_string(&cargo_path).expect("read cargo");
+        assert!(cargo.contains("name = \"myfunc\""));
+        assert!(cargo.contains("crate-type = [\"cdylib\"]"));
+
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn save_function_no_overwrite_existing_rs() {
+        let dir = temp_dir("func_no_overwrite");
+        let toml_path = dir.join("existing.toml");
+        let rs_path = dir.join("existing.rs");
+
+        // Create existing .rs
+        std::fs::write(&rs_path, "// existing code").expect("write rs");
+
+        let viewer = FunctionViewer {
+            name: "existing".into(),
+            source_file: "existing.rs".into(),
+            inputs: Vec::new(),
+            outputs: Vec::new(),
+            rs_content: String::new(),
+            docs_content: None,
+            active_tab: 0,
+            toml_path,
+        };
+
+        save_function_definition(&viewer).expect("save failed");
+
+        // Existing .rs should NOT be overwritten
+        let rs = std::fs::read_to_string(&rs_path).expect("read rs");
+        assert_eq!(rs, "// existing code");
+
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn resolve_node_source_toml_extension() {
+        let dir = temp_dir("resolve_src");
+        let flow_path = dir.join("root.toml");
+        std::fs::write(&flow_path, "flow = \"root\"").expect("write");
+        let sub_path = dir.join("sub.toml");
+        std::fs::write(&sub_path, "flow = \"sub\"").expect("write");
+
+        let win = WindowState {
+            file_path: Some(flow_path),
+            ..test_win_state()
+        };
+
+        let resolved = resolve_node_source(&win, "sub");
+        assert!(resolved.is_some());
+
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn resolve_node_source_not_found() {
+        let win = WindowState {
+            file_path: Some(PathBuf::from("/tmp/flowedit_tests/nonexistent/root.toml")),
+            ..test_win_state()
+        };
+        let resolved = resolve_node_source(&win, "missing");
+        assert!(resolved.is_none());
+    }
+}
