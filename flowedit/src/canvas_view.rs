@@ -270,6 +270,23 @@ pub(crate) struct NodeLayout {
     pub initializers: HashMap<String, String>,
 }
 
+impl Default for NodeLayout {
+    fn default() -> Self {
+        Self {
+            alias: String::new(),
+            source: String::new(),
+            description: String::new(),
+            x: 100.0,
+            y: 100.0,
+            width: 180.0,
+            height: 120.0,
+            inputs: Vec::new(),
+            outputs: Vec::new(),
+            initializers: HashMap::new(),
+        }
+    }
+}
+
 impl NodeLayout {
     /// Determine the fill color based on the process source string.
     fn fill_color(&self) -> Color {
@@ -2699,14 +2716,7 @@ mod test {
         let nodes = vec![NodeLayout {
             alias: "test".into(),
             source: "lib://test".into(),
-            description: String::new(),
-            x: 100.0,
-            y: 100.0,
-            width: 180.0,
-            height: 120.0,
-            inputs: vec![],
-            outputs: vec![],
-            initializers: HashMap::new(),
+            ..Default::default()
         }];
         assert_eq!(hit_test_node(&nodes, Point::new(150.0, 150.0)), Some(0));
     }
@@ -2716,14 +2726,7 @@ mod test {
         let nodes = vec![NodeLayout {
             alias: "test".into(),
             source: "lib://test".into(),
-            description: String::new(),
-            x: 100.0,
-            y: 100.0,
-            width: 180.0,
-            height: 120.0,
-            inputs: vec![],
-            outputs: vec![],
-            initializers: HashMap::new(),
+            ..Default::default()
         }];
         assert_eq!(hit_test_node(&nodes, Point::new(50.0, 50.0)), None);
     }
@@ -2733,14 +2736,7 @@ mod test {
         let node = NodeLayout {
             alias: "test".into(),
             source: "lib://flowstdlib/math/add".into(),
-            description: String::new(),
-            x: 100.0,
-            y: 100.0,
-            width: 180.0,
-            height: 120.0,
-            inputs: vec![],
-            outputs: vec![],
-            initializers: HashMap::new(),
+            ..Default::default()
         };
         // Source text is centered at (node.x + width/2, node.y + 34.0)
         let source_center = Point::new(190.0, 134.0);
@@ -2784,17 +2780,12 @@ mod test {
         let node = NodeLayout {
             alias: "test".into(),
             source: "lib://test".into(),
-            description: String::new(),
-            x: 100.0,
-            y: 100.0,
-            width: 180.0,
-            height: 120.0,
             inputs: vec![
                 PortInfo::from_name("i1".into()),
                 PortInfo::from_name("i2".into()),
             ],
             outputs: vec![PortInfo::from_name("out".into())],
-            initializers: HashMap::new(),
+            ..Default::default()
         };
         let ip0 = node.input_port_position(0);
         let ip1 = node.input_port_position(1);
@@ -2906,14 +2897,7 @@ mod test {
         let node = NodeLayout {
             alias: "n".into(),
             source: "lib://test".into(),
-            description: String::new(),
-            x: 100.0,
-            y: 100.0,
-            width: 180.0,
-            height: 120.0,
-            inputs: Vec::new(),
-            outputs: Vec::new(),
-            initializers: HashMap::new(),
+            ..Default::default()
         };
         assert_eq!(
             hit_test_node(&[node.clone()], Point::new(150.0, 150.0)),
@@ -2927,14 +2911,7 @@ mod test {
         let lib_node = NodeLayout {
             alias: "n".into(),
             source: "lib://test".into(),
-            description: String::new(),
-            x: 100.0,
-            y: 100.0,
-            width: 180.0,
-            height: 120.0,
-            inputs: Vec::new(),
-            outputs: Vec::new(),
-            initializers: HashMap::new(),
+            ..Default::default()
         };
         let local_node = NodeLayout {
             source: "subflow".into(),
@@ -2954,14 +2931,9 @@ mod test {
         let node = NodeLayout {
             alias: "n".into(),
             source: "lib://flowstdlib/math/add".into(),
-            description: String::new(),
             x: 0.0,
             y: 0.0,
-            width: 180.0,
-            height: 120.0,
-            inputs: Vec::new(),
-            outputs: Vec::new(),
-            initializers: HashMap::new(),
+            ..Default::default()
         };
         assert!(!node.is_openable());
     }
@@ -2971,14 +2943,9 @@ mod test {
         let node = NodeLayout {
             alias: "n".into(),
             source: "context://stdio/stdout".into(),
-            description: String::new(),
             x: 0.0,
             y: 0.0,
-            width: 180.0,
-            height: 120.0,
-            inputs: Vec::new(),
-            outputs: Vec::new(),
-            initializers: HashMap::new(),
+            ..Default::default()
         };
         assert!(!node.is_openable());
     }
@@ -2988,14 +2955,9 @@ mod test {
         let node = NodeLayout {
             alias: "n".into(),
             source: "subflow/subflow".into(),
-            description: String::new(),
             x: 0.0,
             y: 0.0,
-            width: 180.0,
-            height: 120.0,
-            inputs: Vec::new(),
-            outputs: Vec::new(),
-            initializers: HashMap::new(),
+            ..Default::default()
         };
         assert!(node.is_openable());
     }
@@ -3018,33 +2980,23 @@ mod test {
         let nodes = vec![
             NodeLayout {
                 alias: "a".into(),
-                source: String::new(),
-                description: String::new(),
                 x: 0.0,
                 y: 0.0,
-                width: 180.0,
-                height: 120.0,
-                inputs: Vec::new(),
                 outputs: vec![PortInfo {
                     name: "out".into(),
                     datatypes: vec!["number".into()],
                 }],
-                initializers: HashMap::new(),
+                ..Default::default()
             },
             NodeLayout {
                 alias: "b".into(),
-                source: String::new(),
-                description: String::new(),
                 x: 0.0,
                 y: 0.0,
-                width: 180.0,
-                height: 120.0,
                 inputs: vec![PortInfo {
                     name: "in".into(),
                     datatypes: vec!["number".into()],
                 }],
-                outputs: Vec::new(),
-                initializers: HashMap::new(),
+                ..Default::default()
             },
         ];
         assert!(check_port_type_compatibility(
@@ -3062,33 +3014,23 @@ mod test {
         let nodes = vec![
             NodeLayout {
                 alias: "a".into(),
-                source: String::new(),
-                description: String::new(),
                 x: 0.0,
                 y: 0.0,
-                width: 180.0,
-                height: 120.0,
-                inputs: Vec::new(),
                 outputs: vec![PortInfo {
                     name: "out".into(),
                     datatypes: vec!["number".into()],
                 }],
-                initializers: HashMap::new(),
+                ..Default::default()
             },
             NodeLayout {
                 alias: "b".into(),
-                source: String::new(),
-                description: String::new(),
                 x: 0.0,
                 y: 0.0,
-                width: 180.0,
-                height: 120.0,
                 inputs: vec![PortInfo {
                     name: "in".into(),
                     datatypes: vec!["string".into()],
                 }],
-                outputs: Vec::new(),
-                initializers: HashMap::new(),
+                ..Default::default()
             },
         ];
         assert!(!check_port_type_compatibility(
@@ -3106,33 +3048,23 @@ mod test {
         let nodes = vec![
             NodeLayout {
                 alias: "a".into(),
-                source: String::new(),
-                description: String::new(),
                 x: 0.0,
                 y: 0.0,
-                width: 180.0,
-                height: 120.0,
-                inputs: Vec::new(),
                 outputs: vec![PortInfo {
                     name: "out".into(),
                     datatypes: vec![],
                 }],
-                initializers: HashMap::new(),
+                ..Default::default()
             },
             NodeLayout {
                 alias: "b".into(),
-                source: String::new(),
-                description: String::new(),
                 x: 0.0,
                 y: 0.0,
-                width: 180.0,
-                height: 120.0,
                 inputs: vec![PortInfo {
                     name: "in".into(),
                     datatypes: vec!["string".into()],
                 }],
-                outputs: Vec::new(),
-                initializers: HashMap::new(),
+                ..Default::default()
             },
         ];
         assert!(check_port_type_compatibility(
@@ -3149,15 +3081,7 @@ mod test {
     fn compute_flow_io_positions_with_nodes() {
         let nodes = vec![NodeLayout {
             alias: "n".into(),
-            source: String::new(),
-            description: String::new(),
-            x: 100.0,
-            y: 100.0,
-            width: 180.0,
-            height: 120.0,
-            inputs: Vec::new(),
-            outputs: Vec::new(),
-            initializers: HashMap::new(),
+            ..Default::default()
         }];
         let inputs = vec![PortInfo {
             name: "data".into(),
@@ -3202,13 +3126,6 @@ mod test {
     fn find_node_output_inline_with_subroute() {
         let node = NodeLayout {
             alias: "get".into(),
-            source: String::new(),
-            description: String::new(),
-            x: 100.0,
-            y: 100.0,
-            width: 180.0,
-            height: 120.0,
-            inputs: Vec::new(),
             outputs: vec![
                 PortInfo {
                     name: "string".into(),
@@ -3219,7 +3136,7 @@ mod test {
                     datatypes: vec![],
                 },
             ],
-            initializers: HashMap::new(),
+            ..Default::default()
         };
         let string_pos = find_node_output_pos_inline(&node, "string/1");
         let json_pos = find_node_output_pos_inline(&node, "json/2");
@@ -3232,14 +3149,9 @@ mod test {
         let make = |source: &str| NodeLayout {
             alias: "n".into(),
             source: source.into(),
-            description: String::new(),
             x: 0.0,
             y: 0.0,
-            width: 180.0,
-            height: 120.0,
-            inputs: Vec::new(),
-            outputs: Vec::new(),
-            initializers: HashMap::new(),
+            ..Default::default()
         };
         let lib = make("lib://flowstdlib/math/add");
         let ctx = make("context://stdio/stdout");

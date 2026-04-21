@@ -314,6 +314,23 @@ struct FlowEdit {
     context_definitions: HashMap<Url, Process>,
 }
 
+impl Default for FlowEdit {
+    fn default() -> Self {
+        Self {
+            windows: HashMap::new(),
+            root_window: None,
+            focused_window: None,
+            library_tree: LibraryTree { libraries: vec![] },
+            root_flow_path: None,
+            show_lib_paths: false,
+            lib_paths: Vec::new(),
+            library_cache: HashMap::new(),
+            lib_definitions: HashMap::new(),
+            context_definitions: HashMap::new(),
+        }
+    }
+}
+
 /// Main entry point for the flowedit binary.
 ///
 /// Parses CLI arguments, loads the flow definition, and launches the iced GUI.

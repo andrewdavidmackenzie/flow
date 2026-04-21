@@ -8,14 +8,7 @@ fn test_node(alias: &str, source: &str) -> NodeLayout {
     NodeLayout {
         alias: alias.into(),
         source: source.into(),
-        description: String::new(),
-        x: 100.0,
-        y: 100.0,
-        width: 180.0,
-        height: 120.0,
-        inputs: Vec::new(),
-        outputs: Vec::new(),
-        initializers: HashMap::new(),
+        ..Default::default()
     }
 }
 
@@ -91,14 +84,11 @@ fn test_app_with_flow(flow: FlowDefinition) -> (FlowEdit, window::Id) {
         .map(|pref| NodeLayout {
             alias: pref.alias.clone(),
             source: pref.source.clone(),
-            description: String::new(),
             x: pref.x.unwrap_or(0.0),
             y: pref.y.unwrap_or(0.0),
             width: pref.width.unwrap_or(180.0),
             height: pref.height.unwrap_or(120.0),
-            inputs: Vec::new(),
-            outputs: Vec::new(),
-            initializers: HashMap::new(),
+            ..Default::default()
         })
         .collect();
 
@@ -136,12 +126,7 @@ fn test_app_with_flow(flow: FlowDefinition) -> (FlowEdit, window::Id) {
                 expanded: true,
             }],
         },
-        root_flow_path: None,
-        show_lib_paths: false,
-        lib_paths: Vec::new(),
-        library_cache: HashMap::new(),
-        lib_definitions: HashMap::new(),
-        context_definitions: HashMap::new(),
+        ..Default::default()
     };
     (app, win_id)
 }
