@@ -68,6 +68,20 @@ pub(crate) fn perform_save_as(win: &mut WindowState) {
     }
 }
 
+/// Handle save message -- saves to existing path or prompts with save dialog.
+pub(crate) fn handle_save(win: &mut WindowState) {
+    if let Some(path) = win.file_path.clone() {
+        perform_save(win, &path);
+    } else {
+        perform_save_as(win);
+    }
+}
+
+/// Handle save-as message -- prompts with save dialog.
+pub(crate) fn handle_save_as(win: &mut WindowState) {
+    perform_save_as(win);
+}
+
 /// Prompt the user with an open dialog and load the selected flow file.
 /// Open a flow file and update the window state.
 /// Returns the lib and context references if successful, for rebuilding the library cache.
