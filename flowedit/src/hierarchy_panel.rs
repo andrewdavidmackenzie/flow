@@ -318,9 +318,9 @@ mod test {
             }),
         };
         h.update(&HierarchyMessage::Toggle(vec![]));
-        assert!(!h.root.as_ref().unwrap().expanded);
+        assert!(h.root.as_ref().map_or(false, |r| !r.expanded));
         h.update(&HierarchyMessage::Toggle(vec![]));
-        assert!(h.root.as_ref().unwrap().expanded);
+        assert!(h.root.as_ref().map_or(false, |r| r.expanded));
     }
 
     #[test]
@@ -343,7 +343,11 @@ mod test {
             }),
         };
         h.update(&HierarchyMessage::Toggle(vec![0]));
-        assert!(h.root.as_ref().unwrap().children[0].expanded);
+        assert!(h
+            .root
+            .as_ref()
+            .and_then(|r| r.children.first())
+            .map_or(false, |c| c.expanded));
     }
 
     #[test]
@@ -373,7 +377,12 @@ mod test {
             }),
         };
         h.update(&HierarchyMessage::Toggle(vec![0, 0]));
-        assert!(h.root.as_ref().unwrap().children[0].children[0].expanded);
+        assert!(h
+            .root
+            .as_ref()
+            .and_then(|r| r.children.first())
+            .and_then(|c| c.children.first())
+            .map_or(false, |c| c.expanded));
     }
 
     #[test]
@@ -389,7 +398,6 @@ mod test {
             }),
         };
         h.update(&HierarchyMessage::Toggle(vec![99]));
-        // Should not panic
     }
 
     #[test]
@@ -400,9 +408,10 @@ mod test {
             PathBuf::from("/tmp/sub.toml"),
         ));
         assert!(result.is_some());
-        let (source, path) = result.unwrap();
-        assert_eq!(source, "sub.toml");
-        assert_eq!(path, PathBuf::from("/tmp/sub.toml"));
+        if let Some((source, path)) = result {
+            assert_eq!(source, "sub.toml");
+            assert_eq!(path, PathBuf::from("/tmp/sub.toml"));
+        }
     }
 
     #[test]
