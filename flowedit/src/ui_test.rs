@@ -1395,3 +1395,179 @@ fn initializer_apply_invalid_type_no_change() {
         );
     }
 }
+
+// ---- Group 10: Undo/Redo Action Coverage ----
+
+#[test]
+fn undo_redo_resize_node() {
+    let (mut app, win_id) = test_app();
+    if let Some(win) = app.windows.get_mut(&win_id) {
+        // Simulate resize
+        if let Some(n) = win.nodes.first_mut() {
+            n.width = 250.0;
+            n.height = 180.0;
+        }
+        undo_redo::record_edit(
+            win,
+            EditAction::ResizeNode {
+                index: 0,
+                old_x: 100.0,
+                old_y: 100.0,
+                old_w: 180.0,
+                old_h: 120.0,
+                new_x: 100.0,
+                new_y: 100.0,
+                new_w: 250.0,
+                new_h: 180.0,
+            },
+        );
+
+        // Undo
+        undo_redo::apply_undo(win);
+        assert!(win
+            .nodes
+            .first()
+            .is_some_and(|n| (n.width - 180.0).abs() < 0.01));
+        assert!(win
+            .nodes
+            .first()
+            .is_some_and(|n| (n.height - 120.0).abs() < 0.01));
+
+        // Redo
+        undo_redo::apply_redo(win);
+        assert!(win
+            .nodes
+            .first()
+            .is_some_and(|n| (n.width - 250.0).abs() < 0.01));
+        assert!(win
+            .nodes
+            .first()
+            .is_some_and(|n| (n.height - 180.0).abs() < 0.01));
+    }
+}
+
+#[test]
+fn undo_redo_delete_node() {
+    let (mut app, win_id) = test_app();
+    if let Some(win) = app.windows.get_mut(&win_id) {
+        assert_eq!(win.nodes.len(), 2);
+        let removed_node = win.nodes.remove(0);
+        undo_redo::record_edit(
+            win,
+            EditAction::DeleteNode {
+                index: 0,
+                node: removed_node,
+                removed_edges: Vec::new(),
+            },
+        );
+        assert_eq!(win.nodes.len(), 1);
+
+        // Undo restores
+        undo_redo::apply_undo(win);
+        assert_eq!(win.nodes.len(), 2);
+
+        // Redo removes again
+        undo_redo::apply_redo(win);
+        assert_eq!(win.nodes.len(), 1);
+    }
+}
+
+#[test]
+fn undo_redo_create_connection() {
+    let (mut app, win_id) = test_app();
+    if let Some(win) = app.windows.get_mut(&win_id) {
+        let edge = EdgeLayout::new("add".into(), "out".into(), "stdout".into(), "in".into());
+        win.edges.push(edge.clone());
+        undo_redo::record_edit(win, EditAction::CreateConnection { edge });
+        assert_eq!(win.edges.len(), 1);
+
+        // Undo removes
+        undo_redo::apply_undo(win);
+        assert_eq!(win.edges.len(), 0);
+
+        // Redo re-adds
+        undo_redo::apply_redo(win);
+        assert_eq!(win.edges.len(), 1);
+    }
+}
+
+#[test]
+fn undo_redo_delete_connection() {
+    let (mut app, win_id) = test_app();
+    if let Some(win) = app.windows.get_mut(&win_id) {
+        win.edges.push(EdgeLayout::new(
+            "add".into(),
+            "out".into(),
+            "stdout".into(),
+            "in".into(),
+        ));
+        let removed_edge = win.edges.remove(0);
+        undo_redo::record_edit(
+            win,
+            EditAction::DeleteConnection {
+                index: 0,
+                edge: removed_edge,
+            },
+        );
+        assert_eq!(win.edges.len(), 0);
+
+        // Undo restores
+        undo_redo::apply_undo(win);
+        assert_eq!(win.edges.len(), 1);
+
+        // Redo removes again
+        undo_redo::apply_redo(win);
+        assert_eq!(win.edges.len(), 0);
+    }
+}
+
+#[test]
+fn undo_redo_edit_initializer() {
+    use flowcore::model::input::InputInitializer;
+
+    let (mut app, win_id) = test_app();
+    if let Some(win) = app.windows.get_mut(&win_id) {
+        // Record an initializer edit
+        undo_redo::record_edit(
+            win,
+            EditAction::EditInitializer {
+                node_index: 0,
+                port_name: "input".into(),
+                old_init: None,
+                old_display: None,
+                new_init: Some(InputInitializer::Once(serde_json::json!(42))),
+                new_display: Some("once: 42".into()),
+            },
+        );
+
+        // Apply the new state manually (record_edit only records, doesn't apply)
+        initializer::apply_initializer_state(
+            win,
+            0,
+            "input",
+            Some(&InputInitializer::Once(serde_json::json!(42))),
+            Some(&"once: 42".to_string()),
+        );
+        assert!(win
+            .nodes
+            .first()
+            .and_then(|n| n.initializers.get("input"))
+            .is_some());
+
+        // Undo
+        undo_redo::apply_undo(win);
+        assert!(win
+            .nodes
+            .first()
+            .and_then(|n| n.initializers.get("input"))
+            .is_none());
+
+        // Redo
+        undo_redo::apply_redo(win);
+        assert!(win
+            .nodes
+            .first()
+            .and_then(|n| n.initializers.get("input"))
+            .is_some());
+    }
+}
