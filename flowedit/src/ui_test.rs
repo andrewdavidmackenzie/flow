@@ -165,12 +165,17 @@ fn test_app_with_flow(flow: FlowDefinition) -> (FlowEdit, window::Id) {
         })
         .collect();
 
+    // Edges are not auto-populated from flow.connections because Connection
+    // uses a complex Direction-based format. Tests that need edges should
+    // add them manually via win.edges.push(EdgeLayout::new(...)).
+    let edges: Vec<EdgeLayout> = Vec::new();
+
     let win_id = window::Id::unique();
     let win_state = WindowState {
         kind: WindowKind::FlowEditor,
         flow_name: flow.name.to_string(),
         nodes,
-        edges: Vec::new(),
+        edges,
         canvas_state: FlowCanvasState::default(),
         status: String::new(),
         selected_node: None,
@@ -1075,7 +1080,12 @@ fn ui_delete_with_nothing_selected_no_change() {
     let count_before = app.windows.get(&win_id).map(|w| w.nodes.len());
     // Deselect — no node is selected
     app.update(Message::WindowCanvas(win_id, CanvasMessage::Selected(None)));
-    // Node count should remain unchanged (no Deleted message sent)
+    // Send Delete key — should not change anything with nothing selected
+    send_key(
+        &mut app,
+        win_id,
+        iced::keyboard::Key::Named(iced::keyboard::key::Named::Delete),
+    );
     assert_eq!(
         app.windows.get(&win_id).map(|w| w.nodes.len()),
         count_before
@@ -1183,10 +1193,13 @@ fn ui_undo_empty_history_no_crash() {
     // Should not panic
 }
 
-// ---- Group 4: Keyboard Shortcuts (via direct messages) ----
+// ---- Group 4: Undo/Redo Handler Tests ----
+// Note: These tests verify the handler logic, not the subscription routing.
+// The subscription mapping (Cmd+Z → Undo) is a simple pattern match in
+// subscription() that can't be tested through the simulator.
 
 #[test]
-fn shortcut_undo_restores_move() {
+fn undo_restores_move() {
     let (mut app, win_id) = test_app();
     app.update(Message::WindowCanvas(
         win_id,
@@ -1202,7 +1215,7 @@ fn shortcut_undo_restores_move() {
 }
 
 #[test]
-fn shortcut_redo_reapplies_move() {
+fn redo_reapplies_move() {
     let (mut app, win_id) = test_app();
     app.update(Message::WindowCanvas(
         win_id,

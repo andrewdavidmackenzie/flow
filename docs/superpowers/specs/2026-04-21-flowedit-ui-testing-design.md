@@ -19,7 +19,7 @@ types when constructing test state.
 
 Move all test code out of `main.rs` into a dedicated test module:
 
-```
+```text
 flowedit/src/
   main.rs          — add `#[cfg(test)] mod ui_test;`
   ui_test.rs       — all test helpers, test setup, and UI/unit tests
