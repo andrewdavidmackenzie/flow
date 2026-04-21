@@ -771,31 +771,25 @@ impl FlowEdit {
             Message::Undo => {
                 let target = self.focused_window.or(self.root_window);
                 if let Some(win) = target.and_then(|id| self.windows.get_mut(&id)) {
-                    undo_redo::apply_undo(win);
-                    win.unsaved_edits = (win.unsaved_edits - 1).max(0);
+                    undo_redo::handle_undo(win);
                 }
             }
             Message::Redo => {
                 let target = self.focused_window.or(self.root_window);
                 if let Some(win) = target.and_then(|id| self.windows.get_mut(&id)) {
-                    undo_redo::apply_redo(win);
-                    win.unsaved_edits += 1;
+                    undo_redo::handle_redo(win);
                 }
             }
             Message::Save => {
                 let target = self.focused_window.or(self.root_window);
                 if let Some(win) = target.and_then(|id| self.windows.get_mut(&id)) {
-                    if let Some(path) = win.file_path.clone() {
-                        flow_io::perform_save(win, &path);
-                    } else {
-                        flow_io::perform_save_as(win);
-                    }
+                    flow_io::handle_save(win);
                 }
             }
             Message::SaveAs => {
                 let target = self.focused_window.or(self.root_window);
                 if let Some(win) = target.and_then(|id| self.windows.get_mut(&id)) {
-                    flow_io::perform_save_as(win);
+                    flow_io::handle_save_as(win);
                 }
             }
             Message::Open => {
@@ -902,28 +896,22 @@ impl FlowEdit {
             }
             Message::InitializerTypeChanged(win_id, new_type) => {
                 if let Some(win) = self.windows.get_mut(&win_id) {
-                    if let Some(ref mut editor) = win.initializer_editor {
-                        editor.init_type = new_type;
-                    }
+                    initializer::handle_type_changed(win, new_type);
                 }
             }
             Message::InitializerValueChanged(win_id, new_value) => {
                 if let Some(win) = self.windows.get_mut(&win_id) {
-                    if let Some(ref mut editor) = win.initializer_editor {
-                        editor.value_text = new_value;
-                    }
+                    initializer::handle_value_changed(win, new_value);
                 }
             }
             Message::InitializerApply(win_id) => {
                 if let Some(win) = self.windows.get_mut(&win_id) {
-                    if let Some(editor) = win.initializer_editor.take() {
-                        initializer::apply_initializer_edit(win, &editor);
-                    }
+                    initializer::handle_apply(win);
                 }
             }
             Message::InitializerCancel(win_id) => {
                 if let Some(win) = self.windows.get_mut(&win_id) {
-                    win.initializer_editor = None;
+                    initializer::handle_cancel(win);
                 }
             }
             Message::WindowFocused(id) => {
