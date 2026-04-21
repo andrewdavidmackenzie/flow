@@ -34,6 +34,14 @@ use flowcore::model::lib_manifest::LibraryManifest;
 use flowcore::model::process::Process;
 use flowcore::model::process_reference::ProcessReference;
 use flowcore::provider::Provider;
+
+use canvas_view::{
+    derive_short_name, CanvasMessage, EdgeLayout, FlowCanvasState, NodeLayout, PortInfo,
+};
+use hierarchy_panel::{FlowHierarchy, HierarchyMessage};
+use history::{EditAction, EditHistory};
+use library_panel::{LibraryAction, LibraryMessage, LibraryTree};
+
 mod canvas_view;
 mod flow_io;
 mod hierarchy_panel;
@@ -42,12 +50,9 @@ mod initializer;
 mod library_mgmt;
 mod library_panel;
 mod undo_redo;
-use canvas_view::{
-    derive_short_name, CanvasMessage, EdgeLayout, FlowCanvasState, NodeLayout, PortInfo,
-};
-use hierarchy_panel::{FlowHierarchy, HierarchyMessage};
-use history::{EditAction, EditHistory};
-use library_panel::{LibraryAction, LibraryMessage, LibraryTree};
+
+#[cfg(test)]
+mod ui_test;
 
 /// Messages handled by the flowedit application
 #[derive(Debug, Clone)]
@@ -2835,6 +2840,3 @@ impl FlowEdit {
         open_task.discard()
     }
 }
-
-#[cfg(test)]
-mod ui_test;
