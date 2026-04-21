@@ -318,9 +318,9 @@ mod test {
             }),
         };
         h.update(&HierarchyMessage::Toggle(vec![]));
-        assert!(h.root.as_ref().map_or(false, |r| !r.expanded));
+        assert!(h.root.as_ref().is_some_and(|r| !r.expanded));
         h.update(&HierarchyMessage::Toggle(vec![]));
-        assert!(h.root.as_ref().map_or(false, |r| r.expanded));
+        assert!(h.root.as_ref().is_some_and(|r| r.expanded));
     }
 
     #[test]
@@ -347,7 +347,7 @@ mod test {
             .root
             .as_ref()
             .and_then(|r| r.children.first())
-            .map_or(false, |c| c.expanded));
+            .is_some_and(|c| c.expanded));
     }
 
     #[test]
@@ -382,7 +382,7 @@ mod test {
             .as_ref()
             .and_then(|r| r.children.first())
             .and_then(|c| c.children.first())
-            .map_or(false, |c| c.expanded));
+            .is_some_and(|c| c.expanded));
     }
 
     #[test]

@@ -1,4 +1,4 @@
-#![allow(clippy::indexing_slicing, dead_code)]
+#![allow(clippy::indexing_slicing)]
 
 use super::*;
 use iced_test::simulator::{self, simulator};
@@ -152,7 +152,7 @@ fn test_app_with_flow(flow: FlowDefinition) -> (FlowEdit, window::Id) {
         .process_refs
         .iter()
         .map(|pref| NodeLayout {
-            alias: pref.alias.to_string(),
+            alias: pref.alias.clone(),
             source: pref.source.clone(),
             description: String::new(),
             x: pref.x.unwrap_or(0.0),
@@ -173,7 +173,7 @@ fn test_app_with_flow(flow: FlowDefinition) -> (FlowEdit, window::Id) {
     let win_id = window::Id::unique();
     let win_state = WindowState {
         kind: WindowKind::FlowEditor,
-        flow_name: flow.name.to_string(),
+        flow_name: flow.name.clone(),
         nodes,
         edges,
         canvas_state: FlowCanvasState::default(),
@@ -269,14 +269,12 @@ fn update_zoom_in() {
     let old_zoom = app
         .windows
         .get(&win_id)
-        .map(|w| w.canvas_state.zoom)
-        .unwrap_or(1.0);
-    app.update(Message::ZoomIn(win_id));
+        .map_or(1.0, |w| w.canvas_state.zoom);
+    let _ = app.update(Message::ZoomIn(win_id));
     let new_zoom = app
         .windows
         .get(&win_id)
-        .map(|w| w.canvas_state.zoom)
-        .unwrap_or(1.0);
+        .map_or(1.0, |w| w.canvas_state.zoom);
     assert!(new_zoom > old_zoom);
 }
 
@@ -286,34 +284,29 @@ fn update_zoom_out() {
     let old_zoom = app
         .windows
         .get(&win_id)
-        .map(|w| w.canvas_state.zoom)
-        .unwrap_or(1.0);
-    app.update(Message::ZoomOut(win_id));
+        .map_or(1.0, |w| w.canvas_state.zoom);
+    let _ = app.update(Message::ZoomOut(win_id));
     let new_zoom = app
         .windows
         .get(&win_id)
-        .map(|w| w.canvas_state.zoom)
-        .unwrap_or(1.0);
+        .map_or(1.0, |w| w.canvas_state.zoom);
     assert!(new_zoom < old_zoom);
 }
 
 #[test]
 fn update_toggle_auto_fit() {
     let (mut app, win_id) = test_app();
-    app.windows
-        .get_mut(&win_id)
-        .map(|w| w.auto_fit_enabled = false);
-    app.update(Message::ToggleAutoFit(win_id));
-    assert!(app
-        .windows
-        .get(&win_id)
-        .map_or(false, |w| w.auto_fit_enabled));
+    if let Some(w) = app.windows.get_mut(&win_id) {
+        w.auto_fit_enabled = false;
+    }
+    let _ = app.update(Message::ToggleAutoFit(win_id));
+    assert!(app.windows.get(&win_id).is_some_and(|w| w.auto_fit_enabled));
 }
 
 #[test]
 fn update_canvas_select_node() {
     let (mut app, win_id) = test_app();
-    app.update(Message::WindowCanvas(
+    let _ = app.update(Message::WindowCanvas(
         win_id,
         CanvasMessage::Selected(Some(0)),
     ));
@@ -326,29 +319,29 @@ fn update_canvas_select_node() {
 #[test]
 fn update_canvas_deselect() {
     let (mut app, win_id) = test_app();
-    app.windows
-        .get_mut(&win_id)
-        .map(|w| w.selected_node = Some(0));
-    app.update(Message::WindowCanvas(win_id, CanvasMessage::Selected(None)));
+    if let Some(w) = app.windows.get_mut(&win_id) {
+        w.selected_node = Some(0);
+    }
+    let _ = app.update(Message::WindowCanvas(win_id, CanvasMessage::Selected(None)));
     assert_eq!(app.windows.get(&win_id).and_then(|w| w.selected_node), None);
 }
 
 #[test]
 fn update_canvas_move_node() {
     let (mut app, win_id) = test_app();
-    app.update(Message::WindowCanvas(
+    let _ = app.update(Message::WindowCanvas(
         win_id,
         CanvasMessage::Moved(0, 200.0, 300.0),
     ));
     let node = app.windows.get(&win_id).and_then(|w| w.nodes.first());
-    assert!((node.map(|n| n.x).unwrap_or(0.0) - 200.0).abs() < 0.01);
-    assert!((node.map(|n| n.y).unwrap_or(0.0) - 300.0).abs() < 0.01);
+    assert!((node.map_or(0.0, |n| n.x) - 200.0).abs() < 0.01);
+    assert!((node.map_or(0.0, |n| n.y) - 300.0).abs() < 0.01);
 }
 
 #[test]
 fn update_canvas_move_completed_records_history() {
     let (mut app, win_id) = test_app();
-    app.update(Message::WindowCanvas(
+    let _ = app.update(Message::WindowCanvas(
         win_id,
         CanvasMessage::MoveCompleted(0, 100.0, 100.0, 200.0, 300.0),
     ));
@@ -359,7 +352,7 @@ fn update_canvas_move_completed_records_history() {
 fn update_canvas_delete_node() {
     let (mut app, win_id) = test_app();
     assert_eq!(app.windows.get(&win_id).map(|w| w.nodes.len()), Some(2));
-    app.update(Message::WindowCanvas(win_id, CanvasMessage::Deleted(0)));
+    let _ = app.update(Message::WindowCanvas(win_id, CanvasMessage::Deleted(0)));
     assert_eq!(app.windows.get(&win_id).map(|w| w.nodes.len()), Some(1));
     assert_eq!(app.windows.get(&win_id).map(|w| w.unsaved_edits), Some(1));
 }
@@ -367,13 +360,13 @@ fn update_canvas_delete_node() {
 #[test]
 fn update_canvas_create_connection() {
     let (mut app, win_id) = test_app();
-    app.update(Message::WindowCanvas(
+    let _ = app.update(Message::WindowCanvas(
         win_id,
         CanvasMessage::ConnectionCreated {
             from_node: "add".into(),
-            from_port: "".into(),
+            from_port: String::new(),
             to_node: "stdout".into(),
-            to_port: "".into(),
+            to_port: String::new(),
         },
     ));
     assert_eq!(app.windows.get(&win_id).map(|w| w.edges.len()), Some(1));
@@ -387,12 +380,12 @@ fn update_canvas_select_connection() {
     if let Some(win) = app.windows.get_mut(&win_id) {
         win.edges.push(EdgeLayout::new(
             "add".into(),
-            "".into(),
+            String::new(),
             "stdout".into(),
-            "".into(),
+            String::new(),
         ));
     }
-    app.update(Message::WindowCanvas(
+    let _ = app.update(Message::WindowCanvas(
         win_id,
         CanvasMessage::ConnectionSelected(Some(0)),
     ));
@@ -408,12 +401,12 @@ fn update_canvas_delete_connection() {
     if let Some(win) = app.windows.get_mut(&win_id) {
         win.edges.push(EdgeLayout::new(
             "add".into(),
-            "".into(),
+            String::new(),
             "stdout".into(),
-            "".into(),
+            String::new(),
         ));
     }
-    app.update(Message::WindowCanvas(
+    let _ = app.update(Message::WindowCanvas(
         win_id,
         CanvasMessage::ConnectionDeleted(0),
     ));
@@ -424,41 +417,41 @@ fn update_canvas_delete_connection() {
 fn update_undo_redo_cycle() {
     let (mut app, win_id) = test_app();
     // Move node and record
-    app.update(Message::WindowCanvas(
+    let _ = app.update(Message::WindowCanvas(
         win_id,
         CanvasMessage::Moved(0, 200.0, 300.0),
     ));
-    app.update(Message::WindowCanvas(
+    let _ = app.update(Message::WindowCanvas(
         win_id,
         CanvasMessage::MoveCompleted(0, 100.0, 100.0, 200.0, 300.0),
     ));
     assert_eq!(app.windows.get(&win_id).map(|w| w.unsaved_edits), Some(1));
 
     // Undo
-    app.update(Message::Undo);
+    let _ = app.update(Message::Undo);
     let node = app.windows.get(&win_id).and_then(|w| w.nodes.first());
-    assert!((node.map(|n| n.x).unwrap_or(0.0) - 100.0).abs() < 0.01);
+    assert!((node.map_or(0.0, |n| n.x) - 100.0).abs() < 0.01);
 
     // Redo
-    app.update(Message::Redo);
+    let _ = app.update(Message::Redo);
     let node = app.windows.get(&win_id).and_then(|w| w.nodes.first());
-    assert!((node.map(|n| n.x).unwrap_or(0.0) - 200.0).abs() < 0.01);
+    assert!((node.map_or(0.0, |n| n.x) - 200.0).abs() < 0.01);
 }
 
 #[test]
 fn update_toggle_metadata() {
     let (mut app, win_id) = test_app();
-    assert!(!app.windows.get(&win_id).map_or(true, |w| w.show_metadata));
-    app.update(Message::ToggleMetadataEditor(win_id));
-    assert!(app.windows.get(&win_id).map_or(false, |w| w.show_metadata));
-    app.update(Message::ToggleMetadataEditor(win_id));
-    assert!(!app.windows.get(&win_id).map_or(true, |w| w.show_metadata));
+    assert!(!app.windows.get(&win_id).is_some_and(|w| w.show_metadata));
+    let _ = app.update(Message::ToggleMetadataEditor(win_id));
+    assert!(app.windows.get(&win_id).is_some_and(|w| w.show_metadata));
+    let _ = app.update(Message::ToggleMetadataEditor(win_id));
+    assert!(!app.windows.get(&win_id).is_some_and(|w| w.show_metadata));
 }
 
 #[test]
 fn update_flow_name_changed() {
     let (mut app, win_id) = test_app();
-    app.update(Message::FlowNameChanged(win_id, "new_name".into()));
+    let _ = app.update(Message::FlowNameChanged(win_id, "new_name".into()));
     assert_eq!(
         app.windows.get(&win_id).map(|w| w.flow_name.as_str()),
         Some("new_name")
@@ -469,7 +462,7 @@ fn update_flow_name_changed() {
 #[test]
 fn update_flow_version_changed() {
     let (mut app, win_id) = test_app();
-    app.update(Message::FlowVersionChanged(win_id, "2.0.0".into()));
+    let _ = app.update(Message::FlowVersionChanged(win_id, "2.0.0".into()));
     assert_eq!(
         app.windows
             .get(&win_id)
@@ -481,7 +474,7 @@ fn update_flow_version_changed() {
 #[test]
 fn update_flow_description_changed() {
     let (mut app, win_id) = test_app();
-    app.update(Message::FlowDescriptionChanged(
+    let _ = app.update(Message::FlowDescriptionChanged(
         win_id,
         "A test flow".into(),
     ));
@@ -496,7 +489,7 @@ fn update_flow_description_changed() {
 #[test]
 fn update_flow_authors_changed() {
     let (mut app, win_id) = test_app();
-    app.update(Message::FlowAuthorsChanged(win_id, "Alice, Bob".into()));
+    let _ = app.update(Message::FlowAuthorsChanged(win_id, "Alice, Bob".into()));
     let authors = app
         .windows
         .get(&win_id)
@@ -508,7 +501,7 @@ fn update_flow_authors_changed() {
 #[test]
 fn update_flow_add_input() {
     let (mut app, win_id) = test_app();
-    app.update(Message::FlowAddInput(win_id));
+    let _ = app.update(Message::FlowAddInput(win_id));
     assert_eq!(
         app.windows.get(&win_id).map(|w| w.flow_inputs.len()),
         Some(1)
@@ -519,7 +512,7 @@ fn update_flow_add_input() {
 #[test]
 fn update_flow_add_output() {
     let (mut app, win_id) = test_app();
-    app.update(Message::FlowAddOutput(win_id));
+    let _ = app.update(Message::FlowAddOutput(win_id));
     assert_eq!(
         app.windows.get(&win_id).map(|w| w.flow_outputs.len()),
         Some(1)
@@ -529,8 +522,8 @@ fn update_flow_add_output() {
 #[test]
 fn update_flow_delete_input() {
     let (mut app, win_id) = test_app();
-    app.update(Message::FlowAddInput(win_id));
-    app.update(Message::FlowDeleteInput(win_id, 0));
+    let _ = app.update(Message::FlowAddInput(win_id));
+    let _ = app.update(Message::FlowDeleteInput(win_id, 0));
     assert_eq!(
         app.windows.get(&win_id).map(|w| w.flow_inputs.len()),
         Some(0)
@@ -540,8 +533,8 @@ fn update_flow_delete_input() {
 #[test]
 fn update_flow_input_name_changed() {
     let (mut app, win_id) = test_app();
-    app.update(Message::FlowAddInput(win_id));
-    app.update(Message::FlowInputNameChanged(win_id, 0, "data".into()));
+    let _ = app.update(Message::FlowAddInput(win_id));
+    let _ = app.update(Message::FlowInputNameChanged(win_id, 0, "data".into()));
     assert_eq!(
         app.windows
             .get(&win_id)
@@ -552,28 +545,28 @@ fn update_flow_input_name_changed() {
 
 #[test]
 fn update_window_focused() {
-    let (mut app, win_id) = test_app();
+    let (mut app, _win_id) = test_app();
     let other_id = window::Id::unique();
-    app.update(Message::WindowFocused(other_id));
+    let _ = app.update(Message::WindowFocused(other_id));
     assert_eq!(app.focused_window, Some(other_id));
 }
 
 #[test]
 fn update_window_resized() {
     let (mut app, win_id) = test_app();
-    app.update(Message::WindowResized(
+    let _ = app.update(Message::WindowResized(
         win_id,
         iced::Size::new(800.0, 600.0),
     ));
     let size = app.windows.get(&win_id).and_then(|w| w.last_size);
     assert!(size.is_some());
-    assert!((size.map(|s| s.width).unwrap_or(0.0) - 800.0).abs() < 0.01);
+    assert!((size.map_or(0.0, |s| s.width) - 800.0).abs() < 0.01);
 }
 
 #[test]
 fn update_window_moved() {
     let (mut app, win_id) = test_app();
-    app.update(Message::WindowMoved(win_id, iced::Point::new(100.0, 200.0)));
+    let _ = app.update(Message::WindowMoved(win_id, iced::Point::new(100.0, 200.0)));
     let pos = app.windows.get(&win_id).and_then(|w| w.last_position);
     assert!(pos.is_some());
 }
@@ -582,16 +575,16 @@ fn update_window_moved() {
 fn update_toggle_lib_paths() {
     let (mut app, _win_id) = test_app();
     assert!(!app.show_lib_paths);
-    app.update(Message::ToggleLibPaths);
+    let _ = app.update(Message::ToggleLibPaths);
     assert!(app.show_lib_paths);
-    app.update(Message::ToggleLibPaths);
+    let _ = app.update(Message::ToggleLibPaths);
     assert!(!app.show_lib_paths);
 }
 
 #[test]
 fn update_context_menu() {
     let (mut app, win_id) = test_app();
-    app.update(Message::WindowCanvas(
+    let _ = app.update(Message::WindowCanvas(
         win_id,
         CanvasMessage::ContextMenu(100.0, 200.0),
     ));
@@ -601,7 +594,7 @@ fn update_context_menu() {
         .and_then(|w| w.context_menu)
         .is_some());
     // Clicking deselects context menu
-    app.update(Message::WindowCanvas(win_id, CanvasMessage::Selected(None)));
+    let _ = app.update(Message::WindowCanvas(win_id, CanvasMessage::Selected(None)));
     assert!(app
         .windows
         .get(&win_id)
@@ -612,13 +605,13 @@ fn update_context_menu() {
 #[test]
 fn update_canvas_resize_node() {
     let (mut app, win_id) = test_app();
-    app.update(Message::WindowCanvas(
+    let _ = app.update(Message::WindowCanvas(
         win_id,
         CanvasMessage::Resized(0, 50.0, 50.0, 200.0, 150.0),
     ));
     let node = app.windows.get(&win_id).and_then(|w| w.nodes.first());
-    assert!((node.map(|n| n.width).unwrap_or(0.0) - 200.0).abs() < 0.01);
-    assert!((node.map(|n| n.height).unwrap_or(0.0) - 150.0).abs() < 0.01);
+    assert!((node.map_or(0.0, |n| n.width) - 200.0).abs() < 0.01);
+    assert!((node.map_or(0.0, |n| n.height) - 150.0).abs() < 0.01);
 }
 
 #[test]
@@ -633,7 +626,7 @@ fn update_initializer_type_changed() {
             value_text: String::new(),
         });
     }
-    app.update(Message::InitializerTypeChanged(win_id, "once".into()));
+    let _ = app.update(Message::InitializerTypeChanged(win_id, "once".into()));
     let init_type = app
         .windows
         .get(&win_id)
@@ -653,7 +646,7 @@ fn update_initializer_cancel() {
             value_text: "42".into(),
         });
     }
-    app.update(Message::InitializerCancel(win_id));
+    let _ = app.update(Message::InitializerCancel(win_id));
     assert!(app
         .windows
         .get(&win_id)
@@ -775,7 +768,7 @@ fn drag(app: &mut FlowEdit, win_id: window::Id, from: iced::Point, to: iced::Poi
 fn find_status_text() {
     let (app, win_id) = test_app();
     let view = app.view(win_id);
-    let mut ui = simulator(view);
+    let ui = simulator(view);
     // The view should render without crashing — that's the main test
     // Text search may not find substrings within composed widgets
     let _ui = ui;
@@ -787,14 +780,12 @@ fn click_zoom_in() {
     let old = app
         .windows
         .get(&win_id)
-        .map(|w| w.canvas_state.zoom)
-        .unwrap_or(1.0);
+        .map_or(1.0, |w| w.canvas_state.zoom);
     click_and_update(&mut app, win_id, "+");
     let new = app
         .windows
         .get(&win_id)
-        .map(|w| w.canvas_state.zoom)
-        .unwrap_or(1.0);
+        .map_or(1.0, |w| w.canvas_state.zoom);
     assert!(new > old, "Zoom should increase");
 }
 
@@ -804,14 +795,12 @@ fn click_zoom_out() {
     let old = app
         .windows
         .get(&win_id)
-        .map(|w| w.canvas_state.zoom)
-        .unwrap_or(1.0);
+        .map_or(1.0, |w| w.canvas_state.zoom);
     click_and_update(&mut app, win_id, "\u{2212}");
     let new = app
         .windows
         .get(&win_id)
-        .map(|w| w.canvas_state.zoom)
-        .unwrap_or(1.0);
+        .map_or(1.0, |w| w.canvas_state.zoom);
     assert!(new < old, "Zoom should decrease");
 }
 
@@ -822,10 +811,7 @@ fn click_fit_enables_auto_fit() {
         win.auto_fit_enabled = false;
     }
     click_and_update(&mut app, win_id, "Fit");
-    assert!(app
-        .windows
-        .get(&win_id)
-        .map_or(false, |w| w.auto_fit_enabled));
+    assert!(app.windows.get(&win_id).is_some_and(|w| w.auto_fit_enabled));
 }
 
 #[test]
@@ -834,15 +820,13 @@ fn zoom_in_out_roundtrip() {
     let original = app
         .windows
         .get(&win_id)
-        .map(|w| w.canvas_state.zoom)
-        .unwrap_or(1.0);
+        .map_or(1.0, |w| w.canvas_state.zoom);
     click_and_update(&mut app, win_id, "+");
     click_and_update(&mut app, win_id, "\u{2212}");
     let final_zoom = app
         .windows
         .get(&win_id)
-        .map(|w| w.canvas_state.zoom)
-        .unwrap_or(1.0);
+        .map_or(1.0, |w| w.canvas_state.zoom);
     assert!(
         (final_zoom - original).abs() < 0.01,
         "Zoom roundtrip should return to original"
@@ -852,11 +836,11 @@ fn zoom_in_out_roundtrip() {
 #[test]
 fn click_info_toggles_metadata() {
     let (mut app, win_id) = test_app();
-    assert!(!app.windows.get(&win_id).map_or(true, |w| w.show_metadata));
+    assert!(!app.windows.get(&win_id).is_some_and(|w| w.show_metadata));
     click_and_update(&mut app, win_id, "\u{2139} Info");
-    assert!(app.windows.get(&win_id).map_or(false, |w| w.show_metadata));
+    assert!(app.windows.get(&win_id).is_some_and(|w| w.show_metadata));
     click_and_update(&mut app, win_id, "\u{2139} Info");
-    assert!(!app.windows.get(&win_id).map_or(true, |w| w.show_metadata));
+    assert!(!app.windows.get(&win_id).is_some_and(|w| w.show_metadata));
 }
 
 #[test]
@@ -985,22 +969,22 @@ fn helper_drag_via_direct_messages() {
     let (mut app, win_id) = test_app();
 
     // Simulate a node drag from (100, 100) to (250, 350) using direct messages
-    app.update(Message::WindowCanvas(
+    let _ = app.update(Message::WindowCanvas(
         win_id,
         CanvasMessage::Moved(0, 250.0, 350.0),
     ));
-    app.update(Message::WindowCanvas(
+    let _ = app.update(Message::WindowCanvas(
         win_id,
         CanvasMessage::MoveCompleted(0, 100.0, 100.0, 250.0, 350.0),
     ));
 
     let node = app.windows.get(&win_id).and_then(|w| w.nodes.first());
     assert!(
-        (node.map(|n| n.x).unwrap_or(0.0) - 250.0).abs() < 0.01,
+        (node.map_or(0.0, |n| n.x) - 250.0).abs() < 0.01,
         "Node x should be 250 after drag"
     );
     assert!(
-        (node.map(|n| n.y).unwrap_or(0.0) - 350.0).abs() < 0.01,
+        (node.map_or(0.0, |n| n.y) - 350.0).abs() < 0.01,
         "Node y should be 350 after drag"
     );
     assert_eq!(
@@ -1021,8 +1005,7 @@ fn helper_drag_simulator_smoke_test() {
         .windows
         .get(&win_id)
         .and_then(|w| w.nodes.first())
-        .map(|n| n.x)
-        .unwrap_or(0.0);
+        .map_or(0.0, |n| n.x);
 
     drag(
         &mut app,
@@ -1042,8 +1025,7 @@ fn helper_drag_simulator_smoke_test() {
         .windows
         .get(&win_id)
         .and_then(|w| w.nodes.first())
-        .map(|n| n.x)
-        .unwrap_or(0.0);
+        .map_or(0.0, |n| n.x);
     // Note: if current_x == original_x, the simulator drag didn't produce
     // canvas events. This is expected due to the limitation documented above.
     let _ = original_x; // suppress unused warning
@@ -1065,7 +1047,7 @@ fn ui_delete_node_removes_connected_edges() {
     }
     assert_eq!(app.windows.get(&win_id).map(|w| w.edges.len()), Some(1));
     // Delete node 0 ("add")
-    app.update(Message::WindowCanvas(win_id, CanvasMessage::Deleted(0)));
+    let _ = app.update(Message::WindowCanvas(win_id, CanvasMessage::Deleted(0)));
     assert_eq!(app.windows.get(&win_id).map(|w| w.nodes.len()), Some(1));
     assert_eq!(
         app.windows.get(&win_id).map(|w| w.edges.len()),
@@ -1079,7 +1061,7 @@ fn ui_delete_with_nothing_selected_no_change() {
     let (mut app, win_id) = test_app();
     let count_before = app.windows.get(&win_id).map(|w| w.nodes.len());
     // Deselect — no node is selected
-    app.update(Message::WindowCanvas(win_id, CanvasMessage::Selected(None)));
+    let _ = app.update(Message::WindowCanvas(win_id, CanvasMessage::Selected(None)));
     // Send Delete key — should not change anything with nothing selected
     send_key(
         &mut app,
@@ -1097,18 +1079,18 @@ fn ui_delete_with_nothing_selected_no_change() {
 #[test]
 fn ui_select_and_delete_connection() {
     let (mut app, win_id) = test_app();
-    app.update(Message::WindowCanvas(
+    let _ = app.update(Message::WindowCanvas(
         win_id,
         CanvasMessage::ConnectionCreated {
             from_node: "add".into(),
-            from_port: "".into(),
+            from_port: String::new(),
             to_node: "stdout".into(),
-            to_port: "".into(),
+            to_port: String::new(),
         },
     ));
     assert_eq!(app.windows.get(&win_id).map(|w| w.edges.len()), Some(1));
     // Select
-    app.update(Message::WindowCanvas(
+    let _ = app.update(Message::WindowCanvas(
         win_id,
         CanvasMessage::ConnectionSelected(Some(0)),
     ));
@@ -1117,7 +1099,7 @@ fn ui_select_and_delete_connection() {
         Some(0)
     );
     // Delete
-    app.update(Message::WindowCanvas(
+    let _ = app.update(Message::WindowCanvas(
         win_id,
         CanvasMessage::ConnectionDeleted(0),
     ));
@@ -1130,13 +1112,13 @@ fn ui_connection_deselect_on_canvas_click() {
     if let Some(win) = app.windows.get_mut(&win_id) {
         win.edges.push(EdgeLayout::new(
             "add".into(),
-            "".into(),
+            String::new(),
             "stdout".into(),
-            "".into(),
+            String::new(),
         ));
         win.selected_connection = Some(0);
     }
-    app.update(Message::WindowCanvas(win_id, CanvasMessage::Selected(None)));
+    let _ = app.update(Message::WindowCanvas(win_id, CanvasMessage::Selected(None)));
     assert_eq!(
         app.windows.get(&win_id).and_then(|w| w.selected_connection),
         None
@@ -1149,9 +1131,9 @@ fn ui_connection_deselect_on_canvas_click() {
 fn ui_undo_node_deletion() {
     let (mut app, win_id) = test_app();
     assert_eq!(app.windows.get(&win_id).map(|w| w.nodes.len()), Some(2));
-    app.update(Message::WindowCanvas(win_id, CanvasMessage::Deleted(0)));
+    let _ = app.update(Message::WindowCanvas(win_id, CanvasMessage::Deleted(0)));
     assert_eq!(app.windows.get(&win_id).map(|w| w.nodes.len()), Some(1));
-    app.update(Message::Undo);
+    let _ = app.update(Message::Undo);
     assert_eq!(
         app.windows.get(&win_id).map(|w| w.nodes.len()),
         Some(2),
@@ -1162,22 +1144,22 @@ fn ui_undo_node_deletion() {
 #[test]
 fn ui_undo_connection_deletion() {
     let (mut app, win_id) = test_app();
-    app.update(Message::WindowCanvas(
+    let _ = app.update(Message::WindowCanvas(
         win_id,
         CanvasMessage::ConnectionCreated {
             from_node: "add".into(),
-            from_port: "".into(),
+            from_port: String::new(),
             to_node: "stdout".into(),
-            to_port: "".into(),
+            to_port: String::new(),
         },
     ));
     assert_eq!(app.windows.get(&win_id).map(|w| w.edges.len()), Some(1));
-    app.update(Message::WindowCanvas(
+    let _ = app.update(Message::WindowCanvas(
         win_id,
         CanvasMessage::ConnectionDeleted(0),
     ));
     assert_eq!(app.windows.get(&win_id).map(|w| w.edges.len()), Some(0));
-    app.update(Message::Undo);
+    let _ = app.update(Message::Undo);
     assert_eq!(
         app.windows.get(&win_id).map(|w| w.edges.len()),
         Some(1),
@@ -1188,8 +1170,8 @@ fn ui_undo_connection_deletion() {
 #[test]
 fn ui_undo_empty_history_no_crash() {
     let (mut app, _win_id) = test_app();
-    app.update(Message::Undo);
-    app.update(Message::Redo);
+    let _ = app.update(Message::Undo);
+    let _ = app.update(Message::Redo);
     // Should not panic
 }
 
@@ -1201,34 +1183,34 @@ fn ui_undo_empty_history_no_crash() {
 #[test]
 fn undo_restores_move() {
     let (mut app, win_id) = test_app();
-    app.update(Message::WindowCanvas(
+    let _ = app.update(Message::WindowCanvas(
         win_id,
         CanvasMessage::Moved(0, 200.0, 300.0),
     ));
-    app.update(Message::WindowCanvas(
+    let _ = app.update(Message::WindowCanvas(
         win_id,
         CanvasMessage::MoveCompleted(0, 100.0, 100.0, 200.0, 300.0),
     ));
-    app.update(Message::Undo);
+    let _ = app.update(Message::Undo);
     let node = app.windows.get(&win_id).and_then(|w| w.nodes.first());
-    assert!((node.map(|n| n.x).unwrap_or(0.0) - 100.0).abs() < 0.01);
+    assert!((node.map_or(0.0, |n| n.x) - 100.0).abs() < 0.01);
 }
 
 #[test]
 fn redo_reapplies_move() {
     let (mut app, win_id) = test_app();
-    app.update(Message::WindowCanvas(
+    let _ = app.update(Message::WindowCanvas(
         win_id,
         CanvasMessage::Moved(0, 200.0, 300.0),
     ));
-    app.update(Message::WindowCanvas(
+    let _ = app.update(Message::WindowCanvas(
         win_id,
         CanvasMessage::MoveCompleted(0, 100.0, 100.0, 200.0, 300.0),
     ));
-    app.update(Message::Undo);
-    app.update(Message::Redo);
+    let _ = app.update(Message::Undo);
+    let _ = app.update(Message::Redo);
     let node = app.windows.get(&win_id).and_then(|w| w.nodes.first());
-    assert!((node.map(|n| n.x).unwrap_or(0.0) - 200.0).abs() < 0.01);
+    assert!((node.map_or(0.0, |n| n.x) - 200.0).abs() < 0.01);
 }
 
 // ---- Group 5: Context Menu & Initializer ----
@@ -1236,7 +1218,7 @@ fn redo_reapplies_move() {
 #[test]
 fn ui_right_click_shows_context_menu() {
     let (mut app, win_id) = test_app();
-    app.update(Message::WindowCanvas(
+    let _ = app.update(Message::WindowCanvas(
         win_id,
         CanvasMessage::ContextMenu(500.0, 300.0),
     ));
@@ -1250,7 +1232,7 @@ fn ui_right_click_shows_context_menu() {
 #[test]
 fn ui_initializer_editor_open_and_cancel() {
     let (mut app, win_id) = test_app();
-    app.update(Message::WindowCanvas(
+    let _ = app.update(Message::WindowCanvas(
         win_id,
         CanvasMessage::InitializerEdit(0, "input".into()),
     ));
@@ -1259,7 +1241,7 @@ fn ui_initializer_editor_open_and_cancel() {
         .get(&win_id)
         .and_then(|w| w.initializer_editor.as_ref())
         .is_some());
-    app.update(Message::InitializerCancel(win_id));
+    let _ = app.update(Message::InitializerCancel(win_id));
     assert!(app
         .windows
         .get(&win_id)
@@ -1272,12 +1254,12 @@ fn ui_initializer_editor_open_and_cancel() {
 #[test]
 fn ui_library_add_function_creates_node() {
     let (mut app, win_id) = test_app();
-    let count_before = app.windows.get(&win_id).map(|w| w.nodes.len()).unwrap_or(0);
-    app.update(Message::Library(
+    let count_before = app.windows.get(&win_id).map_or(0, |w| w.nodes.len());
+    let _ = app.update(Message::Library(
         win_id,
         library_panel::LibraryMessage::AddFunction("lib://test_lib/math/add".into(), "add".into()),
     ));
-    let count_after = app.windows.get(&win_id).map(|w| w.nodes.len()).unwrap_or(0);
+    let count_after = app.windows.get(&win_id).map_or(0, |w| w.nodes.len());
     assert_eq!(
         count_after,
         count_before + 1,
@@ -1298,7 +1280,7 @@ fn ui_close_window_removes_it() {
     app.root_window = Some(second_id);
 
     assert!(app.windows.contains_key(&win_id));
-    app.update(Message::WindowClosed(win_id));
+    let _ = app.update(Message::WindowClosed(win_id));
     assert!(!app.windows.contains_key(&win_id));
 }
 
@@ -1306,7 +1288,7 @@ fn ui_close_window_removes_it() {
 fn ui_window_focused_updates_other() {
     let (mut app, _win_id) = test_app();
     let other_id = window::Id::unique();
-    app.update(Message::WindowFocused(other_id));
+    let _ = app.update(Message::WindowFocused(other_id));
     assert_eq!(app.focused_window, Some(other_id));
 }
 
@@ -1320,7 +1302,7 @@ fn ui_close_active_window() {
     app.root_window = Some(second_id);
     assert_eq!(app.focused_window, Some(win_id));
     // CloseActiveWindow closes the focused window (unsaved_edits == 0, no dialog)
-    app.update(Message::CloseActiveWindow);
+    let _ = app.update(Message::CloseActiveWindow);
     assert!(
         !app.windows.contains_key(&win_id),
         "CloseActiveWindow should remove the focused window"
@@ -1335,27 +1317,23 @@ fn ui_pan_changes_offset() {
     let old_x = app
         .windows
         .get(&win_id)
-        .map(|w| w.canvas_state.scroll_offset.x)
-        .unwrap_or(0.0);
+        .map_or(0.0, |w| w.canvas_state.scroll_offset.x);
     let old_y = app
         .windows
         .get(&win_id)
-        .map(|w| w.canvas_state.scroll_offset.y)
-        .unwrap_or(0.0);
-    app.update(Message::WindowCanvas(
+        .map_or(0.0, |w| w.canvas_state.scroll_offset.y);
+    let _ = app.update(Message::WindowCanvas(
         win_id,
         CanvasMessage::Pan(50.0, 30.0),
     ));
     let new_x = app
         .windows
         .get(&win_id)
-        .map(|w| w.canvas_state.scroll_offset.x)
-        .unwrap_or(0.0);
+        .map_or(0.0, |w| w.canvas_state.scroll_offset.x);
     let new_y = app
         .windows
         .get(&win_id)
-        .map(|w| w.canvas_state.scroll_offset.y)
-        .unwrap_or(0.0);
+        .map_or(0.0, |w| w.canvas_state.scroll_offset.y);
     assert!(
         (new_x - old_x - 50.0).abs() < 0.01,
         "Pan should change scroll_offset.x by 50"
@@ -1370,30 +1348,26 @@ fn ui_pan_changes_offset() {
 fn ui_resize_node_records_history() {
     let (mut app, win_id) = test_app();
     // Resized updates the node dimensions immediately
-    app.update(Message::WindowCanvas(
+    let _ = app.update(Message::WindowCanvas(
         win_id,
         CanvasMessage::Resized(0, 100.0, 100.0, 250.0, 180.0),
     ));
     // ResizeCompleted records history: (idx, old_x, old_y, old_w, old_h, new_x, new_y, new_w, new_h)
-    app.update(Message::WindowCanvas(
+    let _ = app.update(Message::WindowCanvas(
         win_id,
         CanvasMessage::ResizeCompleted(0, 100.0, 100.0, 180.0, 120.0, 100.0, 100.0, 250.0, 180.0),
     ));
     assert!(
-        app.windows
-            .get(&win_id)
-            .map(|w| w.unsaved_edits)
-            .unwrap_or(0)
-            > 0,
+        app.windows.get(&win_id).map_or(0, |w| w.unsaved_edits) > 0,
         "Resize should record an edit"
     );
     let node = app.windows.get(&win_id).and_then(|w| w.nodes.first());
     assert!(
-        (node.map(|n| n.width).unwrap_or(0.0) - 250.0).abs() < 0.01,
+        (node.map_or(0.0, |n| n.width) - 250.0).abs() < 0.01,
         "Node width should be 250 after resize"
     );
     assert!(
-        (node.map(|n| n.height).unwrap_or(0.0) - 180.0).abs() < 0.01,
+        (node.map_or(0.0, |n| n.height) - 180.0).abs() < 0.01,
         "Node height should be 180 after resize"
     );
 }
