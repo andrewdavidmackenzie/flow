@@ -133,6 +133,7 @@ mod test {
         NodeLayout {
             alias: "test".into(),
             source: "lib://test".into(),
+            description: String::new(),
             x: 100.0,
             y: 100.0,
             width: 180.0,

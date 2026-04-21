@@ -252,6 +252,8 @@ pub(crate) struct NodeLayout {
     pub alias: String,
     /// Source path of the process
     pub(crate) source: String,
+    /// Optional description of what this process does
+    pub description: String,
     /// X coordinate on the canvas
     pub x: f32,
     /// Y coordinate on the canvas
@@ -341,13 +343,14 @@ pub(crate) struct EdgeLayout {
 
 /// Build a list of [`NodeLayout`] from process references and connections.
 ///
-/// Ports are taken from the resolved definitions loaded for each subprocess.
+/// Ports and descriptions are taken from the resolved definitions loaded for each subprocess.
 /// Layout uses the optional `x`, `y`, `width`, `height` fields from `ProcessReference`,
 /// falling back to auto-grid positioning.
 pub(crate) fn build_node_layouts(
     process_refs: &[ProcessReference],
     connections: &[Connection],
     resolved_ports: &HashMap<String, (Vec<PortInfo>, Vec<PortInfo>)>,
+    subprocesses: &std::collections::BTreeMap<String, flowcore::model::process::Process>,
 ) -> Vec<NodeLayout> {
     let topo_positions = compute_topological_layout(process_refs, connections);
 
@@ -395,9 +398,21 @@ pub(crate) fn build_node_layouts(
             initializers.insert(port_name.clone(), display);
         }
 
+        // Extract description from the resolved subprocess definition
+        let description = subprocesses
+            .get(&alias)
+            .map(|proc| match proc {
+                flowcore::model::process::Process::FunctionProcess(func) => {
+                    func.description.clone()
+                }
+                flowcore::model::process::Process::FlowProcess(flow) => flow.description.clone(),
+            })
+            .unwrap_or_default();
+
         nodes.push(NodeLayout {
             alias: alias.clone(),
             source: pref.source.clone(),
+            description,
             x,
             y,
             width,
@@ -786,6 +801,21 @@ fn hit_test_node(nodes: &[NodeLayout], point: Point) -> Option<usize> {
             None
         }
     })
+}
+
+/// Check whether `point` (world coords) is within the source text zone of a node.
+/// The source text zone is the area where the source path is displayed, centered
+/// horizontally at 34px below the node top.
+fn is_in_source_text_zone(node: &NodeLayout, point: Point) -> bool {
+    let text_center_x = node.x + node.width / 2.0;
+    let text_top_y = node.y + 34.0;
+    let text_height = SOURCE_FONT_SIZE + 4.0;
+    let text_half_width = node.width * 0.4;
+
+    point.x >= text_center_x - text_half_width
+        && point.x <= text_center_x + text_half_width
+        && point.y >= text_top_y
+        && point.y <= text_top_y + text_height
 }
 
 /// Check whether `point` (world coords) is on the open icon of an openable node.
@@ -1453,20 +1483,24 @@ impl canvas::Program<CanvasMessage> for FlowCanvas<'_> {
                         }
                     }
 
-                    // Track hover for node source tooltip
+                    // Track hover for two-zone node tooltip
                     let new_hover = hit_test_node(self.nodes, world_pos);
-                    if new_hover != state.hover_node {
+                    if new_hover != state.hover_node || new_hover.is_some() {
                         state.hover_node = new_hover;
-                        let tooltip_data = new_hover
-                            .and_then(|idx| self.nodes.get(idx))
-                            .filter(|n| n.source.len() > MAX_SOURCE_CHARS)
-                            .map(|n| {
+                        let tooltip_data =
+                            new_hover.and_then(|idx| self.nodes.get(idx)).and_then(|n| {
                                 let bottom_center = transform_point(
                                     Point::new(n.x + n.width / 2.0, n.y + n.height),
                                     zoom,
                                     offset,
                                 );
-                                (n.source.clone(), bottom_center.x, bottom_center.y)
+                                if is_in_source_text_zone(n, world_pos) {
+                                    Some((n.source.clone(), bottom_center.x, bottom_center.y))
+                                } else if !n.description.is_empty() {
+                                    Some((n.description.clone(), bottom_center.x, bottom_center.y))
+                                } else {
+                                    None
+                                }
                             });
                         return Some(canvas::Action::publish(CanvasMessage::HoverChanged(
                             tooltip_data,
@@ -2665,6 +2699,7 @@ mod test {
         let nodes = vec![NodeLayout {
             alias: "test".into(),
             source: "lib://test".into(),
+            description: String::new(),
             x: 100.0,
             y: 100.0,
             width: 180.0,
@@ -2681,6 +2716,7 @@ mod test {
         let nodes = vec![NodeLayout {
             alias: "test".into(),
             source: "lib://test".into(),
+            description: String::new(),
             x: 100.0,
             y: 100.0,
             width: 180.0,
@@ -2690,6 +2726,28 @@ mod test {
             initializers: HashMap::new(),
         }];
         assert_eq!(hit_test_node(&nodes, Point::new(50.0, 50.0)), None);
+    }
+
+    #[test]
+    fn hit_test_source_text_zone() {
+        let node = NodeLayout {
+            alias: "test".into(),
+            source: "lib://flowstdlib/math/add".into(),
+            description: String::new(),
+            x: 100.0,
+            y: 100.0,
+            width: 180.0,
+            height: 120.0,
+            inputs: vec![],
+            outputs: vec![],
+            initializers: HashMap::new(),
+        };
+        // Source text is centered at (node.x + width/2, node.y + 34.0)
+        let source_center = Point::new(190.0, 134.0);
+        assert!(is_in_source_text_zone(&node, source_center));
+        // Point clearly outside source text zone but inside node
+        let node_body = Point::new(110.0, 200.0);
+        assert!(!is_in_source_text_zone(&node, node_body));
     }
 
     #[test]
@@ -2726,6 +2784,7 @@ mod test {
         let node = NodeLayout {
             alias: "test".into(),
             source: "lib://test".into(),
+            description: String::new(),
             x: 100.0,
             y: 100.0,
             width: 180.0,
@@ -2847,6 +2906,7 @@ mod test {
         let node = NodeLayout {
             alias: "n".into(),
             source: "lib://test".into(),
+            description: String::new(),
             x: 100.0,
             y: 100.0,
             width: 180.0,
@@ -2867,6 +2927,7 @@ mod test {
         let lib_node = NodeLayout {
             alias: "n".into(),
             source: "lib://test".into(),
+            description: String::new(),
             x: 100.0,
             y: 100.0,
             width: 180.0,
@@ -2893,6 +2954,7 @@ mod test {
         let node = NodeLayout {
             alias: "n".into(),
             source: "lib://flowstdlib/math/add".into(),
+            description: String::new(),
             x: 0.0,
             y: 0.0,
             width: 180.0,
@@ -2909,6 +2971,7 @@ mod test {
         let node = NodeLayout {
             alias: "n".into(),
             source: "context://stdio/stdout".into(),
+            description: String::new(),
             x: 0.0,
             y: 0.0,
             width: 180.0,
@@ -2925,6 +2988,7 @@ mod test {
         let node = NodeLayout {
             alias: "n".into(),
             source: "subflow/subflow".into(),
+            description: String::new(),
             x: 0.0,
             y: 0.0,
             width: 180.0,
@@ -2955,6 +3019,7 @@ mod test {
             NodeLayout {
                 alias: "a".into(),
                 source: String::new(),
+                description: String::new(),
                 x: 0.0,
                 y: 0.0,
                 width: 180.0,
@@ -2969,6 +3034,7 @@ mod test {
             NodeLayout {
                 alias: "b".into(),
                 source: String::new(),
+                description: String::new(),
                 x: 0.0,
                 y: 0.0,
                 width: 180.0,
@@ -2997,6 +3063,7 @@ mod test {
             NodeLayout {
                 alias: "a".into(),
                 source: String::new(),
+                description: String::new(),
                 x: 0.0,
                 y: 0.0,
                 width: 180.0,
@@ -3011,6 +3078,7 @@ mod test {
             NodeLayout {
                 alias: "b".into(),
                 source: String::new(),
+                description: String::new(),
                 x: 0.0,
                 y: 0.0,
                 width: 180.0,
@@ -3039,6 +3107,7 @@ mod test {
             NodeLayout {
                 alias: "a".into(),
                 source: String::new(),
+                description: String::new(),
                 x: 0.0,
                 y: 0.0,
                 width: 180.0,
@@ -3053,6 +3122,7 @@ mod test {
             NodeLayout {
                 alias: "b".into(),
                 source: String::new(),
+                description: String::new(),
                 x: 0.0,
                 y: 0.0,
                 width: 180.0,
@@ -3080,6 +3150,7 @@ mod test {
         let nodes = vec![NodeLayout {
             alias: "n".into(),
             source: String::new(),
+            description: String::new(),
             x: 100.0,
             y: 100.0,
             width: 180.0,
@@ -3132,6 +3203,7 @@ mod test {
         let node = NodeLayout {
             alias: "get".into(),
             source: String::new(),
+            description: String::new(),
             x: 100.0,
             y: 100.0,
             width: 180.0,
@@ -3160,6 +3232,7 @@ mod test {
         let make = |source: &str| NodeLayout {
             alias: "n".into(),
             source: source.into(),
+            description: String::new(),
             x: 0.0,
             y: 0.0,
             width: 180.0,

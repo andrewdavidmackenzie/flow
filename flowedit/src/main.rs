@@ -13,15 +13,16 @@
 //! is displayed as a colored, rounded rectangle on the canvas, with connections
 //! drawn as bezier curves between nodes.
 
-use std::collections::{BTreeMap, HashMap};
+use std::collections::{BTreeSet, HashMap};
 use std::path::{Path, PathBuf};
+use std::sync::Arc;
 
 use clap::{Arg, ArgAction, Command as ClapCommand};
 use iced::keyboard;
 use iced::widget::{button, container, pick_list, stack, text_input, Column, Row, Text};
 use iced::window;
 use iced::{Color, Element, Fill, Subscription, Task, Theme};
-use log::info;
+use log::{info, warn};
 use simpath::Simpath;
 use url::Url;
 
@@ -29,16 +30,20 @@ use flowcore::deserializers::deserializer::get;
 use flowcore::meta_provider::MetaProvider;
 use flowcore::model::flow_definition::FlowDefinition;
 use flowcore::model::input::InputInitializer;
-use flowcore::model::name::HasName;
+use flowcore::model::lib_manifest::LibraryManifest;
 use flowcore::model::process::Process;
 use flowcore::model::process_reference::ProcessReference;
+use flowcore::provider::Provider;
 mod canvas_view;
+mod flow_io;
 mod hierarchy_panel;
 mod history;
+mod initializer;
+mod library_mgmt;
 mod library_panel;
+mod undo_redo;
 use canvas_view::{
-    build_edge_layouts, build_node_layouts, derive_short_name, CanvasMessage, EdgeLayout,
-    FlowCanvasState, NodeLayout, PortInfo,
+    derive_short_name, CanvasMessage, EdgeLayout, FlowCanvasState, NodeLayout, PortInfo,
 };
 use hierarchy_panel::{FlowHierarchy, HierarchyMessage};
 use history::{EditAction, EditHistory};
@@ -85,6 +90,8 @@ enum Message {
     FunctionTabSelected(window::Id, usize),
     /// Function name edited
     FunctionNameChanged(window::Id, String),
+    /// Function description edited
+    FunctionDescriptionChanged(window::Id, String),
     /// Browse for source file
     FunctionBrowseSource(window::Id),
     /// Add a new input port to a function
@@ -158,87 +165,94 @@ enum Message {
 }
 
 /// State for the initializer editing dialog.
-struct InitializerEditor {
+pub(crate) struct InitializerEditor {
     /// Index of the node being edited
-    node_index: usize,
+    pub(crate) node_index: usize,
     /// Name of the input port being edited
-    port_name: String,
+    pub(crate) port_name: String,
     /// Selected type: "none", "once", or "always"
-    init_type: String,
+    pub(crate) init_type: String,
     /// The value as a string (JSON)
-    value_text: String,
+    pub(crate) value_text: String,
 }
 
 /// State for a function definition viewer/editor window.
-struct FunctionViewer {
-    name: String,
-    source_file: String,
-    inputs: Vec<PortInfo>,
-    outputs: Vec<PortInfo>,
-    rs_content: String,
-    docs_content: Option<String>,
-    active_tab: usize,
-    toml_path: PathBuf,
+pub(crate) struct FunctionViewer {
+    pub(crate) name: String,
+    pub(crate) description: String,
+    pub(crate) source_file: String,
+    pub(crate) inputs: Vec<PortInfo>,
+    pub(crate) outputs: Vec<PortInfo>,
+    pub(crate) rs_content: String,
+    pub(crate) docs_content: Option<String>,
+    pub(crate) active_tab: usize,
+    pub(crate) toml_path: PathBuf,
+    /// Parent window that opened this viewer (for propagating edits back to canvas)
+    pub(crate) parent_window: Option<window::Id>,
+    /// Source string of the node this viewer is editing (to find the NodeLayout)
+    pub(crate) node_source: String,
+    /// Whether this viewer is read-only (library/context functions cannot be edited)
+    pub(crate) read_only: bool,
 }
 
 /// What kind of content a window displays.
-enum WindowKind {
+pub(crate) enum WindowKind {
     FlowEditor,
     FunctionViewer(FunctionViewer),
 }
 
 /// Per-window state for the flow editor.
-struct WindowState {
+pub(crate) struct WindowState {
     /// What this window displays
-    kind: WindowKind,
+    pub(crate) kind: WindowKind,
     /// The name of the flow being viewed
-    flow_name: String,
+    pub(crate) flow_name: String,
     /// Positioned nodes derived from the flow's process references
-    nodes: Vec<NodeLayout>,
+    pub(crate) nodes: Vec<NodeLayout>,
     /// Connection edges between nodes
-    edges: Vec<EdgeLayout>,
+    pub(crate) edges: Vec<EdgeLayout>,
     /// Canvas state for caching rendered geometry
-    canvas_state: FlowCanvasState,
+    pub(crate) canvas_state: FlowCanvasState,
     /// Status message displayed in the bottom bar
-    status: String,
+    pub(crate) status: String,
     /// Index of the currently selected node, if any
-    selected_node: Option<usize>,
+    pub(crate) selected_node: Option<usize>,
     /// Index of the currently selected connection, if any
-    selected_connection: Option<usize>,
+    pub(crate) selected_connection: Option<usize>,
     /// Edit history for undo/redo
-    history: EditHistory,
+    pub(crate) history: EditHistory,
     /// Whether auto-fit should be performed on the next opportunity
-    auto_fit_pending: bool,
+    pub(crate) auto_fit_pending: bool,
     /// Whether auto-fit mode is active (continuously fits to window)
-    auto_fit_enabled: bool,
+    pub(crate) auto_fit_enabled: bool,
     /// Count of unsaved edits (increments on edit/redo, decrements on undo)
-    unsaved_edits: i32,
+    pub(crate) unsaved_edits: i32,
     /// Path to the last compiled manifest (None if not compiled or edited since)
-    compiled_manifest: Option<PathBuf>,
+    pub(crate) compiled_manifest: Option<PathBuf>,
     /// Path to the currently loaded flow file, if any
-    file_path: Option<PathBuf>,
+    pub(crate) file_path: Option<PathBuf>,
     /// The original flow definition, used to preserve metadata when saving
-    flow_definition: FlowDefinition,
+    pub(crate) flow_definition: FlowDefinition,
     /// Tooltip text and screen position to display (full source path on hover)
-    tooltip: Option<(String, f32, f32)>,
+    pub(crate) tooltip: Option<(String, f32, f32)>,
     /// Active initializer editor dialog, if any
-    initializer_editor: Option<InitializerEditor>,
+    pub(crate) initializer_editor: Option<InitializerEditor>,
     /// Whether this is the root (main) window
-    is_root: bool,
+    pub(crate) is_root: bool,
     /// Flow-level input ports (for sub-flow display)
-    flow_inputs: Vec<PortInfo>,
+    pub(crate) flow_inputs: Vec<PortInfo>,
     /// Flow-level output ports (for sub-flow display)
-    flow_outputs: Vec<PortInfo>,
+    pub(crate) flow_outputs: Vec<PortInfo>,
     /// Context menu position (screen coords), if showing
-    context_menu: Option<(f32, f32)>,
+    pub(crate) context_menu: Option<(f32, f32)>,
     /// Whether the metadata editor is visible
-    show_metadata: bool,
+    pub(crate) show_metadata: bool,
     /// Flow hierarchy tree for this window's navigation panel
-    flow_hierarchy: FlowHierarchy,
+    pub(crate) flow_hierarchy: FlowHierarchy,
     /// Last known window size (tracked via resize events)
-    last_size: Option<iced::Size>,
+    pub(crate) last_size: Option<iced::Size>,
     /// Last known window position (tracked via move events)
-    last_position: Option<iced::Point>,
+    pub(crate) last_position: Option<iced::Point>,
 }
 
 /// Top-level application state
@@ -255,6 +269,12 @@ struct FlowEdit {
     root_flow_path: Option<PathBuf>,
     show_lib_paths: bool,
     lib_paths: Vec<String>,
+    /// Cached library manifests, keyed by library root URL (e.g., `lib://flowstdlib`)
+    library_cache: HashMap<Url, LibraryManifest>,
+    /// Cached parsed definitions for library functions/flows, keyed by lib:// URL
+    lib_definitions: HashMap<Url, Process>,
+    /// Cached parsed definitions for context functions, keyed by context:// URL
+    context_definitions: HashMap<Url, Process>,
 }
 
 /// Main entry point for the flowedit binary.
@@ -324,20 +344,21 @@ impl FlowEdit {
             }
         }
 
-        let (flow_name, nodes, edges, status, file_path, flow_definition) =
+        let (flow_name, nodes, edges, status, file_path, flow_definition, lib_refs) =
             if let Some(flow_path_str) = matches.get_one::<String>("flow-file") {
                 let flow_path = PathBuf::from(flow_path_str);
-                match load_flow(&flow_path) {
-                    Ok((name, node_list, edge_list, flow_def)) => {
-                        let nc = node_list.len();
-                        let ec = edge_list.len();
+                match flow_io::load_flow(&flow_path) {
+                    Ok(loaded) => {
+                        let nc = loaded.nodes.len();
+                        let ec = loaded.edges.len();
                         (
-                            name,
-                            node_list,
-                            edge_list,
+                            loaded.name,
+                            loaded.nodes,
+                            loaded.edges,
                             format!("Ready - {nc} nodes, {ec} connections"),
                             Some(flow_path),
-                            flow_def,
+                            loaded.flow_def,
+                            loaded.lib_references,
                         )
                     }
                     Err(e) => (
@@ -347,6 +368,7 @@ impl FlowEdit {
                         format!("Error loading flow: {e}"),
                         None,
                         FlowDefinition::default(),
+                        BTreeSet::new(),
                     ),
                 }
             } else {
@@ -357,14 +379,22 @@ impl FlowEdit {
                     String::from("Ready"),
                     None,
                     FlowDefinition::default(),
+                    BTreeSet::new(),
                 )
             };
 
         let has_nodes = !nodes.is_empty();
-        let library_tree = LibraryTree::scan();
+
+        // Load full library catalogs from manifests and parse all definitions
+        let (library_cache, lib_definitions, context_definitions) =
+            library_mgmt::load_library_catalogs(&lib_refs);
+        let library_tree =
+            LibraryTree::from_cache(&library_cache, &lib_definitions, &context_definitions);
 
         // Open the root window via daemon API
-        let saved_prefs = file_path.as_ref().and_then(|p| load_editor_prefs(p));
+        let saved_prefs = file_path
+            .as_ref()
+            .and_then(|p| flow_io::load_editor_prefs(p));
         let saved_size = saved_prefs
             .as_ref()
             .map(|p| iced::Size::new(p.width, p.height))
@@ -388,7 +418,7 @@ impl FlowEdit {
             .map(|p| FlowHierarchy::build(p))
             .unwrap_or_else(FlowHierarchy::empty);
 
-        let (fi, fo) = extract_ports(&flow_definition.inputs, &flow_definition.outputs);
+        let (fi, fo) = flow_io::extract_ports(&flow_definition.inputs, &flow_definition.outputs);
         let win_state = WindowState {
             kind: WindowKind::FlowEditor,
             flow_name,
@@ -420,6 +450,7 @@ impl FlowEdit {
         let mut windows = HashMap::new();
         windows.insert(root_id, win_state);
 
+        let lib_paths = flow_io::resolve_lib_paths();
         let app = FlowEdit {
             windows,
             root_window: Some(root_id),
@@ -427,7 +458,10 @@ impl FlowEdit {
             library_tree,
             root_flow_path,
             show_lib_paths: false,
-            lib_paths: library_panel::get_lib_paths(),
+            lib_paths,
+            library_cache,
+            lib_definitions,
+            context_definitions,
         };
 
         (app, open_task.discard())
@@ -491,7 +525,7 @@ impl FlowEdit {
                     CanvasMessage::MoveCompleted(idx, old_x, old_y, new_x, new_y) => {
                         info!("MoveCompleted: idx={idx}, ({old_x},{old_y}) -> ({new_x},{new_y})");
                         if (old_x - new_x).abs() > 0.5 || (old_y - new_y).abs() > 0.5 {
-                            record_edit(
+                            undo_redo::record_edit(
                                 win,
                                 EditAction::MoveNode {
                                     index: idx,
@@ -515,7 +549,7 @@ impl FlowEdit {
                         new_w,
                         new_h,
                     ) => {
-                        record_edit(
+                        undo_redo::record_edit(
                             win,
                             EditAction::ResizeNode {
                                 index: idx,
@@ -546,7 +580,7 @@ impl FlowEdit {
                                 .collect();
                             win.nodes.remove(idx);
                             win.edges.retain(|e| !e.references_node(&alias));
-                            record_edit(
+                            undo_redo::record_edit(
                                 win,
                                 EditAction::DeleteNode {
                                     index: idx,
@@ -577,7 +611,10 @@ impl FlowEdit {
                             to_node.clone(),
                             to_port.clone(),
                         );
-                        record_edit(win, EditAction::CreateConnection { edge: edge.clone() });
+                        undo_redo::record_edit(
+                            win,
+                            EditAction::CreateConnection { edge: edge.clone() },
+                        );
                         win.edges.push(edge);
                         win.canvas_state.request_redraw();
                         let nc = win.nodes.len();
@@ -594,8 +631,8 @@ impl FlowEdit {
                             if let Some(edge) = win.edges.get(i) {
                                 win.status = format!(
                                     "Connection: {} -> {}",
-                                    format_endpoint(&edge.from_node, &edge.from_port),
-                                    format_endpoint(&edge.to_node, &edge.to_port),
+                                    flow_io::format_endpoint(&edge.from_node, &edge.from_port),
+                                    flow_io::format_endpoint(&edge.to_node, &edge.to_port),
                                 );
                             }
                         } else {
@@ -605,7 +642,10 @@ impl FlowEdit {
                     CanvasMessage::ConnectionDeleted(idx) => {
                         if idx < win.edges.len() {
                             let edge = win.edges.remove(idx);
-                            record_edit(win, EditAction::DeleteConnection { index: idx, edge });
+                            undo_redo::record_edit(
+                                win,
+                                EditAction::DeleteConnection { index: idx, edge },
+                            );
                             win.selected_connection = None;
                             win.canvas_state.request_redraw();
                             let nc = win.nodes.len();
@@ -700,19 +740,22 @@ impl FlowEdit {
                         }
                     }
                     // Open the flow or function
-                    match load_flow(&path) {
-                        Ok((name, nodes, edges, flow_def)) => {
-                            let (fi, fo) = extract_ports(&flow_def.inputs, &flow_def.outputs);
+                    match flow_io::load_flow(&path) {
+                        Ok(loaded) => {
+                            let (fi, fo) = flow_io::extract_ports(
+                                &loaded.flow_def.inputs,
+                                &loaded.flow_def.outputs,
+                            );
                             let (new_id, open_task) =
                                 window::open(self.child_window_settings(1024.0, 768.0));
-                            let has_nodes = !nodes.is_empty();
-                            let nc = nodes.len();
-                            let ec = edges.len();
+                            let has_nodes = !loaded.nodes.is_empty();
+                            let nc = loaded.nodes.len();
+                            let ec = loaded.edges.len();
                             let child = WindowState {
                                 kind: WindowKind::FlowEditor,
-                                flow_name: name,
-                                nodes,
-                                edges,
+                                flow_name: loaded.name,
+                                nodes: loaded.nodes,
+                                edges: loaded.edges,
                                 canvas_state: FlowCanvasState::default(),
                                 status: format!("Ready - {nc} nodes, {ec} connections"),
                                 selected_node: None,
@@ -723,7 +766,7 @@ impl FlowEdit {
                                 unsaved_edits: 0,
                                 compiled_manifest: None,
                                 file_path: Some(path),
-                                flow_definition: flow_def,
+                                flow_definition: loaded.flow_def,
                                 tooltip: None,
                                 initializer_editor: None,
                                 is_root: false,
@@ -751,6 +794,7 @@ impl FlowEdit {
                                                 hier_win_id,
                                                 &path,
                                                 func,
+                                                &path.to_string_lossy(),
                                             );
                                         }
                                     }
@@ -763,11 +807,126 @@ impl FlowEdit {
             Message::Library(win_id, ref lib_msg) => match self.library_tree.update(lib_msg) {
                 LibraryAction::Add(source, func_name) => {
                     if let Some(win) = self.windows.get_mut(&win_id) {
-                        add_library_function(win, &source, &func_name);
+                        library_mgmt::add_library_function(win, &source, &func_name);
                     }
                 }
                 LibraryAction::View(source, _name) => {
                     return self.open_library_function(&source);
+                }
+                LibraryAction::AddLibrary => {
+                    let dialog = rfd::FileDialog::new();
+                    if let Some(dir) = dialog.pick_folder() {
+                        let lib_name = dir
+                            .file_name()
+                            .and_then(|n| n.to_str())
+                            .unwrap_or("unknown")
+                            .to_string();
+
+                        // Construct lib:// URL from directory name
+                        if let Ok(lib_url) = Url::parse(&format!("lib://{}", lib_name)) {
+                            // Add parent directory to provider's search path
+                            if let Some(parent) = dir.parent() {
+                                if let Some(parent_str) = parent.to_str() {
+                                    let mut lib_search_path =
+                                        Simpath::new_with_separator("FLOW_LIB_PATH", ',');
+                                    lib_search_path.add_directory(parent_str);
+
+                                    // Add default lib path if it exists
+                                    if let Ok(home) = std::env::var("HOME") {
+                                        let default_lib =
+                                            PathBuf::from(&home).join(".flow").join("lib");
+                                        if default_lib.exists() {
+                                            if let Some(path_str) = default_lib.to_str() {
+                                                lib_search_path.add_directory(path_str);
+                                            }
+                                        }
+                                    }
+
+                                    let context_root = std::env::var("HOME")
+                                        .map(|h| {
+                                            PathBuf::from(h)
+                                                .join(".flow")
+                                                .join("runner")
+                                                .join("flowrcli")
+                                        })
+                                        .unwrap_or_else(|_| PathBuf::from("/"));
+                                    let provider = MetaProvider::new(
+                                        lib_search_path.clone(),
+                                        context_root.clone(),
+                                    );
+                                    let arc_provider: Arc<dyn Provider> = Arc::new(provider);
+
+                                    // Load the library manifest
+                                    match LibraryManifest::load(&arc_provider, &lib_url) {
+                                        Ok((manifest, _manifest_url)) => {
+                                            info!(
+                                                "Loaded library manifest for '{}' with {} locators",
+                                                lib_url,
+                                                manifest.locators.len()
+                                            );
+
+                                            // Parse all definitions in the manifest
+                                            for locator_url in manifest.locators.keys() {
+                                                let meta_provider = MetaProvider::new(
+                                                    lib_search_path.clone(),
+                                                    context_root.clone(),
+                                                );
+                                                match flowrclib::compiler::parser::parse(
+                                                    locator_url,
+                                                    &meta_provider,
+                                                ) {
+                                                    Ok(process) => {
+                                                        self.lib_definitions
+                                                            .insert(locator_url.clone(), process);
+                                                    }
+                                                    Err(e) => {
+                                                        warn!(
+                                                            "Could not parse library definition '{}': {}",
+                                                            locator_url, e
+                                                        );
+                                                    }
+                                                }
+                                            }
+
+                                            // Add to library cache
+                                            self.library_cache.insert(lib_url.clone(), manifest);
+
+                                            // Persist the parent directory so that
+                                            // subsequent MetaProvider rebuilds can
+                                            // resolve this library.
+                                            if !self.lib_paths.contains(&parent_str.to_string()) {
+                                                self.lib_paths.push(parent_str.to_string());
+                                                self.update_lib_paths();
+                                            }
+
+                                            // Rebuild the library tree
+                                            self.library_tree = LibraryTree::from_cache(
+                                                &self.library_cache,
+                                                &self.lib_definitions,
+                                                &self.context_definitions,
+                                            );
+
+                                            if let Some(win) = self.windows.get_mut(&win_id) {
+                                                win.status = format!("Added library: {}", lib_name);
+                                            }
+                                        }
+                                        Err(e) => {
+                                            warn!(
+                                                "Could not load library manifest for '{}': {}",
+                                                lib_url, e
+                                            );
+                                            if let Some(win) = self.windows.get_mut(&win_id) {
+                                                win.status = format!(
+                                                    "Failed to load library '{}': {}",
+                                                    lib_name, e
+                                                );
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
                 }
                 LibraryAction::None => {}
             },
@@ -802,14 +961,14 @@ impl FlowEdit {
             Message::Undo => {
                 let target = self.focused_window.or(self.root_window);
                 if let Some(win) = target.and_then(|id| self.windows.get_mut(&id)) {
-                    apply_undo(win);
+                    undo_redo::apply_undo(win);
                     win.unsaved_edits = (win.unsaved_edits - 1).max(0);
                 }
             }
             Message::Redo => {
                 let target = self.focused_window.or(self.root_window);
                 if let Some(win) = target.and_then(|id| self.windows.get_mut(&id)) {
-                    apply_redo(win);
+                    undo_redo::apply_redo(win);
                     win.unsaved_edits += 1;
                 }
             }
@@ -817,41 +976,62 @@ impl FlowEdit {
                 let target = self.focused_window.or(self.root_window);
                 if let Some(win) = target.and_then(|id| self.windows.get_mut(&id)) {
                     if let Some(path) = win.file_path.clone() {
-                        perform_save(win, &path);
+                        flow_io::perform_save(win, &path);
                     } else {
-                        perform_save_as(win);
+                        flow_io::perform_save_as(win);
                     }
                 }
             }
             Message::SaveAs => {
                 let target = self.focused_window.or(self.root_window);
                 if let Some(win) = target.and_then(|id| self.windows.get_mut(&id)) {
-                    perform_save_as(win);
+                    flow_io::perform_save_as(win);
                 }
             }
             Message::Open => {
                 if let Some(root_id) = self.root_window {
                     if let Some(win) = self.windows.get_mut(&root_id) {
-                        perform_open(win);
-                        self.root_flow_path = win.file_path.clone();
-                        win.flow_hierarchy = win
-                            .file_path
-                            .as_ref()
-                            .map(|p| FlowHierarchy::build(p))
-                            .unwrap_or_else(FlowHierarchy::empty);
+                        if let Some((lib_refs, _ctx_refs)) = flow_io::perform_open(win) {
+                            self.root_flow_path = win.file_path.clone();
+                            win.flow_hierarchy = win
+                                .file_path
+                                .as_ref()
+                                .map(|p| FlowHierarchy::build(p))
+                                .unwrap_or_else(FlowHierarchy::empty);
+
+                            // Rebuild library cache with new flow's references
+                            let (lc, ld, cd) = library_mgmt::load_library_catalogs(&lib_refs);
+                            self.library_cache = lc;
+                            self.lib_definitions = ld;
+                            self.context_definitions = cd;
+                            self.library_tree = LibraryTree::from_cache(
+                                &self.library_cache,
+                                &self.lib_definitions,
+                                &self.context_definitions,
+                            );
+                        }
                     }
                 }
             }
             Message::New => {
                 if let Some(win) = self.root_window.and_then(|id| self.windows.get_mut(&id)) {
-                    perform_new(win);
+                    flow_io::perform_new(win);
+                    // Clear the library cache for a new (empty) flow
+                    self.library_cache.clear();
+                    self.lib_definitions.clear();
+                    self.context_definitions.clear();
+                    self.library_tree = LibraryTree::from_cache(
+                        &self.library_cache,
+                        &self.lib_definitions,
+                        &self.context_definitions,
+                    );
                 }
             }
             Message::Compile => {
                 let target = self.focused_window.or(self.root_window);
                 if let Some(win) = target.and_then(|id| self.windows.get_mut(&id)) {
                     if !win.nodes.is_empty() {
-                        match perform_compile(win) {
+                        match flow_io::perform_compile(win) {
                             Ok(path) => {
                                 win.compiled_manifest = Some(path.clone());
                                 win.status = format!("Compiled: {}", path.display());
@@ -927,7 +1107,7 @@ impl FlowEdit {
             Message::InitializerApply(win_id) => {
                 if let Some(win) = self.windows.get_mut(&win_id) {
                     if let Some(editor) = win.initializer_editor.take() {
-                        apply_initializer_edit(win, &editor);
+                        initializer::apply_initializer_edit(win, &editor);
                     }
                 }
             }
@@ -981,6 +1161,36 @@ impl FlowEdit {
                         viewer.name = new_name;
                     }
                     win.unsaved_edits += 1;
+                }
+            }
+            Message::FunctionDescriptionChanged(win_id, new_desc) => {
+                // Extract parent info before mutating
+                let parent_info = self.windows.get(&win_id).and_then(|win| {
+                    if let WindowKind::FunctionViewer(ref viewer) = win.kind {
+                        viewer
+                            .parent_window
+                            .map(|pid| (pid, viewer.node_source.clone()))
+                    } else {
+                        None
+                    }
+                });
+                if let Some(win) = self.windows.get_mut(&win_id) {
+                    if let WindowKind::FunctionViewer(ref mut viewer) = win.kind {
+                        viewer.description = new_desc.clone();
+                    }
+                    win.unsaved_edits += 1;
+                }
+                // Propagate to the parent window's NodeLayout for ALL nodes
+                // with the same source (multiple nodes may reference it)
+                if let Some((parent_id, node_source)) = parent_info {
+                    if let Some(parent_win) = self.windows.get_mut(&parent_id) {
+                        for node in &mut parent_win.nodes {
+                            if node.source == node_source {
+                                node.description = new_desc.clone();
+                            }
+                        }
+                        parent_win.canvas_state.request_redraw();
+                    }
                 }
             }
             Message::FunctionBrowseSource(win_id) => {
@@ -1071,7 +1281,7 @@ impl FlowEdit {
             Message::FunctionSave(win_id) => {
                 if let Some(win) = self.windows.get_mut(&win_id) {
                     if let WindowKind::FunctionViewer(ref v) = win.kind {
-                        match save_function_definition(v) {
+                        match flow_io::save_function_definition(v) {
                             Ok(()) => {
                                 win.status = format!("Saved: {}", v.toml_path.display());
                                 win.unsaved_edits = 0;
@@ -1221,7 +1431,7 @@ impl FlowEdit {
         };
 
         if let WindowKind::FunctionViewer(ref viewer) = win.kind {
-            return self.view_function(window_id, viewer, &win.status);
+            return self.view_function(window_id, viewer, &win.status, win.unsaved_edits);
         }
 
         let canvas = win
@@ -1798,122 +2008,134 @@ impl FlowEdit {
         window_id: window::Id,
         viewer: &'a FunctionViewer,
         status: &'a str,
+        unsaved_edits: i32,
     ) -> Element<'a, Message> {
         let content: Element<'_, Message> = match viewer.active_tab {
             0 => {
                 let input_color = Color::from_rgb(0.4, 0.8, 1.0);
                 let output_color = Color::from_rgb(1.0, 0.6, 0.3);
 
-                // Input ports inside box: semicircle ◗ (flat left), name, type, delete
+                // Input ports inside box: semicircle, name, type, (delete if editable)
+                let editable = !viewer.read_only;
                 let mut input_col = Column::new().spacing(6);
                 for (i, port) in viewer.inputs.iter().enumerate() {
                     let dtype = port.datatypes.first().cloned().unwrap_or_default();
-                    let row = Row::new()
+                    let mut name_widget =
+                        text_input("name", &port.name).size(13).padding(3).width(90);
+                    let mut type_widget = text_input("type", &dtype).size(11).padding(3).width(75);
+                    if editable {
+                        name_widget = name_widget
+                            .on_input(move |s| Message::FunctionInputNameChanged(window_id, i, s));
+                        type_widget = type_widget
+                            .on_input(move |s| Message::FunctionInputTypeChanged(window_id, i, s));
+                    }
+                    let mut row = Row::new()
                         .spacing(4)
                         .align_y(iced::Alignment::Center)
                         .push(Text::new("\u{25D7}").size(24).color(input_color))
-                        .push(
-                            text_input("name", &port.name)
-                                .on_input(move |s| {
-                                    Message::FunctionInputNameChanged(window_id, i, s)
-                                })
-                                .size(13)
-                                .padding(3)
-                                .width(90),
-                        )
-                        .push(
-                            text_input("type", &dtype)
-                                .on_input(move |s| {
-                                    Message::FunctionInputTypeChanged(window_id, i, s)
-                                })
-                                .size(11)
-                                .padding(3)
-                                .width(75),
-                        )
-                        .push(
+                        .push(name_widget)
+                        .push(type_widget);
+                    if editable {
+                        row = row.push(
                             button(Text::new("\u{2715}").size(10).center())
                                 .on_press(Message::FunctionDeleteInput(window_id, i))
                                 .style(button::danger)
                                 .padding([2, 5]),
                         );
+                    }
                     input_col = input_col.push(row);
                 }
-                input_col = input_col.push(
-                    button(Text::new("+ Input").size(11).center())
-                        .on_press(Message::FunctionAddInput(window_id))
-                        .style(button::secondary)
-                        .padding([2, 8]),
-                );
+                if editable {
+                    input_col = input_col.push(
+                        button(Text::new("+ Input").size(11).center())
+                            .on_press(Message::FunctionAddInput(window_id))
+                            .style(button::secondary)
+                            .padding([2, 8]),
+                    );
+                }
 
-                // Output ports inside box: delete, type, name, semicircle ◖ (flat right)
+                // Output ports inside box: (delete if editable), type, name, semicircle
                 let mut output_col = Column::new().spacing(6).align_x(iced::Alignment::End);
                 for (i, port) in viewer.outputs.iter().enumerate() {
                     let dtype = port.datatypes.first().cloned().unwrap_or_default();
-                    let row = Row::new()
-                        .spacing(4)
-                        .align_y(iced::Alignment::Center)
-                        .push(
+                    let mut type_widget = text_input("type", &dtype).size(11).padding(3).width(75);
+                    let mut name_widget =
+                        text_input("name", &port.name).size(13).padding(3).width(90);
+                    if editable {
+                        type_widget = type_widget
+                            .on_input(move |s| Message::FunctionOutputTypeChanged(window_id, i, s));
+                        name_widget = name_widget
+                            .on_input(move |s| Message::FunctionOutputNameChanged(window_id, i, s));
+                    }
+                    let mut row = Row::new().spacing(4).align_y(iced::Alignment::Center);
+                    if editable {
+                        row = row.push(
                             button(Text::new("\u{2715}").size(10).center())
                                 .on_press(Message::FunctionDeleteOutput(window_id, i))
                                 .style(button::danger)
                                 .padding([2, 5]),
-                        )
-                        .push(
-                            text_input("type", &dtype)
-                                .on_input(move |s| {
-                                    Message::FunctionOutputTypeChanged(window_id, i, s)
-                                })
-                                .size(11)
-                                .padding(3)
-                                .width(75),
-                        )
-                        .push(
-                            text_input("name", &port.name)
-                                .on_input(move |s| {
-                                    Message::FunctionOutputNameChanged(window_id, i, s)
-                                })
-                                .size(13)
-                                .padding(3)
-                                .width(90),
-                        )
+                        );
+                    }
+                    row = row
+                        .push(type_widget)
+                        .push(name_widget)
                         .push(Text::new("\u{25D6}").size(24).color(output_color));
                     output_col = output_col.push(row);
                 }
-                output_col = output_col.push(
-                    button(Text::new("+ Output").size(11).center())
-                        .on_press(Message::FunctionAddOutput(window_id))
-                        .style(button::secondary)
-                        .padding([2, 8]),
-                );
+                if editable {
+                    output_col = output_col.push(
+                        button(Text::new("+ Output").size(11).center())
+                            .on_press(Message::FunctionAddOutput(window_id))
+                            .style(button::secondary)
+                            .padding([2, 8]),
+                    );
+                }
 
-                let name_input = container(
-                    text_input("Function name", &viewer.name)
-                        .on_input(move |s| Message::FunctionNameChanged(window_id, s))
-                        .size(16)
-                        .padding(6)
-                        .width(250),
-                )
-                .center_x(Fill);
+                let mut name_widget = text_input("Function name", &viewer.name)
+                    .size(16)
+                    .padding(6)
+                    .width(250);
+                if editable {
+                    name_widget =
+                        name_widget.on_input(move |s| Message::FunctionNameChanged(window_id, s));
+                }
+                let name_input = container(name_widget).center_x(Fill);
 
-                let mut source_row = Row::new()
-                    .spacing(6)
-                    .align_y(iced::Alignment::Center)
-                    .push(
-                        button(
-                            Text::new(&viewer.source_file)
-                                .size(13)
-                                .color(Color::from_rgb(0.6, 0.8, 1.0)),
-                        )
-                        .on_press(Message::FunctionTabSelected(window_id, 1))
-                        .style(button::text)
-                        .padding(0),
+                let mut desc_widget = text_input("Description", &viewer.description)
+                    .size(13)
+                    .padding(6)
+                    .width(480);
+                if editable {
+                    let ext = std::path::Path::new(&viewer.source_file)
+                        .extension()
+                        .unwrap_or_default();
+                    let is_provided =
+                        ext.eq_ignore_ascii_case("rs") || ext.eq_ignore_ascii_case("wasm");
+                    if is_provided {
+                        desc_widget = desc_widget
+                            .on_input(move |s| Message::FunctionDescriptionChanged(window_id, s));
+                    }
+                }
+                let desc_input = container(desc_widget).center_x(Fill);
+
+                let mut source_row = Row::new().spacing(6).align_y(iced::Alignment::Center).push(
+                    button(
+                        Text::new(&viewer.source_file)
+                            .size(13)
+                            .color(Color::from_rgb(0.6, 0.8, 1.0)),
                     )
-                    .push(
+                    .on_press(Message::FunctionTabSelected(window_id, 1))
+                    .style(button::text)
+                    .padding(0),
+                );
+                if editable {
+                    source_row = source_row.push(
                         button(Text::new("...").size(12).center())
                             .on_press(Message::FunctionBrowseSource(window_id))
                             .style(button::secondary)
                             .padding([3, 8]),
                     );
+                }
                 if viewer.docs_content.is_some() {
                     source_row = source_row.push(
                         button(Text::new("Docs").size(12).center())
@@ -1933,6 +2155,7 @@ impl FlowEdit {
                             right: 0.0,
                         })
                         .push(name_input)
+                        .push(desc_input)
                         .push(
                             Row::new()
                                 .push(input_col)
@@ -1999,10 +2222,16 @@ impl FlowEdit {
             }
         };
 
-        let save_btn = button(Text::new("\u{1F4BE} Save").size(14).center())
-            .on_press(Message::FunctionSave(window_id))
-            .style(button::primary)
+        let mut save_btn = button(Text::new("\u{1F4BE} Save").size(14).center())
+            .style(if unsaved_edits > 0 && !viewer.read_only {
+                button::primary
+            } else {
+                button::secondary
+            })
             .padding([6, 14]);
+        if unsaved_edits > 0 && !viewer.read_only {
+            save_btn = save_btn.on_press(Message::FunctionSave(window_id));
+        }
 
         let status_bar = Row::new()
             .spacing(8)
@@ -2058,7 +2287,7 @@ impl FlowEdit {
     fn open_library_function(&mut self, source: &str) -> Task<Message> {
         use flowcore::provider::Provider;
 
-        let provider = build_meta_provider();
+        let provider = flow_io::build_meta_provider();
         let source_url = match Url::parse(source) {
             Ok(u) => u,
             Err(_) => return Task::none(),
@@ -2099,21 +2328,22 @@ impl FlowEdit {
                     Some(id) => id,
                     None => return Task::none(),
                 };
-                self.open_function_viewer(parent, &path, func)
+                self.open_function_viewer(parent, &path, func, &path.to_string_lossy())
             }
-            Ok(Process::FlowProcess(_)) => match load_flow(&path) {
-                Ok((name, nodes, edges, flow_def)) => {
-                    let (fi, fo) = extract_ports(&flow_def.inputs, &flow_def.outputs);
-                    let has_nodes = !nodes.is_empty();
-                    let nc = nodes.len();
-                    let ec = edges.len();
+            Ok(Process::FlowProcess(_)) => match flow_io::load_flow(&path) {
+                Ok(loaded) => {
+                    let (fi, fo) =
+                        flow_io::extract_ports(&loaded.flow_def.inputs, &loaded.flow_def.outputs);
+                    let has_nodes = !loaded.nodes.is_empty();
+                    let nc = loaded.nodes.len();
+                    let ec = loaded.edges.len();
                     let (new_id, open_task) =
                         window::open(self.child_window_settings(1024.0, 768.0));
                     let child = WindowState {
                         kind: WindowKind::FlowEditor,
-                        flow_name: name,
-                        nodes,
-                        edges,
+                        flow_name: loaded.name,
+                        nodes: loaded.nodes,
+                        edges: loaded.edges,
                         canvas_state: FlowCanvasState::default(),
                         status: format!("Library flow - {nc} nodes, {ec} connections"),
                         selected_node: None,
@@ -2124,7 +2354,7 @@ impl FlowEdit {
                         unsaved_edits: 0,
                         compiled_manifest: None,
                         file_path: Some(path),
-                        flow_definition: flow_def,
+                        flow_definition: loaded.flow_def,
                         tooltip: None,
                         initializer_editor: None,
                         is_root: false,
@@ -2148,7 +2378,23 @@ impl FlowEdit {
     fn update_lib_paths(&mut self) {
         let path_str = self.lib_paths.join(",");
         std::env::set_var("FLOW_LIB_PATH", &path_str);
-        self.library_tree = LibraryTree::scan();
+
+        // Reload library catalogs with the updated search paths.
+        // Gather lib_references from the root window's flow.
+        let lib_refs = self
+            .root_window
+            .and_then(|id| self.windows.get(&id))
+            .map(|win| win.flow_definition.lib_references.clone())
+            .unwrap_or_default();
+        let (lc, ld, cd) = library_mgmt::load_library_catalogs(&lib_refs);
+        self.library_cache = lc;
+        self.lib_definitions = ld;
+        self.context_definitions = cd;
+        self.library_tree = LibraryTree::from_cache(
+            &self.library_cache,
+            &self.lib_definitions,
+            &self.context_definitions,
+        );
     }
 
     fn build_hierarchy(&self) -> FlowHierarchy {
@@ -2182,7 +2428,7 @@ impl FlowEdit {
                 return Task::none();
             };
             let source = node.source.clone();
-            let path = resolve_node_source(win, &source);
+            let path = library_mgmt::resolve_node_source(win, &source);
             (source, path)
         };
 
@@ -2211,25 +2457,26 @@ impl FlowEdit {
                     if let Ok(Process::FunctionProcess(ref func)) =
                         deserializer.deserialize(&contents, Some(&url))
                     {
-                        return self.open_function_viewer(parent_win_id, &path, func);
+                        return self.open_function_viewer(parent_win_id, &path, func, &source);
                     }
                 }
             }
         }
 
         // Load the sub-flow and open it in a new window
-        match load_flow(&path) {
-            Ok((name, nodes, edges, flow_def)) => {
-                let has_nodes = !nodes.is_empty();
+        match flow_io::load_flow(&path) {
+            Ok(loaded) => {
+                let has_nodes = !loaded.nodes.is_empty();
                 let (new_id, open_task) = window::open(self.child_window_settings(1024.0, 768.0));
-                let nc = nodes.len();
-                let ec = edges.len();
-                let (fi, fo) = extract_ports(&flow_def.inputs, &flow_def.outputs);
+                let nc = loaded.nodes.len();
+                let ec = loaded.edges.len();
+                let (fi, fo) =
+                    flow_io::extract_ports(&loaded.flow_def.inputs, &loaded.flow_def.outputs);
                 let child = WindowState {
                     kind: WindowKind::FlowEditor,
-                    flow_name: name,
-                    nodes,
-                    edges,
+                    flow_name: loaded.name,
+                    nodes: loaded.nodes,
+                    edges: loaded.edges,
                     canvas_state: FlowCanvasState::default(),
                     status: format!("Ready - {nc} nodes, {ec} connections"),
                     selected_node: None,
@@ -2240,7 +2487,7 @@ impl FlowEdit {
                     unsaved_edits: 0,
                     compiled_manifest: None,
                     file_path: Some(path.clone()),
-                    flow_definition: flow_def,
+                    flow_definition: loaded.flow_def,
                     tooltip: None,
                     initializer_editor: None,
                     is_root: false,
@@ -2272,6 +2519,7 @@ impl FlowEdit {
         parent_win_id: window::Id,
         toml_path: &Path,
         func: &flowcore::model::function_definition::FunctionDefinition,
+        node_source: &str,
     ) -> Task<Message> {
         let dir = toml_path.parent().unwrap_or(Path::new("."));
         let func_name = &func.name;
@@ -2281,12 +2529,14 @@ impl FlowEdit {
             .unwrap_or_else(|_| String::from("// Source file not found"));
         let docs_content = std::fs::read_to_string(dir.join(format!("{func_name}.md"))).ok();
 
-        let (inputs, outputs) = extract_ports(&func.inputs, &func.outputs);
+        let (inputs, outputs) = flow_io::extract_ports(&func.inputs, &func.outputs);
 
         let (new_id, open_task) = window::open(self.child_window_settings(700.0, 500.0));
 
+        let read_only = node_source.starts_with("lib://") || node_source.starts_with("context://");
         let viewer = FunctionViewer {
             name: func_name.clone(),
+            description: func.description.clone(),
             source_file: func.source.clone(),
             inputs,
             outputs,
@@ -2294,6 +2544,9 @@ impl FlowEdit {
             docs_content,
             active_tab: 0,
             toml_path: toml_path.to_path_buf(),
+            parent_window: Some(parent_win_id),
+            node_source: node_source.to_string(),
+            read_only,
         };
 
         let child = WindowState {
@@ -2392,12 +2645,13 @@ impl FlowEdit {
 
         // Add a process reference in the parent flow
         if let Some(win) = self.windows.get_mut(&root_id) {
-            let alias = generate_unique_alias(&flow_name, &win.nodes);
-            let (x, y) = next_node_position(&win.nodes);
+            let alias = flow_io::generate_unique_alias(&flow_name, &win.nodes);
+            let (x, y) = flow_io::next_node_position(&win.nodes);
 
             let node = NodeLayout {
                 alias: alias.clone(),
                 source: source.clone(),
+                description: String::new(),
                 x,
                 y,
                 width: 180.0,
@@ -2501,12 +2755,13 @@ impl FlowEdit {
 
         // Add process reference in the parent flow
         if let Some(win) = self.windows.get_mut(&root_id) {
-            let alias = generate_unique_alias(&func_name, &win.nodes);
-            let (x, y) = next_node_position(&win.nodes);
+            let alias = flow_io::generate_unique_alias(&func_name, &win.nodes);
+            let (x, y) = flow_io::next_node_position(&win.nodes);
 
             let node = NodeLayout {
                 alias: alias.clone(),
                 source: source.clone(),
+                description: String::new(),
                 x,
                 y,
                 width: 180.0,
@@ -2535,13 +2790,17 @@ impl FlowEdit {
 
         let viewer = FunctionViewer {
             name: func_name.clone(),
-            source_file: rs_filename,
+            description: String::new(),
+            source_file: rs_filename.clone(),
             inputs: Vec::new(),
             outputs: Vec::new(),
             rs_content: String::from("// Save to generate skeleton source"),
             docs_content: None,
             active_tab: 0,
             toml_path: path.clone(),
+            parent_window: Some(root_id),
+            node_source: rs_filename,
+            read_only: false,
         };
 
         let child = WindowState {
@@ -2577,1075 +2836,6 @@ impl FlowEdit {
     }
 }
 
-/// Record an edit action in the history and increment the unsaved edit count.
-fn record_edit(win: &mut WindowState, action: EditAction) {
-    win.history.record(action);
-    win.unsaved_edits += 1;
-    win.compiled_manifest = None; // Invalidate compilation on any edit
-}
-
-/// Apply an undo action -- reverse the last edit.
-fn apply_undo(win: &mut WindowState) {
-    if let Some(action) = win.history.undo() {
-        match action {
-            EditAction::MoveNode {
-                index,
-                old_x,
-                old_y,
-                ..
-            } => {
-                if let Some(node) = win.nodes.get_mut(index) {
-                    node.x = old_x;
-                    node.y = old_y;
-                }
-                win.status = String::from("Undo: move");
-            }
-            EditAction::ResizeNode {
-                index,
-                old_x,
-                old_y,
-                old_w,
-                old_h,
-                ..
-            } => {
-                if let Some(node) = win.nodes.get_mut(index) {
-                    node.x = old_x;
-                    node.y = old_y;
-                    node.width = old_w;
-                    node.height = old_h;
-                }
-                win.status = String::from("Undo: resize");
-            }
-            EditAction::DeleteNode {
-                index,
-                node,
-                removed_edges,
-            } => {
-                win.nodes.insert(index, node);
-                win.edges.extend(removed_edges);
-                win.status = String::from("Undo: delete node");
-            }
-            EditAction::CreateConnection { edge } => {
-                win.edges.retain(|e| {
-                    e.from_node != edge.from_node
-                        || e.from_port != edge.from_port
-                        || e.to_node != edge.to_node
-                        || e.to_port != edge.to_port
-                });
-                win.status = String::from("Undo: create connection");
-            }
-            EditAction::DeleteConnection { index, edge } => {
-                win.edges.insert(index, edge);
-                win.status = String::from("Undo: delete connection");
-            }
-            EditAction::EditInitializer {
-                node_index,
-                ref port_name,
-                ref old_init,
-                ref old_display,
-                ..
-            } => {
-                apply_initializer_state(
-                    win,
-                    node_index,
-                    port_name,
-                    old_init.as_ref(),
-                    old_display.as_ref(),
-                );
-                win.status = String::from("Undo: initializer");
-            }
-        }
-        win.canvas_state.request_redraw();
-    }
-}
-
-/// Save the current flow to the given path.
-fn perform_save(win: &mut WindowState, path: &PathBuf) {
-    sync_flow_definition(win);
-    match save_flow_toml(&win.flow_definition, &win.edges, path) {
-        Ok(()) => {
-            win.unsaved_edits = 0;
-            win.file_path = Some(path.clone());
-            save_editor_prefs(path, win.last_size, win.last_position);
-            if let Some(name) = path.file_name().and_then(|n| n.to_str()) {
-                win.status = format!("Saved to {name}");
-            } else {
-                win.status = String::from("Saved");
-            }
-        }
-        Err(e) => {
-            win.status = format!("Save failed: {e}");
-        }
-    }
-}
-
-/// Prompt the user with a save dialog and save to the chosen path.
-fn perform_save_as(win: &mut WindowState) {
-    let dialog = rfd::FileDialog::new()
-        .add_filter("Flow", &["toml"])
-        .set_file_name(format!("{}.toml", win.flow_name));
-    if let Some(path) = dialog.save_file() {
-        perform_save(win, &path);
-    }
-}
-
-/// Prompt the user with an open dialog and load the selected flow file.
-fn perform_open(win: &mut WindowState) {
-    let dialog = rfd::FileDialog::new().add_filter("Flow", &["toml"]);
-    if let Some(path) = dialog.pick_file() {
-        match load_flow(&path) {
-            Ok((name, node_list, edge_list, flow_def)) => {
-                let nc = node_list.len();
-                let ec = edge_list.len();
-                let (fi, fo) = extract_ports(&flow_def.inputs, &flow_def.outputs);
-                win.flow_name = name;
-                win.nodes = node_list;
-                win.edges = edge_list;
-                win.flow_definition = flow_def;
-                win.file_path = Some(path);
-                win.flow_inputs = fi;
-                win.flow_outputs = fo;
-                win.selected_node = None;
-                win.selected_connection = None;
-                win.history = EditHistory::default();
-                win.unsaved_edits = 0;
-                win.auto_fit_pending = true;
-                win.auto_fit_enabled = true;
-                win.canvas_state = FlowCanvasState::default();
-                win.status = format!("Loaded - {nc} nodes, {ec} connections");
-            }
-            Err(e) => {
-                win.status = format!("Open failed: {e}");
-            }
-        }
-    }
-}
-
-/// Clear the canvas and reset to an empty flow state.
-fn perform_new(win: &mut WindowState) {
-    win.flow_name = String::from("(new flow)");
-    win.nodes = Vec::new();
-    win.edges = Vec::new();
-    win.flow_definition = FlowDefinition::default();
-    win.file_path = None;
-    win.flow_inputs = Vec::new();
-    win.flow_outputs = Vec::new();
-    win.selected_node = None;
-    win.selected_connection = None;
-    win.history = EditHistory::default();
-    win.unsaved_edits = 0;
-    win.auto_fit_pending = false;
-    win.auto_fit_enabled = true;
-    win.canvas_state = FlowCanvasState::default();
-    win.status = String::from("New flow");
-}
-
-/// Compile the current flow to a manifest.
-///
-/// Writes a temporary copy of the current editor state for the compiler
-/// to parse -- the user's flow definition file is never modified.
-///
-/// Returns the path to the generated manifest on success, or a human-readable
-/// error message on failure.
-fn perform_compile(win: &mut WindowState) -> Result<PathBuf, String> {
-    // New flows must be saved first so the compiler has a real file path
-    if win.file_path.is_none() {
-        perform_save_as(win);
-    }
-    let Some(flow_path) = win.file_path.clone() else {
-        return Err("Flow must be saved before compiling".to_string());
-    };
-
-    // Save any unsaved edits so the file on disk matches the editor state
-    if win.unsaved_edits > 0 {
-        perform_save(win, &flow_path);
-    }
-
-    let flow_path = &flow_path;
-    let abs_path = if flow_path.is_absolute() {
-        flow_path.clone()
-    } else {
-        std::env::current_dir()
-            .map_err(|e| format!("Could not get current directory: {e}"))?
-            .join(flow_path)
-    };
-
-    let provider = build_meta_provider();
-
-    let url = Url::from_file_path(&abs_path)
-        .map_err(|()| format!("Invalid file path: {}", abs_path.display()))?;
-    let process = flowrclib::compiler::parser::parse(&url, &provider)
-        .map_err(|e| format!("Parse error: {e}"))?;
-    let flow = match process {
-        Process::FlowProcess(f) => f,
-        Process::FunctionProcess(_) => return Err("Not a flow definition".to_string()),
-    };
-
-    let output_dir = abs_path.parent().unwrap_or(Path::new(".")).to_path_buf();
-    let mut source_urls = BTreeMap::<String, Url>::new();
-    let tables =
-        flowrclib::compiler::compile::compile(&flow, &output_dir, false, false, &mut source_urls)
-            .map_err(|e| e.to_string())?;
-
-    let manifest_path = flowrclib::generator::generate::write_flow_manifest(
-        &flow,
-        false,
-        &output_dir,
-        &tables,
-        source_urls,
-    )
-    .map_err(|e| format!("Manifest error: {e}"))?;
-
-    Ok(manifest_path)
-}
-
-/// Add a function from the library panel as a new node on the canvas.
-///
-/// Creates a `NodeLayout` at a default position and a `ProcessReference`
-/// in the flow definition, and records the action in the edit history.
-fn add_library_function(win: &mut WindowState, source: &str, func_name: &str) {
-    // Generate a unique alias: if the name already exists, append a number
-    let alias = generate_unique_alias(func_name, &win.nodes);
-
-    // Place the new node at a default position offset from existing nodes
-    let (x, y) = next_node_position(&win.nodes);
-
-    // Resolve port info from the function definition
-    let (inputs, outputs) = resolve_single_function_ports(source, None);
-
-    let node = NodeLayout {
-        alias: alias.clone(),
-        source: source.to_string(),
-        x,
-        y,
-        width: 180.0,
-        height: 120.0,
-        inputs,
-        outputs,
-        initializers: HashMap::new(),
-    };
-
-    let index = win.nodes.len();
-    win.nodes.push(node.clone());
-
-    // Also add to the flow definition
-    let pref = ProcessReference {
-        alias: alias.clone(),
-        source: source.to_string(),
-        initializations: std::collections::BTreeMap::new(),
-        x: Some(x),
-        y: Some(y),
-        width: Some(180.0),
-        height: Some(120.0),
-    };
-    win.flow_definition.process_refs.push(pref);
-
-    record_edit(
-        win,
-        EditAction::DeleteNode {
-            index,
-            node,
-            removed_edges: Vec::new(),
-        },
-    );
-    // Note: We record a DeleteNode so that *undo* removes the added node.
-    // This is intentional: undoing an "add" means deleting what was added.
-
-    win.selected_node = Some(index);
-    win.canvas_state.request_redraw();
-    // Trigger auto-fit if enabled so the new node is visible
-    if win.auto_fit_enabled {
-        win.auto_fit_pending = true;
-    }
-    let nc = win.nodes.len();
-    win.status = format!("Added {alias} from library - {nc} nodes");
-}
-
-/// Resolve a node's source path relative to the current flow file.
-fn resolve_node_source(win: &WindowState, source: &str) -> Option<PathBuf> {
-    let base_dir = win.file_path.as_ref()?.parent()?;
-    let canonicalize = |p: PathBuf| std::fs::canonicalize(&p).unwrap_or(p);
-    let candidate = base_dir.join(source);
-    if candidate.exists() {
-        return Some(canonicalize(candidate));
-    }
-    let with_ext = base_dir.join(format!("{source}.toml"));
-    if with_ext.exists() {
-        return Some(canonicalize(with_ext));
-    }
-    let dir_default = base_dir.join(source).join("default.toml");
-    if dir_default.exists() {
-        return Some(canonicalize(dir_default));
-    }
-    None
-}
-
-/// Apply an initializer edit to the flow definition and update the node display.
-fn apply_initializer_edit(win: &mut WindowState, editor: &InitializerEditor) {
-    let alias = win
-        .nodes
-        .get(editor.node_index)
-        .map(|n| n.alias.clone())
-        .unwrap_or_default();
-
-    // Capture old state for undo
-    let old_init = win
-        .flow_definition
-        .process_refs
-        .iter()
-        .find(|pr| {
-            let pr_alias = if pr.alias.is_empty() {
-                derive_short_name(&pr.source)
-            } else {
-                pr.alias.to_string()
-            };
-            pr_alias == alias
-        })
-        .and_then(|pr| pr.initializations.get(&editor.port_name).cloned());
-    let old_display = win
-        .nodes
-        .get(editor.node_index)
-        .and_then(|n| n.initializers.get(&editor.port_name).cloned());
-
-    // Compute new initializer and display
-    let (new_init, new_display) = match editor.init_type.as_str() {
-        "none" => (None, None),
-        "once" | "always" => {
-            let value = serde_json::from_str(&editor.value_text)
-                .unwrap_or_else(|_| serde_json::Value::String(editor.value_text.clone()));
-            let init = if editor.init_type == "once" {
-                InputInitializer::Once(value)
-            } else {
-                InputInitializer::Always(value)
-            };
-            let display = format!("{}: {}", editor.init_type, editor.value_text);
-            (Some(init), Some(display))
-        }
-        _ => return,
-    };
-
-    // Apply to model
-    if let Some(pref) = win.flow_definition.process_refs.iter_mut().find(|pr| {
-        let pr_alias = if pr.alias.is_empty() {
-            derive_short_name(&pr.source)
-        } else {
-            pr.alias.to_string()
-        };
-        pr_alias == alias
-    }) {
-        match &new_init {
-            Some(init) => {
-                pref.initializations
-                    .insert(editor.port_name.clone(), init.clone());
-            }
-            None => {
-                pref.initializations.remove(&editor.port_name);
-            }
-        }
-    }
-
-    // Apply to display
-    if let Some(node) = win.nodes.get_mut(editor.node_index) {
-        match &new_display {
-            Some(display) => {
-                node.initializers
-                    .insert(editor.port_name.clone(), display.clone());
-            }
-            None => {
-                node.initializers.remove(&editor.port_name);
-            }
-        }
-    }
-
-    win.history.record(EditAction::EditInitializer {
-        node_index: editor.node_index,
-        port_name: editor.port_name.clone(),
-        old_init,
-        old_display,
-        new_init,
-        new_display,
-    });
-    win.unsaved_edits += 1;
-    win.compiled_manifest = None;
-    win.canvas_state.request_redraw();
-    win.status = format!("Initializer updated on {}/{}", alias, editor.port_name);
-}
-
-/// Synchronize the in-memory `FlowDefinition` with the current editor state
-/// so that process references and the flow name are up to date.
-/// Connections are handled separately via `EdgeLayout` during save.
-fn sync_flow_definition(win: &mut WindowState) {
-    // Update or rebuild process_refs from current NodeLayout data
-    let mut new_refs: Vec<ProcessReference> = Vec::with_capacity(win.nodes.len());
-    for node in &win.nodes {
-        // Try to find the original ProcessReference by alias to preserve initializations
-        let original = win
-            .flow_definition
-            .process_refs
-            .iter()
-            .find(|pr| {
-                let alias = if pr.alias.is_empty() {
-                    derive_short_name(&pr.source)
-                } else {
-                    pr.alias.to_string()
-                };
-                alias == node.alias
-            })
-            .cloned();
-
-        let pref = if let Some(mut orig) = original {
-            orig.x = Some(node.x);
-            orig.y = Some(node.y);
-            orig.width = Some(node.width);
-            orig.height = Some(node.height);
-            orig
-        } else {
-            // New node without an original -- build from scratch
-            ProcessReference {
-                alias: node.alias.clone(),
-                source: node.source.clone(),
-                initializations: std::collections::BTreeMap::new(),
-                x: Some(node.x),
-                y: Some(node.y),
-                width: Some(node.width),
-                height: Some(node.height),
-            }
-        };
-        new_refs.push(pref);
-    }
-    win.flow_definition.process_refs = new_refs;
-
-    // Update the flow name
-    win.flow_definition.name = win.flow_name.clone();
-}
-
-/// Apply a redo action -- re-apply the last undone edit.
-fn apply_redo(win: &mut WindowState) {
-    if let Some(action) = win.history.redo() {
-        match action {
-            EditAction::MoveNode {
-                index,
-                new_x,
-                new_y,
-                ..
-            } => {
-                if let Some(node) = win.nodes.get_mut(index) {
-                    node.x = new_x;
-                    node.y = new_y;
-                }
-                win.status = String::from("Redo: move");
-            }
-            EditAction::ResizeNode {
-                index,
-                new_x,
-                new_y,
-                new_w,
-                new_h,
-                ..
-            } => {
-                if let Some(node) = win.nodes.get_mut(index) {
-                    node.x = new_x;
-                    node.y = new_y;
-                    node.width = new_w;
-                    node.height = new_h;
-                }
-                win.status = String::from("Redo: resize");
-            }
-            EditAction::DeleteNode {
-                index,
-                removed_edges,
-                node,
-                ..
-            } => {
-                let alias = node.alias.clone();
-                if index <= win.nodes.len() {
-                    win.nodes.remove(index);
-                }
-                for edge in &removed_edges {
-                    win.edges.retain(|e| {
-                        e.from_node != edge.from_node
-                            || e.from_port != edge.from_port
-                            || e.to_node != edge.to_node
-                            || e.to_port != edge.to_port
-                    });
-                }
-                let _ = alias; // used for edge cleanup above
-                win.status = String::from("Redo: delete node");
-            }
-            EditAction::CreateConnection { edge } => {
-                win.edges.push(edge);
-                win.status = String::from("Redo: create connection");
-            }
-            EditAction::DeleteConnection { index, .. } => {
-                if index < win.edges.len() {
-                    win.edges.remove(index);
-                }
-                win.status = String::from("Redo: delete connection");
-            }
-            EditAction::EditInitializer {
-                node_index,
-                ref port_name,
-                ref new_init,
-                ref new_display,
-                ..
-            } => {
-                apply_initializer_state(
-                    win,
-                    node_index,
-                    port_name,
-                    new_init.as_ref(),
-                    new_display.as_ref(),
-                );
-                win.status = String::from("Redo: initializer");
-            }
-        }
-        win.canvas_state.request_redraw();
-    }
-}
-
-/// Apply an initializer state to both the model and display.
-fn apply_initializer_state(
-    win: &mut WindowState,
-    node_index: usize,
-    port_name: &str,
-    init: Option<&InputInitializer>,
-    display: Option<&String>,
-) {
-    let alias = win
-        .nodes
-        .get(node_index)
-        .map(|n| n.alias.clone())
-        .unwrap_or_default();
-
-    if let Some(pref) = win.flow_definition.process_refs.iter_mut().find(|pr| {
-        let pr_alias = if pr.alias.is_empty() {
-            derive_short_name(&pr.source)
-        } else {
-            pr.alias.to_string()
-        };
-        pr_alias == alias
-    }) {
-        match init {
-            Some(i) => {
-                pref.initializations
-                    .insert(port_name.to_string(), i.clone());
-            }
-            None => {
-                pref.initializations.remove(port_name);
-            }
-        }
-    }
-
-    if let Some(node) = win.nodes.get_mut(node_index) {
-        match display {
-            Some(d) => {
-                node.initializers.insert(port_name.to_string(), d.clone());
-            }
-            None => {
-                node.initializers.remove(port_name);
-            }
-        }
-    }
-}
-
-/// Build a `MetaProvider` with `FLOW_LIB_PATH` (plus `~/.flow/lib` default)
-/// and the default flowrcli context root.
-fn build_meta_provider() -> MetaProvider {
-    let mut lib_search_path = Simpath::new_with_separator("FLOW_LIB_PATH", ',');
-    if let Ok(home) = std::env::var("HOME") {
-        let default_lib = PathBuf::from(&home).join(".flow").join("lib");
-        if default_lib.exists() {
-            if let Some(path_str) = default_lib.to_str() {
-                lib_search_path.add_directory(path_str);
-            }
-        }
-    }
-    let context_root = std::env::var("HOME")
-        .map(|h| {
-            PathBuf::from(h)
-                .join(".flow")
-                .join("runner")
-                .join("flowrcli")
-        })
-        .unwrap_or_else(|_| PathBuf::from("/"));
-    MetaProvider::new(lib_search_path, context_root)
-}
-
-/// Resolve port info for a single function/flow from its source string.
-///
-/// If `base_url` is provided, relative source paths are resolved against it.
-/// For `lib://` and `context://` sources, the base URL is not needed.
-fn resolve_single_function_ports(
-    source: &str,
-    base_url: Option<&Url>,
-) -> (Vec<PortInfo>, Vec<PortInfo>) {
-    use flowcore::provider::Provider;
-
-    let provider = build_meta_provider();
-
-    // Parse the source as a URL; for relative paths, resolve against the base URL
-    let source_url = match Url::parse(source) {
-        Ok(u) => u,
-        Err(_) => {
-            match base_url.and_then(|base| base.join(source).ok()) {
-                Some(u) => u,
-                None => {
-                    info!("resolve_single_function_ports: could not resolve relative source '{source}'");
-                    return (Vec::new(), Vec::new());
-                }
-            }
-        }
-    };
-
-    let (resolved_url, _) = match provider.resolve_url(&source_url, "default", &["toml"]) {
-        Ok(r) => r,
-        Err(e) => {
-            info!("resolve_single_function_ports: could not resolve '{source_url}': {e}");
-            return (Vec::new(), Vec::new());
-        }
-    };
-
-    let content_bytes = match provider.get_contents(&resolved_url) {
-        Ok(bytes) => bytes,
-        Err(e) => {
-            info!(
-                "resolve_single_function_ports: could not get contents from '{resolved_url}': {e}"
-            );
-            return (Vec::new(), Vec::new());
-        }
-    };
-    let content = String::from_utf8_lossy(&content_bytes);
-
-    let deserializer = match get::<Process>(&resolved_url) {
-        Ok(d) => d,
-        Err(_) => return (Vec::new(), Vec::new()),
-    };
-
-    match deserializer.deserialize(&content, Some(&resolved_url)) {
-        Ok(Process::FunctionProcess(func)) => extract_ports(&func.inputs, &func.outputs),
-        Ok(Process::FlowProcess(flow)) => extract_ports(&flow.inputs, &flow.outputs),
-        Err(_) => (Vec::new(), Vec::new()),
-    }
-}
-
-fn extract_ports(
-    inputs: &[flowcore::model::io::IO],
-    outputs: &[flowcore::model::io::IO],
-) -> (Vec<PortInfo>, Vec<PortInfo>) {
-    let input_ports = inputs
-        .iter()
-        .map(|io| PortInfo {
-            name: io.name().to_string(),
-            datatypes: io.datatypes().iter().map(|dt| dt.to_string()).collect(),
-        })
-        .collect();
-    let output_ports = outputs
-        .iter()
-        .map(|io| PortInfo {
-            name: io.name().to_string(),
-            datatypes: io.datatypes().iter().map(|dt| dt.to_string()).collect(),
-        })
-        .collect();
-    (input_ports, output_ports)
-}
-
-/// Load a flow definition file and return the flow name, node layouts, edge layouts,
-/// and the original `FlowDefinition` for use when saving.
-fn load_flow(
-    path: &PathBuf,
-) -> Result<(String, Vec<NodeLayout>, Vec<EdgeLayout>, FlowDefinition), String> {
-    let abs_path = if path.is_absolute() {
-        path.clone()
-    } else {
-        std::env::current_dir()
-            .map_err(|e| format!("Could not get current directory: {e}"))?
-            .join(path)
-    };
-
-    let url =
-        Url::from_file_path(&abs_path).map_err(|()| format!("Invalid file path: {abs_path:?}"))?;
-
-    let contents =
-        std::fs::read_to_string(&abs_path).map_err(|e| format!("Could not read file: {e}"))?;
-
-    let deserializer =
-        get::<Process>(&url).map_err(|e| format!("Could not get deserializer: {e}"))?;
-
-    let process = deserializer
-        .deserialize(&contents, Some(&url))
-        .map_err(|e| format!("Could not parse flow definition: {e}"))?;
-
-    match process {
-        Process::FlowProcess(flow) => {
-            // Resolve port definitions for each subprocess by loading its definition
-            let mut resolved_ports = HashMap::new();
-            for pref in &flow.process_refs {
-                let alias = if pref.alias.is_empty() {
-                    derive_short_name(&pref.source)
-                } else {
-                    pref.alias.to_string()
-                };
-                let (inputs, outputs) =
-                    resolve_single_function_ports(&pref.source, Some(&url));
-                info!(
-                    "Resolved '{}' ({}): {} inputs, {} outputs",
-                    alias,
-                    pref.source,
-                    inputs.len(),
-                    outputs.len()
-                );
-                resolved_ports.insert(alias, (inputs, outputs));
-            }
-
-            let edges = build_edge_layouts(&flow.connections);
-            let nodes =
-                build_node_layouts(&flow.process_refs, &flow.connections, &resolved_ports);
-            let name = flow.name.clone();
-            Ok((name, nodes, edges, flow))
-        }
-        Process::FunctionProcess(_) => Err(
-            "The specified file defines a Function, not a Flow. flowedit requires a flow definition."
-                .to_string(),
-        ),
-    }
-}
-
-/// Serialize a `serde_json::Value` into a TOML-compatible inline value string.
-fn value_to_toml(v: &serde_json::Value) -> String {
-    match v {
-        serde_json::Value::String(s) => {
-            format!("\"{}\"", s.replace('\\', "\\\\").replace('"', "\\\""))
-        }
-        serde_json::Value::Number(n) => n.to_string(),
-        serde_json::Value::Bool(b) => b.to_string(),
-        serde_json::Value::Null => "\"null\"".to_string(),
-        serde_json::Value::Array(a) => {
-            let items: Vec<String> = a.iter().map(value_to_toml).collect();
-            format!("[{}]", items.join(", "))
-        }
-        serde_json::Value::Object(m) => {
-            let items: Vec<String> = m
-                .iter()
-                .map(|(k, val)| format!("{k} = {}", value_to_toml(val)))
-                .collect();
-            format!("{{ {} }}", items.join(", "))
-        }
-    }
-}
-
-/// Format an `InputInitializer` as a TOML inline table string.
-fn initializer_to_toml(init: &InputInitializer) -> String {
-    match init {
-        InputInitializer::Once(v) => format!("{{ once = {} }}", value_to_toml(v)),
-        InputInitializer::Always(v) => format!("{{ always = {} }}", value_to_toml(v)),
-    }
-}
-
-/// Save a `FlowDefinition` to a TOML file at the given path.
-///
-/// Builds the TOML text manually to match the expected flow format
-/// (the derived `Serialize` on some flowcore types produces struct-style
-/// output that is not compatible with the flow deserializer).
-/// Connections are written from `edges` to preserve names that would be lost
-/// when roundtripping through `Connection::new`.
-fn save_flow_toml(
-    flow: &FlowDefinition,
-    edges: &[EdgeLayout],
-    path: &PathBuf,
-) -> Result<(), String> {
-    let mut out = String::new();
-
-    // Flow name
-    out.push_str(&format!("flow = \"{}\"\n", flow.name));
-
-    // Docs
-    if !flow.docs.is_empty() {
-        out.push_str(&format!("docs = \"{}\"\n", flow.docs));
-    }
-
-    // Metadata (only if any field is non-empty)
-    let md = &flow.metadata;
-    if !md.version.is_empty() || !md.description.is_empty() || !md.authors.is_empty() {
-        out.push_str("\n[metadata]\n");
-        if !md.version.is_empty() {
-            out.push_str(&format!("version = \"{}\"\n", md.version));
-        }
-        if !md.description.is_empty() {
-            out.push_str(&format!("description = \"{}\"\n", md.description));
-        }
-        if !md.authors.is_empty() {
-            let authors: Vec<String> = md.authors.iter().map(|a| format!("\"{a}\"")).collect();
-            out.push_str(&format!("authors = [{}]\n", authors.join(", ")));
-        }
-    }
-
-    // Flow-level inputs
-    for input in &flow.inputs {
-        out.push_str("\n[[input]]\n");
-        let name = input.name();
-        if !name.is_empty() {
-            out.push_str(&format!("name = \"{name}\"\n"));
-        }
-        let types = input.datatypes();
-        if types.len() == 1 {
-            if let Some(t) = types.first() {
-                out.push_str(&format!("type = \"{t}\"\n"));
-            }
-        } else if types.len() > 1 {
-            let ts: Vec<String> = types.iter().map(|t| format!("\"{t}\"")).collect();
-            out.push_str(&format!("type = [{}]\n", ts.join(", ")));
-        }
-    }
-
-    // Flow-level outputs
-    for output in &flow.outputs {
-        out.push_str("\n[[output]]\n");
-        let name = output.name();
-        if !name.is_empty() {
-            out.push_str(&format!("name = \"{name}\"\n"));
-        }
-        let types = output.datatypes();
-        if types.len() == 1 {
-            if let Some(t) = types.first() {
-                out.push_str(&format!("type = \"{t}\"\n"));
-            }
-        } else if types.len() > 1 {
-            let ts: Vec<String> = types.iter().map(|t| format!("\"{t}\"")).collect();
-            out.push_str(&format!("type = [{}]\n", ts.join(", ")));
-        }
-    }
-
-    // Processes
-    for pref in &flow.process_refs {
-        out.push_str("\n[[process]]\n");
-        if !pref.alias.is_empty() {
-            out.push_str(&format!("alias = \"{}\"\n", pref.alias));
-        }
-        out.push_str(&format!("source = \"{}\"\n", pref.source));
-
-        // Layout positions
-        if let Some(x) = pref.x {
-            out.push_str(&format!("x = {x}\n"));
-        }
-        if let Some(y) = pref.y {
-            out.push_str(&format!("y = {y}\n"));
-        }
-        if let Some(w) = pref.width {
-            out.push_str(&format!("width = {w}\n"));
-        }
-        if let Some(h) = pref.height {
-            out.push_str(&format!("height = {h}\n"));
-        }
-
-        // Initializations
-        for (port_name, init) in &pref.initializations {
-            out.push_str(&format!(
-                "input.{port_name} = {}\n",
-                initializer_to_toml(init)
-            ));
-        }
-    }
-
-    // Connections (from EdgeLayout to preserve names)
-    for edge in edges {
-        out.push_str("\n[[connection]]\n");
-        if !edge.name.is_empty() {
-            out.push_str(&format!("name = \"{}\"\n", edge.name));
-        }
-        let from = if edge.from_port.is_empty() {
-            edge.from_node.clone()
-        } else {
-            format!("{}/{}", edge.from_node, edge.from_port)
-        };
-        out.push_str(&format!("from = \"{from}\"\n"));
-        let to = if edge.to_port.is_empty() {
-            edge.to_node.clone()
-        } else {
-            format!("{}/{}", edge.to_node, edge.to_port)
-        };
-        out.push_str(&format!("to = \"{to}\"\n"));
-    }
-
-    std::fs::write(path, out).map_err(|e| format!("Could not write file: {e}"))
-}
-
-/// Generate a unique alias for a new node, appending a numeric suffix if needed.
-fn generate_unique_alias(base_name: &str, nodes: &[NodeLayout]) -> String {
-    let existing: Vec<&str> = nodes.iter().map(|n| n.alias.as_str()).collect();
-    if !existing.contains(&base_name) {
-        return base_name.to_string();
-    }
-    let mut counter = 2u32;
-    loop {
-        let candidate = format!("{base_name}_{counter}");
-        if !existing.iter().any(|a| *a == candidate) {
-            return candidate;
-        }
-        counter = counter.saturating_add(1);
-    }
-}
-
-/// Compute a default position for a new node, offset from the last node or at a default origin.
-fn next_node_position(nodes: &[NodeLayout]) -> (f32, f32) {
-    if nodes.is_empty() {
-        return (100.0, 100.0);
-    }
-    // Find the rightmost node and place the new one to its right
-    let max_right = nodes.iter().map(|n| n.x + n.width).fold(0.0_f32, f32::max);
-    (max_right + 50.0, 100.0)
-}
-
-/// Format a connection endpoint for display, omitting "default" or empty port names.
-fn format_endpoint(node: &str, port: &str) -> String {
-    if port.is_empty() || port == "default" || port == "output" {
-        node.to_string()
-    } else {
-        format!("{node}/{port}")
-    }
-}
-
-fn save_function_definition(viewer: &FunctionViewer) -> Result<(), String> {
-    let dir = viewer
-        .toml_path
-        .parent()
-        .ok_or_else(|| "Invalid path".to_string())?;
-    std::fs::create_dir_all(dir).map_err(|e| format!("Could not create directory: {e}"))?;
-
-    // 1. Write the function definition TOML
-    let mut toml = format!(
-        "function = \"{}\"\nsource = \"{}\"\ntype = \"rust\"\n",
-        viewer.name, viewer.source_file
-    );
-    for input in &viewer.inputs {
-        let dtype = input.datatypes.first().map_or("", String::as_str);
-        if input.name.is_empty() || input.name == "input" || input.name == "name" {
-            toml.push_str(&format!("\n[[input]]\ntype = \"{dtype}\"\n"));
-        } else {
-            toml.push_str(&format!(
-                "\n[[input]]\nname = \"{}\"\ntype = \"{dtype}\"\n",
-                input.name
-            ));
-        }
-    }
-    for output in &viewer.outputs {
-        let dtype = output.datatypes.first().map_or("", String::as_str);
-        if output.name.is_empty() || output.name == "output" || output.name == "name" {
-            toml.push_str(&format!("\n[[output]]\ntype = \"{dtype}\"\n"));
-        } else {
-            toml.push_str(&format!(
-                "\n[[output]]\nname = \"{}\"\ntype = \"{dtype}\"\n",
-                output.name
-            ));
-        }
-    }
-    std::fs::write(&viewer.toml_path, &toml)
-        .map_err(|e| format!("Could not write {}: {e}", viewer.toml_path.display()))?;
-
-    // 2. Generate skeleton .rs if it doesn't exist
-    let rs_path = dir.join(&viewer.source_file);
-    if !rs_path.exists() {
-        let input_count = viewer.inputs.len();
-        let skeleton = format!(
-            "use flowcore::{{RUN_AGAIN, RunAgain}};\n\
-             use flowcore::errors::*;\n\
-             use flowmacro::flow_function;\n\
-             use serde_json::Value;\n\
-             \n\
-             #[flow_function]\n\
-             fn _{name}(inputs: &[Value]) -> Result<(Option<Value>, RunAgain)> {{\n\
-             {input_bindings}\
-             \n    // TODO: implement function logic\n\
-             \n    Ok((None, RUN_AGAIN))\n\
-             }}\n",
-            name = viewer.name,
-            input_bindings = (0..input_count)
-                .map(|i| format!("    let _input{i} = &inputs[{i}];\n"))
-                .collect::<String>(),
-        );
-        std::fs::write(&rs_path, &skeleton)
-            .map_err(|e| format!("Could not write {}: {e}", rs_path.display()))?;
-    }
-
-    // 3. Generate function.toml (Cargo manifest) if it doesn't exist
-    let cargo_path = dir.join("function.toml");
-    if !cargo_path.exists() {
-        let stem = viewer
-            .source_file
-            .strip_suffix(".rs")
-            .unwrap_or(&viewer.source_file);
-        let cargo = format!(
-            "[package]\n\
-             name = \"{name}\"\n\
-             version = \"0.1.0\"\n\
-             edition = \"2021\"\n\
-             \n\
-             [lib]\n\
-             name = \"{name}\"\n\
-             crate-type = [\"cdylib\"]\n\
-             path = \"{source}\"\n\
-             \n\
-             [dependencies]\n\
-             flowcore = {{version = \"0\"}}\n\
-             flowmacro = {{version = \"0\"}}\n\
-             serde_json = {{version = \"1.0\", default-features = false}}\n",
-            name = viewer.name,
-            source = stem,
-        );
-        std::fs::write(&cargo_path, &cargo)
-            .map_err(|e| format!("Could not write {}: {e}", cargo_path.display()))?;
-    }
-
-    Ok(())
-}
-
-fn editor_prefs_path(flow_path: &Path) -> PathBuf {
-    let mut p = flow_path.to_path_buf();
-    let name = p
-        .file_name()
-        .map(|n| format!(".{}.flowedit", n.to_string_lossy()))
-        .unwrap_or_else(|| ".flowedit".to_string());
-    p.set_file_name(name);
-    p
-}
-
-fn save_editor_prefs(flow_path: &Path, size: Option<iced::Size>, position: Option<iced::Point>) {
-    let prefs_path = editor_prefs_path(flow_path);
-    let mut map = serde_json::Map::new();
-    if let Some(s) = size {
-        map.insert("width".into(), serde_json::json!(s.width));
-        map.insert("height".into(), serde_json::json!(s.height));
-    }
-    if let Some(p) = position {
-        map.insert("x".into(), serde_json::json!(p.x));
-        map.insert("y".into(), serde_json::json!(p.y));
-    }
-    let json = serde_json::Value::Object(map).to_string();
-    let _ = std::fs::write(prefs_path, json);
-}
-
-struct EditorPrefs {
-    width: f32,
-    height: f32,
-    x: Option<f32>,
-    y: Option<f32>,
-}
-
-fn load_editor_prefs(flow_path: &Path) -> Option<EditorPrefs> {
-    let prefs_path = editor_prefs_path(flow_path);
-    let content = std::fs::read_to_string(prefs_path).ok()?;
-    let val: serde_json::Value = serde_json::from_str(&content).ok()?;
-    let w = val.get("width")?.as_f64()? as f32;
-    let h = val.get("height")?.as_f64()? as f32;
-    let x = val.get("x").and_then(|v| v.as_f64()).map(|v| v as f32);
-    let y = val.get("y").and_then(|v| v.as_f64()).map(|v| v as f32);
-    Some(EditorPrefs {
-        width: w,
-        height: h,
-        x,
-        y,
-    })
-}
-
 #[cfg(test)]
 #[allow(clippy::indexing_slicing)]
 mod test {
@@ -3656,6 +2846,7 @@ mod test {
         NodeLayout {
             alias: alias.into(),
             source: source.into(),
+            description: String::new(),
             x: 100.0,
             y: 100.0,
             width: 180.0,
@@ -3664,132 +2855,6 @@ mod test {
             outputs: Vec::new(),
             initializers: HashMap::new(),
         }
-    }
-
-    #[test]
-    fn unique_alias_no_conflict() {
-        let nodes = vec![test_node("add", "lib://test")];
-        assert_eq!(generate_unique_alias("subtract", &nodes), "subtract");
-    }
-
-    #[test]
-    fn unique_alias_with_conflict() {
-        let nodes = vec![test_node("add", "lib://test")];
-        assert_eq!(generate_unique_alias("add", &nodes), "add_2");
-    }
-
-    #[test]
-    fn unique_alias_multiple_conflicts() {
-        let nodes = vec![
-            test_node("add", "lib://test"),
-            test_node("add_2", "lib://test"),
-        ];
-        assert_eq!(generate_unique_alias("add", &nodes), "add_3");
-    }
-
-    #[test]
-    fn next_position_empty() {
-        let (x, y) = next_node_position(&[]);
-        assert!((x - 100.0).abs() < 0.01);
-        assert!((y - 100.0).abs() < 0.01);
-    }
-
-    #[test]
-    fn next_position_after_nodes() {
-        let nodes = vec![test_node("a", "lib://test")];
-        let (x, _y) = next_node_position(&nodes);
-        assert!(x > 280.0); // right of existing node + gap
-    }
-
-    #[test]
-    fn format_endpoint_with_port() {
-        assert_eq!(format_endpoint("add", "i1"), "add/i1");
-    }
-
-    #[test]
-    fn format_endpoint_empty_port() {
-        assert_eq!(format_endpoint("add", ""), "add");
-    }
-
-    #[test]
-    fn format_endpoint_default_port() {
-        assert_eq!(format_endpoint("add", "default"), "add");
-    }
-
-    #[test]
-    fn format_endpoint_output_port() {
-        assert_eq!(format_endpoint("add", "output"), "add");
-    }
-
-    #[test]
-    fn value_to_toml_string() {
-        assert_eq!(value_to_toml(&serde_json::json!("hello")), "\"hello\"");
-    }
-
-    #[test]
-    fn value_to_toml_number() {
-        assert_eq!(value_to_toml(&serde_json::json!(42)), "42");
-    }
-
-    #[test]
-    fn value_to_toml_bool() {
-        assert_eq!(value_to_toml(&serde_json::json!(true)), "true");
-    }
-
-    #[test]
-    fn value_to_toml_array() {
-        assert_eq!(value_to_toml(&serde_json::json!([1, 2, 3])), "[1, 2, 3]");
-    }
-
-    #[test]
-    fn initializer_to_toml_once() {
-        let init = InputInitializer::Once(serde_json::json!(42));
-        assert_eq!(initializer_to_toml(&init), "{ once = 42 }");
-    }
-
-    #[test]
-    fn initializer_to_toml_always() {
-        let init = InputInitializer::Always(serde_json::json!("hello"));
-        assert_eq!(initializer_to_toml(&init), "{ always = \"hello\" }");
-    }
-
-    #[test]
-    fn editor_prefs_path_format() {
-        let path = editor_prefs_path(Path::new("/tmp/test/root.toml"));
-        assert_eq!(
-            path.file_name().and_then(|n| n.to_str()),
-            Some(".root.toml.flowedit")
-        );
-    }
-
-    #[test]
-    fn editor_prefs_roundtrip() {
-        let dir = temp_dir("prefs_roundtrip");
-        let flow_path = dir.join("test_flow.toml");
-        std::fs::write(&flow_path, "flow = \"test\"").expect("write test flow");
-
-        save_editor_prefs(
-            &flow_path,
-            Some(iced::Size::new(800.0, 600.0)),
-            Some(iced::Point::new(100.0, 200.0)),
-        );
-
-        let prefs = load_editor_prefs(&flow_path);
-        assert!(prefs.is_some());
-        let p = prefs.expect("prefs should load");
-        assert!((p.width - 800.0).abs() < 0.01);
-        assert!((p.height - 600.0).abs() < 0.01);
-        assert_eq!(p.x, Some(100.0));
-        assert_eq!(p.y, Some(200.0));
-
-        // Cleanup
-        let _ = std::fs::remove_dir_all(&dir);
-    }
-
-    #[test]
-    fn editor_prefs_no_file() {
-        let prefs = load_editor_prefs(Path::new("/nonexistent/path.toml"));
-        assert!(prefs.is_none());
     }
 
     #[test]
@@ -3825,7 +2890,7 @@ mod test {
             last_position: None,
         };
 
-        sync_flow_definition(&mut win);
+        initializer::sync_flow_definition(&mut win);
         assert_eq!(win.flow_definition.process_refs.len(), 2);
         assert_eq!(win.flow_definition.name, "test");
     }
@@ -3863,7 +2928,7 @@ mod test {
         // Move node
         win.nodes[0].x = 200.0;
         win.nodes[0].y = 300.0;
-        record_edit(
+        undo_redo::record_edit(
             &mut win,
             EditAction::MoveNode {
                 index: 0,
@@ -3876,12 +2941,12 @@ mod test {
         assert_eq!(win.unsaved_edits, 1);
 
         // Undo
-        apply_undo(&mut win);
+        undo_redo::apply_undo(&mut win);
         assert!((win.nodes[0].x - 100.0).abs() < 0.01);
         assert!((win.nodes[0].y - 100.0).abs() < 0.01);
 
         // Redo
-        apply_redo(&mut win);
+        undo_redo::apply_redo(&mut win);
         assert!((win.nodes[0].x - 200.0).abs() < 0.01);
         assert!((win.nodes[0].y - 300.0).abs() < 0.01);
     }
@@ -3933,6 +2998,7 @@ mod test {
                         functions: vec![library_panel::FunctionEntry {
                             name: "add".into(),
                             source: "lib://test_lib/math/add".into(),
+                            description: String::new(),
                         }],
                         expanded: true,
                     }],
@@ -3942,6 +3008,9 @@ mod test {
             root_flow_path: None,
             show_lib_paths: false,
             lib_paths: Vec::new(),
+            library_cache: HashMap::new(),
+            lib_definitions: HashMap::new(),
+            context_definitions: HashMap::new(),
         };
         (app, win_id)
     }
@@ -4350,279 +3419,6 @@ mod test {
         dir
     }
 
-    #[test]
-    fn save_and_load_flow_roundtrip() {
-        let dir = temp_dir("save_load");
-        let path = dir.join("test.toml");
-
-        let mut flow = FlowDefinition::default();
-        flow.name = "roundtrip_test".into();
-        flow.metadata.version = "1.0.0".into();
-        flow.metadata.authors = vec!["Test Author".into()];
-        flow.process_refs.push(ProcessReference {
-            alias: "add1".into(),
-            source: "lib://flowstdlib/math/add".into(),
-            initializations: std::collections::BTreeMap::new(),
-            x: Some(100.0),
-            y: Some(200.0),
-            width: Some(180.0),
-            height: Some(120.0),
-        });
-
-        let edges = vec![EdgeLayout::new(
-            "add1".into(),
-            "".into(),
-            "add1".into(),
-            "i1".into(),
-        )];
-
-        save_flow_toml(&flow, &edges, &path).expect("save failed");
-
-        let contents = std::fs::read_to_string(&path).expect("read failed");
-        assert!(contents.contains("flow = \"roundtrip_test\""));
-        assert!(contents.contains("version = \"1.0.0\""));
-        assert!(contents.contains("Test Author"));
-        assert!(contents.contains("lib://flowstdlib/math/add"));
-
-        let (name, nodes, loaded_edges, loaded_flow) = load_flow(&path).expect("load failed");
-        assert_eq!(name, "roundtrip_test");
-        assert_eq!(nodes.len(), 1);
-        assert_eq!(loaded_edges.len(), 1);
-        assert_eq!(loaded_flow.metadata.version, "1.0.0");
-
-        let _ = std::fs::remove_dir_all(&dir);
-    }
-
-    #[test]
-    fn save_flow_with_metadata() {
-        let dir = temp_dir("metadata");
-        let path = dir.join("meta.toml");
-
-        let mut flow = FlowDefinition::default();
-        flow.name = "meta_flow".into();
-        flow.metadata.description = "A test description".into();
-
-        save_flow_toml(&flow, &[], &path).expect("save failed");
-        let contents = std::fs::read_to_string(&path).expect("read failed");
-        assert!(contents.contains("description = \"A test description\""));
-
-        let _ = std::fs::remove_dir_all(&dir);
-    }
-
-    #[test]
-    fn save_flow_with_initializers() {
-        let dir = temp_dir("initializers");
-        let path = dir.join("init.toml");
-
-        let mut flow = FlowDefinition::default();
-        flow.name = "init_flow".into();
-        let mut inits = std::collections::BTreeMap::new();
-        inits.insert(
-            "start".to_string(),
-            InputInitializer::Once(serde_json::json!(42)),
-        );
-        flow.process_refs.push(ProcessReference {
-            alias: "seq".into(),
-            source: "lib://flowstdlib/math/sequence".into(),
-            initializations: inits,
-            x: Some(50.0),
-            y: Some(50.0),
-            width: Some(180.0),
-            height: Some(120.0),
-        });
-
-        save_flow_toml(&flow, &[], &path).expect("save failed");
-        let contents = std::fs::read_to_string(&path).expect("read failed");
-        assert!(contents.contains("input.start"));
-        assert!(contents.contains("once"));
-
-        let _ = std::fs::remove_dir_all(&dir);
-    }
-
-    #[test]
-    fn save_flow_with_connections() {
-        let dir = temp_dir("connections");
-        let path = dir.join("conn.toml");
-
-        let mut flow = FlowDefinition::default();
-        flow.name = "conn_flow".into();
-        flow.process_refs.push(ProcessReference {
-            alias: "a".into(),
-            source: "lib://test/a".into(),
-            initializations: std::collections::BTreeMap::new(),
-            x: Some(0.0),
-            y: Some(0.0),
-            width: None,
-            height: None,
-        });
-        flow.process_refs.push(ProcessReference {
-            alias: "b".into(),
-            source: "lib://test/b".into(),
-            initializations: std::collections::BTreeMap::new(),
-            x: None,
-            y: None,
-            width: None,
-            height: None,
-        });
-
-        let edges = vec![EdgeLayout::new(
-            "a".into(),
-            "out".into(),
-            "b".into(),
-            "in".into(),
-        )];
-
-        save_flow_toml(&flow, &edges, &path).expect("save failed");
-        let contents = std::fs::read_to_string(&path).expect("read failed");
-        assert!(contents.contains("from = \"a/out\""));
-        assert!(contents.contains("to = \"b/in\""));
-
-        let _ = std::fs::remove_dir_all(&dir);
-    }
-
-    #[test]
-    fn load_flow_nonexistent() {
-        let result = load_flow(&PathBuf::from("/nonexistent/flow.toml"));
-        assert!(result.is_err());
-    }
-
-    #[test]
-    fn load_flow_invalid_toml() {
-        let dir = temp_dir("invalid");
-        let path = dir.join("bad.toml");
-        std::fs::write(&path, "this is not valid toml {{{{").expect("write failed");
-        let result = load_flow(&path);
-        assert!(result.is_err());
-        let _ = std::fs::remove_dir_all(&dir);
-    }
-
-    #[test]
-    fn perform_save_updates_state() {
-        let dir = temp_dir("perform_save");
-        let path = dir.join("saved.toml");
-
-        let mut win = test_win_state();
-        win.unsaved_edits = 5;
-        win.flow_name = "saved_flow".into();
-
-        perform_save(&mut win, &path);
-        assert_eq!(win.unsaved_edits, 0);
-        assert_eq!(win.file_path, Some(path.clone()));
-
-        let contents = std::fs::read_to_string(&path).expect("read failed");
-        assert!(contents.contains("flow = \"saved_flow\""));
-
-        let _ = std::fs::remove_dir_all(&dir);
-    }
-
-    #[test]
-    fn save_function_definition_creates_files() {
-        let dir = temp_dir("func_def");
-        let toml_path = dir.join("myfunc.toml");
-
-        let viewer = FunctionViewer {
-            name: "myfunc".into(),
-            source_file: "myfunc.rs".into(),
-            inputs: vec![PortInfo {
-                name: "data".into(),
-                datatypes: vec!["string".into()],
-            }],
-            outputs: vec![PortInfo {
-                name: "result".into(),
-                datatypes: vec!["number".into()],
-            }],
-            rs_content: String::new(),
-            docs_content: None,
-            active_tab: 0,
-            toml_path: toml_path.clone(),
-        };
-
-        save_function_definition(&viewer).expect("save failed");
-
-        // Check TOML was created
-        let toml = std::fs::read_to_string(&toml_path).expect("read toml");
-        assert!(toml.contains("function = \"myfunc\""));
-        assert!(toml.contains("source = \"myfunc.rs\""));
-        assert!(toml.contains("name = \"data\""));
-        assert!(toml.contains("type = \"string\""));
-        assert!(toml.contains("type = \"number\""));
-
-        // Check skeleton .rs was created
-        let rs_path = dir.join("myfunc.rs");
-        assert!(rs_path.exists());
-        let rs = std::fs::read_to_string(&rs_path).expect("read rs");
-        assert!(rs.contains("#[flow_function]"));
-        assert!(rs.contains("_myfunc"));
-        assert!(rs.contains("_input0"));
-
-        // Check function.toml was created
-        let cargo_path = dir.join("function.toml");
-        assert!(cargo_path.exists());
-        let cargo = std::fs::read_to_string(&cargo_path).expect("read cargo");
-        assert!(cargo.contains("name = \"myfunc\""));
-        assert!(cargo.contains("crate-type = [\"cdylib\"]"));
-
-        let _ = std::fs::remove_dir_all(&dir);
-    }
-
-    #[test]
-    fn save_function_no_overwrite_existing_rs() {
-        let dir = temp_dir("func_no_overwrite");
-        let toml_path = dir.join("existing.toml");
-        let rs_path = dir.join("existing.rs");
-
-        // Create existing .rs
-        std::fs::write(&rs_path, "// existing code").expect("write rs");
-
-        let viewer = FunctionViewer {
-            name: "existing".into(),
-            source_file: "existing.rs".into(),
-            inputs: Vec::new(),
-            outputs: Vec::new(),
-            rs_content: String::new(),
-            docs_content: None,
-            active_tab: 0,
-            toml_path,
-        };
-
-        save_function_definition(&viewer).expect("save failed");
-
-        // Existing .rs should NOT be overwritten
-        let rs = std::fs::read_to_string(&rs_path).expect("read rs");
-        assert_eq!(rs, "// existing code");
-
-        let _ = std::fs::remove_dir_all(&dir);
-    }
-
-    #[test]
-    fn resolve_node_source_toml_extension() {
-        let dir = temp_dir("resolve_src");
-        let flow_path = dir.join("root.toml");
-        std::fs::write(&flow_path, "flow = \"root\"").expect("write");
-        let sub_path = dir.join("sub.toml");
-        std::fs::write(&sub_path, "flow = \"sub\"").expect("write");
-
-        let win = WindowState {
-            file_path: Some(flow_path),
-            ..test_win_state()
-        };
-
-        let resolved = resolve_node_source(&win, "sub");
-        assert!(resolved.is_some());
-
-        let _ = std::fs::remove_dir_all(&dir);
-    }
-
-    #[test]
-    fn resolve_node_source_not_found() {
-        let win = WindowState {
-            file_path: Some(PathBuf::from("/tmp/flowedit_tests/nonexistent/root.toml")),
-            ..test_win_state()
-        };
-        let resolved = resolve_node_source(&win, "missing");
-        assert!(resolved.is_none());
-    }
-
     // ---- iced_test UI tests ----
 
     mod ui {
@@ -4787,7 +3583,7 @@ mod test {
             if let Some(win) = app.windows.get_mut(&win_id) {
                 win.file_path = Some(path.clone());
                 win.flow_name = "test_build".into();
-                perform_save(win, &path);
+                flow_io::perform_save(win, &path);
             }
             click_and_update(&mut app, win_id, "\u{1F528} Build");
             let status = app

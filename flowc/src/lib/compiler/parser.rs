@@ -208,15 +208,20 @@ fn parse_process_refs(
         )?;
         process_ref.set_alias(process.name());
 
-        // runtime needs references to library functions to be able to load the implementations at load time
-        // library flow definitions are "compiled down" to just library function references at compile time.
-        if let FunctionProcess(function) = &process {
-            if let Some(lib_ref) = function.get_lib_reference() {
-                flow.lib_references.insert(lib_ref.clone());
+        match &process {
+            FunctionProcess(function) => {
+                if let Some(lib_ref) = function.get_lib_reference() {
+                    flow.lib_references.insert(lib_ref.clone());
+                }
+                if let Some(context_ref) = function.get_context_reference() {
+                    flow.context_references.insert(context_ref.clone());
+                }
             }
-
-            if let Some(context_ref) = function.get_context_reference() {
-                flow.context_references.insert(context_ref.clone());
+            FlowProcess(sub_flow) => {
+                flow.lib_references
+                    .extend(sub_flow.lib_references.iter().cloned());
+                flow.context_references
+                    .extend(sub_flow.context_references.iter().cloned());
             }
         }
 
