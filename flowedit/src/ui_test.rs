@@ -1043,3 +1043,344 @@ fn helper_drag_simulator_smoke_test() {
     // canvas events. This is expected due to the limitation documented above.
     let _ = original_x; // suppress unused warning
 }
+
+// ---- Group 1: Node Deletion ----
+
+#[test]
+fn ui_delete_node_removes_connected_edges() {
+    let (mut app, win_id) = test_app();
+    // Add an edge between the two nodes
+    if let Some(win) = app.windows.get_mut(&win_id) {
+        win.edges.push(EdgeLayout::new(
+            "add".into(),
+            "out".into(),
+            "stdout".into(),
+            "in".into(),
+        ));
+    }
+    assert_eq!(app.windows.get(&win_id).map(|w| w.edges.len()), Some(1));
+    // Delete node 0 ("add")
+    app.update(Message::WindowCanvas(win_id, CanvasMessage::Deleted(0)));
+    assert_eq!(app.windows.get(&win_id).map(|w| w.nodes.len()), Some(1));
+    assert_eq!(
+        app.windows.get(&win_id).map(|w| w.edges.len()),
+        Some(0),
+        "Edge should be removed when connected node is deleted"
+    );
+}
+
+#[test]
+fn ui_delete_with_nothing_selected_no_change() {
+    let (mut app, win_id) = test_app();
+    let count_before = app.windows.get(&win_id).map(|w| w.nodes.len());
+    // Deselect — no node is selected
+    app.update(Message::WindowCanvas(win_id, CanvasMessage::Selected(None)));
+    // Node count should remain unchanged (no Deleted message sent)
+    assert_eq!(
+        app.windows.get(&win_id).map(|w| w.nodes.len()),
+        count_before
+    );
+}
+
+// ---- Group 2: Connection Selection/Deletion ----
+
+#[test]
+fn ui_select_and_delete_connection() {
+    let (mut app, win_id) = test_app();
+    app.update(Message::WindowCanvas(
+        win_id,
+        CanvasMessage::ConnectionCreated {
+            from_node: "add".into(),
+            from_port: "".into(),
+            to_node: "stdout".into(),
+            to_port: "".into(),
+        },
+    ));
+    assert_eq!(app.windows.get(&win_id).map(|w| w.edges.len()), Some(1));
+    // Select
+    app.update(Message::WindowCanvas(
+        win_id,
+        CanvasMessage::ConnectionSelected(Some(0)),
+    ));
+    assert_eq!(
+        app.windows.get(&win_id).and_then(|w| w.selected_connection),
+        Some(0)
+    );
+    // Delete
+    app.update(Message::WindowCanvas(
+        win_id,
+        CanvasMessage::ConnectionDeleted(0),
+    ));
+    assert_eq!(app.windows.get(&win_id).map(|w| w.edges.len()), Some(0));
+}
+
+#[test]
+fn ui_connection_deselect_on_canvas_click() {
+    let (mut app, win_id) = test_app();
+    if let Some(win) = app.windows.get_mut(&win_id) {
+        win.edges.push(EdgeLayout::new(
+            "add".into(),
+            "".into(),
+            "stdout".into(),
+            "".into(),
+        ));
+        win.selected_connection = Some(0);
+    }
+    app.update(Message::WindowCanvas(win_id, CanvasMessage::Selected(None)));
+    assert_eq!(
+        app.windows.get(&win_id).and_then(|w| w.selected_connection),
+        None
+    );
+}
+
+// ---- Group 3: Undo/Redo ----
+
+#[test]
+fn ui_undo_node_deletion() {
+    let (mut app, win_id) = test_app();
+    assert_eq!(app.windows.get(&win_id).map(|w| w.nodes.len()), Some(2));
+    app.update(Message::WindowCanvas(win_id, CanvasMessage::Deleted(0)));
+    assert_eq!(app.windows.get(&win_id).map(|w| w.nodes.len()), Some(1));
+    app.update(Message::Undo);
+    assert_eq!(
+        app.windows.get(&win_id).map(|w| w.nodes.len()),
+        Some(2),
+        "Undo should restore deleted node"
+    );
+}
+
+#[test]
+fn ui_undo_connection_deletion() {
+    let (mut app, win_id) = test_app();
+    app.update(Message::WindowCanvas(
+        win_id,
+        CanvasMessage::ConnectionCreated {
+            from_node: "add".into(),
+            from_port: "".into(),
+            to_node: "stdout".into(),
+            to_port: "".into(),
+        },
+    ));
+    assert_eq!(app.windows.get(&win_id).map(|w| w.edges.len()), Some(1));
+    app.update(Message::WindowCanvas(
+        win_id,
+        CanvasMessage::ConnectionDeleted(0),
+    ));
+    assert_eq!(app.windows.get(&win_id).map(|w| w.edges.len()), Some(0));
+    app.update(Message::Undo);
+    assert_eq!(
+        app.windows.get(&win_id).map(|w| w.edges.len()),
+        Some(1),
+        "Undo should restore deleted connection"
+    );
+}
+
+#[test]
+fn ui_undo_empty_history_no_crash() {
+    let (mut app, _win_id) = test_app();
+    app.update(Message::Undo);
+    app.update(Message::Redo);
+    // Should not panic
+}
+
+// ---- Group 4: Keyboard Shortcuts (via direct messages) ----
+
+#[test]
+fn shortcut_undo_restores_move() {
+    let (mut app, win_id) = test_app();
+    app.update(Message::WindowCanvas(
+        win_id,
+        CanvasMessage::Moved(0, 200.0, 300.0),
+    ));
+    app.update(Message::WindowCanvas(
+        win_id,
+        CanvasMessage::MoveCompleted(0, 100.0, 100.0, 200.0, 300.0),
+    ));
+    app.update(Message::Undo);
+    let node = app.windows.get(&win_id).and_then(|w| w.nodes.first());
+    assert!((node.map(|n| n.x).unwrap_or(0.0) - 100.0).abs() < 0.01);
+}
+
+#[test]
+fn shortcut_redo_reapplies_move() {
+    let (mut app, win_id) = test_app();
+    app.update(Message::WindowCanvas(
+        win_id,
+        CanvasMessage::Moved(0, 200.0, 300.0),
+    ));
+    app.update(Message::WindowCanvas(
+        win_id,
+        CanvasMessage::MoveCompleted(0, 100.0, 100.0, 200.0, 300.0),
+    ));
+    app.update(Message::Undo);
+    app.update(Message::Redo);
+    let node = app.windows.get(&win_id).and_then(|w| w.nodes.first());
+    assert!((node.map(|n| n.x).unwrap_or(0.0) - 200.0).abs() < 0.01);
+}
+
+// ---- Group 5: Context Menu & Initializer ----
+
+#[test]
+fn ui_right_click_shows_context_menu() {
+    let (mut app, win_id) = test_app();
+    app.update(Message::WindowCanvas(
+        win_id,
+        CanvasMessage::ContextMenu(500.0, 300.0),
+    ));
+    assert!(app
+        .windows
+        .get(&win_id)
+        .and_then(|w| w.context_menu)
+        .is_some());
+}
+
+#[test]
+fn ui_initializer_editor_open_and_cancel() {
+    let (mut app, win_id) = test_app();
+    app.update(Message::WindowCanvas(
+        win_id,
+        CanvasMessage::InitializerEdit(0, "input".into()),
+    ));
+    assert!(app
+        .windows
+        .get(&win_id)
+        .and_then(|w| w.initializer_editor.as_ref())
+        .is_some());
+    app.update(Message::InitializerCancel(win_id));
+    assert!(app
+        .windows
+        .get(&win_id)
+        .and_then(|w| w.initializer_editor.as_ref())
+        .is_none());
+}
+
+// ---- Group 6: Library Panel ----
+
+#[test]
+fn ui_library_add_function_creates_node() {
+    let (mut app, win_id) = test_app();
+    let count_before = app.windows.get(&win_id).map(|w| w.nodes.len()).unwrap_or(0);
+    app.update(Message::Library(
+        win_id,
+        library_panel::LibraryMessage::AddFunction("lib://test_lib/math/add".into(), "add".into()),
+    ));
+    let count_after = app.windows.get(&win_id).map(|w| w.nodes.len()).unwrap_or(0);
+    assert_eq!(
+        count_after,
+        count_before + 1,
+        "Adding from library should create a new node"
+    );
+}
+
+// ---- Group 7: Window Lifecycle ----
+
+#[test]
+fn ui_close_window_removes_it() {
+    let (mut app, win_id) = test_app();
+    // Add a second window so closing the first doesn't trigger iced::exit()
+    // (iced::exit() is returned as Task and safe to ignore, but closing
+    // the root window removes it from windows map before that)
+    let second_id = window::Id::unique();
+    app.windows.insert(second_id, test_win_state());
+    app.root_window = Some(second_id);
+
+    assert!(app.windows.contains_key(&win_id));
+    app.update(Message::WindowClosed(win_id));
+    assert!(!app.windows.contains_key(&win_id));
+}
+
+#[test]
+fn ui_window_focused_updates_other() {
+    let (mut app, _win_id) = test_app();
+    let other_id = window::Id::unique();
+    app.update(Message::WindowFocused(other_id));
+    assert_eq!(app.focused_window, Some(other_id));
+}
+
+#[test]
+fn ui_close_active_window() {
+    let (mut app, win_id) = test_app();
+    // Add a second window and make it the root, so closing win_id
+    // (which is the focused window) won't trigger iced::exit()
+    let second_id = window::Id::unique();
+    app.windows.insert(second_id, test_win_state());
+    app.root_window = Some(second_id);
+    assert_eq!(app.focused_window, Some(win_id));
+    // CloseActiveWindow closes the focused window (unsaved_edits == 0, no dialog)
+    app.update(Message::CloseActiveWindow);
+    assert!(
+        !app.windows.contains_key(&win_id),
+        "CloseActiveWindow should remove the focused window"
+    );
+}
+
+// ---- Group 8: Pan and Resize ----
+
+#[test]
+fn ui_pan_changes_offset() {
+    let (mut app, win_id) = test_app();
+    let old_x = app
+        .windows
+        .get(&win_id)
+        .map(|w| w.canvas_state.scroll_offset.x)
+        .unwrap_or(0.0);
+    let old_y = app
+        .windows
+        .get(&win_id)
+        .map(|w| w.canvas_state.scroll_offset.y)
+        .unwrap_or(0.0);
+    app.update(Message::WindowCanvas(
+        win_id,
+        CanvasMessage::Pan(50.0, 30.0),
+    ));
+    let new_x = app
+        .windows
+        .get(&win_id)
+        .map(|w| w.canvas_state.scroll_offset.x)
+        .unwrap_or(0.0);
+    let new_y = app
+        .windows
+        .get(&win_id)
+        .map(|w| w.canvas_state.scroll_offset.y)
+        .unwrap_or(0.0);
+    assert!(
+        (new_x - old_x - 50.0).abs() < 0.01,
+        "Pan should change scroll_offset.x by 50"
+    );
+    assert!(
+        (new_y - old_y - 30.0).abs() < 0.01,
+        "Pan should change scroll_offset.y by 30"
+    );
+}
+
+#[test]
+fn ui_resize_node_records_history() {
+    let (mut app, win_id) = test_app();
+    // Resized updates the node dimensions immediately
+    app.update(Message::WindowCanvas(
+        win_id,
+        CanvasMessage::Resized(0, 100.0, 100.0, 250.0, 180.0),
+    ));
+    // ResizeCompleted records history: (idx, old_x, old_y, old_w, old_h, new_x, new_y, new_w, new_h)
+    app.update(Message::WindowCanvas(
+        win_id,
+        CanvasMessage::ResizeCompleted(0, 100.0, 100.0, 180.0, 120.0, 100.0, 100.0, 250.0, 180.0),
+    ));
+    assert!(
+        app.windows
+            .get(&win_id)
+            .map(|w| w.unsaved_edits)
+            .unwrap_or(0)
+            > 0,
+        "Resize should record an edit"
+    );
+    let node = app.windows.get(&win_id).and_then(|w| w.nodes.first());
+    assert!(
+        (node.map(|n| n.width).unwrap_or(0.0) - 250.0).abs() < 0.01,
+        "Node width should be 250 after resize"
+    );
+    assert!(
+        (node.map(|n| n.height).unwrap_or(0.0) - 180.0).abs() < 0.01,
+        "Node height should be 180 after resize"
+    );
+}
