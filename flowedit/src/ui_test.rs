@@ -146,10 +146,56 @@ fn test_win_state() -> WindowState {
     }
 }
 
-fn test_app() -> (FlowEdit, window::Id) {
+fn test_app_with_flow(flow: FlowDefinition) -> (FlowEdit, window::Id) {
+    // Build nodes from flow.process_refs
+    let nodes: Vec<NodeLayout> = flow
+        .process_refs
+        .iter()
+        .map(|pref| NodeLayout {
+            alias: pref.alias.to_string(),
+            source: pref.source.clone(),
+            description: String::new(),
+            x: pref.x.unwrap_or(0.0),
+            y: pref.y.unwrap_or(0.0),
+            width: pref.width.unwrap_or(180.0),
+            height: pref.height.unwrap_or(120.0),
+            inputs: Vec::new(),
+            outputs: Vec::new(),
+            initializers: HashMap::new(),
+        })
+        .collect();
+
     let win_id = window::Id::unique();
+    let win_state = WindowState {
+        kind: WindowKind::FlowEditor,
+        flow_name: flow.name.to_string(),
+        nodes,
+        edges: Vec::new(),
+        canvas_state: FlowCanvasState::default(),
+        status: String::new(),
+        selected_node: None,
+        selected_connection: None,
+        history: EditHistory::default(),
+        auto_fit_pending: false,
+        auto_fit_enabled: false,
+        unsaved_edits: 0,
+        compiled_manifest: None,
+        file_path: None,
+        flow_definition: flow,
+        tooltip: None,
+        initializer_editor: None,
+        is_root: true,
+        flow_inputs: Vec::new(),
+        flow_outputs: Vec::new(),
+        context_menu: None,
+        show_metadata: false,
+        flow_hierarchy: FlowHierarchy::empty(),
+        last_size: None,
+        last_position: None,
+    };
+
     let app = FlowEdit {
-        windows: HashMap::from([(win_id, test_win_state())]),
+        windows: HashMap::from([(win_id, win_state)]),
         root_window: Some(win_id),
         focused_window: Some(win_id),
         library_tree: LibraryTree {
@@ -175,6 +221,41 @@ fn test_app() -> (FlowEdit, window::Id) {
         context_definitions: HashMap::new(),
     };
     (app, win_id)
+}
+
+fn test_app() -> (FlowEdit, window::Id) {
+    use flowcore::model::flow_definition::FlowDefinition;
+    use flowcore::model::name::Name;
+    use flowcore::model::process_reference::ProcessReference;
+    use std::collections::BTreeMap;
+
+    // Create a flow with two test nodes: add at (100, 100), stdout at (400, 100)
+    let flow = FlowDefinition {
+        name: Name::from("test"),
+        process_refs: vec![
+            ProcessReference {
+                alias: Name::from("add"),
+                source: "lib://flowstdlib/math/add".into(),
+                initializations: BTreeMap::new(),
+                x: Some(100.0),
+                y: Some(100.0),
+                width: Some(180.0),
+                height: Some(120.0),
+            },
+            ProcessReference {
+                alias: Name::from("stdout"),
+                source: "context://stdio/stdout".into(),
+                initializations: BTreeMap::new(),
+                x: Some(400.0),
+                y: Some(100.0),
+                width: Some(180.0),
+                height: Some(120.0),
+            },
+        ],
+        ..FlowDefinition::default()
+    };
+
+    test_app_with_flow(flow)
 }
 
 #[test]
