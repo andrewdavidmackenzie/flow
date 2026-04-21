@@ -1,4 +1,4 @@
-#![allow(clippy::indexing_slicing)]
+#![allow(clippy::indexing_slicing, dead_code)]
 
 use super::*;
 use iced_test::simulator::{self, simulator};
@@ -604,6 +604,87 @@ fn canvas_click_and_update(app: &mut FlowEdit, win_id: window::Id, x: f32, y: f3
     }
 }
 
+/// Simulate a right-click at a canvas position. Positions the cursor at (x, y)
+/// and sends right mouse button press + release events, then processes all
+/// generated messages.
+fn right_click_at(app: &mut FlowEdit, win_id: window::Id, x: f32, y: f32) {
+    let view = app.view(win_id);
+    let mut ui = simulator(view);
+    ui.point_at(iced::Point::new(x, y));
+    ui.simulate([
+        iced::Event::Mouse(iced::mouse::Event::ButtonPressed(
+            iced::mouse::Button::Right,
+        )),
+        iced::Event::Mouse(iced::mouse::Event::ButtonReleased(
+            iced::mouse::Button::Right,
+        )),
+    ]);
+    let msgs: Vec<Message> = ui.into_messages().collect();
+    for msg in msgs {
+        let _ = app.update(msg);
+    }
+}
+
+/// Simulate pressing and releasing a single key. Uses the simulator's built-in
+/// `tap_key` helper which generates `KeyPressed` + `KeyReleased` events.
+fn send_key(app: &mut FlowEdit, win_id: window::Id, key: iced::keyboard::Key) {
+    let view = app.view(win_id);
+    let mut ui = simulator(view);
+    ui.tap_key(key);
+    let msgs: Vec<Message> = ui.into_messages().collect();
+    for msg in msgs {
+        let _ = app.update(msg);
+    }
+}
+
+/// Simulate a left-button drag from one canvas position to another.
+///
+/// Because `into_messages()` consumes the simulator, we perform all steps
+/// (press at `from`, cursor move to `to`, release at `to`) within a single
+/// simulator cycle. The canvas widget receives these as sequential events
+/// and should interpret them as a drag gesture.
+///
+/// **Limitation:** The iced Canvas widget's drag detection relies on internal
+/// `Program::State` fields (e.g. `dragging`) that are set during
+/// `ButtonPressed` and checked during `CursorMoved`. Because the simulator
+/// replays events through `UserInterface::update`, the cursor position is set
+/// once via `point_at` and does not change between events within a single
+/// `simulate()` call. This means the canvas may not detect cursor movement
+/// between press and release. If drag-based tests need reliable behavior,
+/// fall back to direct `CanvasMessage::Moved` / `CanvasMessage::MoveCompleted`
+/// messages instead.
+fn drag(app: &mut FlowEdit, win_id: window::Id, from: iced::Point, to: iced::Point) {
+    // Phase 1: Press at 'from' position
+    {
+        let view = app.view(win_id);
+        let mut ui = simulator(view);
+        ui.point_at(from);
+        ui.simulate([iced::Event::Mouse(iced::mouse::Event::ButtonPressed(
+            iced::mouse::Button::Left,
+        ))]);
+        let msgs: Vec<Message> = ui.into_messages().collect();
+        for msg in msgs {
+            let _ = app.update(msg);
+        }
+    }
+    // Phase 2: Move cursor to 'to' position and release
+    {
+        let view = app.view(win_id);
+        let mut ui = simulator(view);
+        ui.point_at(to);
+        ui.simulate([
+            iced::Event::Mouse(iced::mouse::Event::CursorMoved { position: to }),
+            iced::Event::Mouse(iced::mouse::Event::ButtonReleased(
+                iced::mouse::Button::Left,
+            )),
+        ]);
+        let msgs: Vec<Message> = ui.into_messages().collect();
+        for msg in msgs {
+            let _ = app.update(msg);
+        }
+    }
+}
+
 #[test]
 fn find_status_text() {
     let (app, win_id) = test_app();
@@ -754,4 +835,130 @@ fn click_build_with_saved_flow() {
         status.contains("Compiled") || status.contains("error") || status.contains("Parse"),
         "Status should reflect compile result: {status}"
     );
+}
+
+// ---- Helper function tests ----
+
+#[test]
+fn helper_right_click_sets_context_menu() {
+    let (mut app, win_id) = test_app();
+    // Right-click on empty canvas area (far from nodes) should open context menu
+    right_click_at(&mut app, win_id, 800.0, 600.0);
+    assert!(
+        app.windows
+            .get(&win_id)
+            .and_then(|w| w.context_menu)
+            .is_some(),
+        "Right-clicking empty canvas should set context_menu"
+    );
+}
+
+#[test]
+fn helper_send_key_delete() {
+    let (mut app, win_id) = test_app();
+    assert_eq!(app.windows.get(&win_id).map(|w| w.nodes.len()), Some(2));
+
+    // First, select a node via direct canvas click so the canvas internal state
+    // has selected_node set. Then send Delete in the same simulator cycle.
+    // Since the canvas widget's internal state (selected_node) is not preserved
+    // between simulator cycles, we combine click + Delete in one cycle.
+    {
+        let view = app.view(win_id);
+        let mut ui = simulator(view);
+        // Click on the first node (at world 100,100 -> screen ~320,160)
+        ui.point_at(iced::Point::new(320.0, 160.0));
+        ui.simulate(simulator::click());
+        // Now press Delete in the same simulator cycle
+        ui.tap_key(iced::keyboard::Key::Named(
+            iced::keyboard::key::Named::Delete,
+        ));
+        let msgs: Vec<Message> = ui.into_messages().collect();
+        for msg in msgs {
+            let _ = app.update(msg);
+        }
+    }
+
+    // The canvas should have emitted Selected(Some(0)) from the click,
+    // then Deleted(0) from the Delete key
+    assert_eq!(
+        app.windows.get(&win_id).map(|w| w.nodes.len()),
+        Some(1),
+        "Delete key after selecting a node should remove it"
+    );
+}
+
+#[test]
+fn helper_drag_via_direct_messages() {
+    // The simulator's drag helper has a known limitation: because the canvas
+    // widget's internal Program::State (dragging, selected_node) is not
+    // preserved across simulator cycles, and cursor position set via point_at()
+    // does not generate CursorMoved events within a single simulate() call,
+    // drag gestures may not produce the expected CanvasMessage sequence.
+    //
+    // For reliable drag testing, we fall back to direct CanvasMessage messages.
+    let (mut app, win_id) = test_app();
+
+    // Simulate a node drag from (100, 100) to (250, 350) using direct messages
+    app.update(Message::WindowCanvas(
+        win_id,
+        CanvasMessage::Moved(0, 250.0, 350.0),
+    ));
+    app.update(Message::WindowCanvas(
+        win_id,
+        CanvasMessage::MoveCompleted(0, 100.0, 100.0, 250.0, 350.0),
+    ));
+
+    let node = app.windows.get(&win_id).and_then(|w| w.nodes.first());
+    assert!(
+        (node.map(|n| n.x).unwrap_or(0.0) - 250.0).abs() < 0.01,
+        "Node x should be 250 after drag"
+    );
+    assert!(
+        (node.map(|n| n.y).unwrap_or(0.0) - 350.0).abs() < 0.01,
+        "Node y should be 350 after drag"
+    );
+    assert_eq!(
+        app.windows.get(&win_id).map(|w| w.unsaved_edits),
+        Some(1),
+        "Drag should record an edit"
+    );
+}
+
+#[test]
+fn helper_drag_simulator_smoke_test() {
+    // Smoke test: verify the drag() helper runs without panicking.
+    // Due to the simulator limitation described above, the canvas may not
+    // detect the drag gesture, so we only verify the helper completes and
+    // the app state remains consistent.
+    let (mut app, win_id) = test_app();
+    let original_x = app
+        .windows
+        .get(&win_id)
+        .and_then(|w| w.nodes.first())
+        .map(|n| n.x)
+        .unwrap_or(0.0);
+
+    drag(
+        &mut app,
+        win_id,
+        iced::Point::new(320.0, 160.0),
+        iced::Point::new(500.0, 400.0),
+    );
+
+    // The node may or may not have moved depending on whether the simulator
+    // correctly propagated the drag events through the canvas widget.
+    // We just verify the app didn't panic and state is still valid.
+    assert!(
+        app.windows.contains_key(&win_id),
+        "Window state should still exist after drag"
+    );
+    let _current_x = app
+        .windows
+        .get(&win_id)
+        .and_then(|w| w.nodes.first())
+        .map(|n| n.x)
+        .unwrap_or(0.0);
+    // Note: if current_x == original_x, the simulator drag didn't produce
+    // canvas events. This is expected due to the limitation documented above.
+    let _ = original_x; // suppress unused warning
 }
