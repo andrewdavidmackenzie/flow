@@ -260,6 +260,38 @@ pub(crate) struct WindowState {
     pub(crate) last_position: Option<iced::Point>,
 }
 
+impl Default for WindowState {
+    fn default() -> Self {
+        Self {
+            kind: WindowKind::FlowEditor,
+            flow_name: String::new(),
+            nodes: Vec::new(),
+            edges: Vec::new(),
+            canvas_state: FlowCanvasState::default(),
+            status: String::new(),
+            selected_node: None,
+            selected_connection: None,
+            history: EditHistory::default(),
+            auto_fit_pending: false,
+            auto_fit_enabled: false,
+            unsaved_edits: 0,
+            compiled_manifest: None,
+            file_path: None,
+            flow_definition: FlowDefinition::default(),
+            tooltip: None,
+            initializer_editor: None,
+            is_root: false,
+            flow_inputs: Vec::new(),
+            flow_outputs: Vec::new(),
+            context_menu: None,
+            show_metadata: false,
+            flow_hierarchy: FlowHierarchy::empty(),
+            last_size: None,
+            last_position: None,
+        }
+    }
+}
+
 /// Top-level application state
 struct FlowEdit {
     /// Per-window states, keyed by window ID

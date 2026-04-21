@@ -22,34 +22,13 @@ fn test_node(alias: &str, source: &str) -> NodeLayout {
 #[test]
 fn sync_flow_definition_preserves_nodes() {
     let mut win = WindowState {
-        kind: WindowKind::FlowEditor,
         flow_name: String::from("test"),
         nodes: vec![
             test_node("add", "lib://flowstdlib/math/add"),
             test_node("stdout", "context://stdio/stdout"),
         ],
-        edges: Vec::new(),
-        canvas_state: FlowCanvasState::default(),
-        status: String::new(),
-        selected_node: None,
-        selected_connection: None,
-        history: EditHistory::default(),
-        auto_fit_pending: false,
-        auto_fit_enabled: false,
-        unsaved_edits: 0,
-        compiled_manifest: None,
-        file_path: None,
-        flow_definition: FlowDefinition::default(),
-        tooltip: None,
-        initializer_editor: None,
         is_root: true,
-        flow_inputs: Vec::new(),
-        flow_outputs: Vec::new(),
-        context_menu: None,
-        show_metadata: false,
-        flow_hierarchy: FlowHierarchy::empty(),
-        last_size: None,
-        last_position: None,
+        ..Default::default()
     };
 
     initializer::sync_flow_definition(&mut win);
@@ -60,31 +39,10 @@ fn sync_flow_definition_preserves_nodes() {
 #[test]
 fn record_and_undo_edit() {
     let mut win = WindowState {
-        kind: WindowKind::FlowEditor,
         flow_name: String::from("test"),
         nodes: vec![test_node("a", "lib://test")],
-        edges: Vec::new(),
-        canvas_state: FlowCanvasState::default(),
-        status: String::new(),
-        selected_node: None,
-        selected_connection: None,
-        history: EditHistory::default(),
-        auto_fit_pending: false,
-        auto_fit_enabled: false,
-        unsaved_edits: 0,
-        compiled_manifest: None,
-        file_path: None,
-        flow_definition: FlowDefinition::default(),
-        tooltip: None,
-        initializer_editor: None,
         is_root: true,
-        flow_inputs: Vec::new(),
-        flow_outputs: Vec::new(),
-        context_menu: None,
-        show_metadata: false,
-        flow_hierarchy: FlowHierarchy::empty(),
-        last_size: None,
-        last_position: None,
+        ..Default::default()
     };
 
     // Move node
@@ -115,34 +73,13 @@ fn record_and_undo_edit() {
 
 fn test_win_state() -> WindowState {
     WindowState {
-        kind: WindowKind::FlowEditor,
         flow_name: String::from("test"),
         nodes: vec![
             test_node("add", "lib://flowstdlib/math/add"),
             test_node("stdout", "context://stdio/stdout"),
         ],
-        edges: Vec::new(),
-        canvas_state: FlowCanvasState::default(),
-        status: String::new(),
-        selected_node: None,
-        selected_connection: None,
-        history: EditHistory::default(),
-        auto_fit_pending: false,
-        auto_fit_enabled: false,
-        unsaved_edits: 0,
-        compiled_manifest: None,
-        file_path: None,
-        flow_definition: FlowDefinition::default(),
-        tooltip: None,
-        initializer_editor: None,
         is_root: true,
-        flow_inputs: Vec::new(),
-        flow_outputs: Vec::new(),
-        context_menu: None,
-        show_metadata: false,
-        flow_hierarchy: FlowHierarchy::empty(),
-        last_size: None,
-        last_position: None,
+        ..Default::default()
     }
 }
 
@@ -172,31 +109,12 @@ fn test_app_with_flow(flow: FlowDefinition) -> (FlowEdit, window::Id) {
 
     let win_id = window::Id::unique();
     let win_state = WindowState {
-        kind: WindowKind::FlowEditor,
         flow_name: flow.name.clone(),
         nodes,
         edges,
-        canvas_state: FlowCanvasState::default(),
-        status: String::new(),
-        selected_node: None,
-        selected_connection: None,
-        history: EditHistory::default(),
-        auto_fit_pending: false,
-        auto_fit_enabled: false,
-        unsaved_edits: 0,
-        compiled_manifest: None,
-        file_path: None,
         flow_definition: flow,
-        tooltip: None,
-        initializer_editor: None,
         is_root: true,
-        flow_inputs: Vec::new(),
-        flow_outputs: Vec::new(),
-        context_menu: None,
-        show_metadata: false,
-        flow_hierarchy: FlowHierarchy::empty(),
-        last_size: None,
-        last_position: None,
+        ..Default::default()
     };
 
     let app = FlowEdit {
