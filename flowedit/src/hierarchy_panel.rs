@@ -304,4 +304,148 @@ mod test {
         let h = FlowHierarchy::empty();
         assert!(h.root.is_none());
     }
+
+    #[test]
+    fn toggle_root_node() {
+        let mut h = FlowHierarchy {
+            root: Some(HierarchyNode {
+                name: "root_flow".into(),
+                kind: NodeKind::Flow,
+                source: String::new(),
+                path: None,
+                children: Vec::new(),
+                expanded: true,
+            }),
+        };
+        h.update(&HierarchyMessage::Toggle(vec![]));
+        assert!(!h.root.as_ref().unwrap().expanded);
+        h.update(&HierarchyMessage::Toggle(vec![]));
+        assert!(h.root.as_ref().unwrap().expanded);
+    }
+
+    #[test]
+    fn toggle_child_node() {
+        let mut h = FlowHierarchy {
+            root: Some(HierarchyNode {
+                name: "root".into(),
+                kind: NodeKind::Flow,
+                source: String::new(),
+                path: None,
+                children: vec![HierarchyNode {
+                    name: "child_flow".into(),
+                    kind: NodeKind::Flow,
+                    source: "child.toml".into(),
+                    path: None,
+                    children: Vec::new(),
+                    expanded: false,
+                }],
+                expanded: true,
+            }),
+        };
+        h.update(&HierarchyMessage::Toggle(vec![0]));
+        assert!(h.root.as_ref().unwrap().children[0].expanded);
+    }
+
+    #[test]
+    fn toggle_nested_child() {
+        let mut h = FlowHierarchy {
+            root: Some(HierarchyNode {
+                name: "root".into(),
+                kind: NodeKind::Flow,
+                source: String::new(),
+                path: None,
+                children: vec![HierarchyNode {
+                    name: "sub".into(),
+                    kind: NodeKind::Flow,
+                    source: String::new(),
+                    path: None,
+                    children: vec![HierarchyNode {
+                        name: "deep".into(),
+                        kind: NodeKind::Flow,
+                        source: String::new(),
+                        path: None,
+                        children: Vec::new(),
+                        expanded: false,
+                    }],
+                    expanded: true,
+                }],
+                expanded: true,
+            }),
+        };
+        h.update(&HierarchyMessage::Toggle(vec![0, 0]));
+        assert!(h.root.as_ref().unwrap().children[0].children[0].expanded);
+    }
+
+    #[test]
+    fn toggle_invalid_index_no_panic() {
+        let mut h = FlowHierarchy {
+            root: Some(HierarchyNode {
+                name: "root".into(),
+                kind: NodeKind::Flow,
+                source: String::new(),
+                path: None,
+                children: Vec::new(),
+                expanded: true,
+            }),
+        };
+        h.update(&HierarchyMessage::Toggle(vec![99]));
+        // Should not panic
+    }
+
+    #[test]
+    fn open_returns_source_and_path() {
+        let mut h = FlowHierarchy::empty();
+        let result = h.update(&HierarchyMessage::Open(
+            "sub.toml".into(),
+            PathBuf::from("/tmp/sub.toml"),
+        ));
+        assert!(result.is_some());
+        let (source, path) = result.unwrap();
+        assert_eq!(source, "sub.toml");
+        assert_eq!(path, PathBuf::from("/tmp/sub.toml"));
+    }
+
+    #[test]
+    fn toggle_empty_hierarchy_no_panic() {
+        let mut h = FlowHierarchy::empty();
+        h.update(&HierarchyMessage::Toggle(vec![]));
+    }
+
+    #[test]
+    fn view_with_nodes_renders() {
+        let h = FlowHierarchy {
+            root: Some(HierarchyNode {
+                name: "test_flow".into(),
+                kind: NodeKind::Flow,
+                source: String::new(),
+                path: None,
+                children: vec![
+                    HierarchyNode {
+                        name: "func".into(),
+                        kind: NodeKind::Function,
+                        source: "func.rs".into(),
+                        path: Some(PathBuf::from("/tmp/func.toml")),
+                        children: Vec::new(),
+                        expanded: false,
+                    },
+                    HierarchyNode {
+                        name: "lib_func".into(),
+                        kind: NodeKind::Library,
+                        source: "lib://flowstdlib/math/add".into(),
+                        path: None,
+                        children: Vec::new(),
+                        expanded: false,
+                    },
+                ],
+                expanded: true,
+            }),
+        };
+        let _element: Element<'_, HierarchyMessage> = h.view();
+    }
+
+    #[test]
+    fn view_empty_renders() {
+        let h = FlowHierarchy::empty();
+        let _element: Element<'_, HierarchyMessage> = h.view();
+    }
 }
