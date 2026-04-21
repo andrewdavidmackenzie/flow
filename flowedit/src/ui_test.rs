@@ -1274,3 +1274,124 @@ fn ui_resize_node_records_history() {
         "Node height should be 180 after resize"
     );
 }
+
+// ---- Group 9: Initializer Tests ----
+
+#[test]
+fn initializer_apply_once() {
+    let (mut app, win_id) = test_app();
+    // Add a process ref so apply can find it
+    if let Some(win) = app.windows.get_mut(&win_id) {
+        let editor = InitializerEditor {
+            node_index: 0,
+            port_name: "input".into(),
+            init_type: "once".into(),
+            value_text: "42".into(),
+        };
+        initializer::apply_initializer_edit(win, &editor);
+        assert!(win.unsaved_edits > 0);
+        // Check display was updated
+        assert!(win
+            .nodes
+            .first()
+            .and_then(|n| n.initializers.get("input"))
+            .is_some_and(|d| d.contains("once")));
+    }
+}
+
+#[test]
+fn initializer_apply_always() {
+    let (mut app, win_id) = test_app();
+    if let Some(win) = app.windows.get_mut(&win_id) {
+        let editor = InitializerEditor {
+            node_index: 0,
+            port_name: "input".into(),
+            init_type: "always".into(),
+            value_text: "\"hello\"".into(),
+        };
+        initializer::apply_initializer_edit(win, &editor);
+        assert!(win
+            .nodes
+            .first()
+            .and_then(|n| n.initializers.get("input"))
+            .is_some_and(|d| d.contains("always")));
+    }
+}
+
+#[test]
+fn initializer_apply_none_removes() {
+    let (mut app, win_id) = test_app();
+    if let Some(win) = app.windows.get_mut(&win_id) {
+        // First set one
+        let editor = InitializerEditor {
+            node_index: 0,
+            port_name: "input".into(),
+            init_type: "once".into(),
+            value_text: "42".into(),
+        };
+        initializer::apply_initializer_edit(win, &editor);
+        assert!(win
+            .nodes
+            .first()
+            .and_then(|n| n.initializers.get("input"))
+            .is_some());
+
+        // Then remove it
+        let editor = InitializerEditor {
+            node_index: 0,
+            port_name: "input".into(),
+            init_type: "none".into(),
+            value_text: String::new(),
+        };
+        initializer::apply_initializer_edit(win, &editor);
+        assert!(win
+            .nodes
+            .first()
+            .and_then(|n| n.initializers.get("input"))
+            .is_none());
+    }
+}
+
+#[test]
+fn initializer_apply_state_set_and_remove() {
+    use flowcore::model::input::InputInitializer;
+
+    let (mut app, win_id) = test_app();
+    if let Some(win) = app.windows.get_mut(&win_id) {
+        let init = InputInitializer::Once(serde_json::json!(99));
+        let display = "once: 99".to_string();
+        initializer::apply_initializer_state(win, 0, "port", Some(&init), Some(&display));
+        assert!(win
+            .nodes
+            .first()
+            .and_then(|n| n.initializers.get("port"))
+            .is_some());
+
+        // Remove
+        initializer::apply_initializer_state(win, 0, "port", None, None);
+        assert!(win
+            .nodes
+            .first()
+            .and_then(|n| n.initializers.get("port"))
+            .is_none());
+    }
+}
+
+#[test]
+fn initializer_apply_invalid_type_no_change() {
+    let (mut app, win_id) = test_app();
+    if let Some(win) = app.windows.get_mut(&win_id) {
+        let edits_before = win.unsaved_edits;
+        let editor = InitializerEditor {
+            node_index: 0,
+            port_name: "input".into(),
+            init_type: "bogus".into(),
+            value_text: "42".into(),
+        };
+        initializer::apply_initializer_edit(win, &editor);
+        assert_eq!(
+            win.unsaved_edits, edits_before,
+            "Invalid type should not create an edit"
+        );
+    }
+}
