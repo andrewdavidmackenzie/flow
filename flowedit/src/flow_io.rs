@@ -1,17 +1,14 @@
 //! Flow file operations: loading, saving, compiling, and editor preferences.
 
-use std::collections::{BTreeMap, BTreeSet, HashMap};
+use std::collections::{BTreeMap, BTreeSet};
 use std::fmt::Write;
 use std::path::{Path, PathBuf};
 
-use log::info;
 use simpath::Simpath;
 use url::Url;
 
-use crate::canvas_view::FlowCanvasState;
-use crate::canvas_view::{build_node_layouts, NodeLayout, PortInfo};
+use crate::canvas_view::{derive_short_name, FlowCanvasState, PortInfo};
 use crate::history::EditHistory;
-use crate::initializer;
 use crate::{FunctionViewer, WindowState};
 use flowcore::meta_provider::MetaProvider;
 use flowcore::model::flow_definition::FlowDefinition;
@@ -21,7 +18,6 @@ use flowcore::model::process::Process;
 
 /// Result of loading a flow definition file.
 pub(crate) struct LoadedFlow {
-    pub(crate) nodes: Vec<NodeLayout>,
     pub(crate) flow_def: FlowDefinition,
     pub(crate) lib_references: BTreeSet<Url>,
     pub(crate) context_references: BTreeSet<Url>,
@@ -37,7 +33,6 @@ pub(crate) struct EditorPrefs {
 
 /// Save the current flow to the given path.
 pub(crate) fn perform_save(win: &mut WindowState, path: &PathBuf) {
-    initializer::sync_flow_definition(win);
     match save_flow_toml(&win.flow_definition, path) {
         Ok(()) => {
             win.unsaved_edits = 0;
@@ -87,9 +82,8 @@ pub(crate) fn perform_open(win: &mut WindowState) -> Option<(BTreeSet<Url>, BTre
     if let Some(path) = dialog.pick_file() {
         match load_flow(&path) {
             Ok(loaded) => {
-                let nc = loaded.nodes.len();
+                let nc = loaded.flow_def.process_refs.len();
                 let ec = loaded.flow_def.connections.len();
-                win.nodes = loaded.nodes;
                 win.flow_definition = loaded.flow_def;
                 win.set_file_path(&path);
                 win.selected_node = None;
@@ -112,7 +106,6 @@ pub(crate) fn perform_open(win: &mut WindowState) -> Option<(BTreeSet<Url>, BTre
 
 /// Clear the canvas and reset to an empty flow state.
 pub(crate) fn perform_new(win: &mut WindowState) {
-    win.nodes = Vec::new();
     win.flow_definition = FlowDefinition::default();
     win.flow_definition.name = String::from("(new flow)");
     win.clear_file_path();
@@ -277,37 +270,13 @@ pub(crate) fn load_flow(path: &PathBuf) -> Result<LoadedFlow, String> {
         .map_err(|e| format!("Could not parse flow definition: {e}"))?;
 
     match process {
-        Process::FlowProcess(flow) => {
-            // Extract port definitions from the fully-resolved subprocesses
-            let mut resolved_ports = HashMap::new();
-            for (alias, subprocess) in &flow.subprocesses {
-                let (inputs, outputs) = match subprocess {
-                    Process::FunctionProcess(func) => {
-                        extract_ports(&func.inputs, &func.outputs)
-                    }
-                    Process::FlowProcess(sub_flow) => {
-                        extract_ports(&sub_flow.inputs, &sub_flow.outputs)
-                    }
-                };
-                info!(
-                    "Resolved '{}': {} inputs, {} outputs",
-                    alias,
-                    inputs.len(),
-                    outputs.len()
-                );
-                resolved_ports.insert(alias.clone(), (inputs, outputs));
-            }
+        Process::FlowProcess(mut flow) => {
+            // Assign default positions to nodes that don't have saved x/y
+            assign_default_positions(&mut flow);
 
-            let nodes = build_node_layouts(
-                &flow.process_refs,
-                &flow.connections,
-                &resolved_ports,
-                &flow.subprocesses,
-            );
             let lib_references = flow.lib_references.clone();
             let context_references = flow.context_references.clone();
             Ok(LoadedFlow {
-                nodes,
                 flow_def: flow,
                 lib_references,
                 context_references,
@@ -504,15 +473,27 @@ pub(crate) fn save_flow_toml(flow: &FlowDefinition, path: &PathBuf) -> Result<()
 }
 
 /// Generate a unique alias for a new node, appending a numeric suffix if needed.
-pub(crate) fn generate_unique_alias(base_name: &str, nodes: &[NodeLayout]) -> String {
-    let existing: Vec<&str> = nodes.iter().map(|n| n.alias.as_str()).collect();
-    if !existing.contains(&base_name) {
+pub(crate) fn generate_unique_alias(
+    base_name: &str,
+    process_refs: &[flowcore::model::process_reference::ProcessReference],
+) -> String {
+    let existing: Vec<String> = process_refs
+        .iter()
+        .map(|pr| {
+            if pr.alias.is_empty() {
+                derive_short_name(&pr.source)
+            } else {
+                pr.alias.clone()
+            }
+        })
+        .collect();
+    if !existing.contains(&base_name.to_string()) {
         return base_name.to_string();
     }
     let mut counter = 2u32;
     loop {
         let candidate = format!("{base_name}_{counter}");
-        if !existing.iter().any(|a| *a == candidate) {
+        if !existing.contains(&candidate) {
             return candidate;
         }
         counter = counter.saturating_add(1);
@@ -520,13 +501,44 @@ pub(crate) fn generate_unique_alias(base_name: &str, nodes: &[NodeLayout]) -> St
 }
 
 /// Compute a default position for a new node, offset from the last node or at a default origin.
-pub(crate) fn next_node_position(nodes: &[NodeLayout]) -> (f32, f32) {
-    if nodes.is_empty() {
+pub(crate) fn next_node_position(
+    process_refs: &[flowcore::model::process_reference::ProcessReference],
+) -> (f32, f32) {
+    if process_refs.is_empty() {
         return (100.0, 100.0);
     }
     // Find the rightmost node and place the new one to its right
-    let max_right = nodes.iter().map(|n| n.x + n.width).fold(0.0_f32, f32::max);
+    let max_right = process_refs
+        .iter()
+        .map(|pr| pr.x.unwrap_or(100.0) + pr.width.unwrap_or(180.0))
+        .fold(0.0_f32, f32::max);
     (max_right + 50.0, 100.0)
+}
+
+/// Assign default positions to process references that don't have saved x/y coordinates.
+///
+/// Uses topological layout based on connections to determine column placement.
+fn assign_default_positions(flow: &mut FlowDefinition) {
+    use crate::canvas_view;
+
+    let needs_layout = flow
+        .process_refs
+        .iter()
+        .any(|pr| pr.x.is_none() || pr.y.is_none());
+    if !needs_layout {
+        return;
+    }
+
+    // Build render nodes (which computes topo positions) and copy back positions
+    let render_nodes = canvas_view::build_render_nodes(flow);
+    for (pref, node) in flow.process_refs.iter_mut().zip(render_nodes.iter()) {
+        if pref.x.is_none() {
+            pref.x = Some(node.x);
+        }
+        if pref.y.is_none() {
+            pref.y = Some(node.y);
+        }
+    }
 }
 
 /// Format a connection endpoint for display, omitting "default" or empty port names.
@@ -704,7 +716,6 @@ pub(crate) fn load_editor_prefs(flow_path: &Path) -> Option<EditorPrefs> {
 #[allow(clippy::indexing_slicing)]
 mod test {
     use super::*;
-    use std::collections::HashMap;
 
     use flowcore::model::process_reference::ProcessReference;
 
@@ -713,18 +724,15 @@ mod test {
     use crate::history::EditHistory;
     use crate::WindowKind;
 
-    fn test_node(alias: &str, source: &str) -> NodeLayout {
-        NodeLayout {
+    fn test_pref(alias: &str, source: &str) -> ProcessReference {
+        ProcessReference {
             alias: alias.into(),
             source: source.into(),
-            description: String::new(),
-            x: 100.0,
-            y: 100.0,
-            width: 180.0,
-            height: 120.0,
-            inputs: Vec::new(),
-            outputs: Vec::new(),
-            initializers: HashMap::new(),
+            initializations: std::collections::BTreeMap::new(),
+            x: Some(100.0),
+            y: Some(100.0),
+            width: Some(180.0),
+            height: Some(120.0),
         }
     }
 
@@ -736,36 +744,37 @@ mod test {
 
     #[test]
     fn unique_alias_no_conflict() {
-        let nodes = vec![test_node("add", "lib://test")];
-        assert_eq!(generate_unique_alias("subtract", &nodes), "subtract");
+        let prefs = vec![test_pref("add", "lib://test")];
+        assert_eq!(generate_unique_alias("subtract", &prefs), "subtract");
     }
 
     #[test]
     fn unique_alias_with_conflict() {
-        let nodes = vec![test_node("add", "lib://test")];
-        assert_eq!(generate_unique_alias("add", &nodes), "add_2");
+        let prefs = vec![test_pref("add", "lib://test")];
+        assert_eq!(generate_unique_alias("add", &prefs), "add_2");
     }
 
     #[test]
     fn unique_alias_multiple_conflicts() {
-        let nodes = vec![
-            test_node("add", "lib://test"),
-            test_node("add_2", "lib://test"),
+        let prefs = vec![
+            test_pref("add", "lib://test"),
+            test_pref("add_2", "lib://test"),
         ];
-        assert_eq!(generate_unique_alias("add", &nodes), "add_3");
+        assert_eq!(generate_unique_alias("add", &prefs), "add_3");
     }
 
     #[test]
     fn next_position_empty() {
-        let (x, y) = next_node_position(&[]);
-        assert!((x - 100.0).abs() < 0.01);
-        assert!((y - 100.0).abs() < 0.01);
+        let prefs: Vec<ProcessReference> = vec![];
+        let (x, y) = next_node_position(&prefs);
+        assert!((x - 100.0_f32).abs() < 0.01);
+        assert!((y - 100.0_f32).abs() < 0.01);
     }
 
     #[test]
     fn next_position_after_nodes() {
-        let nodes = vec![test_node("a", "lib://test")];
-        let (x, _y) = next_node_position(&nodes);
+        let prefs = vec![test_pref("a", "lib://test")];
+        let (x, _y) = next_node_position(&prefs);
         assert!(x > 280.0); // right of existing node + gap
     }
 
@@ -904,7 +913,7 @@ mod test {
 
         let loaded = load_flow(&path).expect("load failed");
         assert_eq!(loaded.flow_def.name, "roundtrip_test");
-        assert_eq!(loaded.nodes.len(), 1);
+        assert_eq!(loaded.flow_def.process_refs.len(), 1);
         assert_eq!(loaded.flow_def.connections.len(), 1);
         assert_eq!(loaded.flow_def.metadata.version, "1.0.0");
 
@@ -1126,14 +1135,14 @@ mod test {
     fn test_win_state() -> WindowState {
         let flow_def = FlowDefinition {
             name: String::from("test"),
+            process_refs: vec![
+                test_pref("add", "lib://flowstdlib/math/add"),
+                test_pref("stdout", "context://stdio/stdout"),
+            ],
             ..FlowDefinition::default()
         };
         WindowState {
             kind: WindowKind::FlowEditor,
-            nodes: vec![
-                test_node("add", "lib://flowstdlib/math/add"),
-                test_node("stdout", "context://stdio/stdout"),
-            ],
             canvas_state: FlowCanvasState::default(),
             status: String::new(),
             selected_node: None,

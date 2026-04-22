@@ -6,8 +6,10 @@
 
 use flowcore::model::connection::Connection;
 use flowcore::model::input::InputInitializer;
+use flowcore::model::name::Name;
+use flowcore::model::process::Process;
+use flowcore::model::process_reference::ProcessReference;
 
-use crate::canvas_view::NodeLayout;
 use crate::initializer;
 use crate::WindowState;
 
@@ -48,12 +50,14 @@ pub(crate) enum EditAction {
         /// New geometry
         new_h: f32,
     },
-    /// A node was deleted. Stores the node and its connected connections for restoration.
+    /// A node was deleted. Stores the process reference and subprocess for restoration.
     DeleteNode {
         /// Index where the node was
         index: usize,
-        /// The deleted node
-        node: NodeLayout,
+        /// The deleted process reference
+        process_ref: ProcessReference,
+        /// The removed subprocess definition, if any
+        subprocess: Option<(Name, Process)>,
         /// Connections that were removed with the node
         removed_connections: Vec<Connection>,
     },
@@ -77,12 +81,8 @@ pub(crate) enum EditAction {
         port_name: String,
         /// Previous initializer (None if there was none)
         old_init: Option<InputInitializer>,
-        /// Previous display string (None if there was none)
-        old_display: Option<String>,
         /// New initializer (None if removed)
         new_init: Option<InputInitializer>,
-        /// New display string (None if removed)
-        new_display: Option<String>,
     },
 }
 
@@ -144,9 +144,9 @@ fn apply_undo(win: &mut WindowState) {
                 old_y,
                 ..
             } => {
-                if let Some(node) = win.nodes.get_mut(index) {
-                    node.x = old_x;
-                    node.y = old_y;
+                if let Some(pref) = win.flow_definition.process_refs.get_mut(index) {
+                    pref.x = Some(old_x);
+                    pref.y = Some(old_y);
                 }
                 win.status = String::from("Undo: move");
             }
@@ -158,20 +158,24 @@ fn apply_undo(win: &mut WindowState) {
                 old_h,
                 ..
             } => {
-                if let Some(node) = win.nodes.get_mut(index) {
-                    node.x = old_x;
-                    node.y = old_y;
-                    node.width = old_w;
-                    node.height = old_h;
+                if let Some(pref) = win.flow_definition.process_refs.get_mut(index) {
+                    pref.x = Some(old_x);
+                    pref.y = Some(old_y);
+                    pref.width = Some(old_w);
+                    pref.height = Some(old_h);
                 }
                 win.status = String::from("Undo: resize");
             }
             EditAction::DeleteNode {
                 index,
-                node,
+                process_ref,
+                subprocess,
                 removed_connections,
             } => {
-                win.nodes.insert(index, node);
+                win.flow_definition.process_refs.insert(index, process_ref);
+                if let Some((name, proc)) = subprocess {
+                    win.flow_definition.subprocesses.insert(name, proc);
+                }
                 win.flow_definition.connections.extend(removed_connections);
                 win.status = String::from("Undo: delete node");
             }
@@ -193,16 +197,9 @@ fn apply_undo(win: &mut WindowState) {
                 node_index,
                 ref port_name,
                 ref old_init,
-                ref old_display,
                 ..
             } => {
-                initializer::apply_initializer_state(
-                    win,
-                    node_index,
-                    port_name,
-                    old_init.as_ref(),
-                    old_display.as_ref(),
-                );
+                initializer::apply_initializer_state(win, node_index, port_name, old_init.as_ref());
                 win.status = String::from("Undo: initializer");
             }
         }
@@ -220,9 +217,9 @@ fn apply_redo(win: &mut WindowState) {
                 new_y,
                 ..
             } => {
-                if let Some(node) = win.nodes.get_mut(index) {
-                    node.x = new_x;
-                    node.y = new_y;
+                if let Some(pref) = win.flow_definition.process_refs.get_mut(index) {
+                    pref.x = Some(new_x);
+                    pref.y = Some(new_y);
                 }
                 win.status = String::from("Redo: move");
             }
@@ -234,21 +231,32 @@ fn apply_redo(win: &mut WindowState) {
                 new_h,
                 ..
             } => {
-                if let Some(node) = win.nodes.get_mut(index) {
-                    node.x = new_x;
-                    node.y = new_y;
-                    node.width = new_w;
-                    node.height = new_h;
+                if let Some(pref) = win.flow_definition.process_refs.get_mut(index) {
+                    pref.x = Some(new_x);
+                    pref.y = Some(new_y);
+                    pref.width = Some(new_w);
+                    pref.height = Some(new_h);
                 }
                 win.status = String::from("Redo: resize");
             }
             EditAction::DeleteNode {
                 index,
+                subprocess,
                 removed_connections,
                 ..
             } => {
-                if index < win.nodes.len() {
-                    win.nodes.remove(index);
+                if index < win.flow_definition.process_refs.len() {
+                    let removed = win.flow_definition.process_refs.remove(index);
+                    let alias = if removed.alias.is_empty() {
+                        crate::canvas_view::derive_short_name(&removed.source)
+                    } else {
+                        removed.alias.clone()
+                    };
+                    win.flow_definition.subprocesses.remove(&alias);
+                }
+                // Also remove re-inserted subprocess if it was restored during undo
+                if let Some((ref name, _)) = subprocess {
+                    win.flow_definition.subprocesses.remove(name);
                 }
                 for conn in &removed_connections {
                     let from_str = conn.from().to_string();
@@ -274,16 +282,9 @@ fn apply_redo(win: &mut WindowState) {
                 node_index,
                 ref port_name,
                 ref new_init,
-                ref new_display,
                 ..
             } => {
-                initializer::apply_initializer_state(
-                    win,
-                    node_index,
-                    port_name,
-                    new_init.as_ref(),
-                    new_display.as_ref(),
-                );
+                initializer::apply_initializer_state(win, node_index, port_name, new_init.as_ref());
                 win.status = String::from("Redo: initializer");
             }
         }
@@ -310,20 +311,17 @@ pub(crate) fn handle_redo(win: &mut WindowState) {
 #[cfg(test)]
 mod test {
     use super::*;
-    use std::collections::HashMap;
+    use std::collections::BTreeMap;
 
-    fn test_node() -> NodeLayout {
-        NodeLayout {
+    fn test_pref() -> ProcessReference {
+        ProcessReference {
             alias: "test".into(),
             source: "lib://test".into(),
-            description: String::new(),
-            x: 100.0,
-            y: 100.0,
-            width: 180.0,
-            height: 120.0,
-            inputs: Vec::new(),
-            outputs: Vec::new(),
-            initializers: HashMap::new(),
+            initializations: BTreeMap::new(),
+            x: Some(100.0),
+            y: Some(100.0),
+            width: Some(180.0),
+            height: Some(120.0),
         }
     }
 
@@ -401,17 +399,22 @@ mod test {
     #[test]
     fn delete_node_roundtrip() {
         let mut history = EditHistory::default();
-        let node = test_node();
+        let pref = test_pref();
         history.record(EditAction::DeleteNode {
             index: 0,
-            node: node.clone(),
+            process_ref: pref.clone(),
+            subprocess: None,
             removed_connections: vec![],
         });
         let action = history.undo().expect("Should have action");
         match action {
-            EditAction::DeleteNode { index, node: n, .. } => {
+            EditAction::DeleteNode {
+                index,
+                process_ref: pr,
+                ..
+            } => {
                 assert_eq!(index, 0);
-                assert_eq!(n.alias, node.alias);
+                assert_eq!(pr.alias, pref.alias);
             }
             _ => panic!("Expected DeleteNode"),
         }
@@ -440,19 +443,9 @@ mod test {
 
     // --- Tests moved from ui_test.rs (direct function calls, no message routing) ---
 
-    fn test_win_node(alias: &str, source: &str) -> NodeLayout {
-        NodeLayout {
-            alias: alias.into(),
-            source: source.into(),
-            ..Default::default()
-        }
-    }
-
     fn test_win_state() -> WindowState {
         use flowcore::model::flow_definition::FlowDefinition;
         use flowcore::model::name::Name;
-        use flowcore::model::process_reference::ProcessReference;
-        use std::collections::BTreeMap;
 
         let flow = FlowDefinition {
             name: Name::from("test"),
@@ -479,22 +472,7 @@ mod test {
             ..FlowDefinition::default()
         };
 
-        let nodes: Vec<NodeLayout> = flow
-            .process_refs
-            .iter()
-            .map(|pref| NodeLayout {
-                alias: pref.alias.clone(),
-                source: pref.source.clone(),
-                x: pref.x.unwrap_or(0.0),
-                y: pref.y.unwrap_or(0.0),
-                width: pref.width.unwrap_or(180.0),
-                height: pref.height.unwrap_or(120.0),
-                ..Default::default()
-            })
-            .collect();
-
         WindowState {
-            nodes,
             flow_definition: flow,
             is_root: true,
             ..Default::default()
@@ -503,21 +481,29 @@ mod test {
 
     #[test]
     fn record_and_undo_edit() {
-        let flow_def = flowcore::model::flow_definition::FlowDefinition {
+        let mut flow_def = flowcore::model::flow_definition::FlowDefinition {
             name: String::from("test"),
             ..flowcore::model::flow_definition::FlowDefinition::default()
         };
+        flow_def.process_refs.push(ProcessReference {
+            alias: "a".into(),
+            source: "lib://test".into(),
+            initializations: BTreeMap::new(),
+            x: Some(100.0),
+            y: Some(100.0),
+            width: Some(180.0),
+            height: Some(120.0),
+        });
         let mut win = WindowState {
-            nodes: vec![test_win_node("a", "lib://test")],
             flow_definition: flow_def,
             is_root: true,
             ..Default::default()
         };
 
         // Move node
-        if let Some(n) = win.nodes.first_mut() {
-            n.x = 200.0;
-            n.y = 300.0;
+        if let Some(pref) = win.flow_definition.process_refs.first_mut() {
+            pref.x = Some(200.0);
+            pref.y = Some(300.0);
         }
         record_edit(
             &mut win,
@@ -533,34 +519,24 @@ mod test {
 
         // Undo
         handle_undo(&mut win);
-        assert!(win
-            .nodes
-            .first()
-            .is_some_and(|n| (n.x - 100.0).abs() < 0.01));
-        assert!(win
-            .nodes
-            .first()
-            .is_some_and(|n| (n.y - 100.0).abs() < 0.01));
+        let pref = win.flow_definition.process_refs.first();
+        assert!(pref.is_some_and(|p| (p.x.unwrap_or(0.0) - 100.0).abs() < 0.01));
+        assert!(pref.is_some_and(|p| (p.y.unwrap_or(0.0) - 100.0).abs() < 0.01));
 
         // Redo
         handle_redo(&mut win);
-        assert!(win
-            .nodes
-            .first()
-            .is_some_and(|n| (n.x - 200.0).abs() < 0.01));
-        assert!(win
-            .nodes
-            .first()
-            .is_some_and(|n| (n.y - 300.0).abs() < 0.01));
+        let pref = win.flow_definition.process_refs.first();
+        assert!(pref.is_some_and(|p| (p.x.unwrap_or(0.0) - 200.0).abs() < 0.01));
+        assert!(pref.is_some_and(|p| (p.y.unwrap_or(0.0) - 300.0).abs() < 0.01));
     }
 
     #[test]
     fn undo_redo_resize_node() {
         let mut win = test_win_state();
         // Simulate resize
-        if let Some(n) = win.nodes.first_mut() {
-            n.width = 250.0;
-            n.height = 180.0;
+        if let Some(pref) = win.flow_definition.process_refs.first_mut() {
+            pref.width = Some(250.0);
+            pref.height = Some(180.0);
         }
         record_edit(
             &mut win,
@@ -579,49 +555,40 @@ mod test {
 
         // Undo
         handle_undo(&mut win);
-        assert!(win
-            .nodes
-            .first()
-            .is_some_and(|n| (n.width - 180.0).abs() < 0.01));
-        assert!(win
-            .nodes
-            .first()
-            .is_some_and(|n| (n.height - 120.0).abs() < 0.01));
+        let pref = win.flow_definition.process_refs.first();
+        assert!(pref.is_some_and(|p| (p.width.unwrap_or(0.0) - 180.0).abs() < 0.01));
+        assert!(pref.is_some_and(|p| (p.height.unwrap_or(0.0) - 120.0).abs() < 0.01));
 
         // Redo
         handle_redo(&mut win);
-        assert!(win
-            .nodes
-            .first()
-            .is_some_and(|n| (n.width - 250.0).abs() < 0.01));
-        assert!(win
-            .nodes
-            .first()
-            .is_some_and(|n| (n.height - 180.0).abs() < 0.01));
+        let pref = win.flow_definition.process_refs.first();
+        assert!(pref.is_some_and(|p| (p.width.unwrap_or(0.0) - 250.0).abs() < 0.01));
+        assert!(pref.is_some_and(|p| (p.height.unwrap_or(0.0) - 180.0).abs() < 0.01));
     }
 
     #[test]
     fn undo_redo_delete_node() {
         let mut win = test_win_state();
-        assert_eq!(win.nodes.len(), 2);
-        let removed_node = win.nodes.remove(0);
+        assert_eq!(win.flow_definition.process_refs.len(), 2);
+        let removed_pref = win.flow_definition.process_refs.remove(0);
         record_edit(
             &mut win,
             EditAction::DeleteNode {
                 index: 0,
-                node: removed_node,
+                process_ref: removed_pref,
+                subprocess: None,
                 removed_connections: Vec::new(),
             },
         );
-        assert_eq!(win.nodes.len(), 1);
+        assert_eq!(win.flow_definition.process_refs.len(), 1);
 
         // Undo restores
         handle_undo(&mut win);
-        assert_eq!(win.nodes.len(), 2);
+        assert_eq!(win.flow_definition.process_refs.len(), 2);
 
         // Redo removes again
         handle_redo(&mut win);
-        assert_eq!(win.nodes.len(), 1);
+        assert_eq!(win.flow_definition.process_refs.len(), 1);
     }
 
     #[test]
@@ -678,9 +645,7 @@ mod test {
                 node_index: 0,
                 port_name: "input".into(),
                 old_init: None,
-                old_display: None,
                 new_init: Some(InputInitializer::Once(serde_json::json!(42))),
-                new_display: Some("once: 42".into()),
             },
         );
 
@@ -690,28 +655,30 @@ mod test {
             0,
             "input",
             Some(&InputInitializer::Once(serde_json::json!(42))),
-            Some(&"once: 42".to_string()),
         );
         assert!(win
-            .nodes
+            .flow_definition
+            .process_refs
             .first()
-            .and_then(|n| n.initializers.get("input"))
+            .and_then(|p| p.initializations.get("input"))
             .is_some());
 
         // Undo
         handle_undo(&mut win);
         assert!(win
-            .nodes
+            .flow_definition
+            .process_refs
             .first()
-            .and_then(|n| n.initializers.get("input"))
+            .and_then(|p| p.initializations.get("input"))
             .is_none());
 
         // Redo
         handle_redo(&mut win);
         assert!(win
-            .nodes
+            .flow_definition
+            .process_refs
             .first()
-            .and_then(|n| n.initializers.get("input"))
+            .and_then(|p| p.initializations.get("input"))
             .is_some());
     }
 }

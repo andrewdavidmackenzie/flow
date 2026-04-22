@@ -1,42 +1,36 @@
 //! Initializer editor logic for applying and syncing initializer edits.
 
 use flowcore::model::input::InputInitializer;
-use flowcore::model::process_reference::ProcessReference;
 
 use crate::canvas_view::derive_short_name;
 use crate::history::EditAction;
 use crate::{InitializerEditor, WindowState};
 
-/// Apply an initializer edit to the flow definition and update the node display.
+/// Apply an initializer edit to the flow definition.
 pub(crate) fn apply_initializer_edit(win: &mut WindowState, editor: &InitializerEditor) {
     let alias = win
-        .nodes
+        .flow_definition
+        .process_refs
         .get(editor.node_index)
-        .map(|n| n.alias.clone())
+        .map(|pr| {
+            if pr.alias.is_empty() {
+                derive_short_name(&pr.source)
+            } else {
+                pr.alias.clone()
+            }
+        })
         .unwrap_or_default();
 
     // Capture old state for undo
     let old_init = win
         .flow_definition
         .process_refs
-        .iter()
-        .find(|pr| {
-            let pr_alias = if pr.alias.is_empty() {
-                derive_short_name(&pr.source)
-            } else {
-                pr.alias.clone()
-            };
-            pr_alias == alias
-        })
-        .and_then(|pr| pr.initializations.get(&editor.port_name).cloned());
-    let old_display = win
-        .nodes
         .get(editor.node_index)
-        .and_then(|n| n.initializers.get(&editor.port_name).cloned());
+        .and_then(|pr| pr.initializations.get(&editor.port_name).cloned());
 
-    // Compute new initializer and display
-    let (new_init, new_display) = match editor.init_type.as_str() {
-        "none" => (None, None),
+    // Compute new initializer
+    let new_init = match editor.init_type.as_str() {
+        "none" => None,
         "once" | "always" => {
             let value = serde_json::from_str(&editor.value_text)
                 .unwrap_or_else(|_| serde_json::Value::String(editor.value_text.clone()));
@@ -45,21 +39,13 @@ pub(crate) fn apply_initializer_edit(win: &mut WindowState, editor: &Initializer
             } else {
                 InputInitializer::Always(value)
             };
-            let display = format!("{}: {}", editor.init_type, editor.value_text);
-            (Some(init), Some(display))
+            Some(init)
         }
         _ => return,
     };
 
     // Apply to model
-    if let Some(pref) = win.flow_definition.process_refs.iter_mut().find(|pr| {
-        let pr_alias = if pr.alias.is_empty() {
-            derive_short_name(&pr.source)
-        } else {
-            pr.alias.clone()
-        };
-        pr_alias == alias
-    }) {
+    if let Some(pref) = win.flow_definition.process_refs.get_mut(editor.node_index) {
         match &new_init {
             Some(init) => {
                 pref.initializations
@@ -71,26 +57,11 @@ pub(crate) fn apply_initializer_edit(win: &mut WindowState, editor: &Initializer
         }
     }
 
-    // Apply to display
-    if let Some(node) = win.nodes.get_mut(editor.node_index) {
-        match &new_display {
-            Some(display) => {
-                node.initializers
-                    .insert(editor.port_name.clone(), display.clone());
-            }
-            None => {
-                node.initializers.remove(&editor.port_name);
-            }
-        }
-    }
-
     win.history.record(EditAction::EditInitializer {
         node_index: editor.node_index,
         port_name: editor.port_name.clone(),
         old_init,
-        old_display,
         new_init,
-        new_display,
     });
     win.unsaved_edits += 1;
     win.compiled_manifest = None;
@@ -98,73 +69,14 @@ pub(crate) fn apply_initializer_edit(win: &mut WindowState, editor: &Initializer
     win.status = format!("Initializer updated on {}/{}", alias, editor.port_name);
 }
 
-/// Synchronize the in-memory `FlowDefinition` with the current editor state
-/// so that process references and the flow name are up to date.
-/// Connections are stored in `flow_definition.connections` and serialized during save.
-pub(crate) fn sync_flow_definition(win: &mut WindowState) {
-    // Update or rebuild process_refs from current NodeLayout data
-    let mut new_refs: Vec<ProcessReference> = Vec::with_capacity(win.nodes.len());
-    for node in &win.nodes {
-        // Try to find the original ProcessReference by alias to preserve initializations
-        let original = win
-            .flow_definition
-            .process_refs
-            .iter()
-            .find(|pr| {
-                let alias = if pr.alias.is_empty() {
-                    derive_short_name(&pr.source)
-                } else {
-                    pr.alias.clone()
-                };
-                alias == node.alias
-            })
-            .cloned();
-
-        let pref = if let Some(mut orig) = original {
-            orig.x = Some(node.x);
-            orig.y = Some(node.y);
-            orig.width = Some(node.width);
-            orig.height = Some(node.height);
-            orig
-        } else {
-            // New node without an original -- build from scratch
-            ProcessReference {
-                alias: node.alias.clone(),
-                source: node.source.clone(),
-                initializations: std::collections::BTreeMap::new(),
-                x: Some(node.x),
-                y: Some(node.y),
-                width: Some(node.width),
-                height: Some(node.height),
-            }
-        };
-        new_refs.push(pref);
-    }
-    win.flow_definition.process_refs = new_refs;
-}
-
-/// Apply an initializer state to both the model and display.
+/// Apply an initializer state to the model (`process_refs`).
 pub(crate) fn apply_initializer_state(
     win: &mut WindowState,
     node_index: usize,
     port_name: &str,
     init: Option<&InputInitializer>,
-    display: Option<&String>,
 ) {
-    let alias = win
-        .nodes
-        .get(node_index)
-        .map(|n| n.alias.clone())
-        .unwrap_or_default();
-
-    if let Some(pref) = win.flow_definition.process_refs.iter_mut().find(|pr| {
-        let pr_alias = if pr.alias.is_empty() {
-            derive_short_name(&pr.source)
-        } else {
-            pr.alias.clone()
-        };
-        pr_alias == alias
-    }) {
+    if let Some(pref) = win.flow_definition.process_refs.get_mut(node_index) {
         match init {
             Some(i) => {
                 pref.initializations
@@ -172,17 +84,6 @@ pub(crate) fn apply_initializer_state(
             }
             None => {
                 pref.initializations.remove(port_name);
-            }
-        }
-    }
-
-    if let Some(node) = win.nodes.get_mut(node_index) {
-        match display {
-            Some(d) => {
-                node.initializers.insert(port_name.to_string(), d.clone());
-            }
-            None => {
-                node.initializers.remove(port_name);
             }
         }
     }
@@ -219,23 +120,10 @@ mod test {
     use super::*;
     use flowcore::model::flow_definition::FlowDefinition;
     use flowcore::model::name::Name;
-
-    use crate::canvas_view::NodeLayout;
-
-    fn test_node(alias: &str, source: &str) -> NodeLayout {
-        NodeLayout {
-            alias: alias.into(),
-            source: source.into(),
-            ..Default::default()
-        }
-    }
+    use flowcore::model::process_reference::ProcessReference;
+    use std::collections::BTreeMap;
 
     fn test_win_state() -> WindowState {
-        use flowcore::model::flow_definition::FlowDefinition;
-        use flowcore::model::name::Name;
-        use flowcore::model::process_reference::ProcessReference;
-        use std::collections::BTreeMap;
-
         let flow = FlowDefinition {
             name: Name::from("test"),
             process_refs: vec![
@@ -261,47 +149,11 @@ mod test {
             ..FlowDefinition::default()
         };
 
-        let nodes: Vec<NodeLayout> = flow
-            .process_refs
-            .iter()
-            .map(|pref| NodeLayout {
-                alias: pref.alias.clone(),
-                source: pref.source.clone(),
-                x: pref.x.unwrap_or(0.0),
-                y: pref.y.unwrap_or(0.0),
-                width: pref.width.unwrap_or(180.0),
-                height: pref.height.unwrap_or(120.0),
-                ..Default::default()
-            })
-            .collect();
-
         WindowState {
-            nodes,
             flow_definition: flow,
             is_root: true,
             ..Default::default()
         }
-    }
-
-    #[test]
-    fn sync_flow_definition_preserves_nodes() {
-        let flow_def = FlowDefinition {
-            name: Name::from("test"),
-            ..FlowDefinition::default()
-        };
-        let mut win = WindowState {
-            nodes: vec![
-                test_node("add", "lib://flowstdlib/math/add"),
-                test_node("stdout", "context://stdio/stdout"),
-            ],
-            flow_definition: flow_def,
-            is_root: true,
-            ..Default::default()
-        };
-
-        sync_flow_definition(&mut win);
-        assert_eq!(win.flow_definition.process_refs.len(), 2);
-        assert_eq!(win.flow_definition.name, "test");
     }
 
     #[test]
@@ -315,12 +167,13 @@ mod test {
         };
         apply_initializer_edit(&mut win, &editor);
         assert!(win.unsaved_edits > 0);
-        // Check display was updated
+        // Check model was updated
         assert!(win
-            .nodes
+            .flow_definition
+            .process_refs
             .first()
-            .and_then(|n| n.initializers.get("input"))
-            .is_some_and(|d| d.contains("once")));
+            .and_then(|p| p.initializations.get("input"))
+            .is_some());
     }
 
     #[test]
@@ -334,10 +187,11 @@ mod test {
         };
         apply_initializer_edit(&mut win, &editor);
         assert!(win
-            .nodes
+            .flow_definition
+            .process_refs
             .first()
-            .and_then(|n| n.initializers.get("input"))
-            .is_some_and(|d| d.contains("always")));
+            .and_then(|p| p.initializations.get("input"))
+            .is_some());
     }
 
     #[test]
@@ -352,9 +206,10 @@ mod test {
         };
         apply_initializer_edit(&mut win, &editor);
         assert!(win
-            .nodes
+            .flow_definition
+            .process_refs
             .first()
-            .and_then(|n| n.initializers.get("input"))
+            .and_then(|p| p.initializations.get("input"))
             .is_some());
 
         // Then remove it
@@ -366,9 +221,10 @@ mod test {
         };
         apply_initializer_edit(&mut win, &editor);
         assert!(win
-            .nodes
+            .flow_definition
+            .process_refs
             .first()
-            .and_then(|n| n.initializers.get("input"))
+            .and_then(|p| p.initializations.get("input"))
             .is_none());
     }
 
@@ -376,20 +232,21 @@ mod test {
     fn initializer_apply_state_set_and_remove() {
         let mut win = test_win_state();
         let init = InputInitializer::Once(serde_json::json!(99));
-        let display = "once: 99".to_string();
-        apply_initializer_state(&mut win, 0, "port", Some(&init), Some(&display));
+        apply_initializer_state(&mut win, 0, "port", Some(&init));
         assert!(win
-            .nodes
+            .flow_definition
+            .process_refs
             .first()
-            .and_then(|n| n.initializers.get("port"))
+            .and_then(|p| p.initializations.get("port"))
             .is_some());
 
         // Remove
-        apply_initializer_state(&mut win, 0, "port", None, None);
+        apply_initializer_state(&mut win, 0, "port", None);
         assert!(win
-            .nodes
+            .flow_definition
+            .process_refs
             .first()
-            .and_then(|n| n.initializers.get("port"))
+            .and_then(|p| p.initializations.get("port"))
             .is_none());
     }
 

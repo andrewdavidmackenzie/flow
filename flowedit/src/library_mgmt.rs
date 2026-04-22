@@ -12,7 +12,6 @@ use flowcore::model::process::Process;
 use flowcore::model::process_reference::ProcessReference;
 use flowcore::provider::Provider;
 
-use crate::canvas_view::NodeLayout;
 use crate::flow_io;
 use crate::history;
 use crate::history::EditAction;
@@ -139,53 +138,29 @@ pub(crate) fn load_library_catalogs(
 /// in the flow definition, and records the action in the edit history.
 pub(crate) fn add_library_function(win: &mut WindowState, source: &str, func_name: &str) {
     // Generate a unique alias: if the name already exists, append a number
-    let alias = flow_io::generate_unique_alias(func_name, &win.nodes);
+    let alias = flow_io::generate_unique_alias(func_name, &win.flow_definition.process_refs);
 
     // Place the new node at a default position offset from existing nodes
-    let (x, y) = flow_io::next_node_position(&win.nodes);
+    let (x, y) = flow_io::next_node_position(&win.flow_definition.process_refs);
 
-    // Resolve port info and description by parsing the function/flow definition
-    let (inputs, outputs, description) = match Url::parse(source) {
+    // Resolve the subprocess definition by parsing the function/flow
+    let resolved_process = match Url::parse(source) {
         Ok(url) => {
             let provider = flow_io::build_meta_provider();
             match flowrclib::compiler::parser::parse(&url, &provider) {
-                Ok(Process::FunctionProcess(func)) => {
-                    let ports = flow_io::extract_ports(&func.inputs, &func.outputs);
-                    (ports.0, ports.1, func.description.clone())
-                }
-                Ok(Process::FlowProcess(flow)) => {
-                    let ports = flow_io::extract_ports(&flow.inputs, &flow.outputs);
-                    (ports.0, ports.1, flow.description.clone())
-                }
+                Ok(proc) => Some(proc),
                 Err(e) => {
                     info!("add_library_function: could not parse '{source}': {e}");
-                    (Vec::new(), Vec::new(), String::new())
+                    None
                 }
             }
         }
         Err(e) => {
             info!("add_library_function: could not parse URL '{source}': {e}");
-            (Vec::new(), Vec::new(), String::new())
+            None
         }
     };
 
-    let node = NodeLayout {
-        alias: alias.clone(),
-        source: source.to_string(),
-        description,
-        x,
-        y,
-        width: 180.0,
-        height: 120.0,
-        inputs,
-        outputs,
-        initializers: HashMap::new(),
-    };
-
-    let index = win.nodes.len();
-    win.nodes.push(node.clone());
-
-    // Also add to the flow definition
     let pref = ProcessReference {
         alias: alias.clone(),
         source: source.to_string(),
@@ -195,13 +170,25 @@ pub(crate) fn add_library_function(win: &mut WindowState, source: &str, func_nam
         width: Some(180.0),
         height: Some(120.0),
     };
-    win.flow_definition.process_refs.push(pref);
+
+    let index = win.flow_definition.process_refs.len();
+    win.flow_definition.process_refs.push(pref.clone());
+
+    // Add the resolved subprocess definition if we have one
+    if let Some(proc) = resolved_process {
+        win.flow_definition.subprocesses.insert(alias.clone(), proc);
+    }
 
     history::record_edit(
         win,
         EditAction::DeleteNode {
             index,
-            node,
+            process_ref: pref,
+            subprocess: win
+                .flow_definition
+                .subprocesses
+                .get(&alias)
+                .map(|p| (alias.clone(), p.clone())),
             removed_connections: Vec::new(),
         },
     );
@@ -214,7 +201,7 @@ pub(crate) fn add_library_function(win: &mut WindowState, source: &str, func_nam
     if win.auto_fit_enabled {
         win.auto_fit_pending = true;
     }
-    let nc = win.nodes.len();
+    let nc = win.flow_definition.process_refs.len();
     win.status = format!("Added {alias} from library - {nc} nodes");
 }
 
@@ -249,32 +236,36 @@ mod test {
     use crate::history::EditHistory;
     use crate::WindowKind;
 
-    fn test_node(alias: &str, source: &str) -> NodeLayout {
-        NodeLayout {
-            alias: alias.into(),
-            source: source.into(),
-            description: String::new(),
-            x: 100.0,
-            y: 100.0,
-            width: 180.0,
-            height: 120.0,
-            inputs: Vec::new(),
-            outputs: Vec::new(),
-            initializers: HashMap::new(),
-        }
-    }
-
     fn test_win_state() -> WindowState {
+        use flowcore::model::process_reference::ProcessReference;
+        use std::collections::BTreeMap;
+
         let flow_def = flowcore::model::flow_definition::FlowDefinition {
             name: String::from("test"),
+            process_refs: vec![
+                ProcessReference {
+                    alias: "add".into(),
+                    source: "lib://flowstdlib/math/add".into(),
+                    initializations: BTreeMap::new(),
+                    x: Some(100.0),
+                    y: Some(100.0),
+                    width: Some(180.0),
+                    height: Some(120.0),
+                },
+                ProcessReference {
+                    alias: "stdout".into(),
+                    source: "context://stdio/stdout".into(),
+                    initializations: BTreeMap::new(),
+                    x: Some(100.0),
+                    y: Some(100.0),
+                    width: Some(180.0),
+                    height: Some(120.0),
+                },
+            ],
             ..flowcore::model::flow_definition::FlowDefinition::default()
         };
         WindowState {
             kind: WindowKind::FlowEditor,
-            nodes: vec![
-                test_node("add", "lib://flowstdlib/math/add"),
-                test_node("stdout", "context://stdio/stdout"),
-            ],
             canvas_state: FlowCanvasState::default(),
             status: String::new(),
             selected_node: None,

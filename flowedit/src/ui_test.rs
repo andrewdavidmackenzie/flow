@@ -5,24 +5,32 @@ use flowcore::model::connection::Connection;
 use iced_test::simulator::{self, simulator};
 use std::collections::HashMap;
 
-fn test_node(alias: &str, source: &str) -> NodeLayout {
-    NodeLayout {
-        alias: alias.into(),
-        source: source.into(),
-        ..Default::default()
-    }
-}
-
 fn test_win_state() -> WindowState {
     let flow_def = FlowDefinition {
         name: String::from("test"),
+        process_refs: vec![
+            ProcessReference {
+                alias: "add".into(),
+                source: "lib://flowstdlib/math/add".into(),
+                initializations: std::collections::BTreeMap::new(),
+                x: Some(100.0),
+                y: Some(100.0),
+                width: Some(180.0),
+                height: Some(120.0),
+            },
+            ProcessReference {
+                alias: "stdout".into(),
+                source: "context://stdio/stdout".into(),
+                initializations: std::collections::BTreeMap::new(),
+                x: Some(400.0),
+                y: Some(100.0),
+                width: Some(180.0),
+                height: Some(120.0),
+            },
+        ],
         ..FlowDefinition::default()
     };
     WindowState {
-        nodes: vec![
-            test_node("add", "lib://flowstdlib/math/add"),
-            test_node("stdout", "context://stdio/stdout"),
-        ],
         flow_definition: flow_def,
         is_root: true,
         ..Default::default()
@@ -30,24 +38,8 @@ fn test_win_state() -> WindowState {
 }
 
 fn test_app_with_flow(flow: FlowDefinition) -> (FlowEdit, window::Id) {
-    // Build nodes from flow.process_refs
-    let nodes: Vec<NodeLayout> = flow
-        .process_refs
-        .iter()
-        .map(|pref| NodeLayout {
-            alias: pref.alias.clone(),
-            source: pref.source.clone(),
-            x: pref.x.unwrap_or(0.0),
-            y: pref.y.unwrap_or(0.0),
-            width: pref.width.unwrap_or(180.0),
-            height: pref.height.unwrap_or(120.0),
-            ..Default::default()
-        })
-        .collect();
-
     let win_id = window::Id::unique();
     let win_state = WindowState {
-        nodes,
         flow_definition: flow,
         is_root: true,
         ..Default::default()
@@ -182,9 +174,12 @@ fn update_canvas_move_node() {
         win_id,
         CanvasMessage::Moved(0, 200.0, 300.0),
     ));
-    let node = app.windows.get(&win_id).and_then(|w| w.nodes.first());
-    assert!((node.map_or(0.0, |n| n.x) - 200.0).abs() < 0.01);
-    assert!((node.map_or(0.0, |n| n.y) - 300.0).abs() < 0.01);
+    let node = app
+        .windows
+        .get(&win_id)
+        .and_then(|w| w.flow_definition.process_refs.first());
+    assert!((node.map_or(0.0, |n| n.x.unwrap_or(0.0)) - 200.0).abs() < 0.01);
+    assert!((node.map_or(0.0, |n| n.y.unwrap_or(0.0)) - 300.0).abs() < 0.01);
 }
 
 #[test]
@@ -200,9 +195,19 @@ fn update_canvas_move_completed_records_history() {
 #[test]
 fn update_canvas_delete_node() {
     let (mut app, win_id) = test_app();
-    assert_eq!(app.windows.get(&win_id).map(|w| w.nodes.len()), Some(2));
+    assert_eq!(
+        app.windows
+            .get(&win_id)
+            .map(|w| w.flow_definition.process_refs.len()),
+        Some(2)
+    );
     let _ = app.update(Message::WindowCanvas(win_id, CanvasMessage::Deleted(0)));
-    assert_eq!(app.windows.get(&win_id).map(|w| w.nodes.len()), Some(1));
+    assert_eq!(
+        app.windows
+            .get(&win_id)
+            .map(|w| w.flow_definition.process_refs.len()),
+        Some(1)
+    );
     assert_eq!(app.windows.get(&win_id).map(|w| w.unsaved_edits), Some(1));
 }
 
@@ -282,13 +287,19 @@ fn update_undo_redo_cycle() {
 
     // Undo
     let _ = app.update(Message::Undo);
-    let node = app.windows.get(&win_id).and_then(|w| w.nodes.first());
-    assert!((node.map_or(0.0, |n| n.x) - 100.0).abs() < 0.01);
+    let node = app
+        .windows
+        .get(&win_id)
+        .and_then(|w| w.flow_definition.process_refs.first());
+    assert!((node.map_or(0.0, |n| n.x.unwrap_or(0.0)) - 100.0).abs() < 0.01);
 
     // Redo
     let _ = app.update(Message::Redo);
-    let node = app.windows.get(&win_id).and_then(|w| w.nodes.first());
-    assert!((node.map_or(0.0, |n| n.x) - 200.0).abs() < 0.01);
+    let node = app
+        .windows
+        .get(&win_id)
+        .and_then(|w| w.flow_definition.process_refs.first());
+    assert!((node.map_or(0.0, |n| n.x.unwrap_or(0.0)) - 200.0).abs() < 0.01);
 }
 
 #[test]
@@ -484,9 +495,12 @@ fn update_canvas_resize_node() {
         win_id,
         CanvasMessage::Resized(0, 50.0, 50.0, 200.0, 150.0),
     ));
-    let node = app.windows.get(&win_id).and_then(|w| w.nodes.first());
-    assert!((node.map_or(0.0, |n| n.width) - 200.0).abs() < 0.01);
-    assert!((node.map_or(0.0, |n| n.height) - 150.0).abs() < 0.01);
+    let node = app
+        .windows
+        .get(&win_id)
+        .and_then(|w| w.flow_definition.process_refs.first());
+    assert!((node.map_or(0.0, |n| n.width.unwrap_or(0.0)) - 200.0).abs() < 0.01);
+    assert!((node.map_or(0.0, |n| n.height.unwrap_or(0.0)) - 150.0).abs() < 0.01);
 }
 
 #[test]
@@ -801,7 +815,12 @@ fn helper_right_click_sets_context_menu() {
 #[test]
 fn helper_send_key_delete() {
     let (mut app, win_id) = test_app();
-    assert_eq!(app.windows.get(&win_id).map(|w| w.nodes.len()), Some(2));
+    assert_eq!(
+        app.windows
+            .get(&win_id)
+            .map(|w| w.flow_definition.process_refs.len()),
+        Some(2)
+    );
 
     // First, select a node via direct canvas click so the canvas internal state
     // has selected_node set. Then send Delete in the same simulator cycle.
@@ -826,7 +845,9 @@ fn helper_send_key_delete() {
     // The canvas should have emitted Selected(Some(0)) from the click,
     // then Deleted(0) from the Delete key
     assert_eq!(
-        app.windows.get(&win_id).map(|w| w.nodes.len()),
+        app.windows
+            .get(&win_id)
+            .map(|w| w.flow_definition.process_refs.len()),
         Some(1),
         "Delete key after selecting a node should remove it"
     );
@@ -853,13 +874,16 @@ fn helper_drag_via_direct_messages() {
         CanvasMessage::MoveCompleted(0, 100.0, 100.0, 250.0, 350.0),
     ));
 
-    let node = app.windows.get(&win_id).and_then(|w| w.nodes.first());
+    let node = app
+        .windows
+        .get(&win_id)
+        .and_then(|w| w.flow_definition.process_refs.first());
     assert!(
-        (node.map_or(0.0, |n| n.x) - 250.0).abs() < 0.01,
+        (node.map_or(0.0, |n| n.x.unwrap_or(0.0)) - 250.0).abs() < 0.01,
         "Node x should be 250 after drag"
     );
     assert!(
-        (node.map_or(0.0, |n| n.y) - 350.0).abs() < 0.01,
+        (node.map_or(0.0, |n| n.y.unwrap_or(0.0)) - 350.0).abs() < 0.01,
         "Node y should be 350 after drag"
     );
     assert_eq!(
@@ -879,8 +903,8 @@ fn helper_drag_simulator_smoke_test() {
     let original_x = app
         .windows
         .get(&win_id)
-        .and_then(|w| w.nodes.first())
-        .map_or(0.0, |n| n.x);
+        .and_then(|w| w.flow_definition.process_refs.first())
+        .map_or(0.0, |n| n.x.unwrap_or(0.0));
 
     drag(
         &mut app,
@@ -899,8 +923,8 @@ fn helper_drag_simulator_smoke_test() {
     let _current_x = app
         .windows
         .get(&win_id)
-        .and_then(|w| w.nodes.first())
-        .map_or(0.0, |n| n.x);
+        .and_then(|w| w.flow_definition.process_refs.first())
+        .map_or(0.0, |n| n.x.unwrap_or(0.0));
     // Note: if current_x == original_x, the simulator drag didn't produce
     // canvas events. This is expected due to the limitation documented above.
     let _ = original_x; // suppress unused warning
@@ -925,7 +949,12 @@ fn ui_delete_node_removes_connected_edges() {
     );
     // Delete node 0 ("add")
     let _ = app.update(Message::WindowCanvas(win_id, CanvasMessage::Deleted(0)));
-    assert_eq!(app.windows.get(&win_id).map(|w| w.nodes.len()), Some(1));
+    assert_eq!(
+        app.windows
+            .get(&win_id)
+            .map(|w| w.flow_definition.process_refs.len()),
+        Some(1)
+    );
     assert_eq!(
         app.windows
             .get(&win_id)
@@ -938,7 +967,10 @@ fn ui_delete_node_removes_connected_edges() {
 #[test]
 fn ui_delete_with_nothing_selected_no_change() {
     let (mut app, win_id) = test_app();
-    let count_before = app.windows.get(&win_id).map(|w| w.nodes.len());
+    let count_before = app
+        .windows
+        .get(&win_id)
+        .map(|w| w.flow_definition.process_refs.len());
     // Deselect — no node is selected
     let _ = app.update(Message::WindowCanvas(win_id, CanvasMessage::Selected(None)));
     // Send Delete key — should not change anything with nothing selected
@@ -948,7 +980,9 @@ fn ui_delete_with_nothing_selected_no_change() {
         iced::keyboard::Key::Named(iced::keyboard::key::Named::Delete),
     );
     assert_eq!(
-        app.windows.get(&win_id).map(|w| w.nodes.len()),
+        app.windows
+            .get(&win_id)
+            .map(|w| w.flow_definition.process_refs.len()),
         count_before
     );
 }
@@ -1016,12 +1050,24 @@ fn ui_connection_deselect_on_canvas_click() {
 #[test]
 fn ui_undo_node_deletion() {
     let (mut app, win_id) = test_app();
-    assert_eq!(app.windows.get(&win_id).map(|w| w.nodes.len()), Some(2));
+    assert_eq!(
+        app.windows
+            .get(&win_id)
+            .map(|w| w.flow_definition.process_refs.len()),
+        Some(2)
+    );
     let _ = app.update(Message::WindowCanvas(win_id, CanvasMessage::Deleted(0)));
-    assert_eq!(app.windows.get(&win_id).map(|w| w.nodes.len()), Some(1));
+    assert_eq!(
+        app.windows
+            .get(&win_id)
+            .map(|w| w.flow_definition.process_refs.len()),
+        Some(1)
+    );
     let _ = app.update(Message::Undo);
     assert_eq!(
-        app.windows.get(&win_id).map(|w| w.nodes.len()),
+        app.windows
+            .get(&win_id)
+            .map(|w| w.flow_definition.process_refs.len()),
         Some(2),
         "Undo should restore deleted node"
     );
@@ -1090,8 +1136,11 @@ fn undo_restores_move() {
         CanvasMessage::MoveCompleted(0, 100.0, 100.0, 200.0, 300.0),
     ));
     let _ = app.update(Message::Undo);
-    let node = app.windows.get(&win_id).and_then(|w| w.nodes.first());
-    assert!((node.map_or(0.0, |n| n.x) - 100.0).abs() < 0.01);
+    let node = app
+        .windows
+        .get(&win_id)
+        .and_then(|w| w.flow_definition.process_refs.first());
+    assert!((node.map_or(0.0, |n| n.x.unwrap_or(0.0)) - 100.0).abs() < 0.01);
 }
 
 #[test]
@@ -1107,8 +1156,11 @@ fn redo_reapplies_move() {
     ));
     let _ = app.update(Message::Undo);
     let _ = app.update(Message::Redo);
-    let node = app.windows.get(&win_id).and_then(|w| w.nodes.first());
-    assert!((node.map_or(0.0, |n| n.x) - 200.0).abs() < 0.01);
+    let node = app
+        .windows
+        .get(&win_id)
+        .and_then(|w| w.flow_definition.process_refs.first());
+    assert!((node.map_or(0.0, |n| n.x.unwrap_or(0.0)) - 200.0).abs() < 0.01);
 }
 
 // ---- Group 5: Context Menu & Initializer ----
@@ -1152,12 +1204,18 @@ fn ui_initializer_editor_open_and_cancel() {
 #[test]
 fn ui_library_add_function_creates_node() {
     let (mut app, win_id) = test_app();
-    let count_before = app.windows.get(&win_id).map_or(0, |w| w.nodes.len());
+    let count_before = app
+        .windows
+        .get(&win_id)
+        .map_or(0, |w| w.flow_definition.process_refs.len());
     let _ = app.update(Message::Library(
         win_id,
         library_panel::LibraryMessage::AddFunction("lib://test_lib/math/add".into(), "add".into()),
     ));
-    let count_after = app.windows.get(&win_id).map_or(0, |w| w.nodes.len());
+    let count_after = app
+        .windows
+        .get(&win_id)
+        .map_or(0, |w| w.flow_definition.process_refs.len());
     assert_eq!(
         count_after,
         count_before + 1,
@@ -1259,13 +1317,16 @@ fn ui_resize_node_records_history() {
         app.windows.get(&win_id).map_or(0, |w| w.unsaved_edits) > 0,
         "Resize should record an edit"
     );
-    let node = app.windows.get(&win_id).and_then(|w| w.nodes.first());
+    let node = app
+        .windows
+        .get(&win_id)
+        .and_then(|w| w.flow_definition.process_refs.first());
     assert!(
-        (node.map_or(0.0, |n| n.width) - 250.0).abs() < 0.01,
+        (node.map_or(0.0, |n| n.width.unwrap_or(0.0)) - 250.0).abs() < 0.01,
         "Node width should be 250 after resize"
     );
     assert!(
-        (node.map_or(0.0, |n| n.height) - 180.0).abs() < 0.01,
+        (node.map_or(0.0, |n| n.height.unwrap_or(0.0)) - 180.0).abs() < 0.01,
         "Node height should be 180 after resize"
     );
 }

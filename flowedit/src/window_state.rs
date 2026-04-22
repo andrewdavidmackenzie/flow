@@ -7,7 +7,7 @@ use url::Url;
 
 use flowcore::model::flow_definition::FlowDefinition;
 
-use crate::canvas_view::{FlowCanvasState, NodeLayout, PortInfo};
+use crate::canvas_view::{FlowCanvasState, PortInfo};
 use crate::hierarchy_panel::FlowHierarchy;
 use crate::history;
 use crate::history::EditHistory;
@@ -53,8 +53,6 @@ pub(crate) enum WindowKind {
 pub(crate) struct WindowState {
     /// What this window displays
     pub(crate) kind: WindowKind,
-    /// Positioned nodes derived from the flow's process references
-    pub(crate) nodes: Vec<NodeLayout>,
     /// Canvas state for caching rendered geometry
     pub(crate) canvas_state: FlowCanvasState,
     /// Status message displayed in the bottom bar
@@ -97,7 +95,6 @@ impl Default for WindowState {
     fn default() -> Self {
         Self {
             kind: WindowKind::FlowEditor,
-            nodes: Vec::new(),
             canvas_state: FlowCanvasState::default(),
             status: String::new(),
             selected_node: None,

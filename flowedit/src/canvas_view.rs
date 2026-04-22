@@ -57,26 +57,31 @@ pub(crate) fn handle_canvas_message(win: &mut WindowState, msg: CanvasMessage) -
                 win.canvas_state.request_redraw();
             }
             if let Some(i) = idx {
-                if let Some(node) = win.nodes.get(i) {
-                    win.status = format!("Selected: {}", node.alias);
+                if let Some(pref) = win.flow_definition.process_refs.get(i) {
+                    let alias = if pref.alias.is_empty() {
+                        derive_short_name(&pref.source)
+                    } else {
+                        pref.alias.clone()
+                    };
+                    win.status = format!("Selected: {alias}");
                 }
             } else {
                 win.status = String::from("Ready");
             }
         }
         CanvasMessage::Moved(idx, x, y) => {
-            if let Some(node) = win.nodes.get_mut(idx) {
-                node.x = x;
-                node.y = y;
+            if let Some(pref) = win.flow_definition.process_refs.get_mut(idx) {
+                pref.x = Some(x);
+                pref.y = Some(y);
                 win.canvas_state.request_redraw();
             }
         }
         CanvasMessage::Resized(idx, x, y, w, h) => {
-            if let Some(node) = win.nodes.get_mut(idx) {
-                node.x = x;
-                node.y = y;
-                node.width = w;
-                node.height = h;
+            if let Some(pref) = win.flow_definition.process_refs.get_mut(idx) {
+                pref.x = Some(x);
+                pref.y = Some(y);
+                pref.width = Some(w);
+                pref.height = Some(h);
                 win.canvas_state.request_redraw();
             }
         }
@@ -129,13 +134,15 @@ pub(crate) fn handle_canvas_message(win: &mut WindowState, msg: CanvasMessage) -
             }
         }
         CanvasMessage::Deleted(idx) => {
-            if idx < win.nodes.len() {
-                let node = if let Some(node) = win.nodes.get(idx) {
-                    node.clone()
-                } else {
+            if idx < win.flow_definition.process_refs.len() {
+                let Some(pref) = win.flow_definition.process_refs.get(idx).cloned() else {
                     return CanvasAction::None;
                 };
-                let alias = node.alias.clone();
+                let alias = if pref.alias.is_empty() {
+                    derive_short_name(&pref.source)
+                } else {
+                    pref.alias.clone()
+                };
                 let removed_connections: Vec<Connection> = win
                     .flow_definition
                     .connections
@@ -143,7 +150,8 @@ pub(crate) fn handle_canvas_message(win: &mut WindowState, msg: CanvasMessage) -
                     .filter(|c| connection_references_node(c, &alias))
                     .cloned()
                     .collect();
-                win.nodes.remove(idx);
+                let removed_pref = win.flow_definition.process_refs.remove(idx);
+                let removed_subprocess = win.flow_definition.subprocesses.remove(&alias);
                 win.flow_definition
                     .connections
                     .retain(|c| !connection_references_node(c, &alias));
@@ -151,14 +159,15 @@ pub(crate) fn handle_canvas_message(win: &mut WindowState, msg: CanvasMessage) -
                     win,
                     EditAction::DeleteNode {
                         index: idx,
-                        node,
+                        process_ref: removed_pref,
+                        subprocess: removed_subprocess.map(|p| (alias, p)),
                         removed_connections,
                     },
                 );
                 win.selected_node = None;
                 win.selected_connection = None;
                 win.canvas_state.request_redraw();
-                let nc = win.nodes.len();
+                let nc = win.flow_definition.process_refs.len();
                 let ec = win.flow_definition.connections.len();
                 win.status = format!("Node deleted - {nc} nodes, {ec} connections");
                 if win.auto_fit_enabled {
@@ -191,7 +200,7 @@ pub(crate) fn handle_canvas_message(win: &mut WindowState, msg: CanvasMessage) -
             );
             win.flow_definition.connections.push(connection);
             win.canvas_state.request_redraw();
-            let nc = win.nodes.len();
+            let nc = win.flow_definition.process_refs.len();
             let ec = win.flow_definition.connections.len();
             win.status = format!(
                 "Connection created: {from_node}/{from_port} -> {to_node}/{to_port} - {nc} nodes, {ec} connections"
@@ -231,7 +240,7 @@ pub(crate) fn handle_canvas_message(win: &mut WindowState, msg: CanvasMessage) -
                 );
                 win.selected_connection = None;
                 win.canvas_state.request_redraw();
-                let nc = win.nodes.len();
+                let nc = win.flow_definition.process_refs.len();
                 let ec = win.flow_definition.connections.len();
                 win.status = format!("Connection deleted - {nc} nodes, {ec} connections");
             }
@@ -243,7 +252,9 @@ pub(crate) fn handle_canvas_message(win: &mut WindowState, msg: CanvasMessage) -
             if win.auto_fit_enabled || win.auto_fit_pending {
                 let has_flow_io = !win.flow_definition.inputs.is_empty()
                     || !win.flow_definition.outputs.is_empty();
-                win.canvas_state.auto_fit(&win.nodes, has_flow_io, viewport);
+                let render_nodes = build_render_nodes(&win.flow_definition);
+                win.canvas_state
+                    .auto_fit(&render_nodes, has_flow_io, viewport);
                 win.auto_fit_pending = false;
             }
         }
@@ -264,23 +275,10 @@ pub(crate) fn handle_canvas_message(win: &mut WindowState, msg: CanvasMessage) -
         }
         CanvasMessage::InitializerEdit(node_idx, port_name) => {
             // Look up current initializer from the model (flow definition)
-            let alias = win
-                .nodes
-                .get(node_idx)
-                .map(|n| n.alias.clone())
-                .unwrap_or_default();
             let (init_type, value_text) = win
                 .flow_definition
                 .process_refs
-                .iter()
-                .find(|pr| {
-                    let pr_alias = if pr.alias.is_empty() {
-                        derive_short_name(&pr.source)
-                    } else {
-                        pr.alias.clone()
-                    };
-                    pr_alias == alias
-                })
+                .get(node_idx)
                 .and_then(|pr| pr.initializations.get(&port_name))
                 .map_or_else(
                     || ("none".to_string(), String::new()),
@@ -675,34 +673,39 @@ impl NodeLayout {
     }
 }
 
-/// Build a list of [`NodeLayout`] from process references and connections.
+/// Build render-only [`NodeLayout`] list directly from a [`FlowDefinition`].
 ///
-/// Ports and descriptions are taken from the resolved definitions loaded for each subprocess.
-/// Layout uses the optional `x`, `y`, `width`, `height` fields from `ProcessReference`,
-/// falling back to auto-grid positioning.
-pub(crate) fn build_node_layouts(
-    process_refs: &[ProcessReference],
-    connections: &[Connection],
-    resolved_ports: &HashMap<String, (Vec<PortInfo>, Vec<PortInfo>)>,
-    subprocesses: &std::collections::BTreeMap<String, flowcore::model::process::Process>,
+/// This is the single entry point for converting process references and their
+/// resolved subprocess definitions into the rendering representation.
+/// The returned layouts are ephemeral and must not be stored in persistent state.
+pub(crate) fn build_render_nodes(
+    flow_def: &flowcore::model::flow_definition::FlowDefinition,
 ) -> Vec<NodeLayout> {
-    let topo_positions = compute_topological_layout(process_refs, connections);
+    use flowcore::model::process::Process;
 
-    let mut nodes = Vec::with_capacity(process_refs.len());
+    let topo_positions = compute_topological_layout(&flow_def.process_refs, &flow_def.connections);
 
-    for (i, pref) in process_refs.iter().enumerate() {
+    let mut nodes = Vec::with_capacity(flow_def.process_refs.len());
+
+    for (i, pref) in flow_def.process_refs.iter().enumerate() {
         let alias = if pref.alias.is_empty() {
             derive_short_name(&pref.source)
         } else {
             pref.alias.clone()
         };
 
-        let (inputs, outputs) = resolved_ports.get(&alias).cloned().unwrap_or_default();
+        let (inputs, outputs) = flow_def
+            .subprocesses
+            .get(&alias)
+            .map(|proc| match proc {
+                Process::FunctionProcess(f) => crate::flow_io::extract_ports(&f.inputs, &f.outputs),
+                Process::FlowProcess(f) => crate::flow_io::extract_ports(&f.inputs, &f.outputs),
+            })
+            .unwrap_or_default();
 
         let min_ports = inputs.len().max(outputs.len());
         let min_height = PORT_START_Y + (min_ports as f32 + 1.0) * PORT_SPACING;
 
-        // Use saved position, then topology position, then grid fallback
         let (default_x, default_y) = if let Some((tx, ty)) = topo_positions.get(&alias) {
             (*tx, *ty)
         } else {
@@ -718,7 +721,6 @@ pub(crate) fn build_node_layouts(
         let width = pref.width.unwrap_or(DEFAULT_WIDTH);
         let height = pref.height.unwrap_or(DEFAULT_HEIGHT.max(min_height));
 
-        // Build initializer display strings
         let mut initializers = HashMap::new();
         for (port_name, init) in &pref.initializations {
             let display = match init {
@@ -732,14 +734,12 @@ pub(crate) fn build_node_layouts(
             initializers.insert(port_name.clone(), display);
         }
 
-        // Extract description from the resolved subprocess definition
-        let description = subprocesses
+        let description = flow_def
+            .subprocesses
             .get(&alias)
             .map(|proc| match proc {
-                flowcore::model::process::Process::FunctionProcess(func) => {
-                    func.description.clone()
-                }
-                flowcore::model::process::Process::FlowProcess(flow) => flow.description.clone(),
+                Process::FunctionProcess(func) => func.description.clone(),
+                Process::FlowProcess(flow) => flow.description.clone(),
             })
             .unwrap_or_default();
 
@@ -936,11 +936,15 @@ impl Default for FlowCanvasState {
 }
 
 impl FlowCanvasState {
-    /// Create the canvas [`Element`] for displaying the given nodes and connections.
+    /// Create the canvas [`Element`] for displaying the given flow definition.
+    ///
+    /// Builds render nodes from the flow definition's process references and
+    /// subprocess definitions. The `FlowCanvas` owns these render nodes for the
+    /// duration of the frame.
     #[allow(clippy::too_many_arguments)]
     pub(crate) fn view<'a>(
         &'a self,
-        nodes: &'a [NodeLayout],
+        flow_def: &flowcore::model::flow_definition::FlowDefinition,
         connections: &'a [Connection],
         flow_name: &'a str,
         flow_inputs: &'a [IO],
@@ -949,6 +953,7 @@ impl FlowCanvasState {
         auto_fit_pending: bool,
         auto_fit_enabled: bool,
     ) -> Element<'a, CanvasMessage> {
+        let nodes = build_render_nodes(flow_def);
         Canvas::new(FlowCanvas {
             state: self,
             nodes,
@@ -1072,8 +1077,8 @@ fn screen_to_world(screen: Point, zoom: f32, offset: Point) -> Point {
 struct FlowCanvas<'a> {
     /// Reference to the persistent canvas state (zoom, offset, cache)
     state: &'a FlowCanvasState,
-    /// Nodes to render
-    nodes: &'a [NodeLayout],
+    /// Render nodes built from `process_refs` (owned, rebuilt each frame)
+    nodes: Vec<NodeLayout>,
     /// Connections to render
     connections: &'a [Connection],
     /// Flow name (displayed on sub-flow bounding box)
@@ -1566,11 +1571,11 @@ impl canvas::Program<CanvasMessage> for FlowCanvas<'_> {
                 }
 
                 // 2. Check if cursor is near a connection line (but NOT on a port) — select it
-                let on_a_port = hit_test_port(self.nodes, cursor_position, zoom, offset).is_some();
+                let on_a_port = hit_test_port(&self.nodes, cursor_position, zoom, offset).is_some();
                 if !on_a_port {
                     if let Some(conn_idx) = hit_test_connection(
                         self.connections,
-                        self.nodes,
+                        &self.nodes,
                         self.flow_inputs,
                         self.flow_outputs,
                         cursor_position,
@@ -1591,7 +1596,7 @@ impl canvas::Program<CanvasMessage> for FlowCanvas<'_> {
 
                 // 3. Check if cursor is on a port — start connection drag
                 if let Some((node_idx, port_name, is_output)) =
-                    hit_test_port(self.nodes, cursor_position, zoom, offset)
+                    hit_test_port(&self.nodes, cursor_position, zoom, offset)
                 {
                     if let Some(node) = self.nodes.get(node_idx) {
                         let port_world_pos = if is_output {
@@ -1621,14 +1626,14 @@ impl canvas::Program<CanvasMessage> for FlowCanvas<'_> {
                 }
 
                 // 4. Check if cursor is on an openable node's open icon
-                if let Some(idx) = hit_test_open_icon(self.nodes, world_pos) {
+                if let Some(idx) = hit_test_open_icon(&self.nodes, world_pos) {
                     return Some(
                         canvas::Action::publish(CanvasMessage::OpenNode(idx)).and_capture(),
                     );
                 }
 
                 // 6. Check if cursor is on a node — select/drag it
-                if let Some(idx) = hit_test_node(self.nodes, world_pos) {
+                if let Some(idx) = hit_test_node(&self.nodes, world_pos) {
                     let node = self.nodes.get(idx)?;
                     state.selected_node = Some(idx);
                     state.selected_connection = None;
@@ -1652,7 +1657,7 @@ impl canvas::Program<CanvasMessage> for FlowCanvas<'_> {
             // Right mouse button pressed — edit initializer on input port, or context menu
             Event::Mouse(mouse::Event::ButtonPressed(mouse::Button::Right)) => {
                 if let Some((node_idx, port_name, is_output)) =
-                    hit_test_port(self.nodes, cursor_position, zoom, offset)
+                    hit_test_port(&self.nodes, cursor_position, zoom, offset)
                 {
                     if !is_output {
                         return Some(
@@ -1664,7 +1669,7 @@ impl canvas::Program<CanvasMessage> for FlowCanvas<'_> {
                     }
                 }
                 // Right-click on empty canvas — show context menu
-                if hit_test_node(self.nodes, world_pos).is_none() {
+                if hit_test_node(&self.nodes, world_pos).is_none() {
                     return Some(
                         canvas::Action::publish(CanvasMessage::ContextMenu(
                             cursor_position.x,
@@ -1765,7 +1770,7 @@ impl canvas::Program<CanvasMessage> for FlowCanvas<'_> {
                 } else {
                     // Check port hover for type tooltip
                     if let Some((node_idx, port_name, is_output)) =
-                        hit_test_port(self.nodes, cursor_position, zoom, offset)
+                        hit_test_port(&self.nodes, cursor_position, zoom, offset)
                     {
                         if let Some(node) = self.nodes.get(node_idx) {
                             let ports = if is_output {
@@ -1791,7 +1796,7 @@ impl canvas::Program<CanvasMessage> for FlowCanvas<'_> {
                     }
 
                     // Track hover for two-zone node tooltip
-                    let new_hover = hit_test_node(self.nodes, world_pos);
+                    let new_hover = hit_test_node(&self.nodes, world_pos);
                     if new_hover != state.hover_node || new_hover.is_some() {
                         state.hover_node = new_hover;
                         let tooltip_data =
@@ -1822,7 +1827,7 @@ impl canvas::Program<CanvasMessage> for FlowCanvas<'_> {
                 if let Some(connecting) = state.connecting.take() {
                     // Check if cursor is on a compatible port
                     if let Some((target_idx, target_port, target_is_output)) =
-                        hit_test_port(self.nodes, cursor_position, zoom, offset)
+                        hit_test_port(&self.nodes, cursor_position, zoom, offset)
                     {
                         // Must connect output→input or input→output
                         if connecting.from_output != target_is_output {
@@ -1967,13 +1972,13 @@ impl canvas::Program<CanvasMessage> for FlowCanvas<'_> {
 
         // Draw the main cached content (connections, nodes, and flow I/O ports)
         let content = self.state.cache.draw(renderer, bounds.size(), |frame| {
-            draw_nodes(frame, self.nodes, zoom, offset);
+            draw_nodes(frame, &self.nodes, zoom, offset);
             draw_flow_io_ports(
                 frame,
                 self.flow_name,
                 self.flow_inputs,
                 self.flow_outputs,
-                self.nodes,
+                &self.nodes,
                 self.connections,
                 self.is_subflow,
                 state.selected_connection,
@@ -1983,7 +1988,7 @@ impl canvas::Program<CanvasMessage> for FlowCanvas<'_> {
             draw_edges(
                 frame,
                 self.connections,
-                self.nodes,
+                &self.nodes,
                 zoom,
                 offset,
                 state.selected_connection,
@@ -2067,7 +2072,7 @@ impl canvas::Program<CanvasMessage> for FlowCanvas<'_> {
 
                 // Highlight the target port if hovering over a compatible one
                 if let Some((target_idx, target_port, target_is_output)) =
-                    hit_test_port(self.nodes, end_screen, zoom, offset)
+                    hit_test_port(&self.nodes, end_screen, zoom, offset)
                 {
                     if connecting.from_output != target_is_output {
                         if let Some(target_node) = self.nodes.get(target_idx) {
@@ -2142,17 +2147,18 @@ impl canvas::Program<CanvasMessage> for FlowCanvas<'_> {
             }
 
             // Check if hovering over a port
-            if hit_test_port(self.nodes, pos, self.state.zoom, self.state.scroll_offset).is_some() {
+            if hit_test_port(&self.nodes, pos, self.state.zoom, self.state.scroll_offset).is_some()
+            {
                 return mouse::Interaction::Crosshair;
             }
 
             let world_pos = screen_to_world(pos, self.state.zoom, self.state.scroll_offset);
 
-            if hit_test_open_icon(self.nodes, world_pos).is_some() {
+            if hit_test_open_icon(&self.nodes, world_pos).is_some() {
                 return mouse::Interaction::Pointer;
             }
 
-            if hit_test_node(self.nodes, world_pos).is_some() {
+            if hit_test_node(&self.nodes, world_pos).is_some() {
                 return mouse::Interaction::Grab;
             }
         }
@@ -2907,7 +2913,7 @@ pub(crate) fn view_canvas_area(win: &WindowState, window_id: window::Id) -> Elem
     let canvas = win
         .canvas_state
         .view(
-            &win.nodes,
+            &win.flow_definition,
             &win.flow_definition.connections,
             &win.flow_definition.name,
             &win.flow_definition.inputs,
@@ -3010,8 +3016,14 @@ pub(crate) fn view_canvas_area(win: &WindowState, window_id: window::Id) -> Elem
 
     // Initializer editor dialog overlay
     if let Some(ref editor) = win.initializer_editor {
-        let port_label = if let Some(node) = win.nodes.get(editor.node_index) {
-            format!("{}/{}", node.alias, editor.port_name)
+        let port_label = if let Some(pref) = win.flow_definition.process_refs.get(editor.node_index)
+        {
+            let alias = if pref.alias.is_empty() {
+                derive_short_name(&pref.source)
+            } else {
+                pref.alias.clone()
+            };
+            format!("{}/{}", alias, editor.port_name)
         } else {
             editor.port_name.clone()
         };

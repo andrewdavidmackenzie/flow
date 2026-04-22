@@ -38,7 +38,7 @@ use flowcore::model::process_reference::ProcessReference;
 use flowcore::model::route::Route;
 use flowcore::provider::Provider;
 
-use canvas_view::{CanvasMessage, FlowCanvasState, NodeLayout, PortInfo};
+use canvas_view::{CanvasMessage, FlowCanvasState, PortInfo};
 use hierarchy_panel::{FlowHierarchy, HierarchyMessage};
 use history::EditHistory;
 use library_panel::{LibraryAction, LibraryMessage, LibraryTree};
@@ -297,19 +297,18 @@ impl FlowEdit {
             }
         }
 
-        let (nodes, status, flow_definition, lib_refs) =
+        let (status, flow_definition, lib_refs) =
             if let Some(flow_path_str) = matches.get_one::<String>("flow-file") {
                 let flow_path = PathBuf::from(flow_path_str);
                 match flow_io::load_flow(&flow_path) {
                     Ok(loaded) => {
-                        let nc = loaded.nodes.len();
+                        let nc = loaded.flow_def.process_refs.len();
                         let ec = loaded.flow_def.connections.len();
                         let mut fd = loaded.flow_def;
                         if let Ok(url) = Url::from_file_path(&flow_path) {
                             fd.source_url = url;
                         }
                         (
-                            loaded.nodes,
                             format!("Ready - {nc} nodes, {ec} connections"),
                             fd,
                             loaded.lib_references,
@@ -320,12 +319,7 @@ impl FlowEdit {
                             name: String::from("(error)"),
                             ..FlowDefinition::default()
                         };
-                        (
-                            Vec::new(),
-                            format!("Error loading flow: {e}"),
-                            fd,
-                            BTreeSet::new(),
-                        )
+                        (format!("Error loading flow: {e}"), fd, BTreeSet::new())
                     }
                 }
             } else {
@@ -333,10 +327,10 @@ impl FlowEdit {
                     name: String::from("(new flow)"),
                     ..FlowDefinition::default()
                 };
-                (Vec::new(), String::from("Ready"), fd, BTreeSet::new())
+                (String::from("Ready"), fd, BTreeSet::new())
             };
 
-        let has_nodes = !nodes.is_empty();
+        let has_nodes = !flow_definition.process_refs.is_empty();
 
         // Load full library catalogs from manifests and parse all definitions
         let (library_cache, all_definitions) = library_mgmt::load_library_catalogs(&lib_refs);
@@ -370,7 +364,6 @@ impl FlowEdit {
 
         let win_state = WindowState {
             kind: WindowKind::FlowEditor,
-            nodes,
             canvas_state: FlowCanvasState::default(),
             status,
             selected_node: None,
@@ -458,8 +451,8 @@ impl FlowEdit {
                     if let Ok(loaded) = flow_io::load_flow(&path) {
                         let (new_id, open_task) =
                             window::open(self.child_window_settings(1024.0, 768.0));
-                        let has_nodes = !loaded.nodes.is_empty();
-                        let nc = loaded.nodes.len();
+                        let has_nodes = !loaded.flow_def.process_refs.is_empty();
+                        let nc = loaded.flow_def.process_refs.len();
                         let ec = loaded.flow_def.connections.len();
                         let mut flow_def = loaded.flow_def;
                         if let Ok(url) = Url::from_file_path(&path) {
@@ -467,7 +460,7 @@ impl FlowEdit {
                         }
                         let child = WindowState {
                             kind: WindowKind::FlowEditor,
-                            nodes: loaded.nodes,
+
                             canvas_state: FlowCanvasState::default(),
                             status: format!("Ready - {nc} nodes, {ec} connections"),
                             selected_node: None,
@@ -704,7 +697,7 @@ impl FlowEdit {
             Message::Compile => {
                 let target = self.focused_window.or(self.root_window);
                 if let Some(win) = target.and_then(|id| self.windows.get_mut(&id)) {
-                    if !win.nodes.is_empty() {
+                    if !win.flow_definition.process_refs.is_empty() {
                         match flow_io::perform_compile(win) {
                             Ok(path) => {
                                 win.compiled_manifest = Some(path.clone());
@@ -971,13 +964,29 @@ impl FlowEdit {
                             }
                             win.unsaved_edits += 1;
                         }
-                        // Propagate to the parent window's NodeLayout for ALL nodes
-                        // with the same source (multiple nodes may reference it)
+                        // Propagate description to the parent window's subprocess definitions
                         if let Some((parent_id, node_source)) = parent_info {
                             if let Some(parent_win) = self.windows.get_mut(&parent_id) {
-                                for node in &mut parent_win.nodes {
-                                    if node.source == node_source {
-                                        node.description.clone_from(&new_desc);
+                                // Update subprocess definitions with matching source
+                                for pref in &parent_win.flow_definition.process_refs {
+                                    if pref.source == node_source {
+                                        let alias = if pref.alias.is_empty() {
+                                            canvas_view::derive_short_name(&pref.source)
+                                        } else {
+                                            pref.alias.clone()
+                                        };
+                                        if let Some(proc) =
+                                            parent_win.flow_definition.subprocesses.get_mut(&alias)
+                                        {
+                                            match proc {
+                                                Process::FunctionProcess(ref mut f) => {
+                                                    f.description.clone_from(&new_desc);
+                                                }
+                                                Process::FlowProcess(ref mut f) => {
+                                                    f.description.clone_from(&new_desc);
+                                                }
+                                            }
+                                        }
                                     }
                                 }
                                 parent_win.canvas_state.request_redraw();
@@ -1270,7 +1279,7 @@ impl FlowEdit {
             let mut compile_btn = button(Text::new("\u{1F528} Build").size(btn_size).center())
                 .padding(btn_pad)
                 .style(toolbar_btn);
-            if !win.nodes.is_empty() {
+            if !win.flow_definition.process_refs.is_empty() {
                 compile_btn = compile_btn.on_press(Message::Compile);
             }
 
@@ -1954,8 +1963,8 @@ impl FlowEdit {
             }
             Ok(Process::FlowProcess(_)) => match flow_io::load_flow(&path) {
                 Ok(loaded) => {
-                    let has_nodes = !loaded.nodes.is_empty();
-                    let nc = loaded.nodes.len();
+                    let has_nodes = !loaded.flow_def.process_refs.is_empty();
+                    let nc = loaded.flow_def.process_refs.len();
                     let ec = loaded.flow_def.connections.len();
                     let (new_id, open_task) =
                         window::open(self.child_window_settings(1024.0, 768.0));
@@ -1965,7 +1974,7 @@ impl FlowEdit {
                     }
                     let child = WindowState {
                         kind: WindowKind::FlowEditor,
-                        nodes: loaded.nodes,
+
                         canvas_state: FlowCanvasState::default(),
                         status: format!("Library flow - {nc} nodes, {ec} connections"),
                         selected_node: None,
@@ -2044,10 +2053,10 @@ impl FlowEdit {
             let Some(win) = self.windows.get(&parent_win_id) else {
                 return Task::none();
             };
-            let Some(node) = win.nodes.get(idx) else {
+            let Some(pref) = win.flow_definition.process_refs.get(idx) else {
                 return Task::none();
             };
-            let source = node.source.clone();
+            let source = pref.source.clone();
             let path = library_mgmt::resolve_node_source(win, &source);
             (source, path)
         };
@@ -2086,9 +2095,9 @@ impl FlowEdit {
         // Load the sub-flow and open it in a new window
         match flow_io::load_flow(&path) {
             Ok(loaded) => {
-                let has_nodes = !loaded.nodes.is_empty();
+                let has_nodes = !loaded.flow_def.process_refs.is_empty();
                 let (new_id, open_task) = window::open(self.child_window_settings(1024.0, 768.0));
-                let nc = loaded.nodes.len();
+                let nc = loaded.flow_def.process_refs.len();
                 let ec = loaded.flow_def.connections.len();
                 let mut flow_def = loaded.flow_def;
                 if let Ok(url) = Url::from_file_path(&path) {
@@ -2096,7 +2105,7 @@ impl FlowEdit {
                 }
                 let child = WindowState {
                     kind: WindowKind::FlowEditor,
-                    nodes: loaded.nodes,
+
                     canvas_state: FlowCanvasState::default(),
                     status: format!("Ready - {nc} nodes, {ec} connections"),
                     selected_node: None,
@@ -2175,7 +2184,7 @@ impl FlowEdit {
         }
         let child = WindowState {
             kind: WindowKind::FunctionViewer(viewer),
-            nodes: Vec::new(),
+
             canvas_state: FlowCanvasState::default(),
             status: format!("Function: {func_name}"),
             selected_node: None,
@@ -2273,22 +2282,10 @@ impl FlowEdit {
 
         // Add a process reference in the target flow
         if let Some(win) = self.windows.get_mut(&target_id) {
-            let alias = flow_io::generate_unique_alias(&flow_name, &win.nodes);
-            let (x, y) = flow_io::next_node_position(&win.nodes);
+            let alias =
+                flow_io::generate_unique_alias(&flow_name, &win.flow_definition.process_refs);
+            let (x, y) = flow_io::next_node_position(&win.flow_definition.process_refs);
 
-            let node = NodeLayout {
-                alias: alias.clone(),
-                source: source.clone(),
-                description: String::new(),
-                x,
-                y,
-                width: 180.0,
-                height: 120.0,
-                inputs: Vec::new(),
-                outputs: Vec::new(),
-                initializers: HashMap::new(),
-            };
-            win.nodes.push(node);
             win.flow_definition.process_refs.push(ProcessReference {
                 alias: alias.clone(),
                 source,
@@ -2308,7 +2305,7 @@ impl FlowEdit {
 
         let child = WindowState {
             kind: WindowKind::FlowEditor,
-            nodes: Vec::new(),
+
             canvas_state: FlowCanvasState::default(),
             status: format!("New sub-flow: {flow_name}"),
             selected_node: None,
@@ -2384,22 +2381,10 @@ impl FlowEdit {
 
         // Add process reference in the target flow
         if let Some(win) = self.windows.get_mut(&target_id) {
-            let alias = flow_io::generate_unique_alias(&func_name, &win.nodes);
-            let (x, y) = flow_io::next_node_position(&win.nodes);
+            let alias =
+                flow_io::generate_unique_alias(&func_name, &win.flow_definition.process_refs);
+            let (x, y) = flow_io::next_node_position(&win.flow_definition.process_refs);
 
-            let node = NodeLayout {
-                alias: alias.clone(),
-                source: source.clone(),
-                description: String::new(),
-                x,
-                y,
-                width: 180.0,
-                height: 120.0,
-                inputs: Vec::new(),
-                outputs: Vec::new(),
-                initializers: HashMap::new(),
-            };
-            win.nodes.push(node);
             win.flow_definition.process_refs.push(ProcessReference {
                 alias: alias.clone(),
                 source,
@@ -2441,7 +2426,7 @@ impl FlowEdit {
         }
         let child = WindowState {
             kind: WindowKind::FunctionViewer(viewer),
-            nodes: Vec::new(),
+
             canvas_state: FlowCanvasState::default(),
             status: String::from("New function — add ports and Save"),
             selected_node: None,
@@ -2491,10 +2476,62 @@ impl FlowEdit {
 
         if let Some((parent_id, node_source, new_inputs, new_outputs)) = propagation_data {
             if let Some(parent_win) = windows.get_mut(&parent_id) {
-                for node in &mut parent_win.nodes {
-                    if node.source == node_source {
-                        node.inputs.clone_from(&new_inputs);
-                        node.outputs.clone_from(&new_outputs);
+                // Update subprocess definitions for all process refs with matching source
+                for pref in &parent_win.flow_definition.process_refs {
+                    if pref.source == node_source {
+                        let alias = if pref.alias.is_empty() {
+                            canvas_view::derive_short_name(&pref.source)
+                        } else {
+                            pref.alias.clone()
+                        };
+                        if let Some(proc) = parent_win.flow_definition.subprocesses.get_mut(&alias)
+                        {
+                            // Update the IO definitions in the subprocess
+                            let new_io_inputs: Vec<flowcore::model::io::IO> = new_inputs
+                                .iter()
+                                .map(|p| {
+                                    flowcore::model::io::IO::new_named(
+                                        p.datatypes
+                                            .iter()
+                                            .map(|dt| {
+                                                flowcore::model::datatype::DataType::from(
+                                                    dt.as_str(),
+                                                )
+                                            })
+                                            .collect(),
+                                        flowcore::model::route::Route::default(),
+                                        &p.name,
+                                    )
+                                })
+                                .collect();
+                            let new_io_outputs: Vec<flowcore::model::io::IO> = new_outputs
+                                .iter()
+                                .map(|p| {
+                                    flowcore::model::io::IO::new_named(
+                                        p.datatypes
+                                            .iter()
+                                            .map(|dt| {
+                                                flowcore::model::datatype::DataType::from(
+                                                    dt.as_str(),
+                                                )
+                                            })
+                                            .collect(),
+                                        flowcore::model::route::Route::default(),
+                                        &p.name,
+                                    )
+                                })
+                                .collect();
+                            match proc {
+                                Process::FunctionProcess(ref mut f) => {
+                                    f.inputs = new_io_inputs;
+                                    f.outputs = new_io_outputs;
+                                }
+                                Process::FlowProcess(ref mut f) => {
+                                    f.inputs = new_io_inputs;
+                                    f.outputs = new_io_outputs;
+                                }
+                            }
+                        }
                     }
                 }
                 parent_win.canvas_state.request_redraw();
