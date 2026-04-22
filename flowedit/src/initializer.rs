@@ -216,3 +216,195 @@ pub(crate) fn handle_apply(win: &mut WindowState) {
 pub(crate) fn handle_cancel(win: &mut WindowState) {
     win.initializer_editor = None;
 }
+
+#[cfg(test)]
+mod test {
+    use super::*;
+    use crate::canvas_view::NodeLayout;
+
+    fn test_node(alias: &str, source: &str) -> NodeLayout {
+        NodeLayout {
+            alias: alias.into(),
+            source: source.into(),
+            ..Default::default()
+        }
+    }
+
+    fn test_win_state() -> WindowState {
+        use flowcore::model::flow_definition::FlowDefinition;
+        use flowcore::model::name::Name;
+        use flowcore::model::process_reference::ProcessReference;
+        use std::collections::BTreeMap;
+
+        let flow = FlowDefinition {
+            name: Name::from("test"),
+            process_refs: vec![
+                ProcessReference {
+                    alias: Name::from("add"),
+                    source: "lib://flowstdlib/math/add".into(),
+                    initializations: BTreeMap::new(),
+                    x: Some(100.0),
+                    y: Some(100.0),
+                    width: Some(180.0),
+                    height: Some(120.0),
+                },
+                ProcessReference {
+                    alias: Name::from("stdout"),
+                    source: "context://stdio/stdout".into(),
+                    initializations: BTreeMap::new(),
+                    x: Some(400.0),
+                    y: Some(100.0),
+                    width: Some(180.0),
+                    height: Some(120.0),
+                },
+            ],
+            ..FlowDefinition::default()
+        };
+
+        let nodes: Vec<NodeLayout> = flow
+            .process_refs
+            .iter()
+            .map(|pref| NodeLayout {
+                alias: pref.alias.clone(),
+                source: pref.source.clone(),
+                x: pref.x.unwrap_or(0.0),
+                y: pref.y.unwrap_or(0.0),
+                width: pref.width.unwrap_or(180.0),
+                height: pref.height.unwrap_or(120.0),
+                ..Default::default()
+            })
+            .collect();
+
+        WindowState {
+            flow_name: flow.name.clone(),
+            nodes,
+            edges: Vec::new(),
+            flow_definition: flow,
+            is_root: true,
+            ..Default::default()
+        }
+    }
+
+    #[test]
+    fn sync_flow_definition_preserves_nodes() {
+        let mut win = WindowState {
+            flow_name: String::from("test"),
+            nodes: vec![
+                test_node("add", "lib://flowstdlib/math/add"),
+                test_node("stdout", "context://stdio/stdout"),
+            ],
+            is_root: true,
+            ..Default::default()
+        };
+
+        sync_flow_definition(&mut win);
+        assert_eq!(win.flow_definition.process_refs.len(), 2);
+        assert_eq!(win.flow_definition.name, "test");
+    }
+
+    #[test]
+    fn initializer_apply_once() {
+        let mut win = test_win_state();
+        let editor = InitializerEditor {
+            node_index: 0,
+            port_name: "input".into(),
+            init_type: "once".into(),
+            value_text: "42".into(),
+        };
+        apply_initializer_edit(&mut win, &editor);
+        assert!(win.unsaved_edits > 0);
+        // Check display was updated
+        assert!(win
+            .nodes
+            .first()
+            .and_then(|n| n.initializers.get("input"))
+            .is_some_and(|d| d.contains("once")));
+    }
+
+    #[test]
+    fn initializer_apply_always() {
+        let mut win = test_win_state();
+        let editor = InitializerEditor {
+            node_index: 0,
+            port_name: "input".into(),
+            init_type: "always".into(),
+            value_text: "\"hello\"".into(),
+        };
+        apply_initializer_edit(&mut win, &editor);
+        assert!(win
+            .nodes
+            .first()
+            .and_then(|n| n.initializers.get("input"))
+            .is_some_and(|d| d.contains("always")));
+    }
+
+    #[test]
+    fn initializer_apply_none_removes() {
+        let mut win = test_win_state();
+        // First set one
+        let editor = InitializerEditor {
+            node_index: 0,
+            port_name: "input".into(),
+            init_type: "once".into(),
+            value_text: "42".into(),
+        };
+        apply_initializer_edit(&mut win, &editor);
+        assert!(win
+            .nodes
+            .first()
+            .and_then(|n| n.initializers.get("input"))
+            .is_some());
+
+        // Then remove it
+        let editor = InitializerEditor {
+            node_index: 0,
+            port_name: "input".into(),
+            init_type: "none".into(),
+            value_text: String::new(),
+        };
+        apply_initializer_edit(&mut win, &editor);
+        assert!(win
+            .nodes
+            .first()
+            .and_then(|n| n.initializers.get("input"))
+            .is_none());
+    }
+
+    #[test]
+    fn initializer_apply_state_set_and_remove() {
+        let mut win = test_win_state();
+        let init = InputInitializer::Once(serde_json::json!(99));
+        let display = "once: 99".to_string();
+        apply_initializer_state(&mut win, 0, "port", Some(&init), Some(&display));
+        assert!(win
+            .nodes
+            .first()
+            .and_then(|n| n.initializers.get("port"))
+            .is_some());
+
+        // Remove
+        apply_initializer_state(&mut win, 0, "port", None, None);
+        assert!(win
+            .nodes
+            .first()
+            .and_then(|n| n.initializers.get("port"))
+            .is_none());
+    }
+
+    #[test]
+    fn initializer_apply_invalid_type_no_change() {
+        let mut win = test_win_state();
+        let edits_before = win.unsaved_edits;
+        let editor = InitializerEditor {
+            node_index: 0,
+            port_name: "input".into(),
+            init_type: "bogus".into(),
+            value_text: "42".into(),
+        };
+        apply_initializer_edit(&mut win, &editor);
+        assert_eq!(
+            win.unsaved_edits, edits_before,
+            "Invalid type should not create an edit"
+        );
+    }
+}

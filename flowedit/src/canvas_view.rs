@@ -20,8 +20,8 @@ use log::info;
 use flowcore::model::input::InputInitializer;
 
 use crate::flow_io;
+use crate::history;
 use crate::history::EditAction;
-use crate::undo_redo;
 use crate::InitializerEditor;
 use crate::Message;
 use crate::WindowState;
@@ -75,7 +75,7 @@ pub(crate) fn handle_canvas_message(win: &mut WindowState, msg: CanvasMessage) -
         CanvasMessage::MoveCompleted(idx, old_x, old_y, new_x, new_y) => {
             info!("MoveCompleted: idx={idx}, ({old_x},{old_y}) -> ({new_x},{new_y})");
             if (old_x - new_x).abs() > 0.5 || (old_y - new_y).abs() > 0.5 {
-                undo_redo::record_edit(
+                history::record_edit(
                     win,
                     EditAction::MoveNode {
                         index: idx,
@@ -104,7 +104,7 @@ pub(crate) fn handle_canvas_message(win: &mut WindowState, msg: CanvasMessage) -
                 || (old_w - new_w).abs() > 0.5
                 || (old_h - new_h).abs() > 0.5
             {
-                undo_redo::record_edit(
+                history::record_edit(
                     win,
                     EditAction::ResizeNode {
                         index: idx,
@@ -136,7 +136,7 @@ pub(crate) fn handle_canvas_message(win: &mut WindowState, msg: CanvasMessage) -
                     .collect();
                 win.nodes.remove(idx);
                 win.edges.retain(|e| !e.references_node(&alias));
-                undo_redo::record_edit(
+                history::record_edit(
                     win,
                     EditAction::DeleteNode {
                         index: idx,
@@ -167,7 +167,7 @@ pub(crate) fn handle_canvas_message(win: &mut WindowState, msg: CanvasMessage) -
                 to_node.clone(),
                 to_port.clone(),
             );
-            undo_redo::record_edit(win, EditAction::CreateConnection { edge: edge.clone() });
+            history::record_edit(win, EditAction::CreateConnection { edge: edge.clone() });
             win.edges.push(edge);
             win.canvas_state.request_redraw();
             let nc = win.nodes.len();
@@ -195,7 +195,7 @@ pub(crate) fn handle_canvas_message(win: &mut WindowState, msg: CanvasMessage) -
         CanvasMessage::ConnectionDeleted(idx) => {
             if idx < win.edges.len() {
                 let edge = win.edges.remove(idx);
-                undo_redo::record_edit(win, EditAction::DeleteConnection { index: idx, edge });
+                history::record_edit(win, EditAction::DeleteConnection { index: idx, edge });
                 win.selected_connection = None;
                 win.canvas_state.request_redraw();
                 let nc = win.nodes.len();

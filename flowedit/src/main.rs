@@ -36,8 +36,6 @@ use flowcore::provider::Provider;
 
 use canvas_view::{CanvasMessage, EdgeLayout, FlowCanvasState, NodeLayout, PortInfo};
 use hierarchy_panel::{FlowHierarchy, HierarchyMessage};
-#[cfg(test)]
-use history::EditAction;
 use history::EditHistory;
 use library_panel::{LibraryAction, LibraryMessage, LibraryTree};
 
@@ -48,7 +46,6 @@ mod history;
 mod initializer;
 mod library_mgmt;
 mod library_panel;
-mod undo_redo;
 
 #[cfg(test)]
 mod ui_test;
@@ -785,13 +782,13 @@ impl FlowEdit {
             Message::Undo => {
                 let target = self.focused_window.or(self.root_window);
                 if let Some(win) = target.and_then(|id| self.windows.get_mut(&id)) {
-                    undo_redo::handle_undo(win);
+                    history::handle_undo(win);
                 }
             }
             Message::Redo => {
                 let target = self.focused_window.or(self.root_window);
                 if let Some(win) = target.and_then(|id| self.windows.get_mut(&id)) {
-                    undo_redo::handle_redo(win);
+                    history::handle_redo(win);
                 }
             }
             Message::Save => {
