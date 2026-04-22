@@ -28,10 +28,14 @@ use url::Url;
 
 use flowcore::deserializers::deserializer::get;
 use flowcore::meta_provider::MetaProvider;
+use flowcore::model::datatype::DataType;
 use flowcore::model::flow_definition::FlowDefinition;
+use flowcore::model::io::IO;
 use flowcore::model::lib_manifest::LibraryManifest;
+use flowcore::model::name::HasName;
 use flowcore::model::process::Process;
 use flowcore::model::process_reference::ProcessReference;
+use flowcore::model::route::Route;
 use flowcore::provider::Provider;
 
 use canvas_view::{CanvasMessage, FlowCanvasState, NodeLayout, PortInfo};
@@ -365,7 +369,6 @@ impl FlowEdit {
             .as_ref()
             .map_or_else(FlowHierarchy::empty, |p| FlowHierarchy::build(p));
 
-        let (fi, fo) = flow_io::extract_ports(&flow_definition.inputs, &flow_definition.outputs);
         let win_state = WindowState {
             kind: WindowKind::FlowEditor,
             nodes,
@@ -383,8 +386,6 @@ impl FlowEdit {
             tooltip: None,
             initializer_editor: None,
             is_root: true,
-            flow_inputs: fi,
-            flow_outputs: fo,
             context_menu: None,
             show_metadata: false,
             flow_hierarchy,
@@ -458,10 +459,6 @@ impl FlowEdit {
                     }
                     // Open the flow or function
                     if let Ok(loaded) = flow_io::load_flow(&path) {
-                        let (fi, fo) = flow_io::extract_ports(
-                            &loaded.flow_def.inputs,
-                            &loaded.flow_def.outputs,
-                        );
                         let (new_id, open_task) =
                             window::open(self.child_window_settings(1024.0, 768.0));
                         let has_nodes = !loaded.nodes.is_empty();
@@ -488,8 +485,6 @@ impl FlowEdit {
                             tooltip: None,
                             initializer_editor: None,
                             is_root: false,
-                            flow_inputs: fi,
-                            flow_outputs: fo,
                             context_menu: None,
                             show_metadata: false,
                             flow_hierarchy: self.build_hierarchy(),
@@ -755,25 +750,29 @@ impl FlowEdit {
                             win.show_metadata = !win.show_metadata;
                         }
                         FlowEditMessage::AddInput => {
-                            win.flow_inputs.push(PortInfo {
-                                name: format!("input{}", win.flow_inputs.len()),
-                                datatypes: vec![String::from("string")],
-                            });
+                            let name = format!("input{}", win.flow_definition.inputs.len());
+                            win.flow_definition.inputs.push(IO::new_named(
+                                vec![DataType::from("string")],
+                                Route::default(),
+                                name,
+                            ));
                             win.unsaved_edits += 1;
                             win.canvas_state.request_redraw();
                         }
                         FlowEditMessage::AddOutput => {
-                            win.flow_outputs.push(PortInfo {
-                                name: format!("output{}", win.flow_outputs.len()),
-                                datatypes: vec![String::from("string")],
-                            });
+                            let name = format!("output{}", win.flow_definition.outputs.len());
+                            win.flow_definition.outputs.push(IO::new_named(
+                                vec![DataType::from("string")],
+                                Route::default(),
+                                name,
+                            ));
                             win.unsaved_edits += 1;
                             win.canvas_state.request_redraw();
                         }
                         FlowEditMessage::DeleteInput(idx) => {
-                            if let Some(port) = win.flow_inputs.get(idx) {
-                                let name = port.name.clone();
-                                win.flow_inputs.remove(idx);
+                            if let Some(io) = win.flow_definition.inputs.get(idx) {
+                                let name = io.name().clone();
+                                win.flow_definition.inputs.remove(idx);
                                 // Remove edges referencing this flow input
                                 win.edges
                                     .retain(|e| !(e.from_node == "input" && e.from_port == name));
@@ -782,9 +781,9 @@ impl FlowEdit {
                             }
                         }
                         FlowEditMessage::DeleteOutput(idx) => {
-                            if let Some(port) = win.flow_outputs.get(idx) {
-                                let name = port.name.clone();
-                                win.flow_outputs.remove(idx);
+                            if let Some(io) = win.flow_definition.outputs.get(idx) {
+                                let name = io.name().clone();
+                                win.flow_definition.outputs.remove(idx);
                                 // Remove edges referencing this flow output
                                 win.edges
                                     .retain(|e| !(e.to_node == "output" && e.to_port == name));
@@ -793,9 +792,9 @@ impl FlowEdit {
                             }
                         }
                         FlowEditMessage::InputNameChanged(idx, name) => {
-                            if let Some(port) = win.flow_inputs.get_mut(idx) {
-                                let old_name = port.name.clone();
-                                port.name.clone_from(&name);
+                            if let Some(io) = win.flow_definition.inputs.get_mut(idx) {
+                                let old_name = io.name().clone();
+                                io.set_name(name.clone());
                                 // Update edges referencing the old flow input name
                                 for edge in &mut win.edges {
                                     if edge.from_node == "input" && edge.from_port == old_name {
@@ -807,16 +806,16 @@ impl FlowEdit {
                             win.canvas_state.request_redraw();
                         }
                         FlowEditMessage::InputTypeChanged(idx, dtype) => {
-                            if let Some(port) = win.flow_inputs.get_mut(idx) {
-                                port.datatypes = vec![dtype];
+                            if let Some(io) = win.flow_definition.inputs.get_mut(idx) {
+                                io.set_datatypes(&[DataType::from(dtype)]);
                             }
                             win.unsaved_edits += 1;
                             win.canvas_state.request_redraw();
                         }
                         FlowEditMessage::OutputNameChanged(idx, name) => {
-                            if let Some(port) = win.flow_outputs.get_mut(idx) {
-                                let old_name = port.name.clone();
-                                port.name.clone_from(&name);
+                            if let Some(io) = win.flow_definition.outputs.get_mut(idx) {
+                                let old_name = io.name().clone();
+                                io.set_name(name.clone());
                                 // Update edges referencing the old flow output name
                                 for edge in &mut win.edges {
                                     if edge.to_node == "output" && edge.to_port == old_name {
@@ -828,8 +827,8 @@ impl FlowEdit {
                             win.canvas_state.request_redraw();
                         }
                         FlowEditMessage::OutputTypeChanged(idx, dtype) => {
-                            if let Some(port) = win.flow_outputs.get_mut(idx) {
-                                port.datatypes = vec![dtype];
+                            if let Some(io) = win.flow_definition.outputs.get_mut(idx) {
+                                io.set_datatypes(&[DataType::from(dtype)]);
                             }
                             win.unsaved_edits += 1;
                             win.canvas_state.request_redraw();
@@ -1421,14 +1420,19 @@ impl FlowEdit {
         let output_color = Color::from_rgb(1.0, 0.6, 0.3);
 
         let mut input_col = Column::new().spacing(4);
-        for (i, port) in win.flow_inputs.iter().enumerate() {
-            let dtype = port.datatypes.first().cloned().unwrap_or_default();
+        for (i, port) in win.flow_definition.inputs.iter().enumerate() {
+            let port_name = port.name().clone();
+            let dtype = port
+                .datatypes()
+                .first()
+                .map(ToString::to_string)
+                .unwrap_or_default();
             let row = Row::new()
                 .spacing(4)
                 .align_y(iced::Alignment::Center)
                 .push(Text::new("\u{25D7}").size(18).color(input_color))
                 .push(
-                    text_input("name", &port.name)
+                    text_input("name", &port_name)
                         .on_input(move |s| {
                             Message::FlowEdit(window_id, FlowEditMessage::InputNameChanged(i, s))
                         })
@@ -1464,8 +1468,13 @@ impl FlowEdit {
         );
 
         let mut output_col = Column::new().spacing(4).align_x(iced::Alignment::End);
-        for (i, port) in win.flow_outputs.iter().enumerate() {
-            let dtype = port.datatypes.first().cloned().unwrap_or_default();
+        for (i, port) in win.flow_definition.outputs.iter().enumerate() {
+            let port_name = port.name().clone();
+            let dtype = port
+                .datatypes()
+                .first()
+                .map(ToString::to_string)
+                .unwrap_or_default();
             let row = Row::new()
                 .spacing(4)
                 .align_y(iced::Alignment::Center)
@@ -1488,7 +1497,7 @@ impl FlowEdit {
                         .width(70),
                 )
                 .push(
-                    text_input("name", &port.name)
+                    text_input("name", &port_name)
                         .on_input(move |s| {
                             Message::FlowEdit(window_id, FlowEditMessage::OutputNameChanged(i, s))
                         })
@@ -1908,8 +1917,6 @@ impl FlowEdit {
             }
             Ok(Process::FlowProcess(_)) => match flow_io::load_flow(&path) {
                 Ok(loaded) => {
-                    let (fi, fo) =
-                        flow_io::extract_ports(&loaded.flow_def.inputs, &loaded.flow_def.outputs);
                     let has_nodes = !loaded.nodes.is_empty();
                     let nc = loaded.nodes.len();
                     let ec = loaded.edges.len();
@@ -1936,8 +1943,6 @@ impl FlowEdit {
                         tooltip: None,
                         initializer_editor: None,
                         is_root: false,
-                        flow_inputs: fi,
-                        flow_outputs: fo,
                         context_menu: None,
                         show_metadata: false,
                         flow_hierarchy: self.build_hierarchy(),
@@ -2043,8 +2048,6 @@ impl FlowEdit {
                 let (new_id, open_task) = window::open(self.child_window_settings(1024.0, 768.0));
                 let nc = loaded.nodes.len();
                 let ec = loaded.edges.len();
-                let (fi, fo) =
-                    flow_io::extract_ports(&loaded.flow_def.inputs, &loaded.flow_def.outputs);
                 let mut flow_def = loaded.flow_def;
                 if let Ok(url) = Url::from_file_path(&path) {
                     flow_def.source_url = url;
@@ -2066,8 +2069,6 @@ impl FlowEdit {
                     tooltip: None,
                     initializer_editor: None,
                     is_root: false,
-                    flow_inputs: fi,
-                    flow_outputs: fo,
                     context_menu: None,
                     show_metadata: false,
                     flow_hierarchy: self.build_hierarchy(),
@@ -2148,8 +2149,6 @@ impl FlowEdit {
             tooltip: None,
             initializer_editor: None,
             is_root: false,
-            flow_inputs: Vec::new(),
-            flow_outputs: Vec::new(),
             context_menu: None,
             show_metadata: false,
             flow_hierarchy: self.build_hierarchy(),
@@ -2284,8 +2283,6 @@ impl FlowEdit {
             tooltip: None,
             initializer_editor: None,
             is_root: false,
-            flow_inputs: Vec::new(),
-            flow_outputs: Vec::new(),
             context_menu: None,
             show_metadata: false,
             flow_hierarchy: self.build_hierarchy(),
@@ -2420,8 +2417,6 @@ impl FlowEdit {
             tooltip: None,
             initializer_editor: None,
             is_root: false,
-            flow_inputs: Vec::new(),
-            flow_outputs: Vec::new(),
             context_menu: None,
             show_metadata: false,
             flow_hierarchy: self.build_hierarchy(),

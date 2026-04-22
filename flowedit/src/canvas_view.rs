@@ -24,6 +24,8 @@ use iced::{Color, Element, Fill, Point, Rectangle, Renderer, Size, Theme};
 use log::info;
 
 use flowcore::model::input::InputInitializer;
+use flowcore::model::io::IO;
+use flowcore::model::name::HasName;
 
 use crate::flow_io;
 use crate::history;
@@ -214,7 +216,8 @@ pub(crate) fn handle_canvas_message(win: &mut WindowState, msg: CanvasMessage) -
         }
         CanvasMessage::AutoFitViewport(viewport) => {
             if win.auto_fit_enabled || win.auto_fit_pending {
-                let has_flow_io = !win.flow_inputs.is_empty() || !win.flow_outputs.is_empty();
+                let has_flow_io = !win.flow_definition.inputs.is_empty()
+                    || !win.flow_definition.outputs.is_empty();
                 win.canvas_state.auto_fit(&win.nodes, has_flow_io, viewport);
                 win.auto_fit_pending = false;
             }
@@ -962,8 +965,8 @@ impl FlowCanvasState {
         nodes: &'a [NodeLayout],
         edges: &'a [EdgeLayout],
         flow_name: &'a str,
-        flow_inputs: &'a [PortInfo],
-        flow_outputs: &'a [PortInfo],
+        flow_inputs: &'a [IO],
+        flow_outputs: &'a [IO],
         is_subflow: bool,
         auto_fit_pending: bool,
         auto_fit_enabled: bool,
@@ -1098,9 +1101,9 @@ struct FlowCanvas<'a> {
     /// Flow name (displayed on sub-flow bounding box)
     flow_name: &'a str,
     /// Flow-level input ports (displayed on left edge for sub-flows)
-    flow_inputs: &'a [PortInfo],
+    flow_inputs: &'a [IO],
     /// Flow-level output ports (displayed on right edge for sub-flows)
-    flow_outputs: &'a [PortInfo],
+    flow_outputs: &'a [IO],
     /// Whether this is a sub-flow (always draws bounding box)
     is_subflow: bool,
     /// Whether an auto-fit should be triggered on the next event
@@ -1230,8 +1233,8 @@ fn quadratic_bezier_pt(p0: Point, p1: Point, p2: Point, t: f32) -> Point {
 /// Compute flow I/O port world positions (same layout as `draw_flow_io_ports`).
 fn compute_flow_io_positions(
     nodes: &[NodeLayout],
-    flow_inputs: &[PortInfo],
-    flow_outputs: &[PortInfo],
+    flow_inputs: &[IO],
+    flow_outputs: &[IO],
 ) -> (HashMap<String, Point>, HashMap<String, Point>) {
     use std::collections::HashMap;
 
@@ -1266,14 +1269,14 @@ fn compute_flow_io_positions(
     let input_start_y = center_y - (flow_inputs.len() as f32 - 1.0) * spacing / 2.0;
     for (i, input) in flow_inputs.iter().enumerate() {
         let y = input_start_y + i as f32 * spacing;
-        input_positions.insert(input.name.clone(), Point::new(box_x, y));
+        input_positions.insert(input.name().clone(), Point::new(box_x, y));
     }
 
     let right_x = box_x + box_w;
     let output_start_y = center_y - (flow_outputs.len() as f32 - 1.0) * spacing / 2.0;
     for (i, output) in flow_outputs.iter().enumerate() {
         let y = output_start_y + i as f32 * spacing;
-        output_positions.insert(output.name.clone(), Point::new(right_x, y));
+        output_positions.insert(output.name().clone(), Point::new(right_x, y));
     }
 
     (input_positions, output_positions)
@@ -1352,8 +1355,8 @@ fn cubic_bezier(p0: Point, p1: Point, p2: Point, p3: Point, t: f32) -> Point {
 fn hit_test_connection(
     edges: &[EdgeLayout],
     nodes: &[NodeLayout],
-    flow_inputs: &[PortInfo],
-    flow_outputs: &[PortInfo],
+    flow_inputs: &[IO],
+    flow_outputs: &[IO],
     screen_pos: Point,
     zoom: f32,
     offset: Point,
@@ -2373,8 +2376,8 @@ fn draw_nodes(frame: &mut Frame, nodes: &[NodeLayout], zoom: f32, offset: Point)
 fn draw_flow_io_ports(
     frame: &mut Frame,
     flow_name: &str,
-    flow_inputs: &[PortInfo],
-    flow_outputs: &[PortInfo],
+    flow_inputs: &[IO],
+    flow_outputs: &[IO],
     nodes: &[NodeLayout],
     edges: &[EdgeLayout],
     is_subflow: bool,
@@ -2451,7 +2454,7 @@ fn draw_flow_io_ports(
     for (i, input) in flow_inputs.iter().enumerate() {
         let world_y = input_start_y + i as f32 * spacing;
         let world_pos = Point::new(box_x, world_y);
-        input_positions.insert(input.name.clone(), world_pos);
+        input_positions.insert(input.name().clone(), world_pos);
         let screen_pos = transform_point(world_pos, zoom, offset);
         let scaled_r = port_radius * zoom;
         let semi = Path::new(|builder| {
@@ -2467,7 +2470,7 @@ fn draw_flow_io_ports(
 
         let label_pos = Point::new(screen_pos.x - scaled_r - 4.0, screen_pos.y);
         frame.fill_text(CanvasText {
-            content: input.name.clone(),
+            content: input.name().clone(),
             position: label_pos,
             color: input_color,
             size: (font_size * zoom).into(),
@@ -2484,7 +2487,7 @@ fn draw_flow_io_ports(
     for (i, output) in flow_outputs.iter().enumerate() {
         let world_y = output_start_y + i as f32 * spacing;
         let world_pos = Point::new(right_x, world_y);
-        output_positions.insert(output.name.clone(), world_pos);
+        output_positions.insert(output.name().clone(), world_pos);
         let screen_pos = transform_point(world_pos, zoom, offset);
         let scaled_r = port_radius * zoom;
         let semi = Path::new(|builder| {
@@ -2500,7 +2503,7 @@ fn draw_flow_io_ports(
 
         let label_pos = Point::new(screen_pos.x + scaled_r + 4.0, screen_pos.y);
         frame.fill_text(CanvasText {
-            content: output.name.clone(),
+            content: output.name().clone(),
             position: label_pos,
             color: output_color,
             size: (font_size * zoom).into(),
@@ -2907,8 +2910,8 @@ pub(crate) fn view_canvas_area(win: &WindowState, window_id: window::Id) -> Elem
             &win.nodes,
             &win.edges,
             &win.flow_definition.name,
-            &win.flow_inputs,
-            &win.flow_outputs,
+            &win.flow_definition.inputs,
+            &win.flow_definition.outputs,
             !win.is_root,
             win.auto_fit_pending,
             win.auto_fit_enabled,
@@ -3610,18 +3613,13 @@ mod test {
 
     #[test]
     fn compute_flow_io_positions_with_nodes() {
+        use flowcore::model::route::Route;
         let nodes = vec![NodeLayout {
             alias: "n".into(),
             ..Default::default()
         }];
-        let inputs = vec![PortInfo {
-            name: "data".into(),
-            datatypes: vec![],
-        }];
-        let outputs = vec![PortInfo {
-            name: "result".into(),
-            datatypes: vec![],
-        }];
+        let inputs = vec![IO::new_named(vec![], Route::default(), "data")];
+        let outputs = vec![IO::new_named(vec![], Route::default(), "result")];
         let (inp, outp) = compute_flow_io_positions(&nodes, &inputs, &outputs);
         assert!(inp.contains_key("data"));
         assert!(outp.contains_key("result"));
@@ -3633,14 +3631,9 @@ mod test {
 
     #[test]
     fn compute_flow_io_positions_empty_nodes() {
-        let inputs = vec![PortInfo {
-            name: "in".into(),
-            datatypes: vec![],
-        }];
-        let outputs = vec![PortInfo {
-            name: "out".into(),
-            datatypes: vec![],
-        }];
+        use flowcore::model::route::Route;
+        let inputs = vec![IO::new_named(vec![], Route::default(), "in")];
+        let outputs = vec![IO::new_named(vec![], Route::default(), "out")];
         let (inp, outp) = compute_flow_io_positions(&[], &inputs, &outputs);
         assert!(inp.contains_key("in"));
         assert!(outp.contains_key("out"));

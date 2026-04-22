@@ -289,8 +289,6 @@ mod test {
             tooltip: None,
             initializer_editor: None,
             is_root: true,
-            flow_inputs: Vec::new(),
-            flow_outputs: Vec::new(),
             context_menu: None,
             show_metadata: false,
             flow_hierarchy: FlowHierarchy::empty(),

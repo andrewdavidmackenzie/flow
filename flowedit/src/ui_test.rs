@@ -369,7 +369,9 @@ fn update_flow_add_input() {
     let (mut app, win_id) = test_app();
     let _ = app.update(Message::FlowEdit(win_id, FlowEditMessage::AddInput));
     assert_eq!(
-        app.windows.get(&win_id).map(|w| w.flow_inputs.len()),
+        app.windows
+            .get(&win_id)
+            .map(|w| w.flow_definition.inputs.len()),
         Some(1)
     );
     assert_eq!(app.windows.get(&win_id).map(|w| w.unsaved_edits), Some(1));
@@ -380,7 +382,9 @@ fn update_flow_add_output() {
     let (mut app, win_id) = test_app();
     let _ = app.update(Message::FlowEdit(win_id, FlowEditMessage::AddOutput));
     assert_eq!(
-        app.windows.get(&win_id).map(|w| w.flow_outputs.len()),
+        app.windows
+            .get(&win_id)
+            .map(|w| w.flow_definition.outputs.len()),
         Some(1)
     );
 }
@@ -391,7 +395,9 @@ fn update_flow_delete_input() {
     let _ = app.update(Message::FlowEdit(win_id, FlowEditMessage::AddInput));
     let _ = app.update(Message::FlowEdit(win_id, FlowEditMessage::DeleteInput(0)));
     assert_eq!(
-        app.windows.get(&win_id).map(|w| w.flow_inputs.len()),
+        app.windows
+            .get(&win_id)
+            .map(|w| w.flow_definition.inputs.len()),
         Some(0)
     );
 }
@@ -405,9 +411,11 @@ fn update_flow_input_name_changed() {
         FlowEditMessage::InputNameChanged(0, "data".into()),
     ));
     assert_eq!(
-        app.windows
-            .get(&win_id)
-            .and_then(|w| w.flow_inputs.first().map(|p| p.name.as_str())),
+        app.windows.get(&win_id).and_then(|w| w
+            .flow_definition
+            .inputs
+            .first()
+            .map(|io| io.name().as_str())),
         Some("data")
     );
 }
@@ -1390,12 +1398,16 @@ fn flow_edit_add_delete_output() {
     let (mut app, win_id) = test_app();
     let _ = app.update(Message::FlowEdit(win_id, FlowEditMessage::AddOutput));
     assert_eq!(
-        app.windows.get(&win_id).map_or(0, |w| w.flow_outputs.len()),
+        app.windows
+            .get(&win_id)
+            .map_or(0, |w| w.flow_definition.outputs.len()),
         1
     );
     let _ = app.update(Message::FlowEdit(win_id, FlowEditMessage::DeleteOutput(0)));
     assert_eq!(
-        app.windows.get(&win_id).map_or(0, |w| w.flow_outputs.len()),
+        app.windows
+            .get(&win_id)
+            .map_or(0, |w| w.flow_definition.outputs.len()),
         0
     );
 }
@@ -1411,10 +1423,10 @@ fn flow_edit_input_type_changed() {
     let dtype = app
         .windows
         .get(&win_id)
-        .and_then(|w| w.flow_inputs.first())
-        .and_then(|p| p.datatypes.first())
-        .map(String::as_str);
-    assert_eq!(dtype, Some("number"));
+        .and_then(|w| w.flow_definition.inputs.first())
+        .and_then(|io| io.datatypes().first())
+        .map(ToString::to_string);
+    assert_eq!(dtype.as_deref(), Some("number"));
 }
 
 #[test]
@@ -1428,10 +1440,10 @@ fn flow_edit_output_type_changed() {
     let dtype = app
         .windows
         .get(&win_id)
-        .and_then(|w| w.flow_outputs.first())
-        .and_then(|p| p.datatypes.first())
-        .map(String::as_str);
-    assert_eq!(dtype, Some("boolean"));
+        .and_then(|w| w.flow_definition.outputs.first())
+        .and_then(|io| io.datatypes().first())
+        .map(ToString::to_string);
+    assert_eq!(dtype.as_deref(), Some("boolean"));
 }
 
 // ---- Group 14: PR #2599 Coverage — FunctionEditMessage sub-enum routing ----

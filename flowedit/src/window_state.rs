@@ -83,10 +83,6 @@ pub(crate) struct WindowState {
     pub(crate) initializer_editor: Option<InitializerEditor>,
     /// Whether this is the root (main) window
     pub(crate) is_root: bool,
-    /// Flow-level input ports (for sub-flow display)
-    pub(crate) flow_inputs: Vec<PortInfo>,
-    /// Flow-level output ports (for sub-flow display)
-    pub(crate) flow_outputs: Vec<PortInfo>,
     /// Context menu position (screen coords), if showing
     pub(crate) context_menu: Option<(f32, f32)>,
     /// Whether the metadata editor is visible
@@ -118,8 +114,6 @@ impl Default for WindowState {
             tooltip: None,
             initializer_editor: None,
             is_root: false,
-            flow_inputs: Vec::new(),
-            flow_outputs: Vec::new(),
             context_menu: None,
             show_metadata: false,
             flow_hierarchy: FlowHierarchy::empty(),

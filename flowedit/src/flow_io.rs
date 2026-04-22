@@ -92,13 +92,10 @@ pub(crate) fn perform_open(win: &mut WindowState) -> Option<(BTreeSet<Url>, BTre
             Ok(loaded) => {
                 let nc = loaded.nodes.len();
                 let ec = loaded.edges.len();
-                let (fi, fo) = extract_ports(&loaded.flow_def.inputs, &loaded.flow_def.outputs);
                 win.nodes = loaded.nodes;
                 win.edges = loaded.edges;
                 win.flow_definition = loaded.flow_def;
                 win.set_file_path(&path);
-                win.flow_inputs = fi;
-                win.flow_outputs = fo;
                 win.selected_node = None;
                 win.selected_connection = None;
                 win.history = EditHistory::default();
@@ -124,8 +121,6 @@ pub(crate) fn perform_new(win: &mut WindowState) {
     win.flow_definition = FlowDefinition::default();
     win.flow_definition.name = String::from("(new flow)");
     win.clear_file_path();
-    win.flow_inputs = Vec::new();
-    win.flow_outputs = Vec::new();
     win.selected_node = None;
     win.selected_connection = None;
     win.history = EditHistory::default();
@@ -1178,8 +1173,6 @@ mod test {
             tooltip: None,
             initializer_editor: None,
             is_root: true,
-            flow_inputs: Vec::new(),
-            flow_outputs: Vec::new(),
             context_menu: None,
             show_metadata: false,
             flow_hierarchy: FlowHierarchy::empty(),
