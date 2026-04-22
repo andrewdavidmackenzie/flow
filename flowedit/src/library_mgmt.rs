@@ -220,7 +220,8 @@ pub(crate) fn add_library_function(win: &mut WindowState, source: &str, func_nam
 
 /// Resolve a node's source path relative to the current flow file.
 pub(crate) fn resolve_node_source(win: &WindowState, source: &str) -> Option<PathBuf> {
-    let base_dir = win.file_path.as_ref()?.parent()?;
+    let base_dir = win.file_path()?.parent()?.to_path_buf();
+    let base_dir = &base_dir;
     let canonicalize = |p: PathBuf| std::fs::canonicalize(&p).unwrap_or(p);
     let candidate = base_dir.join(source);
     if candidate.exists() {
@@ -240,6 +241,8 @@ pub(crate) fn resolve_node_source(win: &WindowState, source: &str) -> Option<Pat
 #[cfg(test)]
 #[allow(clippy::indexing_slicing)]
 mod test {
+    use std::path::Path;
+
     use super::*;
     use crate::canvas_view::FlowCanvasState;
     use crate::hierarchy_panel::FlowHierarchy;
@@ -282,7 +285,6 @@ mod test {
             auto_fit_enabled: false,
             unsaved_edits: 0,
             compiled_manifest: None,
-            file_path: None,
             flow_definition: flow_def,
             tooltip: None,
             initializer_editor: None,
@@ -311,10 +313,8 @@ mod test {
         let sub_path = dir.join("sub.toml");
         std::fs::write(&sub_path, "flow = \"sub\"").expect("write");
 
-        let win = WindowState {
-            file_path: Some(flow_path),
-            ..test_win_state()
-        };
+        let mut win = test_win_state();
+        win.set_file_path(&flow_path);
 
         let resolved = resolve_node_source(&win, "sub");
         assert!(resolved.is_some());
@@ -324,10 +324,8 @@ mod test {
 
     #[test]
     fn resolve_node_source_not_found() {
-        let win = WindowState {
-            file_path: Some(PathBuf::from("/tmp/flowedit_tests/nonexistent/root.toml")),
-            ..test_win_state()
-        };
+        let mut win = test_win_state();
+        win.set_file_path(Path::new("/tmp/flowedit_tests/nonexistent/root.toml"));
         let resolved = resolve_node_source(&win, "missing");
         assert!(resolved.is_none());
     }

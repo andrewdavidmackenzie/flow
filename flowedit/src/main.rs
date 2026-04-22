@@ -285,19 +285,22 @@ impl FlowEdit {
             }
         }
 
-        let (nodes, edges, status, file_path, flow_definition, lib_refs) =
+        let (nodes, edges, status, flow_definition, lib_refs) =
             if let Some(flow_path_str) = matches.get_one::<String>("flow-file") {
                 let flow_path = PathBuf::from(flow_path_str);
                 match flow_io::load_flow(&flow_path) {
                     Ok(loaded) => {
                         let nc = loaded.nodes.len();
                         let ec = loaded.edges.len();
+                        let mut fd = loaded.flow_def;
+                        if let Ok(url) = Url::from_file_path(&flow_path) {
+                            fd.source_url = url;
+                        }
                         (
                             loaded.nodes,
                             loaded.edges,
                             format!("Ready - {nc} nodes, {ec} connections"),
-                            Some(flow_path),
-                            loaded.flow_def,
+                            fd,
                             loaded.lib_references,
                         )
                     }
@@ -310,7 +313,6 @@ impl FlowEdit {
                             Vec::new(),
                             Vec::new(),
                             format!("Error loading flow: {e}"),
-                            None,
                             fd,
                             BTreeSet::new(),
                         )
@@ -325,7 +327,6 @@ impl FlowEdit {
                     Vec::new(),
                     Vec::new(),
                     String::from("Ready"),
-                    None,
                     fd,
                     BTreeSet::new(),
                 )
@@ -338,6 +339,7 @@ impl FlowEdit {
         let library_tree = LibraryTree::from_cache(&library_cache, &all_definitions);
 
         // Open the root window via daemon API
+        let file_path = flow_definition.source_url.to_file_path().ok();
         let saved_prefs = file_path
             .as_ref()
             .and_then(|p| flow_io::load_editor_prefs(p));
@@ -358,8 +360,8 @@ impl FlowEdit {
             ..Default::default()
         });
 
-        let root_flow_path = file_path.clone();
-        let flow_hierarchy = file_path
+        let root_flow_path = file_path;
+        let flow_hierarchy = root_flow_path
             .as_ref()
             .map_or_else(FlowHierarchy::empty, |p| FlowHierarchy::build(p));
 
@@ -377,7 +379,6 @@ impl FlowEdit {
             history: EditHistory::default(),
             unsaved_edits: 0,
             compiled_manifest: None,
-            file_path,
             flow_definition,
             tooltip: None,
             initializer_editor: None,
@@ -415,11 +416,11 @@ impl FlowEdit {
         if let Some(win) = self.windows.get(&window_id) {
             let modified = if win.unsaved_edits > 0 { " *" } else { "" };
             let file = win
-                .file_path
+                .file_path()
                 .as_ref()
-                .and_then(|p| p.file_name())
-                .and_then(|n| n.to_str())
-                .unwrap_or("untitled");
+                .and_then(|p| p.file_name().map(ToOwned::to_owned))
+                .and_then(|n| n.to_str().map(String::from))
+                .unwrap_or_else(|| String::from("untitled"));
             format!(
                 "flowedit - {} ({}){modified}",
                 win.flow_definition.name, file
@@ -451,7 +452,7 @@ impl FlowEdit {
                 if let Some((_source, path)) = open_result {
                     // Check if already open
                     for (&win_id, win) in &self.windows {
-                        if win.file_path.as_ref() == Some(&path) {
+                        if win.file_path().as_ref() == Some(&path) {
                             return window::gain_focus(win_id);
                         }
                     }
@@ -466,6 +467,10 @@ impl FlowEdit {
                         let has_nodes = !loaded.nodes.is_empty();
                         let nc = loaded.nodes.len();
                         let ec = loaded.edges.len();
+                        let mut flow_def = loaded.flow_def;
+                        if let Ok(url) = Url::from_file_path(&path) {
+                            flow_def.source_url = url;
+                        }
                         let child = WindowState {
                             kind: WindowKind::FlowEditor,
                             nodes: loaded.nodes,
@@ -479,8 +484,7 @@ impl FlowEdit {
                             auto_fit_enabled: true,
                             unsaved_edits: 0,
                             compiled_manifest: None,
-                            file_path: Some(path),
-                            flow_definition: loaded.flow_def,
+                            flow_definition: flow_def,
                             tooltip: None,
                             initializer_editor: None,
                             is_root: false,
@@ -681,9 +685,9 @@ impl FlowEdit {
                 if let Some(root_id) = self.root_window {
                     if let Some(win) = self.windows.get_mut(&root_id) {
                         if let Some((lib_refs, _ctx_refs)) = flow_io::perform_open(win) {
-                            self.root_flow_path = win.file_path.clone();
+                            self.root_flow_path = win.file_path();
                             win.flow_hierarchy = win
-                                .file_path
+                                .file_path()
                                 .as_ref()
                                 .map_or_else(FlowHierarchy::empty, |p| FlowHierarchy::build(p));
 
@@ -1879,7 +1883,7 @@ impl FlowEdit {
 
         // Check if already open
         for (&win_id, win) in &self.windows {
-            if win.file_path.as_ref() == Some(&path) {
+            if win.file_path().as_ref() == Some(&path) {
                 return window::gain_focus(win_id);
             }
         }
@@ -1911,6 +1915,10 @@ impl FlowEdit {
                     let ec = loaded.edges.len();
                     let (new_id, open_task) =
                         window::open(self.child_window_settings(1024.0, 768.0));
+                    let mut flow_def = loaded.flow_def;
+                    if let Ok(url) = Url::from_file_path(&path) {
+                        flow_def.source_url = url;
+                    }
                     let child = WindowState {
                         kind: WindowKind::FlowEditor,
                         nodes: loaded.nodes,
@@ -1924,8 +1932,7 @@ impl FlowEdit {
                         auto_fit_enabled: true,
                         unsaved_edits: 0,
                         compiled_manifest: None,
-                        file_path: Some(path),
-                        flow_definition: loaded.flow_def,
+                        flow_definition: flow_def,
                         tooltip: None,
                         initializer_editor: None,
                         is_root: false,
@@ -2007,7 +2014,7 @@ impl FlowEdit {
 
         // If a window already has this file open, focus it instead of opening a duplicate
         for (&win_id, win) in &self.windows {
-            if win.file_path.as_ref() == Some(&path) && win_id != parent_win_id {
+            if win.file_path().as_ref() == Some(&path) && win_id != parent_win_id {
                 return window::gain_focus(win_id);
             }
         }
@@ -2038,6 +2045,10 @@ impl FlowEdit {
                 let ec = loaded.edges.len();
                 let (fi, fo) =
                     flow_io::extract_ports(&loaded.flow_def.inputs, &loaded.flow_def.outputs);
+                let mut flow_def = loaded.flow_def;
+                if let Ok(url) = Url::from_file_path(&path) {
+                    flow_def.source_url = url;
+                }
                 let child = WindowState {
                     kind: WindowKind::FlowEditor,
                     nodes: loaded.nodes,
@@ -2051,8 +2062,7 @@ impl FlowEdit {
                     auto_fit_enabled: true,
                     unsaved_edits: 0,
                     compiled_manifest: None,
-                    file_path: Some(path.clone()),
-                    flow_definition: loaded.flow_def,
+                    flow_definition: flow_def,
                     tooltip: None,
                     initializer_editor: None,
                     is_root: false,
@@ -2114,10 +2124,13 @@ impl FlowEdit {
             read_only,
         };
 
-        let func_flow_def = FlowDefinition {
+        let mut func_flow_def = FlowDefinition {
             name: func_name.clone(),
             ..FlowDefinition::default()
         };
+        if let Ok(url) = Url::from_file_path(toml_path) {
+            func_flow_def.source_url = url;
+        }
         let child = WindowState {
             kind: WindowKind::FunctionViewer(viewer),
             nodes: Vec::new(),
@@ -2131,7 +2144,6 @@ impl FlowEdit {
             auto_fit_enabled: false,
             unsaved_edits: 0,
             compiled_manifest: None,
-            file_path: Some(toml_path.to_path_buf()),
             flow_definition: func_flow_def,
             tooltip: None,
             initializer_editor: None,
@@ -2166,7 +2178,8 @@ impl FlowEdit {
         let base_dir = self
             .windows
             .get(&target_id)
-            .and_then(|w| w.file_path.as_ref())
+            .and_then(WindowState::file_path)
+            .as_ref()
             .and_then(|p| p.parent())
             .map(Path::to_path_buf);
 
@@ -2194,10 +2207,13 @@ impl FlowEdit {
             .to_string();
 
         // Create the sub-flow definition with empty content
-        let flow_def = FlowDefinition {
+        let mut flow_def = FlowDefinition {
             name: flow_name.clone(),
             ..FlowDefinition::default()
         };
+        if let Ok(url) = Url::from_file_path(&path) {
+            flow_def.source_url = url;
+        }
 
         // Write the initial TOML file
         let toml = format!("flow = \"{flow_name}\"\n");
@@ -2264,7 +2280,6 @@ impl FlowEdit {
             auto_fit_enabled: true,
             unsaved_edits: 0,
             compiled_manifest: None,
-            file_path: Some(path),
             flow_definition: flow_def,
             tooltip: None,
             initializer_editor: None,
@@ -2295,7 +2310,8 @@ impl FlowEdit {
         let base_dir = self
             .windows
             .get(&target_id)
-            .and_then(|w| w.file_path.as_ref())
+            .and_then(WindowState::file_path)
+            .as_ref()
             .and_then(|p| p.parent())
             .map(Path::to_path_buf);
 
@@ -2380,10 +2396,13 @@ impl FlowEdit {
             read_only: false,
         };
 
-        let func_flow_def = FlowDefinition {
+        let mut func_flow_def = FlowDefinition {
             name: func_name,
             ..FlowDefinition::default()
         };
+        if let Ok(url) = Url::from_file_path(&path) {
+            func_flow_def.source_url = url;
+        }
         let child = WindowState {
             kind: WindowKind::FunctionViewer(viewer),
             nodes: Vec::new(),
@@ -2397,7 +2416,6 @@ impl FlowEdit {
             auto_fit_enabled: false,
             unsaved_edits: 1,
             compiled_manifest: None,
-            file_path: Some(path),
             flow_definition: func_flow_def,
             tooltip: None,
             initializer_editor: None,

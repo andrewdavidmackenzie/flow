@@ -1,8 +1,9 @@
 //! Per-window state and related types for the flow editor.
 
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
 use iced::window;
+use url::Url;
 
 use flowcore::model::flow_definition::FlowDefinition;
 
@@ -74,8 +75,6 @@ pub(crate) struct WindowState {
     pub(crate) unsaved_edits: i32,
     /// Path to the last compiled manifest (None if not compiled or edited since)
     pub(crate) compiled_manifest: Option<PathBuf>,
-    /// Path to the currently loaded flow file, if any
-    pub(crate) file_path: Option<PathBuf>,
     /// The original flow definition, used to preserve metadata when saving
     pub(crate) flow_definition: FlowDefinition,
     /// Tooltip text and screen position to display (full source path on hover)
@@ -115,7 +114,6 @@ impl Default for WindowState {
             auto_fit_enabled: false,
             unsaved_edits: 0,
             compiled_manifest: None,
-            file_path: None,
             flow_definition: FlowDefinition::default(),
             tooltip: None,
             initializer_editor: None,
@@ -132,6 +130,24 @@ impl Default for WindowState {
 }
 
 impl WindowState {
+    /// Get the file path from the flow definition's source URL.
+    /// Returns `None` if no file has been saved/loaded yet.
+    pub(crate) fn file_path(&self) -> Option<PathBuf> {
+        self.flow_definition.source_url.to_file_path().ok()
+    }
+
+    /// Set the file path by updating the flow definition's source URL.
+    pub(crate) fn set_file_path(&mut self, path: &Path) {
+        if let Ok(url) = Url::from_file_path(path) {
+            self.flow_definition.source_url = url;
+        }
+    }
+
+    /// Clear the file path by resetting the source URL to the default.
+    pub(crate) fn clear_file_path(&mut self) {
+        self.flow_definition.source_url = FlowDefinition::default_url();
+    }
+
     /// Undo the last edit action.
     pub(crate) fn handle_undo(&mut self) {
         history::handle_undo(self);

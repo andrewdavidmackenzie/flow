@@ -759,7 +759,7 @@ fn click_build_with_saved_flow() {
     let path = dir.join("test.toml");
     let (mut app, win_id) = test_app();
     if let Some(win) = app.windows.get_mut(&win_id) {
-        win.file_path = Some(path.clone());
+        win.set_file_path(&path);
         win.flow_definition.name = "test_build".into();
         flow_io::perform_save(win, &path);
     }

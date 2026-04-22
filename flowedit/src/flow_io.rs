@@ -44,7 +44,7 @@ pub(crate) fn perform_save(win: &mut WindowState, path: &PathBuf) {
     match save_flow_toml(&win.flow_definition, &win.edges, path) {
         Ok(()) => {
             win.unsaved_edits = 0;
-            win.file_path = Some(path.clone());
+            win.set_file_path(path);
             save_editor_prefs(path, win.last_size, win.last_position);
             if let Some(name) = path.file_name().and_then(|n| n.to_str()) {
                 win.status = format!("Saved to {name}");
@@ -70,7 +70,7 @@ pub(crate) fn perform_save_as(win: &mut WindowState) {
 
 /// Handle save message -- saves to existing path or prompts with save dialog.
 pub(crate) fn handle_save(win: &mut WindowState) {
-    if let Some(path) = win.file_path.clone() {
+    if let Some(path) = win.file_path() {
         perform_save(win, &path);
     } else {
         perform_save_as(win);
@@ -96,7 +96,7 @@ pub(crate) fn perform_open(win: &mut WindowState) -> Option<(BTreeSet<Url>, BTre
                 win.nodes = loaded.nodes;
                 win.edges = loaded.edges;
                 win.flow_definition = loaded.flow_def;
-                win.file_path = Some(path);
+                win.set_file_path(&path);
                 win.flow_inputs = fi;
                 win.flow_outputs = fo;
                 win.selected_node = None;
@@ -123,7 +123,7 @@ pub(crate) fn perform_new(win: &mut WindowState) {
     win.edges = Vec::new();
     win.flow_definition = FlowDefinition::default();
     win.flow_definition.name = String::from("(new flow)");
-    win.file_path = None;
+    win.clear_file_path();
     win.flow_inputs = Vec::new();
     win.flow_outputs = Vec::new();
     win.selected_node = None;
@@ -145,10 +145,10 @@ pub(crate) fn perform_new(win: &mut WindowState) {
 /// error message on failure.
 pub(crate) fn perform_compile(win: &mut WindowState) -> Result<PathBuf, String> {
     // New flows must be saved first so the compiler has a real file path
-    if win.file_path.is_none() {
+    if win.file_path().is_none() {
         perform_save_as(win);
     }
-    let Some(flow_path) = win.file_path.clone() else {
+    let Some(flow_path) = win.file_path() else {
         return Err("Flow must be saved before compiling".to_string());
     };
 
@@ -1174,7 +1174,6 @@ mod test {
             auto_fit_enabled: false,
             unsaved_edits: 0,
             compiled_manifest: None,
-            file_path: None,
             flow_definition: flow_def,
             tooltip: None,
             initializer_editor: None,
@@ -1200,7 +1199,7 @@ mod test {
 
         perform_save(&mut win, &path);
         assert_eq!(win.unsaved_edits, 0);
-        assert_eq!(win.file_path, Some(path.clone()));
+        assert_eq!(win.file_path(), Some(path.clone()));
 
         let contents = std::fs::read_to_string(&path).expect("read failed");
         assert!(contents.contains("flow = \"saved_flow\""));
