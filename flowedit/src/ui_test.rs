@@ -345,16 +345,19 @@ fn update_undo_redo_cycle() {
 fn update_toggle_metadata() {
     let (mut app, win_id) = test_app();
     assert!(!app.windows.get(&win_id).is_some_and(|w| w.show_metadata));
-    let _ = app.update(Message::ToggleMetadataEditor(win_id));
+    let _ = app.update(Message::FlowEdit(win_id, FlowEditMessage::ToggleMetadata));
     assert!(app.windows.get(&win_id).is_some_and(|w| w.show_metadata));
-    let _ = app.update(Message::ToggleMetadataEditor(win_id));
+    let _ = app.update(Message::FlowEdit(win_id, FlowEditMessage::ToggleMetadata));
     assert!(!app.windows.get(&win_id).is_some_and(|w| w.show_metadata));
 }
 
 #[test]
 fn update_flow_name_changed() {
     let (mut app, win_id) = test_app();
-    let _ = app.update(Message::FlowNameChanged(win_id, "new_name".into()));
+    let _ = app.update(Message::FlowEdit(
+        win_id,
+        FlowEditMessage::NameChanged("new_name".into()),
+    ));
     assert_eq!(
         app.windows.get(&win_id).map(|w| w.flow_name.as_str()),
         Some("new_name")
@@ -365,7 +368,10 @@ fn update_flow_name_changed() {
 #[test]
 fn update_flow_version_changed() {
     let (mut app, win_id) = test_app();
-    let _ = app.update(Message::FlowVersionChanged(win_id, "2.0.0".into()));
+    let _ = app.update(Message::FlowEdit(
+        win_id,
+        FlowEditMessage::VersionChanged("2.0.0".into()),
+    ));
     assert_eq!(
         app.windows
             .get(&win_id)
@@ -377,9 +383,9 @@ fn update_flow_version_changed() {
 #[test]
 fn update_flow_description_changed() {
     let (mut app, win_id) = test_app();
-    let _ = app.update(Message::FlowDescriptionChanged(
+    let _ = app.update(Message::FlowEdit(
         win_id,
-        "A test flow".into(),
+        FlowEditMessage::DescriptionChanged("A test flow".into()),
     ));
     assert_eq!(
         app.windows
@@ -392,7 +398,10 @@ fn update_flow_description_changed() {
 #[test]
 fn update_flow_authors_changed() {
     let (mut app, win_id) = test_app();
-    let _ = app.update(Message::FlowAuthorsChanged(win_id, "Alice, Bob".into()));
+    let _ = app.update(Message::FlowEdit(
+        win_id,
+        FlowEditMessage::AuthorsChanged("Alice, Bob".into()),
+    ));
     let authors = app
         .windows
         .get(&win_id)
@@ -404,7 +413,7 @@ fn update_flow_authors_changed() {
 #[test]
 fn update_flow_add_input() {
     let (mut app, win_id) = test_app();
-    let _ = app.update(Message::FlowAddInput(win_id));
+    let _ = app.update(Message::FlowEdit(win_id, FlowEditMessage::AddInput));
     assert_eq!(
         app.windows.get(&win_id).map(|w| w.flow_inputs.len()),
         Some(1)
@@ -415,7 +424,7 @@ fn update_flow_add_input() {
 #[test]
 fn update_flow_add_output() {
     let (mut app, win_id) = test_app();
-    let _ = app.update(Message::FlowAddOutput(win_id));
+    let _ = app.update(Message::FlowEdit(win_id, FlowEditMessage::AddOutput));
     assert_eq!(
         app.windows.get(&win_id).map(|w| w.flow_outputs.len()),
         Some(1)
@@ -425,8 +434,8 @@ fn update_flow_add_output() {
 #[test]
 fn update_flow_delete_input() {
     let (mut app, win_id) = test_app();
-    let _ = app.update(Message::FlowAddInput(win_id));
-    let _ = app.update(Message::FlowDeleteInput(win_id, 0));
+    let _ = app.update(Message::FlowEdit(win_id, FlowEditMessage::AddInput));
+    let _ = app.update(Message::FlowEdit(win_id, FlowEditMessage::DeleteInput(0)));
     assert_eq!(
         app.windows.get(&win_id).map(|w| w.flow_inputs.len()),
         Some(0)
@@ -436,8 +445,11 @@ fn update_flow_delete_input() {
 #[test]
 fn update_flow_input_name_changed() {
     let (mut app, win_id) = test_app();
-    let _ = app.update(Message::FlowAddInput(win_id));
-    let _ = app.update(Message::FlowInputNameChanged(win_id, 0, "data".into()));
+    let _ = app.update(Message::FlowEdit(win_id, FlowEditMessage::AddInput));
+    let _ = app.update(Message::FlowEdit(
+        win_id,
+        FlowEditMessage::InputNameChanged(0, "data".into()),
+    ));
     assert_eq!(
         app.windows
             .get(&win_id)

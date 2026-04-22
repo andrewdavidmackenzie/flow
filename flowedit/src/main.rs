@@ -53,6 +53,68 @@ mod undo_redo;
 #[cfg(test)]
 mod ui_test;
 
+/// Messages for flow metadata and I/O editing, tagged by window
+#[derive(Debug, Clone)]
+enum FlowEditMessage {
+    /// Flow name changed
+    NameChanged(String),
+    /// Flow version changed
+    VersionChanged(String),
+    /// Flow description changed
+    DescriptionChanged(String),
+    /// Flow authors changed
+    AuthorsChanged(String),
+    /// Toggle metadata editor visibility
+    ToggleMetadata,
+    /// Add a flow-level input port
+    AddInput,
+    /// Add a flow-level output port
+    AddOutput,
+    /// Delete a flow-level input port
+    DeleteInput(usize),
+    /// Delete a flow-level output port
+    DeleteOutput(usize),
+    /// Flow input port name changed
+    InputNameChanged(usize, String),
+    /// Flow input port type changed
+    InputTypeChanged(usize, String),
+    /// Flow output port name changed
+    OutputNameChanged(usize, String),
+    /// Flow output port type changed
+    OutputTypeChanged(usize, String),
+}
+
+/// Messages for function definition viewing/editing, tagged by window
+#[derive(Debug, Clone)]
+enum FunctionEditMessage {
+    /// Switch tab in a function viewer window
+    TabSelected(usize),
+    /// Function name edited
+    NameChanged(String),
+    /// Function description edited
+    DescriptionChanged(String),
+    /// Browse for source file
+    BrowseSource,
+    /// Add a new input port to a function
+    AddInput,
+    /// Add a new output port to a function
+    AddOutput,
+    /// Delete an input port from a function
+    DeleteInput(usize),
+    /// Delete an output port from a function
+    DeleteOutput(usize),
+    /// Input port name changed
+    InputNameChanged(usize, String),
+    /// Input port type changed
+    InputTypeChanged(usize, String),
+    /// Output port name changed
+    OutputNameChanged(usize, String),
+    /// Output port type changed
+    OutputTypeChanged(usize, String),
+    /// Save function definition to disk
+    Save,
+}
+
 /// Messages handled by the flowedit application
 #[derive(Debug, Clone)]
 enum Message {
@@ -90,62 +152,14 @@ enum Message {
     InitializerApply(window::Id),
     /// Cancel the initializer edit, tagged with the originating window ID
     InitializerCancel(window::Id),
-    /// Switch tab in a function viewer window
-    FunctionTabSelected(window::Id, usize),
-    /// Function name edited
-    FunctionNameChanged(window::Id, String),
-    /// Function description edited
-    FunctionDescriptionChanged(window::Id, String),
-    /// Browse for source file
-    FunctionBrowseSource(window::Id),
-    /// Add a new input port to a function
-    FunctionAddInput(window::Id),
-    /// Add a new output port to a function
-    FunctionAddOutput(window::Id),
-    /// Delete an input port from a function
-    FunctionDeleteInput(window::Id, usize),
-    /// Delete an output port from a function
-    FunctionDeleteOutput(window::Id, usize),
-    /// Input port name changed
-    FunctionInputNameChanged(window::Id, usize, String),
-    /// Input port type changed
-    FunctionInputTypeChanged(window::Id, usize, String),
-    /// Output port name changed
-    FunctionOutputNameChanged(window::Id, usize, String),
-    /// Output port type changed
-    FunctionOutputTypeChanged(window::Id, usize, String),
-    /// Save function definition to disk
-    FunctionSave(window::Id),
+    /// Flow metadata and I/O editing messages
+    FlowEdit(window::Id, FlowEditMessage),
+    /// Function definition viewing/editing messages
+    FunctionEdit(window::Id, FunctionEditMessage),
     /// Create a new sub-flow and add it to the current flow
     NewSubFlow,
     /// Create a new provided implementation and add it to the current flow
     NewFunction,
-    /// Flow name changed
-    FlowNameChanged(window::Id, String),
-    /// Flow version changed
-    FlowVersionChanged(window::Id, String),
-    /// Flow description changed
-    FlowDescriptionChanged(window::Id, String),
-    /// Flow authors changed
-    FlowAuthorsChanged(window::Id, String),
-    /// Toggle metadata editor visibility
-    ToggleMetadataEditor(window::Id),
-    /// Add a flow-level input port
-    FlowAddInput(window::Id),
-    /// Add a flow-level output port
-    FlowAddOutput(window::Id),
-    /// Delete a flow-level input port
-    FlowDeleteInput(window::Id, usize),
-    /// Delete a flow-level output port
-    FlowDeleteOutput(window::Id, usize),
-    /// Flow input port name changed
-    FlowInputNameChanged(window::Id, usize, String),
-    /// Flow input port type changed
-    FlowInputTypeChanged(window::Id, usize, String),
-    /// Flow output port name changed
-    FlowOutputNameChanged(window::Id, usize, String),
-    /// Flow output port type changed
-    FlowOutputTypeChanged(window::Id, usize, String),
     /// A window close was requested
     CloseRequested(window::Id),
     /// A window was actually closed (cleanup stale state)
@@ -848,38 +862,92 @@ impl FlowEdit {
                     }
                 }
             }
-            Message::FlowNameChanged(win_id, new_name) => {
+            Message::FlowEdit(win_id, flow_msg) => {
                 if let Some(win) = self.windows.get_mut(&win_id) {
-                    win.flow_name = new_name.clone();
-                    win.flow_definition.name = new_name;
-                    win.unsaved_edits += 1;
-                }
-            }
-            Message::FlowVersionChanged(win_id, version) => {
-                if let Some(win) = self.windows.get_mut(&win_id) {
-                    win.flow_definition.metadata.version = version;
-                    win.unsaved_edits += 1;
-                }
-            }
-            Message::FlowDescriptionChanged(win_id, desc) => {
-                if let Some(win) = self.windows.get_mut(&win_id) {
-                    win.flow_definition.metadata.description = desc;
-                    win.unsaved_edits += 1;
-                }
-            }
-            Message::FlowAuthorsChanged(win_id, authors_str) => {
-                if let Some(win) = self.windows.get_mut(&win_id) {
-                    win.flow_definition.metadata.authors = authors_str
-                        .split(',')
-                        .map(|s| s.trim().to_string())
-                        .filter(|s| !s.is_empty())
-                        .collect();
-                    win.unsaved_edits += 1;
-                }
-            }
-            Message::ToggleMetadataEditor(win_id) => {
-                if let Some(win) = self.windows.get_mut(&win_id) {
-                    win.show_metadata = !win.show_metadata;
+                    match flow_msg {
+                        FlowEditMessage::NameChanged(new_name) => {
+                            win.flow_name = new_name.clone();
+                            win.flow_definition.name = new_name;
+                            win.unsaved_edits += 1;
+                        }
+                        FlowEditMessage::VersionChanged(version) => {
+                            win.flow_definition.metadata.version = version;
+                            win.unsaved_edits += 1;
+                        }
+                        FlowEditMessage::DescriptionChanged(desc) => {
+                            win.flow_definition.metadata.description = desc;
+                            win.unsaved_edits += 1;
+                        }
+                        FlowEditMessage::AuthorsChanged(authors_str) => {
+                            win.flow_definition.metadata.authors = authors_str
+                                .split(',')
+                                .map(|s| s.trim().to_string())
+                                .filter(|s| !s.is_empty())
+                                .collect();
+                            win.unsaved_edits += 1;
+                        }
+                        FlowEditMessage::ToggleMetadata => {
+                            win.show_metadata = !win.show_metadata;
+                        }
+                        FlowEditMessage::AddInput => {
+                            win.flow_inputs.push(PortInfo {
+                                name: format!("input{}", win.flow_inputs.len()),
+                                datatypes: vec![String::from("string")],
+                            });
+                            win.unsaved_edits += 1;
+                            win.canvas_state.request_redraw();
+                        }
+                        FlowEditMessage::AddOutput => {
+                            win.flow_outputs.push(PortInfo {
+                                name: format!("output{}", win.flow_outputs.len()),
+                                datatypes: vec![String::from("string")],
+                            });
+                            win.unsaved_edits += 1;
+                            win.canvas_state.request_redraw();
+                        }
+                        FlowEditMessage::DeleteInput(idx) => {
+                            if idx < win.flow_inputs.len() {
+                                win.flow_inputs.remove(idx);
+                                win.unsaved_edits += 1;
+                                win.canvas_state.request_redraw();
+                            }
+                        }
+                        FlowEditMessage::DeleteOutput(idx) => {
+                            if idx < win.flow_outputs.len() {
+                                win.flow_outputs.remove(idx);
+                                win.unsaved_edits += 1;
+                                win.canvas_state.request_redraw();
+                            }
+                        }
+                        FlowEditMessage::InputNameChanged(idx, name) => {
+                            if let Some(port) = win.flow_inputs.get_mut(idx) {
+                                port.name = name;
+                            }
+                            win.unsaved_edits += 1;
+                            win.canvas_state.request_redraw();
+                        }
+                        FlowEditMessage::InputTypeChanged(idx, dtype) => {
+                            if let Some(port) = win.flow_inputs.get_mut(idx) {
+                                port.datatypes = vec![dtype];
+                            }
+                            win.unsaved_edits += 1;
+                            win.canvas_state.request_redraw();
+                        }
+                        FlowEditMessage::OutputNameChanged(idx, name) => {
+                            if let Some(port) = win.flow_outputs.get_mut(idx) {
+                                port.name = name;
+                            }
+                            win.unsaved_edits += 1;
+                            win.canvas_state.request_redraw();
+                        }
+                        FlowEditMessage::OutputTypeChanged(idx, dtype) => {
+                            if let Some(port) = win.flow_outputs.get_mut(idx) {
+                                port.datatypes = vec![dtype];
+                            }
+                            win.unsaved_edits += 1;
+                            win.canvas_state.request_redraw();
+                        }
+                    }
                 }
             }
             Message::NewSubFlow => {
@@ -946,223 +1014,168 @@ impl FlowEdit {
             Message::ToggleLibPaths => {
                 self.show_lib_paths = !self.show_lib_paths;
             }
-            Message::FunctionTabSelected(win_id, tab) => {
-                if let Some(win) = self.windows.get_mut(&win_id) {
-                    if let WindowKind::FunctionViewer(ref mut viewer) = win.kind {
-                        viewer.active_tab = tab;
-                    }
-                }
-            }
-            Message::FunctionNameChanged(win_id, new_name) => {
-                if let Some(win) = self.windows.get_mut(&win_id) {
-                    if let WindowKind::FunctionViewer(ref mut viewer) = win.kind {
-                        viewer.name = new_name;
-                    }
-                    win.unsaved_edits += 1;
-                }
-            }
-            Message::FunctionDescriptionChanged(win_id, new_desc) => {
-                // Extract parent info before mutating
-                let parent_info = self.windows.get(&win_id).and_then(|win| {
-                    if let WindowKind::FunctionViewer(ref viewer) = win.kind {
-                        viewer
-                            .parent_window
-                            .map(|pid| (pid, viewer.node_source.clone()))
-                    } else {
-                        None
-                    }
-                });
-                if let Some(win) = self.windows.get_mut(&win_id) {
-                    if let WindowKind::FunctionViewer(ref mut viewer) = win.kind {
-                        viewer.description = new_desc.clone();
-                    }
-                    win.unsaved_edits += 1;
-                }
-                // Propagate to the parent window's NodeLayout for ALL nodes
-                // with the same source (multiple nodes may reference it)
-                if let Some((parent_id, node_source)) = parent_info {
-                    if let Some(parent_win) = self.windows.get_mut(&parent_id) {
-                        for node in &mut parent_win.nodes {
-                            if node.source == node_source {
-                                node.description = new_desc.clone();
-                            }
-                        }
-                        parent_win.canvas_state.request_redraw();
-                    }
-                }
-            }
-            Message::FunctionBrowseSource(win_id) => {
-                let dialog = rfd::FileDialog::new().add_filter("Rust", &["rs"]);
-                if let Some(selected) = dialog.pick_file() {
-                    if let Some(win) = self.windows.get_mut(&win_id) {
-                        if let WindowKind::FunctionViewer(ref mut viewer) = win.kind {
-                            let base = viewer.toml_path.parent().unwrap_or(Path::new("."));
-                            let rel = selected
-                                .strip_prefix(base)
-                                .map(|p| p.to_string_lossy().to_string())
-                                .unwrap_or_else(|_| selected.to_string_lossy().to_string());
-                            viewer.source_file = rel;
-                            viewer.rs_content = std::fs::read_to_string(&selected)
-                                .unwrap_or_else(|_| String::from("// Could not read file"));
-                        }
-                        win.unsaved_edits += 1;
-                    }
-                }
-            }
-            Message::FunctionAddInput(win_id)
-            | Message::FunctionAddOutput(win_id)
-            | Message::FunctionDeleteInput(win_id, _)
-            | Message::FunctionDeleteOutput(win_id, _) => {
-                if let Some(win) = self.windows.get_mut(&win_id) {
-                    if let WindowKind::FunctionViewer(ref mut v) = win.kind {
-                        match message {
-                            Message::FunctionAddInput(_) => v.inputs.push(PortInfo {
-                                name: format!("input{}", v.inputs.len()),
-                                datatypes: vec![String::from("string")],
-                            }),
-                            Message::FunctionAddOutput(_) => v.outputs.push(PortInfo {
-                                name: format!("output{}", v.outputs.len()),
-                                datatypes: vec![String::from("string")],
-                            }),
-                            Message::FunctionDeleteInput(_, idx) if idx < v.inputs.len() => {
-                                v.inputs.remove(idx);
-                            }
-                            Message::FunctionDeleteOutput(_, idx) if idx < v.outputs.len() => {
-                                v.outputs.remove(idx);
-                            }
-                            _ => {}
-                        }
-                    }
-                    win.unsaved_edits += 1;
-                }
-            }
-            Message::FunctionInputNameChanged(win_id, idx, name) => {
-                if let Some(win) = self.windows.get_mut(&win_id) {
-                    if let WindowKind::FunctionViewer(ref mut v) = win.kind {
-                        if let Some(port) = v.inputs.get_mut(idx) {
-                            port.name = name;
-                        }
-                    }
-                    win.unsaved_edits += 1;
-                }
-            }
-            Message::FunctionInputTypeChanged(win_id, idx, dtype) => {
-                if let Some(win) = self.windows.get_mut(&win_id) {
-                    if let WindowKind::FunctionViewer(ref mut v) = win.kind {
-                        if let Some(port) = v.inputs.get_mut(idx) {
-                            port.datatypes = vec![dtype];
-                        }
-                    }
-                    win.unsaved_edits += 1;
-                }
-            }
-            Message::FunctionOutputNameChanged(win_id, idx, name) => {
-                if let Some(win) = self.windows.get_mut(&win_id) {
-                    if let WindowKind::FunctionViewer(ref mut v) = win.kind {
-                        if let Some(port) = v.outputs.get_mut(idx) {
-                            port.name = name;
-                        }
-                    }
-                    win.unsaved_edits += 1;
-                }
-            }
-            Message::FunctionOutputTypeChanged(win_id, idx, dtype) => {
-                if let Some(win) = self.windows.get_mut(&win_id) {
-                    if let WindowKind::FunctionViewer(ref mut v) = win.kind {
-                        if let Some(port) = v.outputs.get_mut(idx) {
-                            port.datatypes = vec![dtype];
-                        }
-                    }
-                    win.unsaved_edits += 1;
-                }
-            }
-            Message::FunctionSave(win_id) => {
-                if let Some(win) = self.windows.get_mut(&win_id) {
-                    if let WindowKind::FunctionViewer(ref v) = win.kind {
-                        match flow_io::save_function_definition(v) {
-                            Ok(()) => {
-                                win.status = format!("Saved: {}", v.toml_path.display());
-                                win.unsaved_edits = 0;
-                            }
-                            Err(e) => {
-                                win.status = format!("Save failed: {e}");
+            Message::FunctionEdit(win_id, func_msg) => {
+                match func_msg {
+                    FunctionEditMessage::TabSelected(tab) => {
+                        if let Some(win) = self.windows.get_mut(&win_id) {
+                            if let WindowKind::FunctionViewer(ref mut viewer) = win.kind {
+                                viewer.active_tab = tab;
                             }
                         }
                     }
-                }
-            }
-            Message::FlowAddInput(win_id) => {
-                if let Some(win) = self.windows.get_mut(&win_id) {
-                    win.flow_inputs.push(PortInfo {
-                        name: format!("input{}", win.flow_inputs.len()),
-                        datatypes: vec![String::from("string")],
-                    });
-                    win.unsaved_edits += 1;
-                    win.canvas_state.request_redraw();
-                }
-            }
-            Message::FlowAddOutput(win_id) => {
-                if let Some(win) = self.windows.get_mut(&win_id) {
-                    win.flow_outputs.push(PortInfo {
-                        name: format!("output{}", win.flow_outputs.len()),
-                        datatypes: vec![String::from("string")],
-                    });
-                    win.unsaved_edits += 1;
-                    win.canvas_state.request_redraw();
-                }
-            }
-            Message::FlowDeleteInput(win_id, idx) => {
-                if let Some(win) = self.windows.get_mut(&win_id) {
-                    if idx < win.flow_inputs.len() {
-                        win.flow_inputs.remove(idx);
-                        win.unsaved_edits += 1;
-                        win.canvas_state.request_redraw();
+                    FunctionEditMessage::NameChanged(new_name) => {
+                        if let Some(win) = self.windows.get_mut(&win_id) {
+                            if let WindowKind::FunctionViewer(ref mut viewer) = win.kind {
+                                viewer.name = new_name;
+                            }
+                            win.unsaved_edits += 1;
+                        }
                     }
-                }
-            }
-            Message::FlowDeleteOutput(win_id, idx) => {
-                if let Some(win) = self.windows.get_mut(&win_id) {
-                    if idx < win.flow_outputs.len() {
-                        win.flow_outputs.remove(idx);
-                        win.unsaved_edits += 1;
-                        win.canvas_state.request_redraw();
+                    FunctionEditMessage::DescriptionChanged(new_desc) => {
+                        // Extract parent info before mutating
+                        let parent_info = self.windows.get(&win_id).and_then(|win| {
+                            if let WindowKind::FunctionViewer(ref viewer) = win.kind {
+                                viewer
+                                    .parent_window
+                                    .map(|pid| (pid, viewer.node_source.clone()))
+                            } else {
+                                None
+                            }
+                        });
+                        if let Some(win) = self.windows.get_mut(&win_id) {
+                            if let WindowKind::FunctionViewer(ref mut viewer) = win.kind {
+                                viewer.description = new_desc.clone();
+                            }
+                            win.unsaved_edits += 1;
+                        }
+                        // Propagate to the parent window's NodeLayout for ALL nodes
+                        // with the same source (multiple nodes may reference it)
+                        if let Some((parent_id, node_source)) = parent_info {
+                            if let Some(parent_win) = self.windows.get_mut(&parent_id) {
+                                for node in &mut parent_win.nodes {
+                                    if node.source == node_source {
+                                        node.description = new_desc.clone();
+                                    }
+                                }
+                                parent_win.canvas_state.request_redraw();
+                            }
+                        }
                     }
-                }
-            }
-            Message::FlowInputNameChanged(win_id, idx, name) => {
-                if let Some(win) = self.windows.get_mut(&win_id) {
-                    if let Some(port) = win.flow_inputs.get_mut(idx) {
-                        port.name = name;
+                    FunctionEditMessage::BrowseSource => {
+                        let dialog = rfd::FileDialog::new().add_filter("Rust", &["rs"]);
+                        if let Some(selected) = dialog.pick_file() {
+                            if let Some(win) = self.windows.get_mut(&win_id) {
+                                if let WindowKind::FunctionViewer(ref mut viewer) = win.kind {
+                                    let base = viewer.toml_path.parent().unwrap_or(Path::new("."));
+                                    let rel = selected
+                                        .strip_prefix(base)
+                                        .map(|p| p.to_string_lossy().to_string())
+                                        .unwrap_or_else(|_| selected.to_string_lossy().to_string());
+                                    viewer.source_file = rel;
+                                    viewer.rs_content = std::fs::read_to_string(&selected)
+                                        .unwrap_or_else(|_| String::from("// Could not read file"));
+                                }
+                                win.unsaved_edits += 1;
+                            }
+                        }
                     }
-                    win.unsaved_edits += 1;
-                    win.canvas_state.request_redraw();
-                }
-            }
-            Message::FlowInputTypeChanged(win_id, idx, dtype) => {
-                if let Some(win) = self.windows.get_mut(&win_id) {
-                    if let Some(port) = win.flow_inputs.get_mut(idx) {
-                        port.datatypes = vec![dtype];
+                    FunctionEditMessage::AddInput => {
+                        if let Some(win) = self.windows.get_mut(&win_id) {
+                            if let WindowKind::FunctionViewer(ref mut v) = win.kind {
+                                v.inputs.push(PortInfo {
+                                    name: format!("input{}", v.inputs.len()),
+                                    datatypes: vec![String::from("string")],
+                                });
+                            }
+                            win.unsaved_edits += 1;
+                        }
                     }
-                    win.unsaved_edits += 1;
-                    win.canvas_state.request_redraw();
-                }
-            }
-            Message::FlowOutputNameChanged(win_id, idx, name) => {
-                if let Some(win) = self.windows.get_mut(&win_id) {
-                    if let Some(port) = win.flow_outputs.get_mut(idx) {
-                        port.name = name;
+                    FunctionEditMessage::AddOutput => {
+                        if let Some(win) = self.windows.get_mut(&win_id) {
+                            if let WindowKind::FunctionViewer(ref mut v) = win.kind {
+                                v.outputs.push(PortInfo {
+                                    name: format!("output{}", v.outputs.len()),
+                                    datatypes: vec![String::from("string")],
+                                });
+                            }
+                            win.unsaved_edits += 1;
+                        }
                     }
-                    win.unsaved_edits += 1;
-                    win.canvas_state.request_redraw();
-                }
-            }
-            Message::FlowOutputTypeChanged(win_id, idx, dtype) => {
-                if let Some(win) = self.windows.get_mut(&win_id) {
-                    if let Some(port) = win.flow_outputs.get_mut(idx) {
-                        port.datatypes = vec![dtype];
+                    FunctionEditMessage::DeleteInput(idx) => {
+                        if let Some(win) = self.windows.get_mut(&win_id) {
+                            if let WindowKind::FunctionViewer(ref mut v) = win.kind {
+                                if idx < v.inputs.len() {
+                                    v.inputs.remove(idx);
+                                }
+                            }
+                            win.unsaved_edits += 1;
+                        }
                     }
-                    win.unsaved_edits += 1;
-                    win.canvas_state.request_redraw();
+                    FunctionEditMessage::DeleteOutput(idx) => {
+                        if let Some(win) = self.windows.get_mut(&win_id) {
+                            if let WindowKind::FunctionViewer(ref mut v) = win.kind {
+                                if idx < v.outputs.len() {
+                                    v.outputs.remove(idx);
+                                }
+                            }
+                            win.unsaved_edits += 1;
+                        }
+                    }
+                    FunctionEditMessage::InputNameChanged(idx, name) => {
+                        if let Some(win) = self.windows.get_mut(&win_id) {
+                            if let WindowKind::FunctionViewer(ref mut v) = win.kind {
+                                if let Some(port) = v.inputs.get_mut(idx) {
+                                    port.name = name;
+                                }
+                            }
+                            win.unsaved_edits += 1;
+                        }
+                    }
+                    FunctionEditMessage::InputTypeChanged(idx, dtype) => {
+                        if let Some(win) = self.windows.get_mut(&win_id) {
+                            if let WindowKind::FunctionViewer(ref mut v) = win.kind {
+                                if let Some(port) = v.inputs.get_mut(idx) {
+                                    port.datatypes = vec![dtype];
+                                }
+                            }
+                            win.unsaved_edits += 1;
+                        }
+                    }
+                    FunctionEditMessage::OutputNameChanged(idx, name) => {
+                        if let Some(win) = self.windows.get_mut(&win_id) {
+                            if let WindowKind::FunctionViewer(ref mut v) = win.kind {
+                                if let Some(port) = v.outputs.get_mut(idx) {
+                                    port.name = name;
+                                }
+                            }
+                            win.unsaved_edits += 1;
+                        }
+                    }
+                    FunctionEditMessage::OutputTypeChanged(idx, dtype) => {
+                        if let Some(win) = self.windows.get_mut(&win_id) {
+                            if let WindowKind::FunctionViewer(ref mut v) = win.kind {
+                                if let Some(port) = v.outputs.get_mut(idx) {
+                                    port.datatypes = vec![dtype];
+                                }
+                            }
+                            win.unsaved_edits += 1;
+                        }
+                    }
+                    FunctionEditMessage::Save => {
+                        if let Some(win) = self.windows.get_mut(&win_id) {
+                            if let WindowKind::FunctionViewer(ref v) = win.kind {
+                                match flow_io::save_function_definition(v) {
+                                    Ok(()) => {
+                                        win.status = format!("Saved: {}", v.toml_path.display());
+                                        win.unsaved_edits = 0;
+                                    }
+                                    Err(e) => {
+                                        win.status = format!("Save failed: {e}");
+                                    }
+                                }
+                            }
+                        }
+                    }
                 }
             }
             Message::WindowClosed(id) => {
@@ -1341,7 +1354,10 @@ impl FlowEdit {
                 .padding(btn_pad);
 
             let info_btn = button(Text::new("\u{2139} Info").size(btn_size).center())
-                .on_press(Message::ToggleMetadataEditor(window_id))
+                .on_press(Message::FlowEdit(
+                    window_id,
+                    FlowEditMessage::ToggleMetadata,
+                ))
                 .style(if win.show_metadata {
                     toolbar_btn_active
                 } else {
@@ -1397,7 +1413,9 @@ impl FlowEdit {
                         .push(Text::new("Name:").size(12).width(70))
                         .push(
                             text_input("Flow name", &win.flow_name)
-                                .on_input(move |s| Message::FlowNameChanged(window_id, s))
+                                .on_input(move |s| {
+                                    Message::FlowEdit(window_id, FlowEditMessage::NameChanged(s))
+                                })
                                 .size(13)
                                 .padding(4)
                                 .width(250),
@@ -1410,7 +1428,9 @@ impl FlowEdit {
                         .push(Text::new("Version:").size(12).width(70))
                         .push(
                             text_input("0.1.0", &win.flow_definition.metadata.version)
-                                .on_input(move |s| Message::FlowVersionChanged(window_id, s))
+                                .on_input(move |s| {
+                                    Message::FlowEdit(window_id, FlowEditMessage::VersionChanged(s))
+                                })
                                 .size(13)
                                 .padding(4)
                                 .width(120),
@@ -1426,7 +1446,9 @@ impl FlowEdit {
                                 "A short description",
                                 &win.flow_definition.metadata.description,
                             )
-                            .on_input(move |s| Message::FlowDescriptionChanged(window_id, s))
+                            .on_input(move |s| {
+                                Message::FlowEdit(window_id, FlowEditMessage::DescriptionChanged(s))
+                            })
                             .size(13)
                             .padding(4)
                             .width(Fill),
@@ -1439,7 +1461,9 @@ impl FlowEdit {
                         .push(Text::new("Authors:").size(12).width(70))
                         .push(
                             text_input("Name <email>, ...", &authors_str)
-                                .on_input(move |s| Message::FlowAuthorsChanged(window_id, s))
+                                .on_input(move |s| {
+                                    Message::FlowEdit(window_id, FlowEditMessage::AuthorsChanged(s))
+                                })
                                 .size(13)
                                 .padding(4)
                                 .width(Fill),
@@ -1518,21 +1542,28 @@ impl FlowEdit {
                 .push(Text::new("\u{25D7}").size(18).color(input_color))
                 .push(
                     text_input("name", &port.name)
-                        .on_input(move |s| Message::FlowInputNameChanged(window_id, i, s))
+                        .on_input(move |s| {
+                            Message::FlowEdit(window_id, FlowEditMessage::InputNameChanged(i, s))
+                        })
                         .size(12)
                         .padding(3)
                         .width(80),
                 )
                 .push(
                     text_input("type", &dtype)
-                        .on_input(move |s| Message::FlowInputTypeChanged(window_id, i, s))
+                        .on_input(move |s| {
+                            Message::FlowEdit(window_id, FlowEditMessage::InputTypeChanged(i, s))
+                        })
                         .size(11)
                         .padding(3)
                         .width(70),
                 )
                 .push(
                     button(Text::new("\u{2715}").size(10).center())
-                        .on_press(Message::FlowDeleteInput(window_id, i))
+                        .on_press(Message::FlowEdit(
+                            window_id,
+                            FlowEditMessage::DeleteInput(i),
+                        ))
                         .style(button::danger)
                         .padding([2, 5]),
                 );
@@ -1540,7 +1571,7 @@ impl FlowEdit {
         }
         input_col = input_col.push(
             button(Text::new("+ Input").size(11).center())
-                .on_press(Message::FlowAddInput(window_id))
+                .on_press(Message::FlowEdit(window_id, FlowEditMessage::AddInput))
                 .style(button::secondary)
                 .padding([2, 8]),
         );
@@ -1553,20 +1584,27 @@ impl FlowEdit {
                 .align_y(iced::Alignment::Center)
                 .push(
                     button(Text::new("\u{2715}").size(10).center())
-                        .on_press(Message::FlowDeleteOutput(window_id, i))
+                        .on_press(Message::FlowEdit(
+                            window_id,
+                            FlowEditMessage::DeleteOutput(i),
+                        ))
                         .style(button::danger)
                         .padding([2, 5]),
                 )
                 .push(
                     text_input("type", &dtype)
-                        .on_input(move |s| Message::FlowOutputTypeChanged(window_id, i, s))
+                        .on_input(move |s| {
+                            Message::FlowEdit(window_id, FlowEditMessage::OutputTypeChanged(i, s))
+                        })
                         .size(11)
                         .padding(3)
                         .width(70),
                 )
                 .push(
                     text_input("name", &port.name)
-                        .on_input(move |s| Message::FlowOutputNameChanged(window_id, i, s))
+                        .on_input(move |s| {
+                            Message::FlowEdit(window_id, FlowEditMessage::OutputNameChanged(i, s))
+                        })
                         .size(12)
                         .padding(3)
                         .width(80),
@@ -1576,7 +1614,7 @@ impl FlowEdit {
         }
         output_col = output_col.push(
             button(Text::new("+ Output").size(11).center())
-                .on_press(Message::FlowAddOutput(window_id))
+                .on_press(Message::FlowEdit(window_id, FlowEditMessage::AddOutput))
                 .style(button::secondary)
                 .padding([2, 8]),
         );
@@ -1633,10 +1671,18 @@ impl FlowEdit {
                         text_input("name", &port.name).size(13).padding(3).width(90);
                     let mut type_widget = text_input("type", &dtype).size(11).padding(3).width(75);
                     if editable {
-                        name_widget = name_widget
-                            .on_input(move |s| Message::FunctionInputNameChanged(window_id, i, s));
-                        type_widget = type_widget
-                            .on_input(move |s| Message::FunctionInputTypeChanged(window_id, i, s));
+                        name_widget = name_widget.on_input(move |s| {
+                            Message::FunctionEdit(
+                                window_id,
+                                FunctionEditMessage::InputNameChanged(i, s),
+                            )
+                        });
+                        type_widget = type_widget.on_input(move |s| {
+                            Message::FunctionEdit(
+                                window_id,
+                                FunctionEditMessage::InputTypeChanged(i, s),
+                            )
+                        });
                     }
                     let mut row = Row::new()
                         .spacing(4)
@@ -1647,7 +1693,10 @@ impl FlowEdit {
                     if editable {
                         row = row.push(
                             button(Text::new("\u{2715}").size(10).center())
-                                .on_press(Message::FunctionDeleteInput(window_id, i))
+                                .on_press(Message::FunctionEdit(
+                                    window_id,
+                                    FunctionEditMessage::DeleteInput(i),
+                                ))
                                 .style(button::danger)
                                 .padding([2, 5]),
                         );
@@ -1657,7 +1706,10 @@ impl FlowEdit {
                 if editable {
                     input_col = input_col.push(
                         button(Text::new("+ Input").size(11).center())
-                            .on_press(Message::FunctionAddInput(window_id))
+                            .on_press(Message::FunctionEdit(
+                                window_id,
+                                FunctionEditMessage::AddInput,
+                            ))
                             .style(button::secondary)
                             .padding([2, 8]),
                     );
@@ -1671,16 +1723,27 @@ impl FlowEdit {
                     let mut name_widget =
                         text_input("name", &port.name).size(13).padding(3).width(90);
                     if editable {
-                        type_widget = type_widget
-                            .on_input(move |s| Message::FunctionOutputTypeChanged(window_id, i, s));
-                        name_widget = name_widget
-                            .on_input(move |s| Message::FunctionOutputNameChanged(window_id, i, s));
+                        type_widget = type_widget.on_input(move |s| {
+                            Message::FunctionEdit(
+                                window_id,
+                                FunctionEditMessage::OutputTypeChanged(i, s),
+                            )
+                        });
+                        name_widget = name_widget.on_input(move |s| {
+                            Message::FunctionEdit(
+                                window_id,
+                                FunctionEditMessage::OutputNameChanged(i, s),
+                            )
+                        });
                     }
                     let mut row = Row::new().spacing(4).align_y(iced::Alignment::Center);
                     if editable {
                         row = row.push(
                             button(Text::new("\u{2715}").size(10).center())
-                                .on_press(Message::FunctionDeleteOutput(window_id, i))
+                                .on_press(Message::FunctionEdit(
+                                    window_id,
+                                    FunctionEditMessage::DeleteOutput(i),
+                                ))
                                 .style(button::danger)
                                 .padding([2, 5]),
                         );
@@ -1694,7 +1757,10 @@ impl FlowEdit {
                 if editable {
                     output_col = output_col.push(
                         button(Text::new("+ Output").size(11).center())
-                            .on_press(Message::FunctionAddOutput(window_id))
+                            .on_press(Message::FunctionEdit(
+                                window_id,
+                                FunctionEditMessage::AddOutput,
+                            ))
                             .style(button::secondary)
                             .padding([2, 8]),
                     );
@@ -1705,8 +1771,9 @@ impl FlowEdit {
                     .padding(6)
                     .width(250);
                 if editable {
-                    name_widget =
-                        name_widget.on_input(move |s| Message::FunctionNameChanged(window_id, s));
+                    name_widget = name_widget.on_input(move |s| {
+                        Message::FunctionEdit(window_id, FunctionEditMessage::NameChanged(s))
+                    });
                 }
                 let name_input = container(name_widget).center_x(Fill);
 
@@ -1721,8 +1788,12 @@ impl FlowEdit {
                     let is_provided =
                         ext.eq_ignore_ascii_case("rs") || ext.eq_ignore_ascii_case("wasm");
                     if is_provided {
-                        desc_widget = desc_widget
-                            .on_input(move |s| Message::FunctionDescriptionChanged(window_id, s));
+                        desc_widget = desc_widget.on_input(move |s| {
+                            Message::FunctionEdit(
+                                window_id,
+                                FunctionEditMessage::DescriptionChanged(s),
+                            )
+                        });
                     }
                 }
                 let desc_input = container(desc_widget).center_x(Fill);
@@ -1733,14 +1804,20 @@ impl FlowEdit {
                             .size(13)
                             .color(Color::from_rgb(0.6, 0.8, 1.0)),
                     )
-                    .on_press(Message::FunctionTabSelected(window_id, 1))
+                    .on_press(Message::FunctionEdit(
+                        window_id,
+                        FunctionEditMessage::TabSelected(1),
+                    ))
                     .style(button::text)
                     .padding(0),
                 );
                 if editable {
                     source_row = source_row.push(
                         button(Text::new("...").size(12).center())
-                            .on_press(Message::FunctionBrowseSource(window_id))
+                            .on_press(Message::FunctionEdit(
+                                window_id,
+                                FunctionEditMessage::BrowseSource,
+                            ))
                             .style(button::secondary)
                             .padding([3, 8]),
                     );
@@ -1748,7 +1825,10 @@ impl FlowEdit {
                 if viewer.docs_content.is_some() {
                     source_row = source_row.push(
                         button(Text::new("Docs").size(12).center())
-                            .on_press(Message::FunctionTabSelected(window_id, 2))
+                            .on_press(Message::FunctionEdit(
+                                window_id,
+                                FunctionEditMessage::TabSelected(2),
+                            ))
                             .style(button::secondary)
                             .padding([3, 8]),
                     );
@@ -1788,7 +1868,10 @@ impl FlowEdit {
             }
             1 => {
                 let back_btn = button(Text::new("\u{2190} Definition").size(13).center())
-                    .on_press(Message::FunctionTabSelected(window_id, 0))
+                    .on_press(Message::FunctionEdit(
+                        window_id,
+                        FunctionEditMessage::TabSelected(0),
+                    ))
                     .style(button::secondary)
                     .padding([6, 14]);
                 Column::new()
@@ -1811,7 +1894,10 @@ impl FlowEdit {
             }
             _ => {
                 let back_btn = button(Text::new("\u{2190} Definition").size(13).center())
-                    .on_press(Message::FunctionTabSelected(window_id, 0))
+                    .on_press(Message::FunctionEdit(
+                        window_id,
+                        FunctionEditMessage::TabSelected(0),
+                    ))
                     .style(button::secondary)
                     .padding([6, 14]);
                 let docs = viewer.docs_content.as_deref().unwrap_or("");
@@ -1839,7 +1925,8 @@ impl FlowEdit {
             })
             .padding([6, 14]);
         if unsaved_edits > 0 && !viewer.read_only {
-            save_btn = save_btn.on_press(Message::FunctionSave(window_id));
+            save_btn =
+                save_btn.on_press(Message::FunctionEdit(window_id, FunctionEditMessage::Save));
         }
 
         let status_bar = Row::new()
