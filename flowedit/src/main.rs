@@ -30,7 +30,7 @@ use flowcore::deserializers::deserializer::get;
 use flowcore::meta_provider::MetaProvider;
 use flowcore::model::datatype::DataType;
 use flowcore::model::flow_definition::FlowDefinition;
-use flowcore::model::io::IO;
+use flowcore::model::io::{IOType, IO};
 use flowcore::model::lib_manifest::LibraryManifest;
 use flowcore::model::name::HasName;
 use flowcore::model::process::Process;
@@ -53,6 +53,17 @@ mod library_panel;
 mod window_state;
 
 pub(crate) use window_state::{FunctionViewer, InitializerEditor, WindowKind, WindowState};
+
+fn next_unique_io_name(prefix: &str, existing: &[IO]) -> String {
+    let mut n = existing.len();
+    loop {
+        let candidate = format!("{prefix}{n}");
+        if !existing.iter().any(|io| io.name() == &candidate) {
+            return candidate;
+        }
+        n += 1;
+    }
+}
 
 #[cfg(test)]
 mod ui_test;
@@ -744,22 +755,26 @@ impl FlowEdit {
                             win.show_metadata = !win.show_metadata;
                         }
                         FlowEditMessage::AddInput => {
-                            let name = format!("input{}", win.flow_definition.inputs.len());
-                            win.flow_definition.inputs.push(IO::new_named(
+                            let name = next_unique_io_name("input", &win.flow_definition.inputs);
+                            let mut io = IO::new_named(
                                 vec![DataType::from("string")],
                                 Route::default(),
                                 name,
-                            ));
+                            );
+                            io.set_io_type(IOType::FlowInput);
+                            win.flow_definition.inputs.push(io);
                             win.unsaved_edits += 1;
                             win.canvas_state.request_redraw();
                         }
                         FlowEditMessage::AddOutput => {
-                            let name = format!("output{}", win.flow_definition.outputs.len());
-                            win.flow_definition.outputs.push(IO::new_named(
+                            let name = next_unique_io_name("output", &win.flow_definition.outputs);
+                            let mut io = IO::new_named(
                                 vec![DataType::from("string")],
                                 Route::default(),
                                 name,
-                            ));
+                            );
+                            io.set_io_type(IOType::FlowOutput);
+                            win.flow_definition.outputs.push(io);
                             win.unsaved_edits += 1;
                             win.canvas_state.request_redraw();
                         }
@@ -786,18 +801,25 @@ impl FlowEdit {
                             }
                         }
                         FlowEditMessage::InputNameChanged(idx, name) => {
-                            if let Some(io) = win.flow_definition.inputs.get_mut(idx) {
-                                let old_name = io.name().clone();
-                                io.set_name(name.clone());
-                                // Update edges referencing the old flow input name
-                                for edge in &mut win.edges {
-                                    if edge.from_node == "input" && edge.from_port == old_name {
-                                        edge.from_port.clone_from(&name);
+                            let duplicate = win
+                                .flow_definition
+                                .inputs
+                                .iter()
+                                .enumerate()
+                                .any(|(i, io)| i != idx && io.name() == &name);
+                            if !duplicate {
+                                if let Some(io) = win.flow_definition.inputs.get_mut(idx) {
+                                    let old_name = io.name().clone();
+                                    io.set_name(name.clone());
+                                    for edge in &mut win.edges {
+                                        if edge.from_node == "input" && edge.from_port == old_name {
+                                            edge.from_port.clone_from(&name);
+                                        }
                                     }
                                 }
+                                win.unsaved_edits += 1;
+                                win.canvas_state.request_redraw();
                             }
-                            win.unsaved_edits += 1;
-                            win.canvas_state.request_redraw();
                         }
                         FlowEditMessage::InputTypeChanged(idx, dtype) => {
                             if let Some(io) = win.flow_definition.inputs.get_mut(idx) {
@@ -807,18 +829,25 @@ impl FlowEdit {
                             win.canvas_state.request_redraw();
                         }
                         FlowEditMessage::OutputNameChanged(idx, name) => {
-                            if let Some(io) = win.flow_definition.outputs.get_mut(idx) {
-                                let old_name = io.name().clone();
-                                io.set_name(name.clone());
-                                // Update edges referencing the old flow output name
-                                for edge in &mut win.edges {
-                                    if edge.to_node == "output" && edge.to_port == old_name {
-                                        edge.to_port.clone_from(&name);
+                            let duplicate = win
+                                .flow_definition
+                                .outputs
+                                .iter()
+                                .enumerate()
+                                .any(|(i, io)| i != idx && io.name() == &name);
+                            if !duplicate {
+                                if let Some(io) = win.flow_definition.outputs.get_mut(idx) {
+                                    let old_name = io.name().clone();
+                                    io.set_name(name.clone());
+                                    for edge in &mut win.edges {
+                                        if edge.to_node == "output" && edge.to_port == old_name {
+                                            edge.to_port.clone_from(&name);
+                                        }
                                     }
                                 }
+                                win.unsaved_edits += 1;
+                                win.canvas_state.request_redraw();
                             }
-                            win.unsaved_edits += 1;
-                            win.canvas_state.request_redraw();
                         }
                         FlowEditMessage::OutputTypeChanged(idx, dtype) => {
                             if let Some(io) = win.flow_definition.outputs.get_mut(idx) {

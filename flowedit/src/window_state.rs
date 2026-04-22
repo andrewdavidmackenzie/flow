@@ -132,7 +132,14 @@ impl WindowState {
 
     /// Set the file path by updating the flow definition's source URL.
     pub(crate) fn set_file_path(&mut self, path: &Path) {
-        if let Ok(url) = Url::from_file_path(path) {
+        let abs = path.canonicalize().unwrap_or_else(|_| {
+            if path.is_absolute() {
+                path.to_path_buf()
+            } else {
+                std::env::current_dir().map_or_else(|_| path.to_path_buf(), |cwd| cwd.join(path))
+            }
+        });
+        if let Ok(url) = Url::from_file_path(&abs) {
             self.flow_definition.source_url = url;
         }
     }

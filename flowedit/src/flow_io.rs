@@ -1192,7 +1192,8 @@ mod test {
 
         perform_save(&mut win, &path);
         assert_eq!(win.unsaved_edits, 0);
-        assert_eq!(win.file_path(), Some(path.clone()));
+        let canonical = path.canonicalize().unwrap_or_else(|_| path.clone());
+        assert_eq!(win.file_path(), Some(canonical));
 
         let contents = std::fs::read_to_string(&path).expect("read failed");
         assert!(contents.contains("flow = \"saved_flow\""));
