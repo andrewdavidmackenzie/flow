@@ -928,13 +928,28 @@ pub(crate) fn derive_short_name(source: &str) -> String {
 
 /// Split a route string like "sequence/number" into ("sequence", "number")
 /// or "add1" into ("add1", "")
-fn split_route(route: &str) -> (String, String) {
+pub(crate) fn split_route(route: &str) -> (String, String) {
     let route = route.trim_start_matches('/');
     if let Some(pos) = route.find('/') {
         (route[..pos].to_string(), route[pos + 1..].to_string())
     } else {
         (route.to_string(), String::new())
     }
+}
+
+/// Check whether a Connection references a node by alias in its from or to routes.
+pub(crate) fn connection_references_node(conn: &Connection, alias: &str) -> bool {
+    let (from_node, _) = split_route(conn.from().as_ref());
+    if from_node == alias {
+        return true;
+    }
+    for to_route in conn.to() {
+        let (to_node, _) = split_route(to_route.as_ref());
+        if to_node == alias {
+            return true;
+        }
+    }
+    false
 }
 
 /// Persistent canvas state that caches the rendered geometry.
