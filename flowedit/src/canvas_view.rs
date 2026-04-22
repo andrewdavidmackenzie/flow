@@ -13,6 +13,296 @@ use iced::widget::canvas::{
     self, Canvas, Event, Frame, Geometry, Path, Stroke, Text as CanvasText,
 };
 use iced::{Color, Element, Fill, Point, Rectangle, Renderer, Size, Theme};
+use log::info;
+
+use flowcore::model::input::InputInitializer;
+
+use crate::flow_io;
+use crate::history::EditAction;
+use crate::undo_redo;
+use crate::InitializerEditor;
+use crate::WindowState;
+
+/// Action returned by [`handle_canvas_message`] to signal that the caller
+/// (main.rs) needs to perform an operation that requires `FlowEdit` state.
+pub(crate) enum CanvasAction {
+    /// No further action needed.
+    None,
+    /// The user double-clicked a node — open it in a new window.
+    OpenNode(usize),
+}
+
+/// Handle a [`CanvasMessage`] by mutating the given window state.
+///
+/// Returns a [`CanvasAction`] when the caller needs to perform cross-window
+/// operations (e.g. opening a sub-flow in a new editor window).
+pub(crate) fn handle_canvas_message(win: &mut WindowState, msg: CanvasMessage) -> CanvasAction {
+    match msg {
+        CanvasMessage::Selected(idx) => {
+            win.selected_node = idx;
+            win.context_menu = None;
+            if win.selected_connection.is_some() {
+                win.selected_connection = None;
+                win.canvas_state.request_redraw();
+            }
+            if let Some(i) = idx {
+                if let Some(node) = win.nodes.get(i) {
+                    win.status = format!("Selected: {}", node.alias);
+                }
+            } else {
+                win.status = String::from("Ready");
+            }
+        }
+        CanvasMessage::Moved(idx, x, y) => {
+            if let Some(node) = win.nodes.get_mut(idx) {
+                node.x = x;
+                node.y = y;
+                win.canvas_state.request_redraw();
+            }
+        }
+        CanvasMessage::Resized(idx, x, y, w, h) => {
+            if let Some(node) = win.nodes.get_mut(idx) {
+                node.x = x;
+                node.y = y;
+                node.width = w;
+                node.height = h;
+                win.canvas_state.request_redraw();
+            }
+        }
+        CanvasMessage::MoveCompleted(idx, old_x, old_y, new_x, new_y) => {
+            info!("MoveCompleted: idx={idx}, ({old_x},{old_y}) -> ({new_x},{new_y})");
+            if (old_x - new_x).abs() > 0.5 || (old_y - new_y).abs() > 0.5 {
+                undo_redo::record_edit(
+                    win,
+                    EditAction::MoveNode {
+                        index: idx,
+                        old_x,
+                        old_y,
+                        new_x,
+                        new_y,
+                    },
+                );
+            }
+        }
+        #[allow(clippy::similar_names)]
+        CanvasMessage::ResizeCompleted(
+            idx,
+            old_x,
+            old_y,
+            old_w,
+            old_h,
+            new_x,
+            new_y,
+            new_w,
+            new_h,
+        ) => {
+            if (old_x - new_x).abs() > 0.5
+                || (old_y - new_y).abs() > 0.5
+                || (old_w - new_w).abs() > 0.5
+                || (old_h - new_h).abs() > 0.5
+            {
+                undo_redo::record_edit(
+                    win,
+                    EditAction::ResizeNode {
+                        index: idx,
+                        old_x,
+                        old_y,
+                        old_w,
+                        old_h,
+                        new_x,
+                        new_y,
+                        new_w,
+                        new_h,
+                    },
+                );
+            }
+        }
+        CanvasMessage::Deleted(idx) => {
+            if idx < win.nodes.len() {
+                let node = if let Some(node) = win.nodes.get(idx) {
+                    node.clone()
+                } else {
+                    return CanvasAction::None;
+                };
+                let alias = node.alias.clone();
+                let removed_edges: Vec<EdgeLayout> = win
+                    .edges
+                    .iter()
+                    .filter(|e| e.references_node(&alias))
+                    .cloned()
+                    .collect();
+                win.nodes.remove(idx);
+                win.edges.retain(|e| !e.references_node(&alias));
+                undo_redo::record_edit(
+                    win,
+                    EditAction::DeleteNode {
+                        index: idx,
+                        node,
+                        removed_edges,
+                    },
+                );
+                win.selected_node = None;
+                win.selected_connection = None;
+                win.canvas_state.request_redraw();
+                let nc = win.nodes.len();
+                let ec = win.edges.len();
+                win.status = format!("Node deleted - {nc} nodes, {ec} connections");
+                if win.auto_fit_enabled {
+                    win.auto_fit_pending = true;
+                }
+            }
+        }
+        CanvasMessage::ConnectionCreated {
+            from_node,
+            from_port,
+            to_node,
+            to_port,
+        } => {
+            let edge = EdgeLayout::new(
+                from_node.clone(),
+                from_port.clone(),
+                to_node.clone(),
+                to_port.clone(),
+            );
+            undo_redo::record_edit(win, EditAction::CreateConnection { edge: edge.clone() });
+            win.edges.push(edge);
+            win.canvas_state.request_redraw();
+            let nc = win.nodes.len();
+            let ec = win.edges.len();
+            win.status = format!(
+                "Connection created: {from_node}/{from_port} -> {to_node}/{to_port} - {nc} nodes, {ec} connections"
+            );
+        }
+        CanvasMessage::ConnectionSelected(idx) => {
+            win.selected_connection = idx;
+            win.selected_node = None;
+            win.canvas_state.request_redraw();
+            if let Some(i) = idx {
+                if let Some(edge) = win.edges.get(i) {
+                    win.status = format!(
+                        "Connection: {} -> {}",
+                        flow_io::format_endpoint(&edge.from_node, &edge.from_port),
+                        flow_io::format_endpoint(&edge.to_node, &edge.to_port),
+                    );
+                }
+            } else {
+                win.status = String::from("Ready");
+            }
+        }
+        CanvasMessage::ConnectionDeleted(idx) => {
+            if idx < win.edges.len() {
+                let edge = win.edges.remove(idx);
+                undo_redo::record_edit(win, EditAction::DeleteConnection { index: idx, edge });
+                win.selected_connection = None;
+                win.canvas_state.request_redraw();
+                let nc = win.nodes.len();
+                let ec = win.edges.len();
+                win.status = format!("Connection deleted - {nc} nodes, {ec} connections");
+            }
+        }
+        CanvasMessage::HoverChanged(data) => {
+            win.tooltip = data;
+        }
+        CanvasMessage::AutoFitViewport(viewport) => {
+            if win.auto_fit_enabled || win.auto_fit_pending {
+                let has_flow_io = !win.flow_inputs.is_empty() || !win.flow_outputs.is_empty();
+                win.canvas_state.auto_fit(&win.nodes, has_flow_io, viewport);
+                win.auto_fit_pending = false;
+            }
+        }
+        CanvasMessage::Pan(dx, dy) => {
+            win.auto_fit_enabled = false; // Manual pan disables auto-fit
+            win.auto_fit_pending = false;
+            win.canvas_state.scroll_offset.x += dx;
+            win.canvas_state.scroll_offset.y += dy;
+            win.canvas_state.request_redraw();
+        }
+        CanvasMessage::ZoomBy(factor) => {
+            win.auto_fit_enabled = false; // Manual zoom disables auto-fit
+            win.auto_fit_pending = false;
+            win.canvas_state.zoom = (win.canvas_state.zoom * factor).clamp(0.1, 5.0);
+            win.canvas_state.request_redraw();
+            let pct = (win.canvas_state.zoom * 100.0) as u32;
+            win.status = format!("Zoom: {pct}%");
+        }
+        CanvasMessage::InitializerEdit(node_idx, port_name) => {
+            // Look up current initializer from the model (flow definition)
+            let alias = win
+                .nodes
+                .get(node_idx)
+                .map(|n| n.alias.clone())
+                .unwrap_or_default();
+            let (init_type, value_text) = win
+                .flow_definition
+                .process_refs
+                .iter()
+                .find(|pr| {
+                    let pr_alias = if pr.alias.is_empty() {
+                        derive_short_name(&pr.source)
+                    } else {
+                        pr.alias.to_string()
+                    };
+                    pr_alias == alias
+                })
+                .and_then(|pr| pr.initializations.get(&port_name))
+                .map(|init| match init {
+                    InputInitializer::Once(v) => (
+                        "once".to_string(),
+                        serde_json::to_string(v).unwrap_or_default(),
+                    ),
+                    InputInitializer::Always(v) => (
+                        "always".to_string(),
+                        serde_json::to_string(v).unwrap_or_default(),
+                    ),
+                })
+                .unwrap_or_else(|| ("none".to_string(), String::new()));
+
+            win.initializer_editor = Some(InitializerEditor {
+                node_index: node_idx,
+                port_name,
+                init_type,
+                value_text,
+            });
+        }
+        CanvasMessage::OpenNode(idx) => {
+            return CanvasAction::OpenNode(idx);
+        }
+        CanvasMessage::ContextMenu(x, y) => {
+            win.context_menu = Some((x, y));
+        }
+    }
+    CanvasAction::None
+}
+
+/// Handle the `ZoomIn` message by zooming in one step.
+pub(crate) fn handle_zoom_in(win: &mut WindowState) {
+    win.auto_fit_enabled = false;
+    win.auto_fit_pending = false;
+    win.canvas_state.zoom_in();
+    let pct = (win.canvas_state.zoom * 100.0) as u32;
+    win.status = format!("Zoom: {pct}%");
+}
+
+/// Handle the `ZoomOut` message by zooming out one step.
+pub(crate) fn handle_zoom_out(win: &mut WindowState) {
+    win.auto_fit_enabled = false;
+    win.auto_fit_pending = false;
+    win.canvas_state.zoom_out();
+    let pct = (win.canvas_state.zoom * 100.0) as u32;
+    win.status = format!("Zoom: {pct}%");
+}
+
+/// Handle the `ToggleAutoFit` message by toggling auto-fit mode.
+pub(crate) fn handle_toggle_auto_fit(win: &mut WindowState) {
+    win.auto_fit_enabled = !win.auto_fit_enabled;
+    if win.auto_fit_enabled {
+        win.auto_fit_pending = true;
+        win.canvas_state.request_redraw();
+        win.status = String::from("Auto-fit enabled");
+    } else {
+        win.status = String::from("Auto-fit disabled");
+    }
+}
 
 /// Minimum allowed zoom level
 const MIN_ZOOM: f32 = 0.1;

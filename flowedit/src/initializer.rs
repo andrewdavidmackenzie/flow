@@ -190,3 +190,29 @@ pub(crate) fn apply_initializer_state(
         }
     }
 }
+
+/// Handle initializer type change message.
+pub(crate) fn handle_type_changed(win: &mut WindowState, new_type: String) {
+    if let Some(ref mut editor) = win.initializer_editor {
+        editor.init_type = new_type;
+    }
+}
+
+/// Handle initializer value change message.
+pub(crate) fn handle_value_changed(win: &mut WindowState, new_value: String) {
+    if let Some(ref mut editor) = win.initializer_editor {
+        editor.value_text = new_value;
+    }
+}
+
+/// Handle initializer apply message.
+pub(crate) fn handle_apply(win: &mut WindowState) {
+    if let Some(editor) = win.initializer_editor.take() {
+        apply_initializer_edit(win, &editor);
+    }
+}
+
+/// Handle initializer cancel message.
+pub(crate) fn handle_cancel(win: &mut WindowState) {
+    win.initializer_editor = None;
+}

@@ -29,17 +29,16 @@ use url::Url;
 use flowcore::deserializers::deserializer::get;
 use flowcore::meta_provider::MetaProvider;
 use flowcore::model::flow_definition::FlowDefinition;
-use flowcore::model::input::InputInitializer;
 use flowcore::model::lib_manifest::LibraryManifest;
 use flowcore::model::process::Process;
 use flowcore::model::process_reference::ProcessReference;
 use flowcore::provider::Provider;
 
-use canvas_view::{
-    derive_short_name, CanvasMessage, EdgeLayout, FlowCanvasState, NodeLayout, PortInfo,
-};
+use canvas_view::{CanvasMessage, EdgeLayout, FlowCanvasState, NodeLayout, PortInfo};
 use hierarchy_panel::{FlowHierarchy, HierarchyMessage};
-use history::{EditAction, EditHistory};
+#[cfg(test)]
+use history::EditAction;
+use history::EditHistory;
 use library_panel::{LibraryAction, LibraryMessage, LibraryTree};
 
 mod canvas_view;
@@ -544,241 +543,11 @@ impl FlowEdit {
                 let Some(win) = self.windows.get_mut(&win_id) else {
                     return Task::none();
                 };
-                match canvas_msg {
-                    CanvasMessage::Selected(idx) => {
-                        win.selected_node = idx;
-                        win.context_menu = None;
-                        if win.selected_connection.is_some() {
-                            win.selected_connection = None;
-                            win.canvas_state.request_redraw();
-                        }
-                        if let Some(i) = idx {
-                            if let Some(node) = win.nodes.get(i) {
-                                win.status = format!("Selected: {}", node.alias);
-                            }
-                        } else {
-                            win.status = String::from("Ready");
-                        }
-                    }
-                    CanvasMessage::Moved(idx, x, y) => {
-                        if let Some(node) = win.nodes.get_mut(idx) {
-                            node.x = x;
-                            node.y = y;
-                            win.canvas_state.request_redraw();
-                        }
-                    }
-                    CanvasMessage::Resized(idx, x, y, w, h) => {
-                        if let Some(node) = win.nodes.get_mut(idx) {
-                            node.x = x;
-                            node.y = y;
-                            node.width = w;
-                            node.height = h;
-                            win.canvas_state.request_redraw();
-                        }
-                    }
-                    CanvasMessage::MoveCompleted(idx, old_x, old_y, new_x, new_y) => {
-                        info!("MoveCompleted: idx={idx}, ({old_x},{old_y}) -> ({new_x},{new_y})");
-                        if (old_x - new_x).abs() > 0.5 || (old_y - new_y).abs() > 0.5 {
-                            undo_redo::record_edit(
-                                win,
-                                EditAction::MoveNode {
-                                    index: idx,
-                                    old_x,
-                                    old_y,
-                                    new_x,
-                                    new_y,
-                                },
-                            );
-                        }
-                    }
-                    #[allow(clippy::similar_names)]
-                    CanvasMessage::ResizeCompleted(
-                        idx,
-                        old_x,
-                        old_y,
-                        old_w,
-                        old_h,
-                        new_x,
-                        new_y,
-                        new_w,
-                        new_h,
-                    ) => {
-                        undo_redo::record_edit(
-                            win,
-                            EditAction::ResizeNode {
-                                index: idx,
-                                old_x,
-                                old_y,
-                                old_w,
-                                old_h,
-                                new_x,
-                                new_y,
-                                new_w,
-                                new_h,
-                            },
-                        );
-                    }
-                    CanvasMessage::Deleted(idx) => {
-                        if idx < win.nodes.len() {
-                            let node = if let Some(node) = win.nodes.get(idx) {
-                                node.clone()
-                            } else {
-                                return Task::none();
-                            };
-                            let alias = node.alias.clone();
-                            let removed_edges: Vec<EdgeLayout> = win
-                                .edges
-                                .iter()
-                                .filter(|e| e.references_node(&alias))
-                                .cloned()
-                                .collect();
-                            win.nodes.remove(idx);
-                            win.edges.retain(|e| !e.references_node(&alias));
-                            undo_redo::record_edit(
-                                win,
-                                EditAction::DeleteNode {
-                                    index: idx,
-                                    node,
-                                    removed_edges,
-                                },
-                            );
-                            win.selected_node = None;
-                            win.selected_connection = None;
-                            win.canvas_state.request_redraw();
-                            let nc = win.nodes.len();
-                            let ec = win.edges.len();
-                            win.status = format!("Node deleted - {nc} nodes, {ec} connections");
-                            if win.auto_fit_enabled {
-                                win.auto_fit_pending = true;
-                            }
-                        }
-                    }
-                    CanvasMessage::ConnectionCreated {
-                        from_node,
-                        from_port,
-                        to_node,
-                        to_port,
-                    } => {
-                        let edge = EdgeLayout::new(
-                            from_node.clone(),
-                            from_port.clone(),
-                            to_node.clone(),
-                            to_port.clone(),
-                        );
-                        undo_redo::record_edit(
-                            win,
-                            EditAction::CreateConnection { edge: edge.clone() },
-                        );
-                        win.edges.push(edge);
-                        win.canvas_state.request_redraw();
-                        let nc = win.nodes.len();
-                        let ec = win.edges.len();
-                        win.status = format!(
-                            "Connection created: {from_node}/{from_port} -> {to_node}/{to_port} - {nc} nodes, {ec} connections"
-                        );
-                    }
-                    CanvasMessage::ConnectionSelected(idx) => {
-                        win.selected_connection = idx;
-                        win.selected_node = None;
-                        win.canvas_state.request_redraw();
-                        if let Some(i) = idx {
-                            if let Some(edge) = win.edges.get(i) {
-                                win.status = format!(
-                                    "Connection: {} -> {}",
-                                    flow_io::format_endpoint(&edge.from_node, &edge.from_port),
-                                    flow_io::format_endpoint(&edge.to_node, &edge.to_port),
-                                );
-                            }
-                        } else {
-                            win.status = String::from("Ready");
-                        }
-                    }
-                    CanvasMessage::ConnectionDeleted(idx) => {
-                        if idx < win.edges.len() {
-                            let edge = win.edges.remove(idx);
-                            undo_redo::record_edit(
-                                win,
-                                EditAction::DeleteConnection { index: idx, edge },
-                            );
-                            win.selected_connection = None;
-                            win.canvas_state.request_redraw();
-                            let nc = win.nodes.len();
-                            let ec = win.edges.len();
-                            win.status =
-                                format!("Connection deleted - {nc} nodes, {ec} connections");
-                        }
-                    }
-                    CanvasMessage::HoverChanged(data) => {
-                        win.tooltip = data;
-                    }
-                    CanvasMessage::AutoFitViewport(viewport) => {
-                        if win.auto_fit_enabled || win.auto_fit_pending {
-                            let has_flow_io =
-                                !win.flow_inputs.is_empty() || !win.flow_outputs.is_empty();
-                            win.canvas_state.auto_fit(&win.nodes, has_flow_io, viewport);
-                            win.auto_fit_pending = false;
-                        }
-                    }
-                    CanvasMessage::Pan(dx, dy) => {
-                        win.auto_fit_enabled = false; // Manual pan disables auto-fit
-                        win.canvas_state.scroll_offset.x += dx;
-                        win.canvas_state.scroll_offset.y += dy;
-                        win.canvas_state.request_redraw();
-                    }
-                    CanvasMessage::ZoomBy(factor) => {
-                        win.auto_fit_enabled = false; // Manual zoom disables auto-fit
-                        win.canvas_state.zoom = (win.canvas_state.zoom * factor).clamp(0.1, 5.0);
-                        win.canvas_state.request_redraw();
-                        let pct = (win.canvas_state.zoom * 100.0) as u32;
-                        win.status = format!("Zoom: {pct}%");
-                    }
-                    CanvasMessage::InitializerEdit(node_idx, port_name) => {
-                        // Look up current initializer from the model (flow definition)
-                        let alias = win
-                            .nodes
-                            .get(node_idx)
-                            .map(|n| n.alias.clone())
-                            .unwrap_or_default();
-                        let (init_type, value_text) = win
-                            .flow_definition
-                            .process_refs
-                            .iter()
-                            .find(|pr| {
-                                let pr_alias = if pr.alias.is_empty() {
-                                    derive_short_name(&pr.source)
-                                } else {
-                                    pr.alias.to_string()
-                                };
-                                pr_alias == alias
-                            })
-                            .and_then(|pr| pr.initializations.get(&port_name))
-                            .map(|init| match init {
-                                InputInitializer::Once(v) => (
-                                    "once".to_string(),
-                                    serde_json::to_string(v).unwrap_or_default(),
-                                ),
-                                InputInitializer::Always(v) => (
-                                    "always".to_string(),
-                                    serde_json::to_string(v).unwrap_or_default(),
-                                ),
-                            })
-                            .unwrap_or_else(|| ("none".to_string(), String::new()));
-
-                        win.initializer_editor = Some(InitializerEditor {
-                            node_index: node_idx,
-                            port_name,
-                            init_type,
-                            value_text,
-                        });
-                    }
-                    CanvasMessage::OpenNode(idx) => {
+                match canvas_view::handle_canvas_message(win, canvas_msg) {
+                    canvas_view::CanvasAction::OpenNode(idx) => {
                         return self.open_node(win_id, idx);
                     }
-                    CanvasMessage::ContextMenu(x, y) => {
-                        if let Some(win) = self.windows.get_mut(&win_id) {
-                            win.context_menu = Some((x, y));
-                        }
-                    }
+                    canvas_view::CanvasAction::None => {}
                 }
             }
             Message::Hierarchy(hier_win_id, ref hier_msg) => {
@@ -986,60 +755,41 @@ impl FlowEdit {
             },
             Message::ZoomIn(win_id) => {
                 if let Some(win) = self.windows.get_mut(&win_id) {
-                    win.auto_fit_enabled = false;
-                    win.canvas_state.zoom_in();
-                    let pct = (win.canvas_state.zoom * 100.0) as u32;
-                    win.status = format!("Zoom: {pct}%");
+                    canvas_view::handle_zoom_in(win);
                 }
             }
             Message::ZoomOut(win_id) => {
                 if let Some(win) = self.windows.get_mut(&win_id) {
-                    win.auto_fit_enabled = false;
-                    win.canvas_state.zoom_out();
-                    let pct = (win.canvas_state.zoom * 100.0) as u32;
-                    win.status = format!("Zoom: {pct}%");
+                    canvas_view::handle_zoom_out(win);
                 }
             }
             Message::ToggleAutoFit(win_id) => {
                 if let Some(win) = self.windows.get_mut(&win_id) {
-                    win.auto_fit_enabled = !win.auto_fit_enabled;
-                    if win.auto_fit_enabled {
-                        win.auto_fit_pending = true;
-                        win.canvas_state.request_redraw();
-                        win.status = String::from("Auto-fit enabled");
-                    } else {
-                        win.status = String::from("Auto-fit disabled");
-                    }
+                    canvas_view::handle_toggle_auto_fit(win);
                 }
             }
             Message::Undo => {
                 let target = self.focused_window.or(self.root_window);
                 if let Some(win) = target.and_then(|id| self.windows.get_mut(&id)) {
-                    undo_redo::apply_undo(win);
-                    win.unsaved_edits = (win.unsaved_edits - 1).max(0);
+                    undo_redo::handle_undo(win);
                 }
             }
             Message::Redo => {
                 let target = self.focused_window.or(self.root_window);
                 if let Some(win) = target.and_then(|id| self.windows.get_mut(&id)) {
-                    undo_redo::apply_redo(win);
-                    win.unsaved_edits += 1;
+                    undo_redo::handle_redo(win);
                 }
             }
             Message::Save => {
                 let target = self.focused_window.or(self.root_window);
                 if let Some(win) = target.and_then(|id| self.windows.get_mut(&id)) {
-                    if let Some(path) = win.file_path.clone() {
-                        flow_io::perform_save(win, &path);
-                    } else {
-                        flow_io::perform_save_as(win);
-                    }
+                    flow_io::handle_save(win);
                 }
             }
             Message::SaveAs => {
                 let target = self.focused_window.or(self.root_window);
                 if let Some(win) = target.and_then(|id| self.windows.get_mut(&id)) {
-                    flow_io::perform_save_as(win);
+                    flow_io::handle_save_as(win);
                 }
             }
             Message::Open => {
@@ -1146,28 +896,22 @@ impl FlowEdit {
             }
             Message::InitializerTypeChanged(win_id, new_type) => {
                 if let Some(win) = self.windows.get_mut(&win_id) {
-                    if let Some(ref mut editor) = win.initializer_editor {
-                        editor.init_type = new_type;
-                    }
+                    initializer::handle_type_changed(win, new_type);
                 }
             }
             Message::InitializerValueChanged(win_id, new_value) => {
                 if let Some(win) = self.windows.get_mut(&win_id) {
-                    if let Some(ref mut editor) = win.initializer_editor {
-                        editor.value_text = new_value;
-                    }
+                    initializer::handle_value_changed(win, new_value);
                 }
             }
             Message::InitializerApply(win_id) => {
                 if let Some(win) = self.windows.get_mut(&win_id) {
-                    if let Some(editor) = win.initializer_editor.take() {
-                        initializer::apply_initializer_edit(win, &editor);
-                    }
+                    initializer::handle_apply(win);
                 }
             }
             Message::InitializerCancel(win_id) => {
                 if let Some(win) = self.windows.get_mut(&win_id) {
-                    win.initializer_editor = None;
+                    initializer::handle_cancel(win);
                 }
             }
             Message::WindowFocused(id) => {

@@ -166,3 +166,19 @@ pub(crate) fn apply_redo(win: &mut WindowState) {
         win.canvas_state.request_redraw();
     }
 }
+
+/// Handle undo message -- applies undo and decrements unsaved edit count.
+pub(crate) fn handle_undo(win: &mut WindowState) {
+    if win.history.can_undo() {
+        apply_undo(win);
+        win.unsaved_edits = (win.unsaved_edits - 1).max(0);
+    }
+}
+
+/// Handle redo message -- applies redo and increments unsaved edit count.
+pub(crate) fn handle_redo(win: &mut WindowState) {
+    if win.history.can_redo() {
+        apply_redo(win);
+        win.unsaved_edits += 1;
+    }
+}
