@@ -198,10 +198,8 @@ struct FlowEdit {
     lib_paths: Vec<String>,
     /// Cached library manifests, keyed by library root URL (e.g., `lib://flowstdlib`)
     library_cache: HashMap<Url, LibraryManifest>,
-    /// Cached parsed definitions for library functions/flows, keyed by lib:// URL
-    lib_definitions: HashMap<Url, Process>,
-    /// Cached parsed definitions for context functions, keyed by context:// URL
-    context_definitions: HashMap<Url, Process>,
+    /// Cached parsed definitions for all library and context functions/flows
+    all_definitions: HashMap<Url, Process>,
 }
 
 impl Default for FlowEdit {
@@ -215,8 +213,7 @@ impl Default for FlowEdit {
             show_lib_paths: false,
             lib_paths: Vec::new(),
             library_cache: HashMap::new(),
-            lib_definitions: HashMap::new(),
-            context_definitions: HashMap::new(),
+            all_definitions: HashMap::new(),
         }
     }
 }
@@ -330,10 +327,8 @@ impl FlowEdit {
         let has_nodes = !nodes.is_empty();
 
         // Load full library catalogs from manifests and parse all definitions
-        let (library_cache, lib_definitions, context_definitions) =
-            library_mgmt::load_library_catalogs(&lib_refs);
-        let library_tree =
-            LibraryTree::from_cache(&library_cache, &lib_definitions, &context_definitions);
+        let (library_cache, all_definitions) = library_mgmt::load_library_catalogs(&lib_refs);
+        let library_tree = LibraryTree::from_cache(&library_cache, &all_definitions);
 
         // Open the root window via daemon API
         let saved_prefs = file_path
@@ -404,8 +399,7 @@ impl FlowEdit {
             show_lib_paths: false,
             lib_paths,
             library_cache,
-            lib_definitions,
-            context_definitions,
+            all_definitions,
         };
 
         (app, open_task.discard())
@@ -590,7 +584,7 @@ impl FlowEdit {
                                                     &meta_provider,
                                                 ) {
                                                     Ok(process) => {
-                                                        self.lib_definitions
+                                                        self.all_definitions
                                                             .insert(locator_url.clone(), process);
                                                     }
                                                     Err(e) => {
@@ -616,8 +610,7 @@ impl FlowEdit {
                                             // Rebuild the library tree
                                             self.library_tree = LibraryTree::from_cache(
                                                 &self.library_cache,
-                                                &self.lib_definitions,
-                                                &self.context_definitions,
+                                                &self.all_definitions,
                                             );
 
                                             if let Some(win) = self.windows.get_mut(&win_id) {
@@ -695,15 +688,11 @@ impl FlowEdit {
                                 .unwrap_or_else(FlowHierarchy::empty);
 
                             // Rebuild library cache with new flow's references
-                            let (lc, ld, cd) = library_mgmt::load_library_catalogs(&lib_refs);
+                            let (lc, ad) = library_mgmt::load_library_catalogs(&lib_refs);
                             self.library_cache = lc;
-                            self.lib_definitions = ld;
-                            self.context_definitions = cd;
-                            self.library_tree = LibraryTree::from_cache(
-                                &self.library_cache,
-                                &self.lib_definitions,
-                                &self.context_definitions,
-                            );
+                            self.all_definitions = ad;
+                            self.library_tree =
+                                LibraryTree::from_cache(&self.library_cache, &self.all_definitions);
                         }
                     }
                 }
@@ -713,13 +702,9 @@ impl FlowEdit {
                     flow_io::perform_new(win);
                     // Clear the library cache for a new (empty) flow
                     self.library_cache.clear();
-                    self.lib_definitions.clear();
-                    self.context_definitions.clear();
-                    self.library_tree = LibraryTree::from_cache(
-                        &self.library_cache,
-                        &self.lib_definitions,
-                        &self.context_definitions,
-                    );
+                    self.all_definitions.clear();
+                    self.library_tree =
+                        LibraryTree::from_cache(&self.library_cache, &self.all_definitions);
                 }
             }
             Message::Compile => {
@@ -1989,15 +1974,10 @@ impl FlowEdit {
             .and_then(|id| self.windows.get(&id))
             .map(|win| win.flow_definition.lib_references.clone())
             .unwrap_or_default();
-        let (lc, ld, cd) = library_mgmt::load_library_catalogs(&lib_refs);
+        let (lc, ad) = library_mgmt::load_library_catalogs(&lib_refs);
         self.library_cache = lc;
-        self.lib_definitions = ld;
-        self.context_definitions = cd;
-        self.library_tree = LibraryTree::from_cache(
-            &self.library_cache,
-            &self.lib_definitions,
-            &self.context_definitions,
-        );
+        self.all_definitions = ad;
+        self.library_tree = LibraryTree::from_cache(&self.library_cache, &self.all_definitions);
     }
 
     fn build_hierarchy(&self) -> FlowHierarchy {

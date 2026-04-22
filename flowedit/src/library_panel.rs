@@ -90,15 +90,14 @@ impl LibraryTree {
     /// "Context" library entry, derived from the parsed context definitions.
     pub(crate) fn from_cache(
         library_cache: &HashMap<Url, LibraryManifest>,
-        lib_definitions: &HashMap<Url, Process>,
-        context_definitions: &HashMap<Url, Process>,
+        all_definitions: &HashMap<Url, Process>,
     ) -> Self {
         let mut libraries = Vec::new();
 
         // Build tree entries from library manifests
         for manifest in library_cache.values() {
             let lib_name = manifest.lib_url.host_str().unwrap_or("unknown").to_string();
-            let categories = build_categories_from_manifest(&manifest.locators, lib_definitions);
+            let categories = build_categories_from_manifest(&manifest.locators, all_definitions);
 
             if !categories.is_empty() {
                 libraries.push(LibraryEntry {
@@ -109,8 +108,12 @@ impl LibraryTree {
             }
         }
 
-        // Build context functions entry from parsed context definitions
-        let context_entry = build_context_entry(context_definitions);
+        // Build context functions entry from context:// definitions in the unified map
+        let context_defs: HashMap<&Url, &Process> = all_definitions
+            .iter()
+            .filter(|(url, _)| url.scheme() == "context")
+            .collect();
+        let context_entry = build_context_entry(&context_defs);
         let has_context = !context_entry.categories.is_empty();
         if has_context {
             libraries.insert(0, context_entry);
@@ -295,7 +298,7 @@ impl LibraryTree {
 /// We extract category and function names from the URL path segments.
 fn build_categories_from_manifest(
     locators: &BTreeMap<Url, flowcore::model::lib_manifest::ImplementationLocator>,
-    lib_definitions: &HashMap<Url, Process>,
+    all_definitions: &HashMap<Url, Process>,
 ) -> Vec<CategoryEntry> {
     // Group functions by category
     let mut category_map: BTreeMap<String, Vec<FunctionEntry>> = BTreeMap::new();
@@ -316,7 +319,7 @@ fn build_categories_from_manifest(
         }
 
         // Extract description from definition if available
-        let description = lib_definitions
+        let description = all_definitions
             .get(url)
             .map(|process| match process {
                 Process::FlowProcess(flow_def) => flow_def.description.clone(),
@@ -353,7 +356,7 @@ fn build_categories_from_manifest(
 /// Build a "Context" library entry from parsed context definitions.
 ///
 /// Context URLs have the form `context://category/function`.
-fn build_context_entry(context_definitions: &HashMap<Url, Process>) -> LibraryEntry {
+fn build_context_entry(context_definitions: &HashMap<&Url, &Process>) -> LibraryEntry {
     let mut category_map: BTreeMap<String, Vec<FunctionEntry>> = BTreeMap::new();
 
     for (url, process) in context_definitions {
@@ -486,21 +489,21 @@ mod test {
 
     #[test]
     fn from_cache_empty() {
-        let tree = LibraryTree::from_cache(&HashMap::new(), &HashMap::new(), &HashMap::new());
+        let tree = LibraryTree::from_cache(&HashMap::new(), &HashMap::new());
         assert!(tree.libraries.is_empty());
     }
 
     #[test]
     fn from_cache_with_context_only() {
-        let mut context_defs = HashMap::new();
+        let mut all_defs = HashMap::new();
         let url = Url::parse("context://stdio/stdout").expect("valid url");
-        context_defs.insert(
+        all_defs.insert(
             url,
             Process::FunctionProcess(
                 flowcore::model::function_definition::FunctionDefinition::default(),
             ),
         );
-        let tree = LibraryTree::from_cache(&HashMap::new(), &HashMap::new(), &context_defs);
+        let tree = LibraryTree::from_cache(&HashMap::new(), &all_defs);
         assert_eq!(tree.libraries.len(), 1);
         assert_eq!(tree.libraries[0].name, "Context");
         assert_eq!(tree.libraries[0].categories.len(), 1);

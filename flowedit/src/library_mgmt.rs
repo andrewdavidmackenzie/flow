@@ -25,16 +25,11 @@ use crate::WindowState;
 /// URL in `context_references`, parses the context function definition.
 pub(crate) fn load_library_catalogs(
     lib_references: &BTreeSet<Url>,
-) -> (
-    HashMap<Url, LibraryManifest>,
-    HashMap<Url, Process>,
-    HashMap<Url, Process>,
-) {
+) -> (HashMap<Url, LibraryManifest>, HashMap<Url, Process>) {
     let provider = flow_io::build_meta_provider();
     let arc_provider: Arc<dyn Provider> = Arc::new(provider);
     let mut library_cache = HashMap::new();
-    let mut lib_definitions = HashMap::new();
-    let mut context_definitions = HashMap::new();
+    let mut all_definitions = HashMap::new();
 
     // Extract unique library root URLs from lib_references
     // e.g., "lib://flowstdlib/math/add" -> "lib://flowstdlib"
@@ -62,7 +57,7 @@ pub(crate) fn load_library_catalogs(
                 for locator_url in manifest.locators.keys() {
                     match flowrclib::compiler::parser::parse(locator_url, &meta_provider) {
                         Ok(process) => {
-                            lib_definitions.insert(locator_url.clone(), process);
+                            all_definitions.insert(locator_url.clone(), process);
                         }
                         Err(e) => {
                             warn!(
@@ -112,13 +107,13 @@ pub(crate) fn load_library_catalogs(
                             if !func_name.is_empty() {
                                 let ctx_url_str = format!("context://{cat_name}/{func_name}");
                                 if let Ok(ctx_url) = Url::parse(&ctx_url_str) {
-                                    if !context_definitions.contains_key(&ctx_url) {
+                                    if !all_definitions.contains_key(&ctx_url) {
                                         match flowrclib::compiler::parser::parse(
                                             &ctx_url,
                                             &ctx_provider,
                                         ) {
                                             Ok(process) => {
-                                                context_definitions.insert(ctx_url, process);
+                                                all_definitions.insert(ctx_url, process);
                                             }
                                             Err(e) => {
                                                 warn!(
@@ -137,7 +132,7 @@ pub(crate) fn load_library_catalogs(
         }
     }
 
-    (library_cache, lib_definitions, context_definitions)
+    (library_cache, all_definitions)
 }
 
 /// Add a function from the library panel as a new node on the canvas.
