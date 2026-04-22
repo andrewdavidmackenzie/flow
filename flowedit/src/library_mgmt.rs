@@ -14,8 +14,8 @@ use flowcore::provider::Provider;
 
 use crate::canvas_view::NodeLayout;
 use crate::flow_io;
+use crate::history;
 use crate::history::EditAction;
-use crate::undo_redo;
 use crate::WindowState;
 
 /// Load full library catalogs and cache all definitions.
@@ -204,7 +204,7 @@ pub(crate) fn add_library_function(win: &mut WindowState, source: &str, func_nam
     };
     win.flow_definition.process_refs.push(pref);
 
-    undo_redo::record_edit(
+    history::record_edit(
         win,
         EditAction::DeleteNode {
             index,

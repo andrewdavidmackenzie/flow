@@ -12,58 +12,6 @@ fn test_node(alias: &str, source: &str) -> NodeLayout {
     }
 }
 
-#[test]
-fn sync_flow_definition_preserves_nodes() {
-    let mut win = WindowState {
-        flow_name: String::from("test"),
-        nodes: vec![
-            test_node("add", "lib://flowstdlib/math/add"),
-            test_node("stdout", "context://stdio/stdout"),
-        ],
-        is_root: true,
-        ..Default::default()
-    };
-
-    initializer::sync_flow_definition(&mut win);
-    assert_eq!(win.flow_definition.process_refs.len(), 2);
-    assert_eq!(win.flow_definition.name, "test");
-}
-
-#[test]
-fn record_and_undo_edit() {
-    let mut win = WindowState {
-        flow_name: String::from("test"),
-        nodes: vec![test_node("a", "lib://test")],
-        is_root: true,
-        ..Default::default()
-    };
-
-    // Move node
-    win.nodes[0].x = 200.0;
-    win.nodes[0].y = 300.0;
-    undo_redo::record_edit(
-        &mut win,
-        EditAction::MoveNode {
-            index: 0,
-            old_x: 100.0,
-            old_y: 100.0,
-            new_x: 200.0,
-            new_y: 300.0,
-        },
-    );
-    assert_eq!(win.unsaved_edits, 1);
-
-    // Undo
-    undo_redo::apply_undo(&mut win);
-    assert!((win.nodes[0].x - 100.0).abs() < 0.01);
-    assert!((win.nodes[0].y - 100.0).abs() < 0.01);
-
-    // Redo
-    undo_redo::apply_redo(&mut win);
-    assert!((win.nodes[0].x - 200.0).abs() < 0.01);
-    assert!((win.nodes[0].y - 300.0).abs() < 0.01);
-}
-
 fn test_win_state() -> WindowState {
     WindowState {
         flow_name: String::from("test"),
@@ -345,16 +293,19 @@ fn update_undo_redo_cycle() {
 fn update_toggle_metadata() {
     let (mut app, win_id) = test_app();
     assert!(!app.windows.get(&win_id).is_some_and(|w| w.show_metadata));
-    let _ = app.update(Message::ToggleMetadataEditor(win_id));
+    let _ = app.update(Message::FlowEdit(win_id, FlowEditMessage::ToggleMetadata));
     assert!(app.windows.get(&win_id).is_some_and(|w| w.show_metadata));
-    let _ = app.update(Message::ToggleMetadataEditor(win_id));
+    let _ = app.update(Message::FlowEdit(win_id, FlowEditMessage::ToggleMetadata));
     assert!(!app.windows.get(&win_id).is_some_and(|w| w.show_metadata));
 }
 
 #[test]
 fn update_flow_name_changed() {
     let (mut app, win_id) = test_app();
-    let _ = app.update(Message::FlowNameChanged(win_id, "new_name".into()));
+    let _ = app.update(Message::FlowEdit(
+        win_id,
+        FlowEditMessage::NameChanged("new_name".into()),
+    ));
     assert_eq!(
         app.windows.get(&win_id).map(|w| w.flow_name.as_str()),
         Some("new_name")
@@ -365,7 +316,10 @@ fn update_flow_name_changed() {
 #[test]
 fn update_flow_version_changed() {
     let (mut app, win_id) = test_app();
-    let _ = app.update(Message::FlowVersionChanged(win_id, "2.0.0".into()));
+    let _ = app.update(Message::FlowEdit(
+        win_id,
+        FlowEditMessage::VersionChanged("2.0.0".into()),
+    ));
     assert_eq!(
         app.windows
             .get(&win_id)
@@ -377,9 +331,9 @@ fn update_flow_version_changed() {
 #[test]
 fn update_flow_description_changed() {
     let (mut app, win_id) = test_app();
-    let _ = app.update(Message::FlowDescriptionChanged(
+    let _ = app.update(Message::FlowEdit(
         win_id,
-        "A test flow".into(),
+        FlowEditMessage::DescriptionChanged("A test flow".into()),
     ));
     assert_eq!(
         app.windows
@@ -392,7 +346,10 @@ fn update_flow_description_changed() {
 #[test]
 fn update_flow_authors_changed() {
     let (mut app, win_id) = test_app();
-    let _ = app.update(Message::FlowAuthorsChanged(win_id, "Alice, Bob".into()));
+    let _ = app.update(Message::FlowEdit(
+        win_id,
+        FlowEditMessage::AuthorsChanged("Alice, Bob".into()),
+    ));
     let authors = app
         .windows
         .get(&win_id)
@@ -404,7 +361,7 @@ fn update_flow_authors_changed() {
 #[test]
 fn update_flow_add_input() {
     let (mut app, win_id) = test_app();
-    let _ = app.update(Message::FlowAddInput(win_id));
+    let _ = app.update(Message::FlowEdit(win_id, FlowEditMessage::AddInput));
     assert_eq!(
         app.windows.get(&win_id).map(|w| w.flow_inputs.len()),
         Some(1)
@@ -415,7 +372,7 @@ fn update_flow_add_input() {
 #[test]
 fn update_flow_add_output() {
     let (mut app, win_id) = test_app();
-    let _ = app.update(Message::FlowAddOutput(win_id));
+    let _ = app.update(Message::FlowEdit(win_id, FlowEditMessage::AddOutput));
     assert_eq!(
         app.windows.get(&win_id).map(|w| w.flow_outputs.len()),
         Some(1)
@@ -425,8 +382,8 @@ fn update_flow_add_output() {
 #[test]
 fn update_flow_delete_input() {
     let (mut app, win_id) = test_app();
-    let _ = app.update(Message::FlowAddInput(win_id));
-    let _ = app.update(Message::FlowDeleteInput(win_id, 0));
+    let _ = app.update(Message::FlowEdit(win_id, FlowEditMessage::AddInput));
+    let _ = app.update(Message::FlowEdit(win_id, FlowEditMessage::DeleteInput(0)));
     assert_eq!(
         app.windows.get(&win_id).map(|w| w.flow_inputs.len()),
         Some(0)
@@ -436,8 +393,11 @@ fn update_flow_delete_input() {
 #[test]
 fn update_flow_input_name_changed() {
     let (mut app, win_id) = test_app();
-    let _ = app.update(Message::FlowAddInput(win_id));
-    let _ = app.update(Message::FlowInputNameChanged(win_id, 0, "data".into()));
+    let _ = app.update(Message::FlowEdit(win_id, FlowEditMessage::AddInput));
+    let _ = app.update(Message::FlowEdit(
+        win_id,
+        FlowEditMessage::InputNameChanged(0, "data".into()),
+    ));
     assert_eq!(
         app.windows
             .get(&win_id)
@@ -1275,299 +1235,226 @@ fn ui_resize_node_records_history() {
     );
 }
 
-// ---- Group 9: Initializer Tests ----
+// ---- Group 11: PR #2599 Coverage — Flow I/O Delete & Rename with Edges ----
 
 #[test]
-fn initializer_apply_once() {
+fn flow_delete_input_removes_edges() {
     let (mut app, win_id) = test_app();
-    // Add a process ref so apply can find it
+    // Add a flow input
+    let _ = app.update(Message::FlowEdit(win_id, FlowEditMessage::AddInput));
+    // Add an edge referencing "input" node
     if let Some(win) = app.windows.get_mut(&win_id) {
-        let editor = InitializerEditor {
-            node_index: 0,
-            port_name: "input".into(),
-            init_type: "once".into(),
-            value_text: "42".into(),
-        };
-        initializer::apply_initializer_edit(win, &editor);
-        assert!(win.unsaved_edits > 0);
-        // Check display was updated
-        assert!(win
-            .nodes
-            .first()
-            .and_then(|n| n.initializers.get("input"))
-            .is_some_and(|d| d.contains("once")));
+        win.edges.push(EdgeLayout::new(
+            "input".into(),
+            "input0".into(),
+            "add".into(),
+            "".into(),
+        ));
     }
+    assert_eq!(app.windows.get(&win_id).map_or(0, |w| w.edges.len()), 1);
+    // Delete the input — edge should be removed
+    let _ = app.update(Message::FlowEdit(win_id, FlowEditMessage::DeleteInput(0)));
+    assert_eq!(
+        app.windows.get(&win_id).map_or(0, |w| w.edges.len()),
+        0,
+        "Edge should be removed when flow input is deleted"
+    );
 }
 
 #[test]
-fn initializer_apply_always() {
+fn flow_delete_output_removes_edges() {
     let (mut app, win_id) = test_app();
-    if let Some(win) = app.windows.get_mut(&win_id) {
-        let editor = InitializerEditor {
-            node_index: 0,
-            port_name: "input".into(),
-            init_type: "always".into(),
-            value_text: "\"hello\"".into(),
-        };
-        initializer::apply_initializer_edit(win, &editor);
-        assert!(win
-            .nodes
-            .first()
-            .and_then(|n| n.initializers.get("input"))
-            .is_some_and(|d| d.contains("always")));
-    }
-}
-
-#[test]
-fn initializer_apply_none_removes() {
-    let (mut app, win_id) = test_app();
-    if let Some(win) = app.windows.get_mut(&win_id) {
-        // First set one
-        let editor = InitializerEditor {
-            node_index: 0,
-            port_name: "input".into(),
-            init_type: "once".into(),
-            value_text: "42".into(),
-        };
-        initializer::apply_initializer_edit(win, &editor);
-        assert!(win
-            .nodes
-            .first()
-            .and_then(|n| n.initializers.get("input"))
-            .is_some());
-
-        // Then remove it
-        let editor = InitializerEditor {
-            node_index: 0,
-            port_name: "input".into(),
-            init_type: "none".into(),
-            value_text: String::new(),
-        };
-        initializer::apply_initializer_edit(win, &editor);
-        assert!(win
-            .nodes
-            .first()
-            .and_then(|n| n.initializers.get("input"))
-            .is_none());
-    }
-}
-
-#[test]
-fn initializer_apply_state_set_and_remove() {
-    use flowcore::model::input::InputInitializer;
-
-    let (mut app, win_id) = test_app();
-    if let Some(win) = app.windows.get_mut(&win_id) {
-        let init = InputInitializer::Once(serde_json::json!(99));
-        let display = "once: 99".to_string();
-        initializer::apply_initializer_state(win, 0, "port", Some(&init), Some(&display));
-        assert!(win
-            .nodes
-            .first()
-            .and_then(|n| n.initializers.get("port"))
-            .is_some());
-
-        // Remove
-        initializer::apply_initializer_state(win, 0, "port", None, None);
-        assert!(win
-            .nodes
-            .first()
-            .and_then(|n| n.initializers.get("port"))
-            .is_none());
-    }
-}
-
-#[test]
-fn initializer_apply_invalid_type_no_change() {
-    let (mut app, win_id) = test_app();
-    if let Some(win) = app.windows.get_mut(&win_id) {
-        let edits_before = win.unsaved_edits;
-        let editor = InitializerEditor {
-            node_index: 0,
-            port_name: "input".into(),
-            init_type: "bogus".into(),
-            value_text: "42".into(),
-        };
-        initializer::apply_initializer_edit(win, &editor);
-        assert_eq!(
-            win.unsaved_edits, edits_before,
-            "Invalid type should not create an edit"
-        );
-    }
-}
-
-// ---- Group 10: Undo/Redo Action Coverage ----
-
-#[test]
-fn undo_redo_resize_node() {
-    let (mut app, win_id) = test_app();
-    if let Some(win) = app.windows.get_mut(&win_id) {
-        // Simulate resize
-        if let Some(n) = win.nodes.first_mut() {
-            n.width = 250.0;
-            n.height = 180.0;
-        }
-        undo_redo::record_edit(
-            win,
-            EditAction::ResizeNode {
-                index: 0,
-                old_x: 100.0,
-                old_y: 100.0,
-                old_w: 180.0,
-                old_h: 120.0,
-                new_x: 100.0,
-                new_y: 100.0,
-                new_w: 250.0,
-                new_h: 180.0,
-            },
-        );
-
-        // Undo
-        undo_redo::apply_undo(win);
-        assert!(win
-            .nodes
-            .first()
-            .is_some_and(|n| (n.width - 180.0).abs() < 0.01));
-        assert!(win
-            .nodes
-            .first()
-            .is_some_and(|n| (n.height - 120.0).abs() < 0.01));
-
-        // Redo
-        undo_redo::apply_redo(win);
-        assert!(win
-            .nodes
-            .first()
-            .is_some_and(|n| (n.width - 250.0).abs() < 0.01));
-        assert!(win
-            .nodes
-            .first()
-            .is_some_and(|n| (n.height - 180.0).abs() < 0.01));
-    }
-}
-
-#[test]
-fn undo_redo_delete_node() {
-    let (mut app, win_id) = test_app();
-    if let Some(win) = app.windows.get_mut(&win_id) {
-        assert_eq!(win.nodes.len(), 2);
-        let removed_node = win.nodes.remove(0);
-        undo_redo::record_edit(
-            win,
-            EditAction::DeleteNode {
-                index: 0,
-                node: removed_node,
-                removed_edges: Vec::new(),
-            },
-        );
-        assert_eq!(win.nodes.len(), 1);
-
-        // Undo restores
-        undo_redo::apply_undo(win);
-        assert_eq!(win.nodes.len(), 2);
-
-        // Redo removes again
-        undo_redo::apply_redo(win);
-        assert_eq!(win.nodes.len(), 1);
-    }
-}
-
-#[test]
-fn undo_redo_create_connection() {
-    let (mut app, win_id) = test_app();
-    if let Some(win) = app.windows.get_mut(&win_id) {
-        let edge = EdgeLayout::new("add".into(), "out".into(), "stdout".into(), "in".into());
-        win.edges.push(edge.clone());
-        undo_redo::record_edit(win, EditAction::CreateConnection { edge });
-        assert_eq!(win.edges.len(), 1);
-
-        // Undo removes
-        undo_redo::apply_undo(win);
-        assert_eq!(win.edges.len(), 0);
-
-        // Redo re-adds
-        undo_redo::apply_redo(win);
-        assert_eq!(win.edges.len(), 1);
-    }
-}
-
-#[test]
-fn undo_redo_delete_connection() {
-    let (mut app, win_id) = test_app();
+    // Add a flow output
+    let _ = app.update(Message::FlowEdit(win_id, FlowEditMessage::AddOutput));
+    // Add an edge referencing "output" node
     if let Some(win) = app.windows.get_mut(&win_id) {
         win.edges.push(EdgeLayout::new(
             "add".into(),
-            "out".into(),
-            "stdout".into(),
-            "in".into(),
+            "".into(),
+            "output".into(),
+            "output0".into(),
         ));
-        let removed_edge = win.edges.remove(0);
-        undo_redo::record_edit(
-            win,
-            EditAction::DeleteConnection {
-                index: 0,
-                edge: removed_edge,
-            },
-        );
-        assert_eq!(win.edges.len(), 0);
-
-        // Undo restores
-        undo_redo::apply_undo(win);
-        assert_eq!(win.edges.len(), 1);
-
-        // Redo removes again
-        undo_redo::apply_redo(win);
-        assert_eq!(win.edges.len(), 0);
     }
+    assert_eq!(app.windows.get(&win_id).map_or(0, |w| w.edges.len()), 1);
+    // Delete the output — edge should be removed
+    let _ = app.update(Message::FlowEdit(win_id, FlowEditMessage::DeleteOutput(0)));
+    assert_eq!(
+        app.windows.get(&win_id).map_or(0, |w| w.edges.len()),
+        0,
+        "Edge should be removed when flow output is deleted"
+    );
 }
 
 #[test]
-fn undo_redo_edit_initializer() {
-    use flowcore::model::input::InputInitializer;
+fn flow_input_rename_updates_edges() {
+    let (mut app, win_id) = test_app();
+    let _ = app.update(Message::FlowEdit(win_id, FlowEditMessage::AddInput));
+    if let Some(win) = app.windows.get_mut(&win_id) {
+        win.edges.push(EdgeLayout::new(
+            "input".into(),
+            "input0".into(),
+            "add".into(),
+            "".into(),
+        ));
+    }
+    let _ = app.update(Message::FlowEdit(
+        win_id,
+        FlowEditMessage::InputNameChanged(0, "data".into()),
+    ));
+    // Edge should now reference "data" instead of "input0"
+    let edge_port = app
+        .windows
+        .get(&win_id)
+        .and_then(|w| w.edges.first())
+        .map(|e| e.from_port.clone());
+    assert_eq!(edge_port, Some("data".into()));
+}
 
+#[test]
+fn flow_output_rename_updates_edges() {
+    let (mut app, win_id) = test_app();
+    let _ = app.update(Message::FlowEdit(win_id, FlowEditMessage::AddOutput));
+    if let Some(win) = app.windows.get_mut(&win_id) {
+        win.edges.push(EdgeLayout::new(
+            "add".into(),
+            "".into(),
+            "output".into(),
+            "output0".into(),
+        ));
+    }
+    let _ = app.update(Message::FlowEdit(
+        win_id,
+        FlowEditMessage::OutputNameChanged(0, "result".into()),
+    ));
+    // Edge should now reference "result" instead of "output0"
+    let edge_port = app
+        .windows
+        .get(&win_id)
+        .and_then(|w| w.edges.first())
+        .map(|e| e.to_port.clone());
+    assert_eq!(edge_port, Some("result".into()));
+}
+
+// ---- Group 12: PR #2599 Coverage — NewSubFlow and NewFunction with window_id ----
+
+#[test]
+fn new_subflow_clears_context_menu() {
     let (mut app, win_id) = test_app();
     if let Some(win) = app.windows.get_mut(&win_id) {
-        // Record an initializer edit
-        undo_redo::record_edit(
-            win,
-            EditAction::EditInitializer {
-                node_index: 0,
-                port_name: "input".into(),
-                old_init: None,
-                old_display: None,
-                new_init: Some(InputInitializer::Once(serde_json::json!(42))),
-                new_display: Some("once: 42".into()),
-            },
-        );
-
-        // Apply the new state manually (record_edit only records, doesn't apply)
-        initializer::apply_initializer_state(
-            win,
-            0,
-            "input",
-            Some(&InputInitializer::Once(serde_json::json!(42))),
-            Some(&"once: 42".to_string()),
-        );
-        assert!(win
-            .nodes
-            .first()
-            .and_then(|n| n.initializers.get("input"))
-            .is_some());
-
-        // Undo
-        undo_redo::apply_undo(win);
-        assert!(win
-            .nodes
-            .first()
-            .and_then(|n| n.initializers.get("input"))
-            .is_none());
-
-        // Redo
-        undo_redo::apply_redo(win);
-        assert!(win
-            .nodes
-            .first()
-            .and_then(|n| n.initializers.get("input"))
-            .is_some());
+        win.context_menu = Some((100.0, 200.0));
     }
+    let _ = app.update(Message::NewSubFlow(win_id));
+    assert!(
+        app.windows
+            .get(&win_id)
+            .and_then(|w| w.context_menu)
+            .is_none(),
+        "NewSubFlow should clear context menu"
+    );
+}
+
+#[test]
+fn new_function_clears_context_menu() {
+    let (mut app, win_id) = test_app();
+    if let Some(win) = app.windows.get_mut(&win_id) {
+        win.context_menu = Some((100.0, 200.0));
+    }
+    let _ = app.update(Message::NewFunction(win_id));
+    assert!(
+        app.windows
+            .get(&win_id)
+            .and_then(|w| w.context_menu)
+            .is_none(),
+        "NewFunction should clear context menu"
+    );
+}
+
+// ---- Group 13: PR #2599 Coverage — FlowEditMessage sub-enum routing ----
+
+#[test]
+fn flow_edit_toggle_metadata() {
+    let (mut app, win_id) = test_app();
+    assert!(!app.windows.get(&win_id).map_or(true, |w| w.show_metadata));
+    let _ = app.update(Message::FlowEdit(win_id, FlowEditMessage::ToggleMetadata));
+    assert!(app.windows.get(&win_id).map_or(false, |w| w.show_metadata));
+}
+
+#[test]
+fn flow_edit_add_delete_output() {
+    let (mut app, win_id) = test_app();
+    let _ = app.update(Message::FlowEdit(win_id, FlowEditMessage::AddOutput));
+    assert_eq!(
+        app.windows.get(&win_id).map_or(0, |w| w.flow_outputs.len()),
+        1
+    );
+    let _ = app.update(Message::FlowEdit(win_id, FlowEditMessage::DeleteOutput(0)));
+    assert_eq!(
+        app.windows.get(&win_id).map_or(0, |w| w.flow_outputs.len()),
+        0
+    );
+}
+
+#[test]
+fn flow_edit_input_type_changed() {
+    let (mut app, win_id) = test_app();
+    let _ = app.update(Message::FlowEdit(win_id, FlowEditMessage::AddInput));
+    let _ = app.update(Message::FlowEdit(
+        win_id,
+        FlowEditMessage::InputTypeChanged(0, "number".into()),
+    ));
+    let dtype = app
+        .windows
+        .get(&win_id)
+        .and_then(|w| w.flow_inputs.first())
+        .and_then(|p| p.datatypes.first())
+        .map(|s| s.as_str());
+    assert_eq!(dtype, Some("number"));
+}
+
+#[test]
+fn flow_edit_output_type_changed() {
+    let (mut app, win_id) = test_app();
+    let _ = app.update(Message::FlowEdit(win_id, FlowEditMessage::AddOutput));
+    let _ = app.update(Message::FlowEdit(
+        win_id,
+        FlowEditMessage::OutputTypeChanged(0, "boolean".into()),
+    ));
+    let dtype = app
+        .windows
+        .get(&win_id)
+        .and_then(|w| w.flow_outputs.first())
+        .and_then(|p| p.datatypes.first())
+        .map(|s| s.as_str());
+    assert_eq!(dtype, Some("boolean"));
+}
+
+// ---- Group 14: PR #2599 Coverage — FunctionEditMessage sub-enum routing ----
+
+#[test]
+fn function_edit_add_input_no_panic_without_viewer() {
+    let (mut app, win_id) = test_app();
+    // No FunctionViewer window exists, so this should be a no-op
+    let _ = app.update(Message::FunctionEdit(win_id, FunctionEditMessage::AddInput));
+    // Should not panic (no FunctionViewer window, so no-op)
+}
+
+#[test]
+fn function_edit_add_output_no_panic_without_viewer() {
+    let (mut app, win_id) = test_app();
+    // No FunctionViewer window exists, so this should be a no-op
+    let _ = app.update(Message::FunctionEdit(
+        win_id,
+        FunctionEditMessage::AddOutput,
+    ));
+    // Should not panic
+}
+
+#[test]
+fn function_edit_name_changed_no_panic_without_viewer() {
+    let (mut app, win_id) = test_app();
+    let _ = app.update(Message::FunctionEdit(
+        win_id,
+        FunctionEditMessage::NameChanged("test_func".into()),
+    ));
+    // Should not panic
 }

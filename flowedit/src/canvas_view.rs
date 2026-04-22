@@ -12,15 +12,18 @@ use iced::mouse;
 use iced::widget::canvas::{
     self, Canvas, Event, Frame, Geometry, Path, Stroke, Text as CanvasText,
 };
+use iced::widget::{button, container, pick_list, stack, text_input, Column, Row, Text};
+use iced::window;
 use iced::{Color, Element, Fill, Point, Rectangle, Renderer, Size, Theme};
 use log::info;
 
 use flowcore::model::input::InputInitializer;
 
 use crate::flow_io;
+use crate::history;
 use crate::history::EditAction;
-use crate::undo_redo;
 use crate::InitializerEditor;
+use crate::Message;
 use crate::WindowState;
 
 /// Action returned by [`handle_canvas_message`] to signal that the caller
@@ -72,7 +75,7 @@ pub(crate) fn handle_canvas_message(win: &mut WindowState, msg: CanvasMessage) -
         CanvasMessage::MoveCompleted(idx, old_x, old_y, new_x, new_y) => {
             info!("MoveCompleted: idx={idx}, ({old_x},{old_y}) -> ({new_x},{new_y})");
             if (old_x - new_x).abs() > 0.5 || (old_y - new_y).abs() > 0.5 {
-                undo_redo::record_edit(
+                history::record_edit(
                     win,
                     EditAction::MoveNode {
                         index: idx,
@@ -101,7 +104,7 @@ pub(crate) fn handle_canvas_message(win: &mut WindowState, msg: CanvasMessage) -
                 || (old_w - new_w).abs() > 0.5
                 || (old_h - new_h).abs() > 0.5
             {
-                undo_redo::record_edit(
+                history::record_edit(
                     win,
                     EditAction::ResizeNode {
                         index: idx,
@@ -133,7 +136,7 @@ pub(crate) fn handle_canvas_message(win: &mut WindowState, msg: CanvasMessage) -
                     .collect();
                 win.nodes.remove(idx);
                 win.edges.retain(|e| !e.references_node(&alias));
-                undo_redo::record_edit(
+                history::record_edit(
                     win,
                     EditAction::DeleteNode {
                         index: idx,
@@ -164,7 +167,7 @@ pub(crate) fn handle_canvas_message(win: &mut WindowState, msg: CanvasMessage) -
                 to_node.clone(),
                 to_port.clone(),
             );
-            undo_redo::record_edit(win, EditAction::CreateConnection { edge: edge.clone() });
+            history::record_edit(win, EditAction::CreateConnection { edge: edge.clone() });
             win.edges.push(edge);
             win.canvas_state.request_redraw();
             let nc = win.nodes.len();
@@ -192,7 +195,7 @@ pub(crate) fn handle_canvas_message(win: &mut WindowState, msg: CanvasMessage) -
         CanvasMessage::ConnectionDeleted(idx) => {
             if idx < win.edges.len() {
                 let edge = win.edges.remove(idx);
-                undo_redo::record_edit(win, EditAction::DeleteConnection { index: idx, edge });
+                history::record_edit(win, EditAction::DeleteConnection { index: idx, edge });
                 win.selected_connection = None;
                 win.canvas_state.request_redraw();
                 let nc = win.nodes.len();
@@ -2875,6 +2878,230 @@ fn check_port_type_compatibility(
             true
         }
     }
+}
+
+/// Build the complete canvas area for a flow-editor window, including the
+/// interactive canvas, zoom controls, tooltip overlay, initializer editor
+/// dialog, and right-click context menu.
+pub(crate) fn view_canvas_area<'a>(
+    win: &'a WindowState,
+    window_id: window::Id,
+) -> Element<'a, Message> {
+    let canvas = win
+        .canvas_state
+        .view(
+            &win.nodes,
+            &win.edges,
+            &win.flow_name,
+            &win.flow_inputs,
+            &win.flow_outputs,
+            !win.is_root,
+            win.auto_fit_pending,
+            win.auto_fit_enabled,
+        )
+        .map(move |msg| Message::WindowCanvas(window_id, msg));
+
+    let zoom_btn = |_theme: &Theme, status: button::Status| -> button::Style {
+        let is_hovered = matches!(status, button::Status::Hovered);
+        button::Style {
+            background: Some(iced::Background::Color(Color::from_rgb(0.25, 0.25, 0.30))),
+            text_color: Color::WHITE,
+            border: iced::Border {
+                color: if is_hovered {
+                    Color::WHITE
+                } else {
+                    Color::from_rgb(0.4, 0.4, 0.45)
+                },
+                width: 2.0,
+                radius: 8.0.into(),
+            },
+            ..Default::default()
+        }
+    };
+    let zoom_btn_active = |_theme: &Theme, status: button::Status| -> button::Style {
+        let is_hovered = matches!(status, button::Status::Hovered);
+        button::Style {
+            background: Some(iced::Background::Color(Color::from_rgb(0.3, 0.35, 0.5))),
+            text_color: Color::WHITE,
+            border: iced::Border {
+                color: if is_hovered {
+                    Color::WHITE
+                } else {
+                    Color::from_rgb(0.4, 0.5, 0.7)
+                },
+                width: 2.0,
+                radius: 8.0.into(),
+            },
+            ..Default::default()
+        }
+    };
+    let btn_width = 40;
+    let zoom_controls = container(
+        Column::new()
+            .spacing(4)
+            .push(
+                button(Text::new("+").center())
+                    .on_press(Message::ZoomIn(window_id))
+                    .width(btn_width)
+                    .style(zoom_btn),
+            )
+            .push(
+                button(Text::new("\u{2212}").center())
+                    .on_press(Message::ZoomOut(window_id))
+                    .width(btn_width)
+                    .style(zoom_btn),
+            )
+            .push(
+                button(Text::new("Fit").center())
+                    .on_press(Message::ToggleAutoFit(window_id))
+                    .width(btn_width)
+                    .style(if win.auto_fit_enabled {
+                        zoom_btn_active
+                    } else {
+                        zoom_btn
+                    }),
+            ),
+    )
+    .align_right(Fill)
+    .align_bottom(Fill)
+    .padding(10);
+
+    let mut canvas_stack: Vec<Element<'_, Message>> = vec![canvas, zoom_controls.into()];
+
+    if let Some((ref tip_text, tx, ty)) = win.tooltip {
+        let tooltip_widget = container(
+            container(Text::new(tip_text.clone()).size(20).color(Color::WHITE))
+                .padding(8)
+                .style(|_theme: &Theme| container::Style {
+                    background: Some(iced::Background::Color(Color::from_rgb(0.12, 0.12, 0.12))),
+                    border: iced::Border {
+                        color: Color::WHITE,
+                        width: 1.0,
+                        radius: 6.0.into(),
+                    },
+                    ..Default::default()
+                }),
+        )
+        .padding(iced::Padding {
+            top: ty + 6.0,
+            right: 0.0,
+            bottom: 0.0,
+            left: (tx - 80.0).max(0.0),
+        });
+        canvas_stack.push(tooltip_widget.into());
+    }
+
+    // Initializer editor dialog overlay
+    if let Some(ref editor) = win.initializer_editor {
+        let port_label = if let Some(node) = win.nodes.get(editor.node_index) {
+            format!("{}/{}", node.alias, editor.port_name)
+        } else {
+            editor.port_name.clone()
+        };
+
+        let init_types = vec!["none", "once", "always"];
+        let selected: Option<&str> = init_types.iter().find(|&&t| t == editor.init_type).copied();
+
+        let mut dialog_col = Column::new()
+            .spacing(8)
+            .padding(12)
+            .push(Text::new(format!("Initializer: {port_label}")).size(14))
+            .push(
+                pick_list(init_types, selected, move |s: &str| {
+                    Message::InitializerTypeChanged(window_id, s.to_string())
+                })
+                .text_size(12),
+            );
+
+        if editor.init_type != "none" {
+            dialog_col = dialog_col.push(
+                text_input("JSON value (e.g. 42, \"hello\", true)", &editor.value_text)
+                    .on_input(move |v| Message::InitializerValueChanged(window_id, v))
+                    .size(12)
+                    .padding(6),
+            );
+        }
+
+        dialog_col = dialog_col.push(
+            Row::new()
+                .spacing(8)
+                .push(
+                    button(Text::new("Apply").size(12).center())
+                        .on_press(Message::InitializerApply(window_id))
+                        .style(button::primary)
+                        .padding(6),
+                )
+                .push(
+                    button(Text::new("Cancel").size(12).center())
+                        .on_press(Message::InitializerCancel(window_id))
+                        .style(button::secondary)
+                        .padding(6),
+                ),
+        );
+
+        let dialog =
+            container(
+                container(dialog_col)
+                    .width(280)
+                    .style(|_theme: &Theme| container::Style {
+                        background: Some(iced::Background::Color(Color::from_rgb(
+                            0.15, 0.15, 0.15,
+                        ))),
+                        border: iced::Border {
+                            color: Color::from_rgb(0.4, 0.4, 0.4),
+                            width: 1.0,
+                            radius: 8.0.into(),
+                        },
+                        ..Default::default()
+                    }),
+            )
+            .center(Fill);
+
+        canvas_stack.push(dialog.into());
+    }
+
+    // Context menu overlay (right-click on empty canvas)
+    if let Some((cx, cy)) = win.context_menu {
+        let menu = container(
+            Column::new()
+                .spacing(2)
+                .push(
+                    button(Text::new("+ New Sub-flow").size(13))
+                        .on_press(Message::NewSubFlow(window_id))
+                        .style(button::text)
+                        .padding([6, 16])
+                        .width(Fill),
+                )
+                .push(
+                    button(Text::new("+ New Function").size(13))
+                        .on_press(Message::NewFunction(window_id))
+                        .style(button::text)
+                        .padding([6, 16])
+                        .width(Fill),
+                ),
+        )
+        .style(|_theme: &Theme| container::Style {
+            background: Some(iced::Background::Color(Color::from_rgb(0.18, 0.18, 0.22))),
+            border: iced::Border {
+                color: Color::from_rgb(0.4, 0.4, 0.4),
+                width: 1.0,
+                radius: 6.0.into(),
+            },
+            ..Default::default()
+        })
+        .width(160)
+        .padding(4);
+
+        let positioned = container(menu).padding(iced::Padding {
+            top: cy,
+            left: cx,
+            right: 0.0,
+            bottom: 0.0,
+        });
+        canvas_stack.push(positioned.into());
+    }
+
+    stack(canvas_stack).into()
 }
 
 #[cfg(test)]
