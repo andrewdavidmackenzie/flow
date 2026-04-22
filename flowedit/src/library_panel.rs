@@ -513,6 +513,96 @@ mod test {
     }
 
     #[test]
+    fn from_cache_mixed_lib_and_context() {
+        use flowcore::model::lib_manifest::ImplementationLocator;
+        use flowcore::model::metadata::MetaData;
+
+        let mut all_defs = HashMap::new();
+
+        // Add a context function
+        let ctx_url = Url::parse("context://stdio/stdout").expect("valid url");
+        all_defs.insert(
+            ctx_url,
+            Process::FunctionProcess(
+                flowcore::model::function_definition::FunctionDefinition::default(),
+            ),
+        );
+
+        // Add a lib function definition
+        let lib_url = Url::parse("lib://testlib/math/add").expect("valid url");
+        all_defs.insert(
+            lib_url.clone(),
+            Process::FunctionProcess(
+                flowcore::model::function_definition::FunctionDefinition::default(),
+            ),
+        );
+
+        // Create a library manifest with one locator
+        let mut locators = BTreeMap::new();
+        locators.insert(
+            lib_url,
+            ImplementationLocator::RelativePath("math/add.wasm".into()),
+        );
+        let manifest = LibraryManifest::new(
+            Url::parse("lib://testlib").expect("valid url"),
+            MetaData {
+                name: "testlib".into(),
+                version: "1.0.0".into(),
+                description: String::new(),
+                authors: Vec::new(),
+            },
+        );
+        let mut cache = HashMap::new();
+        let mut m = manifest;
+        m.locators = locators;
+        cache.insert(Url::parse("lib://testlib").expect("valid url"), m);
+
+        let tree = LibraryTree::from_cache(&cache, &all_defs);
+        // Should have Context + testlib
+        assert_eq!(tree.libraries.len(), 2);
+        assert_eq!(tree.libraries[0].name, "Context");
+        assert_eq!(tree.libraries[1].name, "testlib");
+    }
+
+    #[test]
+    fn from_cache_lib_only_no_context() {
+        use flowcore::model::lib_manifest::ImplementationLocator;
+        use flowcore::model::metadata::MetaData;
+
+        let mut all_defs = HashMap::new();
+        let lib_url = Url::parse("lib://testlib/math/add").expect("valid url");
+        all_defs.insert(
+            lib_url.clone(),
+            Process::FunctionProcess(
+                flowcore::model::function_definition::FunctionDefinition::default(),
+            ),
+        );
+
+        let mut locators = BTreeMap::new();
+        locators.insert(
+            lib_url,
+            ImplementationLocator::RelativePath("math/add.wasm".into()),
+        );
+        let mut manifest = LibraryManifest::new(
+            Url::parse("lib://testlib").expect("valid url"),
+            MetaData {
+                name: "testlib".into(),
+                version: "1.0.0".into(),
+                description: String::new(),
+                authors: Vec::new(),
+            },
+        );
+        manifest.locators = locators;
+        let mut cache = HashMap::new();
+        cache.insert(Url::parse("lib://testlib").expect("valid url"), manifest);
+
+        let tree = LibraryTree::from_cache(&cache, &all_defs);
+        // Should have only testlib, no Context (sorting starts at index 0)
+        assert_eq!(tree.libraries.len(), 1);
+        assert_eq!(tree.libraries[0].name, "testlib");
+    }
+
+    #[test]
     fn build_categories_from_locators() {
         let mut locators = BTreeMap::new();
         locators.insert(
