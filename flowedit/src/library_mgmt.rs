@@ -60,10 +60,7 @@ pub(crate) fn load_library_catalogs(
                             all_definitions.insert(locator_url.clone(), process);
                         }
                         Err(e) => {
-                            warn!(
-                                "Could not parse library definition '{}': {}",
-                                locator_url, e
-                            );
+                            warn!("Could not parse library definition '{locator_url}': {e}");
                         }
                     }
                 }
@@ -71,7 +68,7 @@ pub(crate) fn load_library_catalogs(
                 library_cache.insert(lib_root.clone(), manifest);
             }
             Err(e) => {
-                warn!("Could not load library manifest for '{}': {}", lib_root, e);
+                warn!("Could not load library manifest for '{lib_root}': {e}");
             }
         }
     }
@@ -107,18 +104,19 @@ pub(crate) fn load_library_catalogs(
                             if !func_name.is_empty() {
                                 let ctx_url_str = format!("context://{cat_name}/{func_name}");
                                 if let Ok(ctx_url) = Url::parse(&ctx_url_str) {
-                                    if !all_definitions.contains_key(&ctx_url) {
+                                    if let std::collections::hash_map::Entry::Vacant(entry) =
+                                        all_definitions.entry(ctx_url)
+                                    {
                                         match flowrclib::compiler::parser::parse(
-                                            &ctx_url,
+                                            entry.key(),
                                             &ctx_provider,
                                         ) {
                                             Ok(process) => {
-                                                all_definitions.insert(ctx_url, process);
+                                                entry.insert(process);
                                             }
                                             Err(e) => {
                                                 warn!(
-                                                    "Could not parse context function '{}': {}",
-                                                    ctx_url_str, e
+                                                    "Could not parse context function '{ctx_url_str}': {e}"
                                                 );
                                             }
                                         }
@@ -243,7 +241,7 @@ pub(crate) fn resolve_node_source(win: &WindowState, source: &str) -> Option<Pat
 #[allow(clippy::indexing_slicing)]
 mod test {
     use super::*;
-    use crate::canvas_view::{FlowCanvasState, PortInfo};
+    use crate::canvas_view::FlowCanvasState;
     use crate::hierarchy_panel::FlowHierarchy;
     use crate::history::EditHistory;
     use crate::WindowKind;
@@ -264,9 +262,12 @@ mod test {
     }
 
     fn test_win_state() -> WindowState {
+        let flow_def = flowcore::model::flow_definition::FlowDefinition {
+            name: String::from("test"),
+            ..flowcore::model::flow_definition::FlowDefinition::default()
+        };
         WindowState {
             kind: WindowKind::FlowEditor,
-            flow_name: String::from("test"),
             nodes: vec![
                 test_node("add", "lib://flowstdlib/math/add"),
                 test_node("stdout", "context://stdio/stdout"),
@@ -282,7 +283,7 @@ mod test {
             unsaved_edits: 0,
             compiled_manifest: None,
             file_path: None,
-            flow_definition: flowcore::model::flow_definition::FlowDefinition::default(),
+            flow_definition: flow_def,
             tooltip: None,
             initializer_editor: None,
             is_root: true,

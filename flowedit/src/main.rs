@@ -34,7 +34,7 @@ use flowcore::model::process::Process;
 use flowcore::model::process_reference::ProcessReference;
 use flowcore::provider::Provider;
 
-use canvas_view::{CanvasMessage, EdgeLayout, FlowCanvasState, NodeLayout, PortInfo};
+use canvas_view::{CanvasMessage, FlowCanvasState, NodeLayout, PortInfo};
 use hierarchy_panel::{FlowHierarchy, HierarchyMessage};
 use history::EditHistory;
 use library_panel::{LibraryAction, LibraryMessage, LibraryTree};
@@ -285,7 +285,7 @@ impl FlowEdit {
             }
         }
 
-        let (flow_name, nodes, edges, status, file_path, flow_definition, lib_refs) =
+        let (nodes, edges, status, file_path, flow_definition, lib_refs) =
             if let Some(flow_path_str) = matches.get_one::<String>("flow-file") {
                 let flow_path = PathBuf::from(flow_path_str);
                 match flow_io::load_flow(&flow_path) {
@@ -293,7 +293,6 @@ impl FlowEdit {
                         let nc = loaded.nodes.len();
                         let ec = loaded.edges.len();
                         (
-                            loaded.name,
                             loaded.nodes,
                             loaded.edges,
                             format!("Ready - {nc} nodes, {ec} connections"),
@@ -302,24 +301,32 @@ impl FlowEdit {
                             loaded.lib_references,
                         )
                     }
-                    Err(e) => (
-                        String::from("(error)"),
-                        Vec::new(),
-                        Vec::new(),
-                        format!("Error loading flow: {e}"),
-                        None,
-                        FlowDefinition::default(),
-                        BTreeSet::new(),
-                    ),
+                    Err(e) => {
+                        let fd = FlowDefinition {
+                            name: String::from("(error)"),
+                            ..FlowDefinition::default()
+                        };
+                        (
+                            Vec::new(),
+                            Vec::new(),
+                            format!("Error loading flow: {e}"),
+                            None,
+                            fd,
+                            BTreeSet::new(),
+                        )
+                    }
                 }
             } else {
+                let fd = FlowDefinition {
+                    name: String::from("(new flow)"),
+                    ..FlowDefinition::default()
+                };
                 (
-                    String::from("(new flow)"),
                     Vec::new(),
                     Vec::new(),
                     String::from("Ready"),
                     None,
-                    FlowDefinition::default(),
+                    fd,
                     BTreeSet::new(),
                 )
             };
@@ -334,10 +341,10 @@ impl FlowEdit {
         let saved_prefs = file_path
             .as_ref()
             .and_then(|p| flow_io::load_editor_prefs(p));
-        let saved_size = saved_prefs
-            .as_ref()
-            .map(|p| iced::Size::new(p.width, p.height))
-            .unwrap_or_else(|| iced::Size::new(1024.0, 768.0));
+        let saved_size = saved_prefs.as_ref().map_or_else(
+            || iced::Size::new(1024.0, 768.0),
+            |p| iced::Size::new(p.width, p.height),
+        );
         let saved_position = saved_prefs
             .as_ref()
             .and_then(|p| match (p.x, p.y) {
@@ -354,13 +361,11 @@ impl FlowEdit {
         let root_flow_path = file_path.clone();
         let flow_hierarchy = file_path
             .as_ref()
-            .map(|p| FlowHierarchy::build(p))
-            .unwrap_or_else(FlowHierarchy::empty);
+            .map_or_else(FlowHierarchy::empty, |p| FlowHierarchy::build(p));
 
         let (fi, fo) = flow_io::extract_ports(&flow_definition.inputs, &flow_definition.outputs);
         let win_state = WindowState {
             kind: WindowKind::FlowEditor,
-            flow_name,
             nodes,
             edges,
             canvas_state: FlowCanvasState::default(),
@@ -415,7 +420,10 @@ impl FlowEdit {
                 .and_then(|p| p.file_name())
                 .and_then(|n| n.to_str())
                 .unwrap_or("untitled");
-            format!("flowedit - {} ({}){modified}", win.flow_name, file)
+            format!(
+                "flowedit - {} ({}){modified}",
+                win.flow_definition.name, file
+            )
         } else {
             String::from("flowedit")
         }
@@ -448,64 +456,59 @@ impl FlowEdit {
                         }
                     }
                     // Open the flow or function
-                    match flow_io::load_flow(&path) {
-                        Ok(loaded) => {
-                            let (fi, fo) = flow_io::extract_ports(
-                                &loaded.flow_def.inputs,
-                                &loaded.flow_def.outputs,
-                            );
-                            let (new_id, open_task) =
-                                window::open(self.child_window_settings(1024.0, 768.0));
-                            let has_nodes = !loaded.nodes.is_empty();
-                            let nc = loaded.nodes.len();
-                            let ec = loaded.edges.len();
-                            let child = WindowState {
-                                kind: WindowKind::FlowEditor,
-                                flow_name: loaded.name,
-                                nodes: loaded.nodes,
-                                edges: loaded.edges,
-                                canvas_state: FlowCanvasState::default(),
-                                status: format!("Ready - {nc} nodes, {ec} connections"),
-                                selected_node: None,
-                                selected_connection: None,
-                                history: EditHistory::default(),
-                                auto_fit_pending: has_nodes,
-                                auto_fit_enabled: true,
-                                unsaved_edits: 0,
-                                compiled_manifest: None,
-                                file_path: Some(path),
-                                flow_definition: loaded.flow_def,
-                                tooltip: None,
-                                initializer_editor: None,
-                                is_root: false,
-                                flow_inputs: fi,
-                                flow_outputs: fo,
-                                context_menu: None,
-                                show_metadata: false,
-                                flow_hierarchy: self.build_hierarchy(),
-                                last_size: None,
-                                last_position: None,
-                            };
-                            self.windows.insert(new_id, child);
-                            return open_task.discard();
-                        }
-                        Err(_) => {
-                            // Try as function definition
-                            let abs = std::fs::canonicalize(&path).unwrap_or_else(|_| path.clone());
-                            if let Ok(contents) = std::fs::read_to_string(&abs) {
-                                if let Ok(url) = Url::from_file_path(&abs) {
-                                    if let Ok(deser) = get::<Process>(&url) {
-                                        if let Ok(Process::FunctionProcess(ref func)) =
-                                            deser.deserialize(&contents, Some(&url))
-                                        {
-                                            return self.open_function_viewer(
-                                                hier_win_id,
-                                                &path,
-                                                func,
-                                                &path.to_string_lossy(),
-                                            );
-                                        }
-                                    }
+                    if let Ok(loaded) = flow_io::load_flow(&path) {
+                        let (fi, fo) = flow_io::extract_ports(
+                            &loaded.flow_def.inputs,
+                            &loaded.flow_def.outputs,
+                        );
+                        let (new_id, open_task) =
+                            window::open(self.child_window_settings(1024.0, 768.0));
+                        let has_nodes = !loaded.nodes.is_empty();
+                        let nc = loaded.nodes.len();
+                        let ec = loaded.edges.len();
+                        let child = WindowState {
+                            kind: WindowKind::FlowEditor,
+                            nodes: loaded.nodes,
+                            edges: loaded.edges,
+                            canvas_state: FlowCanvasState::default(),
+                            status: format!("Ready - {nc} nodes, {ec} connections"),
+                            selected_node: None,
+                            selected_connection: None,
+                            history: EditHistory::default(),
+                            auto_fit_pending: has_nodes,
+                            auto_fit_enabled: true,
+                            unsaved_edits: 0,
+                            compiled_manifest: None,
+                            file_path: Some(path),
+                            flow_definition: loaded.flow_def,
+                            tooltip: None,
+                            initializer_editor: None,
+                            is_root: false,
+                            flow_inputs: fi,
+                            flow_outputs: fo,
+                            context_menu: None,
+                            show_metadata: false,
+                            flow_hierarchy: self.build_hierarchy(),
+                            last_size: None,
+                            last_position: None,
+                        };
+                        self.windows.insert(new_id, child);
+                        return open_task.discard();
+                    }
+                    // Try as function definition
+                    let abs = std::fs::canonicalize(&path).unwrap_or_else(|_| path.clone());
+                    if let Ok(contents) = std::fs::read_to_string(&abs) {
+                        if let Ok(url) = Url::from_file_path(&abs) {
+                            if let Ok(deser) = get::<Process>(&url) {
+                                if let Ok(Process::FunctionProcess(ref func)) =
+                                    deser.deserialize(&contents, Some(&url))
+                                {
+                                    return self.open_function_viewer(
+                                        hier_win_id,
+                                        &path,
+                                        func,
+                                        &path.to_string_lossy(),
+                                    );
                                 }
                             }
                         }
@@ -531,7 +534,7 @@ impl FlowEdit {
                             .to_string();
 
                         // Construct lib:// URL from directory name
-                        if let Ok(lib_url) = Url::parse(&format!("lib://{}", lib_name)) {
+                        if let Ok(lib_url) = Url::parse(&format!("lib://{lib_name}")) {
                             // Add parent directory to provider's search path
                             if let Some(parent) = dir.parent() {
                                 if let Some(parent_str) = parent.to_str() {
@@ -550,14 +553,15 @@ impl FlowEdit {
                                         }
                                     }
 
-                                    let context_root = std::env::var("HOME")
-                                        .map(|h| {
+                                    let context_root = std::env::var("HOME").map_or_else(
+                                        |_| PathBuf::from("/"),
+                                        |h| {
                                             PathBuf::from(h)
                                                 .join(".flow")
                                                 .join("runner")
                                                 .join("flowrcli")
-                                        })
-                                        .unwrap_or_else(|_| PathBuf::from("/"));
+                                        },
+                                    );
                                     let provider = MetaProvider::new(
                                         lib_search_path.clone(),
                                         context_root.clone(),
@@ -589,8 +593,7 @@ impl FlowEdit {
                                                     }
                                                     Err(e) => {
                                                         warn!(
-                                                            "Could not parse library definition '{}': {}",
-                                                            locator_url, e
+                                                            "Could not parse library definition '{locator_url}': {e}"
                                                         );
                                                     }
                                                 }
@@ -614,18 +617,16 @@ impl FlowEdit {
                                             );
 
                                             if let Some(win) = self.windows.get_mut(&win_id) {
-                                                win.status = format!("Added library: {}", lib_name);
+                                                win.status = format!("Added library: {lib_name}");
                                             }
                                         }
                                         Err(e) => {
                                             warn!(
-                                                "Could not load library manifest for '{}': {}",
-                                                lib_url, e
+                                                "Could not load library manifest for '{lib_url}': {e}"
                                             );
                                             if let Some(win) = self.windows.get_mut(&win_id) {
                                                 win.status = format!(
-                                                    "Failed to load library '{}': {}",
-                                                    lib_name, e
+                                                    "Failed to load library '{lib_name}': {e}"
                                                 );
                                             }
                                         }
@@ -684,8 +685,7 @@ impl FlowEdit {
                             win.flow_hierarchy = win
                                 .file_path
                                 .as_ref()
-                                .map(|p| FlowHierarchy::build(p))
-                                .unwrap_or_else(FlowHierarchy::empty);
+                                .map_or_else(FlowHierarchy::empty, |p| FlowHierarchy::build(p));
 
                             // Rebuild library cache with new flow's references
                             let (lc, ad) = library_mgmt::load_library_catalogs(&lib_refs);
@@ -718,7 +718,7 @@ impl FlowEdit {
                             }
                             Err(e) => {
                                 win.compiled_manifest = None;
-                                win.status = e.to_string();
+                                win.status = e;
                             }
                         }
                     }
@@ -728,7 +728,6 @@ impl FlowEdit {
                 if let Some(win) = self.windows.get_mut(&win_id) {
                     match flow_msg {
                         FlowEditMessage::NameChanged(new_name) => {
-                            win.flow_name = new_name.clone();
                             win.flow_definition.name = new_name;
                             win.unsaved_edits += 1;
                         }
@@ -792,11 +791,11 @@ impl FlowEdit {
                         FlowEditMessage::InputNameChanged(idx, name) => {
                             if let Some(port) = win.flow_inputs.get_mut(idx) {
                                 let old_name = port.name.clone();
-                                port.name = name.clone();
+                                port.name.clone_from(&name);
                                 // Update edges referencing the old flow input name
                                 for edge in &mut win.edges {
                                     if edge.from_node == "input" && edge.from_port == old_name {
-                                        edge.from_port = name.clone();
+                                        edge.from_port.clone_from(&name);
                                     }
                                 }
                             }
@@ -813,11 +812,11 @@ impl FlowEdit {
                         FlowEditMessage::OutputNameChanged(idx, name) => {
                             if let Some(port) = win.flow_outputs.get_mut(idx) {
                                 let old_name = port.name.clone();
-                                port.name = name.clone();
+                                port.name.clone_from(&name);
                                 // Update edges referencing the old flow output name
                                 for edge in &mut win.edges {
                                     if edge.to_node == "output" && edge.to_port == old_name {
-                                        edge.to_port = name.clone();
+                                        edge.to_port.clone_from(&name);
                                     }
                                 }
                             }
@@ -928,7 +927,7 @@ impl FlowEdit {
                         });
                         if let Some(win) = self.windows.get_mut(&win_id) {
                             if let WindowKind::FunctionViewer(ref mut viewer) = win.kind {
-                                viewer.description = new_desc.clone();
+                                viewer.description.clone_from(&new_desc);
                             }
                             win.unsaved_edits += 1;
                         }
@@ -938,7 +937,7 @@ impl FlowEdit {
                             if let Some(parent_win) = self.windows.get_mut(&parent_id) {
                                 for node in &mut parent_win.nodes {
                                     if node.source == node_source {
-                                        node.description = new_desc.clone();
+                                        node.description.clone_from(&new_desc);
                                     }
                                 }
                                 parent_win.canvas_state.request_redraw();
@@ -951,10 +950,10 @@ impl FlowEdit {
                             if let Some(win) = self.windows.get_mut(&win_id) {
                                 if let WindowKind::FunctionViewer(ref mut viewer) = win.kind {
                                     let base = viewer.toml_path.parent().unwrap_or(Path::new("."));
-                                    let rel = selected
-                                        .strip_prefix(base)
-                                        .map(|p| p.to_string_lossy().to_string())
-                                        .unwrap_or_else(|_| selected.to_string_lossy().to_string());
+                                    let rel = selected.strip_prefix(base).map_or_else(
+                                        |_| selected.to_string_lossy().to_string(),
+                                        |p| p.to_string_lossy().to_string(),
+                                    );
                                     viewer.source_file = rel;
                                     viewer.rs_content = std::fs::read_to_string(&selected)
                                         .unwrap_or_else(|_| String::from("// Could not read file"));
@@ -973,7 +972,7 @@ impl FlowEdit {
                             }
                             win.unsaved_edits += 1;
                         }
-                        Self::propagate_function_ports(&mut self.windows, &win_id);
+                        Self::propagate_function_ports(&mut self.windows, win_id);
                     }
                     FunctionEditMessage::AddOutput => {
                         if let Some(win) = self.windows.get_mut(&win_id) {
@@ -985,7 +984,7 @@ impl FlowEdit {
                             }
                             win.unsaved_edits += 1;
                         }
-                        Self::propagate_function_ports(&mut self.windows, &win_id);
+                        Self::propagate_function_ports(&mut self.windows, win_id);
                     }
                     FunctionEditMessage::DeleteInput(idx) => {
                         if let Some(win) = self.windows.get_mut(&win_id) {
@@ -996,7 +995,7 @@ impl FlowEdit {
                             }
                             win.unsaved_edits += 1;
                         }
-                        Self::propagate_function_ports(&mut self.windows, &win_id);
+                        Self::propagate_function_ports(&mut self.windows, win_id);
                     }
                     FunctionEditMessage::DeleteOutput(idx) => {
                         if let Some(win) = self.windows.get_mut(&win_id) {
@@ -1007,7 +1006,7 @@ impl FlowEdit {
                             }
                             win.unsaved_edits += 1;
                         }
-                        Self::propagate_function_ports(&mut self.windows, &win_id);
+                        Self::propagate_function_ports(&mut self.windows, win_id);
                     }
                     FunctionEditMessage::InputNameChanged(idx, name) => {
                         if let Some(win) = self.windows.get_mut(&win_id) {
@@ -1018,7 +1017,7 @@ impl FlowEdit {
                             }
                             win.unsaved_edits += 1;
                         }
-                        Self::propagate_function_ports(&mut self.windows, &win_id);
+                        Self::propagate_function_ports(&mut self.windows, win_id);
                     }
                     FunctionEditMessage::InputTypeChanged(idx, dtype) => {
                         if let Some(win) = self.windows.get_mut(&win_id) {
@@ -1029,7 +1028,7 @@ impl FlowEdit {
                             }
                             win.unsaved_edits += 1;
                         }
-                        Self::propagate_function_ports(&mut self.windows, &win_id);
+                        Self::propagate_function_ports(&mut self.windows, win_id);
                     }
                     FunctionEditMessage::OutputNameChanged(idx, name) => {
                         if let Some(win) = self.windows.get_mut(&win_id) {
@@ -1040,7 +1039,7 @@ impl FlowEdit {
                             }
                             win.unsaved_edits += 1;
                         }
-                        Self::propagate_function_ports(&mut self.windows, &win_id);
+                        Self::propagate_function_ports(&mut self.windows, win_id);
                     }
                     FunctionEditMessage::OutputTypeChanged(idx, dtype) => {
                         if let Some(win) = self.windows.get_mut(&win_id) {
@@ -1051,7 +1050,7 @@ impl FlowEdit {
                             }
                             win.unsaved_edits += 1;
                         }
-                        Self::propagate_function_ports(&mut self.windows, &win_id);
+                        Self::propagate_function_ports(&mut self.windows, win_id);
                     }
                     FunctionEditMessage::Save => {
                         if let Some(win) = self.windows.get_mut(&win_id) {
@@ -1134,7 +1133,7 @@ impl FlowEdit {
         };
 
         if let WindowKind::FunctionViewer(ref viewer) = win.kind {
-            return self.view_function(window_id, viewer, &win.status, win.unsaved_edits);
+            return Self::view_function(window_id, viewer, &win.status, win.unsaved_edits);
         }
 
         let canvas_with_controls = canvas_view::view_canvas_area(win, window_id);
@@ -1159,12 +1158,12 @@ impl FlowEdit {
 
         // Flow I/O editor panel for sub-flow windows
         if !win.is_root && matches!(win.kind, WindowKind::FlowEditor) {
-            right_col = right_col.push(self.view_flow_io_panel(window_id, win));
+            right_col = right_col.push(Self::view_flow_io_panel(window_id, win));
         }
 
         // Metadata editor panel (toggled by Info button)
         if win.show_metadata && matches!(win.kind, WindowKind::FlowEditor) {
-            right_col = right_col.push(self.view_metadata_panel(win, window_id));
+            right_col = right_col.push(Self::view_metadata_panel(win, window_id));
         }
 
         // Library paths panel (toggled by Libs button)
@@ -1288,11 +1287,7 @@ impl FlowEdit {
     }
 
     /// Build the metadata editor panel.
-    fn view_metadata_panel<'a>(
-        &'a self,
-        win: &'a WindowState,
-        window_id: window::Id,
-    ) -> Element<'a, Message> {
+    fn view_metadata_panel(win: &WindowState, window_id: window::Id) -> Element<'_, Message> {
         let authors_str = win.flow_definition.metadata.authors.join(", ");
         let meta_panel = container(
             Column::new()
@@ -1304,7 +1299,7 @@ impl FlowEdit {
                         .align_y(iced::Alignment::Center)
                         .push(Text::new("Name:").size(12).width(70))
                         .push(
-                            text_input("Flow name", &win.flow_name)
+                            text_input("Flow name", &win.flow_definition.name)
                                 .on_input(move |s| {
                                     Message::FlowEdit(window_id, FlowEditMessage::NameChanged(s))
                                 })
@@ -1417,11 +1412,7 @@ impl FlowEdit {
         lib_panel.into()
     }
 
-    fn view_flow_io_panel<'a>(
-        &'a self,
-        window_id: window::Id,
-        win: &'a WindowState,
-    ) -> Element<'a, Message> {
+    fn view_flow_io_panel(window_id: window::Id, win: &WindowState) -> Element<'_, Message> {
         let input_color = Color::from_rgb(0.4, 0.8, 1.0);
         let output_color = Color::from_rgb(1.0, 0.6, 0.3);
 
@@ -1543,7 +1534,6 @@ impl FlowEdit {
     }
 
     fn view_function<'a>(
-        &'a self,
         window_id: window::Id,
         viewer: &'a FunctionViewer,
         status: &'a str,
@@ -1834,6 +1824,7 @@ impl FlowEdit {
     }
 
     fn subscription(&self) -> Subscription<Message> {
+        let _ = self; // required by iced daemon API signature
         let keyboard_sub = keyboard::listen().filter_map(|event| match event {
             keyboard::Event::KeyPressed {
                 key: keyboard::Key::Character(ref c),
@@ -1876,17 +1867,14 @@ impl FlowEdit {
         use flowcore::provider::Provider;
 
         let provider = flow_io::build_meta_provider();
-        let source_url = match Url::parse(source) {
-            Ok(u) => u,
-            Err(_) => return Task::none(),
+        let Ok(source_url) = Url::parse(source) else {
+            return Task::none();
         };
-        let (resolved_url, _) = match provider.resolve_url(&source_url, "default", &["toml"]) {
-            Ok(r) => r,
-            Err(_) => return Task::none(),
+        let Ok((resolved_url, _)) = provider.resolve_url(&source_url, "default", &["toml"]) else {
+            return Task::none();
         };
-        let path = match resolved_url.to_file_path() {
-            Ok(p) => p,
-            Err(()) => return Task::none(),
+        let Ok(path) = resolved_url.to_file_path() else {
+            return Task::none();
         };
 
         // Check if already open
@@ -1897,24 +1885,20 @@ impl FlowEdit {
         }
 
         // Read and parse
-        let contents = match std::fs::read_to_string(&path) {
-            Ok(c) => c,
-            Err(_) => return Task::none(),
+        let Ok(contents) = std::fs::read_to_string(&path) else {
+            return Task::none();
         };
-        let url = match Url::from_file_path(&path) {
-            Ok(u) => u,
-            Err(()) => return Task::none(),
+        let Ok(url) = Url::from_file_path(&path) else {
+            return Task::none();
         };
-        let deserializer = match get::<Process>(&url) {
-            Ok(d) => d,
-            Err(_) => return Task::none(),
+        let Ok(deserializer) = get::<Process>(&url) else {
+            return Task::none();
         };
 
         match deserializer.deserialize(&contents, Some(&url)) {
             Ok(Process::FunctionProcess(ref func)) => {
-                let parent = match self.root_window {
-                    Some(id) => id,
-                    None => return Task::none(),
+                let Some(parent) = self.root_window else {
+                    return Task::none();
                 };
                 self.open_function_viewer(parent, &path, func, &path.to_string_lossy())
             }
@@ -1929,7 +1913,6 @@ impl FlowEdit {
                         window::open(self.child_window_settings(1024.0, 768.0));
                     let child = WindowState {
                         kind: WindowKind::FlowEditor,
-                        flow_name: loaded.name,
                         nodes: loaded.nodes,
                         edges: loaded.edges,
                         canvas_state: FlowCanvasState::default(),
@@ -1983,10 +1966,10 @@ impl FlowEdit {
     fn build_hierarchy(&self) -> FlowHierarchy {
         self.root_flow_path
             .as_ref()
-            .map(|p| FlowHierarchy::build(p))
-            .unwrap_or_else(FlowHierarchy::empty)
+            .map_or_else(FlowHierarchy::empty, |p| FlowHierarchy::build(p))
     }
 
+    #[allow(clippy::cast_precision_loss)]
     fn child_window_settings(&self, width: f32, height: f32) -> window::Settings {
         let n = self.windows.len() as f32;
         window::Settings {
@@ -2057,7 +2040,6 @@ impl FlowEdit {
                     flow_io::extract_ports(&loaded.flow_def.inputs, &loaded.flow_def.outputs);
                 let child = WindowState {
                     kind: WindowKind::FlowEditor,
-                    flow_name: loaded.name,
                     nodes: loaded.nodes,
                     edges: loaded.edges,
                     canvas_state: FlowCanvasState::default(),
@@ -2090,7 +2072,7 @@ impl FlowEdit {
             }
             Err(e) => {
                 if let Some(win) = self.windows.get_mut(&parent_win_id) {
-                    win.status = format!("Could not open '{}': {e}", source);
+                    win.status = format!("Could not open '{source}': {e}");
                 }
                 Task::none()
             }
@@ -2132,9 +2114,12 @@ impl FlowEdit {
             read_only,
         };
 
+        let func_flow_def = FlowDefinition {
+            name: func_name.clone(),
+            ..FlowDefinition::default()
+        };
         let child = WindowState {
             kind: WindowKind::FunctionViewer(viewer),
-            flow_name: func_name.clone(),
             nodes: Vec::new(),
             edges: Vec::new(),
             canvas_state: FlowCanvasState::default(),
@@ -2147,7 +2132,7 @@ impl FlowEdit {
             unsaved_edits: 0,
             compiled_manifest: None,
             file_path: Some(toml_path.to_path_buf()),
-            flow_definition: FlowDefinition::default(),
+            flow_definition: func_flow_def,
             tooltip: None,
             initializer_editor: None,
             is_root: false,
@@ -2224,10 +2209,10 @@ impl FlowEdit {
         }
 
         // Compute relative source path from parent flow to new sub-flow
-        let source = path
-            .strip_prefix(&base)
-            .map(|p| p.to_string_lossy().to_string())
-            .unwrap_or_else(|_| path.to_string_lossy().to_string());
+        let source = path.strip_prefix(&base).map_or_else(
+            |_| path.to_string_lossy().to_string(),
+            |p| p.to_string_lossy().to_string(),
+        );
         // Strip .toml extension for the source reference
         let source = source.strip_suffix(".toml").unwrap_or(&source).to_string();
 
@@ -2268,7 +2253,6 @@ impl FlowEdit {
 
         let child = WindowState {
             kind: WindowKind::FlowEditor,
-            flow_name: flow_name.clone(),
             nodes: Vec::new(),
             edges: Vec::new(),
             canvas_state: FlowCanvasState::default(),
@@ -2340,10 +2324,10 @@ impl FlowEdit {
         let rs_filename = format!("{func_name}.rs");
 
         // Compute relative source from parent flow
-        let source = path
-            .strip_prefix(&base)
-            .map(|p| p.to_string_lossy().to_string())
-            .unwrap_or_else(|_| path.to_string_lossy().to_string());
+        let source = path.strip_prefix(&base).map_or_else(
+            |_| path.to_string_lossy().to_string(),
+            |p| p.to_string_lossy().to_string(),
+        );
         let source = source.strip_suffix(".toml").unwrap_or(&source).to_string();
 
         // Add process reference in the target flow
@@ -2396,9 +2380,12 @@ impl FlowEdit {
             read_only: false,
         };
 
+        let func_flow_def = FlowDefinition {
+            name: func_name,
+            ..FlowDefinition::default()
+        };
         let child = WindowState {
             kind: WindowKind::FunctionViewer(viewer),
-            flow_name: func_name,
             nodes: Vec::new(),
             edges: Vec::new(),
             canvas_state: FlowCanvasState::default(),
@@ -2411,7 +2398,7 @@ impl FlowEdit {
             unsaved_edits: 1,
             compiled_manifest: None,
             file_path: Some(path),
-            flow_definition: FlowDefinition::default(),
+            flow_definition: func_flow_def,
             tooltip: None,
             initializer_editor: None,
             is_root: false,
@@ -2433,10 +2420,10 @@ impl FlowEdit {
     /// display in sync when ports are added, deleted, or renamed in the function viewer.
     fn propagate_function_ports(
         windows: &mut HashMap<window::Id, WindowState>,
-        viewer_win_id: &window::Id,
+        viewer_win_id: window::Id,
     ) {
         // Extract parent info and current ports from the viewer window
-        let propagation_data = windows.get(viewer_win_id).and_then(|win| {
+        let propagation_data = windows.get(&viewer_win_id).and_then(|win| {
             if let WindowKind::FunctionViewer(ref viewer) = win.kind {
                 viewer.parent_window.map(|pid| {
                     (
@@ -2455,8 +2442,8 @@ impl FlowEdit {
             if let Some(parent_win) = windows.get_mut(&parent_id) {
                 for node in &mut parent_win.nodes {
                     if node.source == node_source {
-                        node.inputs = new_inputs.clone();
-                        node.outputs = new_outputs.clone();
+                        node.inputs.clone_from(&new_inputs);
+                        node.outputs.clone_from(&new_outputs);
                     }
                 }
                 parent_win.canvas_state.request_redraw();

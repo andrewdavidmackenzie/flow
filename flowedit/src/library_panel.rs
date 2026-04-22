@@ -121,7 +121,7 @@ impl LibraryTree {
 
         // Sort non-context libraries by name for consistent display.
         // Skip index 0 only if we actually inserted a Context entry there.
-        let sort_start = if has_context { 1 } else { 0 };
+        let sort_start = usize::from(has_context);
         if let Some(rest) = libraries.get_mut(sort_start..) {
             rest.sort_by(|a, b| a.name.cmp(&b.name));
         }
@@ -366,7 +366,7 @@ fn build_context_entry(context_definitions: &HashMap<&Url, &Process>) -> Library
             .path()
             .trim_start_matches('/')
             .split('/')
-            .last()
+            .next_back()
             .unwrap_or("")
             .to_string();
 

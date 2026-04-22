@@ -24,7 +24,7 @@ pub(crate) fn apply_initializer_edit(win: &mut WindowState, editor: &Initializer
             let pr_alias = if pr.alias.is_empty() {
                 derive_short_name(&pr.source)
             } else {
-                pr.alias.to_string()
+                pr.alias.clone()
             };
             pr_alias == alias
         })
@@ -56,7 +56,7 @@ pub(crate) fn apply_initializer_edit(win: &mut WindowState, editor: &Initializer
         let pr_alias = if pr.alias.is_empty() {
             derive_short_name(&pr.source)
         } else {
-            pr.alias.to_string()
+            pr.alias.clone()
         };
         pr_alias == alias
     }) {
@@ -114,7 +114,7 @@ pub(crate) fn sync_flow_definition(win: &mut WindowState) {
                 let alias = if pr.alias.is_empty() {
                     derive_short_name(&pr.source)
                 } else {
-                    pr.alias.to_string()
+                    pr.alias.clone()
                 };
                 alias == node.alias
             })
@@ -141,9 +141,6 @@ pub(crate) fn sync_flow_definition(win: &mut WindowState) {
         new_refs.push(pref);
     }
     win.flow_definition.process_refs = new_refs;
-
-    // Update the flow name
-    win.flow_definition.name = win.flow_name.clone();
 }
 
 /// Apply an initializer state to both the model and display.
@@ -164,7 +161,7 @@ pub(crate) fn apply_initializer_state(
         let pr_alias = if pr.alias.is_empty() {
             derive_short_name(&pr.source)
         } else {
-            pr.alias.to_string()
+            pr.alias.clone()
         };
         pr_alias == alias
     }) {
@@ -220,6 +217,9 @@ pub(crate) fn handle_cancel(win: &mut WindowState) {
 #[cfg(test)]
 mod test {
     use super::*;
+    use flowcore::model::flow_definition::FlowDefinition;
+    use flowcore::model::name::Name;
+
     use crate::canvas_view::NodeLayout;
 
     fn test_node(alias: &str, source: &str) -> NodeLayout {
@@ -276,7 +276,6 @@ mod test {
             .collect();
 
         WindowState {
-            flow_name: flow.name.clone(),
             nodes,
             edges: Vec::new(),
             flow_definition: flow,
@@ -287,12 +286,16 @@ mod test {
 
     #[test]
     fn sync_flow_definition_preserves_nodes() {
+        let flow_def = FlowDefinition {
+            name: Name::from("test"),
+            ..FlowDefinition::default()
+        };
         let mut win = WindowState {
-            flow_name: String::from("test"),
             nodes: vec![
                 test_node("add", "lib://flowstdlib/math/add"),
                 test_node("stdout", "context://stdio/stdout"),
             ],
+            flow_definition: flow_def,
             is_root: true,
             ..Default::default()
         };

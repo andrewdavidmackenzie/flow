@@ -5,6 +5,12 @@
 //! blue for `lib://`, green for `context://`, purple for provided implementations,
 //! and orange for nested flows.
 
+#![allow(
+    clippy::cast_precision_loss,
+    clippy::cast_possible_truncation,
+    clippy::cast_sign_loss
+)]
+
 use std::collections::HashMap;
 
 use iced::keyboard;
@@ -243,22 +249,24 @@ pub(crate) fn handle_canvas_message(win: &mut WindowState, msg: CanvasMessage) -
                     let pr_alias = if pr.alias.is_empty() {
                         derive_short_name(&pr.source)
                     } else {
-                        pr.alias.to_string()
+                        pr.alias.clone()
                     };
                     pr_alias == alias
                 })
                 .and_then(|pr| pr.initializations.get(&port_name))
-                .map(|init| match init {
-                    InputInitializer::Once(v) => (
-                        "once".to_string(),
-                        serde_json::to_string(v).unwrap_or_default(),
-                    ),
-                    InputInitializer::Always(v) => (
-                        "always".to_string(),
-                        serde_json::to_string(v).unwrap_or_default(),
-                    ),
-                })
-                .unwrap_or_else(|| ("none".to_string(), String::new()));
+                .map_or_else(
+                    || ("none".to_string(), String::new()),
+                    |init| match init {
+                        InputInitializer::Once(v) => (
+                            "once".to_string(),
+                            serde_json::to_string(v).unwrap_or_default(),
+                        ),
+                        InputInitializer::Always(v) => (
+                            "always".to_string(),
+                            serde_json::to_string(v).unwrap_or_default(),
+                        ),
+                    },
+                );
 
             win.initializer_editor = Some(InitializerEditor {
                 node_index: node_idx,
@@ -343,9 +351,9 @@ pub(crate) enum CanvasMessage {
     Selected(Option<usize>),
     /// A node was moved to a new position (continuous during drag).
     Moved(usize, f32, f32),
-    /// A node move completed (old_x, old_y, new_x, new_y) — for undo history.
+    /// A node move completed (`old_x`, `old_y`, `new_x`, `new_y`) — for undo history.
     MoveCompleted(usize, f32, f32, f32, f32),
-    /// A node was resized (index, new_x, new_y, new_width, new_height) — continuous during drag.
+    /// A node was resized (index, `new_x`, `new_y`, `new_width`, `new_height`) — continuous during drag.
     Resized(usize, f32, f32, f32, f32),
     /// A node resize completed — for undo history.
     ResizeCompleted(usize, f32, f32, f32, f32, f32, f32, f32, f32),
@@ -367,7 +375,7 @@ pub(crate) enum CanvasMessage {
     /// A connection should be deleted.
     ConnectionDeleted(usize),
     /// Right-click on an input port to edit its initializer.
-    /// (node_index, port_name)
+    /// (`node_index`, `port_name`)
     InitializerEdit(usize, String),
     /// Open a sub-flow or provided implementation in a new editor.
     OpenNode(usize),
@@ -451,7 +459,7 @@ pub(crate) struct CanvasInteractionState {
     dragging: Option<DragState>,
     /// Active resize operation, if any
     resizing: Option<ResizeState>,
-    /// Current keyboard modifier state (tracked via ModifiersChanged events)
+    /// Current keyboard modifier state (tracked via `ModifiersChanged` events)
     modifiers: keyboard::Modifiers,
     /// Active middle-mouse-button pan operation
     panning: Option<PanState>,
@@ -587,7 +595,10 @@ impl NodeLayout {
             Color::from_rgb(0.3, 0.5, 0.9) // Blue for library
         } else if self.source.starts_with("context://") {
             Color::from_rgb(0.3, 0.75, 0.45) // Green for context
-        } else if self.source.ends_with(".rs") || self.source.ends_with(".wasm") {
+        } else if std::path::Path::new(&self.source)
+            .extension()
+            .is_some_and(|ext| ext.eq_ignore_ascii_case("rs") || ext.eq_ignore_ascii_case("wasm"))
+        {
             Color::from_rgb(0.6, 0.3, 0.8) // Purple for provided implementations
         } else {
             Color::from_rgb(0.9, 0.6, 0.2) // Orange for nested flows
@@ -617,7 +628,7 @@ impl NodeLayout {
 
     /// Return the 8 resize handle positions in world coordinates.
     ///
-    /// Order: TopLeft, Top, TopRight, Left, Right, BottomLeft, Bottom, BottomRight.
+    /// Order: `TopLeft`, Top, `TopRight`, Left, Right, `BottomLeft`, Bottom, `BottomRight`.
     fn resize_handle_positions(&self) -> [(ResizeHandle, Point); 8] {
         let mid_x = self.x + self.width / 2.0;
         let mid_y = self.y + self.height / 2.0;
@@ -670,7 +681,7 @@ pub(crate) fn build_node_layouts(
         let alias = if pref.alias.is_empty() {
             derive_short_name(&pref.source)
         } else {
-            pref.alias.to_string()
+            pref.alias.clone()
         };
 
         let (inputs, outputs) = resolved_ports.get(&alias).cloned().unwrap_or_default();
@@ -774,7 +785,7 @@ fn compute_topological_layout(
             if p.alias.is_empty() {
                 derive_short_name(&p.source)
             } else {
-                p.alias.to_string()
+                p.alias.clone()
             }
         })
         .collect();
@@ -876,7 +887,7 @@ pub(crate) fn build_edge_layouts(connections: &[Connection]) -> Vec<EdgeLayout> 
                 from_port: from_port.clone(),
                 to_node,
                 to_port,
-                name: conn.name().to_string(),
+                name: conn.name().clone(),
             });
         }
     }
@@ -884,7 +895,7 @@ pub(crate) fn build_edge_layouts(connections: &[Connection]) -> Vec<EdgeLayout> 
     edges
 }
 
-/// Format a serde_json::Value for compact display
+/// Format a [`serde_json::Value`] for compact display
 fn format_value(v: &serde_json::Value) -> String {
     match v {
         serde_json::Value::String(s) => format!("\"{s}\""),
@@ -1016,7 +1027,7 @@ impl FlowCanvasState {
                 let max_len = node
                     .initializers
                     .values()
-                    .map(|s| s.len())
+                    .map(String::len)
                     .max()
                     .unwrap_or(0);
                 max_len as f32 * 8.0
@@ -1053,8 +1064,8 @@ impl FlowCanvasState {
         // Set offset so that the content is centered
         // screen_x = (world_x + offset_x) * zoom
         // We want the center of the content to map to the center of the viewport
-        let content_center_x = (min_x + max_x) / 2.0;
-        let content_center_y = (min_y + max_y) / 2.0;
+        let content_center_x = min_x.midpoint(max_x);
+        let content_center_y = min_y.midpoint(max_y);
         let viewport_center_x = viewport.width / 2.0 / self.zoom;
         let viewport_center_y = viewport.height / 2.0 / self.zoom;
 
@@ -1216,7 +1227,7 @@ fn quadratic_bezier_pt(p0: Point, p1: Point, p2: Point, t: f32) -> Point {
 }
 
 /// Evaluate a cubic bezier curve at parameter `t` (0.0..=1.0).
-/// Compute flow I/O port world positions (same layout as draw_flow_io_ports).
+/// Compute flow I/O port world positions (same layout as `draw_flow_io_ports`).
 fn compute_flow_io_positions(
     nodes: &[NodeLayout],
     flow_inputs: &[PortInfo],
@@ -1250,7 +1261,7 @@ fn compute_flow_io_positions(
     };
     let box_x = min_x - padding;
     let box_w = (max_x - min_x) + 2.0 * padding;
-    let center_y = (min_y + max_y) / 2.0;
+    let center_y = min_y.midpoint(max_y);
 
     let input_start_y = center_y - (flow_inputs.len() as f32 - 1.0) * spacing / 2.0;
     for (i, input) in flow_inputs.iter().enumerate() {
@@ -1302,17 +1313,18 @@ fn find_node_input_pos_inline(node: &NodeLayout, port: &str) -> Point {
     }
 }
 
-/// Squared distance from point `p` to the line segment `a`–`b`.
+/// Squared distance from point `p` to the line segment `a`--`b`.
+#[allow(clippy::similar_names)]
 fn distance_to_segment_sq(p: Point, a: Point, b: Point) -> f32 {
     let ab_x = b.x - a.x;
     let ab_y = b.y - a.y;
     let ap_x = p.x - a.x;
     let ap_y = p.y - a.y;
-    let ab_len_sq = ab_x * ab_x + ab_y * ab_y;
-    if ab_len_sq < 0.001 {
+    let seg_len_sq = ab_x * ab_x + ab_y * ab_y;
+    if seg_len_sq < 0.001 {
         return ap_x * ap_x + ap_y * ap_y;
     }
-    let t = ((ap_x * ab_x + ap_y * ab_y) / ab_len_sq).clamp(0.0, 1.0);
+    let t = ((ap_x * ab_x + ap_y * ab_y) / seg_len_sq).clamp(0.0, 1.0);
     let proj_x = a.x + t * ab_x;
     let proj_y = a.y + t * ab_y;
     let dx = p.x - proj_x;
@@ -1463,7 +1475,7 @@ fn hit_test_connection(
 }
 
 /// Compute the appropriate mouse cursor for a given [`ResizeHandle`].
-fn resize_cursor(handle: &ResizeHandle) -> mouse::Interaction {
+fn resize_cursor(handle: ResizeHandle) -> mouse::Interaction {
     match handle {
         ResizeHandle::TopLeft | ResizeHandle::BottomRight => {
             mouse::Interaction::ResizingDiagonallyDown
@@ -1775,17 +1787,16 @@ impl canvas::Program<CanvasMessage> for FlowCanvas<'_> {
                             } else {
                                 &node.inputs
                             };
-                            let type_text = ports
-                                .iter()
-                                .find(|p| p.name == port_name)
-                                .map(|p| {
+                            let type_text = ports.iter().find(|p| p.name == port_name).map_or_else(
+                                || port_name.clone(),
+                                |p| {
                                     if p.datatypes.is_empty() {
                                         format!("{port_name}: (any)")
                                     } else {
                                         format!("{port_name}: {}", p.datatypes.join(", "))
                                     }
-                                })
-                                .unwrap_or_else(|| port_name.clone());
+                                },
+                            );
                             state.hover_node = None;
                             return Some(canvas::Action::publish(CanvasMessage::HoverChanged(
                                 Some((type_text, cursor_position.x, cursor_position.y - 20.0)),
@@ -1947,9 +1958,9 @@ impl canvas::Program<CanvasMessage> for FlowCanvas<'_> {
                     }
                 } else {
                     // Pan
-                    let pan_dx = dx / zoom;
-                    let pan_dy = dy / zoom;
-                    Some(canvas::Action::publish(CanvasMessage::Pan(pan_dx, pan_dy)).and_capture())
+                    let pan_x = dx / zoom;
+                    let pan_y = dy / zoom;
+                    Some(canvas::Action::publish(CanvasMessage::Pan(pan_x, pan_y)).and_capture())
                 }
             }
 
@@ -2117,7 +2128,7 @@ impl canvas::Program<CanvasMessage> for FlowCanvas<'_> {
         }
 
         if let Some(ref resize) = state.resizing {
-            return resize_cursor(&resize.handle);
+            return resize_cursor(resize.handle);
         }
 
         if state.connecting.is_some() {
@@ -2139,7 +2150,7 @@ impl canvas::Program<CanvasMessage> for FlowCanvas<'_> {
                         self.state.zoom,
                         self.state.scroll_offset,
                     ) {
-                        return resize_cursor(&handle);
+                        return resize_cursor(handle);
                     }
                 }
             }
@@ -2184,9 +2195,7 @@ fn draw_edges(
         .collect();
 
     for edge_idx in draw_order {
-        let edge = if let Some(e) = edges.get(edge_idx) {
-            e
-        } else {
+        let Some(edge) = edges.get(edge_idx) else {
             continue;
         };
         let from_node = node_map.get(edge.from_node.as_str());
@@ -2243,7 +2252,7 @@ fn draw_edges(
                     Point::new(mid_x, box_bottom)
                 } else {
                     // For normal connections: midpoint, above the line
-                    Point::new((from_s.x + to_s.x) / 2.0, (from_s.y + to_s.y) / 2.0)
+                    Point::new(from_s.x.midpoint(to_s.x), from_s.y.midpoint(to_s.y))
                 };
                 let name_label = CanvasText {
                     content: edge.name.clone(),
@@ -2276,7 +2285,7 @@ fn loopback_waypoints(
     let box_right = (nx + nw + offset.x) * zoom + margin;
     let box_bottom = (ny + nh + offset.y) * zoom + margin;
     let box_left = (nx + offset.x) * zoom - margin;
-    let mid_x = (box_right + box_left) / 2.0;
+    let mid_x = box_right.midpoint(box_left);
     (box_right, box_bottom, box_left, mid_x)
 }
 
@@ -2316,7 +2325,7 @@ fn draw_bezier_connection(
             // Curve down to below the box
             builder.quadratic_curve_to(
                 Point::new(box_right, box_bottom),
-                Point::new((box_right + box_left) / 2.0, box_bottom),
+                Point::new(box_right.midpoint(box_left), box_bottom),
             );
             // Curve up to left of the box
             builder.quadratic_curve_to(
@@ -2373,6 +2382,8 @@ fn draw_flow_io_ports(
     zoom: f32,
     offset: Point,
 ) {
+    use std::f32::consts::PI;
+
     if !is_subflow {
         return;
     }
@@ -2430,7 +2441,7 @@ fn draw_flow_io_ports(
         });
     }
 
-    let center_y = (min_y + max_y) / 2.0;
+    let center_y = min_y.midpoint(max_y);
     let input_color = Color::from_rgb(0.4, 0.8, 1.0);
     let output_color = Color::from_rgb(1.0, 0.6, 0.3);
 
@@ -2443,8 +2454,6 @@ fn draw_flow_io_ports(
         input_positions.insert(input.name.clone(), world_pos);
         let screen_pos = transform_point(world_pos, zoom, offset);
         let scaled_r = port_radius * zoom;
-
-        use std::f32::consts::PI;
         let semi = Path::new(|builder| {
             builder.arc(canvas::path::Arc {
                 center: screen_pos,
@@ -2478,8 +2487,6 @@ fn draw_flow_io_ports(
         output_positions.insert(output.name.clone(), world_pos);
         let screen_pos = transform_point(world_pos, zoom, offset);
         let scaled_r = port_radius * zoom;
-
-        use std::f32::consts::PI;
         let semi = Path::new(|builder| {
             builder.arc(canvas::path::Arc {
                 center: screen_pos,
@@ -2689,6 +2696,8 @@ fn draw_port(
     zoom: f32,
     offset: Point,
 ) {
+    use std::f32::consts::PI;
+
     let screen_center = transform_point(center, zoom, offset);
     let scaled_radius = PORT_RADIUS * zoom;
 
@@ -2700,7 +2709,6 @@ fn draw_port(
     };
 
     // Draw semi-circle: curved side faces inside the box, flat edge on the box boundary
-    use std::f32::consts::PI;
     let semi = Path::new(|builder| {
         let (start_angle, end_angle) = if is_input {
             (-PI / 2.0, PI / 2.0) // Right-facing (inside the box)
@@ -2781,21 +2789,30 @@ fn draw_port(
 
 /// Build a rounded rectangle path using quadratic bezier curves at corners.
 fn rounded_rect(builder: &mut canvas::path::Builder, top_left: Point, size: Size, radius: f32) {
-    let r = radius.min(size.width / 2.0).min(size.height / 2.0);
-    let x = top_left.x;
-    let y = top_left.y;
-    let w = size.width;
-    let h = size.height;
+    let cr = radius.min(size.width / 2.0).min(size.height / 2.0);
+    let left = top_left.x;
+    let top = top_left.y;
+    let width = size.width;
+    let height = size.height;
 
-    builder.move_to(Point::new(x + r, y));
-    builder.line_to(Point::new(x + w - r, y));
-    builder.quadratic_curve_to(Point::new(x + w, y), Point::new(x + w, y + r));
-    builder.line_to(Point::new(x + w, y + h - r));
-    builder.quadratic_curve_to(Point::new(x + w, y + h), Point::new(x + w - r, y + h));
-    builder.line_to(Point::new(x + r, y + h));
-    builder.quadratic_curve_to(Point::new(x, y + h), Point::new(x, y + h - r));
-    builder.line_to(Point::new(x, y + r));
-    builder.quadratic_curve_to(Point::new(x, y), Point::new(x + r, y));
+    builder.move_to(Point::new(left + cr, top));
+    builder.line_to(Point::new(left + width - cr, top));
+    builder.quadratic_curve_to(
+        Point::new(left + width, top),
+        Point::new(left + width, top + cr),
+    );
+    builder.line_to(Point::new(left + width, top + height - cr));
+    builder.quadratic_curve_to(
+        Point::new(left + width, top + height),
+        Point::new(left + width - cr, top + height),
+    );
+    builder.line_to(Point::new(left + cr, top + height));
+    builder.quadratic_curve_to(
+        Point::new(left, top + height),
+        Point::new(left, top + height - cr),
+    );
+    builder.line_to(Point::new(left, top + cr));
+    builder.quadratic_curve_to(Point::new(left, top), Point::new(left + cr, top));
     builder.close();
 }
 
@@ -2857,9 +2874,9 @@ fn check_port_type_compatibility(
             // If either has no type info (empty list or only empty strings),
             // allow the connection — untyped ports accept anything
             let src_untyped =
-                src.datatypes.is_empty() || src.datatypes.iter().all(|t| t.is_empty());
+                src.datatypes.is_empty() || src.datatypes.iter().all(String::is_empty);
             let tgt_untyped =
-                tgt.datatypes.is_empty() || tgt.datatypes.iter().all(|t| t.is_empty());
+                tgt.datatypes.is_empty() || tgt.datatypes.iter().all(String::is_empty);
             if src_untyped || tgt_untyped {
                 return true;
             }
@@ -2883,16 +2900,13 @@ fn check_port_type_compatibility(
 /// Build the complete canvas area for a flow-editor window, including the
 /// interactive canvas, zoom controls, tooltip overlay, initializer editor
 /// dialog, and right-click context menu.
-pub(crate) fn view_canvas_area<'a>(
-    win: &'a WindowState,
-    window_id: window::Id,
-) -> Element<'a, Message> {
+pub(crate) fn view_canvas_area(win: &WindowState, window_id: window::Id) -> Element<'_, Message> {
     let canvas = win
         .canvas_state
         .view(
             &win.nodes,
             &win.edges,
-            &win.flow_name,
+            &win.flow_definition.name,
             &win.flow_inputs,
             &win.flow_outputs,
             !win.is_root,
@@ -3417,7 +3431,7 @@ mod test {
             ..Default::default()
         };
         assert_eq!(
-            hit_test_node(&[node.clone()], Point::new(150.0, 150.0)),
+            hit_test_node(std::slice::from_ref(&node), Point::new(150.0, 150.0)),
             Some(0)
         );
         assert_eq!(hit_test_node(&[node], Point::new(50.0, 50.0)), None);
@@ -3494,7 +3508,7 @@ mod test {
 
     #[test]
     fn check_type_compat_same_type() {
-        let nodes = vec![
+        let nodes = [
             NodeLayout {
                 alias: "a".into(),
                 x: 0.0,
@@ -3528,7 +3542,7 @@ mod test {
 
     #[test]
     fn check_type_compat_different_type() {
-        let nodes = vec![
+        let nodes = [
             NodeLayout {
                 alias: "a".into(),
                 x: 0.0,
@@ -3562,7 +3576,7 @@ mod test {
 
     #[test]
     fn check_type_compat_untyped_allows_any() {
-        let nodes = vec![
+        let nodes = [
             NodeLayout {
                 alias: "a".into(),
                 x: 0.0,

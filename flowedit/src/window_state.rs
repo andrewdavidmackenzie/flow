@@ -36,7 +36,7 @@ pub(crate) struct FunctionViewer {
     pub(crate) toml_path: PathBuf,
     /// Parent window that opened this viewer (for propagating edits back to canvas)
     pub(crate) parent_window: Option<window::Id>,
-    /// Source string of the node this viewer is editing (to find the NodeLayout)
+    /// Source string of the node this viewer is editing (to find the `NodeLayout`)
     pub(crate) node_source: String,
     /// Whether this viewer is read-only (library/context functions cannot be edited)
     pub(crate) read_only: bool,
@@ -52,8 +52,6 @@ pub(crate) enum WindowKind {
 pub(crate) struct WindowState {
     /// What this window displays
     pub(crate) kind: WindowKind,
-    /// The name of the flow being viewed
-    pub(crate) flow_name: String,
     /// Positioned nodes derived from the flow's process references
     pub(crate) nodes: Vec<NodeLayout>,
     /// Connection edges between nodes
@@ -106,7 +104,6 @@ impl Default for WindowState {
     fn default() -> Self {
         Self {
             kind: WindowKind::FlowEditor,
-            flow_name: String::new(),
             nodes: Vec::new(),
             edges: Vec::new(),
             canvas_state: FlowCanvasState::default(),

@@ -105,6 +105,7 @@ fn toggle_at(node: &mut HierarchyNode, indices: &[usize], depth: usize) {
     }
 }
 
+#[allow(clippy::cast_precision_loss)]
 fn view_node<'a>(node: &'a HierarchyNode, path: &[usize]) -> Element<'a, HierarchyMessage> {
     let indent = path.len() as f32 * 16.0;
     let icon = match node.kind {

@@ -13,7 +13,7 @@ use crate::WindowState;
 /// An editing action that can be undone and redone.
 #[derive(Debug, Clone)]
 pub(crate) enum EditAction {
-    /// A node was moved from (old_x, old_y) to (new_x, new_y).
+    /// A node was moved from (`old_x`, `old_y`) to (`new_x`, `new_y`).
     MoveNode {
         /// Node index
         index: usize,
@@ -486,7 +486,6 @@ mod test {
             .collect();
 
         WindowState {
-            flow_name: flow.name.clone(),
             nodes,
             edges: Vec::new(),
             flow_definition: flow,
@@ -497,9 +496,13 @@ mod test {
 
     #[test]
     fn record_and_undo_edit() {
+        let flow_def = flowcore::model::flow_definition::FlowDefinition {
+            name: String::from("test"),
+            ..flowcore::model::flow_definition::FlowDefinition::default()
+        };
         let mut win = WindowState {
-            flow_name: String::from("test"),
             nodes: vec![test_win_node("a", "lib://test")],
+            flow_definition: flow_def,
             is_root: true,
             ..Default::default()
         };

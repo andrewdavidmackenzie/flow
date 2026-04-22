@@ -1,6 +1,7 @@
 #![allow(clippy::indexing_slicing)]
 
 use super::*;
+use canvas_view::EdgeLayout;
 use iced_test::simulator::{self, simulator};
 use std::collections::HashMap;
 
@@ -13,12 +14,16 @@ fn test_node(alias: &str, source: &str) -> NodeLayout {
 }
 
 fn test_win_state() -> WindowState {
+    let flow_def = FlowDefinition {
+        name: String::from("test"),
+        ..FlowDefinition::default()
+    };
     WindowState {
-        flow_name: String::from("test"),
         nodes: vec![
             test_node("add", "lib://flowstdlib/math/add"),
             test_node("stdout", "context://stdio/stdout"),
         ],
+        flow_definition: flow_def,
         is_root: true,
         ..Default::default()
     }
@@ -47,7 +52,6 @@ fn test_app_with_flow(flow: FlowDefinition) -> (FlowEdit, window::Id) {
 
     let win_id = window::Id::unique();
     let win_state = WindowState {
-        flow_name: flow.name.clone(),
         nodes,
         edges,
         flow_definition: flow,
@@ -307,7 +311,9 @@ fn update_flow_name_changed() {
         FlowEditMessage::NameChanged("new_name".into()),
     ));
     assert_eq!(
-        app.windows.get(&win_id).map(|w| w.flow_name.as_str()),
+        app.windows
+            .get(&win_id)
+            .map(|w| w.flow_definition.name.as_str()),
         Some("new_name")
     );
     assert_eq!(app.windows.get(&win_id).map(|w| w.unsaved_edits), Some(1));
@@ -754,7 +760,7 @@ fn click_build_with_saved_flow() {
     let (mut app, win_id) = test_app();
     if let Some(win) = app.windows.get_mut(&win_id) {
         win.file_path = Some(path.clone());
-        win.flow_name = "test_build".into();
+        win.flow_definition.name = "test_build".into();
         flow_io::perform_save(win, &path);
     }
     click_and_update(&mut app, win_id, "\u{1F528} Build");
@@ -1248,7 +1254,7 @@ fn flow_delete_input_removes_edges() {
             "input".into(),
             "input0".into(),
             "add".into(),
-            "".into(),
+            String::new(),
         ));
     }
     assert_eq!(app.windows.get(&win_id).map_or(0, |w| w.edges.len()), 1);
@@ -1270,7 +1276,7 @@ fn flow_delete_output_removes_edges() {
     if let Some(win) = app.windows.get_mut(&win_id) {
         win.edges.push(EdgeLayout::new(
             "add".into(),
-            "".into(),
+            String::new(),
             "output".into(),
             "output0".into(),
         ));
@@ -1294,7 +1300,7 @@ fn flow_input_rename_updates_edges() {
             "input".into(),
             "input0".into(),
             "add".into(),
-            "".into(),
+            String::new(),
         ));
     }
     let _ = app.update(Message::FlowEdit(
@@ -1317,7 +1323,7 @@ fn flow_output_rename_updates_edges() {
     if let Some(win) = app.windows.get_mut(&win_id) {
         win.edges.push(EdgeLayout::new(
             "add".into(),
-            "".into(),
+            String::new(),
             "output".into(),
             "output0".into(),
         ));
@@ -1374,9 +1380,9 @@ fn new_function_clears_context_menu() {
 #[test]
 fn flow_edit_toggle_metadata() {
     let (mut app, win_id) = test_app();
-    assert!(!app.windows.get(&win_id).map_or(true, |w| w.show_metadata));
+    assert!(!app.windows.get(&win_id).is_none_or(|w| w.show_metadata));
     let _ = app.update(Message::FlowEdit(win_id, FlowEditMessage::ToggleMetadata));
-    assert!(app.windows.get(&win_id).map_or(false, |w| w.show_metadata));
+    assert!(app.windows.get(&win_id).is_some_and(|w| w.show_metadata));
 }
 
 #[test]
@@ -1407,7 +1413,7 @@ fn flow_edit_input_type_changed() {
         .get(&win_id)
         .and_then(|w| w.flow_inputs.first())
         .and_then(|p| p.datatypes.first())
-        .map(|s| s.as_str());
+        .map(String::as_str);
     assert_eq!(dtype, Some("number"));
 }
 
@@ -1424,7 +1430,7 @@ fn flow_edit_output_type_changed() {
         .get(&win_id)
         .and_then(|w| w.flow_outputs.first())
         .and_then(|p| p.datatypes.first())
-        .map(|s| s.as_str());
+        .map(String::as_str);
     assert_eq!(dtype, Some("boolean"));
 }
 
