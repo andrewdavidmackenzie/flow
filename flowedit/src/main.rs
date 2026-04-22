@@ -19,7 +19,7 @@ use std::sync::Arc;
 
 use clap::{Arg, ArgAction, Command as ClapCommand};
 use iced::keyboard;
-use iced::widget::{button, container, pick_list, text_input, Column, Row, Text};
+use iced::widget::{button, container, text_input, Column, Row, Text};
 use iced::window;
 use iced::{Color, Element, Fill, Subscription, Task, Theme};
 use log::{info, warn};
@@ -1252,13 +1252,39 @@ impl FlowEdit {
         let mut right_col: Column<'_, Message> =
             Column::new().push(container(canvas_with_controls).width(Fill).height(Fill));
 
+        // Flow I/O editor panel for sub-flow windows
+        if !win.is_root && matches!(win.kind, WindowKind::FlowEditor) {
+            right_col = right_col.push(self.view_flow_io_panel(window_id, win));
+        }
+
+        // Metadata editor panel (toggled by Info button)
+        if win.show_metadata && matches!(win.kind, WindowKind::FlowEditor) {
+            right_col = right_col.push(self.view_metadata_panel(win, window_id));
+        }
+
+        // Library paths panel (toggled by Libs button)
+        if self.show_lib_paths {
+            right_col = right_col.push(self.view_lib_paths_panel());
+        }
+
+        right_col = right_col.push(self.view_toolbar(win, window_id));
+
+        let layout = Row::new().push(left_panel).push(right_col.width(Fill));
+        layout.into()
+    }
+
+    /// Build the toolbar/status bar with action buttons and status text.
+    fn view_toolbar<'a>(
+        &'a self,
+        win: &'a WindowState,
+        window_id: window::Id,
+    ) -> Element<'a, Message> {
         let edit_indicator = if win.unsaved_edits > 0 {
             format!("  |  {} unsaved edit(s)", win.unsaved_edits)
         } else {
             String::from("  |  saved")
         };
 
-        // Build status bar — action buttons only for root windows
         let btn_pad = [6, 14];
         let btn_size = 13;
         let toolbar_btn = |_theme: &Theme, status: button::Status| -> button::Style {
@@ -1295,6 +1321,7 @@ impl FlowEdit {
                 ..Default::default()
             }
         };
+
         let status_bar: Row<'_, Message> = if win.is_root {
             let mut compile_btn = button(Text::new("\u{1F528} Build").size(btn_size).center())
                 .padding(btn_pad)
@@ -1349,74 +1376,117 @@ impl FlowEdit {
                 .push(iced::widget::Space::new().width(Fill))
         };
 
-        // Flow I/O editor panel for sub-flow windows
-        if !win.is_root && matches!(win.kind, WindowKind::FlowEditor) {
-            right_col = right_col.push(self.view_flow_io_panel(window_id, win));
-        }
+        container(status_bar).width(Fill).padding(5).into()
+    }
 
-        // Metadata editor panel (toggled by Info button)
-        if win.show_metadata && matches!(win.kind, WindowKind::FlowEditor) {
-            let authors_str = win.flow_definition.metadata.authors.join(", ");
-            let meta_panel = container(
-                Column::new()
-                    .spacing(6)
-                    .padding(12)
-                    .push(
-                        Row::new()
-                            .spacing(8)
-                            .align_y(iced::Alignment::Center)
-                            .push(Text::new("Name:").size(12).width(70))
-                            .push(
-                                text_input("Flow name", &win.flow_name)
-                                    .on_input(move |s| Message::FlowNameChanged(window_id, s))
-                                    .size(13)
-                                    .padding(4)
-                                    .width(250),
-                            ),
-                    )
-                    .push(
-                        Row::new()
-                            .spacing(8)
-                            .align_y(iced::Alignment::Center)
-                            .push(Text::new("Version:").size(12).width(70))
-                            .push(
-                                text_input("0.1.0", &win.flow_definition.metadata.version)
-                                    .on_input(move |s| Message::FlowVersionChanged(window_id, s))
-                                    .size(13)
-                                    .padding(4)
-                                    .width(120),
-                            ),
-                    )
-                    .push(
-                        Row::new()
-                            .spacing(8)
-                            .align_y(iced::Alignment::Center)
-                            .push(Text::new("Description:").size(12).width(70))
-                            .push(
-                                text_input(
-                                    "A short description",
-                                    &win.flow_definition.metadata.description,
-                                )
-                                .on_input(move |s| Message::FlowDescriptionChanged(window_id, s))
+    /// Build the metadata editor panel.
+    fn view_metadata_panel<'a>(
+        &'a self,
+        win: &'a WindowState,
+        window_id: window::Id,
+    ) -> Element<'a, Message> {
+        let authors_str = win.flow_definition.metadata.authors.join(", ");
+        let meta_panel = container(
+            Column::new()
+                .spacing(6)
+                .padding(12)
+                .push(
+                    Row::new()
+                        .spacing(8)
+                        .align_y(iced::Alignment::Center)
+                        .push(Text::new("Name:").size(12).width(70))
+                        .push(
+                            text_input("Flow name", &win.flow_name)
+                                .on_input(move |s| Message::FlowNameChanged(window_id, s))
+                                .size(13)
+                                .padding(4)
+                                .width(250),
+                        ),
+                )
+                .push(
+                    Row::new()
+                        .spacing(8)
+                        .align_y(iced::Alignment::Center)
+                        .push(Text::new("Version:").size(12).width(70))
+                        .push(
+                            text_input("0.1.0", &win.flow_definition.metadata.version)
+                                .on_input(move |s| Message::FlowVersionChanged(window_id, s))
+                                .size(13)
+                                .padding(4)
+                                .width(120),
+                        ),
+                )
+                .push(
+                    Row::new()
+                        .spacing(8)
+                        .align_y(iced::Alignment::Center)
+                        .push(Text::new("Description:").size(12).width(70))
+                        .push(
+                            text_input(
+                                "A short description",
+                                &win.flow_definition.metadata.description,
+                            )
+                            .on_input(move |s| Message::FlowDescriptionChanged(window_id, s))
+                            .size(13)
+                            .padding(4)
+                            .width(Fill),
+                        ),
+                )
+                .push(
+                    Row::new()
+                        .spacing(8)
+                        .align_y(iced::Alignment::Center)
+                        .push(Text::new("Authors:").size(12).width(70))
+                        .push(
+                            text_input("Name <email>, ...", &authors_str)
+                                .on_input(move |s| Message::FlowAuthorsChanged(window_id, s))
                                 .size(13)
                                 .padding(4)
                                 .width(Fill),
-                            ),
-                    )
-                    .push(
-                        Row::new()
-                            .spacing(8)
-                            .align_y(iced::Alignment::Center)
-                            .push(Text::new("Authors:").size(12).width(70))
-                            .push(
-                                text_input("Name <email>, ...", &authors_str)
-                                    .on_input(move |s| Message::FlowAuthorsChanged(window_id, s))
-                                    .size(13)
-                                    .padding(4)
-                                    .width(Fill),
-                            ),
-                    ),
-            )
+                        ),
+                ),
+        )
+        .style(|_theme: &Theme| container::Style {
+            background: Some(iced::Background::Color(Color::from_rgb(0.14, 0.14, 0.18))),
+            border: iced::Border {
+                color: Color::from_rgb(0.3, 0.3, 0.3),
+                width: 1.0,
+                radius: 0.0.into(),
+            },
+            ..Default::default()
+        })
+        .width(Fill);
+
+        meta_panel.into()
+    }
+
+    /// Build the library paths panel.
+    fn view_lib_paths_panel(&self) -> Element<'_, Message> {
+        let mut paths_col = Column::new().spacing(4).padding(12);
+        paths_col = paths_col.push(Text::new("Library Search Paths").size(14));
+
+        for (i, p) in self.lib_paths.iter().enumerate() {
+            let row = Row::new()
+                .spacing(6)
+                .align_y(iced::Alignment::Center)
+                .push(Text::new(p).size(12))
+                .push(iced::widget::Space::new().width(Fill))
+                .push(
+                    button(Text::new("\u{2715}").size(10).center())
+                        .on_press(Message::RemoveLibraryPath(i))
+                        .style(button::danger)
+                        .padding([2, 5]),
+                );
+            paths_col = paths_col.push(row);
+        }
+        paths_col = paths_col.push(
+            button(Text::new("+ Add Path...").size(12).center())
+                .on_press(Message::AddLibraryPath)
+                .style(button::secondary)
+                .padding([4, 10]),
+        );
+
+        let lib_panel = container(paths_col)
             .style(|_theme: &Theme| container::Style {
                 background: Some(iced::Background::Color(Color::from_rgb(0.14, 0.14, 0.18))),
                 border: iced::Border {
@@ -1428,54 +1498,7 @@ impl FlowEdit {
             })
             .width(Fill);
 
-            right_col = right_col.push(meta_panel);
-        }
-
-        // Library paths panel (toggled by Libs button)
-        if self.show_lib_paths {
-            let mut paths_col = Column::new().spacing(4).padding(12);
-            paths_col = paths_col.push(Text::new("Library Search Paths").size(14));
-
-            for (i, p) in self.lib_paths.iter().enumerate() {
-                let row = Row::new()
-                    .spacing(6)
-                    .align_y(iced::Alignment::Center)
-                    .push(Text::new(p).size(12))
-                    .push(iced::widget::Space::new().width(Fill))
-                    .push(
-                        button(Text::new("\u{2715}").size(10).center())
-                            .on_press(Message::RemoveLibraryPath(i))
-                            .style(button::danger)
-                            .padding([2, 5]),
-                    );
-                paths_col = paths_col.push(row);
-            }
-            paths_col = paths_col.push(
-                button(Text::new("+ Add Path...").size(12).center())
-                    .on_press(Message::AddLibraryPath)
-                    .style(button::secondary)
-                    .padding([4, 10]),
-            );
-
-            let lib_panel = container(paths_col)
-                .style(|_theme: &Theme| container::Style {
-                    background: Some(iced::Background::Color(Color::from_rgb(0.14, 0.14, 0.18))),
-                    border: iced::Border {
-                        color: Color::from_rgb(0.3, 0.3, 0.3),
-                        width: 1.0,
-                        radius: 0.0.into(),
-                    },
-                    ..Default::default()
-                })
-                .width(Fill);
-
-            right_col = right_col.push(lib_panel);
-        }
-
-        right_col = right_col.push(container(status_bar).width(Fill).padding(5));
-
-        let layout = Row::new().push(left_panel).push(right_col.width(Fill));
-        layout.into()
+        lib_panel.into()
     }
 
     fn view_flow_io_panel<'a>(
