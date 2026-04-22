@@ -96,20 +96,26 @@ pub(crate) fn handle_canvas_message(win: &mut WindowState, msg: CanvasMessage) -
             new_w,
             new_h,
         ) => {
-            undo_redo::record_edit(
-                win,
-                EditAction::ResizeNode {
-                    index: idx,
-                    old_x,
-                    old_y,
-                    old_w,
-                    old_h,
-                    new_x,
-                    new_y,
-                    new_w,
-                    new_h,
-                },
-            );
+            if (old_x - new_x).abs() > 0.5
+                || (old_y - new_y).abs() > 0.5
+                || (old_w - new_w).abs() > 0.5
+                || (old_h - new_h).abs() > 0.5
+            {
+                undo_redo::record_edit(
+                    win,
+                    EditAction::ResizeNode {
+                        index: idx,
+                        old_x,
+                        old_y,
+                        old_w,
+                        old_h,
+                        new_x,
+                        new_y,
+                        new_w,
+                        new_h,
+                    },
+                );
+            }
         }
         CanvasMessage::Deleted(idx) => {
             if idx < win.nodes.len() {
@@ -206,12 +212,14 @@ pub(crate) fn handle_canvas_message(win: &mut WindowState, msg: CanvasMessage) -
         }
         CanvasMessage::Pan(dx, dy) => {
             win.auto_fit_enabled = false; // Manual pan disables auto-fit
+            win.auto_fit_pending = false;
             win.canvas_state.scroll_offset.x += dx;
             win.canvas_state.scroll_offset.y += dy;
             win.canvas_state.request_redraw();
         }
         CanvasMessage::ZoomBy(factor) => {
             win.auto_fit_enabled = false; // Manual zoom disables auto-fit
+            win.auto_fit_pending = false;
             win.canvas_state.zoom = (win.canvas_state.zoom * factor).clamp(0.1, 5.0);
             win.canvas_state.request_redraw();
             let pct = (win.canvas_state.zoom * 100.0) as u32;
@@ -269,6 +277,7 @@ pub(crate) fn handle_canvas_message(win: &mut WindowState, msg: CanvasMessage) -
 /// Handle the `ZoomIn` message by zooming in one step.
 pub(crate) fn handle_zoom_in(win: &mut WindowState) {
     win.auto_fit_enabled = false;
+    win.auto_fit_pending = false;
     win.canvas_state.zoom_in();
     let pct = (win.canvas_state.zoom * 100.0) as u32;
     win.status = format!("Zoom: {pct}%");
@@ -277,6 +286,7 @@ pub(crate) fn handle_zoom_in(win: &mut WindowState) {
 /// Handle the `ZoomOut` message by zooming out one step.
 pub(crate) fn handle_zoom_out(win: &mut WindowState) {
     win.auto_fit_enabled = false;
+    win.auto_fit_pending = false;
     win.canvas_state.zoom_out();
     let pct = (win.canvas_state.zoom * 100.0) as u32;
     win.status = format!("Zoom: {pct}%");

@@ -293,23 +293,11 @@ git commit -m "flowedit: Extract initializer message handling from main.rs (#259
 - Modify: `flowedit/src/flow_io.rs`
 - Modify: `flowedit/src/main.rs`
 
-- [ ] **Step 1: Add `FileAction` enum and handler to flow_io.rs**
+**Scope note:** We extracted only Save/SaveAs handlers. Open and New stay in main.rs because they require extensive interaction with FlowEdit state (library cache, hierarchy, etc.) and were deemed too coupled for this refactor.
+
+- [ ] **Step 1: Add handler functions to flow_io.rs**
 
 ```rust
-use std::collections::BTreeSet;
-
-/// Actions that file message handling needs main.rs to perform.
-pub(crate) enum FileAction {
-    /// Fully handled.
-    None,
-    /// A flow was opened — main.rs should rebuild library cache.
-    FlowOpened {
-        lib_refs: BTreeSet<Url>,
-    },
-    /// A new flow was created — main.rs should clear library cache.
-    NewFlow,
-}
-
 /// Handle Save message for the given window.
 pub(crate) fn handle_save(win: &mut WindowState) {
     if let Some(path) = win.file_path.clone() {
@@ -323,26 +311,11 @@ pub(crate) fn handle_save(win: &mut WindowState) {
 pub(crate) fn handle_save_as(win: &mut WindowState) {
     perform_save_as(win);
 }
-
-/// Handle Open message. Returns FileAction::FlowOpened if a flow was loaded.
-pub(crate) fn handle_open(win: &mut WindowState) -> FileAction {
-    if let Some((lib_refs, _ctx_refs)) = perform_open(win) {
-        FileAction::FlowOpened { lib_refs }
-    } else {
-        FileAction::None
-    }
-}
-
-/// Handle New message.
-pub(crate) fn handle_new(win: &mut WindowState) -> FileAction {
-    perform_new(win);
-    FileAction::NewFlow
-}
 ```
 
 - [ ] **Step 2: Replace main.rs handlers**
 
-Replace `Message::Save`, `SaveAs`, `Open`, `New` blocks. The `Open` handler needs main.rs to rebuild hierarchy and library cache based on the returned action.
+Replace `Message::Save` and `SaveAs` blocks with:
 
 ```rust
 Message::Save => {
@@ -357,48 +330,9 @@ Message::SaveAs => {
         flow_io::handle_save_as(win);
     }
 }
-Message::Open => {
-    if let Some(root_id) = self.root_window {
-        if let Some(win) = self.windows.get_mut(&root_id) {
-            match flow_io::handle_open(win) {
-                flow_io::FileAction::FlowOpened { lib_refs } => {
-                    self.root_flow_path = win.file_path.clone();
-                    win.flow_hierarchy = win
-                        .file_path
-                        .as_ref()
-                        .map(|p| FlowHierarchy::build(p))
-                        .unwrap_or_else(FlowHierarchy::empty);
-                    let (lc, ld, cd) = library_mgmt::load_library_catalogs(&lib_refs);
-                    self.library_cache = lc;
-                    self.lib_definitions = ld;
-                    self.context_definitions = cd;
-                    self.library_tree = LibraryTree::from_cache(
-                        &self.library_cache,
-                        &self.lib_definitions,
-                        &self.context_definitions,
-                    );
-                }
-                flow_io::FileAction::None | flow_io::FileAction::NewFlow => {}
-            }
-        }
-    }
-}
-Message::New => {
-    if let Some(win) = self.root_window.and_then(|id| self.windows.get_mut(&id)) {
-        let _ = flow_io::handle_new(win);
-        self.library_cache.clear();
-        self.lib_definitions.clear();
-        self.context_definitions.clear();
-        self.library_tree = LibraryTree::from_cache(
-            &self.library_cache,
-            &self.lib_definitions,
-            &self.context_definitions,
-        );
-    }
-}
 ```
 
-Note: `Message::Compile` can stay in main.rs for now since it accesses `win.compiled_manifest` and updates status — it's already a thin wrapper around `flow_io::perform_compile`.
+Note: Open/New/Compile remain in main.rs — they access multiple FlowEdit fields beyond WindowState.
 
 - [ ] **Step 3: Verify, clippy, fmt, commit**
 
