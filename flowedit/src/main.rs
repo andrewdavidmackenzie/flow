@@ -297,20 +297,19 @@ impl FlowEdit {
             }
         }
 
-        let (nodes, edges, status, flow_definition, lib_refs) =
+        let (nodes, status, flow_definition, lib_refs) =
             if let Some(flow_path_str) = matches.get_one::<String>("flow-file") {
                 let flow_path = PathBuf::from(flow_path_str);
                 match flow_io::load_flow(&flow_path) {
                     Ok(loaded) => {
                         let nc = loaded.nodes.len();
-                        let ec = loaded.edges.len();
+                        let ec = loaded.flow_def.connections.len();
                         let mut fd = loaded.flow_def;
                         if let Ok(url) = Url::from_file_path(&flow_path) {
                             fd.source_url = url;
                         }
                         (
                             loaded.nodes,
-                            loaded.edges,
                             format!("Ready - {nc} nodes, {ec} connections"),
                             fd,
                             loaded.lib_references,
@@ -323,7 +322,6 @@ impl FlowEdit {
                         };
                         (
                             Vec::new(),
-                            Vec::new(),
                             format!("Error loading flow: {e}"),
                             fd,
                             BTreeSet::new(),
@@ -335,13 +333,7 @@ impl FlowEdit {
                     name: String::from("(new flow)"),
                     ..FlowDefinition::default()
                 };
-                (
-                    Vec::new(),
-                    Vec::new(),
-                    String::from("Ready"),
-                    fd,
-                    BTreeSet::new(),
-                )
+                (Vec::new(), String::from("Ready"), fd, BTreeSet::new())
             };
 
         let has_nodes = !nodes.is_empty();
@@ -379,7 +371,6 @@ impl FlowEdit {
         let win_state = WindowState {
             kind: WindowKind::FlowEditor,
             nodes,
-            edges,
             canvas_state: FlowCanvasState::default(),
             status,
             selected_node: None,
@@ -469,7 +460,7 @@ impl FlowEdit {
                             window::open(self.child_window_settings(1024.0, 768.0));
                         let has_nodes = !loaded.nodes.is_empty();
                         let nc = loaded.nodes.len();
-                        let ec = loaded.edges.len();
+                        let ec = loaded.flow_def.connections.len();
                         let mut flow_def = loaded.flow_def;
                         if let Ok(url) = Url::from_file_path(&path) {
                             flow_def.source_url = url;
@@ -477,7 +468,6 @@ impl FlowEdit {
                         let child = WindowState {
                             kind: WindowKind::FlowEditor,
                             nodes: loaded.nodes,
-                            edges: loaded.edges,
                             canvas_state: FlowCanvasState::default(),
                             status: format!("Ready - {nc} nodes, {ec} connections"),
                             selected_node: None,
@@ -782,9 +772,12 @@ impl FlowEdit {
                             if let Some(io) = win.flow_definition.inputs.get(idx) {
                                 let name = io.name().clone();
                                 win.flow_definition.inputs.remove(idx);
-                                // Remove edges referencing this flow input
-                                win.edges
-                                    .retain(|e| !(e.from_node == "input" && e.from_port == name));
+                                // Remove connections referencing this flow input
+                                win.flow_definition.connections.retain(|c| {
+                                    let (from_node, from_port) =
+                                        canvas_view::split_route(c.from().as_ref());
+                                    !(from_node == "input" && from_port == name)
+                                });
                                 win.unsaved_edits += 1;
                                 win.canvas_state.request_redraw();
                             }
@@ -793,9 +786,17 @@ impl FlowEdit {
                             if let Some(io) = win.flow_definition.outputs.get(idx) {
                                 let name = io.name().clone();
                                 win.flow_definition.outputs.remove(idx);
-                                // Remove edges referencing this flow output
-                                win.edges
-                                    .retain(|e| !(e.to_node == "output" && e.to_port == name));
+                                // Remove connections referencing this flow output
+                                win.flow_definition.connections.retain(|c| {
+                                    for to_route in c.to() {
+                                        let (to_node, to_port) =
+                                            canvas_view::split_route(to_route.as_ref());
+                                        if to_node == "output" && to_port == name {
+                                            return false;
+                                        }
+                                    }
+                                    true
+                                });
                                 win.unsaved_edits += 1;
                                 win.canvas_state.request_redraw();
                             }
@@ -811,9 +812,11 @@ impl FlowEdit {
                                 if let Some(io) = win.flow_definition.inputs.get_mut(idx) {
                                     let old_name = io.name().clone();
                                     io.set_name(name.clone());
-                                    for edge in &mut win.edges {
-                                        if edge.from_node == "input" && edge.from_port == old_name {
-                                            edge.from_port.clone_from(&name);
+                                    let old_route = format!("input/{old_name}");
+                                    let new_route = format!("input/{name}");
+                                    for conn in &mut win.flow_definition.connections {
+                                        if conn.from().to_string() == old_route {
+                                            conn.set_from(Route::from(new_route.as_str()));
                                         }
                                     }
                                 }
@@ -839,10 +842,21 @@ impl FlowEdit {
                                 if let Some(io) = win.flow_definition.outputs.get_mut(idx) {
                                     let old_name = io.name().clone();
                                     io.set_name(name.clone());
-                                    for edge in &mut win.edges {
-                                        if edge.to_node == "output" && edge.to_port == old_name {
-                                            edge.to_port.clone_from(&name);
-                                        }
+                                    let old_route_str = format!("output/{old_name}");
+                                    let new_route_str = format!("output/{name}");
+                                    for conn in &mut win.flow_definition.connections {
+                                        let new_to: Vec<Route> = conn
+                                            .to()
+                                            .iter()
+                                            .map(|r| {
+                                                if r.to_string() == old_route_str {
+                                                    Route::from(new_route_str.as_str())
+                                                } else {
+                                                    r.clone()
+                                                }
+                                            })
+                                            .collect();
+                                        conn.set_to(new_to);
                                     }
                                 }
                                 win.unsaved_edits += 1;
@@ -1942,7 +1956,7 @@ impl FlowEdit {
                 Ok(loaded) => {
                     let has_nodes = !loaded.nodes.is_empty();
                     let nc = loaded.nodes.len();
-                    let ec = loaded.edges.len();
+                    let ec = loaded.flow_def.connections.len();
                     let (new_id, open_task) =
                         window::open(self.child_window_settings(1024.0, 768.0));
                     let mut flow_def = loaded.flow_def;
@@ -1952,7 +1966,6 @@ impl FlowEdit {
                     let child = WindowState {
                         kind: WindowKind::FlowEditor,
                         nodes: loaded.nodes,
-                        edges: loaded.edges,
                         canvas_state: FlowCanvasState::default(),
                         status: format!("Library flow - {nc} nodes, {ec} connections"),
                         selected_node: None,
@@ -2076,7 +2089,7 @@ impl FlowEdit {
                 let has_nodes = !loaded.nodes.is_empty();
                 let (new_id, open_task) = window::open(self.child_window_settings(1024.0, 768.0));
                 let nc = loaded.nodes.len();
-                let ec = loaded.edges.len();
+                let ec = loaded.flow_def.connections.len();
                 let mut flow_def = loaded.flow_def;
                 if let Ok(url) = Url::from_file_path(&path) {
                     flow_def.source_url = url;
@@ -2084,7 +2097,6 @@ impl FlowEdit {
                 let child = WindowState {
                     kind: WindowKind::FlowEditor,
                     nodes: loaded.nodes,
-                    edges: loaded.edges,
                     canvas_state: FlowCanvasState::default(),
                     status: format!("Ready - {nc} nodes, {ec} connections"),
                     selected_node: None,
@@ -2164,7 +2176,6 @@ impl FlowEdit {
         let child = WindowState {
             kind: WindowKind::FunctionViewer(viewer),
             nodes: Vec::new(),
-            edges: Vec::new(),
             canvas_state: FlowCanvasState::default(),
             status: format!("Function: {func_name}"),
             selected_node: None,
@@ -2298,7 +2309,6 @@ impl FlowEdit {
         let child = WindowState {
             kind: WindowKind::FlowEditor,
             nodes: Vec::new(),
-            edges: Vec::new(),
             canvas_state: FlowCanvasState::default(),
             status: format!("New sub-flow: {flow_name}"),
             selected_node: None,
@@ -2432,7 +2442,6 @@ impl FlowEdit {
         let child = WindowState {
             kind: WindowKind::FunctionViewer(viewer),
             nodes: Vec::new(),
-            edges: Vec::new(),
             canvas_state: FlowCanvasState::default(),
             status: String::from("New function — add ports and Save"),
             selected_node: None,

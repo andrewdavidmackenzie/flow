@@ -100,7 +100,7 @@ pub(crate) fn apply_initializer_edit(win: &mut WindowState, editor: &Initializer
 
 /// Synchronize the in-memory `FlowDefinition` with the current editor state
 /// so that process references and the flow name are up to date.
-/// Connections are handled separately via `EdgeLayout` during save.
+/// Connections are stored in `flow_definition.connections` and serialized during save.
 pub(crate) fn sync_flow_definition(win: &mut WindowState) {
     // Update or rebuild process_refs from current NodeLayout data
     let mut new_refs: Vec<ProcessReference> = Vec::with_capacity(win.nodes.len());
@@ -277,7 +277,6 @@ mod test {
 
         WindowState {
             nodes,
-            edges: Vec::new(),
             flow_definition: flow,
             is_root: true,
             ..Default::default()

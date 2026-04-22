@@ -4,9 +4,10 @@
 //! information to both undo and redo the operation. The history is lost
 //! when the application exits.
 
+use flowcore::model::connection::Connection;
 use flowcore::model::input::InputInitializer;
 
-use crate::canvas_view::{EdgeLayout, NodeLayout};
+use crate::canvas_view::NodeLayout;
 use crate::initializer;
 use crate::WindowState;
 
@@ -47,26 +48,26 @@ pub(crate) enum EditAction {
         /// New geometry
         new_h: f32,
     },
-    /// A node was deleted. Stores the node and its connected edges for restoration.
+    /// A node was deleted. Stores the node and its connected connections for restoration.
     DeleteNode {
         /// Index where the node was
         index: usize,
         /// The deleted node
         node: NodeLayout,
-        /// Edges that were removed with the node
-        removed_edges: Vec<EdgeLayout>,
+        /// Connections that were removed with the node
+        removed_connections: Vec<Connection>,
     },
     /// A connection was created.
     CreateConnection {
-        /// The new edge
-        edge: EdgeLayout,
+        /// The new connection
+        connection: Connection,
     },
     /// A connection was deleted.
     DeleteConnection {
-        /// Index where the edge was
+        /// Index where the connection was
         index: usize,
-        /// The deleted edge
-        edge: EdgeLayout,
+        /// The deleted connection
+        connection: Connection,
     },
     /// An input initializer was changed.
     EditInitializer {
@@ -168,23 +169,24 @@ fn apply_undo(win: &mut WindowState) {
             EditAction::DeleteNode {
                 index,
                 node,
-                removed_edges,
+                removed_connections,
             } => {
                 win.nodes.insert(index, node);
-                win.edges.extend(removed_edges);
+                win.flow_definition.connections.extend(removed_connections);
                 win.status = String::from("Undo: delete node");
             }
-            EditAction::CreateConnection { edge } => {
-                win.edges.retain(|e| {
-                    e.from_node != edge.from_node
-                        || e.from_port != edge.from_port
-                        || e.to_node != edge.to_node
-                        || e.to_port != edge.to_port
+            EditAction::CreateConnection { connection } => {
+                let from_str = connection.from().to_string();
+                let to_strs: Vec<String> =
+                    connection.to().iter().map(ToString::to_string).collect();
+                win.flow_definition.connections.retain(|c| {
+                    c.from().to_string() != from_str
+                        || c.to().iter().map(ToString::to_string).collect::<Vec<_>>() != to_strs
                 });
                 win.status = String::from("Undo: create connection");
             }
-            EditAction::DeleteConnection { index, edge } => {
-                win.edges.insert(index, edge);
+            EditAction::DeleteConnection { index, connection } => {
+                win.flow_definition.connections.insert(index, connection);
                 win.status = String::from("Undo: delete connection");
             }
             EditAction::EditInitializer {
@@ -242,29 +244,29 @@ fn apply_redo(win: &mut WindowState) {
             }
             EditAction::DeleteNode {
                 index,
-                removed_edges,
+                removed_connections,
                 ..
             } => {
                 if index < win.nodes.len() {
                     win.nodes.remove(index);
                 }
-                for edge in &removed_edges {
-                    win.edges.retain(|e| {
-                        e.from_node != edge.from_node
-                            || e.from_port != edge.from_port
-                            || e.to_node != edge.to_node
-                            || e.to_port != edge.to_port
+                for conn in &removed_connections {
+                    let from_str = conn.from().to_string();
+                    let to_strs: Vec<String> = conn.to().iter().map(ToString::to_string).collect();
+                    win.flow_definition.connections.retain(|c| {
+                        c.from().to_string() != from_str
+                            || c.to().iter().map(ToString::to_string).collect::<Vec<_>>() != to_strs
                     });
                 }
                 win.status = String::from("Redo: delete node");
             }
-            EditAction::CreateConnection { edge } => {
-                win.edges.push(edge);
+            EditAction::CreateConnection { connection } => {
+                win.flow_definition.connections.push(connection);
                 win.status = String::from("Redo: create connection");
             }
             EditAction::DeleteConnection { index, .. } => {
-                if index < win.edges.len() {
-                    win.edges.remove(index);
+                if index < win.flow_definition.connections.len() {
+                    win.flow_definition.connections.remove(index);
                 }
                 win.status = String::from("Redo: delete connection");
             }
@@ -403,7 +405,7 @@ mod test {
         history.record(EditAction::DeleteNode {
             index: 0,
             node: node.clone(),
-            removed_edges: vec![],
+            removed_connections: vec![],
         });
         let action = history.undo().expect("Should have action");
         match action {
@@ -417,14 +419,20 @@ mod test {
 
     #[test]
     fn create_connection_roundtrip() {
+        use crate::canvas_view::split_route;
         let mut history = EditHistory::default();
-        let edge = EdgeLayout::new("a".into(), "out".into(), "b".into(), "in".into());
-        history.record(EditAction::CreateConnection { edge: edge.clone() });
+        let connection = Connection::new("a/out", "b/in");
+        history.record(EditAction::CreateConnection {
+            connection: connection.clone(),
+        });
         let action = history.undo().expect("Should have action");
         match action {
-            EditAction::CreateConnection { edge: e } => {
-                assert_eq!(e.from_node, "a");
-                assert_eq!(e.to_node, "b");
+            EditAction::CreateConnection { connection: c } => {
+                let (from_node, _) = split_route(c.from().as_ref());
+                let (to_node, _) =
+                    split_route(c.to().first().expect("should have to route").as_ref());
+                assert_eq!(from_node, "a");
+                assert_eq!(to_node, "b");
             }
             _ => panic!("Expected CreateConnection"),
         }
@@ -487,7 +495,6 @@ mod test {
 
         WindowState {
             nodes,
-            edges: Vec::new(),
             flow_definition: flow,
             is_root: true,
             ..Default::default()
@@ -603,7 +610,7 @@ mod test {
             EditAction::DeleteNode {
                 index: 0,
                 node: removed_node,
-                removed_edges: Vec::new(),
+                removed_connections: Vec::new(),
             },
         );
         assert_eq!(win.nodes.len(), 1);
@@ -620,46 +627,43 @@ mod test {
     #[test]
     fn undo_redo_create_connection() {
         let mut win = test_win_state();
-        let edge = EdgeLayout::new("add".into(), "out".into(), "stdout".into(), "in".into());
-        win.edges.push(edge.clone());
-        record_edit(&mut win, EditAction::CreateConnection { edge });
-        assert_eq!(win.edges.len(), 1);
+        let connection = Connection::new("add/out", "stdout/in");
+        win.flow_definition.connections.push(connection.clone());
+        record_edit(&mut win, EditAction::CreateConnection { connection });
+        assert_eq!(win.flow_definition.connections.len(), 1);
 
         // Undo removes
         handle_undo(&mut win);
-        assert_eq!(win.edges.len(), 0);
+        assert_eq!(win.flow_definition.connections.len(), 0);
 
         // Redo re-adds
         handle_redo(&mut win);
-        assert_eq!(win.edges.len(), 1);
+        assert_eq!(win.flow_definition.connections.len(), 1);
     }
 
     #[test]
     fn undo_redo_delete_connection() {
         let mut win = test_win_state();
-        win.edges.push(EdgeLayout::new(
-            "add".into(),
-            "out".into(),
-            "stdout".into(),
-            "in".into(),
-        ));
-        let removed_edge = win.edges.remove(0);
+        win.flow_definition
+            .connections
+            .push(Connection::new("add/out", "stdout/in"));
+        let removed_conn = win.flow_definition.connections.remove(0);
         record_edit(
             &mut win,
             EditAction::DeleteConnection {
                 index: 0,
-                edge: removed_edge,
+                connection: removed_conn,
             },
         );
-        assert_eq!(win.edges.len(), 0);
+        assert_eq!(win.flow_definition.connections.len(), 0);
 
         // Undo restores
         handle_undo(&mut win);
-        assert_eq!(win.edges.len(), 1);
+        assert_eq!(win.flow_definition.connections.len(), 1);
 
         // Redo removes again
         handle_redo(&mut win);
-        assert_eq!(win.edges.len(), 0);
+        assert_eq!(win.flow_definition.connections.len(), 0);
     }
 
     #[test]

@@ -202,7 +202,7 @@ pub(crate) fn add_library_function(win: &mut WindowState, source: &str, func_nam
         EditAction::DeleteNode {
             index,
             node,
-            removed_edges: Vec::new(),
+            removed_connections: Vec::new(),
         },
     );
     // Note: We record a DeleteNode so that *undo* removes the added node.
@@ -275,7 +275,6 @@ mod test {
                 test_node("add", "lib://flowstdlib/math/add"),
                 test_node("stdout", "context://stdio/stdout"),
             ],
-            edges: Vec::new(),
             canvas_state: FlowCanvasState::default(),
             status: String::new(),
             selected_node: None,

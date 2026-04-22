@@ -9,9 +9,7 @@ use simpath::Simpath;
 use url::Url;
 
 use crate::canvas_view::FlowCanvasState;
-use crate::canvas_view::{
-    build_edge_layouts, build_node_layouts, EdgeLayout, NodeLayout, PortInfo,
-};
+use crate::canvas_view::{build_node_layouts, NodeLayout, PortInfo};
 use crate::history::EditHistory;
 use crate::initializer;
 use crate::{FunctionViewer, WindowState};
@@ -24,7 +22,6 @@ use flowcore::model::process::Process;
 /// Result of loading a flow definition file.
 pub(crate) struct LoadedFlow {
     pub(crate) nodes: Vec<NodeLayout>,
-    pub(crate) edges: Vec<EdgeLayout>,
     pub(crate) flow_def: FlowDefinition,
     pub(crate) lib_references: BTreeSet<Url>,
     pub(crate) context_references: BTreeSet<Url>,
@@ -41,7 +38,7 @@ pub(crate) struct EditorPrefs {
 /// Save the current flow to the given path.
 pub(crate) fn perform_save(win: &mut WindowState, path: &PathBuf) {
     initializer::sync_flow_definition(win);
-    match save_flow_toml(&win.flow_definition, &win.edges, path) {
+    match save_flow_toml(&win.flow_definition, path) {
         Ok(()) => {
             win.unsaved_edits = 0;
             win.set_file_path(path);
@@ -91,9 +88,8 @@ pub(crate) fn perform_open(win: &mut WindowState) -> Option<(BTreeSet<Url>, BTre
         match load_flow(&path) {
             Ok(loaded) => {
                 let nc = loaded.nodes.len();
-                let ec = loaded.edges.len();
+                let ec = loaded.flow_def.connections.len();
                 win.nodes = loaded.nodes;
-                win.edges = loaded.edges;
                 win.flow_definition = loaded.flow_def;
                 win.set_file_path(&path);
                 win.selected_node = None;
@@ -117,7 +113,6 @@ pub(crate) fn perform_open(win: &mut WindowState) -> Option<(BTreeSet<Url>, BTre
 /// Clear the canvas and reset to an empty flow state.
 pub(crate) fn perform_new(win: &mut WindowState) {
     win.nodes = Vec::new();
-    win.edges = Vec::new();
     win.flow_definition = FlowDefinition::default();
     win.flow_definition.name = String::from("(new flow)");
     win.clear_file_path();
@@ -303,7 +298,6 @@ pub(crate) fn load_flow(path: &PathBuf) -> Result<LoadedFlow, String> {
                 resolved_ports.insert(alias.clone(), (inputs, outputs));
             }
 
-            let edges = build_edge_layouts(&flow.connections);
             let nodes = build_node_layouts(
                 &flow.process_refs,
                 &flow.connections,
@@ -314,7 +308,6 @@ pub(crate) fn load_flow(path: &PathBuf) -> Result<LoadedFlow, String> {
             let context_references = flow.context_references.clone();
             Ok(LoadedFlow {
                 nodes,
-                edges,
                 flow_def: flow,
                 lib_references,
                 context_references,
@@ -384,13 +377,7 @@ fn initializer_to_toml(init: &InputInitializer) -> String {
 /// Builds the TOML text manually to match the expected flow format
 /// (the derived `Serialize` on some flowcore types produces struct-style
 /// output that is not compatible with the flow deserializer).
-/// Connections are written from `edges` to preserve names that would be lost
-/// when roundtripping through `Connection::new`.
-pub(crate) fn save_flow_toml(
-    flow: &FlowDefinition,
-    edges: &[EdgeLayout],
-    path: &PathBuf,
-) -> Result<(), String> {
+pub(crate) fn save_flow_toml(flow: &FlowDefinition, path: &PathBuf) -> Result<(), String> {
     let mut out = String::new();
 
     // Flow name
@@ -498,24 +485,19 @@ pub(crate) fn save_flow_toml(
         }
     }
 
-    // Connections (from EdgeLayout to preserve names)
-    for edge in edges {
-        out.push_str("\n[[connection]]\n");
-        if !edge.name.is_empty() {
-            let _ = writeln!(out, "name = \"{}\"", edge.name);
+    // Connections
+    for conn in &flow.connections {
+        let _ = writeln!(out, "\n[[connection]]");
+        if !conn.name().is_empty() {
+            let _ = writeln!(out, "name = \"{}\"", conn.name());
         }
-        let from = if edge.from_port.is_empty() {
-            edge.from_node.clone()
+        let _ = writeln!(out, "from = \"{}\"", conn.from());
+        if let [single] = conn.to().as_slice() {
+            let _ = writeln!(out, "to = \"{single}\"");
         } else {
-            format!("{}/{}", edge.from_node, edge.from_port)
-        };
-        let _ = writeln!(out, "from = \"{from}\"");
-        let to = if edge.to_port.is_empty() {
-            edge.to_node.clone()
-        } else {
-            format!("{}/{}", edge.to_node, edge.to_port)
-        };
-        let _ = writeln!(out, "to = \"{to}\"");
+            let to_strs: Vec<String> = conn.to().iter().map(|r| format!("\"{r}\"")).collect();
+            let _ = writeln!(out, "to = [{}]", to_strs.join(", "));
+        }
     }
 
     std::fs::write(path, out).map_err(|e| format!("Could not write file: {e}"))
@@ -890,6 +872,8 @@ mod test {
 
     #[test]
     fn save_and_load_flow_roundtrip() {
+        use flowcore::model::connection::Connection;
+
         let dir = temp_dir("save_load");
         let path = dir.join("test.toml");
 
@@ -908,15 +892,9 @@ mod test {
             width: Some(180.0),
             height: Some(120.0),
         });
+        flow.connections.push(Connection::new("add1", "add1/i1"));
 
-        let edges = vec![EdgeLayout::new(
-            "add1".into(),
-            String::new(),
-            "add1".into(),
-            "i1".into(),
-        )];
-
-        save_flow_toml(&flow, &edges, &path).expect("save failed");
+        save_flow_toml(&flow, &path).expect("save failed");
 
         let contents = std::fs::read_to_string(&path).expect("read failed");
         assert!(contents.contains("flow = \"roundtrip_test\""));
@@ -927,7 +905,7 @@ mod test {
         let loaded = load_flow(&path).expect("load failed");
         assert_eq!(loaded.flow_def.name, "roundtrip_test");
         assert_eq!(loaded.nodes.len(), 1);
-        assert_eq!(loaded.edges.len(), 1);
+        assert_eq!(loaded.flow_def.connections.len(), 1);
         assert_eq!(loaded.flow_def.metadata.version, "1.0.0");
 
         let _ = std::fs::remove_dir_all(&dir);
@@ -944,7 +922,7 @@ mod test {
         };
         flow.metadata.description = "A test description".into();
 
-        save_flow_toml(&flow, &[], &path).expect("save failed");
+        save_flow_toml(&flow, &path).expect("save failed");
         let contents = std::fs::read_to_string(&path).expect("read failed");
         assert!(contents.contains("description = \"A test description\""));
 
@@ -962,7 +940,7 @@ mod test {
             ..FlowDefinition::default()
         };
 
-        save_flow_toml(&flow, &[], &path).expect("Could not save flow");
+        save_flow_toml(&flow, &path).expect("Could not save flow");
 
         let content = std::fs::read_to_string(&path).expect("Could not read saved file");
         assert!(content.contains("description = \"A test flow that does something\""));
@@ -994,7 +972,7 @@ mod test {
             height: Some(120.0),
         });
 
-        save_flow_toml(&flow, &[], &path).expect("save failed");
+        save_flow_toml(&flow, &path).expect("save failed");
         let contents = std::fs::read_to_string(&path).expect("read failed");
         assert!(contents.contains("input.start"));
         assert!(contents.contains("once"));
@@ -1004,6 +982,8 @@ mod test {
 
     #[test]
     fn save_flow_with_connections() {
+        use flowcore::model::connection::Connection;
+
         let dir = temp_dir("connections");
         let path = dir.join("conn.toml");
 
@@ -1030,14 +1010,9 @@ mod test {
             height: None,
         });
 
-        let edges = vec![EdgeLayout::new(
-            "a".into(),
-            "out".into(),
-            "b".into(),
-            "in".into(),
-        )];
+        flow.connections.push(Connection::new("a/out", "b/in"));
 
-        save_flow_toml(&flow, &edges, &path).expect("save failed");
+        save_flow_toml(&flow, &path).expect("save failed");
         let contents = std::fs::read_to_string(&path).expect("read failed");
         assert!(contents.contains("from = \"a/out\""));
         assert!(contents.contains("to = \"b/in\""));
@@ -1159,7 +1134,6 @@ mod test {
                 test_node("add", "lib://flowstdlib/math/add"),
                 test_node("stdout", "context://stdio/stdout"),
             ],
-            edges: Vec::new(),
             canvas_state: FlowCanvasState::default(),
             status: String::new(),
             selected_node: None,
