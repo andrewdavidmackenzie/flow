@@ -156,10 +156,10 @@ enum Message {
     FlowEdit(window::Id, FlowEditMessage),
     /// Function definition viewing/editing messages
     FunctionEdit(window::Id, FunctionEditMessage),
-    /// Create a new sub-flow and add it to the current flow
-    NewSubFlow,
-    /// Create a new provided implementation and add it to the current flow
-    NewFunction,
+    /// Create a new sub-flow and add it to the current flow (window that initiated the action)
+    NewSubFlow(window::Id),
+    /// Create a new provided implementation and add it to the current flow (window that initiated)
+    NewFunction(window::Id),
     /// A window close was requested
     CloseRequested(window::Id),
     /// A window was actually closed (cleanup stale state)
@@ -906,22 +906,37 @@ impl FlowEdit {
                             win.canvas_state.request_redraw();
                         }
                         FlowEditMessage::DeleteInput(idx) => {
-                            if idx < win.flow_inputs.len() {
+                            if let Some(port) = win.flow_inputs.get(idx) {
+                                let name = port.name.clone();
                                 win.flow_inputs.remove(idx);
+                                // Remove edges referencing this flow input
+                                win.edges
+                                    .retain(|e| !(e.from_node == "input" && e.from_port == name));
                                 win.unsaved_edits += 1;
                                 win.canvas_state.request_redraw();
                             }
                         }
                         FlowEditMessage::DeleteOutput(idx) => {
-                            if idx < win.flow_outputs.len() {
+                            if let Some(port) = win.flow_outputs.get(idx) {
+                                let name = port.name.clone();
                                 win.flow_outputs.remove(idx);
+                                // Remove edges referencing this flow output
+                                win.edges
+                                    .retain(|e| !(e.to_node == "output" && e.to_port == name));
                                 win.unsaved_edits += 1;
                                 win.canvas_state.request_redraw();
                             }
                         }
                         FlowEditMessage::InputNameChanged(idx, name) => {
                             if let Some(port) = win.flow_inputs.get_mut(idx) {
-                                port.name = name;
+                                let old_name = port.name.clone();
+                                port.name = name.clone();
+                                // Update edges referencing the old flow input name
+                                for edge in &mut win.edges {
+                                    if edge.from_node == "input" && edge.from_port == old_name {
+                                        edge.from_port = name.clone();
+                                    }
+                                }
                             }
                             win.unsaved_edits += 1;
                             win.canvas_state.request_redraw();
@@ -935,7 +950,14 @@ impl FlowEdit {
                         }
                         FlowEditMessage::OutputNameChanged(idx, name) => {
                             if let Some(port) = win.flow_outputs.get_mut(idx) {
-                                port.name = name;
+                                let old_name = port.name.clone();
+                                port.name = name.clone();
+                                // Update edges referencing the old flow output name
+                                for edge in &mut win.edges {
+                                    if edge.to_node == "output" && edge.to_port == old_name {
+                                        edge.to_port = name.clone();
+                                    }
+                                }
                             }
                             win.unsaved_edits += 1;
                             win.canvas_state.request_redraw();
@@ -950,17 +972,17 @@ impl FlowEdit {
                     }
                 }
             }
-            Message::NewSubFlow => {
+            Message::NewSubFlow(target_win_id) => {
                 for win in self.windows.values_mut() {
                     win.context_menu = None;
                 }
-                return self.create_new_subflow();
+                return self.create_new_subflow(target_win_id);
             }
-            Message::NewFunction => {
+            Message::NewFunction(target_win_id) => {
                 for win in self.windows.values_mut() {
                     win.context_menu = None;
                 }
-                return self.create_new_function();
+                return self.create_new_function(target_win_id);
             }
             Message::InitializerTypeChanged(win_id, new_type) => {
                 if let Some(win) = self.windows.get_mut(&win_id) {
@@ -1089,6 +1111,7 @@ impl FlowEdit {
                             }
                             win.unsaved_edits += 1;
                         }
+                        Self::propagate_function_ports(&mut self.windows, &win_id);
                     }
                     FunctionEditMessage::AddOutput => {
                         if let Some(win) = self.windows.get_mut(&win_id) {
@@ -1100,6 +1123,7 @@ impl FlowEdit {
                             }
                             win.unsaved_edits += 1;
                         }
+                        Self::propagate_function_ports(&mut self.windows, &win_id);
                     }
                     FunctionEditMessage::DeleteInput(idx) => {
                         if let Some(win) = self.windows.get_mut(&win_id) {
@@ -1110,6 +1134,7 @@ impl FlowEdit {
                             }
                             win.unsaved_edits += 1;
                         }
+                        Self::propagate_function_ports(&mut self.windows, &win_id);
                     }
                     FunctionEditMessage::DeleteOutput(idx) => {
                         if let Some(win) = self.windows.get_mut(&win_id) {
@@ -1120,6 +1145,7 @@ impl FlowEdit {
                             }
                             win.unsaved_edits += 1;
                         }
+                        Self::propagate_function_ports(&mut self.windows, &win_id);
                     }
                     FunctionEditMessage::InputNameChanged(idx, name) => {
                         if let Some(win) = self.windows.get_mut(&win_id) {
@@ -1130,6 +1156,7 @@ impl FlowEdit {
                             }
                             win.unsaved_edits += 1;
                         }
+                        Self::propagate_function_ports(&mut self.windows, &win_id);
                     }
                     FunctionEditMessage::InputTypeChanged(idx, dtype) => {
                         if let Some(win) = self.windows.get_mut(&win_id) {
@@ -1140,6 +1167,7 @@ impl FlowEdit {
                             }
                             win.unsaved_edits += 1;
                         }
+                        Self::propagate_function_ports(&mut self.windows, &win_id);
                     }
                     FunctionEditMessage::OutputNameChanged(idx, name) => {
                         if let Some(win) = self.windows.get_mut(&win_id) {
@@ -1150,6 +1178,7 @@ impl FlowEdit {
                             }
                             win.unsaved_edits += 1;
                         }
+                        Self::propagate_function_ports(&mut self.windows, &win_id);
                     }
                     FunctionEditMessage::OutputTypeChanged(idx, dtype) => {
                         if let Some(win) = self.windows.get_mut(&win_id) {
@@ -1160,6 +1189,7 @@ impl FlowEdit {
                             }
                             win.unsaved_edits += 1;
                         }
+                        Self::propagate_function_ports(&mut self.windows, &win_id);
                     }
                     FunctionEditMessage::Save => {
                         if let Some(win) = self.windows.get_mut(&win_id) {
@@ -1344,12 +1374,12 @@ impl FlowEdit {
             }
 
             let new_subflow_btn = button(Text::new("+ Sub-flow").size(btn_size).center())
-                .on_press(Message::NewSubFlow)
+                .on_press(Message::NewSubFlow(window_id))
                 .style(toolbar_btn)
                 .padding(btn_pad);
 
             let new_func_btn = button(Text::new("+ Function").size(btn_size).center())
-                .on_press(Message::NewFunction)
+                .on_press(Message::NewFunction(window_id))
                 .style(toolbar_btn)
                 .padding(btn_pad);
 
@@ -2280,21 +2310,26 @@ impl FlowEdit {
         open_task.discard()
     }
 
-    fn create_new_subflow(&mut self) -> Task<Message> {
-        let Some(root_id) = self.root_window else {
+    fn create_new_subflow(&mut self, target_id: window::Id) -> Task<Message> {
+        // Use the target window (where the action was triggered) for adding the node
+        let target_id = if self.windows.contains_key(&target_id) {
+            target_id
+        } else if let Some(root_id) = self.root_window {
+            root_id
+        } else {
             return Task::none();
         };
 
         // Get the parent flow's directory for relative path resolution
         let base_dir = self
             .windows
-            .get(&root_id)
+            .get(&target_id)
             .and_then(|w| w.file_path.as_ref())
             .and_then(|p| p.parent())
             .map(Path::to_path_buf);
 
         let Some(base) = base_dir else {
-            if let Some(win) = self.windows.get_mut(&root_id) {
+            if let Some(win) = self.windows.get_mut(&target_id) {
                 win.status = String::from("Save the flow first before creating a sub-flow");
             }
             return Task::none();
@@ -2325,7 +2360,7 @@ impl FlowEdit {
         // Write the initial TOML file
         let toml = format!("flow = \"{flow_name}\"\n");
         if let Err(e) = std::fs::write(&path, &toml) {
-            if let Some(win) = self.windows.get_mut(&root_id) {
+            if let Some(win) = self.windows.get_mut(&target_id) {
                 win.status = format!("Could not create sub-flow: {e}");
             }
             return Task::none();
@@ -2339,8 +2374,8 @@ impl FlowEdit {
         // Strip .toml extension for the source reference
         let source = source.strip_suffix(".toml").unwrap_or(&source).to_string();
 
-        // Add a process reference in the parent flow
-        if let Some(win) = self.windows.get_mut(&root_id) {
+        // Add a process reference in the target flow
+        if let Some(win) = self.windows.get_mut(&target_id) {
             let alias = flow_io::generate_unique_alias(&flow_name, &win.nodes);
             let (x, y) = flow_io::next_node_position(&win.nodes);
 
@@ -2406,20 +2441,25 @@ impl FlowEdit {
         open_task.discard()
     }
 
-    fn create_new_function(&mut self) -> Task<Message> {
-        let Some(root_id) = self.root_window else {
+    fn create_new_function(&mut self, target_id: window::Id) -> Task<Message> {
+        // Use the target window (where the action was triggered) for adding the node
+        let target_id = if self.windows.contains_key(&target_id) {
+            target_id
+        } else if let Some(root_id) = self.root_window {
+            root_id
+        } else {
             return Task::none();
         };
 
         let base_dir = self
             .windows
-            .get(&root_id)
+            .get(&target_id)
             .and_then(|w| w.file_path.as_ref())
             .and_then(|p| p.parent())
             .map(Path::to_path_buf);
 
         let Some(base) = base_dir else {
-            if let Some(win) = self.windows.get_mut(&root_id) {
+            if let Some(win) = self.windows.get_mut(&target_id) {
                 win.status = String::from("Save the flow first before creating a function");
             }
             return Task::none();
@@ -2449,8 +2489,8 @@ impl FlowEdit {
             .unwrap_or_else(|_| path.to_string_lossy().to_string());
         let source = source.strip_suffix(".toml").unwrap_or(&source).to_string();
 
-        // Add process reference in the parent flow
-        if let Some(win) = self.windows.get_mut(&root_id) {
+        // Add process reference in the target flow
+        if let Some(win) = self.windows.get_mut(&target_id) {
             let alias = flow_io::generate_unique_alias(&func_name, &win.nodes);
             let (x, y) = flow_io::next_node_position(&win.nodes);
 
@@ -2494,7 +2534,7 @@ impl FlowEdit {
             docs_content: None,
             active_tab: 0,
             toml_path: path.clone(),
-            parent_window: Some(root_id),
+            parent_window: Some(target_id),
             node_source: rs_filename,
             read_only: false,
         };
@@ -2529,5 +2569,41 @@ impl FlowEdit {
 
         self.windows.insert(new_id, child);
         open_task.discard()
+    }
+
+    /// Propagate the current function viewer's ports (inputs/outputs) to matching
+    /// nodes in the parent canvas window. This keeps the parent canvas node's port
+    /// display in sync when ports are added, deleted, or renamed in the function viewer.
+    fn propagate_function_ports(
+        windows: &mut HashMap<window::Id, WindowState>,
+        viewer_win_id: &window::Id,
+    ) {
+        // Extract parent info and current ports from the viewer window
+        let propagation_data = windows.get(viewer_win_id).and_then(|win| {
+            if let WindowKind::FunctionViewer(ref viewer) = win.kind {
+                viewer.parent_window.map(|pid| {
+                    (
+                        pid,
+                        viewer.node_source.clone(),
+                        viewer.inputs.clone(),
+                        viewer.outputs.clone(),
+                    )
+                })
+            } else {
+                None
+            }
+        });
+
+        if let Some((parent_id, node_source, new_inputs, new_outputs)) = propagation_data {
+            if let Some(parent_win) = windows.get_mut(&parent_id) {
+                for node in &mut parent_win.nodes {
+                    if node.source == node_source {
+                        node.inputs = new_inputs.clone();
+                        node.outputs = new_outputs.clone();
+                    }
+                }
+                parent_win.canvas_state.request_redraw();
+            }
+        }
     }
 }

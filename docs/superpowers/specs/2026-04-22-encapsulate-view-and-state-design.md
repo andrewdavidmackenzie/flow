@@ -13,8 +13,9 @@ sub-enums to group related messages.
    `view()` into `canvas_view.rs` as a `view_canvas_area()` method
 2. Move metadata editor panel rendering into a helper
 3. Move status bar/toolbar rendering into a helper
-4. Create message sub-enums: `FlowEditMessage`, `FunctionEditMessage`,
-   `InitializerMessage` to group related variants
+4. Create message sub-enums: `FlowEditMessage` and `FunctionEditMessage`
+   to group related variants (initializer messages remain as top-level
+   `Message` variants since they are already routed with window IDs)
 5. Move their handlers into the appropriate modules
 
 ## Canvas View Encapsulation

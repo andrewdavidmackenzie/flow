@@ -3067,14 +3067,14 @@ pub(crate) fn view_canvas_area<'a>(
                 .spacing(2)
                 .push(
                     button(Text::new("+ New Sub-flow").size(13))
-                        .on_press(Message::NewSubFlow)
+                        .on_press(Message::NewSubFlow(window_id))
                         .style(button::text)
                         .padding([6, 16])
                         .width(Fill),
                 )
                 .push(
                     button(Text::new("+ New Function").size(13))
-                        .on_press(Message::NewFunction)
+                        .on_press(Message::NewFunction(window_id))
                         .style(button::text)
                         .padding([6, 16])
                         .width(Fill),
