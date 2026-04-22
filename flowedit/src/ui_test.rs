@@ -1458,6 +1458,230 @@ fn undo_redo_resize_node() {
     }
 }
 
+// ---- Group 11: PR #2599 Coverage — Flow I/O Delete & Rename with Edges ----
+
+#[test]
+fn flow_delete_input_removes_edges() {
+    let (mut app, win_id) = test_app();
+    // Add a flow input
+    let _ = app.update(Message::FlowEdit(win_id, FlowEditMessage::AddInput));
+    // Add an edge referencing "input" node
+    if let Some(win) = app.windows.get_mut(&win_id) {
+        win.edges.push(EdgeLayout::new(
+            "input".into(),
+            "input0".into(),
+            "add".into(),
+            "".into(),
+        ));
+    }
+    assert_eq!(app.windows.get(&win_id).map_or(0, |w| w.edges.len()), 1);
+    // Delete the input — edge should be removed
+    let _ = app.update(Message::FlowEdit(win_id, FlowEditMessage::DeleteInput(0)));
+    assert_eq!(
+        app.windows.get(&win_id).map_or(0, |w| w.edges.len()),
+        0,
+        "Edge should be removed when flow input is deleted"
+    );
+}
+
+#[test]
+fn flow_delete_output_removes_edges() {
+    let (mut app, win_id) = test_app();
+    // Add a flow output
+    let _ = app.update(Message::FlowEdit(win_id, FlowEditMessage::AddOutput));
+    // Add an edge referencing "output" node
+    if let Some(win) = app.windows.get_mut(&win_id) {
+        win.edges.push(EdgeLayout::new(
+            "add".into(),
+            "".into(),
+            "output".into(),
+            "output0".into(),
+        ));
+    }
+    assert_eq!(app.windows.get(&win_id).map_or(0, |w| w.edges.len()), 1);
+    // Delete the output — edge should be removed
+    let _ = app.update(Message::FlowEdit(win_id, FlowEditMessage::DeleteOutput(0)));
+    assert_eq!(
+        app.windows.get(&win_id).map_or(0, |w| w.edges.len()),
+        0,
+        "Edge should be removed when flow output is deleted"
+    );
+}
+
+#[test]
+fn flow_input_rename_updates_edges() {
+    let (mut app, win_id) = test_app();
+    let _ = app.update(Message::FlowEdit(win_id, FlowEditMessage::AddInput));
+    if let Some(win) = app.windows.get_mut(&win_id) {
+        win.edges.push(EdgeLayout::new(
+            "input".into(),
+            "input0".into(),
+            "add".into(),
+            "".into(),
+        ));
+    }
+    let _ = app.update(Message::FlowEdit(
+        win_id,
+        FlowEditMessage::InputNameChanged(0, "data".into()),
+    ));
+    // Edge should now reference "data" instead of "input0"
+    let edge_port = app
+        .windows
+        .get(&win_id)
+        .and_then(|w| w.edges.first())
+        .map(|e| e.from_port.clone());
+    assert_eq!(edge_port, Some("data".into()));
+}
+
+#[test]
+fn flow_output_rename_updates_edges() {
+    let (mut app, win_id) = test_app();
+    let _ = app.update(Message::FlowEdit(win_id, FlowEditMessage::AddOutput));
+    if let Some(win) = app.windows.get_mut(&win_id) {
+        win.edges.push(EdgeLayout::new(
+            "add".into(),
+            "".into(),
+            "output".into(),
+            "output0".into(),
+        ));
+    }
+    let _ = app.update(Message::FlowEdit(
+        win_id,
+        FlowEditMessage::OutputNameChanged(0, "result".into()),
+    ));
+    // Edge should now reference "result" instead of "output0"
+    let edge_port = app
+        .windows
+        .get(&win_id)
+        .and_then(|w| w.edges.first())
+        .map(|e| e.to_port.clone());
+    assert_eq!(edge_port, Some("result".into()));
+}
+
+// ---- Group 12: PR #2599 Coverage — NewSubFlow and NewFunction with window_id ----
+
+#[test]
+fn new_subflow_clears_context_menu() {
+    let (mut app, win_id) = test_app();
+    if let Some(win) = app.windows.get_mut(&win_id) {
+        win.context_menu = Some((100.0, 200.0));
+    }
+    let _ = app.update(Message::NewSubFlow(win_id));
+    assert!(
+        app.windows
+            .get(&win_id)
+            .and_then(|w| w.context_menu)
+            .is_none(),
+        "NewSubFlow should clear context menu"
+    );
+}
+
+#[test]
+fn new_function_clears_context_menu() {
+    let (mut app, win_id) = test_app();
+    if let Some(win) = app.windows.get_mut(&win_id) {
+        win.context_menu = Some((100.0, 200.0));
+    }
+    let _ = app.update(Message::NewFunction(win_id));
+    assert!(
+        app.windows
+            .get(&win_id)
+            .and_then(|w| w.context_menu)
+            .is_none(),
+        "NewFunction should clear context menu"
+    );
+}
+
+// ---- Group 13: PR #2599 Coverage — FlowEditMessage sub-enum routing ----
+
+#[test]
+fn flow_edit_toggle_metadata() {
+    let (mut app, win_id) = test_app();
+    assert!(!app.windows.get(&win_id).map_or(true, |w| w.show_metadata));
+    let _ = app.update(Message::FlowEdit(win_id, FlowEditMessage::ToggleMetadata));
+    assert!(app.windows.get(&win_id).map_or(false, |w| w.show_metadata));
+}
+
+#[test]
+fn flow_edit_add_delete_output() {
+    let (mut app, win_id) = test_app();
+    let _ = app.update(Message::FlowEdit(win_id, FlowEditMessage::AddOutput));
+    assert_eq!(
+        app.windows.get(&win_id).map_or(0, |w| w.flow_outputs.len()),
+        1
+    );
+    let _ = app.update(Message::FlowEdit(win_id, FlowEditMessage::DeleteOutput(0)));
+    assert_eq!(
+        app.windows.get(&win_id).map_or(0, |w| w.flow_outputs.len()),
+        0
+    );
+}
+
+#[test]
+fn flow_edit_input_type_changed() {
+    let (mut app, win_id) = test_app();
+    let _ = app.update(Message::FlowEdit(win_id, FlowEditMessage::AddInput));
+    let _ = app.update(Message::FlowEdit(
+        win_id,
+        FlowEditMessage::InputTypeChanged(0, "number".into()),
+    ));
+    let dtype = app
+        .windows
+        .get(&win_id)
+        .and_then(|w| w.flow_inputs.first())
+        .and_then(|p| p.datatypes.first())
+        .map(|s| s.as_str());
+    assert_eq!(dtype, Some("number"));
+}
+
+#[test]
+fn flow_edit_output_type_changed() {
+    let (mut app, win_id) = test_app();
+    let _ = app.update(Message::FlowEdit(win_id, FlowEditMessage::AddOutput));
+    let _ = app.update(Message::FlowEdit(
+        win_id,
+        FlowEditMessage::OutputTypeChanged(0, "boolean".into()),
+    ));
+    let dtype = app
+        .windows
+        .get(&win_id)
+        .and_then(|w| w.flow_outputs.first())
+        .and_then(|p| p.datatypes.first())
+        .map(|s| s.as_str());
+    assert_eq!(dtype, Some("boolean"));
+}
+
+// ---- Group 14: PR #2599 Coverage — FunctionEditMessage sub-enum routing ----
+
+#[test]
+fn function_edit_add_input_no_panic_without_viewer() {
+    let (mut app, win_id) = test_app();
+    // No FunctionViewer window exists, so this should be a no-op
+    let _ = app.update(Message::FunctionEdit(win_id, FunctionEditMessage::AddInput));
+    // Should not panic (no FunctionViewer window, so no-op)
+}
+
+#[test]
+fn function_edit_add_output_no_panic_without_viewer() {
+    let (mut app, win_id) = test_app();
+    // No FunctionViewer window exists, so this should be a no-op
+    let _ = app.update(Message::FunctionEdit(
+        win_id,
+        FunctionEditMessage::AddOutput,
+    ));
+    // Should not panic
+}
+
+#[test]
+fn function_edit_name_changed_no_panic_without_viewer() {
+    let (mut app, win_id) = test_app();
+    let _ = app.update(Message::FunctionEdit(
+        win_id,
+        FunctionEditMessage::NameChanged("test_func".into()),
+    ));
+    // Should not panic
+}
+
 #[test]
 fn undo_redo_delete_node() {
     let (mut app, win_id) = test_app();
