@@ -196,8 +196,6 @@ struct FlowEdit {
     focused_window: Option<window::Id>,
     /// Library panel tree for process discovery
     library_tree: LibraryTree,
-    /// Path to the root flow file (for rebuilding hierarchy)
-    root_flow_path: Option<PathBuf>,
     show_lib_paths: bool,
     lib_paths: Vec<String>,
     /// Cached library manifests, keyed by library root URL (e.g., `lib://flowstdlib`)
@@ -213,7 +211,6 @@ impl Default for FlowEdit {
             root_window: None,
             focused_window: None,
             library_tree: LibraryTree { libraries: vec![] },
-            root_flow_path: None,
             show_lib_paths: false,
             lib_paths: Vec::new(),
             library_cache: HashMap::new(),
@@ -364,8 +361,7 @@ impl FlowEdit {
             ..Default::default()
         });
 
-        let root_flow_path = file_path;
-        let flow_hierarchy = root_flow_path
+        let flow_hierarchy = file_path
             .as_ref()
             .map_or_else(FlowHierarchy::empty, |p| FlowHierarchy::build(p));
 
@@ -402,7 +398,6 @@ impl FlowEdit {
             root_window: Some(root_id),
             focused_window: Some(root_id),
             library_tree,
-            root_flow_path,
             show_lib_paths: false,
             lib_paths,
             library_cache,
@@ -680,7 +675,6 @@ impl FlowEdit {
                 if let Some(root_id) = self.root_window {
                     if let Some(win) = self.windows.get_mut(&root_id) {
                         if let Some((lib_refs, _ctx_refs)) = flow_io::perform_open(win) {
-                            self.root_flow_path = win.file_path();
                             win.flow_hierarchy = win
                                 .file_path()
                                 .as_ref()
@@ -1975,8 +1969,14 @@ impl FlowEdit {
         self.library_tree = LibraryTree::from_cache(&self.library_cache, &self.all_definitions);
     }
 
+    fn root_flow_path(&self) -> Option<PathBuf> {
+        self.root_window
+            .and_then(|id| self.windows.get(&id))
+            .and_then(WindowState::file_path)
+    }
+
     fn build_hierarchy(&self) -> FlowHierarchy {
-        self.root_flow_path
+        self.root_flow_path()
             .as_ref()
             .map_or_else(FlowHierarchy::empty, |p| FlowHierarchy::build(p))
     }
