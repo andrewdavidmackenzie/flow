@@ -552,56 +552,65 @@ pub(crate) fn format_endpoint(node: &str, port: &str) -> String {
 
 /// Save a function definition to disk (TOML, skeleton .rs, and function.toml).
 pub(crate) fn save_function_definition(viewer: &FunctionViewer) -> Result<(), String> {
-    let dir = viewer
-        .toml_path
+    let toml_path = viewer
+        .toml_path()
+        .ok_or_else(|| "Invalid source URL".to_string())?;
+    let dir = toml_path
         .parent()
         .ok_or_else(|| "Invalid path".to_string())?;
     std::fs::create_dir_all(dir).map_err(|e| format!("Could not create directory: {e}"))?;
 
+    let func = &viewer.func_def;
+
     // 1. Write the function definition TOML
     let mut toml = format!(
         "function = \"{}\"\nsource = \"{}\"\ntype = \"rust\"\n",
-        escape_toml_string(&viewer.name),
-        escape_toml_string(&viewer.source_file)
+        escape_toml_string(&func.name),
+        escape_toml_string(&func.source)
     );
-    if !viewer.description.is_empty() {
+    if !func.description.is_empty() {
         let _ = writeln!(
             toml,
             "description = \"{}\"",
-            escape_toml_string(&viewer.description)
+            escape_toml_string(&func.description)
         );
     }
-    for input in &viewer.inputs {
-        let dtype = input.datatypes.first().map_or("", String::as_str);
-        if input.name.is_empty() || input.name == "input" || input.name == "name" {
+    for input in &func.inputs {
+        let dtype = input
+            .datatypes()
+            .first()
+            .map(ToString::to_string)
+            .unwrap_or_default();
+        let name = input.name();
+        if name.is_empty() || name == "input" || name == "name" {
             let _ = write!(toml, "\n[[input]]\ntype = \"{dtype}\"\n");
         } else {
-            let _ = write!(
-                toml,
-                "\n[[input]]\nname = \"{}\"\ntype = \"{dtype}\"\n",
-                input.name
-            );
+            let _ = write!(toml, "\n[[input]]\nname = \"{name}\"\ntype = \"{dtype}\"\n");
         }
     }
-    for output in &viewer.outputs {
-        let dtype = output.datatypes.first().map_or("", String::as_str);
-        if output.name.is_empty() || output.name == "output" || output.name == "name" {
+    for output in &func.outputs {
+        let dtype = output
+            .datatypes()
+            .first()
+            .map(ToString::to_string)
+            .unwrap_or_default();
+        let name = output.name();
+        if name.is_empty() || name == "output" || name == "name" {
             let _ = write!(toml, "\n[[output]]\ntype = \"{dtype}\"\n");
         } else {
             let _ = write!(
                 toml,
-                "\n[[output]]\nname = \"{}\"\ntype = \"{dtype}\"\n",
-                output.name
+                "\n[[output]]\nname = \"{name}\"\ntype = \"{dtype}\"\n"
             );
         }
     }
-    std::fs::write(&viewer.toml_path, &toml)
-        .map_err(|e| format!("Could not write {}: {e}", viewer.toml_path.display()))?;
+    std::fs::write(&toml_path, &toml)
+        .map_err(|e| format!("Could not write {}: {e}", toml_path.display()))?;
 
     // 2. Generate skeleton .rs if it doesn't exist
-    let rs_path = dir.join(&viewer.source_file);
+    let rs_path = dir.join(&func.source);
     if !rs_path.exists() {
-        let input_count = viewer.inputs.len();
+        let input_count = func.inputs.len();
         let input_bindings = (0..input_count).fold(String::new(), |mut acc, i| {
             use std::fmt::Write;
             let _ = writeln!(acc, "    let _input{i} = &inputs[{i}];");
@@ -619,7 +628,7 @@ pub(crate) fn save_function_definition(viewer: &FunctionViewer) -> Result<(), St
              \n    // TODO: implement function logic\n\
              \n    Ok((None, RUN_AGAIN))\n\
              }}\n",
-            name = viewer.name,
+            name = func.name,
         );
         std::fs::write(&rs_path, &skeleton)
             .map_err(|e| format!("Could not write {}: {e}", rs_path.display()))?;
@@ -628,10 +637,7 @@ pub(crate) fn save_function_definition(viewer: &FunctionViewer) -> Result<(), St
     // 3. Generate function.toml (Cargo manifest) if it doesn't exist
     let cargo_path = dir.join("function.toml");
     if !cargo_path.exists() {
-        let stem = viewer
-            .source_file
-            .strip_suffix(".rs")
-            .unwrap_or(&viewer.source_file);
+        let stem = func.source.strip_suffix(".rs").unwrap_or(&func.source);
         let cargo = format!(
             "[package]\n\
              name = \"{name}\"\n\
@@ -647,7 +653,7 @@ pub(crate) fn save_function_definition(viewer: &FunctionViewer) -> Result<(), St
              flowcore = {{version = \"0\"}}\n\
              flowmacro = {{version = \"0\"}}\n\
              serde_json = {{version = \"1.0\", default-features = false}}\n",
-            name = escape_toml_string(&viewer.name),
+            name = escape_toml_string(&func.name),
             source = escape_toml_string(stem),
         );
         std::fs::write(&cargo_path, &cargo)
@@ -717,7 +723,11 @@ pub(crate) fn load_editor_prefs(flow_path: &Path) -> Option<EditorPrefs> {
 mod test {
     use super::*;
 
+    use flowcore::model::datatype::DataType;
+    use flowcore::model::function_definition::FunctionDefinition;
+    use flowcore::model::io::IO;
     use flowcore::model::process_reference::ProcessReference;
+    use flowcore::model::route::Route;
 
     use crate::canvas_view::FlowCanvasState;
     use crate::hierarchy_panel::FlowHierarchy;
@@ -1050,22 +1060,28 @@ mod test {
         let dir = temp_dir("func_def");
         let toml_path = dir.join("myfunc.toml");
 
+        let mut func_def = FunctionDefinition::default();
+        func_def.name = "myfunc".into();
+        func_def.source = "myfunc.rs".into();
+        func_def.inputs.push(IO::new_named(
+            vec![DataType::from("string")],
+            Route::default(),
+            "data",
+        ));
+        func_def.outputs.push(IO::new_named(
+            vec![DataType::from("number")],
+            Route::default(),
+            "result",
+        ));
+        if let Ok(url) = url::Url::from_file_path(&toml_path) {
+            func_def.source_url = url;
+        }
+
         let viewer = FunctionViewer {
-            name: "myfunc".into(),
-            description: String::new(),
-            source_file: "myfunc.rs".into(),
-            inputs: vec![PortInfo {
-                name: "data".into(),
-                datatypes: vec!["string".into()],
-            }],
-            outputs: vec![PortInfo {
-                name: "result".into(),
-                datatypes: vec!["number".into()],
-            }],
+            func_def,
             rs_content: String::new(),
             docs_content: None,
             active_tab: 0,
-            toml_path: toml_path.clone(),
             parent_window: None,
             node_source: String::new(),
             read_only: false,
@@ -1108,16 +1124,18 @@ mod test {
         // Create existing .rs
         std::fs::write(&rs_path, "// existing code").expect("write rs");
 
+        let mut func_def = FunctionDefinition::default();
+        func_def.name = "existing".into();
+        func_def.source = "existing.rs".into();
+        if let Ok(url) = url::Url::from_file_path(&toml_path) {
+            func_def.source_url = url;
+        }
+
         let viewer = FunctionViewer {
-            name: "existing".into(),
-            description: String::new(),
-            source_file: "existing.rs".into(),
-            inputs: Vec::new(),
-            outputs: Vec::new(),
+            func_def,
             rs_content: String::new(),
             docs_content: None,
             active_tab: 0,
-            toml_path,
             parent_window: None,
             node_source: String::new(),
             read_only: false,

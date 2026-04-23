@@ -6,8 +6,9 @@ use iced::window;
 use url::Url;
 
 use flowcore::model::flow_definition::FlowDefinition;
+use flowcore::model::function_definition::FunctionDefinition;
 
-use crate::canvas_view::{FlowCanvasState, PortInfo};
+use crate::canvas_view::FlowCanvasState;
 use crate::hierarchy_panel::FlowHierarchy;
 use crate::history;
 use crate::history::EditHistory;
@@ -26,21 +27,24 @@ pub(crate) struct InitializerEditor {
 
 /// State for a function definition viewer/editor window.
 pub(crate) struct FunctionViewer {
-    pub(crate) name: String,
-    pub(crate) description: String,
-    pub(crate) source_file: String,
-    pub(crate) inputs: Vec<PortInfo>,
-    pub(crate) outputs: Vec<PortInfo>,
+    /// The canonical function definition (owns name, description, source, inputs, outputs, source_url)
+    pub(crate) func_def: FunctionDefinition,
     pub(crate) rs_content: String,
     pub(crate) docs_content: Option<String>,
     pub(crate) active_tab: usize,
-    pub(crate) toml_path: PathBuf,
     /// Parent window that opened this viewer (for propagating edits back to canvas)
     pub(crate) parent_window: Option<window::Id>,
     /// Source string of the node this viewer is editing (to find the `NodeLayout`)
     pub(crate) node_source: String,
     /// Whether this viewer is read-only (library/context functions cannot be edited)
     pub(crate) read_only: bool,
+}
+
+impl FunctionViewer {
+    /// Derive the TOML file path from the function definition's source URL.
+    pub(crate) fn toml_path(&self) -> Option<PathBuf> {
+        self.func_def.source_url.to_file_path().ok()
+    }
 }
 
 /// What kind of content a window displays.

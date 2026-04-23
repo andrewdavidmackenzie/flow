@@ -30,6 +30,7 @@ use flowcore::deserializers::deserializer::get;
 use flowcore::meta_provider::MetaProvider;
 use flowcore::model::datatype::DataType;
 use flowcore::model::flow_definition::FlowDefinition;
+use flowcore::model::function_definition::FunctionDefinition;
 use flowcore::model::io::{IOType, IO};
 use flowcore::model::lib_manifest::LibraryManifest;
 use flowcore::model::name::HasName;
@@ -38,7 +39,7 @@ use flowcore::model::process_reference::ProcessReference;
 use flowcore::model::route::Route;
 use flowcore::provider::Provider;
 
-use canvas_view::{CanvasMessage, FlowCanvasState, PortInfo};
+use canvas_view::{CanvasMessage, FlowCanvasState};
 use hierarchy_panel::{FlowHierarchy, HierarchyMessage};
 use history::EditHistory;
 use library_panel::{LibraryAction, LibraryMessage, LibraryTree};
@@ -942,7 +943,7 @@ impl FlowEdit {
                     FunctionEditMessage::NameChanged(new_name) => {
                         if let Some(win) = self.windows.get_mut(&win_id) {
                             if let WindowKind::FunctionViewer(ref mut viewer) = win.kind {
-                                viewer.name = new_name;
+                                viewer.func_def.name = new_name;
                             }
                             win.unsaved_edits += 1;
                         }
@@ -960,7 +961,7 @@ impl FlowEdit {
                         });
                         if let Some(win) = self.windows.get_mut(&win_id) {
                             if let WindowKind::FunctionViewer(ref mut viewer) = win.kind {
-                                viewer.description.clone_from(&new_desc);
+                                viewer.func_def.description.clone_from(&new_desc);
                             }
                             win.unsaved_edits += 1;
                         }
@@ -998,12 +999,17 @@ impl FlowEdit {
                         if let Some(selected) = dialog.pick_file() {
                             if let Some(win) = self.windows.get_mut(&win_id) {
                                 if let WindowKind::FunctionViewer(ref mut viewer) = win.kind {
-                                    let base = viewer.toml_path.parent().unwrap_or(Path::new("."));
-                                    let rel = selected.strip_prefix(base).map_or_else(
+                                    let base = viewer
+                                        .toml_path()
+                                        .as_deref()
+                                        .and_then(Path::parent)
+                                        .unwrap_or(Path::new("."))
+                                        .to_path_buf();
+                                    let rel = selected.strip_prefix(&base).map_or_else(
                                         |_| selected.to_string_lossy().to_string(),
                                         |p| p.to_string_lossy().to_string(),
                                     );
-                                    viewer.source_file = rel;
+                                    viewer.func_def.source = rel;
                                     viewer.rs_content = std::fs::read_to_string(&selected)
                                         .unwrap_or_else(|_| String::from("// Could not read file"));
                                 }
@@ -1014,10 +1020,12 @@ impl FlowEdit {
                     FunctionEditMessage::AddInput => {
                         if let Some(win) = self.windows.get_mut(&win_id) {
                             if let WindowKind::FunctionViewer(ref mut v) = win.kind {
-                                v.inputs.push(PortInfo {
-                                    name: format!("input{}", v.inputs.len()),
-                                    datatypes: vec![String::from("string")],
-                                });
+                                let name = next_unique_io_name("input", &v.func_def.inputs);
+                                v.func_def.inputs.push(IO::new_named(
+                                    vec![DataType::from("string")],
+                                    Route::default(),
+                                    &name,
+                                ));
                             }
                             win.unsaved_edits += 1;
                         }
@@ -1026,10 +1034,12 @@ impl FlowEdit {
                     FunctionEditMessage::AddOutput => {
                         if let Some(win) = self.windows.get_mut(&win_id) {
                             if let WindowKind::FunctionViewer(ref mut v) = win.kind {
-                                v.outputs.push(PortInfo {
-                                    name: format!("output{}", v.outputs.len()),
-                                    datatypes: vec![String::from("string")],
-                                });
+                                let name = next_unique_io_name("output", &v.func_def.outputs);
+                                v.func_def.outputs.push(IO::new_named(
+                                    vec![DataType::from("string")],
+                                    Route::default(),
+                                    &name,
+                                ));
                             }
                             win.unsaved_edits += 1;
                         }
@@ -1038,8 +1048,8 @@ impl FlowEdit {
                     FunctionEditMessage::DeleteInput(idx) => {
                         if let Some(win) = self.windows.get_mut(&win_id) {
                             if let WindowKind::FunctionViewer(ref mut v) = win.kind {
-                                if idx < v.inputs.len() {
-                                    v.inputs.remove(idx);
+                                if idx < v.func_def.inputs.len() {
+                                    v.func_def.inputs.remove(idx);
                                 }
                             }
                             win.unsaved_edits += 1;
@@ -1049,8 +1059,8 @@ impl FlowEdit {
                     FunctionEditMessage::DeleteOutput(idx) => {
                         if let Some(win) = self.windows.get_mut(&win_id) {
                             if let WindowKind::FunctionViewer(ref mut v) = win.kind {
-                                if idx < v.outputs.len() {
-                                    v.outputs.remove(idx);
+                                if idx < v.func_def.outputs.len() {
+                                    v.func_def.outputs.remove(idx);
                                 }
                             }
                             win.unsaved_edits += 1;
@@ -1060,8 +1070,8 @@ impl FlowEdit {
                     FunctionEditMessage::InputNameChanged(idx, name) => {
                         if let Some(win) = self.windows.get_mut(&win_id) {
                             if let WindowKind::FunctionViewer(ref mut v) = win.kind {
-                                if let Some(port) = v.inputs.get_mut(idx) {
-                                    port.name = name;
+                                if let Some(io) = v.func_def.inputs.get_mut(idx) {
+                                    io.set_name(name);
                                 }
                             }
                             win.unsaved_edits += 1;
@@ -1071,8 +1081,8 @@ impl FlowEdit {
                     FunctionEditMessage::InputTypeChanged(idx, dtype) => {
                         if let Some(win) = self.windows.get_mut(&win_id) {
                             if let WindowKind::FunctionViewer(ref mut v) = win.kind {
-                                if let Some(port) = v.inputs.get_mut(idx) {
-                                    port.datatypes = vec![dtype];
+                                if let Some(io) = v.func_def.inputs.get_mut(idx) {
+                                    io.set_datatypes(&[DataType::from(dtype)]);
                                 }
                             }
                             win.unsaved_edits += 1;
@@ -1082,8 +1092,8 @@ impl FlowEdit {
                     FunctionEditMessage::OutputNameChanged(idx, name) => {
                         if let Some(win) = self.windows.get_mut(&win_id) {
                             if let WindowKind::FunctionViewer(ref mut v) = win.kind {
-                                if let Some(port) = v.outputs.get_mut(idx) {
-                                    port.name = name;
+                                if let Some(io) = v.func_def.outputs.get_mut(idx) {
+                                    io.set_name(name);
                                 }
                             }
                             win.unsaved_edits += 1;
@@ -1093,8 +1103,8 @@ impl FlowEdit {
                     FunctionEditMessage::OutputTypeChanged(idx, dtype) => {
                         if let Some(win) = self.windows.get_mut(&win_id) {
                             if let WindowKind::FunctionViewer(ref mut v) = win.kind {
-                                if let Some(port) = v.outputs.get_mut(idx) {
-                                    port.datatypes = vec![dtype];
+                                if let Some(io) = v.func_def.outputs.get_mut(idx) {
+                                    io.set_datatypes(&[DataType::from(dtype)]);
                                 }
                             }
                             win.unsaved_edits += 1;
@@ -1106,7 +1116,11 @@ impl FlowEdit {
                             if let WindowKind::FunctionViewer(ref v) = win.kind {
                                 match flow_io::save_function_definition(v) {
                                     Ok(()) => {
-                                        win.status = format!("Saved: {}", v.toml_path.display());
+                                        let path_display = v.toml_path().map_or_else(
+                                            || String::from("(unknown)"),
+                                            |p| p.display().to_string(),
+                                        );
+                                        win.status = format!("Saved: {path_display}");
                                         win.unsaved_edits = 0;
                                     }
                                     Err(e) => {
@@ -1606,10 +1620,15 @@ impl FlowEdit {
                 // Input ports inside box: semicircle, name, type, (delete if editable)
                 let editable = !viewer.read_only;
                 let mut input_col = Column::new().spacing(6);
-                for (i, port) in viewer.inputs.iter().enumerate() {
-                    let dtype = port.datatypes.first().cloned().unwrap_or_default();
+                for (i, io) in viewer.func_def.inputs.iter().enumerate() {
+                    let port_name = io.name().to_string();
+                    let dtype = io
+                        .datatypes()
+                        .first()
+                        .map(ToString::to_string)
+                        .unwrap_or_default();
                     let mut name_widget =
-                        text_input("name", &port.name).size(13).padding(3).width(90);
+                        text_input("name", &port_name).size(13).padding(3).width(90);
                     let mut type_widget = text_input("type", &dtype).size(11).padding(3).width(75);
                     if editable {
                         name_widget = name_widget.on_input(move |s| {
@@ -1658,11 +1677,16 @@ impl FlowEdit {
 
                 // Output ports inside box: (delete if editable), type, name, semicircle
                 let mut output_col = Column::new().spacing(6).align_x(iced::Alignment::End);
-                for (i, port) in viewer.outputs.iter().enumerate() {
-                    let dtype = port.datatypes.first().cloned().unwrap_or_default();
+                for (i, io) in viewer.func_def.outputs.iter().enumerate() {
+                    let port_name = io.name().to_string();
+                    let dtype = io
+                        .datatypes()
+                        .first()
+                        .map(ToString::to_string)
+                        .unwrap_or_default();
                     let mut type_widget = text_input("type", &dtype).size(11).padding(3).width(75);
                     let mut name_widget =
-                        text_input("name", &port.name).size(13).padding(3).width(90);
+                        text_input("name", &port_name).size(13).padding(3).width(90);
                     if editable {
                         type_widget = type_widget.on_input(move |s| {
                             Message::FunctionEdit(
@@ -1707,7 +1731,7 @@ impl FlowEdit {
                     );
                 }
 
-                let mut name_widget = text_input("Function name", &viewer.name)
+                let mut name_widget = text_input("Function name", &viewer.func_def.name)
                     .size(16)
                     .padding(6)
                     .width(250);
@@ -1718,12 +1742,12 @@ impl FlowEdit {
                 }
                 let name_input = container(name_widget).center_x(Fill);
 
-                let mut desc_widget = text_input("Description", &viewer.description)
+                let mut desc_widget = text_input("Description", &viewer.func_def.description)
                     .size(13)
                     .padding(6)
                     .width(480);
                 if editable {
-                    let ext = std::path::Path::new(&viewer.source_file)
+                    let ext = std::path::Path::new(&viewer.func_def.source)
                         .extension()
                         .unwrap_or_default();
                     let is_provided =
@@ -1741,7 +1765,7 @@ impl FlowEdit {
 
                 let mut source_row = Row::new().spacing(6).align_y(iced::Alignment::Center).push(
                     button(
-                        Text::new(&viewer.source_file)
+                        Text::new(&viewer.func_def.source)
                             .size(13)
                             .color(Color::from_rgb(0.6, 0.8, 1.0)),
                     )
@@ -2144,7 +2168,7 @@ impl FlowEdit {
         &mut self,
         parent_win_id: window::Id,
         toml_path: &Path,
-        func: &flowcore::model::function_definition::FunctionDefinition,
+        func: &FunctionDefinition,
         node_source: &str,
     ) -> Task<Message> {
         let dir = toml_path.parent().unwrap_or(Path::new("."));
@@ -2155,21 +2179,18 @@ impl FlowEdit {
             .unwrap_or_else(|_| String::from("// Source file not found"));
         let docs_content = std::fs::read_to_string(dir.join(format!("{func_name}.md"))).ok();
 
-        let (inputs, outputs) = flow_io::extract_ports(&func.inputs, &func.outputs);
-
         let (new_id, open_task) = window::open(self.child_window_settings(700.0, 500.0));
 
         let read_only = node_source.starts_with("lib://") || node_source.starts_with("context://");
+        let mut func_def = func.clone();
+        if let Ok(url) = Url::from_file_path(toml_path) {
+            func_def.source_url = url;
+        }
         let viewer = FunctionViewer {
-            name: func_name.clone(),
-            description: func.description.clone(),
-            source_file: func.source.clone(),
-            inputs,
-            outputs,
+            func_def: func_def.clone(),
             rs_content,
             docs_content,
             active_tab: 0,
-            toml_path: toml_path.to_path_buf(),
             parent_window: Some(parent_win_id),
             node_source: node_source.to_string(),
             read_only,
@@ -2402,16 +2423,17 @@ impl FlowEdit {
         // Open the function viewer window
         let (new_id, open_task) = window::open(self.child_window_settings(700.0, 500.0));
 
+        let mut func_def = FunctionDefinition::default();
+        func_def.name.clone_from(&func_name);
+        func_def.source.clone_from(&rs_filename);
+        if let Ok(url) = Url::from_file_path(&path) {
+            func_def.source_url = url;
+        }
         let viewer = FunctionViewer {
-            name: func_name.clone(),
-            description: String::new(),
-            source_file: rs_filename.clone(),
-            inputs: Vec::new(),
-            outputs: Vec::new(),
+            func_def: func_def.clone(),
             rs_content: String::from("// Save to generate skeleton source"),
             docs_content: None,
             active_tab: 0,
-            toml_path: path.clone(),
             parent_window: Some(target_id),
             node_source: rs_filename,
             read_only: false,
@@ -2465,8 +2487,8 @@ impl FlowEdit {
                     (
                         pid,
                         viewer.node_source.clone(),
-                        viewer.inputs.clone(),
-                        viewer.outputs.clone(),
+                        viewer.func_def.inputs.clone(),
+                        viewer.func_def.outputs.clone(),
                     )
                 })
             } else {
@@ -2486,49 +2508,14 @@ impl FlowEdit {
                         };
                         if let Some(proc) = parent_win.flow_definition.subprocesses.get_mut(&alias)
                         {
-                            // Update the IO definitions in the subprocess
-                            let new_io_inputs: Vec<flowcore::model::io::IO> = new_inputs
-                                .iter()
-                                .map(|p| {
-                                    flowcore::model::io::IO::new_named(
-                                        p.datatypes
-                                            .iter()
-                                            .map(|dt| {
-                                                flowcore::model::datatype::DataType::from(
-                                                    dt.as_str(),
-                                                )
-                                            })
-                                            .collect(),
-                                        flowcore::model::route::Route::default(),
-                                        &p.name,
-                                    )
-                                })
-                                .collect();
-                            let new_io_outputs: Vec<flowcore::model::io::IO> = new_outputs
-                                .iter()
-                                .map(|p| {
-                                    flowcore::model::io::IO::new_named(
-                                        p.datatypes
-                                            .iter()
-                                            .map(|dt| {
-                                                flowcore::model::datatype::DataType::from(
-                                                    dt.as_str(),
-                                                )
-                                            })
-                                            .collect(),
-                                        flowcore::model::route::Route::default(),
-                                        &p.name,
-                                    )
-                                })
-                                .collect();
                             match proc {
                                 Process::FunctionProcess(ref mut f) => {
-                                    f.inputs = new_io_inputs;
-                                    f.outputs = new_io_outputs;
+                                    f.inputs.clone_from(&new_inputs);
+                                    f.outputs.clone_from(&new_outputs);
                                 }
                                 Process::FlowProcess(ref mut f) => {
-                                    f.inputs = new_io_inputs;
-                                    f.outputs = new_io_outputs;
+                                    f.inputs.clone_from(&new_inputs);
+                                    f.outputs.clone_from(&new_outputs);
                                 }
                             }
                         }
