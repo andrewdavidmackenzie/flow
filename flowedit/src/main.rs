@@ -504,9 +504,7 @@ impl FlowEdit {
             ..Default::default()
         });
 
-        let flow_hierarchy = file_path
-            .as_ref()
-            .map_or_else(FlowHierarchy::empty, |p| FlowHierarchy::build(p));
+        let flow_hierarchy = FlowHierarchy::from_flow_definition(&flow_definition);
 
         let win_state = WindowState {
             kind: WindowKind::FlowEditor,
@@ -1780,16 +1778,12 @@ impl FlowEdit {
         self.library_tree = LibraryTree::from_cache(&self.library_cache, &self.all_definitions);
     }
 
-    fn root_flow_path(&self) -> Option<PathBuf> {
+    fn build_hierarchy(&self) -> FlowHierarchy {
         self.root_window
             .and_then(|id| self.windows.get(&id))
-            .and_then(WindowState::file_path)
-    }
-
-    fn build_hierarchy(&self) -> FlowHierarchy {
-        self.root_flow_path()
-            .as_ref()
-            .map_or_else(FlowHierarchy::empty, |p| FlowHierarchy::build(p))
+            .map_or_else(FlowHierarchy::empty, |win| {
+                FlowHierarchy::from_flow_definition(&win.flow_definition)
+            })
     }
 
     #[allow(clippy::cast_precision_loss)]
@@ -2221,10 +2215,8 @@ impl FlowEdit {
                 if let Some(root_id) = self.root_window {
                     if let Some(win) = self.windows.get_mut(&root_id) {
                         if let Some((lib_refs, _ctx_refs)) = file_ops::perform_open(win) {
-                            win.flow_hierarchy = win
-                                .file_path()
-                                .as_ref()
-                                .map_or_else(FlowHierarchy::empty, |p| FlowHierarchy::build(p));
+                            win.flow_hierarchy =
+                                FlowHierarchy::from_flow_definition(&win.flow_definition);
 
                             let (lc, ad) = library_mgmt::load_library_catalogs(&lib_refs);
                             self.library_cache = lc;

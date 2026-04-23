@@ -2,12 +2,12 @@
 //! as a collapsible tree view. The root flow is at the top, with child
 //! sub-flows and functions as children, recursively.
 
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 
 use iced::widget::{button, container, scrollable, text, Column, Row};
 use iced::{Color, Element, Length};
 
-use flowcore::deserializers::deserializer::get;
+use flowcore::model::flow_definition::FlowDefinition;
 use flowcore::model::process::Process;
 
 const PANEL_WIDTH: f32 = 220.0;
@@ -41,9 +41,9 @@ pub(crate) struct FlowHierarchy {
 }
 
 impl FlowHierarchy {
-    pub(crate) fn build(flow_path: &Path) -> Self {
-        let root = build_node_from_path(flow_path, 0);
-        Self { root }
+    pub(crate) fn from_flow_definition(flow_def: &FlowDefinition) -> Self {
+        let root = build_node_from_flow(flow_def);
+        Self { root: Some(root) }
     }
 
     pub(crate) fn empty() -> Self {
@@ -188,112 +188,72 @@ fn view_node<'a>(node: &'a HierarchyNode, path: &[usize]) -> Element<'a, Hierarc
     col.into()
 }
 
-fn build_node_from_path(flow_path: &Path, depth: usize) -> Option<HierarchyNode> {
-    if depth > 10 || !flow_path.exists() {
-        return None;
-    }
+fn build_node_from_flow(flow_def: &FlowDefinition) -> HierarchyNode {
+    let mut children = Vec::new();
 
-    let contents = std::fs::read_to_string(flow_path).ok()?;
-    let url = url::Url::from_file_path(std::fs::canonicalize(flow_path).ok()?).ok()?;
-    let deserializer = get::<Process>(&url).ok()?;
-    let process = deserializer.deserialize(&contents, Some(&url)).ok()?;
+    for pref in &flow_def.process_refs {
+        let alias = if pref.alias.is_empty() {
+            crate::canvas_view::derive_short_name(&pref.source)
+        } else {
+            pref.alias.clone()
+        };
 
-    let dir = flow_path.parent()?;
-    let name = match &process {
-        Process::FlowProcess(f) => f.name.clone(),
-        Process::FunctionProcess(f) => f.name.clone(),
-    };
-
-    match process {
-        Process::FlowProcess(flow) => {
-            let mut children = Vec::new();
-            for pref in &flow.process_refs {
-                let alias = if pref.alias.is_empty() {
-                    pref.source
-                        .rsplit('/')
-                        .next()
-                        .unwrap_or(&pref.source)
-                        .to_string()
-                } else {
-                    pref.alias.clone()
-                };
-
-                if pref.source.starts_with("lib://") || pref.source.starts_with("context://") {
-                    children.push(HierarchyNode {
-                        name: alias,
-                        kind: NodeKind::Library,
-                        source: pref.source.clone(),
-                        path: None,
-                        children: Vec::new(),
-                        expanded: false,
-                    });
-                } else {
-                    // Relative source — resolve to file
-                    let resolved = resolve_source(dir, &pref.source);
-                    if let Some(ref resolved_path) = resolved {
-                        if let Some(child) = build_node_from_path(resolved_path, depth + 1) {
-                            children.push(HierarchyNode {
-                                name: alias,
-                                path: Some(resolved_path.clone()),
-                                ..child
-                            });
-                        } else {
-                            children.push(HierarchyNode {
-                                name: alias,
-                                kind: NodeKind::Function,
-                                source: pref.source.clone(),
-                                path: resolved,
-                                children: Vec::new(),
-                                expanded: false,
-                            });
-                        }
-                    } else {
-                        children.push(HierarchyNode {
-                            name: alias,
-                            kind: NodeKind::Function,
-                            source: pref.source.clone(),
-                            path: None,
-                            children: Vec::new(),
-                            expanded: false,
-                        });
-                    }
-                }
+        match flow_def.subprocesses.get(&alias) {
+            Some(Process::FlowProcess(sub_flow)) => {
+                // Recursively build children from the sub-flow
+                let child = build_node_from_flow(sub_flow);
+                children.push(HierarchyNode {
+                    name: alias,
+                    kind: NodeKind::Flow,
+                    source: pref.source.clone(),
+                    path: sub_flow.source_url.to_file_path().ok(),
+                    children: child.children,
+                    expanded: true,
+                });
             }
-
-            Some(HierarchyNode {
-                name,
-                kind: NodeKind::Flow,
-                source: String::new(),
-                path: Some(flow_path.to_path_buf()),
-                children,
-                expanded: true,
-            })
+            Some(Process::FunctionProcess(func)) => {
+                let kind = if func.lib_reference.is_some() || func.context_reference.is_some() {
+                    NodeKind::Library
+                } else {
+                    NodeKind::Function
+                };
+                children.push(HierarchyNode {
+                    name: alias,
+                    kind,
+                    source: pref.source.clone(),
+                    path: func.source_url.to_file_path().ok(),
+                    children: Vec::new(),
+                    expanded: false,
+                });
+            }
+            None => {
+                // Unresolved - determine kind from source string
+                let kind =
+                    if pref.source.starts_with("lib://") || pref.source.starts_with("context://") {
+                        NodeKind::Library
+                    } else {
+                        NodeKind::Function
+                    };
+                children.push(HierarchyNode {
+                    name: alias,
+                    kind,
+                    source: pref.source.clone(),
+                    path: None,
+                    children: Vec::new(),
+                    expanded: false,
+                });
+            }
         }
-        Process::FunctionProcess(_) => Some(HierarchyNode {
-            name,
-            kind: NodeKind::Function,
-            source: String::new(),
-            path: Some(flow_path.to_path_buf()),
-            children: Vec::new(),
-            expanded: false,
-        }),
     }
-}
 
-fn resolve_source(dir: &Path, source: &str) -> Option<PathBuf> {
-    let candidate = dir.join(source);
-    if candidate.exists() {
-        return Some(std::fs::canonicalize(&candidate).unwrap_or(candidate));
+    HierarchyNode {
+        name: flow_def.name.clone(),
+        kind: NodeKind::Flow,
+        source: String::new(),
+        path: flow_def.source_url.to_file_path().ok(),
+        children,
+        expanded: true,
     }
-    let with_ext = dir.join(format!("{source}.toml"));
-    if with_ext.exists() {
-        return Some(std::fs::canonicalize(&with_ext).unwrap_or(with_ext));
-    }
-    let dir_default = dir.join(source).join("default.toml");
-    if dir_default.exists() {
-        return Some(std::fs::canonicalize(&dir_default).unwrap_or(dir_default));
-    }
-    None
 }
 
 #[cfg(test)]
