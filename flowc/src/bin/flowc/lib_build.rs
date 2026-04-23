@@ -429,7 +429,7 @@ fn compile_flows(
                 debug!("Trying to load library FlowProcess from '{url}'");
                 match parser::parse(&url, provider) {
                     Ok(FunctionProcess(_)) => {
-                        debug!("Skipping file '{url}'. Reason: 'It is a Function'")
+                        debug!("Skipping file '{url}'. Reason: 'It is a Function'");
                     }
                     Ok(FlowProcess(ref mut flow)) => {
                         // calculate the path of the file's directory, relative to lib_root

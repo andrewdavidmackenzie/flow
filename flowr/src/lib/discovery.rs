@@ -47,6 +47,10 @@ pub fn enable_service_discovery(name: &str, service_port: u16) -> Result<Service
 /// or the default timeout (30 seconds) expires.
 ///
 /// Returns the service address as `"{ip}:{port}"`.
+///
+/// # Errors
+/// - Cannot create `ServiceDaemon`
+/// - Cannot get receiver for discovery messages
 pub fn discover_service(name: &str) -> Result<String> {
     let mdns = ServiceDaemon::new().map_err(|e| format!("Could not create mDNS daemon: {e}"))?;
 
@@ -66,25 +70,21 @@ pub fn discover_service(name: &str) -> Result<String> {
             ));
         }
 
-        match receiver.recv_timeout(Duration::from_millis(500)) {
-            Ok(ServiceEvent::ServiceResolved(info)) => {
-                let instance = info
-                    .get_fullname()
-                    .strip_suffix(&full_name_suffix)
-                    .unwrap_or(info.get_fullname());
+        if let Ok(ServiceEvent::ServiceResolved(info)) = receiver.recv_timeout(Duration::from_millis(500)) {
+            let instance = info
+                .get_fullname()
+                .strip_suffix(&full_name_suffix)
+                .unwrap_or(info.get_fullname());
 
-                if instance == name {
-                    let port = info.get_port();
-                    if let Some(addr) = info.get_addresses_v4().into_iter().next() {
-                        let address = format!("{addr}:{port}");
-                        info!("Discovered mDNS service '{name}' at {address}");
-                        mdns.shutdown().ok();
-                        return Ok(address);
-                    }
+            if instance == name {
+                let port = info.get_port();
+                if let Some(addr) = info.get_addresses_v4().into_iter().next() {
+                    let address = format!("{addr}:{port}");
+                    info!("Discovered mDNS service '{name}' at {address}");
+                    mdns.shutdown().ok();
+                    return Ok(address);
                 }
             }
-            Err(_) => continue, // Timeout or disconnected — retry until overall timeout
-            _ => {}             // Ignore other events (SearchStarted, ServiceFound, etc.)
         }
     }
 }

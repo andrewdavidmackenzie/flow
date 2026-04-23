@@ -12,8 +12,7 @@ use flowcore::model::process::Process;
 use flowcore::model::process_reference::ProcessReference;
 use flowcore::provider::Provider;
 
-use crate::flow_io;
-use crate::history;
+use crate::file_ops;
 use crate::history::EditAction;
 use crate::WindowState;
 
@@ -25,7 +24,7 @@ use crate::WindowState;
 pub(crate) fn load_library_catalogs(
     lib_references: &BTreeSet<Url>,
 ) -> (HashMap<Url, LibraryManifest>, HashMap<Url, Process>) {
-    let provider = flow_io::build_meta_provider();
+    let provider = file_ops::build_meta_provider();
     let arc_provider: Arc<dyn Provider> = Arc::new(provider);
     let mut library_cache = HashMap::new();
     let mut all_definitions = HashMap::new();
@@ -52,7 +51,7 @@ pub(crate) fn load_library_catalogs(
                 );
 
                 // Parse each function/flow in the manifest
-                let meta_provider = flow_io::build_meta_provider();
+                let meta_provider = file_ops::build_meta_provider();
                 for locator_url in manifest.locators.keys() {
                     match flowrclib::compiler::parser::parse(locator_url, &meta_provider) {
                         Ok(process) => {
@@ -75,7 +74,7 @@ pub(crate) fn load_library_catalogs(
     // Discover and parse context functions from the flowrcli runner directory.
     // Only scan ~/.flow/runner/flowrcli/ since flowedit only supports the flowrcli runner,
     // and the MetaProvider is configured with that context root.
-    let ctx_provider = flow_io::build_meta_provider();
+    let ctx_provider = file_ops::build_meta_provider();
     let runner_dir = std::env::var("HOME")
         .map(|h| {
             std::path::PathBuf::from(h)
@@ -138,15 +137,15 @@ pub(crate) fn load_library_catalogs(
 /// in the flow definition, and records the action in the edit history.
 pub(crate) fn add_library_function(win: &mut WindowState, source: &str, func_name: &str) {
     // Generate a unique alias: if the name already exists, append a number
-    let alias = flow_io::generate_unique_alias(func_name, &win.flow_definition.process_refs);
+    let alias = file_ops::generate_unique_alias(func_name, &win.flow_definition.process_refs);
 
     // Place the new node at a default position offset from existing nodes
-    let (x, y) = flow_io::next_node_position(&win.flow_definition.process_refs);
+    let (x, y) = file_ops::next_node_position(&win.flow_definition.process_refs);
 
     // Resolve the subprocess definition by parsing the function/flow
     let resolved_process = match Url::parse(source) {
         Ok(url) => {
-            let provider = flow_io::build_meta_provider();
+            let provider = file_ops::build_meta_provider();
             match flowrclib::compiler::parser::parse(&url, &provider) {
                 Ok(proc) => Some(proc),
                 Err(e) => {
@@ -179,21 +178,15 @@ pub(crate) fn add_library_function(win: &mut WindowState, source: &str, func_nam
         win.flow_definition.subprocesses.insert(alias.clone(), proc);
     }
 
-    history::record_edit(
-        win,
-        EditAction::DeleteNode {
-            index,
-            process_ref: pref,
-            subprocess: win
-                .flow_definition
-                .subprocesses
-                .get(&alias)
-                .map(|p| (alias.clone(), p.clone())),
-            removed_connections: Vec::new(),
-        },
-    );
-    // Note: We record a DeleteNode so that *undo* removes the added node.
-    // This is intentional: undoing an "add" means deleting what was added.
+    win.history.record(EditAction::CreateNode {
+        index,
+        process_ref: pref,
+        subprocess: win
+            .flow_definition
+            .subprocesses
+            .get(&alias)
+            .map(|p| (alias.clone(), p.clone())),
+    });
 
     win.selected_node = Some(index);
     win.canvas_state.request_redraw();
@@ -273,8 +266,6 @@ mod test {
             history: EditHistory::default(),
             auto_fit_pending: false,
             auto_fit_enabled: false,
-            unsaved_edits: 0,
-            compiled_manifest: None,
             flow_definition: flow_def,
             tooltip: None,
             initializer_editor: None,

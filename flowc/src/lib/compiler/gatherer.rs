@@ -298,7 +298,7 @@ fn find_connection_destinations(
                     }
 
                     IOType::FunctionOutput => {
-                        error!("Error - destination of {next_connection:?} is a functions output!")
+                        error!("Error - destination of {next_connection:?} is a functions output!");
                     }
 
                     IOType::FlowInput => {

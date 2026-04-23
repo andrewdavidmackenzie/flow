@@ -63,8 +63,6 @@ pub(crate) fn apply_initializer_edit(win: &mut WindowState, editor: &Initializer
         old_init,
         new_init,
     });
-    win.unsaved_edits += 1;
-    win.compiled_manifest = None;
     win.canvas_state.request_redraw();
     win.status = format!("Initializer updated on {}/{}", alias, editor.port_name);
 }
@@ -166,7 +164,7 @@ mod test {
             value_text: "42".into(),
         };
         apply_initializer_edit(&mut win, &editor);
-        assert!(win.unsaved_edits > 0);
+        assert!(!win.history.is_empty());
         // Check model was updated
         assert!(win
             .flow_definition
@@ -253,7 +251,7 @@ mod test {
     #[test]
     fn initializer_apply_invalid_type_no_change() {
         let mut win = test_win_state();
-        let edits_before = win.unsaved_edits;
+        let empty_before = win.history.is_empty();
         let editor = InitializerEditor {
             node_index: 0,
             port_name: "input".into(),
@@ -262,7 +260,8 @@ mod test {
         };
         apply_initializer_edit(&mut win, &editor);
         assert_eq!(
-            win.unsaved_edits, edits_before,
+            win.history.is_empty(),
+            empty_before,
             "Invalid type should not create an edit"
         );
     }

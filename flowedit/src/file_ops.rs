@@ -1,4 +1,4 @@
-//! Flow file operations: loading, saving, compiling, and editor preferences.
+//! File operations: loading, saving, compiling, and editor preferences.
 
 use std::collections::{BTreeMap, BTreeSet};
 use std::fmt::Write;
@@ -35,7 +35,7 @@ pub(crate) struct EditorPrefs {
 pub(crate) fn perform_save(win: &mut WindowState, path: &PathBuf) {
     match save_flow_toml(&win.flow_definition, path) {
         Ok(()) => {
-            win.unsaved_edits = 0;
+            win.history.clear();
             win.set_file_path(path);
             save_editor_prefs(path, win.last_size, win.last_position);
             if let Some(name) = path.file_name().and_then(|n| n.to_str()) {
@@ -89,7 +89,6 @@ pub(crate) fn perform_open(win: &mut WindowState) -> Option<(BTreeSet<Url>, BTre
                 win.selected_node = None;
                 win.selected_connection = None;
                 win.history = EditHistory::default();
-                win.unsaved_edits = 0;
                 win.auto_fit_pending = true;
                 win.auto_fit_enabled = true;
                 win.canvas_state = FlowCanvasState::default();
@@ -112,7 +111,6 @@ pub(crate) fn perform_new(win: &mut WindowState) {
     win.selected_node = None;
     win.selected_connection = None;
     win.history = EditHistory::default();
-    win.unsaved_edits = 0;
     win.auto_fit_pending = false;
     win.auto_fit_enabled = true;
     win.canvas_state = FlowCanvasState::default();
@@ -136,9 +134,9 @@ pub(crate) fn perform_compile(win: &mut WindowState) -> Result<PathBuf, String> 
     };
 
     // Save any unsaved edits so the file on disk matches the editor state
-    if win.unsaved_edits > 0 {
+    if !win.history.is_empty() {
         perform_save(win, &flow_path);
-        if win.unsaved_edits > 0 {
+        if !win.history.is_empty() {
             return Err("Save failed — cannot compile stale content".to_string());
         }
     }
@@ -1168,8 +1166,6 @@ mod test {
             history: EditHistory::default(),
             auto_fit_pending: false,
             auto_fit_enabled: false,
-            unsaved_edits: 0,
-            compiled_manifest: None,
             flow_definition: flow_def,
             tooltip: None,
             initializer_editor: None,
@@ -1188,11 +1184,11 @@ mod test {
         let path = dir.join("saved.toml");
 
         let mut win = test_win_state();
-        win.unsaved_edits = 5;
+        win.history.mark_modified();
         win.flow_definition.name = "saved_flow".into();
 
         perform_save(&mut win, &path);
-        assert_eq!(win.unsaved_edits, 0);
+        assert!(win.history.is_empty());
         let canonical = path.canonicalize().unwrap_or_else(|_| path.clone());
         assert_eq!(win.file_path(), Some(canonical));
 

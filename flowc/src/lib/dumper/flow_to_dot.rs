@@ -250,7 +250,7 @@ fn process_references_to_dot(flow: &FlowDefinition) -> Result<String> {
                 subflow.route(),
             )?),
             FunctionProcess(ref function) => {
-                contents.push_str(&subfunction_to_dot(function, file_path.as_path())?)
+                contents.push_str(&subfunction_to_dot(function, file_path.as_path())?);
             }
         }
     }

@@ -27,12 +27,11 @@ use flowcore::model::input::InputInitializer;
 use flowcore::model::io::IO;
 use flowcore::model::name::HasName;
 
-use crate::flow_io;
-use crate::history;
+use crate::file_ops;
 use crate::history::EditAction;
 use crate::InitializerEditor;
-use crate::Message;
 use crate::WindowState;
+use crate::{Message, ViewMessage};
 
 /// Action returned by [`handle_canvas_message`] to signal that the caller
 /// (main.rs) needs to perform an operation that requires `FlowEdit` state.
@@ -88,16 +87,13 @@ pub(crate) fn handle_canvas_message(win: &mut WindowState, msg: CanvasMessage) -
         CanvasMessage::MoveCompleted(idx, old_x, old_y, new_x, new_y) => {
             info!("MoveCompleted: idx={idx}, ({old_x},{old_y}) -> ({new_x},{new_y})");
             if (old_x - new_x).abs() > 0.5 || (old_y - new_y).abs() > 0.5 {
-                history::record_edit(
-                    win,
-                    EditAction::MoveNode {
-                        index: idx,
-                        old_x,
-                        old_y,
-                        new_x,
-                        new_y,
-                    },
-                );
+                win.history.record(EditAction::MoveNode {
+                    index: idx,
+                    old_x,
+                    old_y,
+                    new_x,
+                    new_y,
+                });
             }
         }
         #[allow(clippy::similar_names)]
@@ -117,20 +113,17 @@ pub(crate) fn handle_canvas_message(win: &mut WindowState, msg: CanvasMessage) -
                 || (old_w - new_w).abs() > 0.5
                 || (old_h - new_h).abs() > 0.5
             {
-                history::record_edit(
-                    win,
-                    EditAction::ResizeNode {
-                        index: idx,
-                        old_x,
-                        old_y,
-                        old_w,
-                        old_h,
-                        new_x,
-                        new_y,
-                        new_w,
-                        new_h,
-                    },
-                );
+                win.history.record(EditAction::ResizeNode {
+                    index: idx,
+                    old_x,
+                    old_y,
+                    old_w,
+                    old_h,
+                    new_x,
+                    new_y,
+                    new_w,
+                    new_h,
+                });
             }
         }
         CanvasMessage::Deleted(idx) => {
@@ -155,15 +148,12 @@ pub(crate) fn handle_canvas_message(win: &mut WindowState, msg: CanvasMessage) -
                 win.flow_definition
                     .connections
                     .retain(|c| !connection_references_node(c, &alias));
-                history::record_edit(
-                    win,
-                    EditAction::DeleteNode {
-                        index: idx,
-                        process_ref: removed_pref,
-                        subprocess: removed_subprocess.map(|p| (alias, p)),
-                        removed_connections,
-                    },
-                );
+                win.history.record(EditAction::DeleteNode {
+                    index: idx,
+                    process_ref: removed_pref,
+                    subprocess: removed_subprocess.map(|p| (alias, p)),
+                    removed_connections,
+                });
                 win.selected_node = None;
                 win.selected_connection = None;
                 win.canvas_state.request_redraw();
@@ -192,12 +182,9 @@ pub(crate) fn handle_canvas_message(win: &mut WindowState, msg: CanvasMessage) -
                 format!("{to_node}/{to_port}")
             };
             let connection = Connection::new(from_route, to_route);
-            history::record_edit(
-                win,
-                EditAction::CreateConnection {
-                    connection: connection.clone(),
-                },
-            );
+            win.history.record(EditAction::CreateConnection {
+                connection: connection.clone(),
+            });
             win.flow_definition.connections.push(connection);
             win.canvas_state.request_redraw();
             let nc = win.flow_definition.process_refs.len();
@@ -220,8 +207,8 @@ pub(crate) fn handle_canvas_message(win: &mut WindowState, msg: CanvasMessage) -
                     let (to_node, to_port) = split_route(&to_str);
                     win.status = format!(
                         "Connection: {} -> {}",
-                        flow_io::format_endpoint(&from_node, &from_port),
-                        flow_io::format_endpoint(&to_node, &to_port),
+                        file_ops::format_endpoint(&from_node, &from_port),
+                        file_ops::format_endpoint(&to_node, &to_port),
                     );
                 }
             } else {
@@ -231,13 +218,10 @@ pub(crate) fn handle_canvas_message(win: &mut WindowState, msg: CanvasMessage) -
         CanvasMessage::ConnectionDeleted(idx) => {
             if idx < win.flow_definition.connections.len() {
                 let connection = win.flow_definition.connections.remove(idx);
-                history::record_edit(
-                    win,
-                    EditAction::DeleteConnection {
-                        index: idx,
-                        connection,
-                    },
-                );
+                win.history.record(EditAction::DeleteConnection {
+                    index: idx,
+                    connection,
+                });
                 win.selected_connection = None;
                 win.canvas_state.request_redraw();
                 let nc = win.flow_definition.process_refs.len();
@@ -311,33 +295,32 @@ pub(crate) fn handle_canvas_message(win: &mut WindowState, msg: CanvasMessage) -
     CanvasAction::None
 }
 
-/// Handle the `ZoomIn` message by zooming in one step.
-pub(crate) fn handle_zoom_in(win: &mut WindowState) {
-    win.auto_fit_enabled = false;
-    win.auto_fit_pending = false;
-    win.canvas_state.zoom_in();
-    let pct = (win.canvas_state.zoom * 100.0) as u32;
-    win.status = format!("Zoom: {pct}%");
-}
-
-/// Handle the `ZoomOut` message by zooming out one step.
-pub(crate) fn handle_zoom_out(win: &mut WindowState) {
-    win.auto_fit_enabled = false;
-    win.auto_fit_pending = false;
-    win.canvas_state.zoom_out();
-    let pct = (win.canvas_state.zoom * 100.0) as u32;
-    win.status = format!("Zoom: {pct}%");
-}
-
-/// Handle the `ToggleAutoFit` message by toggling auto-fit mode.
-pub(crate) fn handle_toggle_auto_fit(win: &mut WindowState) {
-    win.auto_fit_enabled = !win.auto_fit_enabled;
-    if win.auto_fit_enabled {
-        win.auto_fit_pending = true;
-        win.canvas_state.request_redraw();
-        win.status = String::from("Auto-fit enabled");
-    } else {
-        win.status = String::from("Auto-fit disabled");
+pub(crate) fn update(win: &mut WindowState, msg: &ViewMessage) {
+    match msg {
+        ViewMessage::ZoomIn => {
+            win.auto_fit_enabled = false;
+            win.auto_fit_pending = false;
+            win.canvas_state.zoom_in();
+            let pct = (win.canvas_state.zoom * 100.0) as u32;
+            win.status = format!("Zoom: {pct}%");
+        }
+        ViewMessage::ZoomOut => {
+            win.auto_fit_enabled = false;
+            win.auto_fit_pending = false;
+            win.canvas_state.zoom_out();
+            let pct = (win.canvas_state.zoom * 100.0) as u32;
+            win.status = format!("Zoom: {pct}%");
+        }
+        ViewMessage::ToggleAutoFit => {
+            win.auto_fit_enabled = !win.auto_fit_enabled;
+            if win.auto_fit_enabled {
+                win.auto_fit_pending = true;
+                win.canvas_state.request_redraw();
+                win.status = String::from("Auto-fit enabled");
+            } else {
+                win.status = String::from("Auto-fit disabled");
+            }
+        }
     }
 }
 
@@ -734,8 +717,10 @@ pub(crate) fn build_render_nodes(
 
         let (inputs, outputs) = resolved
             .map(|proc| match proc {
-                Process::FunctionProcess(f) => crate::flow_io::extract_ports(&f.inputs, &f.outputs),
-                Process::FlowProcess(f) => crate::flow_io::extract_ports(&f.inputs, &f.outputs),
+                Process::FunctionProcess(f) => {
+                    crate::file_ops::extract_ports(&f.inputs, &f.outputs)
+                }
+                Process::FlowProcess(f) => crate::file_ops::extract_ports(&f.inputs, &f.outputs),
             })
             .unwrap_or_default();
 
@@ -2999,19 +2984,19 @@ pub(crate) fn view_canvas_area(win: &WindowState, window_id: window::Id) -> Elem
             .spacing(4)
             .push(
                 button(Text::new("+").center())
-                    .on_press(Message::ZoomIn(window_id))
+                    .on_press(Message::View(window_id, ViewMessage::ZoomIn))
                     .width(btn_width)
                     .style(zoom_btn),
             )
             .push(
                 button(Text::new("\u{2212}").center())
-                    .on_press(Message::ZoomOut(window_id))
+                    .on_press(Message::View(window_id, ViewMessage::ZoomOut))
                     .width(btn_width)
                     .style(zoom_btn),
             )
             .push(
                 button(Text::new("Fit").center())
-                    .on_press(Message::ToggleAutoFit(window_id))
+                    .on_press(Message::View(window_id, ViewMessage::ToggleAutoFit))
                     .width(btn_width)
                     .style(if win.auto_fit_enabled {
                         zoom_btn_active
