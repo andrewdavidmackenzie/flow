@@ -66,6 +66,151 @@ fn next_unique_io_name(prefix: &str, existing: &[IO]) -> String {
     }
 }
 
+/// Handle flow metadata and I/O editing messages for a single window.
+fn handle_flow_edit_message(win: &mut WindowState, msg: FlowEditMessage) {
+    match msg {
+        FlowEditMessage::NameChanged(new_name) => {
+            win.flow_definition.name = new_name;
+            win.history.mark_modified();
+        }
+        FlowEditMessage::VersionChanged(version) => {
+            win.flow_definition.metadata.version = version;
+            win.history.mark_modified();
+        }
+        FlowEditMessage::DescriptionChanged(desc) => {
+            win.flow_definition.metadata.description = desc;
+            win.history.mark_modified();
+        }
+        FlowEditMessage::AuthorsChanged(authors_str) => {
+            win.flow_definition.metadata.authors = authors_str
+                .split(',')
+                .map(|s| s.trim().to_string())
+                .filter(|s| !s.is_empty())
+                .collect();
+            win.history.mark_modified();
+        }
+        FlowEditMessage::ToggleMetadata => {
+            win.show_metadata = !win.show_metadata;
+        }
+        FlowEditMessage::AddInput => {
+            let name = next_unique_io_name("input", &win.flow_definition.inputs);
+            let mut io = IO::new_named(vec![DataType::from("string")], Route::default(), name);
+            io.set_io_type(IOType::FlowInput);
+            win.flow_definition.inputs.push(io);
+            win.history.mark_modified();
+            win.canvas_state.request_redraw();
+        }
+        FlowEditMessage::AddOutput => {
+            let name = next_unique_io_name("output", &win.flow_definition.outputs);
+            let mut io = IO::new_named(vec![DataType::from("string")], Route::default(), name);
+            io.set_io_type(IOType::FlowOutput);
+            win.flow_definition.outputs.push(io);
+            win.history.mark_modified();
+            win.canvas_state.request_redraw();
+        }
+        FlowEditMessage::DeleteInput(idx) => {
+            if let Some(io) = win.flow_definition.inputs.get(idx) {
+                let name = io.name().clone();
+                win.flow_definition.inputs.remove(idx);
+                // Remove connections referencing this flow input
+                win.flow_definition.connections.retain(|c| {
+                    let (from_node, from_port) = canvas_view::split_route(c.from().as_ref());
+                    !(from_node == "input" && from_port == name)
+                });
+                win.history.mark_modified();
+                win.canvas_state.request_redraw();
+            }
+        }
+        FlowEditMessage::DeleteOutput(idx) => {
+            if let Some(io) = win.flow_definition.outputs.get(idx) {
+                let name = io.name().clone();
+                win.flow_definition.outputs.remove(idx);
+                // Remove connections referencing this flow output
+                win.flow_definition.connections.retain(|c| {
+                    for to_route in c.to() {
+                        let (to_node, to_port) = canvas_view::split_route(to_route.as_ref());
+                        if to_node == "output" && to_port == name {
+                            return false;
+                        }
+                    }
+                    true
+                });
+                win.history.mark_modified();
+                win.canvas_state.request_redraw();
+            }
+        }
+        FlowEditMessage::InputNameChanged(idx, name) => {
+            let duplicate = win
+                .flow_definition
+                .inputs
+                .iter()
+                .enumerate()
+                .any(|(i, io)| i != idx && io.name() == &name);
+            if !duplicate {
+                if let Some(io) = win.flow_definition.inputs.get_mut(idx) {
+                    let old_name = io.name().clone();
+                    io.set_name(name.clone());
+                    let old_route = format!("input/{old_name}");
+                    let new_route = format!("input/{name}");
+                    for conn in &mut win.flow_definition.connections {
+                        if conn.from().to_string() == old_route {
+                            conn.set_from(Route::from(new_route.as_str()));
+                        }
+                    }
+                }
+                win.history.mark_modified();
+                win.canvas_state.request_redraw();
+            }
+        }
+        FlowEditMessage::InputTypeChanged(idx, dtype) => {
+            if let Some(io) = win.flow_definition.inputs.get_mut(idx) {
+                io.set_datatypes(&[DataType::from(dtype)]);
+            }
+            win.history.mark_modified();
+            win.canvas_state.request_redraw();
+        }
+        FlowEditMessage::OutputNameChanged(idx, name) => {
+            let duplicate = win
+                .flow_definition
+                .outputs
+                .iter()
+                .enumerate()
+                .any(|(i, io)| i != idx && io.name() == &name);
+            if !duplicate {
+                if let Some(io) = win.flow_definition.outputs.get_mut(idx) {
+                    let old_name = io.name().clone();
+                    io.set_name(name.clone());
+                    let old_route_str = format!("output/{old_name}");
+                    let new_route_str = format!("output/{name}");
+                    for conn in &mut win.flow_definition.connections {
+                        let new_to: Vec<Route> = conn
+                            .to()
+                            .iter()
+                            .map(|r| {
+                                if r.to_string() == old_route_str {
+                                    Route::from(new_route_str.as_str())
+                                } else {
+                                    r.clone()
+                                }
+                            })
+                            .collect();
+                        conn.set_to(new_to);
+                    }
+                }
+                win.history.mark_modified();
+                win.canvas_state.request_redraw();
+            }
+        }
+        FlowEditMessage::OutputTypeChanged(idx, dtype) => {
+            if let Some(io) = win.flow_definition.outputs.get_mut(idx) {
+                io.set_datatypes(&[DataType::from(dtype)]);
+            }
+            win.history.mark_modified();
+            win.canvas_state.request_redraw();
+        }
+    }
+}
+
 #[cfg(test)]
 mod ui_test;
 
@@ -709,157 +854,7 @@ impl FlowEdit {
             }
             Message::FlowEdit(win_id, flow_msg) => {
                 if let Some(win) = self.windows.get_mut(&win_id) {
-                    match flow_msg {
-                        FlowEditMessage::NameChanged(new_name) => {
-                            win.flow_definition.name = new_name;
-                            win.history.mark_modified();
-                        }
-                        FlowEditMessage::VersionChanged(version) => {
-                            win.flow_definition.metadata.version = version;
-                            win.history.mark_modified();
-                        }
-                        FlowEditMessage::DescriptionChanged(desc) => {
-                            win.flow_definition.metadata.description = desc;
-                            win.history.mark_modified();
-                        }
-                        FlowEditMessage::AuthorsChanged(authors_str) => {
-                            win.flow_definition.metadata.authors = authors_str
-                                .split(',')
-                                .map(|s| s.trim().to_string())
-                                .filter(|s| !s.is_empty())
-                                .collect();
-                            win.history.mark_modified();
-                        }
-                        FlowEditMessage::ToggleMetadata => {
-                            win.show_metadata = !win.show_metadata;
-                        }
-                        FlowEditMessage::AddInput => {
-                            let name = next_unique_io_name("input", &win.flow_definition.inputs);
-                            let mut io = IO::new_named(
-                                vec![DataType::from("string")],
-                                Route::default(),
-                                name,
-                            );
-                            io.set_io_type(IOType::FlowInput);
-                            win.flow_definition.inputs.push(io);
-                            win.history.mark_modified();
-                            win.canvas_state.request_redraw();
-                        }
-                        FlowEditMessage::AddOutput => {
-                            let name = next_unique_io_name("output", &win.flow_definition.outputs);
-                            let mut io = IO::new_named(
-                                vec![DataType::from("string")],
-                                Route::default(),
-                                name,
-                            );
-                            io.set_io_type(IOType::FlowOutput);
-                            win.flow_definition.outputs.push(io);
-                            win.history.mark_modified();
-                            win.canvas_state.request_redraw();
-                        }
-                        FlowEditMessage::DeleteInput(idx) => {
-                            if let Some(io) = win.flow_definition.inputs.get(idx) {
-                                let name = io.name().clone();
-                                win.flow_definition.inputs.remove(idx);
-                                // Remove connections referencing this flow input
-                                win.flow_definition.connections.retain(|c| {
-                                    let (from_node, from_port) =
-                                        canvas_view::split_route(c.from().as_ref());
-                                    !(from_node == "input" && from_port == name)
-                                });
-                                win.history.mark_modified();
-                                win.canvas_state.request_redraw();
-                            }
-                        }
-                        FlowEditMessage::DeleteOutput(idx) => {
-                            if let Some(io) = win.flow_definition.outputs.get(idx) {
-                                let name = io.name().clone();
-                                win.flow_definition.outputs.remove(idx);
-                                // Remove connections referencing this flow output
-                                win.flow_definition.connections.retain(|c| {
-                                    for to_route in c.to() {
-                                        let (to_node, to_port) =
-                                            canvas_view::split_route(to_route.as_ref());
-                                        if to_node == "output" && to_port == name {
-                                            return false;
-                                        }
-                                    }
-                                    true
-                                });
-                                win.history.mark_modified();
-                                win.canvas_state.request_redraw();
-                            }
-                        }
-                        FlowEditMessage::InputNameChanged(idx, name) => {
-                            let duplicate = win
-                                .flow_definition
-                                .inputs
-                                .iter()
-                                .enumerate()
-                                .any(|(i, io)| i != idx && io.name() == &name);
-                            if !duplicate {
-                                if let Some(io) = win.flow_definition.inputs.get_mut(idx) {
-                                    let old_name = io.name().clone();
-                                    io.set_name(name.clone());
-                                    let old_route = format!("input/{old_name}");
-                                    let new_route = format!("input/{name}");
-                                    for conn in &mut win.flow_definition.connections {
-                                        if conn.from().to_string() == old_route {
-                                            conn.set_from(Route::from(new_route.as_str()));
-                                        }
-                                    }
-                                }
-                                win.history.mark_modified();
-                                win.canvas_state.request_redraw();
-                            }
-                        }
-                        FlowEditMessage::InputTypeChanged(idx, dtype) => {
-                            if let Some(io) = win.flow_definition.inputs.get_mut(idx) {
-                                io.set_datatypes(&[DataType::from(dtype)]);
-                            }
-                            win.history.mark_modified();
-                            win.canvas_state.request_redraw();
-                        }
-                        FlowEditMessage::OutputNameChanged(idx, name) => {
-                            let duplicate = win
-                                .flow_definition
-                                .outputs
-                                .iter()
-                                .enumerate()
-                                .any(|(i, io)| i != idx && io.name() == &name);
-                            if !duplicate {
-                                if let Some(io) = win.flow_definition.outputs.get_mut(idx) {
-                                    let old_name = io.name().clone();
-                                    io.set_name(name.clone());
-                                    let old_route_str = format!("output/{old_name}");
-                                    let new_route_str = format!("output/{name}");
-                                    for conn in &mut win.flow_definition.connections {
-                                        let new_to: Vec<Route> = conn
-                                            .to()
-                                            .iter()
-                                            .map(|r| {
-                                                if r.to_string() == old_route_str {
-                                                    Route::from(new_route_str.as_str())
-                                                } else {
-                                                    r.clone()
-                                                }
-                                            })
-                                            .collect();
-                                        conn.set_to(new_to);
-                                    }
-                                }
-                                win.history.mark_modified();
-                                win.canvas_state.request_redraw();
-                            }
-                        }
-                        FlowEditMessage::OutputTypeChanged(idx, dtype) => {
-                            if let Some(io) = win.flow_definition.outputs.get_mut(idx) {
-                                io.set_datatypes(&[DataType::from(dtype)]);
-                            }
-                            win.history.mark_modified();
-                            win.canvas_state.request_redraw();
-                        }
-                    }
+                    handle_flow_edit_message(win, flow_msg);
                 }
             }
             Message::NewSubFlow(target_win_id) => {
@@ -927,205 +922,7 @@ impl FlowEdit {
                 self.show_lib_paths = !self.show_lib_paths;
             }
             Message::FunctionEdit(win_id, func_msg) => {
-                match func_msg {
-                    FunctionEditMessage::TabSelected(tab) => {
-                        if let Some(win) = self.windows.get_mut(&win_id) {
-                            if let WindowKind::FunctionViewer(ref mut viewer) = win.kind {
-                                viewer.active_tab = tab;
-                            }
-                        }
-                    }
-                    FunctionEditMessage::NameChanged(new_name) => {
-                        if let Some(win) = self.windows.get_mut(&win_id) {
-                            if let WindowKind::FunctionViewer(ref mut viewer) = win.kind {
-                                viewer.func_def.name = new_name;
-                            }
-                            win.history.mark_modified();
-                        }
-                    }
-                    FunctionEditMessage::DescriptionChanged(new_desc) => {
-                        // Extract parent info before mutating
-                        let parent_info = self.windows.get(&win_id).and_then(|win| {
-                            if let WindowKind::FunctionViewer(ref viewer) = win.kind {
-                                viewer
-                                    .parent_window
-                                    .map(|pid| (pid, viewer.node_source.clone()))
-                            } else {
-                                None
-                            }
-                        });
-                        if let Some(win) = self.windows.get_mut(&win_id) {
-                            if let WindowKind::FunctionViewer(ref mut viewer) = win.kind {
-                                viewer.func_def.description.clone_from(&new_desc);
-                            }
-                            win.history.mark_modified();
-                        }
-                        // Propagate description to the parent window's subprocess definitions
-                        if let Some((parent_id, node_source)) = parent_info {
-                            if let Some(parent_win) = self.windows.get_mut(&parent_id) {
-                                // Update subprocess definitions with matching source
-                                for pref in &parent_win.flow_definition.process_refs {
-                                    if pref.source == node_source {
-                                        let alias = if pref.alias.is_empty() {
-                                            canvas_view::derive_short_name(&pref.source)
-                                        } else {
-                                            pref.alias.clone()
-                                        };
-                                        if let Some(proc) =
-                                            parent_win.flow_definition.subprocesses.get_mut(&alias)
-                                        {
-                                            match proc {
-                                                Process::FunctionProcess(ref mut f) => {
-                                                    f.description.clone_from(&new_desc);
-                                                }
-                                                Process::FlowProcess(ref mut f) => {
-                                                    f.description.clone_from(&new_desc);
-                                                }
-                                            }
-                                        }
-                                    }
-                                }
-                                parent_win.canvas_state.request_redraw();
-                            }
-                        }
-                    }
-                    FunctionEditMessage::BrowseSource => {
-                        let dialog = rfd::FileDialog::new().add_filter("Rust", &["rs"]);
-                        if let Some(selected) = dialog.pick_file() {
-                            if let Some(win) = self.windows.get_mut(&win_id) {
-                                if let WindowKind::FunctionViewer(ref mut viewer) = win.kind {
-                                    let base = viewer
-                                        .toml_path()
-                                        .as_deref()
-                                        .and_then(Path::parent)
-                                        .unwrap_or(Path::new("."))
-                                        .to_path_buf();
-                                    let rel = selected.strip_prefix(&base).map_or_else(
-                                        |_| selected.to_string_lossy().to_string(),
-                                        |p| p.to_string_lossy().to_string(),
-                                    );
-                                    viewer.func_def.source = rel;
-                                    viewer.rs_content = std::fs::read_to_string(&selected)
-                                        .unwrap_or_else(|_| String::from("// Could not read file"));
-                                }
-                                win.history.mark_modified();
-                            }
-                        }
-                    }
-                    FunctionEditMessage::AddInput => {
-                        if let Some(win) = self.windows.get_mut(&win_id) {
-                            if let WindowKind::FunctionViewer(ref mut v) = win.kind {
-                                let name = next_unique_io_name("input", &v.func_def.inputs);
-                                v.func_def.inputs.push(IO::new_named(
-                                    vec![DataType::from("string")],
-                                    Route::default(),
-                                    &name,
-                                ));
-                            }
-                            win.history.mark_modified();
-                        }
-                        Self::propagate_function_ports(&mut self.windows, win_id);
-                    }
-                    FunctionEditMessage::AddOutput => {
-                        if let Some(win) = self.windows.get_mut(&win_id) {
-                            if let WindowKind::FunctionViewer(ref mut v) = win.kind {
-                                let name = next_unique_io_name("output", &v.func_def.outputs);
-                                v.func_def.outputs.push(IO::new_named(
-                                    vec![DataType::from("string")],
-                                    Route::default(),
-                                    &name,
-                                ));
-                            }
-                            win.history.mark_modified();
-                        }
-                        Self::propagate_function_ports(&mut self.windows, win_id);
-                    }
-                    FunctionEditMessage::DeleteInput(idx) => {
-                        if let Some(win) = self.windows.get_mut(&win_id) {
-                            if let WindowKind::FunctionViewer(ref mut v) = win.kind {
-                                if idx < v.func_def.inputs.len() {
-                                    v.func_def.inputs.remove(idx);
-                                }
-                            }
-                            win.history.mark_modified();
-                        }
-                        Self::propagate_function_ports(&mut self.windows, win_id);
-                    }
-                    FunctionEditMessage::DeleteOutput(idx) => {
-                        if let Some(win) = self.windows.get_mut(&win_id) {
-                            if let WindowKind::FunctionViewer(ref mut v) = win.kind {
-                                if idx < v.func_def.outputs.len() {
-                                    v.func_def.outputs.remove(idx);
-                                }
-                            }
-                            win.history.mark_modified();
-                        }
-                        Self::propagate_function_ports(&mut self.windows, win_id);
-                    }
-                    FunctionEditMessage::InputNameChanged(idx, name) => {
-                        if let Some(win) = self.windows.get_mut(&win_id) {
-                            if let WindowKind::FunctionViewer(ref mut v) = win.kind {
-                                if let Some(io) = v.func_def.inputs.get_mut(idx) {
-                                    io.set_name(name);
-                                }
-                            }
-                            win.history.mark_modified();
-                        }
-                        Self::propagate_function_ports(&mut self.windows, win_id);
-                    }
-                    FunctionEditMessage::InputTypeChanged(idx, dtype) => {
-                        if let Some(win) = self.windows.get_mut(&win_id) {
-                            if let WindowKind::FunctionViewer(ref mut v) = win.kind {
-                                if let Some(io) = v.func_def.inputs.get_mut(idx) {
-                                    io.set_datatypes(&[DataType::from(dtype)]);
-                                }
-                            }
-                            win.history.mark_modified();
-                        }
-                        Self::propagate_function_ports(&mut self.windows, win_id);
-                    }
-                    FunctionEditMessage::OutputNameChanged(idx, name) => {
-                        if let Some(win) = self.windows.get_mut(&win_id) {
-                            if let WindowKind::FunctionViewer(ref mut v) = win.kind {
-                                if let Some(io) = v.func_def.outputs.get_mut(idx) {
-                                    io.set_name(name);
-                                }
-                            }
-                            win.history.mark_modified();
-                        }
-                        Self::propagate_function_ports(&mut self.windows, win_id);
-                    }
-                    FunctionEditMessage::OutputTypeChanged(idx, dtype) => {
-                        if let Some(win) = self.windows.get_mut(&win_id) {
-                            if let WindowKind::FunctionViewer(ref mut v) = win.kind {
-                                if let Some(io) = v.func_def.outputs.get_mut(idx) {
-                                    io.set_datatypes(&[DataType::from(dtype)]);
-                                }
-                            }
-                            win.history.mark_modified();
-                        }
-                        Self::propagate_function_ports(&mut self.windows, win_id);
-                    }
-                    FunctionEditMessage::Save => {
-                        if let Some(win) = self.windows.get_mut(&win_id) {
-                            if let WindowKind::FunctionViewer(ref v) = win.kind {
-                                match flow_io::save_function_definition(v) {
-                                    Ok(()) => {
-                                        let path_display = v.toml_path().map_or_else(
-                                            || String::from("(unknown)"),
-                                            |p| p.display().to_string(),
-                                        );
-                                        win.status = format!("Saved: {path_display}");
-                                        win.history.clear();
-                                    }
-                                    Err(e) => {
-                                        win.status = format!("Save failed: {e}");
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
+                self.handle_function_edit_message(win_id, func_msg);
             }
             Message::WindowClosed(id) => {
                 self.windows.remove(&id);
@@ -2457,6 +2254,209 @@ impl FlowEdit {
 
         self.windows.insert(new_id, child);
         open_task.discard()
+    }
+
+    /// Handle function definition viewing/editing messages.
+    fn handle_function_edit_message(&mut self, win_id: window::Id, func_msg: FunctionEditMessage) {
+        match func_msg {
+            FunctionEditMessage::TabSelected(tab) => {
+                if let Some(win) = self.windows.get_mut(&win_id) {
+                    if let WindowKind::FunctionViewer(ref mut viewer) = win.kind {
+                        viewer.active_tab = tab;
+                    }
+                }
+            }
+            FunctionEditMessage::NameChanged(new_name) => {
+                if let Some(win) = self.windows.get_mut(&win_id) {
+                    if let WindowKind::FunctionViewer(ref mut viewer) = win.kind {
+                        viewer.func_def.name = new_name;
+                    }
+                    win.history.mark_modified();
+                }
+            }
+            FunctionEditMessage::DescriptionChanged(new_desc) => {
+                // Extract parent info before mutating
+                let parent_info = self.windows.get(&win_id).and_then(|win| {
+                    if let WindowKind::FunctionViewer(ref viewer) = win.kind {
+                        viewer
+                            .parent_window
+                            .map(|pid| (pid, viewer.node_source.clone()))
+                    } else {
+                        None
+                    }
+                });
+                if let Some(win) = self.windows.get_mut(&win_id) {
+                    if let WindowKind::FunctionViewer(ref mut viewer) = win.kind {
+                        viewer.func_def.description.clone_from(&new_desc);
+                    }
+                    win.history.mark_modified();
+                }
+                // Propagate description to the parent window's subprocess definitions
+                if let Some((parent_id, node_source)) = parent_info {
+                    if let Some(parent_win) = self.windows.get_mut(&parent_id) {
+                        // Update subprocess definitions with matching source
+                        for pref in &parent_win.flow_definition.process_refs {
+                            if pref.source == node_source {
+                                let alias = if pref.alias.is_empty() {
+                                    canvas_view::derive_short_name(&pref.source)
+                                } else {
+                                    pref.alias.clone()
+                                };
+                                if let Some(proc) =
+                                    parent_win.flow_definition.subprocesses.get_mut(&alias)
+                                {
+                                    match proc {
+                                        Process::FunctionProcess(ref mut f) => {
+                                            f.description.clone_from(&new_desc);
+                                        }
+                                        Process::FlowProcess(ref mut f) => {
+                                            f.description.clone_from(&new_desc);
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                        parent_win.canvas_state.request_redraw();
+                    }
+                }
+            }
+            FunctionEditMessage::BrowseSource => {
+                let dialog = rfd::FileDialog::new().add_filter("Rust", &["rs"]);
+                if let Some(selected) = dialog.pick_file() {
+                    if let Some(win) = self.windows.get_mut(&win_id) {
+                        if let WindowKind::FunctionViewer(ref mut viewer) = win.kind {
+                            let base = viewer
+                                .toml_path()
+                                .as_deref()
+                                .and_then(Path::parent)
+                                .unwrap_or(Path::new("."))
+                                .to_path_buf();
+                            let rel = selected.strip_prefix(&base).map_or_else(
+                                |_| selected.to_string_lossy().to_string(),
+                                |p| p.to_string_lossy().to_string(),
+                            );
+                            viewer.func_def.source = rel;
+                            viewer.rs_content = std::fs::read_to_string(&selected)
+                                .unwrap_or_else(|_| String::from("// Could not read file"));
+                        }
+                        win.history.mark_modified();
+                    }
+                }
+            }
+            FunctionEditMessage::AddInput => {
+                if let Some(win) = self.windows.get_mut(&win_id) {
+                    if let WindowKind::FunctionViewer(ref mut v) = win.kind {
+                        let name = next_unique_io_name("input", &v.func_def.inputs);
+                        v.func_def.inputs.push(IO::new_named(
+                            vec![DataType::from("string")],
+                            Route::default(),
+                            &name,
+                        ));
+                    }
+                    win.history.mark_modified();
+                }
+                Self::propagate_function_ports(&mut self.windows, win_id);
+            }
+            FunctionEditMessage::AddOutput => {
+                if let Some(win) = self.windows.get_mut(&win_id) {
+                    if let WindowKind::FunctionViewer(ref mut v) = win.kind {
+                        let name = next_unique_io_name("output", &v.func_def.outputs);
+                        v.func_def.outputs.push(IO::new_named(
+                            vec![DataType::from("string")],
+                            Route::default(),
+                            &name,
+                        ));
+                    }
+                    win.history.mark_modified();
+                }
+                Self::propagate_function_ports(&mut self.windows, win_id);
+            }
+            FunctionEditMessage::DeleteInput(idx) => {
+                if let Some(win) = self.windows.get_mut(&win_id) {
+                    if let WindowKind::FunctionViewer(ref mut v) = win.kind {
+                        if idx < v.func_def.inputs.len() {
+                            v.func_def.inputs.remove(idx);
+                        }
+                    }
+                    win.history.mark_modified();
+                }
+                Self::propagate_function_ports(&mut self.windows, win_id);
+            }
+            FunctionEditMessage::DeleteOutput(idx) => {
+                if let Some(win) = self.windows.get_mut(&win_id) {
+                    if let WindowKind::FunctionViewer(ref mut v) = win.kind {
+                        if idx < v.func_def.outputs.len() {
+                            v.func_def.outputs.remove(idx);
+                        }
+                    }
+                    win.history.mark_modified();
+                }
+                Self::propagate_function_ports(&mut self.windows, win_id);
+            }
+            FunctionEditMessage::InputNameChanged(idx, name) => {
+                if let Some(win) = self.windows.get_mut(&win_id) {
+                    if let WindowKind::FunctionViewer(ref mut v) = win.kind {
+                        if let Some(io) = v.func_def.inputs.get_mut(idx) {
+                            io.set_name(name);
+                        }
+                    }
+                    win.history.mark_modified();
+                }
+                Self::propagate_function_ports(&mut self.windows, win_id);
+            }
+            FunctionEditMessage::InputTypeChanged(idx, dtype) => {
+                if let Some(win) = self.windows.get_mut(&win_id) {
+                    if let WindowKind::FunctionViewer(ref mut v) = win.kind {
+                        if let Some(io) = v.func_def.inputs.get_mut(idx) {
+                            io.set_datatypes(&[DataType::from(dtype)]);
+                        }
+                    }
+                    win.history.mark_modified();
+                }
+                Self::propagate_function_ports(&mut self.windows, win_id);
+            }
+            FunctionEditMessage::OutputNameChanged(idx, name) => {
+                if let Some(win) = self.windows.get_mut(&win_id) {
+                    if let WindowKind::FunctionViewer(ref mut v) = win.kind {
+                        if let Some(io) = v.func_def.outputs.get_mut(idx) {
+                            io.set_name(name);
+                        }
+                    }
+                    win.history.mark_modified();
+                }
+                Self::propagate_function_ports(&mut self.windows, win_id);
+            }
+            FunctionEditMessage::OutputTypeChanged(idx, dtype) => {
+                if let Some(win) = self.windows.get_mut(&win_id) {
+                    if let WindowKind::FunctionViewer(ref mut v) = win.kind {
+                        if let Some(io) = v.func_def.outputs.get_mut(idx) {
+                            io.set_datatypes(&[DataType::from(dtype)]);
+                        }
+                    }
+                    win.history.mark_modified();
+                }
+                Self::propagate_function_ports(&mut self.windows, win_id);
+            }
+            FunctionEditMessage::Save => {
+                if let Some(win) = self.windows.get_mut(&win_id) {
+                    if let WindowKind::FunctionViewer(ref v) = win.kind {
+                        match flow_io::save_function_definition(v) {
+                            Ok(()) => {
+                                let path_display = v.toml_path().map_or_else(
+                                    || String::from("(unknown)"),
+                                    |p| p.display().to_string(),
+                                );
+                                win.status = format!("Saved: {path_display}");
+                                win.history.clear();
+                            }
+                            Err(e) => {
+                                win.status = format!("Save failed: {e}");
+                            }
+                        }
+                    }
+                }
+            }
+        }
     }
 
     /// Propagate the current function viewer's ports (inputs/outputs) to matching
