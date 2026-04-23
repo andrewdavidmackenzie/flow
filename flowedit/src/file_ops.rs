@@ -7,7 +7,7 @@ use std::path::{Path, PathBuf};
 use simpath::Simpath;
 use url::Url;
 
-use crate::canvas_view::{derive_short_name, FlowCanvasState, PortInfo};
+use crate::canvas_view::{derive_short_name, FlowCanvasState};
 use crate::history::EditHistory;
 use crate::{FunctionViewer, WindowState};
 use flowcore::meta_provider::MetaProvider;
@@ -231,28 +231,6 @@ pub(crate) fn resolve_lib_paths() -> Vec<String> {
     }
 
     paths
-}
-
-/// Extract input and output port information from IO definitions.
-pub(crate) fn extract_ports(
-    inputs: &[flowcore::model::io::IO],
-    outputs: &[flowcore::model::io::IO],
-) -> (Vec<PortInfo>, Vec<PortInfo>) {
-    let input_ports = inputs
-        .iter()
-        .map(|io| PortInfo {
-            name: io.name().clone(),
-            datatypes: io.datatypes().iter().map(ToString::to_string).collect(),
-        })
-        .collect();
-    let output_ports = outputs
-        .iter()
-        .map(|io| PortInfo {
-            name: io.name().clone(),
-            datatypes: io.datatypes().iter().map(ToString::to_string).collect(),
-        })
-        .collect();
-    (input_ports, output_ports)
 }
 
 /// Load a flow definition file and return the flow name, node layouts, edge layouts,
@@ -537,10 +515,10 @@ fn assign_default_positions(flow: &mut FlowDefinition) {
     let render_nodes = canvas_view::build_render_nodes(flow);
     for (pref, node) in flow.process_refs.iter_mut().zip(render_nodes.iter()) {
         if pref.x.is_none() {
-            pref.x = Some(node.x);
+            pref.x = Some(node.x());
         }
         if pref.y.is_none() {
-            pref.y = Some(node.y);
+            pref.y = Some(node.y());
         }
     }
 }
