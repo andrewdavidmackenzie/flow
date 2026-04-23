@@ -2,7 +2,7 @@
 //!
 //! Each [`ProcessReference`] is drawn as a rounded rectangle with its alias
 //! displayed as a title. Node fill color is determined by the resolved
-//! [`NodeKind`]: blue for library functions, green for context functions,
+//! [`Process`] variant: blue for library functions, green for context functions,
 //! purple for provided implementations, and orange for nested flows.
 
 #![allow(
@@ -34,8 +34,8 @@ use crate::InitializerEditor;
 use crate::WindowState;
 use crate::{Message, ViewMessage};
 
-/// Action returned by [`handle_canvas_message`] to signal that the caller
-/// (main.rs) needs to perform an operation that requires `FlowEdit` state.
+/// Action returned by [`WindowState::handle_canvas_message`] to signal that
+/// the caller needs to perform an operation that requires `FlowEdit` state.
 pub(crate) enum CanvasAction {
     /// No further action needed.
     None,

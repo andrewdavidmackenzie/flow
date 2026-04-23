@@ -20,17 +20,17 @@ pub(crate) enum HierarchyMessage {
 
 #[derive(Debug, Clone)]
 pub(crate) struct HierarchyNode {
-    pub name: String,
-    pub process: Option<Process>,
-    pub source: String,
-    pub path: Option<PathBuf>,
-    pub children: Vec<HierarchyNode>,
-    pub expanded: bool,
+    pub(crate) name: String,
+    pub(crate) process: Option<Process>,
+    pub(crate) source: String,
+    pub(crate) path: Option<PathBuf>,
+    pub(crate) children: Vec<HierarchyNode>,
+    pub(crate) expanded: bool,
 }
 
 #[derive(Debug, Clone)]
 pub(crate) struct FlowHierarchy {
-    pub root: Option<HierarchyNode>,
+    pub(crate) root: Option<HierarchyNode>,
 }
 
 impl FlowHierarchy {
@@ -109,7 +109,7 @@ impl HierarchyNode {
             && !self.source.starts_with("context://");
         let is_library = match &self.process {
             Some(Process::FunctionProcess(f)) => {
-                f.lib_reference.is_some() || f.context_reference.is_some()
+                f.get_lib_reference().is_some() || f.get_context_reference().is_some()
             }
             None => self.source.starts_with("lib://") || self.source.starts_with("context://"),
             _ => false,
