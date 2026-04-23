@@ -1,12 +1,14 @@
 //! Per-window state and related types for the flow editor.
 
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
 use iced::window;
+use url::Url;
 
 use flowcore::model::flow_definition::FlowDefinition;
+use flowcore::model::function_definition::FunctionDefinition;
 
-use crate::canvas_view::{EdgeLayout, FlowCanvasState, NodeLayout, PortInfo};
+use crate::canvas_view::FlowCanvasState;
 use crate::hierarchy_panel::FlowHierarchy;
 use crate::history;
 use crate::history::EditHistory;
@@ -25,21 +27,24 @@ pub(crate) struct InitializerEditor {
 
 /// State for a function definition viewer/editor window.
 pub(crate) struct FunctionViewer {
-    pub(crate) name: String,
-    pub(crate) description: String,
-    pub(crate) source_file: String,
-    pub(crate) inputs: Vec<PortInfo>,
-    pub(crate) outputs: Vec<PortInfo>,
+    /// The canonical function definition (owns name, description, source, inputs, outputs, source_url)
+    pub(crate) func_def: FunctionDefinition,
     pub(crate) rs_content: String,
     pub(crate) docs_content: Option<String>,
     pub(crate) active_tab: usize,
-    pub(crate) toml_path: PathBuf,
     /// Parent window that opened this viewer (for propagating edits back to canvas)
     pub(crate) parent_window: Option<window::Id>,
-    /// Source string of the node this viewer is editing (to find the NodeLayout)
+    /// Source string of the node this viewer is editing (to find the `NodeLayout`)
     pub(crate) node_source: String,
     /// Whether this viewer is read-only (library/context functions cannot be edited)
     pub(crate) read_only: bool,
+}
+
+impl FunctionViewer {
+    /// Derive the TOML file path from the function definition's source URL.
+    pub(crate) fn toml_path(&self) -> Option<PathBuf> {
+        self.func_def.source_url.to_file_path().ok()
+    }
 }
 
 /// What kind of content a window displays.
@@ -52,12 +57,6 @@ pub(crate) enum WindowKind {
 pub(crate) struct WindowState {
     /// What this window displays
     pub(crate) kind: WindowKind,
-    /// The name of the flow being viewed
-    pub(crate) flow_name: String,
-    /// Positioned nodes derived from the flow's process references
-    pub(crate) nodes: Vec<NodeLayout>,
-    /// Connection edges between nodes
-    pub(crate) edges: Vec<EdgeLayout>,
     /// Canvas state for caching rendered geometry
     pub(crate) canvas_state: FlowCanvasState,
     /// Status message displayed in the bottom bar
@@ -76,8 +75,6 @@ pub(crate) struct WindowState {
     pub(crate) unsaved_edits: i32,
     /// Path to the last compiled manifest (None if not compiled or edited since)
     pub(crate) compiled_manifest: Option<PathBuf>,
-    /// Path to the currently loaded flow file, if any
-    pub(crate) file_path: Option<PathBuf>,
     /// The original flow definition, used to preserve metadata when saving
     pub(crate) flow_definition: FlowDefinition,
     /// Tooltip text and screen position to display (full source path on hover)
@@ -86,10 +83,6 @@ pub(crate) struct WindowState {
     pub(crate) initializer_editor: Option<InitializerEditor>,
     /// Whether this is the root (main) window
     pub(crate) is_root: bool,
-    /// Flow-level input ports (for sub-flow display)
-    pub(crate) flow_inputs: Vec<PortInfo>,
-    /// Flow-level output ports (for sub-flow display)
-    pub(crate) flow_outputs: Vec<PortInfo>,
     /// Context menu position (screen coords), if showing
     pub(crate) context_menu: Option<(f32, f32)>,
     /// Whether the metadata editor is visible
@@ -106,9 +99,6 @@ impl Default for WindowState {
     fn default() -> Self {
         Self {
             kind: WindowKind::FlowEditor,
-            flow_name: String::new(),
-            nodes: Vec::new(),
-            edges: Vec::new(),
             canvas_state: FlowCanvasState::default(),
             status: String::new(),
             selected_node: None,
@@ -118,13 +108,10 @@ impl Default for WindowState {
             auto_fit_enabled: false,
             unsaved_edits: 0,
             compiled_manifest: None,
-            file_path: None,
             flow_definition: FlowDefinition::default(),
             tooltip: None,
             initializer_editor: None,
             is_root: false,
-            flow_inputs: Vec::new(),
-            flow_outputs: Vec::new(),
             context_menu: None,
             show_metadata: false,
             flow_hierarchy: FlowHierarchy::empty(),
@@ -135,6 +122,31 @@ impl Default for WindowState {
 }
 
 impl WindowState {
+    /// Get the file path from the flow definition's source URL.
+    /// Returns `None` if no file has been saved/loaded yet.
+    pub(crate) fn file_path(&self) -> Option<PathBuf> {
+        self.flow_definition.source_url.to_file_path().ok()
+    }
+
+    /// Set the file path by updating the flow definition's source URL.
+    pub(crate) fn set_file_path(&mut self, path: &Path) {
+        let abs = path.canonicalize().unwrap_or_else(|_| {
+            if path.is_absolute() {
+                path.to_path_buf()
+            } else {
+                std::env::current_dir().map_or_else(|_| path.to_path_buf(), |cwd| cwd.join(path))
+            }
+        });
+        if let Ok(url) = Url::from_file_path(&abs) {
+            self.flow_definition.source_url = url;
+        }
+    }
+
+    /// Clear the file path by resetting the source URL to the default.
+    pub(crate) fn clear_file_path(&mut self) {
+        self.flow_definition.source_url = FlowDefinition::default_url();
+    }
+
     /// Undo the last edit action.
     pub(crate) fn handle_undo(&mut self) {
         history::handle_undo(self);

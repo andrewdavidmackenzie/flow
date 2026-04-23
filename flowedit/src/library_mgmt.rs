@@ -12,7 +12,6 @@ use flowcore::model::process::Process;
 use flowcore::model::process_reference::ProcessReference;
 use flowcore::provider::Provider;
 
-use crate::canvas_view::NodeLayout;
 use crate::flow_io;
 use crate::history;
 use crate::history::EditAction;
@@ -60,10 +59,7 @@ pub(crate) fn load_library_catalogs(
                             all_definitions.insert(locator_url.clone(), process);
                         }
                         Err(e) => {
-                            warn!(
-                                "Could not parse library definition '{}': {}",
-                                locator_url, e
-                            );
+                            warn!("Could not parse library definition '{locator_url}': {e}");
                         }
                     }
                 }
@@ -71,7 +67,7 @@ pub(crate) fn load_library_catalogs(
                 library_cache.insert(lib_root.clone(), manifest);
             }
             Err(e) => {
-                warn!("Could not load library manifest for '{}': {}", lib_root, e);
+                warn!("Could not load library manifest for '{lib_root}': {e}");
             }
         }
     }
@@ -107,18 +103,19 @@ pub(crate) fn load_library_catalogs(
                             if !func_name.is_empty() {
                                 let ctx_url_str = format!("context://{cat_name}/{func_name}");
                                 if let Ok(ctx_url) = Url::parse(&ctx_url_str) {
-                                    if !all_definitions.contains_key(&ctx_url) {
+                                    if let std::collections::hash_map::Entry::Vacant(entry) =
+                                        all_definitions.entry(ctx_url)
+                                    {
                                         match flowrclib::compiler::parser::parse(
-                                            &ctx_url,
+                                            entry.key(),
                                             &ctx_provider,
                                         ) {
                                             Ok(process) => {
-                                                all_definitions.insert(ctx_url, process);
+                                                entry.insert(process);
                                             }
                                             Err(e) => {
                                                 warn!(
-                                                    "Could not parse context function '{}': {}",
-                                                    ctx_url_str, e
+                                                    "Could not parse context function '{ctx_url_str}': {e}"
                                                 );
                                             }
                                         }
@@ -141,53 +138,29 @@ pub(crate) fn load_library_catalogs(
 /// in the flow definition, and records the action in the edit history.
 pub(crate) fn add_library_function(win: &mut WindowState, source: &str, func_name: &str) {
     // Generate a unique alias: if the name already exists, append a number
-    let alias = flow_io::generate_unique_alias(func_name, &win.nodes);
+    let alias = flow_io::generate_unique_alias(func_name, &win.flow_definition.process_refs);
 
     // Place the new node at a default position offset from existing nodes
-    let (x, y) = flow_io::next_node_position(&win.nodes);
+    let (x, y) = flow_io::next_node_position(&win.flow_definition.process_refs);
 
-    // Resolve port info and description by parsing the function/flow definition
-    let (inputs, outputs, description) = match Url::parse(source) {
+    // Resolve the subprocess definition by parsing the function/flow
+    let resolved_process = match Url::parse(source) {
         Ok(url) => {
             let provider = flow_io::build_meta_provider();
             match flowrclib::compiler::parser::parse(&url, &provider) {
-                Ok(Process::FunctionProcess(func)) => {
-                    let ports = flow_io::extract_ports(&func.inputs, &func.outputs);
-                    (ports.0, ports.1, func.description.clone())
-                }
-                Ok(Process::FlowProcess(flow)) => {
-                    let ports = flow_io::extract_ports(&flow.inputs, &flow.outputs);
-                    (ports.0, ports.1, flow.description.clone())
-                }
+                Ok(proc) => Some(proc),
                 Err(e) => {
                     info!("add_library_function: could not parse '{source}': {e}");
-                    (Vec::new(), Vec::new(), String::new())
+                    None
                 }
             }
         }
         Err(e) => {
             info!("add_library_function: could not parse URL '{source}': {e}");
-            (Vec::new(), Vec::new(), String::new())
+            None
         }
     };
 
-    let node = NodeLayout {
-        alias: alias.clone(),
-        source: source.to_string(),
-        description,
-        x,
-        y,
-        width: 180.0,
-        height: 120.0,
-        inputs,
-        outputs,
-        initializers: HashMap::new(),
-    };
-
-    let index = win.nodes.len();
-    win.nodes.push(node.clone());
-
-    // Also add to the flow definition
     let pref = ProcessReference {
         alias: alias.clone(),
         source: source.to_string(),
@@ -197,14 +170,26 @@ pub(crate) fn add_library_function(win: &mut WindowState, source: &str, func_nam
         width: Some(180.0),
         height: Some(120.0),
     };
-    win.flow_definition.process_refs.push(pref);
+
+    let index = win.flow_definition.process_refs.len();
+    win.flow_definition.process_refs.push(pref.clone());
+
+    // Add the resolved subprocess definition if we have one
+    if let Some(proc) = resolved_process {
+        win.flow_definition.subprocesses.insert(alias.clone(), proc);
+    }
 
     history::record_edit(
         win,
         EditAction::DeleteNode {
             index,
-            node,
-            removed_edges: Vec::new(),
+            process_ref: pref,
+            subprocess: win
+                .flow_definition
+                .subprocesses
+                .get(&alias)
+                .map(|p| (alias.clone(), p.clone())),
+            removed_connections: Vec::new(),
         },
     );
     // Note: We record a DeleteNode so that *undo* removes the added node.
@@ -216,13 +201,14 @@ pub(crate) fn add_library_function(win: &mut WindowState, source: &str, func_nam
     if win.auto_fit_enabled {
         win.auto_fit_pending = true;
     }
-    let nc = win.nodes.len();
+    let nc = win.flow_definition.process_refs.len();
     win.status = format!("Added {alias} from library - {nc} nodes");
 }
 
 /// Resolve a node's source path relative to the current flow file.
 pub(crate) fn resolve_node_source(win: &WindowState, source: &str) -> Option<PathBuf> {
-    let base_dir = win.file_path.as_ref()?.parent()?;
+    let base_dir = win.file_path()?.parent()?.to_path_buf();
+    let base_dir = &base_dir;
     let canonicalize = |p: PathBuf| std::fs::canonicalize(&p).unwrap_or(p);
     let candidate = base_dir.join(source);
     if candidate.exists() {
@@ -242,36 +228,44 @@ pub(crate) fn resolve_node_source(win: &WindowState, source: &str) -> Option<Pat
 #[cfg(test)]
 #[allow(clippy::indexing_slicing)]
 mod test {
+    use std::path::Path;
+
     use super::*;
-    use crate::canvas_view::{FlowCanvasState, PortInfo};
+    use crate::canvas_view::FlowCanvasState;
     use crate::hierarchy_panel::FlowHierarchy;
     use crate::history::EditHistory;
     use crate::WindowKind;
 
-    fn test_node(alias: &str, source: &str) -> NodeLayout {
-        NodeLayout {
-            alias: alias.into(),
-            source: source.into(),
-            description: String::new(),
-            x: 100.0,
-            y: 100.0,
-            width: 180.0,
-            height: 120.0,
-            inputs: Vec::new(),
-            outputs: Vec::new(),
-            initializers: HashMap::new(),
-        }
-    }
-
     fn test_win_state() -> WindowState {
+        use flowcore::model::process_reference::ProcessReference;
+        use std::collections::BTreeMap;
+
+        let flow_def = flowcore::model::flow_definition::FlowDefinition {
+            name: String::from("test"),
+            process_refs: vec![
+                ProcessReference {
+                    alias: "add".into(),
+                    source: "lib://flowstdlib/math/add".into(),
+                    initializations: BTreeMap::new(),
+                    x: Some(100.0),
+                    y: Some(100.0),
+                    width: Some(180.0),
+                    height: Some(120.0),
+                },
+                ProcessReference {
+                    alias: "stdout".into(),
+                    source: "context://stdio/stdout".into(),
+                    initializations: BTreeMap::new(),
+                    x: Some(100.0),
+                    y: Some(100.0),
+                    width: Some(180.0),
+                    height: Some(120.0),
+                },
+            ],
+            ..flowcore::model::flow_definition::FlowDefinition::default()
+        };
         WindowState {
             kind: WindowKind::FlowEditor,
-            flow_name: String::from("test"),
-            nodes: vec![
-                test_node("add", "lib://flowstdlib/math/add"),
-                test_node("stdout", "context://stdio/stdout"),
-            ],
-            edges: Vec::new(),
             canvas_state: FlowCanvasState::default(),
             status: String::new(),
             selected_node: None,
@@ -281,13 +275,10 @@ mod test {
             auto_fit_enabled: false,
             unsaved_edits: 0,
             compiled_manifest: None,
-            file_path: None,
-            flow_definition: flowcore::model::flow_definition::FlowDefinition::default(),
+            flow_definition: flow_def,
             tooltip: None,
             initializer_editor: None,
             is_root: true,
-            flow_inputs: Vec::new(),
-            flow_outputs: Vec::new(),
             context_menu: None,
             show_metadata: false,
             flow_hierarchy: FlowHierarchy::empty(),
@@ -310,10 +301,8 @@ mod test {
         let sub_path = dir.join("sub.toml");
         std::fs::write(&sub_path, "flow = \"sub\"").expect("write");
 
-        let win = WindowState {
-            file_path: Some(flow_path),
-            ..test_win_state()
-        };
+        let mut win = test_win_state();
+        win.set_file_path(&flow_path);
 
         let resolved = resolve_node_source(&win, "sub");
         assert!(resolved.is_some());
@@ -323,10 +312,8 @@ mod test {
 
     #[test]
     fn resolve_node_source_not_found() {
-        let win = WindowState {
-            file_path: Some(PathBuf::from("/tmp/flowedit_tests/nonexistent/root.toml")),
-            ..test_win_state()
-        };
+        let mut win = test_win_state();
+        win.set_file_path(Path::new("/tmp/flowedit_tests/nonexistent/root.toml"));
         let resolved = resolve_node_source(&win, "missing");
         assert!(resolved.is_none());
     }

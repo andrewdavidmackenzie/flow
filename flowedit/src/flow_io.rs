@@ -1,18 +1,14 @@
 //! Flow file operations: loading, saving, compiling, and editor preferences.
 
-use std::collections::{BTreeMap, BTreeSet, HashMap};
+use std::collections::{BTreeMap, BTreeSet};
+use std::fmt::Write;
 use std::path::{Path, PathBuf};
 
-use log::info;
 use simpath::Simpath;
 use url::Url;
 
-use crate::canvas_view::FlowCanvasState;
-use crate::canvas_view::{
-    build_edge_layouts, build_node_layouts, EdgeLayout, NodeLayout, PortInfo,
-};
+use crate::canvas_view::{derive_short_name, FlowCanvasState, PortInfo};
 use crate::history::EditHistory;
-use crate::initializer;
 use crate::{FunctionViewer, WindowState};
 use flowcore::meta_provider::MetaProvider;
 use flowcore::model::flow_definition::FlowDefinition;
@@ -22,9 +18,6 @@ use flowcore::model::process::Process;
 
 /// Result of loading a flow definition file.
 pub(crate) struct LoadedFlow {
-    pub(crate) name: String,
-    pub(crate) nodes: Vec<NodeLayout>,
-    pub(crate) edges: Vec<EdgeLayout>,
     pub(crate) flow_def: FlowDefinition,
     pub(crate) lib_references: BTreeSet<Url>,
     pub(crate) context_references: BTreeSet<Url>,
@@ -40,11 +33,10 @@ pub(crate) struct EditorPrefs {
 
 /// Save the current flow to the given path.
 pub(crate) fn perform_save(win: &mut WindowState, path: &PathBuf) {
-    initializer::sync_flow_definition(win);
-    match save_flow_toml(&win.flow_definition, &win.edges, path) {
+    match save_flow_toml(&win.flow_definition, path) {
         Ok(()) => {
             win.unsaved_edits = 0;
-            win.file_path = Some(path.clone());
+            win.set_file_path(path);
             save_editor_prefs(path, win.last_size, win.last_position);
             if let Some(name) = path.file_name().and_then(|n| n.to_str()) {
                 win.status = format!("Saved to {name}");
@@ -62,7 +54,7 @@ pub(crate) fn perform_save(win: &mut WindowState, path: &PathBuf) {
 pub(crate) fn perform_save_as(win: &mut WindowState) {
     let dialog = rfd::FileDialog::new()
         .add_filter("Flow", &["toml"])
-        .set_file_name(format!("{}.toml", win.flow_name));
+        .set_file_name(format!("{}.toml", win.flow_definition.name));
     if let Some(path) = dialog.save_file() {
         perform_save(win, &path);
     }
@@ -70,7 +62,7 @@ pub(crate) fn perform_save_as(win: &mut WindowState) {
 
 /// Handle save message -- saves to existing path or prompts with save dialog.
 pub(crate) fn handle_save(win: &mut WindowState) {
-    if let Some(path) = win.file_path.clone() {
+    if let Some(path) = win.file_path() {
         perform_save(win, &path);
     } else {
         perform_save_as(win);
@@ -90,16 +82,10 @@ pub(crate) fn perform_open(win: &mut WindowState) -> Option<(BTreeSet<Url>, BTre
     if let Some(path) = dialog.pick_file() {
         match load_flow(&path) {
             Ok(loaded) => {
-                let nc = loaded.nodes.len();
-                let ec = loaded.edges.len();
-                let (fi, fo) = extract_ports(&loaded.flow_def.inputs, &loaded.flow_def.outputs);
-                win.flow_name = loaded.name;
-                win.nodes = loaded.nodes;
-                win.edges = loaded.edges;
+                let nc = loaded.flow_def.process_refs.len();
+                let ec = loaded.flow_def.connections.len();
                 win.flow_definition = loaded.flow_def;
-                win.file_path = Some(path);
-                win.flow_inputs = fi;
-                win.flow_outputs = fo;
+                win.set_file_path(&path);
                 win.selected_node = None;
                 win.selected_connection = None;
                 win.history = EditHistory::default();
@@ -120,13 +106,9 @@ pub(crate) fn perform_open(win: &mut WindowState) -> Option<(BTreeSet<Url>, BTre
 
 /// Clear the canvas and reset to an empty flow state.
 pub(crate) fn perform_new(win: &mut WindowState) {
-    win.flow_name = String::from("(new flow)");
-    win.nodes = Vec::new();
-    win.edges = Vec::new();
     win.flow_definition = FlowDefinition::default();
-    win.file_path = None;
-    win.flow_inputs = Vec::new();
-    win.flow_outputs = Vec::new();
+    win.flow_definition.name = String::from("(new flow)");
+    win.clear_file_path();
     win.selected_node = None;
     win.selected_connection = None;
     win.history = EditHistory::default();
@@ -146,10 +128,10 @@ pub(crate) fn perform_new(win: &mut WindowState) {
 /// error message on failure.
 pub(crate) fn perform_compile(win: &mut WindowState) -> Result<PathBuf, String> {
     // New flows must be saved first so the compiler has a real file path
-    if win.file_path.is_none() {
+    if win.file_path().is_none() {
         perform_save_as(win);
     }
-    let Some(flow_path) = win.file_path.clone() else {
+    let Some(flow_path) = win.file_path() else {
         return Err("Flow must be saved before compiling".to_string());
     };
 
@@ -211,14 +193,15 @@ pub(crate) fn build_meta_provider() -> MetaProvider {
             }
         }
     }
-    let context_root = std::env::var("HOME")
-        .map(|h| {
+    let context_root = std::env::var("HOME").map_or_else(
+        |_| PathBuf::from("/"),
+        |h| {
             PathBuf::from(h)
                 .join(".flow")
                 .join("runner")
                 .join("flowrcli")
-        })
-        .unwrap_or_else(|_| PathBuf::from("/"));
+        },
+    );
     MetaProvider::new(lib_search_path, context_root)
 }
 
@@ -254,15 +237,15 @@ pub(crate) fn extract_ports(
     let input_ports = inputs
         .iter()
         .map(|io| PortInfo {
-            name: io.name().to_string(),
-            datatypes: io.datatypes().iter().map(|dt| dt.to_string()).collect(),
+            name: io.name().clone(),
+            datatypes: io.datatypes().iter().map(ToString::to_string).collect(),
         })
         .collect();
     let output_ports = outputs
         .iter()
         .map(|io| PortInfo {
-            name: io.name().to_string(),
-            datatypes: io.datatypes().iter().map(|dt| dt.to_string()).collect(),
+            name: io.name().clone(),
+            datatypes: io.datatypes().iter().map(ToString::to_string).collect(),
         })
         .collect();
     (input_ports, output_ports)
@@ -279,49 +262,21 @@ pub(crate) fn load_flow(path: &PathBuf) -> Result<LoadedFlow, String> {
             .join(path)
     };
 
-    let url =
-        Url::from_file_path(&abs_path).map_err(|()| format!("Invalid file path: {abs_path:?}"))?;
+    let url = Url::from_file_path(&abs_path)
+        .map_err(|()| format!("Invalid file path: {}", abs_path.display()))?;
 
     let provider = build_meta_provider();
     let process = flowrclib::compiler::parser::parse(&url, &provider)
         .map_err(|e| format!("Could not parse flow definition: {e}"))?;
 
     match process {
-        Process::FlowProcess(flow) => {
-            // Extract port definitions from the fully-resolved subprocesses
-            let mut resolved_ports = HashMap::new();
-            for (alias, subprocess) in &flow.subprocesses {
-                let (inputs, outputs) = match subprocess {
-                    Process::FunctionProcess(func) => {
-                        extract_ports(&func.inputs, &func.outputs)
-                    }
-                    Process::FlowProcess(sub_flow) => {
-                        extract_ports(&sub_flow.inputs, &sub_flow.outputs)
-                    }
-                };
-                info!(
-                    "Resolved '{}': {} inputs, {} outputs",
-                    alias,
-                    inputs.len(),
-                    outputs.len()
-                );
-                resolved_ports.insert(alias.to_string(), (inputs, outputs));
-            }
+        Process::FlowProcess(mut flow) => {
+            // Assign default positions to nodes that don't have saved x/y
+            assign_default_positions(&mut flow);
 
-            let edges = build_edge_layouts(&flow.connections);
-            let nodes = build_node_layouts(
-                &flow.process_refs,
-                &flow.connections,
-                &resolved_ports,
-                &flow.subprocesses,
-            );
-            let name = flow.name.clone();
             let lib_references = flow.lib_references.clone();
             let context_references = flow.context_references.clone();
             Ok(LoadedFlow {
-                name,
-                nodes,
-                edges,
                 flow_def: flow,
                 lib_references,
                 context_references,
@@ -391,29 +346,24 @@ fn initializer_to_toml(init: &InputInitializer) -> String {
 /// Builds the TOML text manually to match the expected flow format
 /// (the derived `Serialize` on some flowcore types produces struct-style
 /// output that is not compatible with the flow deserializer).
-/// Connections are written from `edges` to preserve names that would be lost
-/// when roundtripping through `Connection::new`.
-pub(crate) fn save_flow_toml(
-    flow: &FlowDefinition,
-    edges: &[EdgeLayout],
-    path: &PathBuf,
-) -> Result<(), String> {
+pub(crate) fn save_flow_toml(flow: &FlowDefinition, path: &PathBuf) -> Result<(), String> {
     let mut out = String::new();
 
     // Flow name
-    out.push_str(&format!("flow = \"{}\"\n", escape_toml_string(&flow.name)));
+    let _ = writeln!(out, "flow = \"{}\"", escape_toml_string(&flow.name));
 
     // Description
     if !flow.description.is_empty() {
-        out.push_str(&format!(
-            "description = \"{}\"\n",
+        let _ = writeln!(
+            out,
+            "description = \"{}\"",
             escape_toml_string(&flow.description)
-        ));
+        );
     }
 
     // Docs
     if !flow.docs.is_empty() {
-        out.push_str(&format!("docs = \"{}\"\n", escape_toml_string(&flow.docs)));
+        let _ = writeln!(out, "docs = \"{}\"", escape_toml_string(&flow.docs));
     }
 
     // Metadata (only if any field is non-empty)
@@ -421,16 +371,14 @@ pub(crate) fn save_flow_toml(
     if !md.version.is_empty() || !md.description.is_empty() || !md.authors.is_empty() {
         out.push_str("\n[metadata]\n");
         if !md.version.is_empty() {
-            out.push_str(&format!(
-                "version = \"{}\"\n",
-                escape_toml_string(&md.version)
-            ));
+            let _ = writeln!(out, "version = \"{}\"", escape_toml_string(&md.version));
         }
         if !md.description.is_empty() {
-            out.push_str(&format!(
-                "description = \"{}\"\n",
+            let _ = writeln!(
+                out,
+                "description = \"{}\"",
                 escape_toml_string(&md.description)
-            ));
+            );
         }
         if !md.authors.is_empty() {
             let authors: Vec<String> = md
@@ -438,7 +386,7 @@ pub(crate) fn save_flow_toml(
                 .iter()
                 .map(|a| format!("\"{}\"", escape_toml_string(a)))
                 .collect();
-            out.push_str(&format!("authors = [{}]\n", authors.join(", ")));
+            let _ = writeln!(out, "authors = [{}]", authors.join(", "));
         }
     }
 
@@ -447,16 +395,16 @@ pub(crate) fn save_flow_toml(
         out.push_str("\n[[input]]\n");
         let name = input.name();
         if !name.is_empty() {
-            out.push_str(&format!("name = \"{name}\"\n"));
+            let _ = writeln!(out, "name = \"{name}\"");
         }
         let types = input.datatypes();
         if types.len() == 1 {
             if let Some(t) = types.first() {
-                out.push_str(&format!("type = \"{t}\"\n"));
+                let _ = writeln!(out, "type = \"{t}\"");
             }
         } else if types.len() > 1 {
             let ts: Vec<String> = types.iter().map(|t| format!("\"{t}\"")).collect();
-            out.push_str(&format!("type = [{}]\n", ts.join(", ")));
+            let _ = writeln!(out, "type = [{}]", ts.join(", "));
         }
     }
 
@@ -465,16 +413,16 @@ pub(crate) fn save_flow_toml(
         out.push_str("\n[[output]]\n");
         let name = output.name();
         if !name.is_empty() {
-            out.push_str(&format!("name = \"{name}\"\n"));
+            let _ = writeln!(out, "name = \"{name}\"");
         }
         let types = output.datatypes();
         if types.len() == 1 {
             if let Some(t) = types.first() {
-                out.push_str(&format!("type = \"{t}\"\n"));
+                let _ = writeln!(out, "type = \"{t}\"");
             }
         } else if types.len() > 1 {
             let ts: Vec<String> = types.iter().map(|t| format!("\"{t}\"")).collect();
-            out.push_str(&format!("type = [{}]\n", ts.join(", ")));
+            let _ = writeln!(out, "type = [{}]", ts.join(", "));
         }
     }
 
@@ -482,66 +430,70 @@ pub(crate) fn save_flow_toml(
     for pref in &flow.process_refs {
         out.push_str("\n[[process]]\n");
         if !pref.alias.is_empty() {
-            out.push_str(&format!("alias = \"{}\"\n", pref.alias));
+            let _ = writeln!(out, "alias = \"{}\"", pref.alias);
         }
-        out.push_str(&format!("source = \"{}\"\n", pref.source));
+        let _ = writeln!(out, "source = \"{}\"", pref.source);
 
         // Layout positions
         if let Some(x) = pref.x {
-            out.push_str(&format!("x = {x}\n"));
+            let _ = writeln!(out, "x = {x}");
         }
         if let Some(y) = pref.y {
-            out.push_str(&format!("y = {y}\n"));
+            let _ = writeln!(out, "y = {y}");
         }
         if let Some(w) = pref.width {
-            out.push_str(&format!("width = {w}\n"));
+            let _ = writeln!(out, "width = {w}");
         }
         if let Some(h) = pref.height {
-            out.push_str(&format!("height = {h}\n"));
+            let _ = writeln!(out, "height = {h}");
         }
 
         // Initializations
         for (port_name, init) in &pref.initializations {
-            out.push_str(&format!(
-                "input.{port_name} = {}\n",
-                initializer_to_toml(init)
-            ));
+            let _ = writeln!(out, "input.{port_name} = {}", initializer_to_toml(init));
         }
     }
 
-    // Connections (from EdgeLayout to preserve names)
-    for edge in edges {
-        out.push_str("\n[[connection]]\n");
-        if !edge.name.is_empty() {
-            out.push_str(&format!("name = \"{}\"\n", edge.name));
+    // Connections
+    for conn in &flow.connections {
+        let _ = writeln!(out, "\n[[connection]]");
+        if !conn.name().is_empty() {
+            let _ = writeln!(out, "name = \"{}\"", conn.name());
         }
-        let from = if edge.from_port.is_empty() {
-            edge.from_node.clone()
+        let _ = writeln!(out, "from = \"{}\"", conn.from());
+        if let [single] = conn.to().as_slice() {
+            let _ = writeln!(out, "to = \"{single}\"");
         } else {
-            format!("{}/{}", edge.from_node, edge.from_port)
-        };
-        out.push_str(&format!("from = \"{from}\"\n"));
-        let to = if edge.to_port.is_empty() {
-            edge.to_node.clone()
-        } else {
-            format!("{}/{}", edge.to_node, edge.to_port)
-        };
-        out.push_str(&format!("to = \"{to}\"\n"));
+            let to_strs: Vec<String> = conn.to().iter().map(|r| format!("\"{r}\"")).collect();
+            let _ = writeln!(out, "to = [{}]", to_strs.join(", "));
+        }
     }
 
     std::fs::write(path, out).map_err(|e| format!("Could not write file: {e}"))
 }
 
 /// Generate a unique alias for a new node, appending a numeric suffix if needed.
-pub(crate) fn generate_unique_alias(base_name: &str, nodes: &[NodeLayout]) -> String {
-    let existing: Vec<&str> = nodes.iter().map(|n| n.alias.as_str()).collect();
-    if !existing.contains(&base_name) {
+pub(crate) fn generate_unique_alias(
+    base_name: &str,
+    process_refs: &[flowcore::model::process_reference::ProcessReference],
+) -> String {
+    let existing: Vec<String> = process_refs
+        .iter()
+        .map(|pr| {
+            if pr.alias.is_empty() {
+                derive_short_name(&pr.source)
+            } else {
+                pr.alias.clone()
+            }
+        })
+        .collect();
+    if !existing.contains(&base_name.to_string()) {
         return base_name.to_string();
     }
     let mut counter = 2u32;
     loop {
         let candidate = format!("{base_name}_{counter}");
-        if !existing.iter().any(|a| *a == candidate) {
+        if !existing.contains(&candidate) {
             return candidate;
         }
         counter = counter.saturating_add(1);
@@ -549,13 +501,44 @@ pub(crate) fn generate_unique_alias(base_name: &str, nodes: &[NodeLayout]) -> St
 }
 
 /// Compute a default position for a new node, offset from the last node or at a default origin.
-pub(crate) fn next_node_position(nodes: &[NodeLayout]) -> (f32, f32) {
-    if nodes.is_empty() {
+pub(crate) fn next_node_position(
+    process_refs: &[flowcore::model::process_reference::ProcessReference],
+) -> (f32, f32) {
+    if process_refs.is_empty() {
         return (100.0, 100.0);
     }
     // Find the rightmost node and place the new one to its right
-    let max_right = nodes.iter().map(|n| n.x + n.width).fold(0.0_f32, f32::max);
+    let max_right = process_refs
+        .iter()
+        .map(|pr| pr.x.unwrap_or(100.0) + pr.width.unwrap_or(180.0))
+        .fold(0.0_f32, f32::max);
     (max_right + 50.0, 100.0)
+}
+
+/// Assign default positions to process references that don't have saved x/y coordinates.
+///
+/// Uses topological layout based on connections to determine column placement.
+fn assign_default_positions(flow: &mut FlowDefinition) {
+    use crate::canvas_view;
+
+    let needs_layout = flow
+        .process_refs
+        .iter()
+        .any(|pr| pr.x.is_none() || pr.y.is_none());
+    if !needs_layout {
+        return;
+    }
+
+    // Build render nodes (which computes topo positions) and copy back positions
+    let render_nodes = canvas_view::build_render_nodes(flow);
+    for (pref, node) in flow.process_refs.iter_mut().zip(render_nodes.iter()) {
+        if pref.x.is_none() {
+            pref.x = Some(node.x);
+        }
+        if pref.y.is_none() {
+            pref.y = Some(node.y);
+        }
+    }
 }
 
 /// Format a connection endpoint for display, omitting "default" or empty port names.
@@ -569,53 +552,70 @@ pub(crate) fn format_endpoint(node: &str, port: &str) -> String {
 
 /// Save a function definition to disk (TOML, skeleton .rs, and function.toml).
 pub(crate) fn save_function_definition(viewer: &FunctionViewer) -> Result<(), String> {
-    let dir = viewer
-        .toml_path
+    let toml_path = viewer
+        .toml_path()
+        .ok_or_else(|| "Invalid source URL".to_string())?;
+    let dir = toml_path
         .parent()
         .ok_or_else(|| "Invalid path".to_string())?;
     std::fs::create_dir_all(dir).map_err(|e| format!("Could not create directory: {e}"))?;
 
+    let func = &viewer.func_def;
+
     // 1. Write the function definition TOML
     let mut toml = format!(
         "function = \"{}\"\nsource = \"{}\"\ntype = \"rust\"\n",
-        escape_toml_string(&viewer.name),
-        escape_toml_string(&viewer.source_file)
+        escape_toml_string(&func.name),
+        escape_toml_string(&func.source)
     );
-    if !viewer.description.is_empty() {
-        toml.push_str(&format!(
-            "description = \"{}\"\n",
-            escape_toml_string(&viewer.description)
-        ));
+    if !func.description.is_empty() {
+        let _ = writeln!(
+            toml,
+            "description = \"{}\"",
+            escape_toml_string(&func.description)
+        );
     }
-    for input in &viewer.inputs {
-        let dtype = input.datatypes.first().map_or("", String::as_str);
-        if input.name.is_empty() || input.name == "input" || input.name == "name" {
-            toml.push_str(&format!("\n[[input]]\ntype = \"{dtype}\"\n"));
+    for input in &func.inputs {
+        let dtype = input
+            .datatypes()
+            .first()
+            .map(ToString::to_string)
+            .unwrap_or_default();
+        let name = input.name();
+        if name.is_empty() || name == "input" || name == "name" {
+            let _ = write!(toml, "\n[[input]]\ntype = \"{dtype}\"\n");
         } else {
-            toml.push_str(&format!(
-                "\n[[input]]\nname = \"{}\"\ntype = \"{dtype}\"\n",
-                input.name
-            ));
+            let _ = write!(toml, "\n[[input]]\nname = \"{name}\"\ntype = \"{dtype}\"\n");
         }
     }
-    for output in &viewer.outputs {
-        let dtype = output.datatypes.first().map_or("", String::as_str);
-        if output.name.is_empty() || output.name == "output" || output.name == "name" {
-            toml.push_str(&format!("\n[[output]]\ntype = \"{dtype}\"\n"));
+    for output in &func.outputs {
+        let dtype = output
+            .datatypes()
+            .first()
+            .map(ToString::to_string)
+            .unwrap_or_default();
+        let name = output.name();
+        if name.is_empty() || name == "output" || name == "name" {
+            let _ = write!(toml, "\n[[output]]\ntype = \"{dtype}\"\n");
         } else {
-            toml.push_str(&format!(
-                "\n[[output]]\nname = \"{}\"\ntype = \"{dtype}\"\n",
-                output.name
-            ));
+            let _ = write!(
+                toml,
+                "\n[[output]]\nname = \"{name}\"\ntype = \"{dtype}\"\n"
+            );
         }
     }
-    std::fs::write(&viewer.toml_path, &toml)
-        .map_err(|e| format!("Could not write {}: {e}", viewer.toml_path.display()))?;
+    std::fs::write(&toml_path, &toml)
+        .map_err(|e| format!("Could not write {}: {e}", toml_path.display()))?;
 
     // 2. Generate skeleton .rs if it doesn't exist
-    let rs_path = dir.join(&viewer.source_file);
+    let rs_path = dir.join(&func.source);
     if !rs_path.exists() {
-        let input_count = viewer.inputs.len();
+        let input_count = func.inputs.len();
+        let input_bindings = (0..input_count).fold(String::new(), |mut acc, i| {
+            use std::fmt::Write;
+            let _ = writeln!(acc, "    let _input{i} = &inputs[{i}];");
+            acc
+        });
         let skeleton = format!(
             "use flowcore::{{RUN_AGAIN, RunAgain}};\n\
              use flowcore::errors::*;\n\
@@ -628,10 +628,7 @@ pub(crate) fn save_function_definition(viewer: &FunctionViewer) -> Result<(), St
              \n    // TODO: implement function logic\n\
              \n    Ok((None, RUN_AGAIN))\n\
              }}\n",
-            name = viewer.name,
-            input_bindings = (0..input_count)
-                .map(|i| format!("    let _input{i} = &inputs[{i}];\n"))
-                .collect::<String>(),
+            name = func.name,
         );
         std::fs::write(&rs_path, &skeleton)
             .map_err(|e| format!("Could not write {}: {e}", rs_path.display()))?;
@@ -640,10 +637,7 @@ pub(crate) fn save_function_definition(viewer: &FunctionViewer) -> Result<(), St
     // 3. Generate function.toml (Cargo manifest) if it doesn't exist
     let cargo_path = dir.join("function.toml");
     if !cargo_path.exists() {
-        let stem = viewer
-            .source_file
-            .strip_suffix(".rs")
-            .unwrap_or(&viewer.source_file);
+        let stem = func.source.strip_suffix(".rs").unwrap_or(&func.source);
         let cargo = format!(
             "[package]\n\
              name = \"{name}\"\n\
@@ -659,7 +653,7 @@ pub(crate) fn save_function_definition(viewer: &FunctionViewer) -> Result<(), St
              flowcore = {{version = \"0\"}}\n\
              flowmacro = {{version = \"0\"}}\n\
              serde_json = {{version = \"1.0\", default-features = false}}\n",
-            name = escape_toml_string(&viewer.name),
+            name = escape_toml_string(&func.name),
             source = escape_toml_string(stem),
         );
         std::fs::write(&cargo_path, &cargo)
@@ -672,10 +666,10 @@ pub(crate) fn save_function_definition(viewer: &FunctionViewer) -> Result<(), St
 /// Compute the path for the editor preferences file alongside the flow file.
 pub(crate) fn editor_prefs_path(flow_path: &Path) -> PathBuf {
     let mut p = flow_path.to_path_buf();
-    let name = p
-        .file_name()
-        .map(|n| format!(".{}.flowedit", n.to_string_lossy()))
-        .unwrap_or_else(|| ".flowedit".to_string());
+    let name = p.file_name().map_or_else(
+        || ".flowedit".to_string(),
+        |n| format!(".{}.flowedit", n.to_string_lossy()),
+    );
     p.set_file_name(name);
     p
 }
@@ -701,14 +695,21 @@ pub(crate) fn save_editor_prefs(
 }
 
 /// Load editor preferences from the prefs file alongside the flow file.
+#[allow(clippy::cast_possible_truncation)]
 pub(crate) fn load_editor_prefs(flow_path: &Path) -> Option<EditorPrefs> {
     let prefs_path = editor_prefs_path(flow_path);
     let content = std::fs::read_to_string(prefs_path).ok()?;
     let val: serde_json::Value = serde_json::from_str(&content).ok()?;
     let w = val.get("width")?.as_f64()? as f32;
     let h = val.get("height")?.as_f64()? as f32;
-    let x = val.get("x").and_then(|v| v.as_f64()).map(|v| v as f32);
-    let y = val.get("y").and_then(|v| v.as_f64()).map(|v| v as f32);
+    let x = val
+        .get("x")
+        .and_then(serde_json::Value::as_f64)
+        .map(|v| v as f32);
+    let y = val
+        .get("y")
+        .and_then(serde_json::Value::as_f64)
+        .map(|v| v as f32);
     Some(EditorPrefs {
         width: w,
         height: h,
@@ -721,27 +722,27 @@ pub(crate) fn load_editor_prefs(flow_path: &Path) -> Option<EditorPrefs> {
 #[allow(clippy::indexing_slicing)]
 mod test {
     use super::*;
-    use std::collections::HashMap;
 
+    use flowcore::model::datatype::DataType;
+    use flowcore::model::function_definition::FunctionDefinition;
+    use flowcore::model::io::IO;
     use flowcore::model::process_reference::ProcessReference;
+    use flowcore::model::route::Route;
 
     use crate::canvas_view::FlowCanvasState;
     use crate::hierarchy_panel::FlowHierarchy;
     use crate::history::EditHistory;
     use crate::WindowKind;
 
-    fn test_node(alias: &str, source: &str) -> NodeLayout {
-        NodeLayout {
+    fn test_pref(alias: &str, source: &str) -> ProcessReference {
+        ProcessReference {
             alias: alias.into(),
             source: source.into(),
-            description: String::new(),
-            x: 100.0,
-            y: 100.0,
-            width: 180.0,
-            height: 120.0,
-            inputs: Vec::new(),
-            outputs: Vec::new(),
-            initializers: HashMap::new(),
+            initializations: std::collections::BTreeMap::new(),
+            x: Some(100.0),
+            y: Some(100.0),
+            width: Some(180.0),
+            height: Some(120.0),
         }
     }
 
@@ -753,36 +754,37 @@ mod test {
 
     #[test]
     fn unique_alias_no_conflict() {
-        let nodes = vec![test_node("add", "lib://test")];
-        assert_eq!(generate_unique_alias("subtract", &nodes), "subtract");
+        let prefs = vec![test_pref("add", "lib://test")];
+        assert_eq!(generate_unique_alias("subtract", &prefs), "subtract");
     }
 
     #[test]
     fn unique_alias_with_conflict() {
-        let nodes = vec![test_node("add", "lib://test")];
-        assert_eq!(generate_unique_alias("add", &nodes), "add_2");
+        let prefs = vec![test_pref("add", "lib://test")];
+        assert_eq!(generate_unique_alias("add", &prefs), "add_2");
     }
 
     #[test]
     fn unique_alias_multiple_conflicts() {
-        let nodes = vec![
-            test_node("add", "lib://test"),
-            test_node("add_2", "lib://test"),
+        let prefs = vec![
+            test_pref("add", "lib://test"),
+            test_pref("add_2", "lib://test"),
         ];
-        assert_eq!(generate_unique_alias("add", &nodes), "add_3");
+        assert_eq!(generate_unique_alias("add", &prefs), "add_3");
     }
 
     #[test]
     fn next_position_empty() {
-        let (x, y) = next_node_position(&[]);
-        assert!((x - 100.0).abs() < 0.01);
-        assert!((y - 100.0).abs() < 0.01);
+        let prefs: Vec<ProcessReference> = vec![];
+        let (x, y) = next_node_position(&prefs);
+        assert!((x - 100.0_f32).abs() < 0.01);
+        assert!((y - 100.0_f32).abs() < 0.01);
     }
 
     #[test]
     fn next_position_after_nodes() {
-        let nodes = vec![test_node("a", "lib://test")];
-        let (x, _y) = next_node_position(&nodes);
+        let prefs = vec![test_pref("a", "lib://test")];
+        let (x, _y) = next_node_position(&prefs);
         assert!(x > 280.0); // right of existing node + gap
     }
 
@@ -889,11 +891,15 @@ mod test {
 
     #[test]
     fn save_and_load_flow_roundtrip() {
+        use flowcore::model::connection::Connection;
+
         let dir = temp_dir("save_load");
         let path = dir.join("test.toml");
 
-        let mut flow = FlowDefinition::default();
-        flow.name = "roundtrip_test".into();
+        let mut flow = FlowDefinition {
+            name: "roundtrip_test".into(),
+            ..FlowDefinition::default()
+        };
         flow.metadata.version = "1.0.0".into();
         flow.metadata.authors = vec!["Test Author".into()];
         flow.process_refs.push(ProcessReference {
@@ -905,15 +911,9 @@ mod test {
             width: Some(180.0),
             height: Some(120.0),
         });
+        flow.connections.push(Connection::new("add1", "add1/i1"));
 
-        let edges = vec![EdgeLayout::new(
-            "add1".into(),
-            "".into(),
-            "add1".into(),
-            "i1".into(),
-        )];
-
-        save_flow_toml(&flow, &edges, &path).expect("save failed");
+        save_flow_toml(&flow, &path).expect("save failed");
 
         let contents = std::fs::read_to_string(&path).expect("read failed");
         assert!(contents.contains("flow = \"roundtrip_test\""));
@@ -922,9 +922,9 @@ mod test {
         assert!(contents.contains("lib://flowstdlib/math/add"));
 
         let loaded = load_flow(&path).expect("load failed");
-        assert_eq!(loaded.name, "roundtrip_test");
-        assert_eq!(loaded.nodes.len(), 1);
-        assert_eq!(loaded.edges.len(), 1);
+        assert_eq!(loaded.flow_def.name, "roundtrip_test");
+        assert_eq!(loaded.flow_def.process_refs.len(), 1);
+        assert_eq!(loaded.flow_def.connections.len(), 1);
         assert_eq!(loaded.flow_def.metadata.version, "1.0.0");
 
         let _ = std::fs::remove_dir_all(&dir);
@@ -935,11 +935,13 @@ mod test {
         let dir = temp_dir("metadata");
         let path = dir.join("meta.toml");
 
-        let mut flow = FlowDefinition::default();
-        flow.name = "meta_flow".into();
+        let mut flow = FlowDefinition {
+            name: "meta_flow".into(),
+            ..FlowDefinition::default()
+        };
         flow.metadata.description = "A test description".into();
 
-        save_flow_toml(&flow, &[], &path).expect("save failed");
+        save_flow_toml(&flow, &path).expect("save failed");
         let contents = std::fs::read_to_string(&path).expect("read failed");
         assert!(contents.contains("description = \"A test description\""));
 
@@ -951,11 +953,13 @@ mod test {
         let dir = temp_dir("description");
         let path = dir.join("test_flow.toml");
 
-        let mut flow = FlowDefinition::default();
-        flow.name = "described_flow".into();
-        flow.description = "A test flow that does something".into();
+        let flow = FlowDefinition {
+            name: "described_flow".into(),
+            description: "A test flow that does something".into(),
+            ..FlowDefinition::default()
+        };
 
-        save_flow_toml(&flow, &[], &path).expect("Could not save flow");
+        save_flow_toml(&flow, &path).expect("Could not save flow");
 
         let content = std::fs::read_to_string(&path).expect("Could not read saved file");
         assert!(content.contains("description = \"A test flow that does something\""));
@@ -968,8 +972,10 @@ mod test {
         let dir = temp_dir("initializers");
         let path = dir.join("init.toml");
 
-        let mut flow = FlowDefinition::default();
-        flow.name = "init_flow".into();
+        let mut flow = FlowDefinition {
+            name: "init_flow".into(),
+            ..FlowDefinition::default()
+        };
         let mut inits = std::collections::BTreeMap::new();
         inits.insert(
             "start".to_string(),
@@ -985,7 +991,7 @@ mod test {
             height: Some(120.0),
         });
 
-        save_flow_toml(&flow, &[], &path).expect("save failed");
+        save_flow_toml(&flow, &path).expect("save failed");
         let contents = std::fs::read_to_string(&path).expect("read failed");
         assert!(contents.contains("input.start"));
         assert!(contents.contains("once"));
@@ -995,11 +1001,15 @@ mod test {
 
     #[test]
     fn save_flow_with_connections() {
+        use flowcore::model::connection::Connection;
+
         let dir = temp_dir("connections");
         let path = dir.join("conn.toml");
 
-        let mut flow = FlowDefinition::default();
-        flow.name = "conn_flow".into();
+        let mut flow = FlowDefinition {
+            name: "conn_flow".into(),
+            ..FlowDefinition::default()
+        };
         flow.process_refs.push(ProcessReference {
             alias: "a".into(),
             source: "lib://test/a".into(),
@@ -1019,14 +1029,9 @@ mod test {
             height: None,
         });
 
-        let edges = vec![EdgeLayout::new(
-            "a".into(),
-            "out".into(),
-            "b".into(),
-            "in".into(),
-        )];
+        flow.connections.push(Connection::new("a/out", "b/in"));
 
-        save_flow_toml(&flow, &edges, &path).expect("save failed");
+        save_flow_toml(&flow, &path).expect("save failed");
         let contents = std::fs::read_to_string(&path).expect("read failed");
         assert!(contents.contains("from = \"a/out\""));
         assert!(contents.contains("to = \"b/in\""));
@@ -1055,22 +1060,28 @@ mod test {
         let dir = temp_dir("func_def");
         let toml_path = dir.join("myfunc.toml");
 
+        let mut func_def = FunctionDefinition::default();
+        func_def.name = "myfunc".into();
+        func_def.source = "myfunc.rs".into();
+        func_def.inputs.push(IO::new_named(
+            vec![DataType::from("string")],
+            Route::default(),
+            "data",
+        ));
+        func_def.outputs.push(IO::new_named(
+            vec![DataType::from("number")],
+            Route::default(),
+            "result",
+        ));
+        if let Ok(url) = url::Url::from_file_path(&toml_path) {
+            func_def.source_url = url;
+        }
+
         let viewer = FunctionViewer {
-            name: "myfunc".into(),
-            description: String::new(),
-            source_file: "myfunc.rs".into(),
-            inputs: vec![PortInfo {
-                name: "data".into(),
-                datatypes: vec!["string".into()],
-            }],
-            outputs: vec![PortInfo {
-                name: "result".into(),
-                datatypes: vec!["number".into()],
-            }],
+            func_def,
             rs_content: String::new(),
             docs_content: None,
             active_tab: 0,
-            toml_path: toml_path.clone(),
             parent_window: None,
             node_source: String::new(),
             read_only: false,
@@ -1113,16 +1124,18 @@ mod test {
         // Create existing .rs
         std::fs::write(&rs_path, "// existing code").expect("write rs");
 
+        let mut func_def = FunctionDefinition::default();
+        func_def.name = "existing".into();
+        func_def.source = "existing.rs".into();
+        if let Ok(url) = url::Url::from_file_path(&toml_path) {
+            func_def.source_url = url;
+        }
+
         let viewer = FunctionViewer {
-            name: "existing".into(),
-            description: String::new(),
-            source_file: "existing.rs".into(),
-            inputs: Vec::new(),
-            outputs: Vec::new(),
+            func_def,
             rs_content: String::new(),
             docs_content: None,
             active_tab: 0,
-            toml_path,
             parent_window: None,
             node_source: String::new(),
             read_only: false,
@@ -1138,14 +1151,16 @@ mod test {
     }
 
     fn test_win_state() -> WindowState {
+        let flow_def = FlowDefinition {
+            name: String::from("test"),
+            process_refs: vec![
+                test_pref("add", "lib://flowstdlib/math/add"),
+                test_pref("stdout", "context://stdio/stdout"),
+            ],
+            ..FlowDefinition::default()
+        };
         WindowState {
             kind: WindowKind::FlowEditor,
-            flow_name: String::from("test"),
-            nodes: vec![
-                test_node("add", "lib://flowstdlib/math/add"),
-                test_node("stdout", "context://stdio/stdout"),
-            ],
-            edges: Vec::new(),
             canvas_state: FlowCanvasState::default(),
             status: String::new(),
             selected_node: None,
@@ -1155,13 +1170,10 @@ mod test {
             auto_fit_enabled: false,
             unsaved_edits: 0,
             compiled_manifest: None,
-            file_path: None,
-            flow_definition: FlowDefinition::default(),
+            flow_definition: flow_def,
             tooltip: None,
             initializer_editor: None,
             is_root: true,
-            flow_inputs: Vec::new(),
-            flow_outputs: Vec::new(),
             context_menu: None,
             show_metadata: false,
             flow_hierarchy: FlowHierarchy::empty(),
@@ -1177,11 +1189,12 @@ mod test {
 
         let mut win = test_win_state();
         win.unsaved_edits = 5;
-        win.flow_name = "saved_flow".into();
+        win.flow_definition.name = "saved_flow".into();
 
         perform_save(&mut win, &path);
         assert_eq!(win.unsaved_edits, 0);
-        assert_eq!(win.file_path, Some(path.clone()));
+        let canonical = path.canonicalize().unwrap_or_else(|_| path.clone());
+        assert_eq!(win.file_path(), Some(canonical));
 
         let contents = std::fs::read_to_string(&path).expect("read failed");
         assert!(contents.contains("flow = \"saved_flow\""));

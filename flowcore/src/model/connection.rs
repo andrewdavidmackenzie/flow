@@ -94,11 +94,51 @@ impl Connection {
         }
     }
 
+    /// Create a new named Connection
+    pub fn new_named<N, R>(name: N, from_route: R, to_route: R) -> Self
+    where
+        N: Into<Name>,
+        R: Into<Route>,
+    {
+        Connection {
+            name: name.into(),
+            from: from_route.into(),
+            to: vec![to_route.into()],
+            ..Default::default()
+        }
+    }
+
     /// Return the name
-    #[cfg(feature = "debugger")]
     #[must_use]
     pub fn name(&self) -> &Name {
         &self.name
+    }
+
+    /// Set the connection name
+    pub fn set_name(&mut self, name: Name) {
+        self.name = name;
+    }
+
+    /// Return the `from` Route
+    #[must_use]
+    pub fn from(&self) -> &Route {
+        &self.from
+    }
+
+    /// Set the `from` Route
+    pub fn set_from<R: Into<Route>>(&mut self, from: R) {
+        self.from = from.into();
+    }
+
+    /// Return the `to` Routes
+    #[must_use]
+    pub fn to(&self) -> &Vec<Route> {
+        &self.to
+    }
+
+    /// Set the `to` Routes
+    pub fn set_to(&mut self, to: Vec<Route>) {
+        self.to = to;
     }
 
     /// Connect the `from_io` to the `to_io` inside a flow at level `level`, if they are compatible
@@ -138,12 +178,6 @@ impl Connection {
         Ok(())
     }
 
-    /// Return the `from` Route specified in this connection
-    #[must_use]
-    pub fn from(&self) -> &Route {
-        &self.from
-    }
-
     /// Return a reference to the `from_io`
     #[must_use]
     pub fn from_io(&self) -> &IO {
@@ -153,12 +187,6 @@ impl Connection {
     /// Return a mutable reference to the `from_io`
     pub fn from_io_mut(&mut self) -> &mut IO {
         &mut self.from_io
-    }
-
-    /// Return the `to` Route specified in this connection
-    #[must_use]
-    pub fn to(&self) -> &Vec<Route> {
-        &self.to
     }
 
     /// Return a reference to the `to_io`

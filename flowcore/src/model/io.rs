@@ -91,6 +91,11 @@ impl IO {
         }
     }
 
+    /// Set the name of this IO
+    pub fn set_name(&mut self, name: Name) {
+        self.name = name;
+    }
+
     /// Is this IO an input or an output of a Flow?
     #[must_use]
     pub fn flow_io(&self) -> bool {

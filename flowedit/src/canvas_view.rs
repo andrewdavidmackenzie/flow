@@ -5,6 +5,12 @@
 //! blue for `lib://`, green for `context://`, purple for provided implementations,
 //! and orange for nested flows.
 
+#![allow(
+    clippy::cast_precision_loss,
+    clippy::cast_possible_truncation,
+    clippy::cast_sign_loss
+)]
+
 use std::collections::HashMap;
 
 use iced::keyboard;
@@ -18,6 +24,8 @@ use iced::{Color, Element, Fill, Point, Rectangle, Renderer, Size, Theme};
 use log::info;
 
 use flowcore::model::input::InputInitializer;
+use flowcore::model::io::IO;
+use flowcore::model::name::HasName;
 
 use crate::flow_io;
 use crate::history;
@@ -49,26 +57,31 @@ pub(crate) fn handle_canvas_message(win: &mut WindowState, msg: CanvasMessage) -
                 win.canvas_state.request_redraw();
             }
             if let Some(i) = idx {
-                if let Some(node) = win.nodes.get(i) {
-                    win.status = format!("Selected: {}", node.alias);
+                if let Some(pref) = win.flow_definition.process_refs.get(i) {
+                    let alias = if pref.alias.is_empty() {
+                        derive_short_name(&pref.source)
+                    } else {
+                        pref.alias.clone()
+                    };
+                    win.status = format!("Selected: {alias}");
                 }
             } else {
                 win.status = String::from("Ready");
             }
         }
         CanvasMessage::Moved(idx, x, y) => {
-            if let Some(node) = win.nodes.get_mut(idx) {
-                node.x = x;
-                node.y = y;
+            if let Some(pref) = win.flow_definition.process_refs.get_mut(idx) {
+                pref.x = Some(x);
+                pref.y = Some(y);
                 win.canvas_state.request_redraw();
             }
         }
         CanvasMessage::Resized(idx, x, y, w, h) => {
-            if let Some(node) = win.nodes.get_mut(idx) {
-                node.x = x;
-                node.y = y;
-                node.width = w;
-                node.height = h;
+            if let Some(pref) = win.flow_definition.process_refs.get_mut(idx) {
+                pref.x = Some(x);
+                pref.y = Some(y);
+                pref.width = Some(w);
+                pref.height = Some(h);
                 win.canvas_state.request_redraw();
             }
         }
@@ -121,34 +134,41 @@ pub(crate) fn handle_canvas_message(win: &mut WindowState, msg: CanvasMessage) -
             }
         }
         CanvasMessage::Deleted(idx) => {
-            if idx < win.nodes.len() {
-                let node = if let Some(node) = win.nodes.get(idx) {
-                    node.clone()
-                } else {
+            if idx < win.flow_definition.process_refs.len() {
+                let Some(pref) = win.flow_definition.process_refs.get(idx).cloned() else {
                     return CanvasAction::None;
                 };
-                let alias = node.alias.clone();
-                let removed_edges: Vec<EdgeLayout> = win
-                    .edges
+                let alias = if pref.alias.is_empty() {
+                    derive_short_name(&pref.source)
+                } else {
+                    pref.alias.clone()
+                };
+                let removed_connections: Vec<Connection> = win
+                    .flow_definition
+                    .connections
                     .iter()
-                    .filter(|e| e.references_node(&alias))
+                    .filter(|c| connection_references_node(c, &alias))
                     .cloned()
                     .collect();
-                win.nodes.remove(idx);
-                win.edges.retain(|e| !e.references_node(&alias));
+                let removed_pref = win.flow_definition.process_refs.remove(idx);
+                let removed_subprocess = win.flow_definition.subprocesses.remove(&alias);
+                win.flow_definition
+                    .connections
+                    .retain(|c| !connection_references_node(c, &alias));
                 history::record_edit(
                     win,
                     EditAction::DeleteNode {
                         index: idx,
-                        node,
-                        removed_edges,
+                        process_ref: removed_pref,
+                        subprocess: removed_subprocess.map(|p| (alias, p)),
+                        removed_connections,
                     },
                 );
                 win.selected_node = None;
                 win.selected_connection = None;
                 win.canvas_state.request_redraw();
-                let nc = win.nodes.len();
-                let ec = win.edges.len();
+                let nc = win.flow_definition.process_refs.len();
+                let ec = win.flow_definition.connections.len();
                 win.status = format!("Node deleted - {nc} nodes, {ec} connections");
                 if win.auto_fit_enabled {
                     win.auto_fit_pending = true;
@@ -161,17 +181,27 @@ pub(crate) fn handle_canvas_message(win: &mut WindowState, msg: CanvasMessage) -
             to_node,
             to_port,
         } => {
-            let edge = EdgeLayout::new(
-                from_node.clone(),
-                from_port.clone(),
-                to_node.clone(),
-                to_port.clone(),
+            let from_route = if from_port.is_empty() {
+                from_node.clone()
+            } else {
+                format!("{from_node}/{from_port}")
+            };
+            let to_route = if to_port.is_empty() {
+                to_node.clone()
+            } else {
+                format!("{to_node}/{to_port}")
+            };
+            let connection = Connection::new(from_route, to_route);
+            history::record_edit(
+                win,
+                EditAction::CreateConnection {
+                    connection: connection.clone(),
+                },
             );
-            history::record_edit(win, EditAction::CreateConnection { edge: edge.clone() });
-            win.edges.push(edge);
+            win.flow_definition.connections.push(connection);
             win.canvas_state.request_redraw();
-            let nc = win.nodes.len();
-            let ec = win.edges.len();
+            let nc = win.flow_definition.process_refs.len();
+            let ec = win.flow_definition.connections.len();
             win.status = format!(
                 "Connection created: {from_node}/{from_port} -> {to_node}/{to_port} - {nc} nodes, {ec} connections"
             );
@@ -181,11 +211,17 @@ pub(crate) fn handle_canvas_message(win: &mut WindowState, msg: CanvasMessage) -
             win.selected_node = None;
             win.canvas_state.request_redraw();
             if let Some(i) = idx {
-                if let Some(edge) = win.edges.get(i) {
+                if let Some(conn) = win.flow_definition.connections.get(i) {
+                    let (from_node, from_port) = split_route(conn.from().as_ref());
+                    let to_str = conn
+                        .to()
+                        .first()
+                        .map_or_else(String::new, ToString::to_string);
+                    let (to_node, to_port) = split_route(&to_str);
                     win.status = format!(
                         "Connection: {} -> {}",
-                        flow_io::format_endpoint(&edge.from_node, &edge.from_port),
-                        flow_io::format_endpoint(&edge.to_node, &edge.to_port),
+                        flow_io::format_endpoint(&from_node, &from_port),
+                        flow_io::format_endpoint(&to_node, &to_port),
                     );
                 }
             } else {
@@ -193,13 +229,19 @@ pub(crate) fn handle_canvas_message(win: &mut WindowState, msg: CanvasMessage) -
             }
         }
         CanvasMessage::ConnectionDeleted(idx) => {
-            if idx < win.edges.len() {
-                let edge = win.edges.remove(idx);
-                history::record_edit(win, EditAction::DeleteConnection { index: idx, edge });
+            if idx < win.flow_definition.connections.len() {
+                let connection = win.flow_definition.connections.remove(idx);
+                history::record_edit(
+                    win,
+                    EditAction::DeleteConnection {
+                        index: idx,
+                        connection,
+                    },
+                );
                 win.selected_connection = None;
                 win.canvas_state.request_redraw();
-                let nc = win.nodes.len();
-                let ec = win.edges.len();
+                let nc = win.flow_definition.process_refs.len();
+                let ec = win.flow_definition.connections.len();
                 win.status = format!("Connection deleted - {nc} nodes, {ec} connections");
             }
         }
@@ -208,8 +250,11 @@ pub(crate) fn handle_canvas_message(win: &mut WindowState, msg: CanvasMessage) -
         }
         CanvasMessage::AutoFitViewport(viewport) => {
             if win.auto_fit_enabled || win.auto_fit_pending {
-                let has_flow_io = !win.flow_inputs.is_empty() || !win.flow_outputs.is_empty();
-                win.canvas_state.auto_fit(&win.nodes, has_flow_io, viewport);
+                let has_flow_io = !win.flow_definition.inputs.is_empty()
+                    || !win.flow_definition.outputs.is_empty();
+                let render_nodes = build_render_nodes(&win.flow_definition);
+                win.canvas_state
+                    .auto_fit(&render_nodes, has_flow_io, viewport);
                 win.auto_fit_pending = false;
             }
         }
@@ -230,35 +275,24 @@ pub(crate) fn handle_canvas_message(win: &mut WindowState, msg: CanvasMessage) -
         }
         CanvasMessage::InitializerEdit(node_idx, port_name) => {
             // Look up current initializer from the model (flow definition)
-            let alias = win
-                .nodes
-                .get(node_idx)
-                .map(|n| n.alias.clone())
-                .unwrap_or_default();
             let (init_type, value_text) = win
                 .flow_definition
                 .process_refs
-                .iter()
-                .find(|pr| {
-                    let pr_alias = if pr.alias.is_empty() {
-                        derive_short_name(&pr.source)
-                    } else {
-                        pr.alias.to_string()
-                    };
-                    pr_alias == alias
-                })
+                .get(node_idx)
                 .and_then(|pr| pr.initializations.get(&port_name))
-                .map(|init| match init {
-                    InputInitializer::Once(v) => (
-                        "once".to_string(),
-                        serde_json::to_string(v).unwrap_or_default(),
-                    ),
-                    InputInitializer::Always(v) => (
-                        "always".to_string(),
-                        serde_json::to_string(v).unwrap_or_default(),
-                    ),
-                })
-                .unwrap_or_else(|| ("none".to_string(), String::new()));
+                .map_or_else(
+                    || ("none".to_string(), String::new()),
+                    |init| match init {
+                        InputInitializer::Once(v) => (
+                            "once".to_string(),
+                            serde_json::to_string(v).unwrap_or_default(),
+                        ),
+                        InputInitializer::Always(v) => (
+                            "always".to_string(),
+                            serde_json::to_string(v).unwrap_or_default(),
+                        ),
+                    },
+                );
 
             win.initializer_editor = Some(InitializerEditor {
                 node_index: node_idx,
@@ -343,9 +377,9 @@ pub(crate) enum CanvasMessage {
     Selected(Option<usize>),
     /// A node was moved to a new position (continuous during drag).
     Moved(usize, f32, f32),
-    /// A node move completed (old_x, old_y, new_x, new_y) — for undo history.
+    /// A node move completed (`old_x`, `old_y`, `new_x`, `new_y`) — for undo history.
     MoveCompleted(usize, f32, f32, f32, f32),
-    /// A node was resized (index, new_x, new_y, new_width, new_height) — continuous during drag.
+    /// A node was resized (index, `new_x`, `new_y`, `new_width`, `new_height`) — continuous during drag.
     Resized(usize, f32, f32, f32, f32),
     /// A node resize completed — for undo history.
     ResizeCompleted(usize, f32, f32, f32, f32, f32, f32, f32, f32),
@@ -367,7 +401,7 @@ pub(crate) enum CanvasMessage {
     /// A connection should be deleted.
     ConnectionDeleted(usize),
     /// Right-click on an input port to edit its initializer.
-    /// (node_index, port_name)
+    /// (`node_index`, `port_name`)
     InitializerEdit(usize, String),
     /// Open a sub-flow or provided implementation in a new editor.
     OpenNode(usize),
@@ -451,7 +485,7 @@ pub(crate) struct CanvasInteractionState {
     dragging: Option<DragState>,
     /// Active resize operation, if any
     resizing: Option<ResizeState>,
-    /// Current keyboard modifier state (tracked via ModifiersChanged events)
+    /// Current keyboard modifier state (tracked via `ModifiersChanged` events)
     modifiers: keyboard::Modifiers,
     /// Active middle-mouse-button pan operation
     panning: Option<PanState>,
@@ -587,7 +621,10 @@ impl NodeLayout {
             Color::from_rgb(0.3, 0.5, 0.9) // Blue for library
         } else if self.source.starts_with("context://") {
             Color::from_rgb(0.3, 0.75, 0.45) // Green for context
-        } else if self.source.ends_with(".rs") || self.source.ends_with(".wasm") {
+        } else if std::path::Path::new(&self.source)
+            .extension()
+            .is_some_and(|ext| ext.eq_ignore_ascii_case("rs") || ext.eq_ignore_ascii_case("wasm"))
+        {
             Color::from_rgb(0.6, 0.3, 0.8) // Purple for provided implementations
         } else {
             Color::from_rgb(0.9, 0.6, 0.2) // Orange for nested flows
@@ -617,7 +654,7 @@ impl NodeLayout {
 
     /// Return the 8 resize handle positions in world coordinates.
     ///
-    /// Order: TopLeft, Top, TopRight, Left, Right, BottomLeft, Bottom, BottomRight.
+    /// Order: `TopLeft`, Top, `TopRight`, Left, Right, `BottomLeft`, Bottom, `BottomRight`.
     fn resize_handle_positions(&self) -> [(ResizeHandle, Point); 8] {
         let mid_x = self.x + self.width / 2.0;
         let mid_y = self.y + self.height / 2.0;
@@ -636,49 +673,39 @@ impl NodeLayout {
     }
 }
 
-/// A connection edge to render between two nodes
-#[derive(Debug, Clone)]
-pub(crate) struct EdgeLayout {
-    /// Source node alias
-    pub(crate) from_node: String,
-    /// Source port name (may be empty for whole-node output)
-    pub(crate) from_port: String,
-    /// Destination node alias
-    pub(crate) to_node: String,
-    /// Destination port name
-    pub(crate) to_port: String,
-    /// Optional connection name for display on the line
-    pub(crate) name: String,
-}
-
-/// Build a list of [`NodeLayout`] from process references and connections.
+/// Build render-only [`NodeLayout`] list directly from a [`FlowDefinition`].
 ///
-/// Ports and descriptions are taken from the resolved definitions loaded for each subprocess.
-/// Layout uses the optional `x`, `y`, `width`, `height` fields from `ProcessReference`,
-/// falling back to auto-grid positioning.
-pub(crate) fn build_node_layouts(
-    process_refs: &[ProcessReference],
-    connections: &[Connection],
-    resolved_ports: &HashMap<String, (Vec<PortInfo>, Vec<PortInfo>)>,
-    subprocesses: &std::collections::BTreeMap<String, flowcore::model::process::Process>,
+/// This is the single entry point for converting process references and their
+/// resolved subprocess definitions into the rendering representation.
+/// The returned layouts are ephemeral and must not be stored in persistent state.
+pub(crate) fn build_render_nodes(
+    flow_def: &flowcore::model::flow_definition::FlowDefinition,
 ) -> Vec<NodeLayout> {
-    let topo_positions = compute_topological_layout(process_refs, connections);
+    use flowcore::model::process::Process;
 
-    let mut nodes = Vec::with_capacity(process_refs.len());
+    let topo_positions = compute_topological_layout(&flow_def.process_refs, &flow_def.connections);
 
-    for (i, pref) in process_refs.iter().enumerate() {
+    let mut nodes = Vec::with_capacity(flow_def.process_refs.len());
+
+    for (i, pref) in flow_def.process_refs.iter().enumerate() {
         let alias = if pref.alias.is_empty() {
             derive_short_name(&pref.source)
         } else {
-            pref.alias.to_string()
+            pref.alias.clone()
         };
 
-        let (inputs, outputs) = resolved_ports.get(&alias).cloned().unwrap_or_default();
+        let (inputs, outputs) = flow_def
+            .subprocesses
+            .get(&alias)
+            .map(|proc| match proc {
+                Process::FunctionProcess(f) => crate::flow_io::extract_ports(&f.inputs, &f.outputs),
+                Process::FlowProcess(f) => crate::flow_io::extract_ports(&f.inputs, &f.outputs),
+            })
+            .unwrap_or_default();
 
         let min_ports = inputs.len().max(outputs.len());
         let min_height = PORT_START_Y + (min_ports as f32 + 1.0) * PORT_SPACING;
 
-        // Use saved position, then topology position, then grid fallback
         let (default_x, default_y) = if let Some((tx, ty)) = topo_positions.get(&alias) {
             (*tx, *ty)
         } else {
@@ -694,7 +721,6 @@ pub(crate) fn build_node_layouts(
         let width = pref.width.unwrap_or(DEFAULT_WIDTH);
         let height = pref.height.unwrap_or(DEFAULT_HEIGHT.max(min_height));
 
-        // Build initializer display strings
         let mut initializers = HashMap::new();
         for (port_name, init) in &pref.initializations {
             let display = match init {
@@ -708,14 +734,12 @@ pub(crate) fn build_node_layouts(
             initializers.insert(port_name.clone(), display);
         }
 
-        // Extract description from the resolved subprocess definition
-        let description = subprocesses
+        let description = flow_def
+            .subprocesses
             .get(&alias)
             .map(|proc| match proc {
-                flowcore::model::process::Process::FunctionProcess(func) => {
-                    func.description.clone()
-                }
-                flowcore::model::process::Process::FlowProcess(flow) => flow.description.clone(),
+                Process::FunctionProcess(func) => func.description.clone(),
+                Process::FlowProcess(flow) => flow.description.clone(),
             })
             .unwrap_or_default();
 
@@ -736,29 +760,6 @@ pub(crate) fn build_node_layouts(
     nodes
 }
 
-impl EdgeLayout {
-    /// Create a new edge layout with the given source and destination.
-    pub(crate) fn new(
-        from_node: String,
-        from_port: String,
-        to_node: String,
-        to_port: String,
-    ) -> Self {
-        Self {
-            from_node,
-            from_port,
-            to_node,
-            to_port,
-            name: String::new(),
-        }
-    }
-
-    /// Check whether this edge references the given node alias as source or destination.
-    pub(crate) fn references_node(&self, alias: &str) -> bool {
-        self.from_node == alias || self.to_node == alias
-    }
-}
-
 /// Compute topology-based positions for nodes without saved layout.
 ///
 /// Assigns each node a column based on its depth from source nodes (nodes with no
@@ -774,7 +775,7 @@ fn compute_topological_layout(
             if p.alias.is_empty() {
                 derive_short_name(&p.source)
             } else {
-                p.alias.to_string()
+                p.alias.clone()
             }
         })
         .collect();
@@ -860,31 +861,7 @@ fn compute_topological_layout(
     positions
 }
 
-/// Build edge layouts from flow connections
-pub(crate) fn build_edge_layouts(connections: &[Connection]) -> Vec<EdgeLayout> {
-    let mut edges = Vec::new();
-
-    for conn in connections {
-        let from_route = conn.from().to_string();
-        let (from_node, from_port) = split_route(&from_route);
-
-        for to_route in conn.to() {
-            let to_str = to_route.to_string();
-            let (to_node, to_port) = split_route(&to_str);
-            edges.push(EdgeLayout {
-                from_node: from_node.clone(),
-                from_port: from_port.clone(),
-                to_node,
-                to_port,
-                name: conn.name().to_string(),
-            });
-        }
-    }
-
-    edges
-}
-
-/// Format a serde_json::Value for compact display
+/// Format a [`serde_json::Value`] for compact display
 fn format_value(v: &serde_json::Value) -> String {
     match v {
         serde_json::Value::String(s) => format!("\"{s}\""),
@@ -914,13 +891,28 @@ pub(crate) fn derive_short_name(source: &str) -> String {
 
 /// Split a route string like "sequence/number" into ("sequence", "number")
 /// or "add1" into ("add1", "")
-fn split_route(route: &str) -> (String, String) {
+pub(crate) fn split_route(route: &str) -> (String, String) {
     let route = route.trim_start_matches('/');
     if let Some(pos) = route.find('/') {
         (route[..pos].to_string(), route[pos + 1..].to_string())
     } else {
         (route.to_string(), String::new())
     }
+}
+
+/// Check whether a Connection references a node by alias in its from or to routes.
+pub(crate) fn connection_references_node(conn: &Connection, alias: &str) -> bool {
+    let (from_node, _) = split_route(conn.from().as_ref());
+    if from_node == alias {
+        return true;
+    }
+    for to_route in conn.to() {
+        let (to_node, _) = split_route(to_route.as_ref());
+        if to_node == alias {
+            return true;
+        }
+    }
+    false
 }
 
 /// Persistent canvas state that caches the rendered geometry.
@@ -944,23 +936,28 @@ impl Default for FlowCanvasState {
 }
 
 impl FlowCanvasState {
-    /// Create the canvas [`Element`] for displaying the given nodes and edges.
+    /// Create the canvas [`Element`] for displaying the given flow definition.
+    ///
+    /// Builds render nodes from the flow definition's process references and
+    /// subprocess definitions. The `FlowCanvas` owns these render nodes for the
+    /// duration of the frame.
     #[allow(clippy::too_many_arguments)]
     pub(crate) fn view<'a>(
         &'a self,
-        nodes: &'a [NodeLayout],
-        edges: &'a [EdgeLayout],
+        flow_def: &flowcore::model::flow_definition::FlowDefinition,
+        connections: &'a [Connection],
         flow_name: &'a str,
-        flow_inputs: &'a [PortInfo],
-        flow_outputs: &'a [PortInfo],
+        flow_inputs: &'a [IO],
+        flow_outputs: &'a [IO],
         is_subflow: bool,
         auto_fit_pending: bool,
         auto_fit_enabled: bool,
     ) -> Element<'a, CanvasMessage> {
+        let nodes = build_render_nodes(flow_def);
         Canvas::new(FlowCanvas {
             state: self,
             nodes,
-            edges,
+            connections,
             flow_name,
             flow_inputs,
             flow_outputs,
@@ -1016,7 +1013,7 @@ impl FlowCanvasState {
                 let max_len = node
                     .initializers
                     .values()
-                    .map(|s| s.len())
+                    .map(String::len)
                     .max()
                     .unwrap_or(0);
                 max_len as f32 * 8.0
@@ -1053,8 +1050,8 @@ impl FlowCanvasState {
         // Set offset so that the content is centered
         // screen_x = (world_x + offset_x) * zoom
         // We want the center of the content to map to the center of the viewport
-        let content_center_x = (min_x + max_x) / 2.0;
-        let content_center_y = (min_y + max_y) / 2.0;
+        let content_center_x = min_x.midpoint(max_x);
+        let content_center_y = min_y.midpoint(max_y);
         let viewport_center_x = viewport.width / 2.0 / self.zoom;
         let viewport_center_y = viewport.height / 2.0 / self.zoom;
 
@@ -1080,16 +1077,16 @@ fn screen_to_world(screen: Point, zoom: f32, offset: Point) -> Point {
 struct FlowCanvas<'a> {
     /// Reference to the persistent canvas state (zoom, offset, cache)
     state: &'a FlowCanvasState,
-    /// Nodes to render
-    nodes: &'a [NodeLayout],
-    /// Edges to render
-    edges: &'a [EdgeLayout],
+    /// Render nodes built from `process_refs` (owned, rebuilt each frame)
+    nodes: Vec<NodeLayout>,
+    /// Connections to render
+    connections: &'a [Connection],
     /// Flow name (displayed on sub-flow bounding box)
     flow_name: &'a str,
     /// Flow-level input ports (displayed on left edge for sub-flows)
-    flow_inputs: &'a [PortInfo],
+    flow_inputs: &'a [IO],
     /// Flow-level output ports (displayed on right edge for sub-flows)
-    flow_outputs: &'a [PortInfo],
+    flow_outputs: &'a [IO],
     /// Whether this is a sub-flow (always draws bounding box)
     is_subflow: bool,
     /// Whether an auto-fit should be triggered on the next event
@@ -1216,11 +1213,11 @@ fn quadratic_bezier_pt(p0: Point, p1: Point, p2: Point, t: f32) -> Point {
 }
 
 /// Evaluate a cubic bezier curve at parameter `t` (0.0..=1.0).
-/// Compute flow I/O port world positions (same layout as draw_flow_io_ports).
+/// Compute flow I/O port world positions (same layout as `draw_flow_io_ports`).
 fn compute_flow_io_positions(
     nodes: &[NodeLayout],
-    flow_inputs: &[PortInfo],
-    flow_outputs: &[PortInfo],
+    flow_inputs: &[IO],
+    flow_outputs: &[IO],
 ) -> (HashMap<String, Point>, HashMap<String, Point>) {
     use std::collections::HashMap;
 
@@ -1250,19 +1247,19 @@ fn compute_flow_io_positions(
     };
     let box_x = min_x - padding;
     let box_w = (max_x - min_x) + 2.0 * padding;
-    let center_y = (min_y + max_y) / 2.0;
+    let center_y = min_y.midpoint(max_y);
 
     let input_start_y = center_y - (flow_inputs.len() as f32 - 1.0) * spacing / 2.0;
     for (i, input) in flow_inputs.iter().enumerate() {
         let y = input_start_y + i as f32 * spacing;
-        input_positions.insert(input.name.clone(), Point::new(box_x, y));
+        input_positions.insert(input.name().clone(), Point::new(box_x, y));
     }
 
     let right_x = box_x + box_w;
     let output_start_y = center_y - (flow_outputs.len() as f32 - 1.0) * spacing / 2.0;
     for (i, output) in flow_outputs.iter().enumerate() {
         let y = output_start_y + i as f32 * spacing;
-        output_positions.insert(output.name.clone(), Point::new(right_x, y));
+        output_positions.insert(output.name().clone(), Point::new(right_x, y));
     }
 
     (input_positions, output_positions)
@@ -1302,17 +1299,18 @@ fn find_node_input_pos_inline(node: &NodeLayout, port: &str) -> Point {
     }
 }
 
-/// Squared distance from point `p` to the line segment `a`–`b`.
+/// Squared distance from point `p` to the line segment `a`--`b`.
+#[allow(clippy::similar_names)]
 fn distance_to_segment_sq(p: Point, a: Point, b: Point) -> f32 {
     let ab_x = b.x - a.x;
     let ab_y = b.y - a.y;
     let ap_x = p.x - a.x;
     let ap_y = p.y - a.y;
-    let ab_len_sq = ab_x * ab_x + ab_y * ab_y;
-    if ab_len_sq < 0.001 {
+    let seg_len_sq = ab_x * ab_x + ab_y * ab_y;
+    if seg_len_sq < 0.001 {
         return ap_x * ap_x + ap_y * ap_y;
     }
-    let t = ((ap_x * ab_x + ap_y * ab_y) / ab_len_sq).clamp(0.0, 1.0);
+    let t = ((ap_x * ab_x + ap_y * ab_y) / seg_len_sq).clamp(0.0, 1.0);
     let proj_x = a.x + t * ab_x;
     let proj_y = a.y + t * ab_y;
     let dx = p.x - proj_x;
@@ -1332,16 +1330,16 @@ fn cubic_bezier(p0: Point, p1: Point, p2: Point, p3: Point, t: f32) -> Point {
     )
 }
 
-/// Hit test connections by sampling points along each edge's bezier curve.
+/// Hit test connections by sampling points along each connection's bezier curve.
 ///
-/// Returns the edge index if the cursor is within [`CONNECTION_HIT_DISTANCE`]
+/// Returns the connection index if the cursor is within [`CONNECTION_HIT_DISTANCE`]
 /// screen pixels of any sample point on the curve.
 #[allow(clippy::too_many_arguments)]
 fn hit_test_connection(
-    edges: &[EdgeLayout],
+    connections: &[Connection],
     nodes: &[NodeLayout],
-    flow_inputs: &[PortInfo],
-    flow_outputs: &[PortInfo],
+    flow_inputs: &[IO],
+    flow_outputs: &[IO],
     screen_pos: Point,
     zoom: f32,
     offset: Point,
@@ -1355,105 +1353,110 @@ fn hit_test_connection(
 
     let threshold_sq = CONNECTION_HIT_DISTANCE * CONNECTION_HIT_DISTANCE;
 
-    for (edge_idx, edge) in edges.iter().enumerate() {
-        // Resolve from_point
-        let from_point = if edge.from_node == "input" {
-            let input_name = base_port_name(&edge.from_port);
-            flow_io_positions.0.get(input_name).copied()
-        } else {
-            node_map
-                .get(edge.from_node.as_str())
-                .map(|n| find_node_output_pos_inline(n, &edge.from_port))
-        };
+    for (conn_idx, conn) in connections.iter().enumerate() {
+        let (from_node_str, from_port_str) = split_route(conn.from().as_ref());
+        for to_route in conn.to() {
+            let (to_node_str, to_port_str) = split_route(to_route.as_ref());
 
-        let to_point = if edge.to_node == "output" {
-            let output_name = base_port_name(&edge.to_port);
-            flow_io_positions.1.get(output_name).copied()
-        } else {
-            node_map
-                .get(edge.to_node.as_str())
-                .map(|n| find_node_input_pos_inline(n, &edge.to_port))
-        };
-
-        if let (Some(from_point), Some(to_point)) = (from_point, to_point) {
-            let from_s = transform_point(from_point, zoom, offset);
-            let to_s = transform_point(to_point, zoom, offset);
-
-            let is_self = edge.from_node == edge.to_node;
-
-            // Build sample points along the actual drawn path
-            let sample_points: Vec<Point> = if is_self {
-                let from_node_ref = node_map.get(edge.from_node.as_str());
-                let Some(from_n) = from_node_ref else {
-                    continue;
-                };
-                let (box_right, box_bottom, box_left, mid_x) = loopback_waypoints(
-                    from_n.x,
-                    from_n.y,
-                    from_n.width,
-                    from_n.height,
-                    zoom,
-                    offset,
-                );
-
-                // Sample the path: from -> right -> curve down -> bottom -> curve up -> to
-                let mut pts = Vec::with_capacity(BEZIER_SAMPLES + 1);
-                let segments = BEZIER_SAMPLES / 5;
-                // Segment 1: from -> right
-                for i in 0..=segments {
-                    let t = i as f32 / segments as f32;
-                    pts.push(Point::new(from_s.x + (box_right - from_s.x) * t, from_s.y));
-                }
-                // Segment 2: curve right -> bottom
-                for i in 0..=segments {
-                    let t = i as f32 / segments as f32;
-                    let p = quadratic_bezier_pt(
-                        Point::new(box_right, from_s.y),
-                        Point::new(box_right, box_bottom),
-                        Point::new(mid_x, box_bottom),
-                        t,
-                    );
-                    pts.push(p);
-                }
-                // Segment 3: curve bottom -> left
-                for i in 0..=segments {
-                    let t = i as f32 / segments as f32;
-                    let p = quadratic_bezier_pt(
-                        Point::new(mid_x, box_bottom),
-                        Point::new(box_left, box_bottom),
-                        Point::new(box_left, to_s.y),
-                        t,
-                    );
-                    pts.push(p);
-                }
-                // Segment 4: left -> to
-                for i in 0..=segments {
-                    let t = i as f32 / segments as f32;
-                    pts.push(Point::new(box_left + (to_s.x - box_left) * t, to_s.y));
-                }
-                pts
+            // Resolve from_point
+            let from_point = if from_node_str == "input" {
+                let input_name = base_port_name(&from_port_str);
+                flow_io_positions.0.get(input_name).copied()
             } else {
-                // Use matching control points for flow I/O vs normal connections
-                let is_flow_io = edge.from_node == "input" || edge.to_node == "output";
-                let dx_ctrl = if is_flow_io {
-                    (to_s.x - from_s.x).abs().max(40.0 * zoom) * 0.4
-                } else {
-                    (to_s.x - from_s.x).abs().max(60.0 * zoom) * 0.5
-                };
-                let control1 = Point::new(from_s.x + dx_ctrl, from_s.y);
-                let control2 = Point::new(to_s.x - dx_ctrl, to_s.y);
-                (0..=BEZIER_SAMPLES)
-                    .map(|i| {
-                        let t = i as f32 / BEZIER_SAMPLES as f32;
-                        cubic_bezier(from_s, control1, control2, to_s, t)
-                    })
-                    .collect()
+                node_map
+                    .get(from_node_str.as_str())
+                    .map(|n| find_node_output_pos_inline(n, &from_port_str))
             };
 
-            for pair in sample_points.windows(2) {
-                if let [a, b] = *pair {
-                    if distance_to_segment_sq(screen_pos, a, b) <= threshold_sq {
-                        return Some(edge_idx);
+            let to_point = if to_node_str == "output" {
+                let output_name = base_port_name(&to_port_str);
+                flow_io_positions.1.get(output_name).copied()
+            } else {
+                node_map
+                    .get(to_node_str.as_str())
+                    .map(|n| find_node_input_pos_inline(n, &to_port_str))
+            };
+
+            if let (Some(from_point), Some(to_point)) = (from_point, to_point) {
+                let from_s = transform_point(from_point, zoom, offset);
+                let to_s = transform_point(to_point, zoom, offset);
+
+                let is_self = from_node_str == to_node_str;
+
+                // Build sample points along the actual drawn path
+                let sample_points: Vec<Point> = if is_self {
+                    let from_node_ref = node_map.get(from_node_str.as_str());
+                    let Some(from_n) = from_node_ref else {
+                        continue;
+                    };
+                    let (box_right, box_bottom, box_left, mid_x) = loopback_waypoints(
+                        from_n.x,
+                        from_n.y,
+                        from_n.width,
+                        from_n.height,
+                        zoom,
+                        offset,
+                    );
+
+                    // Sample the path: from -> right -> curve down -> bottom -> curve up -> to
+                    let mut pts = Vec::with_capacity(BEZIER_SAMPLES + 1);
+                    let segments = BEZIER_SAMPLES / 5;
+                    // Segment 1: from -> right
+                    for i in 0..=segments {
+                        let t = i as f32 / segments as f32;
+                        pts.push(Point::new(from_s.x + (box_right - from_s.x) * t, from_s.y));
+                    }
+                    // Segment 2: curve right -> bottom
+                    for i in 0..=segments {
+                        let t = i as f32 / segments as f32;
+                        let p = quadratic_bezier_pt(
+                            Point::new(box_right, from_s.y),
+                            Point::new(box_right, box_bottom),
+                            Point::new(mid_x, box_bottom),
+                            t,
+                        );
+                        pts.push(p);
+                    }
+                    // Segment 3: curve bottom -> left
+                    for i in 0..=segments {
+                        let t = i as f32 / segments as f32;
+                        let p = quadratic_bezier_pt(
+                            Point::new(mid_x, box_bottom),
+                            Point::new(box_left, box_bottom),
+                            Point::new(box_left, to_s.y),
+                            t,
+                        );
+                        pts.push(p);
+                    }
+                    // Segment 4: left -> to
+                    for i in 0..=segments {
+                        let t = i as f32 / segments as f32;
+                        pts.push(Point::new(box_left + (to_s.x - box_left) * t, to_s.y));
+                    }
+                    pts
+                } else {
+                    // Use matching control points for flow I/O vs normal connections
+                    let is_flow_io = from_node_str == "input" || to_node_str == "output";
+                    let dx_ctrl = if is_flow_io {
+                        (to_s.x - from_s.x).abs().max(40.0 * zoom) * 0.4
+                    } else {
+                        (to_s.x - from_s.x).abs().max(60.0 * zoom) * 0.5
+                    };
+                    let control1 = Point::new(from_s.x + dx_ctrl, from_s.y);
+                    let control2 = Point::new(to_s.x - dx_ctrl, to_s.y);
+                    (0..=BEZIER_SAMPLES)
+                        .map(|i| {
+                            let t = i as f32 / BEZIER_SAMPLES as f32;
+                            cubic_bezier(from_s, control1, control2, to_s, t)
+                        })
+                        .collect()
+                };
+
+                for pair in sample_points.windows(2) {
+                    if let [a, b] = *pair {
+                        if distance_to_segment_sq(screen_pos, a, b) <= threshold_sq {
+                            return Some(conn_idx);
+                        }
                     }
                 }
             }
@@ -1463,7 +1466,7 @@ fn hit_test_connection(
 }
 
 /// Compute the appropriate mouse cursor for a given [`ResizeHandle`].
-fn resize_cursor(handle: &ResizeHandle) -> mouse::Interaction {
+fn resize_cursor(handle: ResizeHandle) -> mouse::Interaction {
     match handle {
         ResizeHandle::TopLeft | ResizeHandle::BottomRight => {
             mouse::Interaction::ResizingDiagonallyDown
@@ -1568,23 +1571,23 @@ impl canvas::Program<CanvasMessage> for FlowCanvas<'_> {
                 }
 
                 // 2. Check if cursor is near a connection line (but NOT on a port) — select it
-                let on_a_port = hit_test_port(self.nodes, cursor_position, zoom, offset).is_some();
+                let on_a_port = hit_test_port(&self.nodes, cursor_position, zoom, offset).is_some();
                 if !on_a_port {
-                    if let Some(edge_idx) = hit_test_connection(
-                        self.edges,
-                        self.nodes,
+                    if let Some(conn_idx) = hit_test_connection(
+                        self.connections,
+                        &self.nodes,
                         self.flow_inputs,
                         self.flow_outputs,
                         cursor_position,
                         zoom,
                         offset,
                     ) {
-                        state.selected_connection = Some(edge_idx);
+                        state.selected_connection = Some(conn_idx);
                         state.selected_node = None;
                         state.dragging = None;
                         return Some(
                             canvas::Action::publish(CanvasMessage::ConnectionSelected(Some(
-                                edge_idx,
+                                conn_idx,
                             )))
                             .and_capture(),
                         );
@@ -1593,7 +1596,7 @@ impl canvas::Program<CanvasMessage> for FlowCanvas<'_> {
 
                 // 3. Check if cursor is on a port — start connection drag
                 if let Some((node_idx, port_name, is_output)) =
-                    hit_test_port(self.nodes, cursor_position, zoom, offset)
+                    hit_test_port(&self.nodes, cursor_position, zoom, offset)
                 {
                     if let Some(node) = self.nodes.get(node_idx) {
                         let port_world_pos = if is_output {
@@ -1623,14 +1626,14 @@ impl canvas::Program<CanvasMessage> for FlowCanvas<'_> {
                 }
 
                 // 4. Check if cursor is on an openable node's open icon
-                if let Some(idx) = hit_test_open_icon(self.nodes, world_pos) {
+                if let Some(idx) = hit_test_open_icon(&self.nodes, world_pos) {
                     return Some(
                         canvas::Action::publish(CanvasMessage::OpenNode(idx)).and_capture(),
                     );
                 }
 
                 // 6. Check if cursor is on a node — select/drag it
-                if let Some(idx) = hit_test_node(self.nodes, world_pos) {
+                if let Some(idx) = hit_test_node(&self.nodes, world_pos) {
                     let node = self.nodes.get(idx)?;
                     state.selected_node = Some(idx);
                     state.selected_connection = None;
@@ -1654,7 +1657,7 @@ impl canvas::Program<CanvasMessage> for FlowCanvas<'_> {
             // Right mouse button pressed — edit initializer on input port, or context menu
             Event::Mouse(mouse::Event::ButtonPressed(mouse::Button::Right)) => {
                 if let Some((node_idx, port_name, is_output)) =
-                    hit_test_port(self.nodes, cursor_position, zoom, offset)
+                    hit_test_port(&self.nodes, cursor_position, zoom, offset)
                 {
                     if !is_output {
                         return Some(
@@ -1666,7 +1669,7 @@ impl canvas::Program<CanvasMessage> for FlowCanvas<'_> {
                     }
                 }
                 // Right-click on empty canvas — show context menu
-                if hit_test_node(self.nodes, world_pos).is_none() {
+                if hit_test_node(&self.nodes, world_pos).is_none() {
                     return Some(
                         canvas::Action::publish(CanvasMessage::ContextMenu(
                             cursor_position.x,
@@ -1767,7 +1770,7 @@ impl canvas::Program<CanvasMessage> for FlowCanvas<'_> {
                 } else {
                     // Check port hover for type tooltip
                     if let Some((node_idx, port_name, is_output)) =
-                        hit_test_port(self.nodes, cursor_position, zoom, offset)
+                        hit_test_port(&self.nodes, cursor_position, zoom, offset)
                     {
                         if let Some(node) = self.nodes.get(node_idx) {
                             let ports = if is_output {
@@ -1775,17 +1778,16 @@ impl canvas::Program<CanvasMessage> for FlowCanvas<'_> {
                             } else {
                                 &node.inputs
                             };
-                            let type_text = ports
-                                .iter()
-                                .find(|p| p.name == port_name)
-                                .map(|p| {
+                            let type_text = ports.iter().find(|p| p.name == port_name).map_or_else(
+                                || port_name.clone(),
+                                |p| {
                                     if p.datatypes.is_empty() {
                                         format!("{port_name}: (any)")
                                     } else {
                                         format!("{port_name}: {}", p.datatypes.join(", "))
                                     }
-                                })
-                                .unwrap_or_else(|| port_name.clone());
+                                },
+                            );
                             state.hover_node = None;
                             return Some(canvas::Action::publish(CanvasMessage::HoverChanged(
                                 Some((type_text, cursor_position.x, cursor_position.y - 20.0)),
@@ -1794,7 +1796,7 @@ impl canvas::Program<CanvasMessage> for FlowCanvas<'_> {
                     }
 
                     // Track hover for two-zone node tooltip
-                    let new_hover = hit_test_node(self.nodes, world_pos);
+                    let new_hover = hit_test_node(&self.nodes, world_pos);
                     if new_hover != state.hover_node || new_hover.is_some() {
                         state.hover_node = new_hover;
                         let tooltip_data =
@@ -1825,7 +1827,7 @@ impl canvas::Program<CanvasMessage> for FlowCanvas<'_> {
                 if let Some(connecting) = state.connecting.take() {
                     // Check if cursor is on a compatible port
                     if let Some((target_idx, target_port, target_is_output)) =
-                        hit_test_port(self.nodes, cursor_position, zoom, offset)
+                        hit_test_port(&self.nodes, cursor_position, zoom, offset)
                     {
                         // Must connect output→input or input→output
                         if connecting.from_output != target_is_output {
@@ -1947,9 +1949,9 @@ impl canvas::Program<CanvasMessage> for FlowCanvas<'_> {
                     }
                 } else {
                     // Pan
-                    let pan_dx = dx / zoom;
-                    let pan_dy = dy / zoom;
-                    Some(canvas::Action::publish(CanvasMessage::Pan(pan_dx, pan_dy)).and_capture())
+                    let pan_x = dx / zoom;
+                    let pan_y = dy / zoom;
+                    Some(canvas::Action::publish(CanvasMessage::Pan(pan_x, pan_y)).and_capture())
                 }
             }
 
@@ -1968,16 +1970,16 @@ impl canvas::Program<CanvasMessage> for FlowCanvas<'_> {
         let zoom = self.state.zoom;
         let offset = self.state.scroll_offset;
 
-        // Draw the main cached content (edges, nodes, and flow I/O ports)
+        // Draw the main cached content (connections, nodes, and flow I/O ports)
         let content = self.state.cache.draw(renderer, bounds.size(), |frame| {
-            draw_nodes(frame, self.nodes, zoom, offset);
+            draw_nodes(frame, &self.nodes, zoom, offset);
             draw_flow_io_ports(
                 frame,
                 self.flow_name,
                 self.flow_inputs,
                 self.flow_outputs,
-                self.nodes,
-                self.edges,
+                &self.nodes,
+                self.connections,
                 self.is_subflow,
                 state.selected_connection,
                 zoom,
@@ -1985,8 +1987,8 @@ impl canvas::Program<CanvasMessage> for FlowCanvas<'_> {
             );
             draw_edges(
                 frame,
-                self.edges,
-                self.nodes,
+                self.connections,
+                &self.nodes,
                 zoom,
                 offset,
                 state.selected_connection,
@@ -2070,7 +2072,7 @@ impl canvas::Program<CanvasMessage> for FlowCanvas<'_> {
 
                 // Highlight the target port if hovering over a compatible one
                 if let Some((target_idx, target_port, target_is_output)) =
-                    hit_test_port(self.nodes, end_screen, zoom, offset)
+                    hit_test_port(&self.nodes, end_screen, zoom, offset)
                 {
                     if connecting.from_output != target_is_output {
                         if let Some(target_node) = self.nodes.get(target_idx) {
@@ -2117,7 +2119,7 @@ impl canvas::Program<CanvasMessage> for FlowCanvas<'_> {
         }
 
         if let Some(ref resize) = state.resizing {
-            return resize_cursor(&resize.handle);
+            return resize_cursor(resize.handle);
         }
 
         if state.connecting.is_some() {
@@ -2139,23 +2141,24 @@ impl canvas::Program<CanvasMessage> for FlowCanvas<'_> {
                         self.state.zoom,
                         self.state.scroll_offset,
                     ) {
-                        return resize_cursor(&handle);
+                        return resize_cursor(handle);
                     }
                 }
             }
 
             // Check if hovering over a port
-            if hit_test_port(self.nodes, pos, self.state.zoom, self.state.scroll_offset).is_some() {
+            if hit_test_port(&self.nodes, pos, self.state.zoom, self.state.scroll_offset).is_some()
+            {
                 return mouse::Interaction::Crosshair;
             }
 
             let world_pos = screen_to_world(pos, self.state.zoom, self.state.scroll_offset);
 
-            if hit_test_open_icon(self.nodes, world_pos).is_some() {
+            if hit_test_open_icon(&self.nodes, world_pos).is_some() {
                 return mouse::Interaction::Pointer;
             }
 
-            if hit_test_node(self.nodes, world_pos).is_some() {
+            if hit_test_node(&self.nodes, world_pos).is_some() {
                 return mouse::Interaction::Grab;
             }
         }
@@ -2167,7 +2170,7 @@ impl canvas::Program<CanvasMessage> for FlowCanvas<'_> {
 /// Draw all connection edges as bezier curves.
 fn draw_edges(
     frame: &mut Frame,
-    edges: &[EdgeLayout],
+    connections: &[Connection],
     nodes: &[NodeLayout],
     zoom: f32,
     offset: Point,
@@ -2178,83 +2181,90 @@ fn draw_edges(
         nodes.iter().map(|n| (n.alias.as_str(), n)).collect();
 
     // Draw selected connection last so it renders on top of crossing connections
-    let draw_order: Vec<usize> = (0..edges.len())
+    let draw_order: Vec<usize> = (0..connections.len())
         .filter(|i| selected != Some(*i))
-        .chain(selected.filter(|i| *i < edges.len()))
+        .chain(selected.filter(|i| *i < connections.len()))
         .collect();
 
-    for edge_idx in draw_order {
-        let edge = if let Some(e) = edges.get(edge_idx) {
-            e
-        } else {
+    for conn_idx in draw_order {
+        let Some(conn) = connections.get(conn_idx) else {
             continue;
         };
-        let from_node = node_map.get(edge.from_node.as_str());
-        let to_node = node_map.get(edge.to_node.as_str());
+        let (from_node_str, from_port_str) = split_route(conn.from().as_ref());
+        for to_route in conn.to() {
+            let (to_node_str, to_port_str) = split_route(to_route.as_ref());
+            let from_node = node_map.get(from_node_str.as_str());
+            let to_node = node_map.get(to_node_str.as_str());
 
-        if let (Some(from), Some(to)) = (from_node, to_node) {
-            // Find port positions (in world space)
-            let from_point = if edge.from_port.is_empty() {
-                from.output_port_position(0)
-            } else {
-                let base = base_port_name(&edge.from_port);
-                let port_idx = from
-                    .outputs
-                    .iter()
-                    .position(|p| p.name == base)
-                    .unwrap_or(0);
-                from.output_port_position(port_idx)
-            };
-
-            let to_point = if edge.to_port.is_empty() {
-                to.input_port_position(0)
-            } else {
-                let base = base_port_name(&edge.to_port);
-                let port_idx = to.inputs.iter().position(|p| p.name == base).unwrap_or(0);
-                to.input_port_position(port_idx)
-            };
-
-            let is_self_connection = edge.from_node == edge.to_node;
-            let node_bounds = if is_self_connection {
-                Some((from.x, from.y, from.width, from.height))
-            } else {
-                None
-            };
-            let is_selected = selected == Some(edge_idx);
-            draw_bezier_connection(
-                frame,
-                from_point,
-                to_point,
-                zoom,
-                offset,
-                node_bounds,
-                is_selected,
-            );
-
-            // Draw connection name along the path if present
-            if !edge.name.is_empty() {
-                let from_s = transform_point(from_point, zoom, offset);
-                let to_s = transform_point(to_point, zoom, offset);
-                let mid = if is_self_connection {
-                    // For loopback: place label at the bottom of the curve, outside the box
-                    let (_, box_bottom, box_left, mid_x) =
-                        loopback_waypoints(from.x, from.y, from.width, from.height, zoom, offset);
-                    let _ = box_left;
-                    Point::new(mid_x, box_bottom)
+            if let (Some(from), Some(to)) = (from_node, to_node) {
+                // Find port positions (in world space)
+                let from_point = if from_port_str.is_empty() {
+                    from.output_port_position(0)
                 } else {
-                    // For normal connections: midpoint, above the line
-                    Point::new((from_s.x + to_s.x) / 2.0, (from_s.y + to_s.y) / 2.0)
+                    let base = base_port_name(&from_port_str);
+                    let port_idx = from
+                        .outputs
+                        .iter()
+                        .position(|p| p.name == base)
+                        .unwrap_or(0);
+                    from.output_port_position(port_idx)
                 };
-                let name_label = CanvasText {
-                    content: edge.name.clone(),
-                    position: mid,
-                    color: Color::from_rgb(0.7, 0.7, 0.7),
-                    size: (PORT_FONT_SIZE * zoom).into(),
-                    align_x: iced::alignment::Horizontal::Center.into(),
-                    align_y: iced::alignment::Vertical::Bottom,
-                    ..CanvasText::default()
+
+                let to_point = if to_port_str.is_empty() {
+                    to.input_port_position(0)
+                } else {
+                    let base = base_port_name(&to_port_str);
+                    let port_idx = to.inputs.iter().position(|p| p.name == base).unwrap_or(0);
+                    to.input_port_position(port_idx)
                 };
-                frame.fill_text(name_label);
+
+                let is_self_connection = from_node_str == to_node_str;
+                let node_bounds = if is_self_connection {
+                    Some((from.x, from.y, from.width, from.height))
+                } else {
+                    None
+                };
+                let is_selected = selected == Some(conn_idx);
+                draw_bezier_connection(
+                    frame,
+                    from_point,
+                    to_point,
+                    zoom,
+                    offset,
+                    node_bounds,
+                    is_selected,
+                );
+
+                // Draw connection name along the path if present
+                let conn_name = conn.name();
+                if !conn_name.is_empty() {
+                    let from_s = transform_point(from_point, zoom, offset);
+                    let to_s = transform_point(to_point, zoom, offset);
+                    let mid = if is_self_connection {
+                        let (_, box_bottom, box_left, mid_x) = loopback_waypoints(
+                            from.x,
+                            from.y,
+                            from.width,
+                            from.height,
+                            zoom,
+                            offset,
+                        );
+                        let _ = box_left;
+                        Point::new(mid_x, box_bottom)
+                    } else {
+                        Point::new(from_s.x.midpoint(to_s.x), from_s.y.midpoint(to_s.y))
+                    };
+                    let name_label = CanvasText {
+                        content: conn_name.clone(),
+                        position: mid,
+                        color: Color::from_rgb(0.7, 0.7, 0.7),
+                        size: (PORT_FONT_SIZE * zoom).into(),
+                        align_x: iced::alignment::Horizontal::Center.into(),
+                        align_y: iced::alignment::Vertical::Bottom,
+                        ..CanvasText::default()
+                    };
+                    frame.fill_text(name_label);
+                }
             }
         }
     }
@@ -2276,7 +2286,7 @@ fn loopback_waypoints(
     let box_right = (nx + nw + offset.x) * zoom + margin;
     let box_bottom = (ny + nh + offset.y) * zoom + margin;
     let box_left = (nx + offset.x) * zoom - margin;
-    let mid_x = (box_right + box_left) / 2.0;
+    let mid_x = box_right.midpoint(box_left);
     (box_right, box_bottom, box_left, mid_x)
 }
 
@@ -2316,7 +2326,7 @@ fn draw_bezier_connection(
             // Curve down to below the box
             builder.quadratic_curve_to(
                 Point::new(box_right, box_bottom),
-                Point::new((box_right + box_left) / 2.0, box_bottom),
+                Point::new(box_right.midpoint(box_left), box_bottom),
             );
             // Curve up to left of the box
             builder.quadratic_curve_to(
@@ -2364,15 +2374,17 @@ fn draw_nodes(frame: &mut Frame, nodes: &[NodeLayout], zoom: f32, offset: Point)
 fn draw_flow_io_ports(
     frame: &mut Frame,
     flow_name: &str,
-    flow_inputs: &[PortInfo],
-    flow_outputs: &[PortInfo],
+    flow_inputs: &[IO],
+    flow_outputs: &[IO],
     nodes: &[NodeLayout],
-    edges: &[EdgeLayout],
+    connections: &[Connection],
     is_subflow: bool,
     selected_connection: Option<usize>,
     zoom: f32,
     offset: Point,
 ) {
+    use std::f32::consts::PI;
+
     if !is_subflow {
         return;
     }
@@ -2430,7 +2442,7 @@ fn draw_flow_io_ports(
         });
     }
 
-    let center_y = (min_y + max_y) / 2.0;
+    let center_y = min_y.midpoint(max_y);
     let input_color = Color::from_rgb(0.4, 0.8, 1.0);
     let output_color = Color::from_rgb(1.0, 0.6, 0.3);
 
@@ -2440,11 +2452,9 @@ fn draw_flow_io_ports(
     for (i, input) in flow_inputs.iter().enumerate() {
         let world_y = input_start_y + i as f32 * spacing;
         let world_pos = Point::new(box_x, world_y);
-        input_positions.insert(input.name.clone(), world_pos);
+        input_positions.insert(input.name().clone(), world_pos);
         let screen_pos = transform_point(world_pos, zoom, offset);
         let scaled_r = port_radius * zoom;
-
-        use std::f32::consts::PI;
         let semi = Path::new(|builder| {
             builder.arc(canvas::path::Arc {
                 center: screen_pos,
@@ -2458,7 +2468,7 @@ fn draw_flow_io_ports(
 
         let label_pos = Point::new(screen_pos.x - scaled_r - 4.0, screen_pos.y);
         frame.fill_text(CanvasText {
-            content: input.name.clone(),
+            content: input.name().clone(),
             position: label_pos,
             color: input_color,
             size: (font_size * zoom).into(),
@@ -2475,11 +2485,9 @@ fn draw_flow_io_ports(
     for (i, output) in flow_outputs.iter().enumerate() {
         let world_y = output_start_y + i as f32 * spacing;
         let world_pos = Point::new(right_x, world_y);
-        output_positions.insert(output.name.clone(), world_pos);
+        output_positions.insert(output.name().clone(), world_pos);
         let screen_pos = transform_point(world_pos, zoom, offset);
         let scaled_r = port_radius * zoom;
-
-        use std::f32::consts::PI;
         let semi = Path::new(|builder| {
             builder.arc(canvas::path::Arc {
                 center: screen_pos,
@@ -2493,7 +2501,7 @@ fn draw_flow_io_ports(
 
         let label_pos = Point::new(screen_pos.x + scaled_r + 4.0, screen_pos.y);
         frame.fill_text(CanvasText {
-            content: output.name.clone(),
+            content: output.name().clone(),
             position: label_pos,
             color: output_color,
             size: (font_size * zoom).into(),
@@ -2505,25 +2513,33 @@ fn draw_flow_io_ports(
     // Draw bezier connections from flow inputs/outputs to internal node ports
     let conn_color = Color::from_rgba(0.7, 0.7, 0.7, 0.6);
     let sel_color = Color::from_rgb(1.0, 0.85, 0.0);
-    for (edge_idx, edge) in edges.iter().enumerate() {
-        let is_selected = selected_connection == Some(edge_idx);
+    for (conn_idx, conn) in connections.iter().enumerate() {
+        let is_selected = selected_connection == Some(conn_idx);
         let color = if is_selected { sel_color } else { conn_color };
         let width = if is_selected { 3.0 } else { 1.5 };
-        if edge.from_node == "input" {
-            let input_name = base_port_name(&edge.from_port);
-            if let Some(&from_world) = input_positions.get(input_name) {
-                if let Some(to_world) = find_node_input_pos(nodes, &edge.to_node, &edge.to_port) {
-                    draw_flow_io_bezier(frame, from_world, to_world, zoom, offset, color, width);
+        let (from_node_str, from_port_str) = split_route(conn.from().as_ref());
+        for to_route in conn.to() {
+            let (to_node_str, to_port_str) = split_route(to_route.as_ref());
+            if from_node_str == "input" {
+                let input_name = base_port_name(&from_port_str);
+                if let Some(&from_world) = input_positions.get(input_name) {
+                    if let Some(to_world) = find_node_input_pos(nodes, &to_node_str, &to_port_str) {
+                        draw_flow_io_bezier(
+                            frame, from_world, to_world, zoom, offset, color, width,
+                        );
+                    }
                 }
             }
-        }
-        if edge.to_node == "output" {
-            let output_name = base_port_name(&edge.to_port);
-            if let Some(&to_world) = output_positions.get(output_name) {
-                if let Some(from_world) =
-                    find_node_output_pos(nodes, &edge.from_node, &edge.from_port)
-                {
-                    draw_flow_io_bezier(frame, from_world, to_world, zoom, offset, color, width);
+            if to_node_str == "output" {
+                let output_name = base_port_name(&to_port_str);
+                if let Some(&to_world) = output_positions.get(output_name) {
+                    if let Some(from_world) =
+                        find_node_output_pos(nodes, &from_node_str, &from_port_str)
+                    {
+                        draw_flow_io_bezier(
+                            frame, from_world, to_world, zoom, offset, color, width,
+                        );
+                    }
                 }
             }
         }
@@ -2689,6 +2705,8 @@ fn draw_port(
     zoom: f32,
     offset: Point,
 ) {
+    use std::f32::consts::PI;
+
     let screen_center = transform_point(center, zoom, offset);
     let scaled_radius = PORT_RADIUS * zoom;
 
@@ -2700,7 +2718,6 @@ fn draw_port(
     };
 
     // Draw semi-circle: curved side faces inside the box, flat edge on the box boundary
-    use std::f32::consts::PI;
     let semi = Path::new(|builder| {
         let (start_angle, end_angle) = if is_input {
             (-PI / 2.0, PI / 2.0) // Right-facing (inside the box)
@@ -2781,21 +2798,30 @@ fn draw_port(
 
 /// Build a rounded rectangle path using quadratic bezier curves at corners.
 fn rounded_rect(builder: &mut canvas::path::Builder, top_left: Point, size: Size, radius: f32) {
-    let r = radius.min(size.width / 2.0).min(size.height / 2.0);
-    let x = top_left.x;
-    let y = top_left.y;
-    let w = size.width;
-    let h = size.height;
+    let cr = radius.min(size.width / 2.0).min(size.height / 2.0);
+    let left = top_left.x;
+    let top = top_left.y;
+    let width = size.width;
+    let height = size.height;
 
-    builder.move_to(Point::new(x + r, y));
-    builder.line_to(Point::new(x + w - r, y));
-    builder.quadratic_curve_to(Point::new(x + w, y), Point::new(x + w, y + r));
-    builder.line_to(Point::new(x + w, y + h - r));
-    builder.quadratic_curve_to(Point::new(x + w, y + h), Point::new(x + w - r, y + h));
-    builder.line_to(Point::new(x + r, y + h));
-    builder.quadratic_curve_to(Point::new(x, y + h), Point::new(x, y + h - r));
-    builder.line_to(Point::new(x, y + r));
-    builder.quadratic_curve_to(Point::new(x, y), Point::new(x + r, y));
+    builder.move_to(Point::new(left + cr, top));
+    builder.line_to(Point::new(left + width - cr, top));
+    builder.quadratic_curve_to(
+        Point::new(left + width, top),
+        Point::new(left + width, top + cr),
+    );
+    builder.line_to(Point::new(left + width, top + height - cr));
+    builder.quadratic_curve_to(
+        Point::new(left + width, top + height),
+        Point::new(left + width - cr, top + height),
+    );
+    builder.line_to(Point::new(left + cr, top + height));
+    builder.quadratic_curve_to(
+        Point::new(left, top + height),
+        Point::new(left, top + height - cr),
+    );
+    builder.line_to(Point::new(left, top + cr));
+    builder.quadratic_curve_to(Point::new(left, top), Point::new(left + cr, top));
     builder.close();
 }
 
@@ -2857,9 +2883,9 @@ fn check_port_type_compatibility(
             // If either has no type info (empty list or only empty strings),
             // allow the connection — untyped ports accept anything
             let src_untyped =
-                src.datatypes.is_empty() || src.datatypes.iter().all(|t| t.is_empty());
+                src.datatypes.is_empty() || src.datatypes.iter().all(String::is_empty);
             let tgt_untyped =
-                tgt.datatypes.is_empty() || tgt.datatypes.iter().all(|t| t.is_empty());
+                tgt.datatypes.is_empty() || tgt.datatypes.iter().all(String::is_empty);
             if src_untyped || tgt_untyped {
                 return true;
             }
@@ -2883,18 +2909,15 @@ fn check_port_type_compatibility(
 /// Build the complete canvas area for a flow-editor window, including the
 /// interactive canvas, zoom controls, tooltip overlay, initializer editor
 /// dialog, and right-click context menu.
-pub(crate) fn view_canvas_area<'a>(
-    win: &'a WindowState,
-    window_id: window::Id,
-) -> Element<'a, Message> {
+pub(crate) fn view_canvas_area(win: &WindowState, window_id: window::Id) -> Element<'_, Message> {
     let canvas = win
         .canvas_state
         .view(
-            &win.nodes,
-            &win.edges,
-            &win.flow_name,
-            &win.flow_inputs,
-            &win.flow_outputs,
+            &win.flow_definition,
+            &win.flow_definition.connections,
+            &win.flow_definition.name,
+            &win.flow_definition.inputs,
+            &win.flow_definition.outputs,
             !win.is_root,
             win.auto_fit_pending,
             win.auto_fit_enabled,
@@ -2993,8 +3016,14 @@ pub(crate) fn view_canvas_area<'a>(
 
     // Initializer editor dialog overlay
     if let Some(ref editor) = win.initializer_editor {
-        let port_label = if let Some(node) = win.nodes.get(editor.node_index) {
-            format!("{}/{}", node.alias, editor.port_name)
+        let port_label = if let Some(pref) = win.flow_definition.process_refs.get(editor.node_index)
+        {
+            let alias = if pref.alias.is_empty() {
+                derive_short_name(&pref.source)
+            } else {
+                pref.alias.clone()
+            };
+            format!("{}/{}", alias, editor.port_name)
         } else {
             editor.port_name.clone()
         };
@@ -3264,32 +3293,12 @@ mod test {
     }
 
     #[test]
-    fn build_edge_layouts_single() {
+    fn connection_references_node_check() {
         use flowcore::model::connection::Connection;
-        let conn = Connection::new("sequence/number", "add1/i1");
-        let edges = build_edge_layouts(&[conn]);
-        assert_eq!(edges.len(), 1);
-        assert_eq!(
-            edges.first().map(|e| e.from_node.as_str()),
-            Some("sequence")
-        );
-        assert_eq!(edges.first().map(|e| e.from_port.as_str()), Some("number"));
-        assert_eq!(edges.first().map(|e| e.to_node.as_str()), Some("add1"));
-        assert_eq!(edges.first().map(|e| e.to_port.as_str()), Some("i1"));
-    }
-
-    #[test]
-    fn edge_references_node() {
-        let edge = EdgeLayout {
-            from_node: "a".into(),
-            from_port: "out".into(),
-            to_node: "b".into(),
-            to_port: "in".into(),
-            name: String::new(),
-        };
-        assert!(edge.references_node("a"));
-        assert!(edge.references_node("b"));
-        assert!(!edge.references_node("c"));
+        let conn = Connection::new("a/out", "b/in");
+        assert!(connection_references_node(&conn, "a"));
+        assert!(connection_references_node(&conn, "b"));
+        assert!(!connection_references_node(&conn, "c"));
     }
 
     #[test]
@@ -3417,7 +3426,7 @@ mod test {
             ..Default::default()
         };
         assert_eq!(
-            hit_test_node(&[node.clone()], Point::new(150.0, 150.0)),
+            hit_test_node(std::slice::from_ref(&node), Point::new(150.0, 150.0)),
             Some(0)
         );
         assert_eq!(hit_test_node(&[node], Point::new(50.0, 50.0)), None);
@@ -3494,7 +3503,7 @@ mod test {
 
     #[test]
     fn check_type_compat_same_type() {
-        let nodes = vec![
+        let nodes = [
             NodeLayout {
                 alias: "a".into(),
                 x: 0.0,
@@ -3528,7 +3537,7 @@ mod test {
 
     #[test]
     fn check_type_compat_different_type() {
-        let nodes = vec![
+        let nodes = [
             NodeLayout {
                 alias: "a".into(),
                 x: 0.0,
@@ -3562,7 +3571,7 @@ mod test {
 
     #[test]
     fn check_type_compat_untyped_allows_any() {
-        let nodes = vec![
+        let nodes = [
             NodeLayout {
                 alias: "a".into(),
                 x: 0.0,
@@ -3596,18 +3605,13 @@ mod test {
 
     #[test]
     fn compute_flow_io_positions_with_nodes() {
+        use flowcore::model::route::Route;
         let nodes = vec![NodeLayout {
             alias: "n".into(),
             ..Default::default()
         }];
-        let inputs = vec![PortInfo {
-            name: "data".into(),
-            datatypes: vec![],
-        }];
-        let outputs = vec![PortInfo {
-            name: "result".into(),
-            datatypes: vec![],
-        }];
+        let inputs = vec![IO::new_named(vec![], Route::default(), "data")];
+        let outputs = vec![IO::new_named(vec![], Route::default(), "result")];
         let (inp, outp) = compute_flow_io_positions(&nodes, &inputs, &outputs);
         assert!(inp.contains_key("data"));
         assert!(outp.contains_key("result"));
@@ -3619,14 +3623,9 @@ mod test {
 
     #[test]
     fn compute_flow_io_positions_empty_nodes() {
-        let inputs = vec![PortInfo {
-            name: "in".into(),
-            datatypes: vec![],
-        }];
-        let outputs = vec![PortInfo {
-            name: "out".into(),
-            datatypes: vec![],
-        }];
+        use flowcore::model::route::Route;
+        let inputs = vec![IO::new_named(vec![], Route::default(), "in")];
+        let outputs = vec![IO::new_named(vec![], Route::default(), "out")];
         let (inp, outp) = compute_flow_io_positions(&[], &inputs, &outputs);
         assert!(inp.contains_key("in"));
         assert!(outp.contains_key("out"));
