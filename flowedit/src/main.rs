@@ -1621,7 +1621,7 @@ impl FlowEdit {
                 let editable = !viewer.read_only;
                 let mut input_col = Column::new().spacing(6);
                 for (i, io) in viewer.func_def.inputs.iter().enumerate() {
-                    let port_name = io.name().to_string();
+                    let port_name = io.name().clone();
                     let dtype = io
                         .datatypes()
                         .first()
@@ -1678,7 +1678,7 @@ impl FlowEdit {
                 // Output ports inside box: (delete if editable), type, name, semicircle
                 let mut output_col = Column::new().spacing(6).align_x(iced::Alignment::End);
                 for (i, io) in viewer.func_def.outputs.iter().enumerate() {
-                    let port_name = io.name().to_string();
+                    let port_name = io.name().clone();
                     let dtype = io
                         .datatypes()
                         .first()

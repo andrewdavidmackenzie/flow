@@ -1,9 +1,9 @@
 //! Canvas view module that renders flow process nodes and connections on an iced Canvas.
 //!
 //! Each [`ProcessReference`] is drawn as a rounded rectangle with its alias
-//! displayed as a title. Node fill color is determined by the process source:
-//! blue for `lib://`, green for `context://`, purple for provided implementations,
-//! and orange for nested flows.
+//! displayed as a title. Node fill color is determined by the resolved
+//! [`NodeKind`]: blue for library functions, green for context functions,
+//! purple for provided implementations, and orange for nested flows.
 
 #![allow(
     clippy::cast_precision_loss,
@@ -572,9 +572,25 @@ impl PortInfo {
     }
 }
 
+/// The kind of process a node represents, determined from resolved metadata.
+#[derive(Debug, Clone, Default)]
+enum NodeKind {
+    /// Function from a compiled library (`lib://` reference).
+    Library,
+    /// Function provided by the runtime context (`context://` reference).
+    Context,
+    /// A provided implementation (`.rs` or `.wasm` source).
+    ProvidedImplementation,
+    /// A nested flow (the default).
+    #[default]
+    Flow,
+}
+
 /// A positioned node derived from a [`ProcessReference`], ready for rendering.
 #[derive(Debug, Clone)]
 pub(crate) struct NodeLayout {
+    /// What kind of process this node represents.
+    kind: NodeKind,
     /// Display name (alias) for this node
     pub alias: String,
     /// Source path of the process
@@ -600,6 +616,7 @@ pub(crate) struct NodeLayout {
 impl Default for NodeLayout {
     fn default() -> Self {
         Self {
+            kind: NodeKind::default(),
             alias: String::new(),
             source: String::new(),
             description: String::new(),
@@ -615,25 +632,19 @@ impl Default for NodeLayout {
 }
 
 impl NodeLayout {
-    /// Determine the fill color based on the process source string.
+    /// Determine the fill color based on the resolved [`NodeKind`].
     fn fill_color(&self) -> Color {
-        if self.source.starts_with("lib://") {
-            Color::from_rgb(0.3, 0.5, 0.9) // Blue for library
-        } else if self.source.starts_with("context://") {
-            Color::from_rgb(0.3, 0.75, 0.45) // Green for context
-        } else if std::path::Path::new(&self.source)
-            .extension()
-            .is_some_and(|ext| ext.eq_ignore_ascii_case("rs") || ext.eq_ignore_ascii_case("wasm"))
-        {
-            Color::from_rgb(0.6, 0.3, 0.8) // Purple for provided implementations
-        } else {
-            Color::from_rgb(0.9, 0.6, 0.2) // Orange for nested flows
+        match self.kind {
+            NodeKind::Library => Color::from_rgb(0.3, 0.5, 0.9),
+            NodeKind::Context => Color::from_rgb(0.3, 0.75, 0.45),
+            NodeKind::ProvidedImplementation => Color::from_rgb(0.6, 0.3, 0.8),
+            NodeKind::Flow => Color::from_rgb(0.9, 0.6, 0.2),
         }
     }
 
     /// Whether this node's source can be opened (sub-flow or provided implementation).
     pub(crate) fn is_openable(&self) -> bool {
-        !self.source.starts_with("lib://") && !self.source.starts_with("context://")
+        matches!(self.kind, NodeKind::Flow | NodeKind::ProvidedImplementation)
     }
 
     /// Get the position of an output port (right edge of node)
@@ -694,9 +705,34 @@ pub(crate) fn build_render_nodes(
             pref.alias.clone()
         };
 
-        let (inputs, outputs) = flow_def
-            .subprocesses
-            .get(&alias)
+        let resolved = flow_def.subprocesses.get(&alias);
+
+        let kind = resolved.map_or_else(
+            || {
+                // Fallback for unresolved: check source string
+                if pref.source.starts_with("lib://") {
+                    NodeKind::Library
+                } else if pref.source.starts_with("context://") {
+                    NodeKind::Context
+                } else {
+                    NodeKind::Flow
+                }
+            },
+            |proc| match proc {
+                Process::FunctionProcess(f) => {
+                    if f.get_lib_reference().is_some() {
+                        NodeKind::Library
+                    } else if f.get_context_reference().is_some() {
+                        NodeKind::Context
+                    } else {
+                        NodeKind::ProvidedImplementation
+                    }
+                }
+                Process::FlowProcess(_) => NodeKind::Flow,
+            },
+        );
+
+        let (inputs, outputs) = resolved
             .map(|proc| match proc {
                 Process::FunctionProcess(f) => crate::flow_io::extract_ports(&f.inputs, &f.outputs),
                 Process::FlowProcess(f) => crate::flow_io::extract_ports(&f.inputs, &f.outputs),
@@ -734,9 +770,7 @@ pub(crate) fn build_render_nodes(
             initializers.insert(port_name.clone(), display);
         }
 
-        let description = flow_def
-            .subprocesses
-            .get(&alias)
+        let description = resolved
             .map(|proc| match proc {
                 Process::FunctionProcess(func) => func.description.clone(),
                 Process::FlowProcess(flow) => flow.description.clone(),
@@ -744,6 +778,7 @@ pub(crate) fn build_render_nodes(
             .unwrap_or_default();
 
         nodes.push(NodeLayout {
+            kind,
             alias: alias.clone(),
             source: pref.source.clone(),
             description,
@@ -3435,30 +3470,30 @@ mod test {
     #[test]
     fn hit_test_open_icon_only_openable() {
         let lib_node = NodeLayout {
+            kind: NodeKind::Library,
             alias: "n".into(),
             source: "lib://test".into(),
             ..Default::default()
         };
         let local_node = NodeLayout {
+            kind: NodeKind::Flow,
             source: "subflow".into(),
             ..lib_node.clone()
         };
-        // lib:// nodes are not openable
+        // Library nodes are not openable
         assert_eq!(
             hit_test_open_icon(&[lib_node], Point::new(278.0, 104.0)),
             None
         );
-        // Local nodes are openable
+        // Flow nodes are openable
         assert!(hit_test_open_icon(&[local_node], Point::new(278.0, 104.0)).is_some());
     }
 
     #[test]
     fn is_openable_lib() {
         let node = NodeLayout {
+            kind: NodeKind::Library,
             alias: "n".into(),
-            source: "lib://flowstdlib/math/add".into(),
-            x: 0.0,
-            y: 0.0,
             ..Default::default()
         };
         assert!(!node.is_openable());
@@ -3467,10 +3502,8 @@ mod test {
     #[test]
     fn is_openable_context() {
         let node = NodeLayout {
+            kind: NodeKind::Context,
             alias: "n".into(),
-            source: "context://stdio/stdout".into(),
-            x: 0.0,
-            y: 0.0,
             ..Default::default()
         };
         assert!(!node.is_openable());
@@ -3479,10 +3512,18 @@ mod test {
     #[test]
     fn is_openable_local() {
         let node = NodeLayout {
+            kind: NodeKind::Flow,
             alias: "n".into(),
-            source: "subflow/subflow".into(),
-            x: 0.0,
-            y: 0.0,
+            ..Default::default()
+        };
+        assert!(node.is_openable());
+    }
+
+    #[test]
+    fn is_openable_provided_impl() {
+        let node = NodeLayout {
+            kind: NodeKind::ProvidedImplementation,
+            alias: "n".into(),
             ..Default::default()
         };
         assert!(node.is_openable());
@@ -3661,21 +3702,22 @@ mod test {
     }
 
     #[test]
-    fn fill_color_by_source() {
-        let make = |source: &str| NodeLayout {
+    fn fill_color_by_kind() {
+        let make = |kind: NodeKind| NodeLayout {
+            kind,
             alias: "n".into(),
-            source: source.into(),
-            x: 0.0,
-            y: 0.0,
             ..Default::default()
         };
-        let lib = make("lib://flowstdlib/math/add");
-        let ctx = make("context://stdio/stdout");
-        let rs = make("impl.rs");
-        let flow = make("subflow");
-        // Different sources should produce different colors
+        let lib = make(NodeKind::Library);
+        let ctx = make(NodeKind::Context);
+        let prov = make(NodeKind::ProvidedImplementation);
+        let flow = make(NodeKind::Flow);
+        // Different kinds should produce different colors
         assert_ne!(lib.fill_color(), ctx.fill_color());
-        assert_ne!(lib.fill_color(), rs.fill_color());
+        assert_ne!(lib.fill_color(), prov.fill_color());
         assert_ne!(lib.fill_color(), flow.fill_color());
+        assert_ne!(ctx.fill_color(), prov.fill_color());
+        assert_ne!(ctx.fill_color(), flow.fill_color());
+        assert_ne!(prov.fill_color(), flow.fill_color());
     }
 }

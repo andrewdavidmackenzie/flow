@@ -27,7 +27,7 @@ pub(crate) struct InitializerEditor {
 
 /// State for a function definition viewer/editor window.
 pub(crate) struct FunctionViewer {
-    /// The canonical function definition (owns name, description, source, inputs, outputs, source_url)
+    /// The canonical function definition (owns name, description, source, inputs, outputs, `source_url`)
     pub(crate) func_def: FunctionDefinition,
     pub(crate) rs_content: String,
     pub(crate) docs_content: Option<String>,
