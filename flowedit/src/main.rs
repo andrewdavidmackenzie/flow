@@ -772,7 +772,7 @@ impl FlowEdit {
             },
             Message::View(win_id, view_msg) => {
                 if let Some(win) = self.windows.get_mut(&win_id) {
-                    canvas_view::handle_view_message(win, &view_msg);
+                    canvas_view::update(win, &view_msg);
                 }
             }
             Message::Undo => {

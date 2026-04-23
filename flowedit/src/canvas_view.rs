@@ -295,8 +295,7 @@ pub(crate) fn handle_canvas_message(win: &mut WindowState, msg: CanvasMessage) -
     CanvasAction::None
 }
 
-/// Handle a view control message (zoom, auto-fit).
-pub(crate) fn handle_view_message(win: &mut WindowState, msg: &ViewMessage) {
+pub(crate) fn update(win: &mut WindowState, msg: &ViewMessage) {
     match msg {
         ViewMessage::ZoomIn => {
             win.auto_fit_enabled = false;
