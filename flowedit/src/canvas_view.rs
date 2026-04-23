@@ -26,6 +26,7 @@ use log::info;
 use flowcore::model::input::InputInitializer;
 use flowcore::model::io::IO;
 use flowcore::model::name::HasName;
+use flowcore::model::process::Process;
 
 use crate::file_ops;
 use crate::history::EditAction;
@@ -555,25 +556,11 @@ impl PortInfo {
     }
 }
 
-/// The kind of process a node represents, determined from resolved metadata.
-#[derive(Debug, Clone, Default)]
-enum NodeKind {
-    /// Function from a compiled library (`lib://` reference).
-    Library,
-    /// Function provided by the runtime context (`context://` reference).
-    Context,
-    /// A provided implementation (`.rs` or `.wasm` source).
-    ProvidedImplementation,
-    /// A nested flow (the default).
-    #[default]
-    Flow,
-}
-
 /// A positioned node derived from a [`ProcessReference`], ready for rendering.
 #[derive(Debug, Clone)]
 pub(crate) struct NodeLayout {
-    /// What kind of process this node represents.
-    kind: NodeKind,
+    /// The resolved process, if available (used to derive color, openability, etc.)
+    pub(crate) process: Option<Process>,
     /// Display name (alias) for this node
     pub alias: String,
     /// Source path of the process
@@ -599,7 +586,7 @@ pub(crate) struct NodeLayout {
 impl Default for NodeLayout {
     fn default() -> Self {
         Self {
-            kind: NodeKind::default(),
+            process: None,
             alias: String::new(),
             source: String::new(),
             description: String::new(),
@@ -615,19 +602,38 @@ impl Default for NodeLayout {
 }
 
 impl NodeLayout {
-    /// Determine the fill color based on the resolved [`NodeKind`].
     fn fill_color(&self) -> Color {
-        match self.kind {
-            NodeKind::Library => Color::from_rgb(0.3, 0.5, 0.9),
-            NodeKind::Context => Color::from_rgb(0.3, 0.75, 0.45),
-            NodeKind::ProvidedImplementation => Color::from_rgb(0.6, 0.3, 0.8),
-            NodeKind::Flow => Color::from_rgb(0.9, 0.6, 0.2),
+        match &self.process {
+            Some(Process::FlowProcess(_)) => Color::from_rgb(0.9, 0.6, 0.2),
+            Some(Process::FunctionProcess(f)) => {
+                if f.get_lib_reference().is_some() {
+                    Color::from_rgb(0.3, 0.5, 0.9)
+                } else if f.get_context_reference().is_some() {
+                    Color::from_rgb(0.3, 0.75, 0.45)
+                } else {
+                    Color::from_rgb(0.6, 0.3, 0.8)
+                }
+            }
+            None => {
+                if self.source.starts_with("lib://") {
+                    Color::from_rgb(0.3, 0.5, 0.9)
+                } else if self.source.starts_with("context://") {
+                    Color::from_rgb(0.3, 0.75, 0.45)
+                } else {
+                    Color::from_rgb(0.9, 0.6, 0.2)
+                }
+            }
         }
     }
 
-    /// Whether this node's source can be opened (sub-flow or provided implementation).
     pub(crate) fn is_openable(&self) -> bool {
-        matches!(self.kind, NodeKind::Flow | NodeKind::ProvidedImplementation)
+        match &self.process {
+            Some(Process::FlowProcess(_)) => true,
+            Some(Process::FunctionProcess(f)) => {
+                f.get_lib_reference().is_none() && f.get_context_reference().is_none()
+            }
+            None => !self.source.starts_with("lib://") && !self.source.starts_with("context://"),
+        }
     }
 
     /// Get the position of an output port (right edge of node)
@@ -675,8 +681,6 @@ impl NodeLayout {
 pub(crate) fn build_render_nodes(
     flow_def: &flowcore::model::flow_definition::FlowDefinition,
 ) -> Vec<NodeLayout> {
-    use flowcore::model::process::Process;
-
     let topo_positions = compute_topological_layout(&flow_def.process_refs, &flow_def.connections);
 
     let mut nodes = Vec::with_capacity(flow_def.process_refs.len());
@@ -689,31 +693,6 @@ pub(crate) fn build_render_nodes(
         };
 
         let resolved = flow_def.subprocesses.get(&alias);
-
-        let kind = resolved.map_or_else(
-            || {
-                // Fallback for unresolved: check source string
-                if pref.source.starts_with("lib://") {
-                    NodeKind::Library
-                } else if pref.source.starts_with("context://") {
-                    NodeKind::Context
-                } else {
-                    NodeKind::Flow
-                }
-            },
-            |proc| match proc {
-                Process::FunctionProcess(f) => {
-                    if f.get_lib_reference().is_some() {
-                        NodeKind::Library
-                    } else if f.get_context_reference().is_some() {
-                        NodeKind::Context
-                    } else {
-                        NodeKind::ProvidedImplementation
-                    }
-                }
-                Process::FlowProcess(_) => NodeKind::Flow,
-            },
-        );
 
         let (inputs, outputs) = resolved
             .map(|proc| match proc {
@@ -763,7 +742,7 @@ pub(crate) fn build_render_nodes(
             .unwrap_or_default();
 
         nodes.push(NodeLayout {
-            kind,
+            process: resolved.cloned(),
             alias: alias.clone(),
             source: pref.source.clone(),
             description,
@@ -3157,7 +3136,22 @@ pub(crate) fn view_canvas_area(win: &WindowState, window_id: window::Id) -> Elem
 #[allow(clippy::indexing_slicing)]
 mod test {
     use super::*;
+    use flowcore::model::flow_definition::FlowDefinition;
+    use flowcore::model::function_definition::FunctionDefinition;
     use iced::Point;
+    use url::Url;
+
+    fn lib_function() -> FunctionDefinition {
+        let mut f = FunctionDefinition::default();
+        f.lib_reference = Some(Url::parse("lib://test").expect("valid url"));
+        f
+    }
+
+    fn context_function() -> FunctionDefinition {
+        let mut f = FunctionDefinition::default();
+        f.context_reference = Some(Url::parse("context://stdio/stdout").expect("valid url"));
+        f
+    }
 
     #[test]
     fn split_route_with_port() {
@@ -3455,13 +3449,13 @@ mod test {
     #[test]
     fn hit_test_open_icon_only_openable() {
         let lib_node = NodeLayout {
-            kind: NodeKind::Library,
+            process: Some(Process::FunctionProcess(lib_function())),
             alias: "n".into(),
             source: "lib://test".into(),
             ..Default::default()
         };
         let local_node = NodeLayout {
-            kind: NodeKind::Flow,
+            process: Some(Process::FlowProcess(FlowDefinition::default())),
             source: "subflow".into(),
             ..lib_node.clone()
         };
@@ -3477,7 +3471,7 @@ mod test {
     #[test]
     fn is_openable_lib() {
         let node = NodeLayout {
-            kind: NodeKind::Library,
+            process: Some(Process::FunctionProcess(lib_function())),
             alias: "n".into(),
             ..Default::default()
         };
@@ -3487,7 +3481,7 @@ mod test {
     #[test]
     fn is_openable_context() {
         let node = NodeLayout {
-            kind: NodeKind::Context,
+            process: Some(Process::FunctionProcess(context_function())),
             alias: "n".into(),
             ..Default::default()
         };
@@ -3497,7 +3491,7 @@ mod test {
     #[test]
     fn is_openable_local() {
         let node = NodeLayout {
-            kind: NodeKind::Flow,
+            process: Some(Process::FlowProcess(FlowDefinition::default())),
             alias: "n".into(),
             ..Default::default()
         };
@@ -3507,7 +3501,7 @@ mod test {
     #[test]
     fn is_openable_provided_impl() {
         let node = NodeLayout {
-            kind: NodeKind::ProvidedImplementation,
+            process: Some(Process::FunctionProcess(FunctionDefinition::default())),
             alias: "n".into(),
             ..Default::default()
         };
@@ -3687,17 +3681,27 @@ mod test {
     }
 
     #[test]
-    fn fill_color_by_kind() {
-        let make = |kind: NodeKind| NodeLayout {
-            kind,
+    fn fill_color_by_process() {
+        let lib = NodeLayout {
+            process: Some(Process::FunctionProcess(lib_function())),
             alias: "n".into(),
             ..Default::default()
         };
-        let lib = make(NodeKind::Library);
-        let ctx = make(NodeKind::Context);
-        let prov = make(NodeKind::ProvidedImplementation);
-        let flow = make(NodeKind::Flow);
-        // Different kinds should produce different colors
+        let ctx = NodeLayout {
+            process: Some(Process::FunctionProcess(context_function())),
+            alias: "n".into(),
+            ..Default::default()
+        };
+        let prov = NodeLayout {
+            process: Some(Process::FunctionProcess(FunctionDefinition::default())),
+            alias: "n".into(),
+            ..Default::default()
+        };
+        let flow = NodeLayout {
+            process: Some(Process::FlowProcess(FlowDefinition::default())),
+            alias: "n".into(),
+            ..Default::default()
+        };
         assert_ne!(lib.fill_color(), ctx.fill_color());
         assert_ne!(lib.fill_color(), prov.fill_color());
         assert_ne!(lib.fill_color(), flow.fill_color());
