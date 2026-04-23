@@ -54,11 +54,7 @@ fn test_app_with_flow(flow: FlowDefinition) -> (FlowEdit, window::Id) {
                 name: "test_lib".into(),
                 categories: vec![library_panel::CategoryEntry {
                     name: "math".into(),
-                    functions: vec![library_panel::FunctionEntry {
-                        name: "add".into(),
-                        source: "lib://test_lib/math/add".into(),
-                        description: String::new(),
-                    }],
+                    function_urls: vec![Url::parse("lib://test_lib/math/add").expect("valid url")],
                     expanded: true,
                 }],
                 expanded: true,

@@ -944,7 +944,7 @@ impl FlowEdit {
 
         let library_panel = self
             .library_tree
-            .view()
+            .view(&self.all_definitions)
             .map(move |msg| Message::Library(window_id, msg));
 
         let left_panel = Column::new()

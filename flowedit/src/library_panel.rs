@@ -42,24 +42,13 @@ pub(crate) enum LibraryAction {
     AddLibrary,
 }
 
-/// A single function entry in the library tree.
-#[derive(Debug, Clone)]
-pub(crate) struct FunctionEntry {
-    /// Display name of the function (e.g., "add")
-    pub name: String,
-    /// Source URL for this function (e.g., `lib://flowstdlib/math/add`)
-    pub source: String,
-    /// Description from the canonical definition
-    pub description: String,
-}
-
 /// A category grouping functions within a library.
 #[derive(Debug, Clone)]
 pub(crate) struct CategoryEntry {
     /// Category name (e.g., "math")
     pub name: String,
-    /// Functions in this category
-    pub functions: Vec<FunctionEntry>,
+    /// URLs of functions in this category, pointing into `all_definitions`
+    pub function_urls: Vec<Url>,
     /// Whether the category is expanded in the tree view
     pub expanded: bool,
 }
@@ -97,7 +86,7 @@ impl LibraryTree {
         // Build tree entries from library manifests
         for manifest in library_cache.values() {
             let lib_name = manifest.lib_url.host_str().unwrap_or("unknown").to_string();
-            let categories = build_categories_from_manifest(&manifest.locators, all_definitions);
+            let categories = build_categories_from_manifest(&manifest.locators);
 
             if !categories.is_empty() {
                 libraries.push(LibraryEntry {
@@ -109,11 +98,11 @@ impl LibraryTree {
         }
 
         // Build context functions entry from context:// definitions in the unified map
-        let context_defs: HashMap<&Url, &Process> = all_definitions
-            .iter()
-            .filter(|(url, _)| url.scheme() == "context")
+        let context_urls: Vec<&Url> = all_definitions
+            .keys()
+            .filter(|url| url.scheme() == "context")
             .collect();
-        let context_entry = build_context_entry(&context_defs);
+        let context_entry = build_context_entry(&context_urls);
         let has_context = !context_entry.categories.is_empty();
         if has_context {
             libraries.insert(0, context_entry);
@@ -159,7 +148,13 @@ impl LibraryTree {
     }
 
     /// Render the library panel as an iced `Element`.
-    pub(crate) fn view(&self) -> Element<'_, LibraryMessage> {
+    ///
+    /// Function names and descriptions are looked up from `all_definitions`
+    /// at render time, avoiding duplication of data from the canonical types.
+    pub(crate) fn view<'a>(
+        &'a self,
+        all_definitions: &'a HashMap<Url, Process>,
+    ) -> Element<'a, LibraryMessage> {
         let mut content = Column::new().spacing(2).padding(6);
 
         let header = text("Process Library").size(14);
@@ -217,20 +212,22 @@ impl LibraryTree {
                     content = content.push(cat_btn);
 
                     if cat.expanded {
-                        for func in &cat.functions {
+                        for func_url in &cat.function_urls {
+                            let func_name = func_name_from_url(func_url);
+                            let description =
+                                func_description_from_definitions(func_url, all_definitions);
+                            let source = func_url.to_string();
+
                             let view_btn = button(text("\u{270E}").size(10))
                                 .on_press(LibraryMessage::ViewFunction(
-                                    func.source.clone(),
-                                    func.name.clone(),
+                                    source.clone(),
+                                    func_name.clone(),
                                 ))
                                 .style(button::text)
                                 .padding([1, 3]);
 
-                            let func_btn = button(text(&func.name).size(11))
-                                .on_press(LibraryMessage::AddFunction(
-                                    func.source.clone(),
-                                    func.name.clone(),
-                                ))
+                            let func_btn = button(text(func_name.clone()).size(11))
+                                .on_press(LibraryMessage::AddFunction(source, func_name))
                                 .style(button::text)
                                 .padding([2, 4]);
 
@@ -240,15 +237,12 @@ impl LibraryTree {
                                 .push(view_btn)
                                 .push(func_btn);
 
-                            let entry_widget: Element<'_, LibraryMessage> =
-                                if func.description.is_empty() {
-                                    row.into()
-                                } else {
-                                    tooltip(
-                                        row,
-                                        text(&func.description).size(14),
-                                        tooltip::Position::Bottom,
-                                    )
+                            let entry_widget: Element<'_, LibraryMessage> = if description
+                                .is_empty()
+                            {
+                                row.into()
+                            } else {
+                                tooltip(row, text(description).size(14), tooltip::Position::Bottom)
                                     .gap(2)
                                     .style(|_theme: &iced::Theme| container::Style {
                                         background: Some(iced::Background::Color(
@@ -262,7 +256,7 @@ impl LibraryTree {
                                         ..Default::default()
                                     })
                                     .into()
-                                };
+                            };
 
                             content =
                                 content.push(container(entry_widget).padding(iced::Padding {
@@ -292,16 +286,41 @@ impl LibraryTree {
     }
 }
 
+/// Extract a display name for a function from its URL.
+///
+/// For lib URLs like `lib://flowstdlib/math/add`, returns the path after the
+/// category (e.g., "add"). For context URLs like `context://stdio/stdout`,
+/// returns the last path segment (e.g., "stdout").
+fn func_name_from_url(url: &Url) -> String {
+    let path = url.path();
+    let segments: Vec<&str> = path.trim_start_matches('/').split('/').collect();
+    match segments.as_slice() {
+        [] => String::new(),
+        [single] => (*single).to_string(),
+        [_first, rest @ ..] => rest.join("/"),
+    }
+}
+
+/// Look up description for a function URL from the definitions map.
+fn func_description_from_definitions(url: &Url, all_definitions: &HashMap<Url, Process>) -> String {
+    all_definitions
+        .get(url)
+        .map(|process| match process {
+            Process::FlowProcess(flow_def) => flow_def.description.clone(),
+            Process::FunctionProcess(func_def) => func_def.description.clone(),
+        })
+        .unwrap_or_default()
+}
+
 /// Build category entries from a manifest's locator map.
 ///
 /// Each locator URL has the form `lib://library/category/function`.
-/// We extract category and function names from the URL path segments.
+/// We extract the category name from the URL path segments and store just the URL.
 fn build_categories_from_manifest(
     locators: &BTreeMap<Url, flowcore::model::lib_manifest::ImplementationLocator>,
-    all_definitions: &HashMap<Url, Process>,
 ) -> Vec<CategoryEntry> {
-    // Group functions by category
-    let mut category_map: BTreeMap<String, Vec<FunctionEntry>> = BTreeMap::new();
+    // Group function URLs by category
+    let mut category_map: BTreeMap<String, Vec<Url>> = BTreeMap::new();
 
     for url in locators.keys() {
         // URL path looks like "/category/function" (leading slash)
@@ -318,32 +337,16 @@ fn build_categories_from_manifest(
             continue;
         }
 
-        // Extract description from definition if available
-        let description = all_definitions
-            .get(url)
-            .map(|process| match process {
-                Process::FlowProcess(flow_def) => flow_def.description.clone(),
-                Process::FunctionProcess(func_def) => func_def.description.clone(),
-            })
-            .unwrap_or_default();
-
-        category_map
-            .entry(cat_name)
-            .or_default()
-            .push(FunctionEntry {
-                name: func_name,
-                source: url.to_string(),
-                description,
-            });
+        category_map.entry(cat_name).or_default().push(url.clone());
     }
 
     let mut categories: Vec<CategoryEntry> = category_map
         .into_iter()
-        .map(|(name, mut functions)| {
-            functions.sort_by(|a, b| a.name.cmp(&b.name));
+        .map(|(name, mut function_urls)| {
+            function_urls.sort_by_key(func_name_from_url);
             CategoryEntry {
                 name,
-                functions,
+                function_urls,
                 expanded: false,
             }
         })
@@ -356,10 +359,10 @@ fn build_categories_from_manifest(
 /// Build a "Context" library entry from parsed context definitions.
 ///
 /// Context URLs have the form `context://category/function`.
-fn build_context_entry(context_definitions: &HashMap<&Url, &Process>) -> LibraryEntry {
-    let mut category_map: BTreeMap<String, Vec<FunctionEntry>> = BTreeMap::new();
+fn build_context_entry(context_urls: &[&Url]) -> LibraryEntry {
+    let mut category_map: BTreeMap<String, Vec<Url>> = BTreeMap::new();
 
-    for (url, process) in context_definitions {
+    for url in context_urls {
         // context://category/function
         let cat_name = url.host_str().unwrap_or("general").to_string();
         let func_name = url
@@ -374,29 +377,19 @@ fn build_context_entry(context_definitions: &HashMap<&Url, &Process>) -> Library
             continue;
         }
 
-        // Extract description from definition
-        let description = match process {
-            Process::FlowProcess(flow_def) => flow_def.description.clone(),
-            Process::FunctionProcess(func_def) => func_def.description.clone(),
-        };
-
         category_map
             .entry(cat_name)
             .or_default()
-            .push(FunctionEntry {
-                name: func_name,
-                source: url.to_string(),
-                description,
-            });
+            .push((*url).clone());
     }
 
     let mut categories: Vec<CategoryEntry> = category_map
         .into_iter()
-        .map(|(name, mut functions)| {
-            functions.sort_by(|a, b| a.name.cmp(&b.name));
+        .map(|(name, mut function_urls)| {
+            function_urls.sort_by_key(func_name_from_url);
             CategoryEntry {
                 name,
-                functions,
+                function_urls,
                 expanded: false,
             }
         })
@@ -421,8 +414,9 @@ mod test {
         let tree = LibraryTree {
             libraries: Vec::new(),
         };
+        let all_defs = HashMap::new();
         // Should render without panic
-        let _element: Element<'_, LibraryMessage> = tree.view();
+        let _element: Element<'_, LibraryMessage> = tree.view(&all_defs);
     }
 
     #[test]
@@ -446,7 +440,7 @@ mod test {
                 name: "test".into(),
                 categories: vec![CategoryEntry {
                     name: "math".into(),
-                    functions: Vec::new(),
+                    function_urls: Vec::new(),
                     expanded: false,
                 }],
                 expanded: true,
@@ -498,7 +492,7 @@ mod test {
         let mut all_defs = HashMap::new();
         let url = Url::parse("context://stdio/stdout").expect("valid url");
         all_defs.insert(
-            url,
+            url.clone(),
             Process::FunctionProcess(
                 flowcore::model::function_definition::FunctionDefinition::default(),
             ),
@@ -508,8 +502,8 @@ mod test {
         assert_eq!(tree.libraries[0].name, "Context");
         assert_eq!(tree.libraries[0].categories.len(), 1);
         assert_eq!(tree.libraries[0].categories[0].name, "stdio");
-        assert_eq!(tree.libraries[0].categories[0].functions.len(), 1);
-        assert_eq!(tree.libraries[0].categories[0].functions[0].name, "stdout");
+        assert_eq!(tree.libraries[0].categories[0].function_urls.len(), 1);
+        assert_eq!(tree.libraries[0].categories[0].function_urls[0], url);
     }
 
     #[test]
@@ -605,32 +599,38 @@ mod test {
     #[test]
     fn build_categories_from_locators() {
         let mut locators = BTreeMap::new();
+        let add_url = Url::parse("lib://flowstdlib/math/add").expect("valid url");
+        let subtract_url = Url::parse("lib://flowstdlib/math/subtract").expect("valid url");
+        let tap_url = Url::parse("lib://flowstdlib/control/tap").expect("valid url");
         locators.insert(
-            Url::parse("lib://flowstdlib/math/add").expect("valid url"),
+            add_url.clone(),
             flowcore::model::lib_manifest::ImplementationLocator::RelativePath(
                 "math/add.wasm".into(),
             ),
         );
         locators.insert(
-            Url::parse("lib://flowstdlib/math/subtract").expect("valid url"),
+            subtract_url.clone(),
             flowcore::model::lib_manifest::ImplementationLocator::RelativePath(
                 "math/subtract.wasm".into(),
             ),
         );
         locators.insert(
-            Url::parse("lib://flowstdlib/control/tap").expect("valid url"),
+            tap_url,
             flowcore::model::lib_manifest::ImplementationLocator::RelativePath(
                 "control/tap.wasm".into(),
             ),
         );
 
-        let categories = build_categories_from_manifest(&locators, &HashMap::new());
+        let categories = build_categories_from_manifest(&locators);
         assert_eq!(categories.len(), 2);
         // Categories should be sorted alphabetically
         assert_eq!(categories[0].name, "control");
         assert_eq!(categories[1].name, "math");
-        assert_eq!(categories[1].functions.len(), 2);
-        assert_eq!(categories[1].functions[0].name, "add");
-        assert_eq!(categories[1].functions[1].name, "subtract");
+        assert_eq!(categories[1].function_urls.len(), 2);
+        assert_eq!(func_name_from_url(&categories[1].function_urls[0]), "add");
+        assert_eq!(
+            func_name_from_url(&categories[1].function_urls[1]),
+            "subtract"
+        );
     }
 }
