@@ -795,62 +795,8 @@ impl FlowEdit {
                     win.handle_redo();
                 }
             }
-            Message::Save => {
-                let target = self.focused_window.or(self.root_window);
-                if let Some(win) = target.and_then(|id| self.windows.get_mut(&id)) {
-                    file_ops::handle_save(win);
-                }
-            }
-            Message::SaveAs => {
-                let target = self.focused_window.or(self.root_window);
-                if let Some(win) = target.and_then(|id| self.windows.get_mut(&id)) {
-                    file_ops::handle_save_as(win);
-                }
-            }
-            Message::Open => {
-                if let Some(root_id) = self.root_window {
-                    if let Some(win) = self.windows.get_mut(&root_id) {
-                        if let Some((lib_refs, _ctx_refs)) = file_ops::perform_open(win) {
-                            win.flow_hierarchy = win
-                                .file_path()
-                                .as_ref()
-                                .map_or_else(FlowHierarchy::empty, |p| FlowHierarchy::build(p));
-
-                            // Rebuild library cache with new flow's references
-                            let (lc, ad) = library_mgmt::load_library_catalogs(&lib_refs);
-                            self.library_cache = lc;
-                            self.all_definitions = ad;
-                            self.library_tree =
-                                LibraryTree::from_cache(&self.library_cache, &self.all_definitions);
-                        }
-                    }
-                }
-            }
-            Message::New => {
-                if let Some(win) = self.root_window.and_then(|id| self.windows.get_mut(&id)) {
-                    file_ops::perform_new(win);
-                    // Clear the library cache for a new (empty) flow
-                    self.library_cache.clear();
-                    self.all_definitions.clear();
-                    self.library_tree =
-                        LibraryTree::from_cache(&self.library_cache, &self.all_definitions);
-                }
-            }
-            Message::Compile => {
-                let target = self.focused_window.or(self.root_window);
-                if let Some(win) = target.and_then(|id| self.windows.get_mut(&id)) {
-                    if !win.flow_definition.process_refs.is_empty() {
-                        match file_ops::perform_compile(win) {
-                            Ok(path) => {
-                                win.history.set_compiled_manifest(path.clone());
-                                win.status = format!("Compiled: {}", path.display());
-                            }
-                            Err(e) => {
-                                win.status = e;
-                            }
-                        }
-                    }
-                }
+            Message::Save | Message::SaveAs | Message::Open | Message::New | Message::Compile => {
+                self.handle_file_message(message);
             }
             Message::FlowEdit(win_id, flow_msg) => {
                 if let Some(win) = self.windows.get_mut(&win_id) {
@@ -2254,6 +2200,68 @@ impl FlowEdit {
 
         self.windows.insert(new_id, child);
         open_task.discard()
+    }
+
+    #[allow(clippy::needless_pass_by_value)]
+    fn handle_file_message(&mut self, message: Message) {
+        match message {
+            Message::Save => {
+                let target = self.focused_window.or(self.root_window);
+                if let Some(win) = target.and_then(|id| self.windows.get_mut(&id)) {
+                    file_ops::handle_save(win);
+                }
+            }
+            Message::SaveAs => {
+                let target = self.focused_window.or(self.root_window);
+                if let Some(win) = target.and_then(|id| self.windows.get_mut(&id)) {
+                    file_ops::handle_save_as(win);
+                }
+            }
+            Message::Open => {
+                if let Some(root_id) = self.root_window {
+                    if let Some(win) = self.windows.get_mut(&root_id) {
+                        if let Some((lib_refs, _ctx_refs)) = file_ops::perform_open(win) {
+                            win.flow_hierarchy = win
+                                .file_path()
+                                .as_ref()
+                                .map_or_else(FlowHierarchy::empty, |p| FlowHierarchy::build(p));
+
+                            let (lc, ad) = library_mgmt::load_library_catalogs(&lib_refs);
+                            self.library_cache = lc;
+                            self.all_definitions = ad;
+                            self.library_tree =
+                                LibraryTree::from_cache(&self.library_cache, &self.all_definitions);
+                        }
+                    }
+                }
+            }
+            Message::New => {
+                if let Some(win) = self.root_window.and_then(|id| self.windows.get_mut(&id)) {
+                    file_ops::perform_new(win);
+                    self.library_cache.clear();
+                    self.all_definitions.clear();
+                    self.library_tree =
+                        LibraryTree::from_cache(&self.library_cache, &self.all_definitions);
+                }
+            }
+            Message::Compile => {
+                let target = self.focused_window.or(self.root_window);
+                if let Some(win) = target.and_then(|id| self.windows.get_mut(&id)) {
+                    if !win.flow_definition.process_refs.is_empty() {
+                        match file_ops::perform_compile(win) {
+                            Ok(path) => {
+                                win.history.set_compiled_manifest(path.clone());
+                                win.status = format!("Compiled: {}", path.display());
+                            }
+                            Err(e) => {
+                                win.status = e;
+                            }
+                        }
+                    }
+                }
+            }
+            _ => {}
+        }
     }
 
     /// Handle function definition viewing/editing messages.
