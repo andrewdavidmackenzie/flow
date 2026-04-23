@@ -30,8 +30,8 @@ use flowcore::model::name::HasName;
 use crate::file_ops;
 use crate::history::EditAction;
 use crate::InitializerEditor;
-use crate::Message;
 use crate::WindowState;
+use crate::{Message, ViewMessage};
 
 /// Action returned by [`handle_canvas_message`] to signal that the caller
 /// (main.rs) needs to perform an operation that requires `FlowEdit` state.
@@ -295,33 +295,33 @@ pub(crate) fn handle_canvas_message(win: &mut WindowState, msg: CanvasMessage) -
     CanvasAction::None
 }
 
-/// Handle the `ZoomIn` message by zooming in one step.
-pub(crate) fn handle_zoom_in(win: &mut WindowState) {
-    win.auto_fit_enabled = false;
-    win.auto_fit_pending = false;
-    win.canvas_state.zoom_in();
-    let pct = (win.canvas_state.zoom * 100.0) as u32;
-    win.status = format!("Zoom: {pct}%");
-}
-
-/// Handle the `ZoomOut` message by zooming out one step.
-pub(crate) fn handle_zoom_out(win: &mut WindowState) {
-    win.auto_fit_enabled = false;
-    win.auto_fit_pending = false;
-    win.canvas_state.zoom_out();
-    let pct = (win.canvas_state.zoom * 100.0) as u32;
-    win.status = format!("Zoom: {pct}%");
-}
-
-/// Handle the `ToggleAutoFit` message by toggling auto-fit mode.
-pub(crate) fn handle_toggle_auto_fit(win: &mut WindowState) {
-    win.auto_fit_enabled = !win.auto_fit_enabled;
-    if win.auto_fit_enabled {
-        win.auto_fit_pending = true;
-        win.canvas_state.request_redraw();
-        win.status = String::from("Auto-fit enabled");
-    } else {
-        win.status = String::from("Auto-fit disabled");
+/// Handle a view control message (zoom, auto-fit).
+pub(crate) fn handle_view_message(win: &mut WindowState, msg: &ViewMessage) {
+    match msg {
+        ViewMessage::ZoomIn => {
+            win.auto_fit_enabled = false;
+            win.auto_fit_pending = false;
+            win.canvas_state.zoom_in();
+            let pct = (win.canvas_state.zoom * 100.0) as u32;
+            win.status = format!("Zoom: {pct}%");
+        }
+        ViewMessage::ZoomOut => {
+            win.auto_fit_enabled = false;
+            win.auto_fit_pending = false;
+            win.canvas_state.zoom_out();
+            let pct = (win.canvas_state.zoom * 100.0) as u32;
+            win.status = format!("Zoom: {pct}%");
+        }
+        ViewMessage::ToggleAutoFit => {
+            win.auto_fit_enabled = !win.auto_fit_enabled;
+            if win.auto_fit_enabled {
+                win.auto_fit_pending = true;
+                win.canvas_state.request_redraw();
+                win.status = String::from("Auto-fit enabled");
+            } else {
+                win.status = String::from("Auto-fit disabled");
+            }
+        }
     }
 }
 
@@ -2985,19 +2985,19 @@ pub(crate) fn view_canvas_area(win: &WindowState, window_id: window::Id) -> Elem
             .spacing(4)
             .push(
                 button(Text::new("+").center())
-                    .on_press(Message::ZoomIn(window_id))
+                    .on_press(Message::View(window_id, ViewMessage::ZoomIn))
                     .width(btn_width)
                     .style(zoom_btn),
             )
             .push(
                 button(Text::new("\u{2212}").center())
-                    .on_press(Message::ZoomOut(window_id))
+                    .on_press(Message::View(window_id, ViewMessage::ZoomOut))
                     .width(btn_width)
                     .style(zoom_btn),
             )
             .push(
                 button(Text::new("Fit").center())
-                    .on_press(Message::ToggleAutoFit(window_id))
+                    .on_press(Message::View(window_id, ViewMessage::ToggleAutoFit))
                     .width(btn_width)
                     .style(if win.auto_fit_enabled {
                         zoom_btn_active

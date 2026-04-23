@@ -107,7 +107,7 @@ fn update_zoom_in() {
         .windows
         .get(&win_id)
         .map_or(1.0, |w| w.canvas_state.zoom);
-    let _ = app.update(Message::ZoomIn(win_id));
+    let _ = app.update(Message::View(win_id, ViewMessage::ZoomIn));
     let new_zoom = app
         .windows
         .get(&win_id)
@@ -122,7 +122,7 @@ fn update_zoom_out() {
         .windows
         .get(&win_id)
         .map_or(1.0, |w| w.canvas_state.zoom);
-    let _ = app.update(Message::ZoomOut(win_id));
+    let _ = app.update(Message::View(win_id, ViewMessage::ZoomOut));
     let new_zoom = app
         .windows
         .get(&win_id)
@@ -136,7 +136,7 @@ fn update_toggle_auto_fit() {
     if let Some(w) = app.windows.get_mut(&win_id) {
         w.auto_fit_enabled = false;
     }
-    let _ = app.update(Message::ToggleAutoFit(win_id));
+    let _ = app.update(Message::View(win_id, ViewMessage::ToggleAutoFit));
     assert!(app.windows.get(&win_id).is_some_and(|w| w.auto_fit_enabled));
 }
 

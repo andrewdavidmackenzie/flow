@@ -276,6 +276,14 @@ enum FunctionEditMessage {
     Save,
 }
 
+/// View control messages for zoom and auto-fit
+#[derive(Debug, Clone)]
+enum ViewMessage {
+    ZoomIn,
+    ZoomOut,
+    ToggleAutoFit,
+}
+
 /// Messages handled by the flowedit application
 #[derive(Debug, Clone)]
 enum Message {
@@ -285,12 +293,8 @@ enum Message {
     Library(window::Id, LibraryMessage),
     /// A message from the flow hierarchy panel, tagged with window ID
     Hierarchy(window::Id, HierarchyMessage),
-    /// Zoom in by one step, tagged with the originating window ID
-    ZoomIn(window::Id),
-    /// Zoom out by one step, tagged with the originating window ID
-    ZoomOut(window::Id),
-    /// Toggle auto-fit mode, tagged with the originating window ID
-    ToggleAutoFit(window::Id),
+    /// A view control message (zoom, auto-fit), tagged with window ID
+    View(window::Id, ViewMessage),
     /// Undo the last edit action
     Undo,
     /// Redo the last undone action
@@ -766,19 +770,9 @@ impl FlowEdit {
                 }
                 LibraryAction::None => {}
             },
-            Message::ZoomIn(win_id) => {
+            Message::View(win_id, view_msg) => {
                 if let Some(win) = self.windows.get_mut(&win_id) {
-                    canvas_view::handle_zoom_in(win);
-                }
-            }
-            Message::ZoomOut(win_id) => {
-                if let Some(win) = self.windows.get_mut(&win_id) {
-                    canvas_view::handle_zoom_out(win);
-                }
-            }
-            Message::ToggleAutoFit(win_id) => {
-                if let Some(win) = self.windows.get_mut(&win_id) {
-                    canvas_view::handle_toggle_auto_fit(win);
+                    canvas_view::handle_view_message(win, &view_msg);
                 }
             }
             Message::Undo => {
