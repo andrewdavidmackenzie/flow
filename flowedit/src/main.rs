@@ -2196,13 +2196,39 @@ impl FlowEdit {
             Message::Save => {
                 let target = self.focused_window.or(self.root_window);
                 if let Some(win) = target.and_then(|id| self.windows.get_mut(&id)) {
-                    file_ops::handle_save(win);
+                    match &win.kind {
+                        WindowKind::FunctionViewer(_) => {
+                            if let WindowKind::FunctionViewer(ref v) = win.kind {
+                                match file_ops::save_function_definition(v) {
+                                    Ok(()) => {
+                                        win.history.clear();
+                                        win.status = String::from("Function saved");
+                                    }
+                                    Err(e) => win.status = format!("Save failed: {e}"),
+                                }
+                            }
+                        }
+                        WindowKind::FlowEditor => file_ops::handle_save(win),
+                    }
                 }
             }
             Message::SaveAs => {
                 let target = self.focused_window.or(self.root_window);
                 if let Some(win) = target.and_then(|id| self.windows.get_mut(&id)) {
-                    file_ops::handle_save_as(win);
+                    match &win.kind {
+                        WindowKind::FunctionViewer(_) => {
+                            if let WindowKind::FunctionViewer(ref v) = win.kind {
+                                match file_ops::save_function_definition(v) {
+                                    Ok(()) => {
+                                        win.history.clear();
+                                        win.status = String::from("Function saved");
+                                    }
+                                    Err(e) => win.status = format!("Save failed: {e}"),
+                                }
+                            }
+                        }
+                        WindowKind::FlowEditor => file_ops::handle_save_as(win),
+                    }
                 }
             }
             Message::Open => {
@@ -2224,6 +2250,7 @@ impl FlowEdit {
             Message::New => {
                 if let Some(win) = self.root_window.and_then(|id| self.windows.get_mut(&id)) {
                     file_ops::perform_new(win);
+                    win.flow_hierarchy = FlowHierarchy::empty();
                     self.library_cache.clear();
                     self.all_definitions.clear();
                     self.library_tree =

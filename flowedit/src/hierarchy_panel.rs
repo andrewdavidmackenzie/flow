@@ -188,8 +188,25 @@ fn view_node<'a>(node: &'a HierarchyNode, path: &[usize]) -> Element<'a, Hierarc
     col.into()
 }
 
+const MAX_HIERARCHY_DEPTH: usize = 10;
+
 fn build_node_from_flow(flow_def: &FlowDefinition) -> HierarchyNode {
+    build_node_from_flow_recursive(flow_def, 0)
+}
+
+fn build_node_from_flow_recursive(flow_def: &FlowDefinition, depth: usize) -> HierarchyNode {
     let mut children = Vec::new();
+
+    if depth >= MAX_HIERARCHY_DEPTH {
+        return HierarchyNode {
+            name: flow_def.name.clone(),
+            kind: NodeKind::Flow,
+            source: String::new(),
+            path: flow_def.source_url.to_file_path().ok(),
+            children,
+            expanded: false,
+        };
+    }
 
     for pref in &flow_def.process_refs {
         let alias = if pref.alias.is_empty() {
@@ -201,7 +218,7 @@ fn build_node_from_flow(flow_def: &FlowDefinition) -> HierarchyNode {
         match flow_def.subprocesses.get(&alias) {
             Some(Process::FlowProcess(sub_flow)) => {
                 // Recursively build children from the sub-flow
-                let child = build_node_from_flow(sub_flow);
+                let child = build_node_from_flow_recursive(sub_flow, depth + 1);
                 children.push(HierarchyNode {
                     name: alias,
                     kind: NodeKind::Flow,
