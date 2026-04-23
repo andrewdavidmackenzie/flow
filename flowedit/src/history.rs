@@ -12,7 +12,6 @@ use flowcore::model::name::Name;
 use flowcore::model::process::Process;
 use flowcore::model::process_reference::ProcessReference;
 
-use crate::initializer;
 use crate::WindowState;
 
 /// An editing action that can be undone and redone.
@@ -180,203 +179,203 @@ impl EditHistory {
     }
 }
 
-/// Apply an undo action -- reverse the last edit.
-fn apply_undo(win: &mut WindowState) {
-    if let Some(action) = win.history.undo() {
-        match action {
-            EditAction::MoveNode {
-                index,
-                old_x,
-                old_y,
-                ..
-            } => {
-                if let Some(pref) = win.flow_definition.process_refs.get_mut(index) {
-                    pref.x = Some(old_x);
-                    pref.y = Some(old_y);
+impl WindowState {
+    fn apply_undo(&mut self) {
+        if let Some(action) = self.history.undo() {
+            match action {
+                EditAction::MoveNode {
+                    index,
+                    old_x,
+                    old_y,
+                    ..
+                } => {
+                    if let Some(pref) = self.flow_definition.process_refs.get_mut(index) {
+                        pref.x = Some(old_x);
+                        pref.y = Some(old_y);
+                    }
+                    self.status = String::from("Undo: move");
                 }
-                win.status = String::from("Undo: move");
-            }
-            EditAction::ResizeNode {
-                index,
-                old_x,
-                old_y,
-                old_w,
-                old_h,
-                ..
-            } => {
-                if let Some(pref) = win.flow_definition.process_refs.get_mut(index) {
-                    pref.x = Some(old_x);
-                    pref.y = Some(old_y);
-                    pref.width = Some(old_w);
-                    pref.height = Some(old_h);
+                EditAction::ResizeNode {
+                    index,
+                    old_x,
+                    old_y,
+                    old_w,
+                    old_h,
+                    ..
+                } => {
+                    if let Some(pref) = self.flow_definition.process_refs.get_mut(index) {
+                        pref.x = Some(old_x);
+                        pref.y = Some(old_y);
+                        pref.width = Some(old_w);
+                        pref.height = Some(old_h);
+                    }
+                    self.status = String::from("Undo: resize");
                 }
-                win.status = String::from("Undo: resize");
-            }
-            EditAction::CreateNode {
-                index,
-                ref process_ref,
-                ..
-            } => {
-                let alias = if process_ref.alias.is_empty() {
-                    crate::canvas_view::derive_short_name(&process_ref.source)
-                } else {
-                    process_ref.alias.clone()
-                };
-                if index < win.flow_definition.process_refs.len() {
-                    win.flow_definition.process_refs.remove(index);
-                    win.flow_definition.subprocesses.remove(&alias);
-                    win.flow_definition
-                        .connections
-                        .retain(|c| !crate::canvas_view::connection_references_node(c, &alias));
-                }
-                win.status = String::from("Undo: create node");
-            }
-            EditAction::DeleteNode {
-                index,
-                process_ref,
-                subprocess,
-                removed_connections,
-            } => {
-                win.flow_definition.process_refs.insert(index, process_ref);
-                if let Some((name, proc)) = subprocess {
-                    win.flow_definition.subprocesses.insert(name, proc);
-                }
-                win.flow_definition.connections.extend(removed_connections);
-                win.status = String::from("Undo: delete node");
-            }
-            EditAction::CreateConnection { connection } => {
-                let from_str = connection.from().to_string();
-                let to_strs: Vec<String> =
-                    connection.to().iter().map(ToString::to_string).collect();
-                win.flow_definition.connections.retain(|c| {
-                    c.from().to_string() != from_str
-                        || c.to().iter().map(ToString::to_string).collect::<Vec<_>>() != to_strs
-                });
-                win.status = String::from("Undo: create connection");
-            }
-            EditAction::DeleteConnection { index, connection } => {
-                win.flow_definition.connections.insert(index, connection);
-                win.status = String::from("Undo: delete connection");
-            }
-            EditAction::EditInitializer {
-                node_index,
-                ref port_name,
-                ref old_init,
-                ..
-            } => {
-                initializer::apply_initializer_state(win, node_index, port_name, old_init.as_ref());
-                win.status = String::from("Undo: initializer");
-            }
-        }
-        win.canvas_state.request_redraw();
-    }
-}
-
-/// Apply a redo action -- re-apply the last undone edit.
-fn apply_redo(win: &mut WindowState) {
-    if let Some(action) = win.history.redo() {
-        match action {
-            EditAction::MoveNode {
-                index,
-                new_x,
-                new_y,
-                ..
-            } => {
-                if let Some(pref) = win.flow_definition.process_refs.get_mut(index) {
-                    pref.x = Some(new_x);
-                    pref.y = Some(new_y);
-                }
-                win.status = String::from("Redo: move");
-            }
-            EditAction::ResizeNode {
-                index,
-                new_x,
-                new_y,
-                new_w,
-                new_h,
-                ..
-            } => {
-                if let Some(pref) = win.flow_definition.process_refs.get_mut(index) {
-                    pref.x = Some(new_x);
-                    pref.y = Some(new_y);
-                    pref.width = Some(new_w);
-                    pref.height = Some(new_h);
-                }
-                win.status = String::from("Redo: resize");
-            }
-            EditAction::CreateNode {
-                index,
-                process_ref,
-                subprocess,
-            } => {
-                let idx = index.min(win.flow_definition.process_refs.len());
-                win.flow_definition.process_refs.insert(idx, process_ref);
-                if let Some((name, proc)) = subprocess {
-                    win.flow_definition.subprocesses.insert(name, proc);
-                }
-                win.status = String::from("Redo: create node");
-            }
-            EditAction::DeleteNode {
-                index,
-                subprocess,
-                removed_connections,
-                ..
-            } => {
-                if index < win.flow_definition.process_refs.len() {
-                    let removed = win.flow_definition.process_refs.remove(index);
-                    let alias = if removed.alias.is_empty() {
-                        crate::canvas_view::derive_short_name(&removed.source)
+                EditAction::CreateNode {
+                    index,
+                    ref process_ref,
+                    ..
+                } => {
+                    let alias = if process_ref.alias.is_empty() {
+                        crate::canvas_view::derive_short_name(&process_ref.source)
                     } else {
-                        removed.alias.clone()
+                        process_ref.alias.clone()
                     };
-                    win.flow_definition.subprocesses.remove(&alias);
+                    if index < self.flow_definition.process_refs.len() {
+                        self.flow_definition.process_refs.remove(index);
+                        self.flow_definition.subprocesses.remove(&alias);
+                        self.flow_definition
+                            .connections
+                            .retain(|c| !crate::canvas_view::connection_references_node(c, &alias));
+                    }
+                    self.status = String::from("Undo: create node");
                 }
-                // Also remove re-inserted subprocess if it was restored during undo
-                if let Some((ref name, _)) = subprocess {
-                    win.flow_definition.subprocesses.remove(name);
+                EditAction::DeleteNode {
+                    index,
+                    process_ref,
+                    subprocess,
+                    removed_connections,
+                } => {
+                    self.flow_definition.process_refs.insert(index, process_ref);
+                    if let Some((name, proc)) = subprocess {
+                        self.flow_definition.subprocesses.insert(name, proc);
+                    }
+                    self.flow_definition.connections.extend(removed_connections);
+                    self.status = String::from("Undo: delete node");
                 }
-                for conn in &removed_connections {
-                    let from_str = conn.from().to_string();
-                    let to_strs: Vec<String> = conn.to().iter().map(ToString::to_string).collect();
-                    win.flow_definition.connections.retain(|c| {
+                EditAction::CreateConnection { connection } => {
+                    let from_str = connection.from().to_string();
+                    let to_strs: Vec<String> =
+                        connection.to().iter().map(ToString::to_string).collect();
+                    self.flow_definition.connections.retain(|c| {
                         c.from().to_string() != from_str
                             || c.to().iter().map(ToString::to_string).collect::<Vec<_>>() != to_strs
                     });
+                    self.status = String::from("Undo: create connection");
                 }
-                win.status = String::from("Redo: delete node");
-            }
-            EditAction::CreateConnection { connection } => {
-                win.flow_definition.connections.push(connection);
-                win.status = String::from("Redo: create connection");
-            }
-            EditAction::DeleteConnection { index, .. } => {
-                if index < win.flow_definition.connections.len() {
-                    win.flow_definition.connections.remove(index);
+                EditAction::DeleteConnection { index, connection } => {
+                    self.flow_definition.connections.insert(index, connection);
+                    self.status = String::from("Undo: delete connection");
                 }
-                win.status = String::from("Redo: delete connection");
+                EditAction::EditInitializer {
+                    node_index,
+                    ref port_name,
+                    ref old_init,
+                    ..
+                } => {
+                    self.apply_initializer_state(node_index, port_name, old_init.as_ref());
+                    self.status = String::from("Undo: initializer");
+                }
             }
-            EditAction::EditInitializer {
-                node_index,
-                ref port_name,
-                ref new_init,
-                ..
-            } => {
-                initializer::apply_initializer_state(win, node_index, port_name, new_init.as_ref());
-                win.status = String::from("Redo: initializer");
-            }
+            self.canvas_state.request_redraw();
         }
-        win.canvas_state.request_redraw();
     }
-}
 
-/// Handle undo message -- applies the most recent undoable action in reverse.
-pub(crate) fn handle_undo(win: &mut WindowState) {
-    apply_undo(win);
-}
+    fn apply_redo(&mut self) {
+        if let Some(action) = self.history.redo() {
+            match action {
+                EditAction::MoveNode {
+                    index,
+                    new_x,
+                    new_y,
+                    ..
+                } => {
+                    if let Some(pref) = self.flow_definition.process_refs.get_mut(index) {
+                        pref.x = Some(new_x);
+                        pref.y = Some(new_y);
+                    }
+                    self.status = String::from("Redo: move");
+                }
+                EditAction::ResizeNode {
+                    index,
+                    new_x,
+                    new_y,
+                    new_w,
+                    new_h,
+                    ..
+                } => {
+                    if let Some(pref) = self.flow_definition.process_refs.get_mut(index) {
+                        pref.x = Some(new_x);
+                        pref.y = Some(new_y);
+                        pref.width = Some(new_w);
+                        pref.height = Some(new_h);
+                    }
+                    self.status = String::from("Redo: resize");
+                }
+                EditAction::CreateNode {
+                    index,
+                    process_ref,
+                    subprocess,
+                } => {
+                    let idx = index.min(self.flow_definition.process_refs.len());
+                    self.flow_definition.process_refs.insert(idx, process_ref);
+                    if let Some((name, proc)) = subprocess {
+                        self.flow_definition.subprocesses.insert(name, proc);
+                    }
+                    self.status = String::from("Redo: create node");
+                }
+                EditAction::DeleteNode {
+                    index,
+                    subprocess,
+                    removed_connections,
+                    ..
+                } => {
+                    if index < self.flow_definition.process_refs.len() {
+                        let removed = self.flow_definition.process_refs.remove(index);
+                        let alias = if removed.alias.is_empty() {
+                            crate::canvas_view::derive_short_name(&removed.source)
+                        } else {
+                            removed.alias.clone()
+                        };
+                        self.flow_definition.subprocesses.remove(&alias);
+                    }
+                    // Also remove re-inserted subprocess if it was restored during undo
+                    if let Some((ref name, _)) = subprocess {
+                        self.flow_definition.subprocesses.remove(name);
+                    }
+                    for conn in &removed_connections {
+                        let from_str = conn.from().to_string();
+                        let to_strs: Vec<String> =
+                            conn.to().iter().map(ToString::to_string).collect();
+                        self.flow_definition.connections.retain(|c| {
+                            c.from().to_string() != from_str
+                                || c.to().iter().map(ToString::to_string).collect::<Vec<_>>()
+                                    != to_strs
+                        });
+                    }
+                    self.status = String::from("Redo: delete node");
+                }
+                EditAction::CreateConnection { connection } => {
+                    self.flow_definition.connections.push(connection);
+                    self.status = String::from("Redo: create connection");
+                }
+                EditAction::DeleteConnection { index, .. } => {
+                    if index < self.flow_definition.connections.len() {
+                        self.flow_definition.connections.remove(index);
+                    }
+                    self.status = String::from("Redo: delete connection");
+                }
+                EditAction::EditInitializer {
+                    node_index,
+                    ref port_name,
+                    ref new_init,
+                    ..
+                } => {
+                    self.apply_initializer_state(node_index, port_name, new_init.as_ref());
+                    self.status = String::from("Redo: initializer");
+                }
+            }
+            self.canvas_state.request_redraw();
+        }
+    }
 
-/// Handle redo message -- re-applies the most recently undone action.
-pub(crate) fn handle_redo(win: &mut WindowState) {
-    apply_redo(win);
+    pub(crate) fn handle_undo(&mut self) {
+        self.apply_undo();
+    }
+
+    pub(crate) fn handle_redo(&mut self) {
+        self.apply_redo();
+    }
 }
 
 #[cfg(test)]
@@ -628,13 +627,13 @@ mod test {
         assert!(!win.history.is_empty());
 
         // Undo
-        handle_undo(&mut win);
+        win.handle_undo();
         let pref = win.flow_definition.process_refs.first();
         assert!(pref.is_some_and(|p| (p.x.unwrap_or(0.0) - 100.0).abs() < 0.01));
         assert!(pref.is_some_and(|p| (p.y.unwrap_or(0.0) - 100.0).abs() < 0.01));
 
         // Redo
-        handle_redo(&mut win);
+        win.handle_redo();
         let pref = win.flow_definition.process_refs.first();
         assert!(pref.is_some_and(|p| (p.x.unwrap_or(0.0) - 200.0).abs() < 0.01));
         assert!(pref.is_some_and(|p| (p.y.unwrap_or(0.0) - 300.0).abs() < 0.01));
@@ -661,13 +660,13 @@ mod test {
         });
 
         // Undo
-        handle_undo(&mut win);
+        win.handle_undo();
         let pref = win.flow_definition.process_refs.first();
         assert!(pref.is_some_and(|p| (p.width.unwrap_or(0.0) - 180.0).abs() < 0.01));
         assert!(pref.is_some_and(|p| (p.height.unwrap_or(0.0) - 120.0).abs() < 0.01));
 
         // Redo
-        handle_redo(&mut win);
+        win.handle_redo();
         let pref = win.flow_definition.process_refs.first();
         assert!(pref.is_some_and(|p| (p.width.unwrap_or(0.0) - 250.0).abs() < 0.01));
         assert!(pref.is_some_and(|p| (p.height.unwrap_or(0.0) - 180.0).abs() < 0.01));
@@ -687,11 +686,11 @@ mod test {
         assert_eq!(win.flow_definition.process_refs.len(), 1);
 
         // Undo restores
-        handle_undo(&mut win);
+        win.handle_undo();
         assert_eq!(win.flow_definition.process_refs.len(), 2);
 
         // Redo removes again
-        handle_redo(&mut win);
+        win.handle_redo();
         assert_eq!(win.flow_definition.process_refs.len(), 1);
     }
 
@@ -705,11 +704,11 @@ mod test {
         assert_eq!(win.flow_definition.connections.len(), 1);
 
         // Undo removes
-        handle_undo(&mut win);
+        win.handle_undo();
         assert_eq!(win.flow_definition.connections.len(), 0);
 
         // Redo re-adds
-        handle_redo(&mut win);
+        win.handle_redo();
         assert_eq!(win.flow_definition.connections.len(), 1);
     }
 
@@ -727,11 +726,11 @@ mod test {
         assert_eq!(win.flow_definition.connections.len(), 0);
 
         // Undo restores
-        handle_undo(&mut win);
+        win.handle_undo();
         assert_eq!(win.flow_definition.connections.len(), 1);
 
         // Redo removes again
-        handle_redo(&mut win);
+        win.handle_redo();
         assert_eq!(win.flow_definition.connections.len(), 0);
     }
 
@@ -749,8 +748,7 @@ mod test {
         });
 
         // Apply the new state manually (record only records, doesn't apply)
-        initializer::apply_initializer_state(
-            &mut win,
+        win.apply_initializer_state(
             0,
             "input",
             Some(&InputInitializer::Once(serde_json::json!(42))),
@@ -763,7 +761,7 @@ mod test {
             .is_some());
 
         // Undo
-        handle_undo(&mut win);
+        win.handle_undo();
         assert!(win
             .flow_definition
             .process_refs
@@ -772,7 +770,7 @@ mod test {
             .is_none());
 
         // Redo
-        handle_redo(&mut win);
+        win.handle_redo();
         assert!(win
             .flow_definition
             .process_refs

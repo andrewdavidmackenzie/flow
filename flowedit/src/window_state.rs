@@ -10,7 +10,6 @@ use flowcore::model::function_definition::FunctionDefinition;
 
 use crate::canvas_view::FlowCanvasState;
 use crate::hierarchy_panel::FlowHierarchy;
-use crate::history;
 use crate::history::EditHistory;
 
 /// State for the initializer editing dialog.
@@ -139,15 +138,5 @@ impl WindowState {
     /// Clear the file path by resetting the source URL to the default.
     pub(crate) fn clear_file_path(&mut self) {
         self.flow_definition.source_url = FlowDefinition::default_url();
-    }
-
-    /// Undo the last edit action.
-    pub(crate) fn handle_undo(&mut self) {
-        history::handle_undo(self);
-    }
-
-    /// Redo the last undone action.
-    pub(crate) fn handle_redo(&mut self) {
-        history::handle_redo(self);
     }
 }

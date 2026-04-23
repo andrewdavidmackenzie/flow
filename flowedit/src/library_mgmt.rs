@@ -131,91 +131,92 @@ pub(crate) fn load_library_catalogs(
     (library_cache, all_definitions)
 }
 
-/// Add a function from the library panel as a new node on the canvas.
-///
-/// Creates a `NodeLayout` at a default position and a `ProcessReference`
-/// in the flow definition, and records the action in the edit history.
-pub(crate) fn add_library_function(win: &mut WindowState, source: &str, func_name: &str) {
-    // Generate a unique alias: if the name already exists, append a number
-    let alias = file_ops::generate_unique_alias(func_name, &win.flow_definition.process_refs);
+impl WindowState {
+    /// Add a library function as a new node on the canvas.
+    pub(crate) fn add_library_function(&mut self, source: &str, func_name: &str) {
+        // Generate a unique alias: if the name already exists, append a number
+        let alias = file_ops::generate_unique_alias(func_name, &self.flow_definition.process_refs);
 
-    // Place the new node at a default position offset from existing nodes
-    let (x, y) = file_ops::next_node_position(&win.flow_definition.process_refs);
+        // Place the new node at a default position offset from existing nodes
+        let (x, y) = file_ops::next_node_position(&self.flow_definition.process_refs);
 
-    // Resolve the subprocess definition by parsing the function/flow
-    let resolved_process = match Url::parse(source) {
-        Ok(url) => {
-            let provider = file_ops::build_meta_provider();
-            match flowrclib::compiler::parser::parse(&url, &provider) {
-                Ok(proc) => Some(proc),
-                Err(e) => {
-                    info!("add_library_function: could not parse '{source}': {e}");
-                    None
+        // Resolve the subprocess definition by parsing the function/flow
+        let resolved_process = match Url::parse(source) {
+            Ok(url) => {
+                let provider = file_ops::build_meta_provider();
+                match flowrclib::compiler::parser::parse(&url, &provider) {
+                    Ok(proc) => Some(proc),
+                    Err(e) => {
+                        info!("add_library_function: could not parse '{source}': {e}");
+                        None
+                    }
                 }
             }
+            Err(e) => {
+                info!("add_library_function: could not parse URL '{source}': {e}");
+                None
+            }
+        };
+
+        let pref = ProcessReference {
+            alias: alias.clone(),
+            source: source.to_string(),
+            initializations: std::collections::BTreeMap::new(),
+            x: Some(x),
+            y: Some(y),
+            width: Some(180.0),
+            height: Some(120.0),
+        };
+
+        let index = self.flow_definition.process_refs.len();
+        self.flow_definition.process_refs.push(pref.clone());
+
+        // Add the resolved subprocess definition if we have one
+        if let Some(proc) = resolved_process {
+            self.flow_definition
+                .subprocesses
+                .insert(alias.clone(), proc);
         }
-        Err(e) => {
-            info!("add_library_function: could not parse URL '{source}': {e}");
-            None
+
+        self.history.record(EditAction::CreateNode {
+            index,
+            process_ref: pref,
+            subprocess: self
+                .flow_definition
+                .subprocesses
+                .get(&alias)
+                .map(|p| (alias.clone(), p.clone())),
+        });
+
+        self.selected_node = Some(index);
+        self.canvas_state.request_redraw();
+        // Trigger auto-fit if enabled so the new node is visible
+        if self.auto_fit_enabled {
+            self.auto_fit_pending = true;
         }
-    };
-
-    let pref = ProcessReference {
-        alias: alias.clone(),
-        source: source.to_string(),
-        initializations: std::collections::BTreeMap::new(),
-        x: Some(x),
-        y: Some(y),
-        width: Some(180.0),
-        height: Some(120.0),
-    };
-
-    let index = win.flow_definition.process_refs.len();
-    win.flow_definition.process_refs.push(pref.clone());
-
-    // Add the resolved subprocess definition if we have one
-    if let Some(proc) = resolved_process {
-        win.flow_definition.subprocesses.insert(alias.clone(), proc);
+        let nc = self.flow_definition.process_refs.len();
+        self.status = format!("Added {alias} from library - {nc} nodes");
     }
 
-    win.history.record(EditAction::CreateNode {
-        index,
-        process_ref: pref,
-        subprocess: win
-            .flow_definition
-            .subprocesses
-            .get(&alias)
-            .map(|p| (alias.clone(), p.clone())),
-    });
-
-    win.selected_node = Some(index);
-    win.canvas_state.request_redraw();
-    // Trigger auto-fit if enabled so the new node is visible
-    if win.auto_fit_enabled {
-        win.auto_fit_pending = true;
+    /// Resolve a node's source path relative to the current flow file.
+    pub(crate) fn resolve_node_source(&self, source: &str) -> Option<PathBuf> {
+        let base_dir = self.file_path()?.parent()?.to_path_buf();
+        let base_dir = &base_dir;
+        let canonicalize = |p: PathBuf| std::fs::canonicalize(&p).unwrap_or(p);
+        let candidate = base_dir.join(source);
+        if candidate.exists() {
+            return Some(canonicalize(candidate));
+        }
+        let with_ext = base_dir.join(format!("{source}.toml"));
+        if with_ext.exists() {
+            return Some(canonicalize(with_ext));
+        }
+        let dir_default = base_dir.join(source).join("default.toml");
+        if dir_default.exists() {
+            return Some(canonicalize(dir_default));
+        }
+        None
     }
-    let nc = win.flow_definition.process_refs.len();
-    win.status = format!("Added {alias} from library - {nc} nodes");
-}
-
-/// Resolve a node's source path relative to the current flow file.
-pub(crate) fn resolve_node_source(win: &WindowState, source: &str) -> Option<PathBuf> {
-    let base_dir = win.file_path()?.parent()?.to_path_buf();
-    let base_dir = &base_dir;
-    let canonicalize = |p: PathBuf| std::fs::canonicalize(&p).unwrap_or(p);
-    let candidate = base_dir.join(source);
-    if candidate.exists() {
-        return Some(canonicalize(candidate));
-    }
-    let with_ext = base_dir.join(format!("{source}.toml"));
-    if with_ext.exists() {
-        return Some(canonicalize(with_ext));
-    }
-    let dir_default = base_dir.join(source).join("default.toml");
-    if dir_default.exists() {
-        return Some(canonicalize(dir_default));
-    }
-    None
 }
 
 #[cfg(test)]
@@ -295,7 +296,7 @@ mod test {
         let mut win = test_win_state();
         win.set_file_path(&flow_path);
 
-        let resolved = resolve_node_source(&win, "sub");
+        let resolved = win.resolve_node_source("sub");
         assert!(resolved.is_some());
 
         let _ = std::fs::remove_dir_all(&dir);
@@ -305,7 +306,7 @@ mod test {
     fn resolve_node_source_not_found() {
         let mut win = test_win_state();
         win.set_file_path(Path::new("/tmp/flowedit_tests/nonexistent/root.toml"));
-        let resolved = resolve_node_source(&win, "missing");
+        let resolved = win.resolve_node_source("missing");
         assert!(resolved.is_none());
     }
 }

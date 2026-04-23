@@ -66,152 +66,155 @@ fn next_unique_io_name(prefix: &str, existing: &[IO]) -> String {
     }
 }
 
-/// Handle flow metadata and I/O editing messages for a single window.
-fn handle_flow_edit_message(win: &mut WindowState, msg: FlowEditMessage) {
-    match msg {
-        FlowEditMessage::NameChanged(new_name) => {
-            win.flow_definition.name = new_name;
-            win.history.mark_modified();
-        }
-        FlowEditMessage::VersionChanged(version) => {
-            win.flow_definition.metadata.version = version;
-            win.history.mark_modified();
-        }
-        FlowEditMessage::DescriptionChanged(desc) => {
-            win.flow_definition.metadata.description = desc;
-            win.history.mark_modified();
-        }
-        FlowEditMessage::AuthorsChanged(authors_str) => {
-            win.flow_definition.metadata.authors = authors_str
-                .split(',')
-                .map(|s| s.trim().to_string())
-                .filter(|s| !s.is_empty())
-                .collect();
-            win.history.mark_modified();
-        }
-        FlowEditMessage::ToggleMetadata => {
-            win.show_metadata = !win.show_metadata;
-        }
-        FlowEditMessage::AddInput => {
-            let name = next_unique_io_name("input", &win.flow_definition.inputs);
-            let mut io = IO::new_named(vec![DataType::from("string")], Route::default(), name);
-            io.set_io_type(IOType::FlowInput);
-            win.flow_definition.inputs.push(io);
-            win.history.mark_modified();
-            win.canvas_state.request_redraw();
-        }
-        FlowEditMessage::AddOutput => {
-            let name = next_unique_io_name("output", &win.flow_definition.outputs);
-            let mut io = IO::new_named(vec![DataType::from("string")], Route::default(), name);
-            io.set_io_type(IOType::FlowOutput);
-            win.flow_definition.outputs.push(io);
-            win.history.mark_modified();
-            win.canvas_state.request_redraw();
-        }
-        FlowEditMessage::DeleteInput(idx) => {
-            if let Some(io) = win.flow_definition.inputs.get(idx) {
-                let name = io.name().clone();
-                win.flow_definition.inputs.remove(idx);
-                // Remove connections referencing this flow input
-                win.flow_definition.connections.retain(|c| {
-                    let (from_node, from_port) = canvas_view::split_route(c.from().as_ref());
-                    !(from_node == "input" && from_port == name)
-                });
-                win.history.mark_modified();
-                win.canvas_state.request_redraw();
+impl WindowState {
+    /// Handle flow metadata and I/O editing messages.
+    fn handle_flow_edit_message(&mut self, msg: FlowEditMessage) {
+        match msg {
+            FlowEditMessage::NameChanged(new_name) => {
+                self.flow_definition.name = new_name;
+                self.history.mark_modified();
             }
-        }
-        FlowEditMessage::DeleteOutput(idx) => {
-            if let Some(io) = win.flow_definition.outputs.get(idx) {
-                let name = io.name().clone();
-                win.flow_definition.outputs.remove(idx);
-                for conn in &mut win.flow_definition.connections {
-                    let new_to: Vec<Route> = conn
-                        .to()
-                        .iter()
-                        .filter(|to_route| {
-                            let (to_node, to_port) = canvas_view::split_route(to_route.as_ref());
-                            !(to_node == "output" && to_port == name)
-                        })
-                        .cloned()
-                        .collect();
-                    conn.set_to(new_to);
+            FlowEditMessage::VersionChanged(version) => {
+                self.flow_definition.metadata.version = version;
+                self.history.mark_modified();
+            }
+            FlowEditMessage::DescriptionChanged(desc) => {
+                self.flow_definition.metadata.description = desc;
+                self.history.mark_modified();
+            }
+            FlowEditMessage::AuthorsChanged(authors_str) => {
+                self.flow_definition.metadata.authors = authors_str
+                    .split(',')
+                    .map(|s| s.trim().to_string())
+                    .filter(|s| !s.is_empty())
+                    .collect();
+                self.history.mark_modified();
+            }
+            FlowEditMessage::ToggleMetadata => {
+                self.show_metadata = !self.show_metadata;
+            }
+            FlowEditMessage::AddInput => {
+                let name = next_unique_io_name("input", &self.flow_definition.inputs);
+                let mut io = IO::new_named(vec![DataType::from("string")], Route::default(), name);
+                io.set_io_type(IOType::FlowInput);
+                self.flow_definition.inputs.push(io);
+                self.history.mark_modified();
+                self.canvas_state.request_redraw();
+            }
+            FlowEditMessage::AddOutput => {
+                let name = next_unique_io_name("output", &self.flow_definition.outputs);
+                let mut io = IO::new_named(vec![DataType::from("string")], Route::default(), name);
+                io.set_io_type(IOType::FlowOutput);
+                self.flow_definition.outputs.push(io);
+                self.history.mark_modified();
+                self.canvas_state.request_redraw();
+            }
+            FlowEditMessage::DeleteInput(idx) => {
+                if let Some(io) = self.flow_definition.inputs.get(idx) {
+                    let name = io.name().clone();
+                    self.flow_definition.inputs.remove(idx);
+                    // Remove connections referencing this flow input
+                    self.flow_definition.connections.retain(|c| {
+                        let (from_node, from_port) = canvas_view::split_route(c.from().as_ref());
+                        !(from_node == "input" && from_port == name)
+                    });
+                    self.history.mark_modified();
+                    self.canvas_state.request_redraw();
                 }
-                win.flow_definition
-                    .connections
-                    .retain(|c| !c.to().is_empty());
-                win.history.mark_modified();
-                win.canvas_state.request_redraw();
             }
-        }
-        FlowEditMessage::InputNameChanged(idx, name) => {
-            let duplicate = win
-                .flow_definition
-                .inputs
-                .iter()
-                .enumerate()
-                .any(|(i, io)| i != idx && io.name() == &name);
-            if !duplicate {
-                if let Some(io) = win.flow_definition.inputs.get_mut(idx) {
-                    let old_name = io.name().clone();
-                    io.set_name(name.clone());
-                    let old_route = format!("input/{old_name}");
-                    let new_route = format!("input/{name}");
-                    for conn in &mut win.flow_definition.connections {
-                        if conn.from().to_string() == old_route {
-                            conn.set_from(Route::from(new_route.as_str()));
-                        }
-                    }
-                }
-                win.history.mark_modified();
-                win.canvas_state.request_redraw();
-            }
-        }
-        FlowEditMessage::InputTypeChanged(idx, dtype) => {
-            if let Some(io) = win.flow_definition.inputs.get_mut(idx) {
-                io.set_datatypes(&[DataType::from(dtype)]);
-            }
-            win.history.mark_modified();
-            win.canvas_state.request_redraw();
-        }
-        FlowEditMessage::OutputNameChanged(idx, name) => {
-            let duplicate = win
-                .flow_definition
-                .outputs
-                .iter()
-                .enumerate()
-                .any(|(i, io)| i != idx && io.name() == &name);
-            if !duplicate {
-                if let Some(io) = win.flow_definition.outputs.get_mut(idx) {
-                    let old_name = io.name().clone();
-                    io.set_name(name.clone());
-                    let old_route_str = format!("output/{old_name}");
-                    let new_route_str = format!("output/{name}");
-                    for conn in &mut win.flow_definition.connections {
+            FlowEditMessage::DeleteOutput(idx) => {
+                if let Some(io) = self.flow_definition.outputs.get(idx) {
+                    let name = io.name().clone();
+                    self.flow_definition.outputs.remove(idx);
+                    for conn in &mut self.flow_definition.connections {
                         let new_to: Vec<Route> = conn
                             .to()
                             .iter()
-                            .map(|r| {
-                                if r.to_string() == old_route_str {
-                                    Route::from(new_route_str.as_str())
-                                } else {
-                                    r.clone()
-                                }
+                            .filter(|to_route| {
+                                let (to_node, to_port) =
+                                    canvas_view::split_route(to_route.as_ref());
+                                !(to_node == "output" && to_port == name)
                             })
+                            .cloned()
                             .collect();
                         conn.set_to(new_to);
                     }
+                    self.flow_definition
+                        .connections
+                        .retain(|c| !c.to().is_empty());
+                    self.history.mark_modified();
+                    self.canvas_state.request_redraw();
                 }
-                win.history.mark_modified();
-                win.canvas_state.request_redraw();
             }
-        }
-        FlowEditMessage::OutputTypeChanged(idx, dtype) => {
-            if let Some(io) = win.flow_definition.outputs.get_mut(idx) {
-                io.set_datatypes(&[DataType::from(dtype)]);
+            FlowEditMessage::InputNameChanged(idx, name) => {
+                let duplicate = self
+                    .flow_definition
+                    .inputs
+                    .iter()
+                    .enumerate()
+                    .any(|(i, io)| i != idx && io.name() == &name);
+                if !duplicate {
+                    if let Some(io) = self.flow_definition.inputs.get_mut(idx) {
+                        let old_name = io.name().clone();
+                        io.set_name(name.clone());
+                        let old_route = format!("input/{old_name}");
+                        let new_route = format!("input/{name}");
+                        for conn in &mut self.flow_definition.connections {
+                            if conn.from().to_string() == old_route {
+                                conn.set_from(Route::from(new_route.as_str()));
+                            }
+                        }
+                    }
+                    self.history.mark_modified();
+                    self.canvas_state.request_redraw();
+                }
             }
-            win.history.mark_modified();
-            win.canvas_state.request_redraw();
+            FlowEditMessage::InputTypeChanged(idx, dtype) => {
+                if let Some(io) = self.flow_definition.inputs.get_mut(idx) {
+                    io.set_datatypes(&[DataType::from(dtype)]);
+                }
+                self.history.mark_modified();
+                self.canvas_state.request_redraw();
+            }
+            FlowEditMessage::OutputNameChanged(idx, name) => {
+                let duplicate = self
+                    .flow_definition
+                    .outputs
+                    .iter()
+                    .enumerate()
+                    .any(|(i, io)| i != idx && io.name() == &name);
+                if !duplicate {
+                    if let Some(io) = self.flow_definition.outputs.get_mut(idx) {
+                        let old_name = io.name().clone();
+                        io.set_name(name.clone());
+                        let old_route_str = format!("output/{old_name}");
+                        let new_route_str = format!("output/{name}");
+                        for conn in &mut self.flow_definition.connections {
+                            let new_to: Vec<Route> = conn
+                                .to()
+                                .iter()
+                                .map(|r| {
+                                    if r.to_string() == old_route_str {
+                                        Route::from(new_route_str.as_str())
+                                    } else {
+                                        r.clone()
+                                    }
+                                })
+                                .collect();
+                            conn.set_to(new_to);
+                        }
+                    }
+                    self.history.mark_modified();
+                    self.canvas_state.request_redraw();
+                }
+            }
+            FlowEditMessage::OutputTypeChanged(idx, dtype) => {
+                if let Some(io) = self.flow_definition.outputs.get_mut(idx) {
+                    io.set_datatypes(&[DataType::from(dtype)]);
+                }
+                self.history.mark_modified();
+                self.canvas_state.request_redraw();
+            }
         }
     }
 }
@@ -579,7 +582,7 @@ impl FlowEdit {
                 let Some(win) = self.windows.get_mut(&win_id) else {
                     return Task::none();
                 };
-                match canvas_view::handle_canvas_message(win, canvas_msg) {
+                match win.handle_canvas_message(canvas_msg) {
                     canvas_view::CanvasAction::OpenNode(idx) => {
                         return self.open_node(win_id, idx);
                     }
@@ -655,7 +658,7 @@ impl FlowEdit {
             Message::Library(win_id, ref lib_msg) => match self.library_tree.update(lib_msg) {
                 LibraryAction::Add(source, func_name) => {
                     if let Some(win) = self.windows.get_mut(&win_id) {
-                        library_mgmt::add_library_function(win, &source, &func_name);
+                        win.add_library_function(&source, &func_name);
                     }
                 }
                 LibraryAction::View(source, _name) => {
@@ -777,7 +780,7 @@ impl FlowEdit {
             },
             Message::View(win_id, view_msg) => {
                 if let Some(win) = self.windows.get_mut(&win_id) {
-                    canvas_view::update(win, &view_msg);
+                    win.handle_view_message(&view_msg);
                 }
             }
             Message::Undo => {
@@ -797,7 +800,7 @@ impl FlowEdit {
             }
             Message::FlowEdit(win_id, flow_msg) => {
                 if let Some(win) = self.windows.get_mut(&win_id) {
-                    handle_flow_edit_message(win, flow_msg);
+                    win.handle_flow_edit_message(flow_msg);
                 }
             }
             Message::NewSubFlow(target_win_id) => {
@@ -814,22 +817,22 @@ impl FlowEdit {
             }
             Message::InitializerTypeChanged(win_id, new_type) => {
                 if let Some(win) = self.windows.get_mut(&win_id) {
-                    initializer::handle_type_changed(win, new_type);
+                    win.handle_initializer_type_changed(new_type);
                 }
             }
             Message::InitializerValueChanged(win_id, new_value) => {
                 if let Some(win) = self.windows.get_mut(&win_id) {
-                    initializer::handle_value_changed(win, new_value);
+                    win.handle_initializer_value_changed(new_value);
                 }
             }
             Message::InitializerApply(win_id) => {
                 if let Some(win) = self.windows.get_mut(&win_id) {
-                    initializer::handle_apply(win);
+                    win.handle_initializer_apply();
                 }
             }
             Message::InitializerCancel(win_id) => {
                 if let Some(win) = self.windows.get_mut(&win_id) {
-                    initializer::handle_cancel(win);
+                    win.handle_initializer_cancel();
                 }
             }
             Message::WindowFocused(id) => {
@@ -934,7 +937,7 @@ impl FlowEdit {
             return Self::view_function(window_id, viewer, &win.status, !win.history.is_empty());
         }
 
-        let canvas_with_controls = canvas_view::view_canvas_area(win, window_id);
+        let canvas_with_controls = win.view_canvas_area(window_id);
 
         let hierarchy_panel = win
             .flow_hierarchy
@@ -1810,7 +1813,7 @@ impl FlowEdit {
                 return Task::none();
             };
             let source = pref.source.clone();
-            let path = library_mgmt::resolve_node_source(win, &source);
+            let path = win.resolve_node_source(&source);
             (source, path)
         };
 
@@ -2213,7 +2216,7 @@ impl FlowEdit {
                                 }
                             }
                         }
-                        WindowKind::FlowEditor => file_ops::handle_save(win),
+                        WindowKind::FlowEditor => win.handle_save(),
                     }
                 }
             }
@@ -2232,14 +2235,14 @@ impl FlowEdit {
                                 }
                             }
                         }
-                        WindowKind::FlowEditor => file_ops::handle_save_as(win),
+                        WindowKind::FlowEditor => win.handle_save_as(),
                     }
                 }
             }
             Message::Open => {
                 if let Some(root_id) = self.root_window {
                     if let Some(win) = self.windows.get_mut(&root_id) {
-                        if let Some((lib_refs, _ctx_refs)) = file_ops::perform_open(win) {
+                        if let Some((lib_refs, _ctx_refs)) = win.perform_open() {
                             win.flow_hierarchy =
                                 FlowHierarchy::from_flow_definition(&win.flow_definition);
 
@@ -2254,7 +2257,7 @@ impl FlowEdit {
             }
             Message::New => {
                 if let Some(win) = self.root_window.and_then(|id| self.windows.get_mut(&id)) {
-                    file_ops::perform_new(win);
+                    win.perform_new();
                     win.flow_hierarchy = FlowHierarchy::empty();
                     self.library_cache.clear();
                     self.all_definitions.clear();
@@ -2266,7 +2269,7 @@ impl FlowEdit {
                 let target = self.focused_window.or(self.root_window);
                 if let Some(win) = target.and_then(|id| self.windows.get_mut(&id)) {
                     if !win.flow_definition.process_refs.is_empty() {
-                        match file_ops::perform_compile(win) {
+                        match win.perform_compile() {
                             Ok(path) => {
                                 win.history.set_compiled_manifest(path.clone());
                                 win.status = format!("Compiled: {}", path.display());

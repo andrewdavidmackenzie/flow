@@ -43,283 +43,285 @@ pub(crate) enum CanvasAction {
     OpenNode(usize),
 }
 
-/// Handle a [`CanvasMessage`] by mutating the given window state.
-///
-/// Returns a [`CanvasAction`] when the caller needs to perform cross-window
-/// operations (e.g. opening a sub-flow in a new editor window).
-pub(crate) fn handle_canvas_message(win: &mut WindowState, msg: CanvasMessage) -> CanvasAction {
-    match msg {
-        CanvasMessage::Selected(idx) => {
-            win.selected_node = idx;
-            win.context_menu = None;
-            if win.selected_connection.is_some() {
-                win.selected_connection = None;
-                win.canvas_state.request_redraw();
+impl WindowState {
+    /// Handle a [`CanvasMessage`] by mutating canvas/selection state.
+    ///
+    /// Returns a [`CanvasAction`] when the caller needs to perform cross-window
+    /// operations (e.g. opening a sub-flow in a new editor window).
+    pub(crate) fn handle_canvas_message(&mut self, msg: CanvasMessage) -> CanvasAction {
+        match msg {
+            CanvasMessage::Selected(idx) => {
+                self.selected_node = idx;
+                self.context_menu = None;
+                if self.selected_connection.is_some() {
+                    self.selected_connection = None;
+                    self.canvas_state.request_redraw();
+                }
+                if let Some(i) = idx {
+                    if let Some(pref) = self.flow_definition.process_refs.get(i) {
+                        let alias = if pref.alias.is_empty() {
+                            derive_short_name(&pref.source)
+                        } else {
+                            pref.alias.clone()
+                        };
+                        self.status = format!("Selected: {alias}");
+                    }
+                } else {
+                    self.status = String::from("Ready");
+                }
             }
-            if let Some(i) = idx {
-                if let Some(pref) = win.flow_definition.process_refs.get(i) {
+            CanvasMessage::Moved(idx, x, y) => {
+                if let Some(pref) = self.flow_definition.process_refs.get_mut(idx) {
+                    pref.x = Some(x);
+                    pref.y = Some(y);
+                    self.canvas_state.request_redraw();
+                }
+            }
+            CanvasMessage::Resized(idx, x, y, w, h) => {
+                if let Some(pref) = self.flow_definition.process_refs.get_mut(idx) {
+                    pref.x = Some(x);
+                    pref.y = Some(y);
+                    pref.width = Some(w);
+                    pref.height = Some(h);
+                    self.canvas_state.request_redraw();
+                }
+            }
+            CanvasMessage::MoveCompleted(idx, old_x, old_y, new_x, new_y) => {
+                info!("MoveCompleted: idx={idx}, ({old_x},{old_y}) -> ({new_x},{new_y})");
+                if (old_x - new_x).abs() > 0.5 || (old_y - new_y).abs() > 0.5 {
+                    self.history.record(EditAction::MoveNode {
+                        index: idx,
+                        old_x,
+                        old_y,
+                        new_x,
+                        new_y,
+                    });
+                }
+            }
+            #[allow(clippy::similar_names)]
+            CanvasMessage::ResizeCompleted(
+                idx,
+                old_x,
+                old_y,
+                old_w,
+                old_h,
+                new_x,
+                new_y,
+                new_w,
+                new_h,
+            ) => {
+                if (old_x - new_x).abs() > 0.5
+                    || (old_y - new_y).abs() > 0.5
+                    || (old_w - new_w).abs() > 0.5
+                    || (old_h - new_h).abs() > 0.5
+                {
+                    self.history.record(EditAction::ResizeNode {
+                        index: idx,
+                        old_x,
+                        old_y,
+                        old_w,
+                        old_h,
+                        new_x,
+                        new_y,
+                        new_w,
+                        new_h,
+                    });
+                }
+            }
+            CanvasMessage::Deleted(idx) => {
+                if idx < self.flow_definition.process_refs.len() {
+                    let Some(pref) = self.flow_definition.process_refs.get(idx).cloned() else {
+                        return CanvasAction::None;
+                    };
                     let alias = if pref.alias.is_empty() {
                         derive_short_name(&pref.source)
                     } else {
                         pref.alias.clone()
                     };
-                    win.status = format!("Selected: {alias}");
+                    let removed_connections: Vec<Connection> = self
+                        .flow_definition
+                        .connections
+                        .iter()
+                        .filter(|c| connection_references_node(c, &alias))
+                        .cloned()
+                        .collect();
+                    let removed_pref = self.flow_definition.process_refs.remove(idx);
+                    let removed_subprocess = self.flow_definition.subprocesses.remove(&alias);
+                    self.flow_definition
+                        .connections
+                        .retain(|c| !connection_references_node(c, &alias));
+                    self.history.record(EditAction::DeleteNode {
+                        index: idx,
+                        process_ref: removed_pref,
+                        subprocess: removed_subprocess.map(|p| (alias, p)),
+                        removed_connections,
+                    });
+                    self.selected_node = None;
+                    self.selected_connection = None;
+                    self.canvas_state.request_redraw();
+                    let nc = self.flow_definition.process_refs.len();
+                    let ec = self.flow_definition.connections.len();
+                    self.status = format!("Node deleted - {nc} nodes, {ec} connections");
+                    if self.auto_fit_enabled {
+                        self.auto_fit_pending = true;
+                    }
                 }
-            } else {
-                win.status = String::from("Ready");
             }
-        }
-        CanvasMessage::Moved(idx, x, y) => {
-            if let Some(pref) = win.flow_definition.process_refs.get_mut(idx) {
-                pref.x = Some(x);
-                pref.y = Some(y);
-                win.canvas_state.request_redraw();
-            }
-        }
-        CanvasMessage::Resized(idx, x, y, w, h) => {
-            if let Some(pref) = win.flow_definition.process_refs.get_mut(idx) {
-                pref.x = Some(x);
-                pref.y = Some(y);
-                pref.width = Some(w);
-                pref.height = Some(h);
-                win.canvas_state.request_redraw();
-            }
-        }
-        CanvasMessage::MoveCompleted(idx, old_x, old_y, new_x, new_y) => {
-            info!("MoveCompleted: idx={idx}, ({old_x},{old_y}) -> ({new_x},{new_y})");
-            if (old_x - new_x).abs() > 0.5 || (old_y - new_y).abs() > 0.5 {
-                win.history.record(EditAction::MoveNode {
-                    index: idx,
-                    old_x,
-                    old_y,
-                    new_x,
-                    new_y,
-                });
-            }
-        }
-        #[allow(clippy::similar_names)]
-        CanvasMessage::ResizeCompleted(
-            idx,
-            old_x,
-            old_y,
-            old_w,
-            old_h,
-            new_x,
-            new_y,
-            new_w,
-            new_h,
-        ) => {
-            if (old_x - new_x).abs() > 0.5
-                || (old_y - new_y).abs() > 0.5
-                || (old_w - new_w).abs() > 0.5
-                || (old_h - new_h).abs() > 0.5
-            {
-                win.history.record(EditAction::ResizeNode {
-                    index: idx,
-                    old_x,
-                    old_y,
-                    old_w,
-                    old_h,
-                    new_x,
-                    new_y,
-                    new_w,
-                    new_h,
-                });
-            }
-        }
-        CanvasMessage::Deleted(idx) => {
-            if idx < win.flow_definition.process_refs.len() {
-                let Some(pref) = win.flow_definition.process_refs.get(idx).cloned() else {
-                    return CanvasAction::None;
-                };
-                let alias = if pref.alias.is_empty() {
-                    derive_short_name(&pref.source)
+            CanvasMessage::ConnectionCreated {
+                from_node,
+                from_port,
+                to_node,
+                to_port,
+            } => {
+                let from_route = if from_port.is_empty() {
+                    from_node.clone()
                 } else {
-                    pref.alias.clone()
+                    format!("{from_node}/{from_port}")
                 };
-                let removed_connections: Vec<Connection> = win
-                    .flow_definition
-                    .connections
-                    .iter()
-                    .filter(|c| connection_references_node(c, &alias))
-                    .cloned()
-                    .collect();
-                let removed_pref = win.flow_definition.process_refs.remove(idx);
-                let removed_subprocess = win.flow_definition.subprocesses.remove(&alias);
-                win.flow_definition
-                    .connections
-                    .retain(|c| !connection_references_node(c, &alias));
-                win.history.record(EditAction::DeleteNode {
-                    index: idx,
-                    process_ref: removed_pref,
-                    subprocess: removed_subprocess.map(|p| (alias, p)),
-                    removed_connections,
+                let to_route = if to_port.is_empty() {
+                    to_node.clone()
+                } else {
+                    format!("{to_node}/{to_port}")
+                };
+                let connection = Connection::new(from_route, to_route);
+                self.history.record(EditAction::CreateConnection {
+                    connection: connection.clone(),
                 });
-                win.selected_node = None;
-                win.selected_connection = None;
-                win.canvas_state.request_redraw();
-                let nc = win.flow_definition.process_refs.len();
-                let ec = win.flow_definition.connections.len();
-                win.status = format!("Node deleted - {nc} nodes, {ec} connections");
-                if win.auto_fit_enabled {
-                    win.auto_fit_pending = true;
-                }
-            }
-        }
-        CanvasMessage::ConnectionCreated {
-            from_node,
-            from_port,
-            to_node,
-            to_port,
-        } => {
-            let from_route = if from_port.is_empty() {
-                from_node.clone()
-            } else {
-                format!("{from_node}/{from_port}")
-            };
-            let to_route = if to_port.is_empty() {
-                to_node.clone()
-            } else {
-                format!("{to_node}/{to_port}")
-            };
-            let connection = Connection::new(from_route, to_route);
-            win.history.record(EditAction::CreateConnection {
-                connection: connection.clone(),
-            });
-            win.flow_definition.connections.push(connection);
-            win.canvas_state.request_redraw();
-            let nc = win.flow_definition.process_refs.len();
-            let ec = win.flow_definition.connections.len();
-            win.status = format!(
+                self.flow_definition.connections.push(connection);
+                self.canvas_state.request_redraw();
+                let nc = self.flow_definition.process_refs.len();
+                let ec = self.flow_definition.connections.len();
+                self.status = format!(
                 "Connection created: {from_node}/{from_port} -> {to_node}/{to_port} - {nc} nodes, {ec} connections"
             );
-        }
-        CanvasMessage::ConnectionSelected(idx) => {
-            win.selected_connection = idx;
-            win.selected_node = None;
-            win.canvas_state.request_redraw();
-            if let Some(i) = idx {
-                if let Some(conn) = win.flow_definition.connections.get(i) {
-                    let (from_node, from_port) = split_route(conn.from().as_ref());
-                    let to_str = conn
-                        .to()
-                        .first()
-                        .map_or_else(String::new, ToString::to_string);
-                    let (to_node, to_port) = split_route(&to_str);
-                    win.status = format!(
-                        "Connection: {} -> {}",
-                        file_ops::format_endpoint(&from_node, &from_port),
-                        file_ops::format_endpoint(&to_node, &to_port),
-                    );
+            }
+            CanvasMessage::ConnectionSelected(idx) => {
+                self.selected_connection = idx;
+                self.selected_node = None;
+                self.canvas_state.request_redraw();
+                if let Some(i) = idx {
+                    if let Some(conn) = self.flow_definition.connections.get(i) {
+                        let (from_node, from_port) = split_route(conn.from().as_ref());
+                        let to_str = conn
+                            .to()
+                            .first()
+                            .map_or_else(String::new, ToString::to_string);
+                        let (to_node, to_port) = split_route(&to_str);
+                        self.status = format!(
+                            "Connection: {} -> {}",
+                            file_ops::format_endpoint(&from_node, &from_port),
+                            file_ops::format_endpoint(&to_node, &to_port),
+                        );
+                    }
+                } else {
+                    self.status = String::from("Ready");
                 }
-            } else {
-                win.status = String::from("Ready");
             }
-        }
-        CanvasMessage::ConnectionDeleted(idx) => {
-            if idx < win.flow_definition.connections.len() {
-                let connection = win.flow_definition.connections.remove(idx);
-                win.history.record(EditAction::DeleteConnection {
-                    index: idx,
-                    connection,
+            CanvasMessage::ConnectionDeleted(idx) => {
+                if idx < self.flow_definition.connections.len() {
+                    let connection = self.flow_definition.connections.remove(idx);
+                    self.history.record(EditAction::DeleteConnection {
+                        index: idx,
+                        connection,
+                    });
+                    self.selected_connection = None;
+                    self.canvas_state.request_redraw();
+                    let nc = self.flow_definition.process_refs.len();
+                    let ec = self.flow_definition.connections.len();
+                    self.status = format!("Connection deleted - {nc} nodes, {ec} connections");
+                }
+            }
+            CanvasMessage::HoverChanged(data) => {
+                self.tooltip = data;
+            }
+            CanvasMessage::AutoFitViewport(viewport) => {
+                if self.auto_fit_enabled || self.auto_fit_pending {
+                    let has_flow_io = !self.flow_definition.inputs.is_empty()
+                        || !self.flow_definition.outputs.is_empty();
+                    let render_nodes = build_render_nodes(&self.flow_definition);
+                    self.canvas_state
+                        .auto_fit(&render_nodes, has_flow_io, viewport);
+                    self.auto_fit_pending = false;
+                }
+            }
+            CanvasMessage::Pan(dx, dy) => {
+                self.auto_fit_enabled = false; // Manual pan disables auto-fit
+                self.auto_fit_pending = false;
+                self.canvas_state.scroll_offset.x += dx;
+                self.canvas_state.scroll_offset.y += dy;
+                self.canvas_state.request_redraw();
+            }
+            CanvasMessage::ZoomBy(factor) => {
+                self.auto_fit_enabled = false; // Manual zoom disables auto-fit
+                self.auto_fit_pending = false;
+                self.canvas_state.zoom = (self.canvas_state.zoom * factor).clamp(0.1, 5.0);
+                self.canvas_state.request_redraw();
+                let pct = (self.canvas_state.zoom * 100.0) as u32;
+                self.status = format!("Zoom: {pct}%");
+            }
+            CanvasMessage::InitializerEdit(node_idx, port_name) => {
+                // Look up current initializer from the model (flow definition)
+                let (init_type, value_text) = self
+                    .flow_definition
+                    .process_refs
+                    .get(node_idx)
+                    .and_then(|pr| pr.initializations.get(&port_name))
+                    .map_or_else(
+                        || ("none".to_string(), String::new()),
+                        |init| match init {
+                            InputInitializer::Once(v) => (
+                                "once".to_string(),
+                                serde_json::to_string(v).unwrap_or_default(),
+                            ),
+                            InputInitializer::Always(v) => (
+                                "always".to_string(),
+                                serde_json::to_string(v).unwrap_or_default(),
+                            ),
+                        },
+                    );
+
+                self.initializer_editor = Some(InitializerEditor {
+                    node_index: node_idx,
+                    port_name,
+                    init_type,
+                    value_text,
                 });
-                win.selected_connection = None;
-                win.canvas_state.request_redraw();
-                let nc = win.flow_definition.process_refs.len();
-                let ec = win.flow_definition.connections.len();
-                win.status = format!("Connection deleted - {nc} nodes, {ec} connections");
+            }
+            CanvasMessage::OpenNode(idx) => {
+                return CanvasAction::OpenNode(idx);
+            }
+            CanvasMessage::ContextMenu(x, y) => {
+                self.context_menu = Some((x, y));
             }
         }
-        CanvasMessage::HoverChanged(data) => {
-            win.tooltip = data;
-        }
-        CanvasMessage::AutoFitViewport(viewport) => {
-            if win.auto_fit_enabled || win.auto_fit_pending {
-                let has_flow_io = !win.flow_definition.inputs.is_empty()
-                    || !win.flow_definition.outputs.is_empty();
-                let render_nodes = build_render_nodes(&win.flow_definition);
-                win.canvas_state
-                    .auto_fit(&render_nodes, has_flow_io, viewport);
-                win.auto_fit_pending = false;
-            }
-        }
-        CanvasMessage::Pan(dx, dy) => {
-            win.auto_fit_enabled = false; // Manual pan disables auto-fit
-            win.auto_fit_pending = false;
-            win.canvas_state.scroll_offset.x += dx;
-            win.canvas_state.scroll_offset.y += dy;
-            win.canvas_state.request_redraw();
-        }
-        CanvasMessage::ZoomBy(factor) => {
-            win.auto_fit_enabled = false; // Manual zoom disables auto-fit
-            win.auto_fit_pending = false;
-            win.canvas_state.zoom = (win.canvas_state.zoom * factor).clamp(0.1, 5.0);
-            win.canvas_state.request_redraw();
-            let pct = (win.canvas_state.zoom * 100.0) as u32;
-            win.status = format!("Zoom: {pct}%");
-        }
-        CanvasMessage::InitializerEdit(node_idx, port_name) => {
-            // Look up current initializer from the model (flow definition)
-            let (init_type, value_text) = win
-                .flow_definition
-                .process_refs
-                .get(node_idx)
-                .and_then(|pr| pr.initializations.get(&port_name))
-                .map_or_else(
-                    || ("none".to_string(), String::new()),
-                    |init| match init {
-                        InputInitializer::Once(v) => (
-                            "once".to_string(),
-                            serde_json::to_string(v).unwrap_or_default(),
-                        ),
-                        InputInitializer::Always(v) => (
-                            "always".to_string(),
-                            serde_json::to_string(v).unwrap_or_default(),
-                        ),
-                    },
-                );
-
-            win.initializer_editor = Some(InitializerEditor {
-                node_index: node_idx,
-                port_name,
-                init_type,
-                value_text,
-            });
-        }
-        CanvasMessage::OpenNode(idx) => {
-            return CanvasAction::OpenNode(idx);
-        }
-        CanvasMessage::ContextMenu(x, y) => {
-            win.context_menu = Some((x, y));
-        }
+        CanvasAction::None
     }
-    CanvasAction::None
-}
 
-pub(crate) fn update(win: &mut WindowState, msg: &ViewMessage) {
-    match msg {
-        ViewMessage::ZoomIn => {
-            win.auto_fit_enabled = false;
-            win.auto_fit_pending = false;
-            win.canvas_state.zoom_in();
-            let pct = (win.canvas_state.zoom * 100.0) as u32;
-            win.status = format!("Zoom: {pct}%");
-        }
-        ViewMessage::ZoomOut => {
-            win.auto_fit_enabled = false;
-            win.auto_fit_pending = false;
-            win.canvas_state.zoom_out();
-            let pct = (win.canvas_state.zoom * 100.0) as u32;
-            win.status = format!("Zoom: {pct}%");
-        }
-        ViewMessage::ToggleAutoFit => {
-            win.auto_fit_enabled = !win.auto_fit_enabled;
-            if win.auto_fit_enabled {
-                win.auto_fit_pending = true;
-                win.canvas_state.request_redraw();
-                win.status = String::from("Auto-fit enabled");
-            } else {
-                win.status = String::from("Auto-fit disabled");
+    pub(crate) fn handle_view_message(&mut self, msg: &ViewMessage) {
+        match msg {
+            ViewMessage::ZoomIn => {
+                self.auto_fit_enabled = false;
+                self.auto_fit_pending = false;
+                self.canvas_state.zoom_in();
+                let pct = (self.canvas_state.zoom * 100.0) as u32;
+                self.status = format!("Zoom: {pct}%");
+            }
+            ViewMessage::ZoomOut => {
+                self.auto_fit_enabled = false;
+                self.auto_fit_pending = false;
+                self.canvas_state.zoom_out();
+                let pct = (self.canvas_state.zoom * 100.0) as u32;
+                self.status = format!("Zoom: {pct}%");
+            }
+            ViewMessage::ToggleAutoFit => {
+                self.auto_fit_enabled = !self.auto_fit_enabled;
+                if self.auto_fit_enabled {
+                    self.auto_fit_pending = true;
+                    self.canvas_state.request_redraw();
+                    self.status = String::from("Auto-fit enabled");
+                } else {
+                    self.status = String::from("Auto-fit disabled");
+                }
             }
         }
     }
@@ -670,6 +672,42 @@ impl NodeLayout {
             (ResizeHandle::Bottom, Point::new(mid_x, bottom)),
             (ResizeHandle::BottomRight, Point::new(right, bottom)),
         ]
+    }
+
+    fn is_in_source_text_zone(&self, point: Point) -> bool {
+        let text_center_x = self.x + self.width / 2.0;
+        let text_top_y = self.y + 34.0;
+        let text_height = SOURCE_FONT_SIZE + 4.0;
+        let text_half_width = self.width * 0.4;
+
+        point.x >= text_center_x - text_half_width
+            && point.x <= text_center_x + text_half_width
+            && point.y >= text_top_y
+            && point.y <= text_top_y + text_height
+    }
+
+    fn find_output_pos_inline(&self, port: &str) -> Point {
+        if port.is_empty() {
+            self.output_port_position(0)
+        } else {
+            let base = base_port_name(port);
+            let idx = self
+                .outputs
+                .iter()
+                .position(|p| p.name == base)
+                .unwrap_or(0);
+            self.output_port_position(idx)
+        }
+    }
+
+    fn find_input_pos_inline(&self, port: &str) -> Point {
+        if port.is_empty() {
+            self.input_port_position(0)
+        } else {
+            let base = base_port_name(port);
+            let idx = self.inputs.iter().position(|p| p.name == base).unwrap_or(0);
+            self.input_port_position(idx)
+        }
     }
 }
 
@@ -1112,17 +1150,6 @@ fn hit_test_node(nodes: &[NodeLayout], point: Point) -> Option<usize> {
 /// Check whether `point` (world coords) is within the source text zone of a node.
 /// The source text zone is the area where the source path is displayed, centered
 /// horizontally at 34px below the node top.
-fn is_in_source_text_zone(node: &NodeLayout, point: Point) -> bool {
-    let text_center_x = node.x + node.width / 2.0;
-    let text_top_y = node.y + 34.0;
-    let text_height = SOURCE_FONT_SIZE + 4.0;
-    let text_half_width = node.width * 0.4;
-
-    point.x >= text_center_x - text_half_width
-        && point.x <= text_center_x + text_half_width
-        && point.y >= text_top_y
-        && point.y <= text_top_y + text_height
-}
 
 /// Check whether `point` (world coords) is on the open icon of an openable node.
 /// The icon occupies a 16x16 area in the top-right corner of the node.
@@ -1274,30 +1301,6 @@ fn base_port_name(port: &str) -> &str {
     }
 }
 
-fn find_node_output_pos_inline(node: &NodeLayout, port: &str) -> Point {
-    if port.is_empty() {
-        node.output_port_position(0)
-    } else {
-        let base = base_port_name(port);
-        let idx = node
-            .outputs
-            .iter()
-            .position(|p| p.name == base)
-            .unwrap_or(0);
-        node.output_port_position(idx)
-    }
-}
-
-fn find_node_input_pos_inline(node: &NodeLayout, port: &str) -> Point {
-    if port.is_empty() {
-        node.input_port_position(0)
-    } else {
-        let base = base_port_name(port);
-        let idx = node.inputs.iter().position(|p| p.name == base).unwrap_or(0);
-        node.input_port_position(idx)
-    }
-}
-
 /// Squared distance from point `p` to the line segment `a`--`b`.
 #[allow(clippy::similar_names)]
 fn distance_to_segment_sq(p: Point, a: Point, b: Point) -> f32 {
@@ -1364,7 +1367,7 @@ fn hit_test_connection(
             } else {
                 node_map
                     .get(from_node_str.as_str())
-                    .map(|n| find_node_output_pos_inline(n, &from_port_str))
+                    .map(|n| n.find_output_pos_inline(&from_port_str))
             };
 
             let to_point = if to_node_str == "output" {
@@ -1373,7 +1376,7 @@ fn hit_test_connection(
             } else {
                 node_map
                     .get(to_node_str.as_str())
-                    .map(|n| find_node_input_pos_inline(n, &to_port_str))
+                    .map(|n| n.find_input_pos_inline(&to_port_str))
             };
 
             if let (Some(from_point), Some(to_point)) = (from_point, to_point) {
@@ -1805,7 +1808,7 @@ impl canvas::Program<CanvasMessage> for FlowCanvas<'_> {
                                     zoom,
                                     offset,
                                 );
-                                if is_in_source_text_zone(n, world_pos) {
+                                if n.is_in_source_text_zone(world_pos) {
                                     Some((n.source.clone(), bottom_center.x, bottom_center.y))
                                 } else if !n.description.is_empty() {
                                     Some((n.description.clone(), bottom_center.x, bottom_center.y))
@@ -2908,229 +2911,229 @@ fn check_port_type_compatibility(
 /// Build the complete canvas area for a flow-editor window, including the
 /// interactive canvas, zoom controls, tooltip overlay, initializer editor
 /// dialog, and right-click context menu.
-pub(crate) fn view_canvas_area(win: &WindowState, window_id: window::Id) -> Element<'_, Message> {
-    let canvas = win
-        .canvas_state
-        .view(
-            &win.flow_definition,
-            &win.flow_definition.connections,
-            &win.flow_definition.name,
-            &win.flow_definition.inputs,
-            &win.flow_definition.outputs,
-            !win.is_root,
-            win.auto_fit_pending,
-            win.auto_fit_enabled,
-        )
-        .map(move |msg| Message::WindowCanvas(window_id, msg));
+impl WindowState {
+    pub(crate) fn view_canvas_area(&self, window_id: window::Id) -> Element<'_, Message> {
+        let canvas = self
+            .canvas_state
+            .view(
+                &self.flow_definition,
+                &self.flow_definition.connections,
+                &self.flow_definition.name,
+                &self.flow_definition.inputs,
+                &self.flow_definition.outputs,
+                !self.is_root,
+                self.auto_fit_pending,
+                self.auto_fit_enabled,
+            )
+            .map(move |msg| Message::WindowCanvas(window_id, msg));
 
-    let zoom_btn = |_theme: &Theme, status: button::Status| -> button::Style {
-        let is_hovered = matches!(status, button::Status::Hovered);
-        button::Style {
-            background: Some(iced::Background::Color(Color::from_rgb(0.25, 0.25, 0.30))),
-            text_color: Color::WHITE,
-            border: iced::Border {
-                color: if is_hovered {
-                    Color::WHITE
-                } else {
-                    Color::from_rgb(0.4, 0.4, 0.45)
-                },
-                width: 2.0,
-                radius: 8.0.into(),
-            },
-            ..Default::default()
-        }
-    };
-    let zoom_btn_active = |_theme: &Theme, status: button::Status| -> button::Style {
-        let is_hovered = matches!(status, button::Status::Hovered);
-        button::Style {
-            background: Some(iced::Background::Color(Color::from_rgb(0.3, 0.35, 0.5))),
-            text_color: Color::WHITE,
-            border: iced::Border {
-                color: if is_hovered {
-                    Color::WHITE
-                } else {
-                    Color::from_rgb(0.4, 0.5, 0.7)
-                },
-                width: 2.0,
-                radius: 8.0.into(),
-            },
-            ..Default::default()
-        }
-    };
-    let btn_width = 40;
-    let zoom_controls = container(
-        Column::new()
-            .spacing(4)
-            .push(
-                button(Text::new("+").center())
-                    .on_press(Message::View(window_id, ViewMessage::ZoomIn))
-                    .width(btn_width)
-                    .style(zoom_btn),
-            )
-            .push(
-                button(Text::new("\u{2212}").center())
-                    .on_press(Message::View(window_id, ViewMessage::ZoomOut))
-                    .width(btn_width)
-                    .style(zoom_btn),
-            )
-            .push(
-                button(Text::new("Fit").center())
-                    .on_press(Message::View(window_id, ViewMessage::ToggleAutoFit))
-                    .width(btn_width)
-                    .style(if win.auto_fit_enabled {
-                        zoom_btn_active
+        let zoom_btn = |_theme: &Theme, status: button::Status| -> button::Style {
+            let is_hovered = matches!(status, button::Status::Hovered);
+            button::Style {
+                background: Some(iced::Background::Color(Color::from_rgb(0.25, 0.25, 0.30))),
+                text_color: Color::WHITE,
+                border: iced::Border {
+                    color: if is_hovered {
+                        Color::WHITE
                     } else {
-                        zoom_btn
-                    }),
-            ),
-    )
-    .align_right(Fill)
-    .align_bottom(Fill)
-    .padding(10);
-
-    let mut canvas_stack: Vec<Element<'_, Message>> = vec![canvas, zoom_controls.into()];
-
-    if let Some((ref tip_text, tx, ty)) = win.tooltip {
-        let tooltip_widget = container(
-            container(Text::new(tip_text.clone()).size(20).color(Color::WHITE))
-                .padding(8)
-                .style(|_theme: &Theme| container::Style {
-                    background: Some(iced::Background::Color(Color::from_rgb(0.12, 0.12, 0.12))),
-                    border: iced::Border {
-                        color: Color::WHITE,
-                        width: 1.0,
-                        radius: 6.0.into(),
+                        Color::from_rgb(0.4, 0.4, 0.45)
                     },
-                    ..Default::default()
-                }),
-        )
-        .padding(iced::Padding {
-            top: ty + 6.0,
-            right: 0.0,
-            bottom: 0.0,
-            left: (tx - 80.0).max(0.0),
-        });
-        canvas_stack.push(tooltip_widget.into());
-    }
-
-    // Initializer editor dialog overlay
-    if let Some(ref editor) = win.initializer_editor {
-        let port_label = if let Some(pref) = win.flow_definition.process_refs.get(editor.node_index)
-        {
-            let alias = if pref.alias.is_empty() {
-                derive_short_name(&pref.source)
-            } else {
-                pref.alias.clone()
-            };
-            format!("{}/{}", alias, editor.port_name)
-        } else {
-            editor.port_name.clone()
+                    width: 2.0,
+                    radius: 8.0.into(),
+                },
+                ..Default::default()
+            }
         };
-
-        let init_types = vec!["none", "once", "always"];
-        let selected: Option<&str> = init_types.iter().find(|&&t| t == editor.init_type).copied();
-
-        let mut dialog_col = Column::new()
-            .spacing(8)
-            .padding(12)
-            .push(Text::new(format!("Initializer: {port_label}")).size(14))
-            .push(
-                pick_list(init_types, selected, move |s: &str| {
-                    Message::InitializerTypeChanged(window_id, s.to_string())
-                })
-                .text_size(12),
-            );
-
-        if editor.init_type != "none" {
-            dialog_col = dialog_col.push(
-                text_input("JSON value (e.g. 42, \"hello\", true)", &editor.value_text)
-                    .on_input(move |v| Message::InitializerValueChanged(window_id, v))
-                    .size(12)
-                    .padding(6),
-            );
-        }
-
-        dialog_col = dialog_col.push(
-            Row::new()
-                .spacing(8)
+        let zoom_btn_active = |_theme: &Theme, status: button::Status| -> button::Style {
+            let is_hovered = matches!(status, button::Status::Hovered);
+            button::Style {
+                background: Some(iced::Background::Color(Color::from_rgb(0.3, 0.35, 0.5))),
+                text_color: Color::WHITE,
+                border: iced::Border {
+                    color: if is_hovered {
+                        Color::WHITE
+                    } else {
+                        Color::from_rgb(0.4, 0.5, 0.7)
+                    },
+                    width: 2.0,
+                    radius: 8.0.into(),
+                },
+                ..Default::default()
+            }
+        };
+        let btn_width = 40;
+        let zoom_controls = container(
+            Column::new()
+                .spacing(4)
                 .push(
-                    button(Text::new("Apply").size(12).center())
-                        .on_press(Message::InitializerApply(window_id))
-                        .style(button::primary)
-                        .padding(6),
+                    button(Text::new("+").center())
+                        .on_press(Message::View(window_id, ViewMessage::ZoomIn))
+                        .width(btn_width)
+                        .style(zoom_btn),
                 )
                 .push(
-                    button(Text::new("Cancel").size(12).center())
-                        .on_press(Message::InitializerCancel(window_id))
-                        .style(button::secondary)
-                        .padding(6),
+                    button(Text::new("\u{2212}").center())
+                        .on_press(Message::View(window_id, ViewMessage::ZoomOut))
+                        .width(btn_width)
+                        .style(zoom_btn),
+                )
+                .push(
+                    button(Text::new("Fit").center())
+                        .on_press(Message::View(window_id, ViewMessage::ToggleAutoFit))
+                        .width(btn_width)
+                        .style(if self.auto_fit_enabled {
+                            zoom_btn_active
+                        } else {
+                            zoom_btn
+                        }),
                 ),
-        );
+        )
+        .align_right(Fill)
+        .align_bottom(Fill)
+        .padding(10);
 
-        let dialog =
-            container(
-                container(dialog_col)
-                    .width(280)
+        let mut canvas_stack: Vec<Element<'_, Message>> = vec![canvas, zoom_controls.into()];
+
+        if let Some((ref tip_text, tx, ty)) = self.tooltip {
+            let tooltip_widget = container(
+                container(Text::new(tip_text.clone()).size(20).color(Color::WHITE))
+                    .padding(8)
                     .style(|_theme: &Theme| container::Style {
                         background: Some(iced::Background::Color(Color::from_rgb(
-                            0.15, 0.15, 0.15,
+                            0.12, 0.12, 0.12,
                         ))),
                         border: iced::Border {
-                            color: Color::from_rgb(0.4, 0.4, 0.4),
+                            color: Color::WHITE,
                             width: 1.0,
-                            radius: 8.0.into(),
+                            radius: 6.0.into(),
                         },
                         ..Default::default()
                     }),
             )
+            .padding(iced::Padding {
+                top: ty + 6.0,
+                right: 0.0,
+                bottom: 0.0,
+                left: (tx - 80.0).max(0.0),
+            });
+            canvas_stack.push(tooltip_widget.into());
+        }
+
+        // Initializer editor dialog overlay
+        if let Some(ref editor) = self.initializer_editor {
+            let port_label =
+                if let Some(pref) = self.flow_definition.process_refs.get(editor.node_index) {
+                    let alias = if pref.alias.is_empty() {
+                        derive_short_name(&pref.source)
+                    } else {
+                        pref.alias.clone()
+                    };
+                    format!("{}/{}", alias, editor.port_name)
+                } else {
+                    editor.port_name.clone()
+                };
+
+            let init_types = vec!["none", "once", "always"];
+            let selected: Option<&str> =
+                init_types.iter().find(|&&t| t == editor.init_type).copied();
+
+            let mut dialog_col = Column::new()
+                .spacing(8)
+                .padding(12)
+                .push(Text::new(format!("Initializer: {port_label}")).size(14))
+                .push(
+                    pick_list(init_types, selected, move |s: &str| {
+                        Message::InitializerTypeChanged(window_id, s.to_string())
+                    })
+                    .text_size(12),
+                );
+
+            if editor.init_type != "none" {
+                dialog_col = dialog_col.push(
+                    text_input("JSON value (e.g. 42, \"hello\", true)", &editor.value_text)
+                        .on_input(move |v| Message::InitializerValueChanged(window_id, v))
+                        .size(12)
+                        .padding(6),
+                );
+            }
+
+            dialog_col = dialog_col.push(
+                Row::new()
+                    .spacing(8)
+                    .push(
+                        button(Text::new("Apply").size(12).center())
+                            .on_press(Message::InitializerApply(window_id))
+                            .style(button::primary)
+                            .padding(6),
+                    )
+                    .push(
+                        button(Text::new("Cancel").size(12).center())
+                            .on_press(Message::InitializerCancel(window_id))
+                            .style(button::secondary)
+                            .padding(6),
+                    ),
+            );
+
+            let dialog = container(container(dialog_col).width(280).style(|_theme: &Theme| {
+                container::Style {
+                    background: Some(iced::Background::Color(Color::from_rgb(0.15, 0.15, 0.15))),
+                    border: iced::Border {
+                        color: Color::from_rgb(0.4, 0.4, 0.4),
+                        width: 1.0,
+                        radius: 8.0.into(),
+                    },
+                    ..Default::default()
+                }
+            }))
             .center(Fill);
 
-        canvas_stack.push(dialog.into());
+            canvas_stack.push(dialog.into());
+        }
+
+        // Context menu overlay (right-click on empty canvas)
+        if let Some((cx, cy)) = self.context_menu {
+            let menu = container(
+                Column::new()
+                    .spacing(2)
+                    .push(
+                        button(Text::new("+ New Sub-flow").size(13))
+                            .on_press(Message::NewSubFlow(window_id))
+                            .style(button::text)
+                            .padding([6, 16])
+                            .width(Fill),
+                    )
+                    .push(
+                        button(Text::new("+ New Function").size(13))
+                            .on_press(Message::NewFunction(window_id))
+                            .style(button::text)
+                            .padding([6, 16])
+                            .width(Fill),
+                    ),
+            )
+            .style(|_theme: &Theme| container::Style {
+                background: Some(iced::Background::Color(Color::from_rgb(0.18, 0.18, 0.22))),
+                border: iced::Border {
+                    color: Color::from_rgb(0.4, 0.4, 0.4),
+                    width: 1.0,
+                    radius: 6.0.into(),
+                },
+                ..Default::default()
+            })
+            .width(160)
+            .padding(4);
+
+            let positioned = container(menu).padding(iced::Padding {
+                top: cy,
+                left: cx,
+                right: 0.0,
+                bottom: 0.0,
+            });
+            canvas_stack.push(positioned.into());
+        }
+
+        stack(canvas_stack).into()
     }
-
-    // Context menu overlay (right-click on empty canvas)
-    if let Some((cx, cy)) = win.context_menu {
-        let menu = container(
-            Column::new()
-                .spacing(2)
-                .push(
-                    button(Text::new("+ New Sub-flow").size(13))
-                        .on_press(Message::NewSubFlow(window_id))
-                        .style(button::text)
-                        .padding([6, 16])
-                        .width(Fill),
-                )
-                .push(
-                    button(Text::new("+ New Function").size(13))
-                        .on_press(Message::NewFunction(window_id))
-                        .style(button::text)
-                        .padding([6, 16])
-                        .width(Fill),
-                ),
-        )
-        .style(|_theme: &Theme| container::Style {
-            background: Some(iced::Background::Color(Color::from_rgb(0.18, 0.18, 0.22))),
-            border: iced::Border {
-                color: Color::from_rgb(0.4, 0.4, 0.4),
-                width: 1.0,
-                radius: 6.0.into(),
-            },
-            ..Default::default()
-        })
-        .width(160)
-        .padding(4);
-
-        let positioned = container(menu).padding(iced::Padding {
-            top: cy,
-            left: cx,
-            right: 0.0,
-            bottom: 0.0,
-        });
-        canvas_stack.push(positioned.into());
-    }
-
-    stack(canvas_stack).into()
-}
+} // impl WindowState (view)
 
 #[cfg(test)]
 #[allow(clippy::indexing_slicing)]
@@ -3300,10 +3303,10 @@ mod test {
         };
         // Source text is centered at (node.x + width/2, node.y + 34.0)
         let source_center = Point::new(190.0, 134.0);
-        assert!(is_in_source_text_zone(&node, source_center));
+        assert!(node.is_in_source_text_zone(source_center));
         // Point clearly outside source text zone but inside node
         let node_body = Point::new(110.0, 200.0);
-        assert!(!is_in_source_text_zone(&node, node_body));
+        assert!(!node.is_in_source_text_zone(node_body));
     }
 
     #[test]
@@ -3674,8 +3677,8 @@ mod test {
             ],
             ..Default::default()
         };
-        let string_pos = find_node_output_pos_inline(&node, "string/1");
-        let json_pos = find_node_output_pos_inline(&node, "json/2");
+        let string_pos = node.find_output_pos_inline("string/1");
+        let json_pos = node.find_output_pos_inline("json/2");
         // string is output 0, json is output 1 — different y positions
         assert!((json_pos.y - string_pos.y).abs() > 1.0);
     }
