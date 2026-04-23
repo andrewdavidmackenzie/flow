@@ -125,16 +125,21 @@ fn handle_flow_edit_message(win: &mut WindowState, msg: FlowEditMessage) {
             if let Some(io) = win.flow_definition.outputs.get(idx) {
                 let name = io.name().clone();
                 win.flow_definition.outputs.remove(idx);
-                // Remove connections referencing this flow output
-                win.flow_definition.connections.retain(|c| {
-                    for to_route in c.to() {
-                        let (to_node, to_port) = canvas_view::split_route(to_route.as_ref());
-                        if to_node == "output" && to_port == name {
-                            return false;
-                        }
-                    }
-                    true
-                });
+                for conn in &mut win.flow_definition.connections {
+                    let new_to: Vec<Route> = conn
+                        .to()
+                        .iter()
+                        .filter(|to_route| {
+                            let (to_node, to_port) = canvas_view::split_route(to_route.as_ref());
+                            !(to_node == "output" && to_port == name)
+                        })
+                        .cloned()
+                        .collect();
+                    conn.set_to(new_to);
+                }
+                win.flow_definition
+                    .connections
+                    .retain(|c| !c.to().is_empty());
                 win.history.mark_modified();
                 win.canvas_state.request_redraw();
             }
@@ -2393,6 +2398,13 @@ impl FlowEdit {
                 Self::propagate_function_ports(&mut self.windows, win_id);
             }
             FunctionEditMessage::DeleteInput(idx) => {
+                let old_name = self.windows.get(&win_id).and_then(|win| {
+                    if let WindowKind::FunctionViewer(ref v) = win.kind {
+                        v.func_def.inputs.get(idx).map(|io| io.name().clone())
+                    } else {
+                        None
+                    }
+                });
                 if let Some(win) = self.windows.get_mut(&win_id) {
                     if let WindowKind::FunctionViewer(ref mut v) = win.kind {
                         if idx < v.func_def.inputs.len() {
@@ -2402,8 +2414,23 @@ impl FlowEdit {
                     win.history.mark_modified();
                 }
                 Self::propagate_function_ports(&mut self.windows, win_id);
+                if let Some(port_name) = old_name {
+                    Self::remove_parent_connections_to_port(
+                        &mut self.windows,
+                        win_id,
+                        &port_name,
+                        true,
+                    );
+                }
             }
             FunctionEditMessage::DeleteOutput(idx) => {
+                let old_name = self.windows.get(&win_id).and_then(|win| {
+                    if let WindowKind::FunctionViewer(ref v) = win.kind {
+                        v.func_def.outputs.get(idx).map(|io| io.name().clone())
+                    } else {
+                        None
+                    }
+                });
                 if let Some(win) = self.windows.get_mut(&win_id) {
                     if let WindowKind::FunctionViewer(ref mut v) = win.kind {
                         if idx < v.func_def.outputs.len() {
@@ -2413,17 +2440,41 @@ impl FlowEdit {
                     win.history.mark_modified();
                 }
                 Self::propagate_function_ports(&mut self.windows, win_id);
+                if let Some(port_name) = old_name {
+                    Self::remove_parent_connections_to_port(
+                        &mut self.windows,
+                        win_id,
+                        &port_name,
+                        false,
+                    );
+                }
             }
             FunctionEditMessage::InputNameChanged(idx, name) => {
+                let old_name = self.windows.get(&win_id).and_then(|win| {
+                    if let WindowKind::FunctionViewer(ref v) = win.kind {
+                        v.func_def.inputs.get(idx).map(|io| io.name().clone())
+                    } else {
+                        None
+                    }
+                });
                 if let Some(win) = self.windows.get_mut(&win_id) {
                     if let WindowKind::FunctionViewer(ref mut v) = win.kind {
                         if let Some(io) = v.func_def.inputs.get_mut(idx) {
-                            io.set_name(name);
+                            io.set_name(name.clone());
                         }
                     }
                     win.history.mark_modified();
                 }
                 Self::propagate_function_ports(&mut self.windows, win_id);
+                if let Some(old) = old_name {
+                    Self::rename_parent_connections_port(
+                        &mut self.windows,
+                        win_id,
+                        &old,
+                        &name,
+                        true,
+                    );
+                }
             }
             FunctionEditMessage::InputTypeChanged(idx, dtype) => {
                 if let Some(win) = self.windows.get_mut(&win_id) {
@@ -2437,15 +2488,31 @@ impl FlowEdit {
                 Self::propagate_function_ports(&mut self.windows, win_id);
             }
             FunctionEditMessage::OutputNameChanged(idx, name) => {
+                let old_name = self.windows.get(&win_id).and_then(|win| {
+                    if let WindowKind::FunctionViewer(ref v) = win.kind {
+                        v.func_def.outputs.get(idx).map(|io| io.name().clone())
+                    } else {
+                        None
+                    }
+                });
                 if let Some(win) = self.windows.get_mut(&win_id) {
                     if let WindowKind::FunctionViewer(ref mut v) = win.kind {
                         if let Some(io) = v.func_def.outputs.get_mut(idx) {
-                            io.set_name(name);
+                            io.set_name(name.clone());
                         }
                     }
                     win.history.mark_modified();
                 }
                 Self::propagate_function_ports(&mut self.windows, win_id);
+                if let Some(old) = old_name {
+                    Self::rename_parent_connections_port(
+                        &mut self.windows,
+                        win_id,
+                        &old,
+                        &name,
+                        false,
+                    );
+                }
             }
             FunctionEditMessage::OutputTypeChanged(idx, dtype) => {
                 if let Some(win) = self.windows.get_mut(&win_id) {
@@ -2525,6 +2592,108 @@ impl FlowEdit {
                                     f.outputs.clone_from(&new_outputs);
                                 }
                             }
+                        }
+                    }
+                }
+                parent_win.canvas_state.request_redraw();
+            }
+        }
+    }
+
+    fn remove_parent_connections_to_port(
+        windows: &mut HashMap<window::Id, WindowState>,
+        viewer_win_id: window::Id,
+        port_name: &str,
+        is_input: bool,
+    ) {
+        let info = windows.get(&viewer_win_id).and_then(|win| {
+            if let WindowKind::FunctionViewer(ref v) = win.kind {
+                v.parent_window.map(|pid| (pid, v.node_source.clone()))
+            } else {
+                None
+            }
+        });
+        if let Some((parent_id, node_source)) = info {
+            if let Some(parent_win) = windows.get_mut(&parent_id) {
+                for pref in &parent_win.flow_definition.process_refs {
+                    if pref.source != node_source {
+                        continue;
+                    }
+                    let alias = if pref.alias.is_empty() {
+                        canvas_view::derive_short_name(&pref.source)
+                    } else {
+                        pref.alias.clone()
+                    };
+                    let route = format!("{alias}/{port_name}");
+                    if is_input {
+                        for conn in &mut parent_win.flow_definition.connections {
+                            let new_to: Vec<Route> = conn
+                                .to()
+                                .iter()
+                                .filter(|r| r.as_ref() != route)
+                                .cloned()
+                                .collect();
+                            conn.set_to(new_to);
+                        }
+                        parent_win
+                            .flow_definition
+                            .connections
+                            .retain(|c| !c.to().is_empty());
+                    } else {
+                        parent_win
+                            .flow_definition
+                            .connections
+                            .retain(|c| c.from().as_ref() != route);
+                    }
+                }
+                parent_win.canvas_state.request_redraw();
+            }
+        }
+    }
+
+    fn rename_parent_connections_port(
+        windows: &mut HashMap<window::Id, WindowState>,
+        viewer_win_id: window::Id,
+        old_port: &str,
+        new_port: &str,
+        is_input: bool,
+    ) {
+        let info = windows.get(&viewer_win_id).and_then(|win| {
+            if let WindowKind::FunctionViewer(ref v) = win.kind {
+                v.parent_window.map(|pid| (pid, v.node_source.clone()))
+            } else {
+                None
+            }
+        });
+        if let Some((parent_id, node_source)) = info {
+            if let Some(parent_win) = windows.get_mut(&parent_id) {
+                for pref in &parent_win.flow_definition.process_refs {
+                    if pref.source != node_source {
+                        continue;
+                    }
+                    let alias = if pref.alias.is_empty() {
+                        canvas_view::derive_short_name(&pref.source)
+                    } else {
+                        pref.alias.clone()
+                    };
+                    let old_route = format!("{alias}/{old_port}");
+                    let new_route = format!("{alias}/{new_port}");
+                    for conn in &mut parent_win.flow_definition.connections {
+                        if is_input {
+                            let new_to: Vec<Route> = conn
+                                .to()
+                                .iter()
+                                .map(|r| {
+                                    if r.as_ref() == old_route {
+                                        Route::from(new_route.as_str())
+                                    } else {
+                                        r.clone()
+                                    }
+                                })
+                                .collect();
+                            conn.set_to(new_to);
+                        } else if conn.from().as_ref() == old_route {
+                            conn.set_from(new_route.as_str());
                         }
                     }
                 }

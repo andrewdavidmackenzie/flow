@@ -178,7 +178,7 @@ pub(crate) fn add_library_function(win: &mut WindowState, source: &str, func_nam
         win.flow_definition.subprocesses.insert(alias.clone(), proc);
     }
 
-    win.history.record(EditAction::DeleteNode {
+    win.history.record(EditAction::CreateNode {
         index,
         process_ref: pref,
         subprocess: win
@@ -186,10 +186,7 @@ pub(crate) fn add_library_function(win: &mut WindowState, source: &str, func_nam
             .subprocesses
             .get(&alias)
             .map(|p| (alias.clone(), p.clone())),
-        removed_connections: Vec::new(),
     });
-    // Note: We record a DeleteNode so that *undo* removes the added node.
-    // This is intentional: undoing an "add" means deleting what was added.
 
     win.selected_node = Some(index);
     win.canvas_state.request_redraw();

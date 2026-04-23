@@ -52,6 +52,15 @@ pub(crate) enum EditAction {
         /// New geometry
         new_h: f32,
     },
+    /// A node was created. Stores the info needed to undo (remove) and redo (re-add) it.
+    CreateNode {
+        /// Index where the node was added
+        index: usize,
+        /// The created process reference
+        process_ref: ProcessReference,
+        /// The subprocess definition, if any
+        subprocess: Option<(Name, Process)>,
+    },
     /// A node was deleted. Stores the process reference and subprocess for restoration.
     DeleteNode {
         /// Index where the node was
@@ -203,6 +212,25 @@ fn apply_undo(win: &mut WindowState) {
                 }
                 win.status = String::from("Undo: resize");
             }
+            EditAction::CreateNode {
+                index,
+                ref process_ref,
+                ..
+            } => {
+                let alias = if process_ref.alias.is_empty() {
+                    crate::canvas_view::derive_short_name(&process_ref.source)
+                } else {
+                    process_ref.alias.clone()
+                };
+                if index < win.flow_definition.process_refs.len() {
+                    win.flow_definition.process_refs.remove(index);
+                    win.flow_definition.subprocesses.remove(&alias);
+                    win.flow_definition
+                        .connections
+                        .retain(|c| !crate::canvas_view::connection_references_node(c, &alias));
+                }
+                win.status = String::from("Undo: create node");
+            }
             EditAction::DeleteNode {
                 index,
                 process_ref,
@@ -275,6 +303,18 @@ fn apply_redo(win: &mut WindowState) {
                     pref.height = Some(new_h);
                 }
                 win.status = String::from("Redo: resize");
+            }
+            EditAction::CreateNode {
+                index,
+                process_ref,
+                subprocess,
+            } => {
+                let idx = index.min(win.flow_definition.process_refs.len());
+                win.flow_definition.process_refs.insert(idx, process_ref);
+                if let Some((name, proc)) = subprocess {
+                    win.flow_definition.subprocesses.insert(name, proc);
+                }
+                win.status = String::from("Redo: create node");
             }
             EditAction::DeleteNode {
                 index,
