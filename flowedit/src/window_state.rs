@@ -71,10 +71,6 @@ pub(crate) struct WindowState {
     pub(crate) auto_fit_pending: bool,
     /// Whether auto-fit mode is active (continuously fits to window)
     pub(crate) auto_fit_enabled: bool,
-    /// Count of unsaved edits (increments on edit/redo, decrements on undo)
-    pub(crate) unsaved_edits: i32,
-    /// Path to the last compiled manifest (None if not compiled or edited since)
-    pub(crate) compiled_manifest: Option<PathBuf>,
     /// The original flow definition, used to preserve metadata when saving
     pub(crate) flow_definition: FlowDefinition,
     /// Tooltip text and screen position to display (full source path on hover)
@@ -106,8 +102,6 @@ impl Default for WindowState {
             history: EditHistory::default(),
             auto_fit_pending: false,
             auto_fit_enabled: false,
-            unsaved_edits: 0,
-            compiled_manifest: None,
             flow_definition: FlowDefinition::default(),
             tooltip: None,
             initializer_editor: None,

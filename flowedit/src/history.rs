@@ -4,6 +4,8 @@
 //! information to both undo and redo the operation. The history is lost
 //! when the application exits.
 
+use std::path::{Path, PathBuf};
+
 use flowcore::model::connection::Connection;
 use flowcore::model::input::InputInitializer;
 use flowcore::model::name::Name;
@@ -86,20 +88,29 @@ pub(crate) enum EditAction {
     },
 }
 
-/// Edit history supporting undo and redo.
+/// Edit history supporting undo and redo, plus tracking of unsaved changes.
+///
+/// The `dirty` flag tracks non-undoable edits (e.g. metadata changes).
+/// The `compiled_manifest` is invalidated whenever any edit occurs.
 #[derive(Default)]
 pub(crate) struct EditHistory {
     /// Stack of actions that can be undone (most recent last)
     undo_stack: Vec<EditAction>,
     /// Stack of actions that can be redone (most recent last)
     redo_stack: Vec<EditAction>,
+    /// Whether non-undoable edits have been made since the last save/clear
+    dirty: bool,
+    /// Path to the last compiled manifest (invalidated on any edit)
+    compiled_manifest: Option<PathBuf>,
 }
 
 impl EditHistory {
-    /// Record a new action. Clears the redo stack since the history has diverged.
+    /// Record a new undoable action. Clears the redo stack since the history
+    /// has diverged, and invalidates the compiled manifest.
     pub(crate) fn record(&mut self, action: EditAction) {
         self.undo_stack.push(action);
         self.redo_stack.clear();
+        self.compiled_manifest = None;
     }
 
     /// Pop the most recent action for undoing. Returns `None` if nothing to undo.
@@ -116,22 +127,48 @@ impl EditHistory {
         Some(action)
     }
 
-    /// Returns true if there are actions that can be undone.
-    pub(crate) fn can_undo(&self) -> bool {
-        !self.undo_stack.is_empty()
+    /// Number of undoable actions on the stack.
+    #[allow(dead_code)]
+    pub(crate) fn len(&self) -> usize {
+        self.undo_stack.len()
+    }
+
+    /// Returns `true` if there are no unsaved changes -- neither undoable
+    /// actions on the stack nor a non-undoable `dirty` flag.
+    pub(crate) fn is_empty(&self) -> bool {
+        self.undo_stack.is_empty() && !self.dirty
+    }
+
+    /// Clear both stacks and the dirty flag. Called after a successful save.
+    pub(crate) fn clear(&mut self) {
+        self.undo_stack.clear();
+        self.redo_stack.clear();
+        self.dirty = false;
     }
 
     /// Returns true if there are actions that can be redone.
+    #[allow(dead_code)]
     pub(crate) fn can_redo(&self) -> bool {
         !self.redo_stack.is_empty()
     }
-}
 
-/// Record an edit action in the history and increment the unsaved edit count.
-pub(crate) fn record_edit(win: &mut WindowState, action: EditAction) {
-    win.history.record(action);
-    win.unsaved_edits += 1;
-    win.compiled_manifest = None; // Invalidate compilation on any edit
+    /// Mark the history as having non-undoable modifications (e.g. metadata
+    /// edits). Invalidates the compiled manifest.
+    pub(crate) fn mark_modified(&mut self) {
+        self.dirty = true;
+        self.compiled_manifest = None;
+    }
+
+    /// Path to the last compiled manifest, if any and still valid.
+    #[allow(dead_code)]
+    pub(crate) fn compiled_manifest(&self) -> Option<&Path> {
+        self.compiled_manifest.as_deref()
+    }
+
+    /// Store the path to a successfully compiled manifest.
+    pub(crate) fn set_compiled_manifest(&mut self, path: PathBuf) {
+        self.compiled_manifest = Some(path);
+    }
 }
 
 /// Apply an undo action -- reverse the last edit.
@@ -292,20 +329,14 @@ fn apply_redo(win: &mut WindowState) {
     }
 }
 
-/// Handle undo message -- applies undo and decrements unsaved edit count.
+/// Handle undo message -- applies the most recent undoable action in reverse.
 pub(crate) fn handle_undo(win: &mut WindowState) {
-    if win.history.can_undo() {
-        apply_undo(win);
-        win.unsaved_edits = (win.unsaved_edits - 1).max(0);
-    }
+    apply_undo(win);
 }
 
-/// Handle redo message -- applies redo and increments unsaved edit count.
+/// Handle redo message -- re-applies the most recently undone action.
 pub(crate) fn handle_redo(win: &mut WindowState) {
-    if win.history.can_redo() {
-        apply_redo(win);
-        win.unsaved_edits += 1;
-    }
+    apply_redo(win);
 }
 
 #[cfg(test)]
@@ -335,12 +366,14 @@ mod test {
             new_x: 100.0,
             new_y: 100.0,
         });
-        assert!(history.can_undo());
+        assert!(!history.is_empty());
+        assert_eq!(history.len(), 1);
         assert!(!history.can_redo());
 
         let action = history.undo();
         assert!(action.is_some());
-        assert!(!history.can_undo());
+        assert!(history.is_empty());
+        assert_eq!(history.len(), 0);
         assert!(history.can_redo());
     }
 
@@ -357,7 +390,7 @@ mod test {
         history.undo();
         let action = history.redo();
         assert!(action.is_some());
-        assert!(history.can_undo());
+        assert!(!history.is_empty());
         assert!(!history.can_redo());
     }
 
@@ -382,6 +415,46 @@ mod test {
             new_y: 50.0,
         });
         assert!(!history.can_redo());
+    }
+
+    #[test]
+    fn compiled_manifest_lifecycle() {
+        let mut history = EditHistory::default();
+        assert!(history.compiled_manifest().is_none());
+
+        history.set_compiled_manifest(PathBuf::from("/tmp/test.manifest"));
+        assert_eq!(
+            history.compiled_manifest().map(Path::to_path_buf),
+            Some(PathBuf::from("/tmp/test.manifest"))
+        );
+
+        // Recording an action invalidates the manifest
+        history.record(EditAction::MoveNode {
+            index: 0,
+            old_x: 0.0,
+            old_y: 0.0,
+            new_x: 1.0,
+            new_y: 1.0,
+        });
+        assert!(history.compiled_manifest().is_none());
+
+        // Setting again, then mark_modified also invalidates
+        history.set_compiled_manifest(PathBuf::from("/tmp/test2.manifest"));
+        assert!(history.compiled_manifest().is_some());
+        history.mark_modified();
+        assert!(history.compiled_manifest().is_none());
+    }
+
+    #[test]
+    fn dirty_flag_with_clear() {
+        let mut history = EditHistory::default();
+        assert!(history.is_empty());
+
+        history.mark_modified();
+        assert!(!history.is_empty());
+
+        history.clear();
+        assert!(history.is_empty());
     }
 
     #[test]
@@ -505,17 +578,14 @@ mod test {
             pref.x = Some(200.0);
             pref.y = Some(300.0);
         }
-        record_edit(
-            &mut win,
-            EditAction::MoveNode {
-                index: 0,
-                old_x: 100.0,
-                old_y: 100.0,
-                new_x: 200.0,
-                new_y: 300.0,
-            },
-        );
-        assert_eq!(win.unsaved_edits, 1);
+        win.history.record(EditAction::MoveNode {
+            index: 0,
+            old_x: 100.0,
+            old_y: 100.0,
+            new_x: 200.0,
+            new_y: 300.0,
+        });
+        assert!(!win.history.is_empty());
 
         // Undo
         handle_undo(&mut win);
@@ -538,20 +608,17 @@ mod test {
             pref.width = Some(250.0);
             pref.height = Some(180.0);
         }
-        record_edit(
-            &mut win,
-            EditAction::ResizeNode {
-                index: 0,
-                old_x: 100.0,
-                old_y: 100.0,
-                old_w: 180.0,
-                old_h: 120.0,
-                new_x: 100.0,
-                new_y: 100.0,
-                new_w: 250.0,
-                new_h: 180.0,
-            },
-        );
+        win.history.record(EditAction::ResizeNode {
+            index: 0,
+            old_x: 100.0,
+            old_y: 100.0,
+            old_w: 180.0,
+            old_h: 120.0,
+            new_x: 100.0,
+            new_y: 100.0,
+            new_w: 250.0,
+            new_h: 180.0,
+        });
 
         // Undo
         handle_undo(&mut win);
@@ -571,15 +638,12 @@ mod test {
         let mut win = test_win_state();
         assert_eq!(win.flow_definition.process_refs.len(), 2);
         let removed_pref = win.flow_definition.process_refs.remove(0);
-        record_edit(
-            &mut win,
-            EditAction::DeleteNode {
-                index: 0,
-                process_ref: removed_pref,
-                subprocess: None,
-                removed_connections: Vec::new(),
-            },
-        );
+        win.history.record(EditAction::DeleteNode {
+            index: 0,
+            process_ref: removed_pref,
+            subprocess: None,
+            removed_connections: Vec::new(),
+        });
         assert_eq!(win.flow_definition.process_refs.len(), 1);
 
         // Undo restores
@@ -596,7 +660,8 @@ mod test {
         let mut win = test_win_state();
         let connection = Connection::new("add/out", "stdout/in");
         win.flow_definition.connections.push(connection.clone());
-        record_edit(&mut win, EditAction::CreateConnection { connection });
+        win.history
+            .record(EditAction::CreateConnection { connection });
         assert_eq!(win.flow_definition.connections.len(), 1);
 
         // Undo removes
@@ -615,13 +680,10 @@ mod test {
             .connections
             .push(Connection::new("add/out", "stdout/in"));
         let removed_conn = win.flow_definition.connections.remove(0);
-        record_edit(
-            &mut win,
-            EditAction::DeleteConnection {
-                index: 0,
-                connection: removed_conn,
-            },
-        );
+        win.history.record(EditAction::DeleteConnection {
+            index: 0,
+            connection: removed_conn,
+        });
         assert_eq!(win.flow_definition.connections.len(), 0);
 
         // Undo restores
@@ -639,17 +701,14 @@ mod test {
 
         let mut win = test_win_state();
         // Record an initializer edit
-        record_edit(
-            &mut win,
-            EditAction::EditInitializer {
-                node_index: 0,
-                port_name: "input".into(),
-                old_init: None,
-                new_init: Some(InputInitializer::Once(serde_json::json!(42))),
-            },
-        );
+        win.history.record(EditAction::EditInitializer {
+            node_index: 0,
+            port_name: "input".into(),
+            old_init: None,
+            new_init: Some(InputInitializer::Once(serde_json::json!(42))),
+        });
 
-        // Apply the new state manually (record_edit only records, doesn't apply)
+        // Apply the new state manually (record only records, doesn't apply)
         initializer::apply_initializer_state(
             &mut win,
             0,

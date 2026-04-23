@@ -28,7 +28,6 @@ use flowcore::model::io::IO;
 use flowcore::model::name::HasName;
 
 use crate::flow_io;
-use crate::history;
 use crate::history::EditAction;
 use crate::InitializerEditor;
 use crate::Message;
@@ -88,16 +87,13 @@ pub(crate) fn handle_canvas_message(win: &mut WindowState, msg: CanvasMessage) -
         CanvasMessage::MoveCompleted(idx, old_x, old_y, new_x, new_y) => {
             info!("MoveCompleted: idx={idx}, ({old_x},{old_y}) -> ({new_x},{new_y})");
             if (old_x - new_x).abs() > 0.5 || (old_y - new_y).abs() > 0.5 {
-                history::record_edit(
-                    win,
-                    EditAction::MoveNode {
-                        index: idx,
-                        old_x,
-                        old_y,
-                        new_x,
-                        new_y,
-                    },
-                );
+                win.history.record(EditAction::MoveNode {
+                    index: idx,
+                    old_x,
+                    old_y,
+                    new_x,
+                    new_y,
+                });
             }
         }
         #[allow(clippy::similar_names)]
@@ -117,20 +113,17 @@ pub(crate) fn handle_canvas_message(win: &mut WindowState, msg: CanvasMessage) -
                 || (old_w - new_w).abs() > 0.5
                 || (old_h - new_h).abs() > 0.5
             {
-                history::record_edit(
-                    win,
-                    EditAction::ResizeNode {
-                        index: idx,
-                        old_x,
-                        old_y,
-                        old_w,
-                        old_h,
-                        new_x,
-                        new_y,
-                        new_w,
-                        new_h,
-                    },
-                );
+                win.history.record(EditAction::ResizeNode {
+                    index: idx,
+                    old_x,
+                    old_y,
+                    old_w,
+                    old_h,
+                    new_x,
+                    new_y,
+                    new_w,
+                    new_h,
+                });
             }
         }
         CanvasMessage::Deleted(idx) => {
@@ -155,15 +148,12 @@ pub(crate) fn handle_canvas_message(win: &mut WindowState, msg: CanvasMessage) -
                 win.flow_definition
                     .connections
                     .retain(|c| !connection_references_node(c, &alias));
-                history::record_edit(
-                    win,
-                    EditAction::DeleteNode {
-                        index: idx,
-                        process_ref: removed_pref,
-                        subprocess: removed_subprocess.map(|p| (alias, p)),
-                        removed_connections,
-                    },
-                );
+                win.history.record(EditAction::DeleteNode {
+                    index: idx,
+                    process_ref: removed_pref,
+                    subprocess: removed_subprocess.map(|p| (alias, p)),
+                    removed_connections,
+                });
                 win.selected_node = None;
                 win.selected_connection = None;
                 win.canvas_state.request_redraw();
@@ -192,12 +182,9 @@ pub(crate) fn handle_canvas_message(win: &mut WindowState, msg: CanvasMessage) -
                 format!("{to_node}/{to_port}")
             };
             let connection = Connection::new(from_route, to_route);
-            history::record_edit(
-                win,
-                EditAction::CreateConnection {
-                    connection: connection.clone(),
-                },
-            );
+            win.history.record(EditAction::CreateConnection {
+                connection: connection.clone(),
+            });
             win.flow_definition.connections.push(connection);
             win.canvas_state.request_redraw();
             let nc = win.flow_definition.process_refs.len();
@@ -231,13 +218,10 @@ pub(crate) fn handle_canvas_message(win: &mut WindowState, msg: CanvasMessage) -
         CanvasMessage::ConnectionDeleted(idx) => {
             if idx < win.flow_definition.connections.len() {
                 let connection = win.flow_definition.connections.remove(idx);
-                history::record_edit(
-                    win,
-                    EditAction::DeleteConnection {
-                        index: idx,
-                        connection,
-                    },
-                );
+                win.history.record(EditAction::DeleteConnection {
+                    index: idx,
+                    connection,
+                });
                 win.selected_connection = None;
                 win.canvas_state.request_redraw();
                 let nc = win.flow_definition.process_refs.len();

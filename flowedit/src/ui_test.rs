@@ -189,7 +189,10 @@ fn update_canvas_move_completed_records_history() {
         win_id,
         CanvasMessage::MoveCompleted(0, 100.0, 100.0, 200.0, 300.0),
     ));
-    assert_eq!(app.windows.get(&win_id).map(|w| w.unsaved_edits), Some(1));
+    assert!(app
+        .windows
+        .get(&win_id)
+        .is_some_and(|w| !w.history.is_empty()));
 }
 
 #[test]
@@ -208,7 +211,10 @@ fn update_canvas_delete_node() {
             .map(|w| w.flow_definition.process_refs.len()),
         Some(1)
     );
-    assert_eq!(app.windows.get(&win_id).map(|w| w.unsaved_edits), Some(1));
+    assert!(app
+        .windows
+        .get(&win_id)
+        .is_some_and(|w| !w.history.is_empty()));
 }
 
 #[test]
@@ -229,7 +235,10 @@ fn update_canvas_create_connection() {
             .map(|w| w.flow_definition.connections.len()),
         Some(1)
     );
-    assert_eq!(app.windows.get(&win_id).map(|w| w.unsaved_edits), Some(1));
+    assert!(app
+        .windows
+        .get(&win_id)
+        .is_some_and(|w| !w.history.is_empty()));
 }
 
 #[test]
@@ -283,7 +292,10 @@ fn update_undo_redo_cycle() {
         win_id,
         CanvasMessage::MoveCompleted(0, 100.0, 100.0, 200.0, 300.0),
     ));
-    assert_eq!(app.windows.get(&win_id).map(|w| w.unsaved_edits), Some(1));
+    assert!(app
+        .windows
+        .get(&win_id)
+        .is_some_and(|w| !w.history.is_empty()));
 
     // Undo
     let _ = app.update(Message::Undo);
@@ -325,7 +337,10 @@ fn update_flow_name_changed() {
             .map(|w| w.flow_definition.name.as_str()),
         Some("new_name")
     );
-    assert_eq!(app.windows.get(&win_id).map(|w| w.unsaved_edits), Some(1));
+    assert!(app
+        .windows
+        .get(&win_id)
+        .is_some_and(|w| !w.history.is_empty()));
 }
 
 #[test]
@@ -383,7 +398,10 @@ fn update_flow_add_input() {
             .map(|w| w.flow_definition.inputs.len()),
         Some(1)
     );
-    assert_eq!(app.windows.get(&win_id).map(|w| w.unsaved_edits), Some(1));
+    assert!(app
+        .windows
+        .get(&win_id)
+        .is_some_and(|w| !w.history.is_empty()));
 }
 
 #[test]
@@ -886,9 +904,10 @@ fn helper_drag_via_direct_messages() {
         (node.map_or(0.0, |n| n.y.unwrap_or(0.0)) - 350.0).abs() < 0.01,
         "Node y should be 350 after drag"
     );
-    assert_eq!(
-        app.windows.get(&win_id).map(|w| w.unsaved_edits),
-        Some(1),
+    assert!(
+        app.windows
+            .get(&win_id)
+            .is_some_and(|w| !w.history.is_empty()),
         "Drag should record an edit"
     );
 }
@@ -1257,7 +1276,7 @@ fn ui_close_active_window() {
     app.windows.insert(second_id, test_win_state());
     app.root_window = Some(second_id);
     assert_eq!(app.focused_window, Some(win_id));
-    // CloseActiveWindow closes the focused window (unsaved_edits == 0, no dialog)
+    // CloseActiveWindow closes the focused window (no unsaved edits, no dialog)
     let _ = app.update(Message::CloseActiveWindow);
     assert!(
         !app.windows.contains_key(&win_id),
@@ -1314,7 +1333,9 @@ fn ui_resize_node_records_history() {
         CanvasMessage::ResizeCompleted(0, 100.0, 100.0, 180.0, 120.0, 100.0, 100.0, 250.0, 180.0),
     ));
     assert!(
-        app.windows.get(&win_id).map_or(0, |w| w.unsaved_edits) > 0,
+        app.windows
+            .get(&win_id)
+            .is_some_and(|w| !w.history.is_empty()),
         "Resize should record an edit"
     );
     let node = app

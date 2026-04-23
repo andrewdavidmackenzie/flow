@@ -372,8 +372,6 @@ impl FlowEdit {
             auto_fit_pending: has_nodes,
             auto_fit_enabled: true,
             history: EditHistory::default(),
-            unsaved_edits: 0,
-            compiled_manifest: None,
             flow_definition,
             tooltip: None,
             initializer_editor: None,
@@ -406,7 +404,7 @@ impl FlowEdit {
     /// Return the window title, showing the flow name, file name, and unsaved indicator.
     fn title(&self, window_id: window::Id) -> String {
         if let Some(win) = self.windows.get(&window_id) {
-            let modified = if win.unsaved_edits > 0 { " *" } else { "" };
+            let modified = if win.history.is_empty() { "" } else { " *" };
             let file = win
                 .file_path()
                 .as_ref()
@@ -469,8 +467,6 @@ impl FlowEdit {
                             history: EditHistory::default(),
                             auto_fit_pending: has_nodes,
                             auto_fit_enabled: true,
-                            unsaved_edits: 0,
-                            compiled_manifest: None,
                             flow_definition: flow_def,
                             tooltip: None,
                             initializer_editor: None,
@@ -701,11 +697,10 @@ impl FlowEdit {
                     if !win.flow_definition.process_refs.is_empty() {
                         match flow_io::perform_compile(win) {
                             Ok(path) => {
-                                win.compiled_manifest = Some(path.clone());
+                                win.history.set_compiled_manifest(path.clone());
                                 win.status = format!("Compiled: {}", path.display());
                             }
                             Err(e) => {
-                                win.compiled_manifest = None;
                                 win.status = e;
                             }
                         }
@@ -717,15 +712,15 @@ impl FlowEdit {
                     match flow_msg {
                         FlowEditMessage::NameChanged(new_name) => {
                             win.flow_definition.name = new_name;
-                            win.unsaved_edits += 1;
+                            win.history.mark_modified();
                         }
                         FlowEditMessage::VersionChanged(version) => {
                             win.flow_definition.metadata.version = version;
-                            win.unsaved_edits += 1;
+                            win.history.mark_modified();
                         }
                         FlowEditMessage::DescriptionChanged(desc) => {
                             win.flow_definition.metadata.description = desc;
-                            win.unsaved_edits += 1;
+                            win.history.mark_modified();
                         }
                         FlowEditMessage::AuthorsChanged(authors_str) => {
                             win.flow_definition.metadata.authors = authors_str
@@ -733,7 +728,7 @@ impl FlowEdit {
                                 .map(|s| s.trim().to_string())
                                 .filter(|s| !s.is_empty())
                                 .collect();
-                            win.unsaved_edits += 1;
+                            win.history.mark_modified();
                         }
                         FlowEditMessage::ToggleMetadata => {
                             win.show_metadata = !win.show_metadata;
@@ -747,7 +742,7 @@ impl FlowEdit {
                             );
                             io.set_io_type(IOType::FlowInput);
                             win.flow_definition.inputs.push(io);
-                            win.unsaved_edits += 1;
+                            win.history.mark_modified();
                             win.canvas_state.request_redraw();
                         }
                         FlowEditMessage::AddOutput => {
@@ -759,7 +754,7 @@ impl FlowEdit {
                             );
                             io.set_io_type(IOType::FlowOutput);
                             win.flow_definition.outputs.push(io);
-                            win.unsaved_edits += 1;
+                            win.history.mark_modified();
                             win.canvas_state.request_redraw();
                         }
                         FlowEditMessage::DeleteInput(idx) => {
@@ -772,7 +767,7 @@ impl FlowEdit {
                                         canvas_view::split_route(c.from().as_ref());
                                     !(from_node == "input" && from_port == name)
                                 });
-                                win.unsaved_edits += 1;
+                                win.history.mark_modified();
                                 win.canvas_state.request_redraw();
                             }
                         }
@@ -791,7 +786,7 @@ impl FlowEdit {
                                     }
                                     true
                                 });
-                                win.unsaved_edits += 1;
+                                win.history.mark_modified();
                                 win.canvas_state.request_redraw();
                             }
                         }
@@ -814,7 +809,7 @@ impl FlowEdit {
                                         }
                                     }
                                 }
-                                win.unsaved_edits += 1;
+                                win.history.mark_modified();
                                 win.canvas_state.request_redraw();
                             }
                         }
@@ -822,7 +817,7 @@ impl FlowEdit {
                             if let Some(io) = win.flow_definition.inputs.get_mut(idx) {
                                 io.set_datatypes(&[DataType::from(dtype)]);
                             }
-                            win.unsaved_edits += 1;
+                            win.history.mark_modified();
                             win.canvas_state.request_redraw();
                         }
                         FlowEditMessage::OutputNameChanged(idx, name) => {
@@ -853,7 +848,7 @@ impl FlowEdit {
                                         conn.set_to(new_to);
                                     }
                                 }
-                                win.unsaved_edits += 1;
+                                win.history.mark_modified();
                                 win.canvas_state.request_redraw();
                             }
                         }
@@ -861,7 +856,7 @@ impl FlowEdit {
                             if let Some(io) = win.flow_definition.outputs.get_mut(idx) {
                                 io.set_datatypes(&[DataType::from(dtype)]);
                             }
-                            win.unsaved_edits += 1;
+                            win.history.mark_modified();
                             win.canvas_state.request_redraw();
                         }
                     }
@@ -945,7 +940,7 @@ impl FlowEdit {
                             if let WindowKind::FunctionViewer(ref mut viewer) = win.kind {
                                 viewer.func_def.name = new_name;
                             }
-                            win.unsaved_edits += 1;
+                            win.history.mark_modified();
                         }
                     }
                     FunctionEditMessage::DescriptionChanged(new_desc) => {
@@ -963,7 +958,7 @@ impl FlowEdit {
                             if let WindowKind::FunctionViewer(ref mut viewer) = win.kind {
                                 viewer.func_def.description.clone_from(&new_desc);
                             }
-                            win.unsaved_edits += 1;
+                            win.history.mark_modified();
                         }
                         // Propagate description to the parent window's subprocess definitions
                         if let Some((parent_id, node_source)) = parent_info {
@@ -1013,7 +1008,7 @@ impl FlowEdit {
                                     viewer.rs_content = std::fs::read_to_string(&selected)
                                         .unwrap_or_else(|_| String::from("// Could not read file"));
                                 }
-                                win.unsaved_edits += 1;
+                                win.history.mark_modified();
                             }
                         }
                     }
@@ -1027,7 +1022,7 @@ impl FlowEdit {
                                     &name,
                                 ));
                             }
-                            win.unsaved_edits += 1;
+                            win.history.mark_modified();
                         }
                         Self::propagate_function_ports(&mut self.windows, win_id);
                     }
@@ -1041,7 +1036,7 @@ impl FlowEdit {
                                     &name,
                                 ));
                             }
-                            win.unsaved_edits += 1;
+                            win.history.mark_modified();
                         }
                         Self::propagate_function_ports(&mut self.windows, win_id);
                     }
@@ -1052,7 +1047,7 @@ impl FlowEdit {
                                     v.func_def.inputs.remove(idx);
                                 }
                             }
-                            win.unsaved_edits += 1;
+                            win.history.mark_modified();
                         }
                         Self::propagate_function_ports(&mut self.windows, win_id);
                     }
@@ -1063,7 +1058,7 @@ impl FlowEdit {
                                     v.func_def.outputs.remove(idx);
                                 }
                             }
-                            win.unsaved_edits += 1;
+                            win.history.mark_modified();
                         }
                         Self::propagate_function_ports(&mut self.windows, win_id);
                     }
@@ -1074,7 +1069,7 @@ impl FlowEdit {
                                     io.set_name(name);
                                 }
                             }
-                            win.unsaved_edits += 1;
+                            win.history.mark_modified();
                         }
                         Self::propagate_function_ports(&mut self.windows, win_id);
                     }
@@ -1085,7 +1080,7 @@ impl FlowEdit {
                                     io.set_datatypes(&[DataType::from(dtype)]);
                                 }
                             }
-                            win.unsaved_edits += 1;
+                            win.history.mark_modified();
                         }
                         Self::propagate_function_ports(&mut self.windows, win_id);
                     }
@@ -1096,7 +1091,7 @@ impl FlowEdit {
                                     io.set_name(name);
                                 }
                             }
-                            win.unsaved_edits += 1;
+                            win.history.mark_modified();
                         }
                         Self::propagate_function_ports(&mut self.windows, win_id);
                     }
@@ -1107,7 +1102,7 @@ impl FlowEdit {
                                     io.set_datatypes(&[DataType::from(dtype)]);
                                 }
                             }
-                            win.unsaved_edits += 1;
+                            win.history.mark_modified();
                         }
                         Self::propagate_function_ports(&mut self.windows, win_id);
                     }
@@ -1121,7 +1116,7 @@ impl FlowEdit {
                                             |p| p.display().to_string(),
                                         );
                                         win.status = format!("Saved: {path_display}");
-                                        win.unsaved_edits = 0;
+                                        win.history.clear();
                                     }
                                     Err(e) => {
                                         win.status = format!("Save failed: {e}");
@@ -1151,7 +1146,7 @@ impl FlowEdit {
                     return Task::none();
                 };
                 if let Some(win) = self.windows.get(&id) {
-                    if win.unsaved_edits > 0 {
+                    if !win.history.is_empty() {
                         let dialog = rfd::MessageDialog::new()
                             .set_title("Unsaved Changes")
                             .set_description(
@@ -1172,7 +1167,7 @@ impl FlowEdit {
             }
             Message::QuitAll => {
                 // Check for unsaved edits in any window
-                let has_unsaved = self.windows.values().any(|w| w.unsaved_edits > 0);
+                let has_unsaved = self.windows.values().any(|w| !w.history.is_empty());
                 if has_unsaved {
                     let dialog = rfd::MessageDialog::new()
                         .set_title("Unsaved Changes")
@@ -1196,7 +1191,7 @@ impl FlowEdit {
         };
 
         if let WindowKind::FunctionViewer(ref viewer) = win.kind {
-            return Self::view_function(window_id, viewer, &win.status, win.unsaved_edits);
+            return Self::view_function(window_id, viewer, &win.status, !win.history.is_empty());
         }
 
         let canvas_with_controls = canvas_view::view_canvas_area(win, window_id);
@@ -1246,10 +1241,10 @@ impl FlowEdit {
         win: &'a WindowState,
         window_id: window::Id,
     ) -> Element<'a, Message> {
-        let edit_indicator = if win.unsaved_edits > 0 {
-            format!("  |  {} unsaved edit(s)", win.unsaved_edits)
-        } else {
+        let edit_indicator = if win.history.is_empty() {
             String::from("  |  saved")
+        } else {
+            String::from("  |  unsaved edit(s)")
         };
 
         let btn_pad = [6, 14];
@@ -1610,7 +1605,7 @@ impl FlowEdit {
         window_id: window::Id,
         viewer: &'a FunctionViewer,
         status: &'a str,
-        unsaved_edits: i32,
+        has_unsaved: bool,
     ) -> Element<'a, Message> {
         let content: Element<'_, Message> = match viewer.active_tab {
             0 => {
@@ -1883,13 +1878,13 @@ impl FlowEdit {
         };
 
         let mut save_btn = button(Text::new("\u{1F4BE} Save").size(14).center())
-            .style(if unsaved_edits > 0 && !viewer.read_only {
+            .style(if has_unsaved && !viewer.read_only {
                 button::primary
             } else {
                 button::secondary
             })
             .padding([6, 14]);
-        if unsaved_edits > 0 && !viewer.read_only {
+        if has_unsaved && !viewer.read_only {
             save_btn =
                 save_btn.on_press(Message::FunctionEdit(window_id, FunctionEditMessage::Save));
         }
@@ -2006,8 +2001,6 @@ impl FlowEdit {
                         history: EditHistory::default(),
                         auto_fit_pending: has_nodes,
                         auto_fit_enabled: true,
-                        unsaved_edits: 0,
-                        compiled_manifest: None,
                         flow_definition: flow_def,
                         tooltip: None,
                         initializer_editor: None,
@@ -2137,8 +2130,6 @@ impl FlowEdit {
                     history: EditHistory::default(),
                     auto_fit_pending: has_nodes,
                     auto_fit_enabled: true,
-                    unsaved_edits: 0,
-                    compiled_manifest: None,
                     flow_definition: flow_def,
                     tooltip: None,
                     initializer_editor: None,
@@ -2213,8 +2204,6 @@ impl FlowEdit {
             history: EditHistory::default(),
             auto_fit_pending: false,
             auto_fit_enabled: false,
-            unsaved_edits: 0,
-            compiled_manifest: None,
             flow_definition: func_flow_def,
             tooltip: None,
             initializer_editor: None,
@@ -2316,7 +2305,7 @@ impl FlowEdit {
                 width: Some(180.0),
                 height: Some(120.0),
             });
-            win.unsaved_edits += 1;
+            win.history.mark_modified();
             win.canvas_state.request_redraw();
             win.status = format!("Created sub-flow: {alias}");
         }
@@ -2334,8 +2323,6 @@ impl FlowEdit {
             history: EditHistory::default(),
             auto_fit_pending: false,
             auto_fit_enabled: true,
-            unsaved_edits: 0,
-            compiled_manifest: None,
             flow_definition: flow_def,
             tooltip: None,
             initializer_editor: None,
@@ -2415,7 +2402,7 @@ impl FlowEdit {
                 width: Some(180.0),
                 height: Some(120.0),
             });
-            win.unsaved_edits += 1;
+            win.history.mark_modified();
             win.canvas_state.request_redraw();
             win.status = format!("Created function: {alias}");
         }
@@ -2446,7 +2433,7 @@ impl FlowEdit {
         if let Ok(url) = Url::from_file_path(&path) {
             func_flow_def.source_url = url;
         }
-        let child = WindowState {
+        let mut child = WindowState {
             kind: WindowKind::FunctionViewer(viewer),
 
             canvas_state: FlowCanvasState::default(),
@@ -2456,8 +2443,6 @@ impl FlowEdit {
             history: EditHistory::default(),
             auto_fit_pending: false,
             auto_fit_enabled: false,
-            unsaved_edits: 1,
-            compiled_manifest: None,
             flow_definition: func_flow_def,
             tooltip: None,
             initializer_editor: None,
@@ -2468,6 +2453,7 @@ impl FlowEdit {
             last_size: None,
             last_position: None,
         };
+        child.history.mark_modified(); // New function starts dirty
 
         self.windows.insert(new_id, child);
         open_task.discard()

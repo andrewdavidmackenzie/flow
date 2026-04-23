@@ -13,7 +13,6 @@ use flowcore::model::process_reference::ProcessReference;
 use flowcore::provider::Provider;
 
 use crate::flow_io;
-use crate::history;
 use crate::history::EditAction;
 use crate::WindowState;
 
@@ -179,19 +178,16 @@ pub(crate) fn add_library_function(win: &mut WindowState, source: &str, func_nam
         win.flow_definition.subprocesses.insert(alias.clone(), proc);
     }
 
-    history::record_edit(
-        win,
-        EditAction::DeleteNode {
-            index,
-            process_ref: pref,
-            subprocess: win
-                .flow_definition
-                .subprocesses
-                .get(&alias)
-                .map(|p| (alias.clone(), p.clone())),
-            removed_connections: Vec::new(),
-        },
-    );
+    win.history.record(EditAction::DeleteNode {
+        index,
+        process_ref: pref,
+        subprocess: win
+            .flow_definition
+            .subprocesses
+            .get(&alias)
+            .map(|p| (alias.clone(), p.clone())),
+        removed_connections: Vec::new(),
+    });
     // Note: We record a DeleteNode so that *undo* removes the added node.
     // This is intentional: undoing an "add" means deleting what was added.
 
@@ -273,8 +269,6 @@ mod test {
             history: EditHistory::default(),
             auto_fit_pending: false,
             auto_fit_enabled: false,
-            unsaved_edits: 0,
-            compiled_manifest: None,
             flow_definition: flow_def,
             tooltip: None,
             initializer_editor: None,
