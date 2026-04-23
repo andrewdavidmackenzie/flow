@@ -1,4 +1,4 @@
-//! Flow file operations: loading, saving, compiling, and editor preferences.
+//! File operations: loading, saving, compiling, and editor preferences.
 
 use std::collections::{BTreeMap, BTreeSet};
 use std::fmt::Write;

@@ -27,7 +27,7 @@ use flowcore::model::input::InputInitializer;
 use flowcore::model::io::IO;
 use flowcore::model::name::HasName;
 
-use crate::flow_io;
+use crate::file_ops;
 use crate::history::EditAction;
 use crate::InitializerEditor;
 use crate::Message;
@@ -207,8 +207,8 @@ pub(crate) fn handle_canvas_message(win: &mut WindowState, msg: CanvasMessage) -
                     let (to_node, to_port) = split_route(&to_str);
                     win.status = format!(
                         "Connection: {} -> {}",
-                        flow_io::format_endpoint(&from_node, &from_port),
-                        flow_io::format_endpoint(&to_node, &to_port),
+                        file_ops::format_endpoint(&from_node, &from_port),
+                        file_ops::format_endpoint(&to_node, &to_port),
                     );
                 }
             } else {
@@ -718,8 +718,10 @@ pub(crate) fn build_render_nodes(
 
         let (inputs, outputs) = resolved
             .map(|proc| match proc {
-                Process::FunctionProcess(f) => crate::flow_io::extract_ports(&f.inputs, &f.outputs),
-                Process::FlowProcess(f) => crate::flow_io::extract_ports(&f.inputs, &f.outputs),
+                Process::FunctionProcess(f) => {
+                    crate::file_ops::extract_ports(&f.inputs, &f.outputs)
+                }
+                Process::FlowProcess(f) => crate::file_ops::extract_ports(&f.inputs, &f.outputs),
             })
             .unwrap_or_default();
 

@@ -45,7 +45,7 @@ use history::EditHistory;
 use library_panel::{LibraryAction, LibraryMessage, LibraryTree};
 
 mod canvas_view;
-mod flow_io;
+mod file_ops;
 mod hierarchy_panel;
 mod history;
 mod initializer;
@@ -446,7 +446,7 @@ impl FlowEdit {
         let (status, flow_definition, lib_refs) =
             if let Some(flow_path_str) = matches.get_one::<String>("flow-file") {
                 let flow_path = PathBuf::from(flow_path_str);
-                match flow_io::load_flow(&flow_path) {
+                match file_ops::load_flow(&flow_path) {
                     Ok(loaded) => {
                         let nc = loaded.flow_def.process_refs.len();
                         let ec = loaded.flow_def.connections.len();
@@ -486,7 +486,7 @@ impl FlowEdit {
         let file_path = flow_definition.source_url.to_file_path().ok();
         let saved_prefs = file_path
             .as_ref()
-            .and_then(|p| flow_io::load_editor_prefs(p));
+            .and_then(|p| file_ops::load_editor_prefs(p));
         let saved_size = saved_prefs.as_ref().map_or_else(
             || iced::Size::new(1024.0, 768.0),
             |p| iced::Size::new(p.width, p.height),
@@ -531,7 +531,7 @@ impl FlowEdit {
         let mut windows = HashMap::new();
         windows.insert(root_id, win_state);
 
-        let lib_paths = flow_io::resolve_lib_paths();
+        let lib_paths = file_ops::resolve_lib_paths();
         let app = FlowEdit {
             windows,
             root_window: Some(root_id),
@@ -592,7 +592,7 @@ impl FlowEdit {
                         }
                     }
                     // Open the flow or function
-                    if let Ok(loaded) = flow_io::load_flow(&path) {
+                    if let Ok(loaded) = file_ops::load_flow(&path) {
                         let (new_id, open_task) =
                             window::open(self.child_window_settings(1024.0, 768.0));
                         let has_nodes = !loaded.flow_def.process_refs.is_empty();
@@ -798,19 +798,19 @@ impl FlowEdit {
             Message::Save => {
                 let target = self.focused_window.or(self.root_window);
                 if let Some(win) = target.and_then(|id| self.windows.get_mut(&id)) {
-                    flow_io::handle_save(win);
+                    file_ops::handle_save(win);
                 }
             }
             Message::SaveAs => {
                 let target = self.focused_window.or(self.root_window);
                 if let Some(win) = target.and_then(|id| self.windows.get_mut(&id)) {
-                    flow_io::handle_save_as(win);
+                    file_ops::handle_save_as(win);
                 }
             }
             Message::Open => {
                 if let Some(root_id) = self.root_window {
                     if let Some(win) = self.windows.get_mut(&root_id) {
-                        if let Some((lib_refs, _ctx_refs)) = flow_io::perform_open(win) {
+                        if let Some((lib_refs, _ctx_refs)) = file_ops::perform_open(win) {
                             win.flow_hierarchy = win
                                 .file_path()
                                 .as_ref()
@@ -828,7 +828,7 @@ impl FlowEdit {
             }
             Message::New => {
                 if let Some(win) = self.root_window.and_then(|id| self.windows.get_mut(&id)) {
-                    flow_io::perform_new(win);
+                    file_ops::perform_new(win);
                     // Clear the library cache for a new (empty) flow
                     self.library_cache.clear();
                     self.all_definitions.clear();
@@ -840,7 +840,7 @@ impl FlowEdit {
                 let target = self.focused_window.or(self.root_window);
                 if let Some(win) = target.and_then(|id| self.windows.get_mut(&id)) {
                     if !win.flow_definition.process_refs.is_empty() {
-                        match flow_io::perform_compile(win) {
+                        match file_ops::perform_compile(win) {
                             Ok(path) => {
                                 win.history.set_compiled_manifest(path.clone());
                                 win.status = format!("Compiled: {}", path.display());
@@ -1741,7 +1741,7 @@ impl FlowEdit {
     fn open_library_function(&mut self, source: &str) -> Task<Message> {
         use flowcore::provider::Provider;
 
-        let provider = flow_io::build_meta_provider();
+        let provider = file_ops::build_meta_provider();
         let Ok(source_url) = Url::parse(source) else {
             return Task::none();
         };
@@ -1777,7 +1777,7 @@ impl FlowEdit {
                 };
                 self.open_function_viewer(parent, &path, func, &path.to_string_lossy())
             }
-            Ok(Process::FlowProcess(_)) => match flow_io::load_flow(&path) {
+            Ok(Process::FlowProcess(_)) => match file_ops::load_flow(&path) {
                 Ok(loaded) => {
                     let has_nodes = !loaded.flow_def.process_refs.is_empty();
                     let nc = loaded.flow_def.process_refs.len();
@@ -1907,7 +1907,7 @@ impl FlowEdit {
         }
 
         // Load the sub-flow and open it in a new window
-        match flow_io::load_flow(&path) {
+        match file_ops::load_flow(&path) {
             Ok(loaded) => {
                 let has_nodes = !loaded.flow_def.process_refs.is_empty();
                 let (new_id, open_task) = window::open(self.child_window_settings(1024.0, 768.0));
@@ -2090,8 +2090,8 @@ impl FlowEdit {
         // Add a process reference in the target flow
         if let Some(win) = self.windows.get_mut(&target_id) {
             let alias =
-                flow_io::generate_unique_alias(&flow_name, &win.flow_definition.process_refs);
-            let (x, y) = flow_io::next_node_position(&win.flow_definition.process_refs);
+                file_ops::generate_unique_alias(&flow_name, &win.flow_definition.process_refs);
+            let (x, y) = file_ops::next_node_position(&win.flow_definition.process_refs);
 
             win.flow_definition.process_refs.push(ProcessReference {
                 alias: alias.clone(),
@@ -2187,8 +2187,8 @@ impl FlowEdit {
         // Add process reference in the target flow
         if let Some(win) = self.windows.get_mut(&target_id) {
             let alias =
-                flow_io::generate_unique_alias(&func_name, &win.flow_definition.process_refs);
-            let (x, y) = flow_io::next_node_position(&win.flow_definition.process_refs);
+                file_ops::generate_unique_alias(&func_name, &win.flow_definition.process_refs);
+            let (x, y) = file_ops::next_node_position(&win.flow_definition.process_refs);
 
             win.flow_definition.process_refs.push(ProcessReference {
                 alias: alias.clone(),
@@ -2440,7 +2440,7 @@ impl FlowEdit {
             FunctionEditMessage::Save => {
                 if let Some(win) = self.windows.get_mut(&win_id) {
                     if let WindowKind::FunctionViewer(ref v) = win.kind {
-                        match flow_io::save_function_definition(v) {
+                        match file_ops::save_function_definition(v) {
                             Ok(()) => {
                                 let path_display = v.toml_path().map_or_else(
                                     || String::from("(unknown)"),

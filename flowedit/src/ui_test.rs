@@ -799,7 +799,7 @@ fn click_build_with_saved_flow() {
     if let Some(win) = app.windows.get_mut(&win_id) {
         win.set_file_path(&path);
         win.flow_definition.name = "test_build".into();
-        flow_io::perform_save(win, &path);
+        file_ops::perform_save(win, &path);
     }
     click_and_update(&mut app, win_id, "\u{1F528} Build");
     let status = app
