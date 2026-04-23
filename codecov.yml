@@ -1,5 +1,8 @@
 codecov:
   token: 19030176-6eb5-440c-9948-e9eb6a6a2e20
+  notify:
+    after_n_builds: 3
+    wait_for_ci: true
 
 coverage:
   round: up
