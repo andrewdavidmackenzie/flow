@@ -3011,7 +3011,7 @@ impl WindowState {
                     }),
             )
             .padding(iced::Padding {
-                top: ty + 6.0,
+                top: ty + 26.0,
                 right: 0.0,
                 bottom: 0.0,
                 left: (tx - 80.0).max(0.0),

@@ -1060,8 +1060,11 @@ impl FlowEdit {
             Row::new()
                 .spacing(8)
                 .padding([4, 8])
-                .push(Text::new(format!("{}{}", win.status, edit_indicator)).size(14))
-                .push(iced::widget::Space::new().width(Fill))
+                .push(
+                    container(Text::new(format!("{}{}", win.status, edit_indicator)).size(14))
+                        .width(Fill)
+                        .clip(true),
+                )
                 .push(info_btn)
                 .push(
                     button(Text::new("\u{1F4C1} Libs").size(btn_size).center())
@@ -1077,11 +1080,11 @@ impl FlowEdit {
                 .push(new_func_btn)
                 .push(compile_btn)
         } else {
-            Row::new()
-                .spacing(8)
-                .padding([4, 8])
-                .push(Text::new(format!("{}{}", win.status, edit_indicator)).size(14))
-                .push(iced::widget::Space::new().width(Fill))
+            Row::new().spacing(8).padding([4, 8]).push(
+                container(Text::new(format!("{}{}", win.status, edit_indicator)).size(14))
+                    .width(Fill)
+                    .clip(true),
+            )
         };
 
         container(status_bar).width(Fill).padding(5).into()
