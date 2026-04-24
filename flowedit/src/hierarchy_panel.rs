@@ -1,7 +1,12 @@
 //! Flow hierarchy panel that shows the structure of the loaded flow
 //! as a collapsible tree view. The root flow is at the top, with child
 //! sub-flows and functions as children, recursively.
+//!
+//! Walks the `FlowDefinition` tree directly at render time rather than
+//! maintaining a parallel tree structure. Only UI state (which nodes
+//! are expanded) is stored separately.
 
+use std::collections::HashSet;
 use std::path::PathBuf;
 
 use iced::widget::{button, container, scrollable, text, Column, Row};
@@ -11,6 +16,7 @@ use flowcore::model::flow_definition::FlowDefinition;
 use flowcore::model::process::Process;
 
 const PANEL_WIDTH: f32 = 220.0;
+const MAX_HIERARCHY_DEPTH: usize = 10;
 
 #[derive(Debug, Clone)]
 pub(crate) enum HierarchyMessage {
@@ -18,36 +24,39 @@ pub(crate) enum HierarchyMessage {
     Open(String, PathBuf),
 }
 
-#[derive(Debug, Clone)]
-pub(crate) struct HierarchyNode {
-    pub(crate) name: String,
-    pub(crate) process: Option<Process>,
-    pub(crate) source: String,
-    pub(crate) path: Option<PathBuf>,
-    pub(crate) children: Vec<HierarchyNode>,
-    pub(crate) expanded: bool,
-}
-
+/// Tracks which tree nodes are expanded in the hierarchy panel.
+///
+/// Walks the `FlowDefinition` process tree directly during rendering —
+/// no parallel tree is maintained. Each expanded node is identified by
+/// its index path from the root (e.g., `[0, 2]` = first child's third child).
 #[derive(Debug, Clone)]
 pub(crate) struct FlowHierarchy {
-    pub(crate) root: Option<HierarchyNode>,
+    expanded: HashSet<Vec<usize>>,
 }
 
 impl FlowHierarchy {
     pub(crate) fn from_flow_definition(flow_def: &FlowDefinition) -> Self {
-        let root = HierarchyNode::from_flow_definition(flow_def);
-        Self { root: Some(root) }
+        let mut expanded = HashSet::new();
+        // Expand root
+        expanded.insert(vec![]);
+        // Expand all sub-flow children by default
+        collect_flow_paths(flow_def, &[], &mut expanded, 0);
+        Self { expanded }
     }
 
     pub(crate) fn empty() -> Self {
-        Self { root: None }
+        Self {
+            expanded: HashSet::new(),
+        }
     }
 
     pub(crate) fn update(&mut self, msg: &HierarchyMessage) -> Option<(String, PathBuf)> {
         match msg {
-            HierarchyMessage::Toggle(indices) => {
-                if let Some(ref mut root) = self.root {
-                    root.toggle_at(indices, 0);
+            HierarchyMessage::Toggle(path) => {
+                if self.expanded.contains(path) {
+                    self.expanded.remove(path);
+                } else {
+                    self.expanded.insert(path.clone());
                 }
                 None
             }
@@ -55,16 +64,17 @@ impl FlowHierarchy {
         }
     }
 
-    pub(crate) fn view(&self) -> Element<'_, HierarchyMessage> {
+    pub(crate) fn view<'a>(
+        &'a self,
+        flow_def: &'a FlowDefinition,
+    ) -> Element<'a, HierarchyMessage> {
         let mut col = Column::new().spacing(2).push(
             container(text("Flow Hierarchy").size(14))
                 .padding([6, 8])
                 .width(Length::Fill),
         );
 
-        if let Some(ref root) = self.root {
-            col = col.push(root.view(&[]));
-        }
+        col = col.push(self.view_flow(flow_def, &[]));
 
         container(scrollable(col).height(Length::Fill))
             .width(PANEL_WIDTH)
@@ -79,83 +89,28 @@ impl FlowHierarchy {
             .padding(4)
             .into()
     }
-}
-
-const MAX_HIERARCHY_DEPTH: usize = 10;
-
-impl HierarchyNode {
-    fn toggle_at(&mut self, indices: &[usize], depth: usize) {
-        if depth >= indices.len() {
-            self.expanded = !self.expanded;
-            return;
-        }
-        let Some(&idx) = indices.get(depth) else {
-            return;
-        };
-        if let Some(child) = self.children.get_mut(idx) {
-            if depth + 1 == indices.len() {
-                child.expanded = !child.expanded;
-            } else {
-                child.toggle_at(indices, depth + 1);
-            }
-        }
-    }
 
     #[allow(clippy::cast_precision_loss)]
-    fn view<'a>(&'a self, path: &[usize]) -> Element<'a, HierarchyMessage> {
+    fn view_flow<'a>(
+        &'a self,
+        flow_def: &'a FlowDefinition,
+        path: &[usize],
+    ) -> Element<'a, HierarchyMessage> {
         let indent = path.len() as f32 * 16.0;
-        let is_flow = matches!(self.process, Some(Process::FlowProcess(_)) | None)
-            && !self.source.starts_with("lib://")
-            && !self.source.starts_with("context://");
-        let is_library = match &self.process {
-            Some(Process::FunctionProcess(f)) => {
-                f.get_lib_reference().is_some() || f.get_context_reference().is_some()
-            }
-            None => self.source.starts_with("lib://") || self.source.starts_with("context://"),
-            _ => false,
-        };
-
-        let icon = if is_flow {
-            if self.expanded {
-                "\u{25BC}"
-            } else {
-                "\u{25B6}"
-            }
-        } else if is_library {
-            "\u{25CB}"
-        } else {
-            "\u{25C6}"
-        };
-
-        let color = if is_flow {
-            Color::from_rgb(0.9, 0.6, 0.2)
-        } else if is_library {
-            Color::from_rgb(0.3, 0.5, 0.9)
-        } else {
-            Color::from_rgb(0.6, 0.3, 0.8)
-        };
+        let expanded = self.expanded.contains(path);
+        let color = Color::from_rgb(0.9, 0.6, 0.2);
+        let icon = if expanded { "\u{25BC}" } else { "\u{25B6}" };
 
         let path_vec: Vec<usize> = path.to_vec();
         let label = Row::new()
             .spacing(4)
             .push(text(icon).size(11).color(color))
-            .push(text(&self.name).size(13).color(color));
+            .push(text(&flow_def.name).size(13).color(color));
 
-        let label_btn = if is_flow {
-            button(label)
-                .on_press(HierarchyMessage::Toggle(path_vec))
-                .style(button::text)
-                .padding([2, 4])
-        } else if is_library {
-            button(label).style(button::text).padding([2, 4])
-        } else if let Some(ref p) = self.path {
-            button(label)
-                .on_press(HierarchyMessage::Open(self.source.clone(), p.clone()))
-                .style(button::text)
-                .padding([2, 4])
-        } else {
-            button(label).style(button::text).padding([2, 4])
-        };
+        let label_btn = button(label)
+            .on_press(HierarchyMessage::Toggle(path_vec))
+            .style(button::text)
+            .padding([2, 4]);
 
         let mut row = Row::new().push(container(label_btn).padding(iced::Padding {
             top: 0.0,
@@ -163,11 +118,12 @@ impl HierarchyNode {
             left: indent,
             right: 0.0,
         }));
-        if is_flow && !path.is_empty() {
-            if let Some(ref p) = self.path {
+        if !path.is_empty() {
+            if let Ok(p) = flow_def.source_url.to_file_path() {
+                let source = flow_def.source_url.to_string();
                 row = row.push(
                     button(text("\u{270E}").size(11).color(color))
-                        .on_press(HierarchyMessage::Open(self.source.clone(), p.clone()))
+                        .on_press(HierarchyMessage::Open(source, p))
                         .style(button::text)
                         .padding([2, 4]),
                 );
@@ -176,84 +132,114 @@ impl HierarchyNode {
 
         let mut col = Column::new().push(row);
 
-        if self.expanded {
-            for (i, child) in self.children.iter().enumerate() {
+        if expanded && path.len() < MAX_HIERARCHY_DEPTH {
+            for (i, pref) in flow_def.process_refs.iter().enumerate() {
+                let alias = if pref.alias.is_empty() {
+                    crate::canvas_view::derive_short_name(&pref.source)
+                } else {
+                    pref.alias.clone()
+                };
+
                 let mut child_path = path.to_vec();
                 child_path.push(i);
-                col = col.push(child.view(&child_path));
+
+                match flow_def.subprocesses.get(&alias) {
+                    Some(Process::FlowProcess(sub_flow)) => {
+                        col = col.push(self.view_flow(sub_flow, &child_path));
+                    }
+                    Some(Process::FunctionProcess(func)) => {
+                        let is_library = func.get_lib_reference().is_some()
+                            || func.get_context_reference().is_some();
+                        col = col.push(view_leaf(
+                            &alias,
+                            &pref.source,
+                            func.get_source_url().to_file_path().ok(),
+                            is_library,
+                            &child_path,
+                        ));
+                    }
+                    None => {
+                        let is_library = pref.source.starts_with("lib://")
+                            || pref.source.starts_with("context://");
+                        col = col.push(view_leaf(
+                            &alias,
+                            &pref.source,
+                            None,
+                            is_library,
+                            &child_path,
+                        ));
+                    }
+                }
             }
         }
 
         col.into()
     }
+}
 
-    fn from_flow_definition(flow_def: &FlowDefinition) -> Self {
-        Self::from_flow_recursive(flow_def, 0)
+/// Render a leaf node (function or library) in the hierarchy.
+#[allow(clippy::cast_precision_loss)]
+fn view_leaf<'a>(
+    name: &str,
+    source: &str,
+    path: Option<PathBuf>,
+    is_library: bool,
+    tree_path: &[usize],
+) -> Element<'a, HierarchyMessage> {
+    let indent = tree_path.len() as f32 * 16.0;
+    let (icon, color) = if is_library {
+        ("\u{25CB}", Color::from_rgb(0.3, 0.5, 0.9))
+    } else {
+        ("\u{25C6}", Color::from_rgb(0.6, 0.3, 0.8))
+    };
+
+    let label = Row::new()
+        .spacing(4)
+        .push(text(icon).size(11).color(color))
+        .push(text(name.to_string()).size(13).color(color));
+
+    let label_btn = if is_library {
+        button(label).style(button::text).padding([2, 4])
+    } else if let Some(p) = path {
+        button(label)
+            .on_press(HierarchyMessage::Open(source.to_string(), p))
+            .style(button::text)
+            .padding([2, 4])
+    } else {
+        button(label).style(button::text).padding([2, 4])
+    };
+
+    container(label_btn)
+        .padding(iced::Padding {
+            top: 0.0,
+            bottom: 0.0,
+            left: indent,
+            right: 0.0,
+        })
+        .into()
+}
+
+/// Recursively collect paths of flow nodes for default expansion.
+fn collect_flow_paths(
+    flow_def: &FlowDefinition,
+    path: &[usize],
+    expanded: &mut HashSet<Vec<usize>>,
+    depth: usize,
+) {
+    if depth >= MAX_HIERARCHY_DEPTH {
+        return;
     }
-
-    fn from_flow_recursive(flow_def: &FlowDefinition, depth: usize) -> Self {
-        let mut children = Vec::new();
-
-        if depth >= MAX_HIERARCHY_DEPTH {
-            return HierarchyNode {
-                name: flow_def.name.clone(),
-                process: Some(Process::FlowProcess(flow_def.clone())),
-                source: String::new(),
-                path: flow_def.source_url.to_file_path().ok(),
-                children,
-                expanded: false,
-            };
-        }
-
-        for pref in &flow_def.process_refs {
-            let alias = if pref.alias.is_empty() {
-                crate::canvas_view::derive_short_name(&pref.source)
-            } else {
-                pref.alias.clone()
-            };
-
-            match flow_def.subprocesses.get(&alias) {
-                Some(proc @ Process::FlowProcess(sub_flow)) => {
-                    let child = Self::from_flow_recursive(sub_flow, depth + 1);
-                    children.push(HierarchyNode {
-                        name: alias,
-                        process: Some(proc.clone()),
-                        source: pref.source.clone(),
-                        path: sub_flow.source_url.to_file_path().ok(),
-                        children: child.children,
-                        expanded: true,
-                    });
-                }
-                Some(proc @ Process::FunctionProcess(func)) => {
-                    children.push(HierarchyNode {
-                        name: alias,
-                        process: Some(proc.clone()),
-                        source: pref.source.clone(),
-                        path: func.source_url.to_file_path().ok(),
-                        children: Vec::new(),
-                        expanded: false,
-                    });
-                }
-                None => {
-                    children.push(HierarchyNode {
-                        name: alias,
-                        process: None,
-                        source: pref.source.clone(),
-                        path: None,
-                        children: Vec::new(),
-                        expanded: false,
-                    });
-                }
-            }
-        }
-
-        HierarchyNode {
-            name: flow_def.name.clone(),
-            process: Some(Process::FlowProcess(flow_def.clone())),
-            source: String::new(),
-            path: flow_def.source_url.to_file_path().ok(),
-            children,
-            expanded: true,
+    for (i, pref) in flow_def.process_refs.iter().enumerate() {
+        let alias = if pref.alias.is_empty() {
+            crate::canvas_view::derive_short_name(&pref.source)
+        } else {
+            pref.alias.clone()
+        };
+        if let Some(Process::FlowProcess(sub_flow)) = flow_def.subprocesses.get(&alias) {
+            let mut child_path = path.to_vec();
+            child_path.push(i);
+            expanded.insert(child_path.clone());
+            collect_flow_paths(sub_flow, &child_path, expanded, depth + 1);
         }
     }
 }
@@ -262,87 +248,74 @@ impl HierarchyNode {
 mod test {
     use super::*;
     use flowcore::model::function_definition::FunctionDefinition;
+    use flowcore::model::name::Name;
+    use flowcore::model::process_reference::ProcessReference;
+    use std::collections::BTreeMap;
+
+    fn simple_flow() -> FlowDefinition {
+        let mut flow = FlowDefinition {
+            name: Name::from("root"),
+            ..FlowDefinition::default()
+        };
+        flow.process_refs.push(ProcessReference {
+            alias: Name::from("func"),
+            source: "func.toml".into(),
+            initializations: BTreeMap::new(),
+            x: None,
+            y: None,
+            width: None,
+            height: None,
+        });
+        flow.subprocesses.insert(
+            "func".into(),
+            Process::FunctionProcess(FunctionDefinition::default()),
+        );
+        flow
+    }
+
+    fn nested_flow() -> FlowDefinition {
+        let child = simple_flow();
+        let mut root = FlowDefinition {
+            name: Name::from("root"),
+            ..FlowDefinition::default()
+        };
+        root.process_refs.push(ProcessReference {
+            alias: Name::from("sub"),
+            source: "sub.toml".into(),
+            initializations: BTreeMap::new(),
+            x: None,
+            y: None,
+            width: None,
+            height: None,
+        });
+        root.subprocesses
+            .insert("sub".into(), Process::FlowProcess(child));
+        root
+    }
 
     #[test]
     fn empty_hierarchy() {
         let h = FlowHierarchy::empty();
-        assert!(h.root.is_none());
-    }
-
-    fn flow_node(name: &str, children: Vec<HierarchyNode>, expanded: bool) -> HierarchyNode {
-        HierarchyNode {
-            name: name.into(),
-            process: Some(Process::FlowProcess(FlowDefinition::default())),
-            source: String::new(),
-            path: None,
-            children,
-            expanded,
-        }
+        assert!(h.expanded.is_empty());
     }
 
     #[test]
-    fn toggle_root_node() {
-        let mut h = FlowHierarchy {
-            root: Some(flow_node("root_flow", Vec::new(), true)),
-        };
+    fn from_flow_expands_root_and_subflows() {
+        let flow = nested_flow();
+        let h = FlowHierarchy::from_flow_definition(&flow);
+        assert!(h.expanded.contains(&vec![]));
+        assert!(h.expanded.contains(&vec![0]));
+    }
+
+    #[test]
+    fn toggle_collapses_and_expands() {
+        let flow = nested_flow();
+        let mut h = FlowHierarchy::from_flow_definition(&flow);
+        assert!(h.expanded.contains(&vec![]));
         h.update(&HierarchyMessage::Toggle(vec![]));
-        assert!(h.root.as_ref().is_some_and(|r| !r.expanded));
+        assert!(!h.expanded.contains(&vec![]));
         h.update(&HierarchyMessage::Toggle(vec![]));
-        assert!(h.root.as_ref().is_some_and(|r| r.expanded));
-    }
-
-    #[test]
-    fn toggle_child_node() {
-        let mut h = FlowHierarchy {
-            root: Some(flow_node(
-                "root",
-                vec![HierarchyNode {
-                    name: "child_flow".into(),
-                    process: Some(Process::FlowProcess(FlowDefinition::default())),
-                    source: "child.toml".into(),
-                    path: None,
-                    children: Vec::new(),
-                    expanded: false,
-                }],
-                true,
-            )),
-        };
-        h.update(&HierarchyMessage::Toggle(vec![0]));
-        assert!(h
-            .root
-            .as_ref()
-            .and_then(|r| r.children.first())
-            .is_some_and(|c| c.expanded));
-    }
-
-    #[test]
-    fn toggle_nested_child() {
-        let mut h = FlowHierarchy {
-            root: Some(flow_node(
-                "root",
-                vec![flow_node(
-                    "sub",
-                    vec![flow_node("deep", Vec::new(), false)],
-                    true,
-                )],
-                true,
-            )),
-        };
-        h.update(&HierarchyMessage::Toggle(vec![0, 0]));
-        assert!(h
-            .root
-            .as_ref()
-            .and_then(|r| r.children.first())
-            .and_then(|c| c.children.first())
-            .is_some_and(|c| c.expanded));
-    }
-
-    #[test]
-    fn toggle_invalid_index_no_panic() {
-        let mut h = FlowHierarchy {
-            root: Some(flow_node("root", Vec::new(), true)),
-        };
-        h.update(&HierarchyMessage::Toggle(vec![99]));
+        assert!(h.expanded.contains(&vec![]));
     }
 
     #[test]
@@ -366,43 +339,23 @@ mod test {
     }
 
     #[test]
-    fn view_with_nodes_renders() {
-        let mut lib_func = FunctionDefinition::default();
-        lib_func.lib_reference =
-            Some(url::Url::parse("lib://flowstdlib/math/add").expect("valid url"));
-        let h = FlowHierarchy {
-            root: Some(HierarchyNode {
-                name: "test_flow".into(),
-                process: Some(Process::FlowProcess(FlowDefinition::default())),
-                source: String::new(),
-                path: None,
-                children: vec![
-                    HierarchyNode {
-                        name: "func".into(),
-                        process: Some(Process::FunctionProcess(FunctionDefinition::default())),
-                        source: "func.rs".into(),
-                        path: Some(PathBuf::from("/tmp/func.toml")),
-                        children: Vec::new(),
-                        expanded: false,
-                    },
-                    HierarchyNode {
-                        name: "lib_func".into(),
-                        process: Some(Process::FunctionProcess(lib_func)),
-                        source: "lib://flowstdlib/math/add".into(),
-                        path: None,
-                        children: Vec::new(),
-                        expanded: false,
-                    },
-                ],
-                expanded: true,
-            }),
-        };
-        let _element: Element<'_, HierarchyMessage> = h.view();
+    fn view_with_flow_renders() {
+        let flow = simple_flow();
+        let h = FlowHierarchy::from_flow_definition(&flow);
+        let _element: Element<'_, HierarchyMessage> = h.view(&flow);
+    }
+
+    #[test]
+    fn view_nested_renders() {
+        let flow = nested_flow();
+        let h = FlowHierarchy::from_flow_definition(&flow);
+        let _element: Element<'_, HierarchyMessage> = h.view(&flow);
     }
 
     #[test]
     fn view_empty_renders() {
         let h = FlowHierarchy::empty();
-        let _element: Element<'_, HierarchyMessage> = h.view();
+        let flow = FlowDefinition::default();
+        let _element: Element<'_, HierarchyMessage> = h.view(&flow);
     }
 }

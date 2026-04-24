@@ -57,7 +57,7 @@ pub(crate) struct FunctionViewer {
 impl FunctionViewer {
     /// Derive the TOML file path from the function definition's source URL.
     pub(crate) fn toml_path(&self) -> Option<PathBuf> {
-        self.func_def.source_url.to_file_path().ok()
+        self.func_def.get_source_url().to_file_path().ok()
     }
 }
 

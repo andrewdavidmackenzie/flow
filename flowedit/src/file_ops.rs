@@ -1064,7 +1064,7 @@ mod test {
             "result",
         ));
         if let Ok(url) = url::Url::from_file_path(&toml_path) {
-            func_def.source_url = url;
+            func_def.set_source_url(&url);
         }
 
         let viewer = FunctionViewer {
@@ -1118,7 +1118,7 @@ mod test {
         func_def.name = "existing".into();
         func_def.source = "existing.rs".into();
         if let Ok(url) = url::Url::from_file_path(&toml_path) {
-            func_def.source_url = url;
+            func_def.set_source_url(&url);
         }
 
         let viewer = FunctionViewer {
