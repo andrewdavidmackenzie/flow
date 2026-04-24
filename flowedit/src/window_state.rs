@@ -12,6 +12,21 @@ use crate::canvas_view::FlowCanvasState;
 use crate::hierarchy_panel::FlowHierarchy;
 use crate::history::EditHistory;
 
+/// Tooltip text and screen position for hover display.
+#[derive(Debug, Clone)]
+pub(crate) struct Tooltip {
+    pub(crate) text: String,
+    pub(crate) x: f32,
+    pub(crate) y: f32,
+}
+
+/// Screen position for a right-click context menu.
+#[derive(Debug, Clone, Copy)]
+pub(crate) struct MenuPosition {
+    pub(crate) x: f32,
+    pub(crate) y: f32,
+}
+
 /// State for the initializer editing dialog.
 pub(crate) struct InitializerEditor {
     /// Index of the node being edited
@@ -73,13 +88,13 @@ pub(crate) struct WindowState {
     /// The original flow definition, used to preserve metadata when saving
     pub(crate) flow_definition: FlowDefinition,
     /// Tooltip text and screen position to display (full source path on hover)
-    pub(crate) tooltip: Option<(String, f32, f32)>,
+    pub(crate) tooltip: Option<Tooltip>,
     /// Active initializer editor dialog, if any
     pub(crate) initializer_editor: Option<InitializerEditor>,
     /// Whether this is the root (main) window
     pub(crate) is_root: bool,
     /// Context menu position (screen coords), if showing
-    pub(crate) context_menu: Option<(f32, f32)>,
+    pub(crate) context_menu: Option<MenuPosition>,
     /// Whether the metadata editor is visible
     pub(crate) show_metadata: bool,
     /// Flow hierarchy tree for this window's navigation panel

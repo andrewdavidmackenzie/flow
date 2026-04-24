@@ -291,7 +291,7 @@ impl WindowState {
                 return CanvasAction::OpenNode(idx);
             }
             CanvasMessage::ContextMenu(x, y) => {
-                self.context_menu = Some((x, y));
+                self.context_menu = Some(crate::window_state::MenuPosition { x, y });
             }
         }
         CanvasAction::None
@@ -398,7 +398,7 @@ pub(crate) enum CanvasMessage {
     /// Auto-fit with the actual viewport size (triggered on initial load).
     AutoFitViewport(Size),
     /// Hover state changed — full source path and screen position for tooltip (or None to hide)
-    HoverChanged(Option<(String, f32, f32)>),
+    HoverChanged(Option<crate::window_state::Tooltip>),
     /// Right-click on empty canvas — show context menu at screen position
     ContextMenu(f32, f32),
 }
@@ -983,9 +983,9 @@ pub(crate) struct FlowCanvasState {
     /// The geometry cache — cleared when the flow data changes
     cache: canvas::Cache,
     /// Current zoom level (1.0 = 100%)
-    pub zoom: f32,
+    pub(crate) zoom: f32,
     /// Scroll offset in world coordinates
-    pub scroll_offset: Point,
+    pub(crate) scroll_offset: Point,
 }
 
 impl Default for FlowCanvasState {
@@ -1818,7 +1818,11 @@ impl canvas::Program<CanvasMessage> for FlowCanvas<'_> {
                                 );
                             state.hover_node = None;
                             return Some(canvas::Action::publish(CanvasMessage::HoverChanged(
-                                Some((type_text, cursor_position.x, cursor_position.y - 20.0)),
+                                Some(crate::window_state::Tooltip {
+                                    text: type_text,
+                                    x: cursor_position.x,
+                                    y: cursor_position.y - 20.0,
+                                }),
                             )));
                         }
                     }
@@ -1835,9 +1839,17 @@ impl canvas::Program<CanvasMessage> for FlowCanvas<'_> {
                                     offset,
                                 );
                                 if n.is_in_source_text_zone(world_pos) {
-                                    Some((n.source().to_string(), bottom_center.x, bottom_center.y))
+                                    Some(crate::window_state::Tooltip {
+                                        text: n.source().to_string(),
+                                        x: bottom_center.x,
+                                        y: bottom_center.y,
+                                    })
                                 } else if !n.description().is_empty() {
-                                    Some((n.description(), bottom_center.x, bottom_center.y))
+                                    Some(crate::window_state::Tooltip {
+                                        text: n.description(),
+                                        x: bottom_center.x,
+                                        y: bottom_center.y,
+                                    })
                                 } else {
                                     None
                                 }
@@ -3029,9 +3041,9 @@ impl WindowState {
 
         let mut canvas_stack: Vec<Element<'_, Message>> = vec![canvas, zoom_controls.into()];
 
-        if let Some((ref tip_text, tx, ty)) = self.tooltip {
+        if let Some(ref tip) = self.tooltip {
             let tooltip_widget = container(
-                container(Text::new(tip_text.clone()).size(20).color(Color::WHITE))
+                container(Text::new(tip.text.clone()).size(20).color(Color::WHITE))
                     .padding(8)
                     .style(|_theme: &Theme| container::Style {
                         background: Some(iced::Background::Color(Color::from_rgb(
@@ -3046,10 +3058,10 @@ impl WindowState {
                     }),
             )
             .padding(iced::Padding {
-                top: ty + 26.0,
+                top: tip.y + 26.0,
                 right: 0.0,
                 bottom: 0.0,
-                left: (tx - 80.0).max(0.0),
+                left: (tip.x - 80.0).max(0.0),
             });
             canvas_stack.push(tooltip_widget.into());
         }
@@ -3126,7 +3138,7 @@ impl WindowState {
         }
 
         // Context menu overlay (right-click on empty canvas)
-        if let Some((cx, cy)) = self.context_menu {
+        if let Some(menu_pos) = self.context_menu {
             let menu = container(
                 Column::new()
                     .spacing(2)
@@ -3158,8 +3170,8 @@ impl WindowState {
             .padding(4);
 
             let positioned = container(menu).padding(iced::Padding {
-                top: cy,
-                left: cx,
+                top: menu_pos.y,
+                left: menu_pos.x,
                 right: 0.0,
                 bottom: 0.0,
             });

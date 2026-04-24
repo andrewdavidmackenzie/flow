@@ -1456,7 +1456,7 @@ fn flow_output_rename_updates_edges() {
 fn new_subflow_clears_context_menu() {
     let (mut app, win_id) = test_app();
     if let Some(win) = app.windows.get_mut(&win_id) {
-        win.context_menu = Some((100.0, 200.0));
+        win.context_menu = Some(crate::window_state::MenuPosition { x: 100.0, y: 200.0 });
     }
     let _ = app.update(Message::NewSubFlow(win_id));
     assert!(
@@ -1472,7 +1472,7 @@ fn new_subflow_clears_context_menu() {
 fn new_function_clears_context_menu() {
     let (mut app, win_id) = test_app();
     if let Some(win) = app.windows.get_mut(&win_id) {
-        win.context_menu = Some((100.0, 200.0));
+        win.context_menu = Some(crate::window_state::MenuPosition { x: 100.0, y: 200.0 });
     }
     let _ = app.update(Message::NewFunction(win_id));
     assert!(
