@@ -135,7 +135,7 @@ impl FlowHierarchy {
         if expanded && path.len() < MAX_HIERARCHY_DEPTH {
             for (i, pref) in flow_def.process_refs.iter().enumerate() {
                 let alias = if pref.alias.is_empty() {
-                    crate::canvas_view::derive_short_name(&pref.source)
+                    crate::flow_canvas::derive_short_name(&pref.source)
                 } else {
                     pref.alias.clone()
                 };
@@ -231,7 +231,7 @@ fn collect_flow_paths(
     }
     for (i, pref) in flow_def.process_refs.iter().enumerate() {
         let alias = if pref.alias.is_empty() {
-            crate::canvas_view::derive_short_name(&pref.source)
+            crate::flow_canvas::derive_short_name(&pref.source)
         } else {
             pref.alias.clone()
         };

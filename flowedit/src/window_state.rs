@@ -8,7 +8,7 @@ use url::Url;
 use flowcore::model::flow_definition::FlowDefinition;
 use flowcore::model::function_definition::FunctionDefinition;
 
-use crate::canvas_view::FlowCanvasState;
+use crate::flow_canvas::FlowCanvasState;
 use crate::hierarchy_panel::FlowHierarchy;
 use crate::history::EditHistory;
 

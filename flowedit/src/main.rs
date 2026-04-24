@@ -39,13 +39,13 @@ use flowcore::model::process_reference::ProcessReference;
 use flowcore::model::route::Route;
 use flowcore::provider::Provider;
 
-use canvas_view::{CanvasMessage, FlowCanvasState};
+use flow_canvas::{CanvasMessage, FlowCanvasState};
 use hierarchy_panel::{FlowHierarchy, HierarchyMessage};
 use history::EditHistory;
 use library_panel::{LibraryAction, LibraryMessage, LibraryTree};
 
-mod canvas_view;
 mod file_ops;
+mod flow_canvas;
 mod hierarchy_panel;
 mod history;
 mod initializer;
@@ -173,7 +173,7 @@ impl WindowState {
                     let name = io.name().clone();
                     self.flow_definition.inputs.remove(idx);
                     self.flow_definition.connections.retain(|c| {
-                        let (from_node, from_port) = canvas_view::split_route(c.from().as_ref());
+                        let (from_node, from_port) = flow_canvas::split_route(c.from().as_ref());
                         !(from_node == "input" && from_port == name)
                     });
                     self.history.mark_modified();
@@ -191,7 +191,7 @@ impl WindowState {
                             .iter()
                             .filter(|to_route| {
                                 let (to_node, to_port) =
-                                    canvas_view::split_route(to_route.as_ref());
+                                    flow_canvas::split_route(to_route.as_ref());
                                 !(to_node == "output" && to_port == name)
                             })
                             .cloned()
@@ -850,8 +850,8 @@ impl FlowEdit {
             return Task::none();
         };
         match win.handle_canvas_message(canvas_msg) {
-            canvas_view::CanvasAction::OpenNode(idx) => self.open_node(win_id, idx),
-            canvas_view::CanvasAction::None => Task::none(),
+            flow_canvas::CanvasAction::OpenNode(idx) => self.open_node(win_id, idx),
+            flow_canvas::CanvasAction::None => Task::none(),
         }
     }
 
@@ -2356,7 +2356,7 @@ impl FlowEdit {
                 for pref in &parent_win.flow_definition.process_refs {
                     if pref.source == node_source {
                         let alias = if pref.alias.is_empty() {
-                            canvas_view::derive_short_name(&pref.source)
+                            flow_canvas::derive_short_name(&pref.source)
                         } else {
                             pref.alias.clone()
                         };
@@ -2650,7 +2650,7 @@ impl FlowEdit {
                 for pref in &parent_win.flow_definition.process_refs {
                     if pref.source == node_source {
                         let alias = if pref.alias.is_empty() {
-                            canvas_view::derive_short_name(&pref.source)
+                            flow_canvas::derive_short_name(&pref.source)
                         } else {
                             pref.alias.clone()
                         };
@@ -2694,7 +2694,7 @@ impl FlowEdit {
                         continue;
                     }
                     let alias = if pref.alias.is_empty() {
-                        canvas_view::derive_short_name(&pref.source)
+                        flow_canvas::derive_short_name(&pref.source)
                     } else {
                         pref.alias.clone()
                     };
@@ -2746,7 +2746,7 @@ impl FlowEdit {
                         continue;
                     }
                     let alias = if pref.alias.is_empty() {
-                        canvas_view::derive_short_name(&pref.source)
+                        flow_canvas::derive_short_name(&pref.source)
                     } else {
                         pref.alias.clone()
                     };

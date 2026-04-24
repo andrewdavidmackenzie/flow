@@ -2,7 +2,7 @@
 
 use flowcore::model::input::InputInitializer;
 
-use crate::canvas_view::derive_short_name;
+use crate::flow_canvas::derive_short_name;
 use crate::history::EditAction;
 use crate::{InitializerEditor, WindowState};
 
