@@ -269,6 +269,7 @@ impl WindowState {
     }
 
     fn handle_connection_selected(&mut self, idx: Option<usize>) {
+        self.context_menu = None;
         self.selected_connection = idx;
         self.selected_node = None;
         self.canvas_state.request_redraw();
@@ -307,6 +308,7 @@ impl WindowState {
     }
 
     fn handle_initializer_edit(&mut self, node_idx: usize, port_name: String) {
+        self.context_menu = None;
         let (init_type, value_text) = self
             .flow_definition
             .process_refs

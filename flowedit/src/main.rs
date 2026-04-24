@@ -444,11 +444,11 @@ fn setup_lib_search_path(lib_dirs: &[String]) {
     }
     if lib_search_path.is_empty() {
         if let Ok(home) = std::env::var("HOME") {
-            lib_search_path.add(&format!("{home}/.flow/lib"));
+            let default_lib = format!("{home}/.flow/lib");
+            lib_search_path.add(&default_lib);
+            std::env::set_var("FLOW_LIB_PATH", &default_lib);
         }
-    }
-
-    if !lib_dirs.is_empty() {
+    } else if !lib_dirs.is_empty() {
         let current = std::env::var("FLOW_LIB_PATH").unwrap_or_default();
         let additions = lib_dirs.join(",");
         if current.is_empty() {
@@ -2442,11 +2442,24 @@ impl FlowEdit {
                 } else {
                     &v.func_def.outputs
                 };
+                let duplicate = ports
+                    .iter()
+                    .enumerate()
+                    .any(|(i, io)| i != idx && io.name() == name);
+                if duplicate {
+                    return None;
+                }
                 ports.get(idx).map(|io| io.name().clone())
             } else {
                 None
             }
         });
+        let Some(ref old) = old_name else {
+            return;
+        };
+        if old == name {
+            return;
+        }
         if let Some(win) = self.windows.get_mut(&win_id) {
             if let WindowKind::FunctionViewer(ref mut v) = win.kind {
                 let ports = if is_input {
@@ -2461,9 +2474,7 @@ impl FlowEdit {
             win.history.mark_modified();
         }
         Self::propagate_function_ports(&mut self.windows, win_id);
-        if let Some(old) = old_name {
-            Self::rename_parent_connections_port(&mut self.windows, win_id, &old, name, is_input);
-        }
+        Self::rename_parent_connections_port(&mut self.windows, win_id, old, name, is_input);
     }
 
     /// Handle function definition viewing/editing messages.
