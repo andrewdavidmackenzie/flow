@@ -2103,6 +2103,7 @@ impl FlowEdit {
             });
             win.history.mark_modified();
             win.canvas_state.request_redraw();
+            win.trigger_auto_fit_if_enabled();
             win.status = format!("Created sub-flow: {alias}");
         }
 
@@ -2200,27 +2201,12 @@ impl FlowEdit {
             });
             win.history.mark_modified();
             win.canvas_state.request_redraw();
+            win.trigger_auto_fit_if_enabled();
             win.status = format!("Created function: {alias}");
         }
 
-        // Open the function viewer window
         let (new_id, open_task) = window::open(self.child_window_settings(700.0, 500.0));
-
-        let mut func_def = FunctionDefinition::default();
-        func_def.name.clone_from(&func_name);
-        func_def.source.clone_from(&rs_filename);
-        if let Ok(url) = Url::from_file_path(&path) {
-            func_def.set_source_url(&url);
-        }
-        let viewer = FunctionViewer {
-            func_def: func_def.clone(),
-            rs_content: String::from("// Save to generate skeleton source"),
-            docs_content: None,
-            active_tab: 0,
-            parent_window: Some(target_id),
-            node_source: rs_filename,
-            read_only: false,
-        };
+        let viewer = Self::build_new_function_viewer(&func_name, &rs_filename, &path, target_id);
 
         let mut func_flow_def = FlowDefinition {
             name: func_name,
@@ -2557,6 +2543,29 @@ impl FlowEdit {
             win.history.mark_modified();
         }
         Self::propagate_function_ports(&mut self.windows, win_id);
+    }
+
+    fn build_new_function_viewer(
+        func_name: &str,
+        rs_filename: &str,
+        path: &Path,
+        parent_id: window::Id,
+    ) -> FunctionViewer {
+        let mut func_def = FunctionDefinition::default();
+        func_def.name = func_name.into();
+        func_def.source = rs_filename.into();
+        if let Ok(url) = Url::from_file_path(path) {
+            func_def.set_source_url(&url);
+        }
+        FunctionViewer {
+            func_def,
+            rs_content: String::from("// Save to generate skeleton source"),
+            docs_content: None,
+            active_tab: 0,
+            parent_window: Some(parent_id),
+            node_source: rs_filename.into(),
+            read_only: false,
+        }
     }
 
     fn handle_function_edit_message(&mut self, win_id: window::Id, func_msg: FunctionEditMessage) {

@@ -268,6 +268,7 @@ impl WindowState {
                 }
             }
             self.canvas_state.request_redraw();
+            self.trigger_auto_fit_if_enabled();
         }
     }
 
@@ -366,6 +367,7 @@ impl WindowState {
                 }
             }
             self.canvas_state.request_redraw();
+            self.trigger_auto_fit_if_enabled();
         }
     }
 
