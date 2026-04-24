@@ -291,44 +291,6 @@ pub(crate) struct FlowCanvas<'a> {
     pub(crate) auto_fit_enabled: bool,
 }
 
-impl FlowCanvas<'_> {
-    /// Find the index of the first node whose bounding rectangle contains `point`.
-    fn hit_test_node(&self, point: Point) -> Option<usize> {
-        self.nodes.iter().enumerate().find_map(|(i, node)| {
-            if point.x >= node.x()
-                && point.x <= node.x() + node.width()
-                && point.y >= node.y()
-                && point.y <= node.y() + node.height()
-            {
-                Some(i)
-            } else {
-                None
-            }
-        })
-    }
-
-    /// Check whether `point` (world coords) is on the open icon of an openable node.
-    /// The icon occupies a 16x16 area in the top-right corner of the node.
-    fn hit_test_open_icon(&self, point: Point) -> Option<usize> {
-        self.nodes.iter().enumerate().find_map(|(i, node)| {
-            if !node.is_openable() {
-                return None;
-            }
-            let icon_x = node.x() + node.width() - 22.0;
-            let icon_y = node.y() + 4.0;
-            if point.x >= icon_x
-                && point.x <= icon_x + 24.0
-                && point.y >= icon_y
-                && point.y <= icon_y + 24.0
-            {
-                Some(i)
-            } else {
-                None
-            }
-        })
-    }
-}
-
 /// Check whether `screen_pos` is within [`RESIZE_HANDLE_HIT`] pixels of any resize handle
 /// on the node at `node_index`. Returns the handle variant if hit.
 ///
@@ -349,43 +311,6 @@ fn hit_test_resize_handle(
         }
     }
     None
-}
-
-impl FlowCanvas<'_> {
-    /// Hit test all ports across all nodes.
-    ///
-    /// Returns `(node_index, port_name, is_output)` if the cursor is within
-    /// [`PORT_HIT_RADIUS`] screen pixels of a port center.
-    fn hit_test_port(
-        &self,
-        screen_pos: Point,
-        zoom: f32,
-        offset: Point,
-    ) -> Option<(usize, String, bool)> {
-        for (node_idx, node) in self.nodes.iter().enumerate() {
-            // Check output ports (right side)
-            for (port_idx, port_info) in node.outputs().iter().enumerate() {
-                let world_pt = node.output_port_position(port_idx);
-                let screen_pt = transform_point(world_pt, zoom, offset);
-                let dx = screen_pos.x - screen_pt.x;
-                let dy = screen_pos.y - screen_pt.y;
-                if dx * dx + dy * dy <= PORT_HIT_RADIUS * PORT_HIT_RADIUS {
-                    return Some((node_idx, port_info.name().clone(), true));
-                }
-            }
-            // Check input ports (left side)
-            for (port_idx, port_info) in node.inputs().iter().enumerate() {
-                let world_pt = node.input_port_position(port_idx);
-                let screen_pt = transform_point(world_pt, zoom, offset);
-                let dx = screen_pos.x - screen_pt.x;
-                let dy = screen_pos.y - screen_pt.y;
-                if dx * dx + dy * dy <= PORT_HIT_RADIUS * PORT_HIT_RADIUS {
-                    return Some((node_idx, port_info.name().clone(), false));
-                }
-            }
-        }
-        None
-    }
 }
 
 /// Evaluate a quadratic bezier curve at parameter `t` (0.0..=1.0).
@@ -484,7 +409,433 @@ fn cubic_bezier(p0: Point, p1: Point, p2: Point, p3: Point, t: f32) -> Point {
     )
 }
 
+/// Compute the appropriate mouse cursor for a given [`ResizeHandle`].
+fn resize_cursor(handle: ResizeHandle) -> mouse::Interaction {
+    match handle {
+        ResizeHandle::TopLeft | ResizeHandle::BottomRight => {
+            mouse::Interaction::ResizingDiagonallyDown
+        }
+        ResizeHandle::TopRight | ResizeHandle::BottomLeft => {
+            mouse::Interaction::ResizingDiagonallyUp
+        }
+        ResizeHandle::Left | ResizeHandle::Right => mouse::Interaction::ResizingHorizontally,
+        ResizeHandle::Top | ResizeHandle::Bottom => mouse::Interaction::ResizingVertically,
+    }
+}
+
+fn handle_delete_key(state: &mut CanvasInteractionState) -> Option<canvas::Action<CanvasMessage>> {
+    if let Some(sel_conn) = state.selected_connection {
+        state.selected_connection = None;
+        return Some(
+            canvas::Action::publish(CanvasMessage::ConnectionDeleted(sel_conn)).and_capture(),
+        );
+    }
+    if let Some(sel_idx) = state.selected_node {
+        state.selected_node = None;
+        return Some(canvas::Action::publish(CanvasMessage::Deleted(sel_idx)).and_capture());
+    }
+    None
+}
+
+fn compute_resize(resize: &ResizeState, world_pos: Point) -> canvas::Action<CanvasMessage> {
+    let dx = world_pos.x - resize.start_x;
+    let dy = world_pos.y - resize.start_y;
+    let (mut new_x, mut new_y, mut new_w, mut new_h) = (
+        resize.start_node_x,
+        resize.start_node_y,
+        resize.start_width,
+        resize.start_height,
+    );
+    match resize.handle {
+        ResizeHandle::TopLeft => {
+            new_w = (resize.start_width - dx).max(MIN_NODE_WIDTH);
+            new_h = (resize.start_height - dy).max(MIN_NODE_HEIGHT);
+            new_x = resize.start_node_x + resize.start_width - new_w;
+            new_y = resize.start_node_y + resize.start_height - new_h;
+        }
+        ResizeHandle::Top => {
+            new_h = (resize.start_height - dy).max(MIN_NODE_HEIGHT);
+            new_y = resize.start_node_y + resize.start_height - new_h;
+        }
+        ResizeHandle::TopRight => {
+            new_w = (resize.start_width + dx).max(MIN_NODE_WIDTH);
+            new_h = (resize.start_height - dy).max(MIN_NODE_HEIGHT);
+            new_y = resize.start_node_y + resize.start_height - new_h;
+        }
+        ResizeHandle::Left => {
+            new_w = (resize.start_width - dx).max(MIN_NODE_WIDTH);
+            new_x = resize.start_node_x + resize.start_width - new_w;
+        }
+        ResizeHandle::Right => {
+            new_w = (resize.start_width + dx).max(MIN_NODE_WIDTH);
+        }
+        ResizeHandle::BottomLeft => {
+            new_w = (resize.start_width - dx).max(MIN_NODE_WIDTH);
+            new_h = (resize.start_height + dy).max(MIN_NODE_HEIGHT);
+            new_x = resize.start_node_x + resize.start_width - new_w;
+        }
+        ResizeHandle::Bottom => {
+            new_h = (resize.start_height + dy).max(MIN_NODE_HEIGHT);
+        }
+        ResizeHandle::BottomRight => {
+            new_w = (resize.start_width + dx).max(MIN_NODE_WIDTH);
+            new_h = (resize.start_height + dy).max(MIN_NODE_HEIGHT);
+        }
+    }
+    canvas::Action::publish(CanvasMessage::Resized(
+        resize.node_index,
+        new_x,
+        new_y,
+        new_w,
+        new_h,
+    ))
+    .and_capture()
+}
+
+fn handle_scroll(
+    state: &CanvasInteractionState,
+    zoom: f32,
+    delta: &mouse::ScrollDelta,
+) -> Option<canvas::Action<CanvasMessage>> {
+    let (dx, dy) = match *delta {
+        mouse::ScrollDelta::Lines { x, y } => (x * SCROLL_SPEED, y * SCROLL_SPEED),
+        mouse::ScrollDelta::Pixels { x, y } => (x, y),
+    };
+
+    if state.modifiers.command() {
+        if dy > 0.0 {
+            Some(canvas::Action::publish(CanvasMessage::ZoomBy(ZOOM_STEP)).and_capture())
+        } else if dy < 0.0 {
+            Some(canvas::Action::publish(CanvasMessage::ZoomBy(1.0 / ZOOM_STEP)).and_capture())
+        } else {
+            None
+        }
+    } else {
+        let pan_x = dx / zoom;
+        let pan_y = dy / zoom;
+        Some(canvas::Action::publish(CanvasMessage::Pan(pan_x, pan_y)).and_capture())
+    }
+}
+
+/// Compute the key waypoints for a loopback (self-connection) path in screen space.
+///
+/// Returns `(box_right, box_bottom, box_left, mid_x)` — the screen-space coordinates
+/// for routing around the node.
+fn loopback_waypoints(
+    nx: f32,
+    ny: f32,
+    nw: f32,
+    nh: f32,
+    zoom: f32,
+    offset: Point,
+) -> (f32, f32, f32, f32) {
+    let margin = 25.0 * zoom;
+    let box_right = (nx + nw + offset.x) * zoom + margin;
+    let box_bottom = (ny + nh + offset.y) * zoom + margin;
+    let box_left = (nx + offset.x) * zoom - margin;
+    let mid_x = box_right.midpoint(box_left);
+    (box_right, box_bottom, box_left, mid_x)
+}
+
+/// Draw a bezier curve connection between two world-space points, applying zoom and offset.
+/// `node_bounds` is `Some((x, y, width, height))` in world coords for self-connections,
+/// `None` for normal connections.
+fn draw_bezier_connection(
+    frame: &mut Frame,
+    from: Point,
+    to: Point,
+    zoom: f32,
+    offset: Point,
+    node_bounds: Option<(f32, f32, f32, f32)>,
+    highlighted: bool,
+) {
+    let from_s = transform_point(from, zoom, offset);
+    let to_s = transform_point(to, zoom, offset);
+
+    let conn_color = if highlighted {
+        Color::from_rgb(1.0, 0.85, 0.0)
+    } else {
+        Color::from_rgb(0.5, 0.5, 0.5)
+    };
+    let line_width = if highlighted { 4.0 } else { 2.0 };
+    let stroke = Stroke::default()
+        .with_width(line_width * zoom)
+        .with_color(conn_color);
+
+    if let Some((nx, ny, nw, nh)) = node_bounds {
+        let (box_right, box_bottom, box_left, _mid_x) =
+            loopback_waypoints(nx, ny, nw, nh, zoom, offset);
+
+        let path = Path::new(|builder| {
+            builder.move_to(from_s);
+            // Go right past the box
+            builder.line_to(Point::new(box_right, from_s.y));
+            // Curve down to below the box
+            builder.quadratic_curve_to(
+                Point::new(box_right, box_bottom),
+                Point::new(box_right.midpoint(box_left), box_bottom),
+            );
+            // Curve up to left of the box
+            builder.quadratic_curve_to(
+                Point::new(box_left, box_bottom),
+                Point::new(box_left, to_s.y),
+            );
+            // Arrive at input
+            builder.line_to(to_s);
+        });
+        frame.stroke(&path, stroke);
+    } else {
+        // Normal connection: bezier curve from right to left
+        let dx = (to_s.x - from_s.x).abs().max(60.0 * zoom) * 0.5;
+        let control1 = Point::new(from_s.x + dx, from_s.y);
+        let control2 = Point::new(to_s.x - dx, to_s.y);
+
+        let path = Path::new(|builder| {
+            builder.move_to(from_s);
+            builder.bezier_curve_to(control1, control2, to_s);
+        });
+        frame.stroke(&path, stroke);
+    }
+
+    // Filled arrow head at destination — triangle butts against the port semi-circle
+    let arrow_size = 6.0 * zoom;
+    let arrow = Path::new(|builder| {
+        builder.move_to(Point::new(to_s.x - arrow_size, to_s.y - arrow_size));
+        builder.line_to(to_s);
+        builder.line_to(Point::new(to_s.x - arrow_size, to_s.y + arrow_size));
+        builder.close();
+    });
+    frame.fill(&arrow, conn_color);
+}
+
+/// Draw a rounded bounding box around all subprocess nodes with flow I/O
+/// ports on the box edges and bezier connections to internal nodes.
+pub(crate) fn flow_io_bounding_box(
+    nodes: &[NodeLayout],
+    flow_inputs: &[IO],
+    flow_outputs: &[IO],
+) -> (f32, f32, f32, f32, f32, f32) {
+    let spacing = 28.0;
+    let padding = 80.0;
+    let max_ports = flow_inputs.len().max(flow_outputs.len()).max(1) as f32;
+    let default_h = max_ports * spacing + 60.0;
+    let (min_x, max_x, min_y, max_y) = if nodes.is_empty() {
+        (150.0, 350.0, 100.0, 100.0 + default_h)
+    } else {
+        (
+            nodes.iter().map(NodeLayout::x).fold(f32::MAX, f32::min),
+            nodes
+                .iter()
+                .map(|n| n.x() + n.width())
+                .fold(f32::MIN, f32::max),
+            nodes.iter().map(NodeLayout::y).fold(f32::MAX, f32::min),
+            nodes
+                .iter()
+                .map(|n| n.y() + n.height())
+                .fold(f32::MIN, f32::max),
+        )
+    };
+    let box_x = min_x - padding;
+    let box_y = min_y - padding;
+    let box_w = (max_x - min_x) + 2.0 * padding;
+    let box_h = (max_y - min_y) + 2.0 * padding;
+    let center_y = min_y.midpoint(max_y);
+    (box_x, box_y, box_w, box_h, center_y, spacing)
+}
+
+#[allow(clippy::too_many_arguments)]
+fn draw_flow_input_port_labels(
+    frame: &mut Frame,
+    flow_inputs: &[IO],
+    left_x: f32,
+    center_y: f32,
+    spacing: f32,
+    port_radius: f32,
+    font_size: f32,
+    zoom: f32,
+    offset: Point,
+) -> HashMap<String, Point> {
+    use std::f32::consts::PI;
+
+    let input_color = Color::from_rgb(0.4, 0.8, 1.0);
+    let mut positions: HashMap<String, Point> = HashMap::new();
+    let start_y = center_y - (flow_inputs.len() as f32 - 1.0) * spacing / 2.0;
+    for (i, input) in flow_inputs.iter().enumerate() {
+        let world_y = start_y + i as f32 * spacing;
+        let world_pos = Point::new(left_x, world_y);
+        positions.insert(input.name().clone(), world_pos);
+        let screen_pos = transform_point(world_pos, zoom, offset);
+        let scaled_r = port_radius * zoom;
+        let semi = Path::new(|builder| {
+            builder.arc(canvas::path::Arc {
+                center: screen_pos,
+                radius: scaled_r,
+                start_angle: (-PI / 2.0).into(),
+                end_angle: (PI / 2.0).into(),
+            });
+            builder.close();
+        });
+        frame.fill(&semi, input_color);
+
+        let label_pos = Point::new(screen_pos.x - scaled_r - 4.0, screen_pos.y);
+        frame.fill_text(CanvasText {
+            content: input.name().clone(),
+            position: label_pos,
+            color: input_color,
+            size: (font_size * zoom).into(),
+            align_x: iced::alignment::Horizontal::Right.into(),
+            align_y: iced::alignment::Vertical::Center,
+            ..CanvasText::default()
+        });
+    }
+    positions
+}
+
+#[allow(clippy::too_many_arguments)]
+fn draw_flow_output_port_labels(
+    frame: &mut Frame,
+    flow_outputs: &[IO],
+    right_x: f32,
+    center_y: f32,
+    spacing: f32,
+    port_radius: f32,
+    font_size: f32,
+    zoom: f32,
+    offset: Point,
+) -> HashMap<String, Point> {
+    use std::f32::consts::PI;
+
+    let output_color = Color::from_rgb(1.0, 0.6, 0.3);
+    let mut positions: HashMap<String, Point> = HashMap::new();
+    let start_y = center_y - (flow_outputs.len() as f32 - 1.0) * spacing / 2.0;
+    for (i, output) in flow_outputs.iter().enumerate() {
+        let world_y = start_y + i as f32 * spacing;
+        let world_pos = Point::new(right_x, world_y);
+        positions.insert(output.name().clone(), world_pos);
+        let screen_pos = transform_point(world_pos, zoom, offset);
+        let scaled_r = port_radius * zoom;
+        let semi = Path::new(|builder| {
+            builder.arc(canvas::path::Arc {
+                center: screen_pos,
+                radius: scaled_r,
+                start_angle: (PI / 2.0).into(),
+                end_angle: (3.0 * PI / 2.0).into(),
+            });
+            builder.close();
+        });
+        frame.fill(&semi, output_color);
+
+        let label_pos = Point::new(screen_pos.x + scaled_r + 4.0, screen_pos.y);
+        frame.fill_text(CanvasText {
+            content: output.name().clone(),
+            position: label_pos,
+            color: output_color,
+            size: (font_size * zoom).into(),
+            align_y: iced::alignment::Vertical::Center,
+            ..CanvasText::default()
+        });
+    }
+    positions
+}
+
+fn draw_flow_io_bezier(
+    frame: &mut Frame,
+    from: Point,
+    to: Point,
+    zoom: f32,
+    offset: Point,
+    color: Color,
+    stroke_width: f32,
+) {
+    let from_s = transform_point(from, zoom, offset);
+    let to_s = transform_point(to, zoom, offset);
+    let dx = (to_s.x - from_s.x).abs().max(40.0 * zoom) * 0.4;
+    let path = Path::new(|builder| {
+        builder.move_to(from_s);
+        builder.bezier_curve_to(
+            Point::new(from_s.x + dx, from_s.y),
+            Point::new(to_s.x - dx, to_s.y),
+            to_s,
+        );
+    });
+    frame.stroke(
+        &path,
+        Stroke::default().with_width(stroke_width).with_color(color),
+    );
+}
+
 impl FlowCanvas<'_> {
+    /// Find the index of the first node whose bounding rectangle contains `point`.
+    fn hit_test_node(&self, point: Point) -> Option<usize> {
+        self.nodes.iter().enumerate().find_map(|(i, node)| {
+            if point.x >= node.x()
+                && point.x <= node.x() + node.width()
+                && point.y >= node.y()
+                && point.y <= node.y() + node.height()
+            {
+                Some(i)
+            } else {
+                None
+            }
+        })
+    }
+
+    /// Check whether `point` (world coords) is on the open icon of an openable node.
+    /// The icon occupies a 16x16 area in the top-right corner of the node.
+    fn hit_test_open_icon(&self, point: Point) -> Option<usize> {
+        self.nodes.iter().enumerate().find_map(|(i, node)| {
+            if !node.is_openable() {
+                return None;
+            }
+            let icon_x = node.x() + node.width() - 22.0;
+            let icon_y = node.y() + 4.0;
+            if point.x >= icon_x
+                && point.x <= icon_x + 24.0
+                && point.y >= icon_y
+                && point.y <= icon_y + 24.0
+            {
+                Some(i)
+            } else {
+                None
+            }
+        })
+    }
+
+    /// Hit test all ports across all nodes.
+    ///
+    /// Returns `(node_index, port_name, is_output)` if the cursor is within
+    /// [`PORT_HIT_RADIUS`] screen pixels of a port center.
+    fn hit_test_port(
+        &self,
+        screen_pos: Point,
+        zoom: f32,
+        offset: Point,
+    ) -> Option<(usize, String, bool)> {
+        for (node_idx, node) in self.nodes.iter().enumerate() {
+            // Check output ports (right side)
+            for (port_idx, port_info) in node.outputs().iter().enumerate() {
+                let world_pt = node.output_port_position(port_idx);
+                let screen_pt = transform_point(world_pt, zoom, offset);
+                let dx = screen_pos.x - screen_pt.x;
+                let dy = screen_pos.y - screen_pt.y;
+                if dx * dx + dy * dy <= PORT_HIT_RADIUS * PORT_HIT_RADIUS {
+                    return Some((node_idx, port_info.name().clone(), true));
+                }
+            }
+            // Check input ports (left side)
+            for (port_idx, port_info) in node.inputs().iter().enumerate() {
+                let world_pt = node.input_port_position(port_idx);
+                let screen_pt = transform_point(world_pt, zoom, offset);
+                let dx = screen_pos.x - screen_pt.x;
+                let dy = screen_pos.y - screen_pt.y;
+                if dx * dx + dy * dy <= PORT_HIT_RADIUS * PORT_HIT_RADIUS {
+                    return Some((node_idx, port_info.name().clone(), false));
+                }
+            }
+        }
+        None
+    }
+
     /// Hit test connections by sampling points along each connection's bezier curve.
     ///
     /// Returns the connection index if the cursor is within [`CONNECTION_HIT_DISTANCE`]
@@ -610,37 +961,7 @@ impl FlowCanvas<'_> {
         }
         None
     }
-}
 
-/// Compute the appropriate mouse cursor for a given [`ResizeHandle`].
-fn resize_cursor(handle: ResizeHandle) -> mouse::Interaction {
-    match handle {
-        ResizeHandle::TopLeft | ResizeHandle::BottomRight => {
-            mouse::Interaction::ResizingDiagonallyDown
-        }
-        ResizeHandle::TopRight | ResizeHandle::BottomLeft => {
-            mouse::Interaction::ResizingDiagonallyUp
-        }
-        ResizeHandle::Left | ResizeHandle::Right => mouse::Interaction::ResizingHorizontally,
-        ResizeHandle::Top | ResizeHandle::Bottom => mouse::Interaction::ResizingVertically,
-    }
-}
-
-fn handle_delete_key(state: &mut CanvasInteractionState) -> Option<canvas::Action<CanvasMessage>> {
-    if let Some(sel_conn) = state.selected_connection {
-        state.selected_connection = None;
-        return Some(
-            canvas::Action::publish(CanvasMessage::ConnectionDeleted(sel_conn)).and_capture(),
-        );
-    }
-    if let Some(sel_idx) = state.selected_node {
-        state.selected_node = None;
-        return Some(canvas::Action::publish(CanvasMessage::Deleted(sel_idx)).and_capture());
-    }
-    None
-}
-
-impl FlowCanvas<'_> {
     fn try_start_connection(
         &self,
         state: &mut CanvasInteractionState,
@@ -807,64 +1128,7 @@ impl FlowCanvas<'_> {
 
         self.handle_hover(state, cursor_position, zoom, offset, world_pos)
     }
-}
 
-fn compute_resize(resize: &ResizeState, world_pos: Point) -> canvas::Action<CanvasMessage> {
-    let dx = world_pos.x - resize.start_x;
-    let dy = world_pos.y - resize.start_y;
-    let (mut new_x, mut new_y, mut new_w, mut new_h) = (
-        resize.start_node_x,
-        resize.start_node_y,
-        resize.start_width,
-        resize.start_height,
-    );
-    match resize.handle {
-        ResizeHandle::TopLeft => {
-            new_w = (resize.start_width - dx).max(MIN_NODE_WIDTH);
-            new_h = (resize.start_height - dy).max(MIN_NODE_HEIGHT);
-            new_x = resize.start_node_x + resize.start_width - new_w;
-            new_y = resize.start_node_y + resize.start_height - new_h;
-        }
-        ResizeHandle::Top => {
-            new_h = (resize.start_height - dy).max(MIN_NODE_HEIGHT);
-            new_y = resize.start_node_y + resize.start_height - new_h;
-        }
-        ResizeHandle::TopRight => {
-            new_w = (resize.start_width + dx).max(MIN_NODE_WIDTH);
-            new_h = (resize.start_height - dy).max(MIN_NODE_HEIGHT);
-            new_y = resize.start_node_y + resize.start_height - new_h;
-        }
-        ResizeHandle::Left => {
-            new_w = (resize.start_width - dx).max(MIN_NODE_WIDTH);
-            new_x = resize.start_node_x + resize.start_width - new_w;
-        }
-        ResizeHandle::Right => {
-            new_w = (resize.start_width + dx).max(MIN_NODE_WIDTH);
-        }
-        ResizeHandle::BottomLeft => {
-            new_w = (resize.start_width - dx).max(MIN_NODE_WIDTH);
-            new_h = (resize.start_height + dy).max(MIN_NODE_HEIGHT);
-            new_x = resize.start_node_x + resize.start_width - new_w;
-        }
-        ResizeHandle::Bottom => {
-            new_h = (resize.start_height + dy).max(MIN_NODE_HEIGHT);
-        }
-        ResizeHandle::BottomRight => {
-            new_w = (resize.start_width + dx).max(MIN_NODE_WIDTH);
-            new_h = (resize.start_height + dy).max(MIN_NODE_HEIGHT);
-        }
-    }
-    canvas::Action::publish(CanvasMessage::Resized(
-        resize.node_index,
-        new_x,
-        new_y,
-        new_w,
-        new_h,
-    ))
-    .and_capture()
-}
-
-impl FlowCanvas<'_> {
     fn handle_hover(
         &self,
         state: &mut CanvasInteractionState,
@@ -1043,216 +1307,7 @@ impl FlowCanvas<'_> {
         }
         canvas::Action::request_redraw().and_capture()
     }
-}
 
-fn handle_scroll(
-    state: &CanvasInteractionState,
-    zoom: f32,
-    delta: &mouse::ScrollDelta,
-) -> Option<canvas::Action<CanvasMessage>> {
-    let (dx, dy) = match *delta {
-        mouse::ScrollDelta::Lines { x, y } => (x * SCROLL_SPEED, y * SCROLL_SPEED),
-        mouse::ScrollDelta::Pixels { x, y } => (x, y),
-    };
-
-    if state.modifiers.command() {
-        if dy > 0.0 {
-            Some(canvas::Action::publish(CanvasMessage::ZoomBy(ZOOM_STEP)).and_capture())
-        } else if dy < 0.0 {
-            Some(canvas::Action::publish(CanvasMessage::ZoomBy(1.0 / ZOOM_STEP)).and_capture())
-        } else {
-            None
-        }
-    } else {
-        let pan_x = dx / zoom;
-        let pan_y = dy / zoom;
-        Some(canvas::Action::publish(CanvasMessage::Pan(pan_x, pan_y)).and_capture())
-    }
-}
-
-impl canvas::Program<CanvasMessage> for FlowCanvas<'_> {
-    type State = CanvasInteractionState;
-
-    fn update(
-        &self,
-        state: &mut Self::State,
-        event: &Event,
-        bounds: Rectangle,
-        cursor: mouse::Cursor,
-    ) -> Option<canvas::Action<CanvasMessage>> {
-        let bounds_changed = state.last_bounds.is_none_or(|last| {
-            (last.width - bounds.width).abs() > 1.0 || (last.height - bounds.height).abs() > 1.0
-        });
-        if self.auto_fit_pending || (self.auto_fit_enabled && bounds_changed) {
-            state.last_bounds = Some(bounds.size());
-            return Some(
-                canvas::Action::publish(CanvasMessage::AutoFitViewport(bounds.size()))
-                    .and_capture(),
-            );
-        }
-
-        match event {
-            Event::Keyboard(keyboard::Event::ModifiersChanged(modifiers)) => {
-                state.modifiers = *modifiers;
-                return None;
-            }
-            Event::Keyboard(keyboard::Event::KeyPressed {
-                key:
-                    keyboard::Key::Named(keyboard::key::Named::Delete | keyboard::key::Named::Backspace),
-                ..
-            }) => return handle_delete_key(state),
-            Event::Mouse(mouse::Event::ButtonReleased(_))
-                if cursor.position_in(bounds).is_none() =>
-            {
-                state.connecting = None;
-                state.resizing = None;
-                state.dragging = None;
-                state.panning = None;
-                return Some(canvas::Action::request_redraw());
-            }
-            _ => {}
-        }
-
-        let cursor_position = cursor.position_in(bounds)?;
-        let zoom = self.state.zoom;
-        let offset = self.state.scroll_offset;
-        let world_pos = screen_to_world(cursor_position, zoom, offset);
-
-        match event {
-            Event::Mouse(mouse::Event::ButtonPressed(mouse::Button::Left)) => {
-                self.handle_left_press(state, cursor_position, zoom, offset, world_pos)
-            }
-            Event::Mouse(mouse::Event::ButtonPressed(mouse::Button::Right)) => {
-                self.handle_right_press(cursor_position, zoom, offset, world_pos)
-            }
-            Event::Mouse(mouse::Event::ButtonPressed(mouse::Button::Middle)) => {
-                state.panning = Some(PanState {
-                    last_screen_pos: cursor_position,
-                });
-                Some(canvas::Action::request_redraw().and_capture())
-            }
-            Event::Mouse(mouse::Event::CursorMoved { .. }) => {
-                self.handle_cursor_moved(state, cursor_position, zoom, offset, world_pos)
-            }
-            Event::Mouse(mouse::Event::ButtonReleased(mouse::Button::Left)) => {
-                self.handle_left_release(state, cursor_position, zoom, offset)
-            }
-            Event::Mouse(mouse::Event::ButtonReleased(mouse::Button::Middle)) => {
-                if state.panning.is_some() {
-                    state.panning = None;
-                    Some(canvas::Action::request_redraw().and_capture())
-                } else {
-                    None
-                }
-            }
-            Event::Mouse(mouse::Event::WheelScrolled { delta }) => {
-                handle_scroll(state, zoom, delta)
-            }
-            _ => None,
-        }
-    }
-
-    fn draw(
-        &self,
-        state: &Self::State,
-        renderer: &Renderer,
-        _theme: &Theme,
-        bounds: Rectangle,
-        _cursor: mouse::Cursor,
-    ) -> Vec<Geometry> {
-        let zoom = self.state.zoom;
-        let offset = self.state.scroll_offset;
-
-        // Draw the main cached content (connections, nodes, and flow I/O ports)
-        let content = self.state.cache.draw(renderer, bounds.size(), |frame| {
-            self.draw_nodes(frame, zoom, offset);
-            self.draw_flow_io_ports(frame, state.selected_connection, zoom, offset);
-            self.draw_edges(frame, zoom, offset, state.selected_connection);
-        });
-
-        let needs_overlay = state.selected_node.is_some()
-            || state.connecting.is_some()
-            || state.hover_node.is_some();
-
-        if needs_overlay {
-            let mut overlay = Frame::new(renderer, bounds.size());
-
-            if let Some(selected_idx) = state.selected_node {
-                self.draw_selection_highlight(&mut overlay, selected_idx, zoom, offset);
-            }
-
-            if let Some(ref connecting) = state.connecting {
-                self.draw_connection_preview(&mut overlay, connecting, zoom, offset);
-            }
-
-            return vec![content, overlay.into_geometry()];
-        }
-
-        vec![content]
-    }
-
-    fn mouse_interaction(
-        &self,
-        state: &Self::State,
-        bounds: Rectangle,
-        cursor: mouse::Cursor,
-    ) -> mouse::Interaction {
-        if state.panning.is_some() {
-            return mouse::Interaction::Grabbing;
-        }
-
-        if let Some(ref resize) = state.resizing {
-            return resize_cursor(resize.handle);
-        }
-
-        if state.connecting.is_some() {
-            return mouse::Interaction::Crosshair;
-        }
-
-        if state.dragging.is_some() {
-            return mouse::Interaction::Grabbing;
-        }
-
-        if let Some(pos) = cursor.position_in(bounds) {
-            // Check resize handles on the selected node first
-            if let Some(sel_idx) = state.selected_node {
-                if let Some(sel_node) = self.nodes.get(sel_idx) {
-                    if let Some((_idx, handle)) = hit_test_resize_handle(
-                        sel_node,
-                        sel_idx,
-                        pos,
-                        self.state.zoom,
-                        self.state.scroll_offset,
-                    ) {
-                        return resize_cursor(handle);
-                    }
-                }
-            }
-
-            // Check if hovering over a port
-            if self
-                .hit_test_port(pos, self.state.zoom, self.state.scroll_offset)
-                .is_some()
-            {
-                return mouse::Interaction::Crosshair;
-            }
-
-            let world_pos = screen_to_world(pos, self.state.zoom, self.state.scroll_offset);
-
-            if self.hit_test_open_icon(world_pos).is_some() {
-                return mouse::Interaction::Pointer;
-            }
-
-            if self.hit_test_node(world_pos).is_some() {
-                return mouse::Interaction::Grab;
-            }
-        }
-
-        mouse::Interaction::default()
-    }
-}
-
-impl FlowCanvas<'_> {
     fn draw_selection_highlight(
         &self,
         overlay: &mut Frame,
@@ -1464,135 +1519,7 @@ impl FlowCanvas<'_> {
             draw_node(frame, node, zoom, offset);
         }
     }
-}
 
-/// Compute the key waypoints for a loopback (self-connection) path in screen space.
-///
-/// Returns `(box_right, box_bottom, box_left, mid_x)` — the screen-space coordinates
-/// for routing around the node.
-fn loopback_waypoints(
-    nx: f32,
-    ny: f32,
-    nw: f32,
-    nh: f32,
-    zoom: f32,
-    offset: Point,
-) -> (f32, f32, f32, f32) {
-    let margin = 25.0 * zoom;
-    let box_right = (nx + nw + offset.x) * zoom + margin;
-    let box_bottom = (ny + nh + offset.y) * zoom + margin;
-    let box_left = (nx + offset.x) * zoom - margin;
-    let mid_x = box_right.midpoint(box_left);
-    (box_right, box_bottom, box_left, mid_x)
-}
-
-/// Draw a bezier curve connection between two world-space points, applying zoom and offset.
-/// `node_bounds` is `Some((x, y, width, height))` in world coords for self-connections,
-/// `None` for normal connections.
-fn draw_bezier_connection(
-    frame: &mut Frame,
-    from: Point,
-    to: Point,
-    zoom: f32,
-    offset: Point,
-    node_bounds: Option<(f32, f32, f32, f32)>,
-    highlighted: bool,
-) {
-    let from_s = transform_point(from, zoom, offset);
-    let to_s = transform_point(to, zoom, offset);
-
-    let conn_color = if highlighted {
-        Color::from_rgb(1.0, 0.85, 0.0)
-    } else {
-        Color::from_rgb(0.5, 0.5, 0.5)
-    };
-    let line_width = if highlighted { 4.0 } else { 2.0 };
-    let stroke = Stroke::default()
-        .with_width(line_width * zoom)
-        .with_color(conn_color);
-
-    if let Some((nx, ny, nw, nh)) = node_bounds {
-        let (box_right, box_bottom, box_left, _mid_x) =
-            loopback_waypoints(nx, ny, nw, nh, zoom, offset);
-
-        let path = Path::new(|builder| {
-            builder.move_to(from_s);
-            // Go right past the box
-            builder.line_to(Point::new(box_right, from_s.y));
-            // Curve down to below the box
-            builder.quadratic_curve_to(
-                Point::new(box_right, box_bottom),
-                Point::new(box_right.midpoint(box_left), box_bottom),
-            );
-            // Curve up to left of the box
-            builder.quadratic_curve_to(
-                Point::new(box_left, box_bottom),
-                Point::new(box_left, to_s.y),
-            );
-            // Arrive at input
-            builder.line_to(to_s);
-        });
-        frame.stroke(&path, stroke);
-    } else {
-        // Normal connection: bezier curve from right to left
-        let dx = (to_s.x - from_s.x).abs().max(60.0 * zoom) * 0.5;
-        let control1 = Point::new(from_s.x + dx, from_s.y);
-        let control2 = Point::new(to_s.x - dx, to_s.y);
-
-        let path = Path::new(|builder| {
-            builder.move_to(from_s);
-            builder.bezier_curve_to(control1, control2, to_s);
-        });
-        frame.stroke(&path, stroke);
-    }
-
-    // Filled arrow head at destination — triangle butts against the port semi-circle
-    let arrow_size = 6.0 * zoom;
-    let arrow = Path::new(|builder| {
-        builder.move_to(Point::new(to_s.x - arrow_size, to_s.y - arrow_size));
-        builder.line_to(to_s);
-        builder.line_to(Point::new(to_s.x - arrow_size, to_s.y + arrow_size));
-        builder.close();
-    });
-    frame.fill(&arrow, conn_color);
-}
-
-/// Draw a rounded bounding box around all subprocess nodes with flow I/O
-/// ports on the box edges and bezier connections to internal nodes.
-pub(crate) fn flow_io_bounding_box(
-    nodes: &[NodeLayout],
-    flow_inputs: &[IO],
-    flow_outputs: &[IO],
-) -> (f32, f32, f32, f32, f32, f32) {
-    let spacing = 28.0;
-    let padding = 80.0;
-    let max_ports = flow_inputs.len().max(flow_outputs.len()).max(1) as f32;
-    let default_h = max_ports * spacing + 60.0;
-    let (min_x, max_x, min_y, max_y) = if nodes.is_empty() {
-        (150.0, 350.0, 100.0, 100.0 + default_h)
-    } else {
-        (
-            nodes.iter().map(NodeLayout::x).fold(f32::MAX, f32::min),
-            nodes
-                .iter()
-                .map(|n| n.x() + n.width())
-                .fold(f32::MIN, f32::max),
-            nodes.iter().map(NodeLayout::y).fold(f32::MAX, f32::min),
-            nodes
-                .iter()
-                .map(|n| n.y() + n.height())
-                .fold(f32::MIN, f32::max),
-        )
-    };
-    let box_x = min_x - padding;
-    let box_y = min_y - padding;
-    let box_w = (max_x - min_x) + 2.0 * padding;
-    let box_h = (max_y - min_y) + 2.0 * padding;
-    let center_y = min_y.midpoint(max_y);
-    (box_x, box_y, box_w, box_h, center_y, spacing)
-}
-
-impl FlowCanvas<'_> {
     fn draw_flow_io_ports(
         &self,
         frame: &mut Frame,
@@ -1668,104 +1595,7 @@ impl FlowCanvas<'_> {
             offset,
         );
     }
-}
 
-#[allow(clippy::too_many_arguments)]
-fn draw_flow_input_port_labels(
-    frame: &mut Frame,
-    flow_inputs: &[IO],
-    left_x: f32,
-    center_y: f32,
-    spacing: f32,
-    port_radius: f32,
-    font_size: f32,
-    zoom: f32,
-    offset: Point,
-) -> HashMap<String, Point> {
-    use std::f32::consts::PI;
-
-    let input_color = Color::from_rgb(0.4, 0.8, 1.0);
-    let mut positions: HashMap<String, Point> = HashMap::new();
-    let start_y = center_y - (flow_inputs.len() as f32 - 1.0) * spacing / 2.0;
-    for (i, input) in flow_inputs.iter().enumerate() {
-        let world_y = start_y + i as f32 * spacing;
-        let world_pos = Point::new(left_x, world_y);
-        positions.insert(input.name().clone(), world_pos);
-        let screen_pos = transform_point(world_pos, zoom, offset);
-        let scaled_r = port_radius * zoom;
-        let semi = Path::new(|builder| {
-            builder.arc(canvas::path::Arc {
-                center: screen_pos,
-                radius: scaled_r,
-                start_angle: (-PI / 2.0).into(),
-                end_angle: (PI / 2.0).into(),
-            });
-            builder.close();
-        });
-        frame.fill(&semi, input_color);
-
-        let label_pos = Point::new(screen_pos.x - scaled_r - 4.0, screen_pos.y);
-        frame.fill_text(CanvasText {
-            content: input.name().clone(),
-            position: label_pos,
-            color: input_color,
-            size: (font_size * zoom).into(),
-            align_x: iced::alignment::Horizontal::Right.into(),
-            align_y: iced::alignment::Vertical::Center,
-            ..CanvasText::default()
-        });
-    }
-    positions
-}
-
-#[allow(clippy::too_many_arguments)]
-fn draw_flow_output_port_labels(
-    frame: &mut Frame,
-    flow_outputs: &[IO],
-    right_x: f32,
-    center_y: f32,
-    spacing: f32,
-    port_radius: f32,
-    font_size: f32,
-    zoom: f32,
-    offset: Point,
-) -> HashMap<String, Point> {
-    use std::f32::consts::PI;
-
-    let output_color = Color::from_rgb(1.0, 0.6, 0.3);
-    let mut positions: HashMap<String, Point> = HashMap::new();
-    let start_y = center_y - (flow_outputs.len() as f32 - 1.0) * spacing / 2.0;
-    for (i, output) in flow_outputs.iter().enumerate() {
-        let world_y = start_y + i as f32 * spacing;
-        let world_pos = Point::new(right_x, world_y);
-        positions.insert(output.name().clone(), world_pos);
-        let screen_pos = transform_point(world_pos, zoom, offset);
-        let scaled_r = port_radius * zoom;
-        let semi = Path::new(|builder| {
-            builder.arc(canvas::path::Arc {
-                center: screen_pos,
-                radius: scaled_r,
-                start_angle: (PI / 2.0).into(),
-                end_angle: (3.0 * PI / 2.0).into(),
-            });
-            builder.close();
-        });
-        frame.fill(&semi, output_color);
-
-        let label_pos = Point::new(screen_pos.x + scaled_r + 4.0, screen_pos.y);
-        frame.fill_text(CanvasText {
-            content: output.name().clone(),
-            position: label_pos,
-            color: output_color,
-            size: (font_size * zoom).into(),
-            align_y: iced::alignment::Vertical::Center,
-            ..CanvasText::default()
-        });
-    }
-    positions
-}
-
-impl FlowCanvas<'_> {
     fn draw_flow_io_connections(
         &self,
         frame: &mut Frame,
@@ -1838,30 +1668,186 @@ impl FlowCanvas<'_> {
     }
 }
 
-fn draw_flow_io_bezier(
-    frame: &mut Frame,
-    from: Point,
-    to: Point,
-    zoom: f32,
-    offset: Point,
-    color: Color,
-    stroke_width: f32,
-) {
-    let from_s = transform_point(from, zoom, offset);
-    let to_s = transform_point(to, zoom, offset);
-    let dx = (to_s.x - from_s.x).abs().max(40.0 * zoom) * 0.4;
-    let path = Path::new(|builder| {
-        builder.move_to(from_s);
-        builder.bezier_curve_to(
-            Point::new(from_s.x + dx, from_s.y),
-            Point::new(to_s.x - dx, to_s.y),
-            to_s,
-        );
-    });
-    frame.stroke(
-        &path,
-        Stroke::default().with_width(stroke_width).with_color(color),
-    );
+impl canvas::Program<CanvasMessage> for FlowCanvas<'_> {
+    type State = CanvasInteractionState;
+
+    fn update(
+        &self,
+        state: &mut Self::State,
+        event: &Event,
+        bounds: Rectangle,
+        cursor: mouse::Cursor,
+    ) -> Option<canvas::Action<CanvasMessage>> {
+        let bounds_changed = state.last_bounds.is_none_or(|last| {
+            (last.width - bounds.width).abs() > 1.0 || (last.height - bounds.height).abs() > 1.0
+        });
+        if self.auto_fit_pending || (self.auto_fit_enabled && bounds_changed) {
+            state.last_bounds = Some(bounds.size());
+            return Some(
+                canvas::Action::publish(CanvasMessage::AutoFitViewport(bounds.size()))
+                    .and_capture(),
+            );
+        }
+
+        match event {
+            Event::Keyboard(keyboard::Event::ModifiersChanged(modifiers)) => {
+                state.modifiers = *modifiers;
+                return None;
+            }
+            Event::Keyboard(keyboard::Event::KeyPressed {
+                key:
+                    keyboard::Key::Named(keyboard::key::Named::Delete | keyboard::key::Named::Backspace),
+                ..
+            }) => return handle_delete_key(state),
+            Event::Mouse(mouse::Event::ButtonReleased(_))
+                if cursor.position_in(bounds).is_none() =>
+            {
+                state.connecting = None;
+                state.resizing = None;
+                state.dragging = None;
+                state.panning = None;
+                return Some(canvas::Action::request_redraw());
+            }
+            _ => {}
+        }
+
+        let cursor_position = cursor.position_in(bounds)?;
+        let zoom = self.state.zoom;
+        let offset = self.state.scroll_offset;
+        let world_pos = screen_to_world(cursor_position, zoom, offset);
+
+        match event {
+            Event::Mouse(mouse::Event::ButtonPressed(mouse::Button::Left)) => {
+                self.handle_left_press(state, cursor_position, zoom, offset, world_pos)
+            }
+            Event::Mouse(mouse::Event::ButtonPressed(mouse::Button::Right)) => {
+                self.handle_right_press(cursor_position, zoom, offset, world_pos)
+            }
+            Event::Mouse(mouse::Event::ButtonPressed(mouse::Button::Middle)) => {
+                state.panning = Some(PanState {
+                    last_screen_pos: cursor_position,
+                });
+                Some(canvas::Action::request_redraw().and_capture())
+            }
+            Event::Mouse(mouse::Event::CursorMoved { .. }) => {
+                self.handle_cursor_moved(state, cursor_position, zoom, offset, world_pos)
+            }
+            Event::Mouse(mouse::Event::ButtonReleased(mouse::Button::Left)) => {
+                self.handle_left_release(state, cursor_position, zoom, offset)
+            }
+            Event::Mouse(mouse::Event::ButtonReleased(mouse::Button::Middle)) => {
+                if state.panning.is_some() {
+                    state.panning = None;
+                    Some(canvas::Action::request_redraw().and_capture())
+                } else {
+                    None
+                }
+            }
+            Event::Mouse(mouse::Event::WheelScrolled { delta }) => {
+                handle_scroll(state, zoom, delta)
+            }
+            _ => None,
+        }
+    }
+
+    fn draw(
+        &self,
+        state: &Self::State,
+        renderer: &Renderer,
+        _theme: &Theme,
+        bounds: Rectangle,
+        _cursor: mouse::Cursor,
+    ) -> Vec<Geometry> {
+        let zoom = self.state.zoom;
+        let offset = self.state.scroll_offset;
+
+        // Draw the main cached content (connections, nodes, and flow I/O ports)
+        let content = self.state.cache.draw(renderer, bounds.size(), |frame| {
+            self.draw_nodes(frame, zoom, offset);
+            self.draw_flow_io_ports(frame, state.selected_connection, zoom, offset);
+            self.draw_edges(frame, zoom, offset, state.selected_connection);
+        });
+
+        let needs_overlay = state.selected_node.is_some()
+            || state.connecting.is_some()
+            || state.hover_node.is_some();
+
+        if needs_overlay {
+            let mut overlay = Frame::new(renderer, bounds.size());
+
+            if let Some(selected_idx) = state.selected_node {
+                self.draw_selection_highlight(&mut overlay, selected_idx, zoom, offset);
+            }
+
+            if let Some(ref connecting) = state.connecting {
+                self.draw_connection_preview(&mut overlay, connecting, zoom, offset);
+            }
+
+            return vec![content, overlay.into_geometry()];
+        }
+
+        vec![content]
+    }
+
+    fn mouse_interaction(
+        &self,
+        state: &Self::State,
+        bounds: Rectangle,
+        cursor: mouse::Cursor,
+    ) -> mouse::Interaction {
+        if state.panning.is_some() {
+            return mouse::Interaction::Grabbing;
+        }
+
+        if let Some(ref resize) = state.resizing {
+            return resize_cursor(resize.handle);
+        }
+
+        if state.connecting.is_some() {
+            return mouse::Interaction::Crosshair;
+        }
+
+        if state.dragging.is_some() {
+            return mouse::Interaction::Grabbing;
+        }
+
+        if let Some(pos) = cursor.position_in(bounds) {
+            // Check resize handles on the selected node first
+            if let Some(sel_idx) = state.selected_node {
+                if let Some(sel_node) = self.nodes.get(sel_idx) {
+                    if let Some((_idx, handle)) = hit_test_resize_handle(
+                        sel_node,
+                        sel_idx,
+                        pos,
+                        self.state.zoom,
+                        self.state.scroll_offset,
+                    ) {
+                        return resize_cursor(handle);
+                    }
+                }
+            }
+
+            // Check if hovering over a port
+            if self
+                .hit_test_port(pos, self.state.zoom, self.state.scroll_offset)
+                .is_some()
+            {
+                return mouse::Interaction::Crosshair;
+            }
+
+            let world_pos = screen_to_world(pos, self.state.zoom, self.state.scroll_offset);
+
+            if self.hit_test_open_icon(world_pos).is_some() {
+                return mouse::Interaction::Pointer;
+            }
+
+            if self.hit_test_node(world_pos).is_some() {
+                return mouse::Interaction::Grab;
+            }
+        }
+
+        mouse::Interaction::default()
+    }
 }
 
 /// Draw a single node as a rounded rectangle with title, source, and ports.
