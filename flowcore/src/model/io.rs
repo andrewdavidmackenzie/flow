@@ -54,16 +54,16 @@ pub struct IO {
     initializer: Option<InputInitializer>,
 
     /// An input initializer that is propagated from a flow's input initializer
-    #[serde(skip_deserializing)]
+    #[serde(skip)]
     flow_initializer: Option<InputInitializer>,
 
     /// [Route] where in the full flow hierarchy this IO is located, including it's [Name]
     /// as the last segment
-    #[serde(skip_deserializing)]
+    #[serde(skip)]
     route: Route,
 
     /// What type of IO is this, used in making connections between IOs
-    #[serde(skip_deserializing, default = "IOType::default")]
+    #[serde(skip, default = "IOType::default")]
     io_type: IOType,
 }
 
@@ -359,6 +359,7 @@ mod test {
     use crate::deserializers::deserializer::get;
     use crate::errors::Result;
     use crate::model::datatype::{DataType, GENERIC_TYPE, STRING_TYPE};
+    use crate::model::input::InputInitializer;
     use crate::model::io::{IOSet, IOType};
     use crate::model::name::HasName;
     use crate::model::name::Name;
@@ -563,5 +564,32 @@ mod test {
             .find_by_subroute(&Route::from("/0"))
             .expect("Expected to find an IO");
         assert_eq!(*output.name(), Name::default());
+    }
+
+    #[test]
+    fn runtime_fields_not_serialized() {
+        let mut io = IO::new_named(vec![DataType::from("string")], Route::default(), "input0");
+        io.set_route(&Route::from("/flow/func/input0"), &IOType::FunctionInput);
+        io.set_io_type(IOType::FunctionInput);
+        io.set_flow_initializer(Some(InputInitializer::Once(serde_json::json!("hello"))))
+            .expect("set_flow_initializer failed");
+
+        let serialized = toml::to_string(&io).expect("serialization failed");
+        assert!(
+            !serialized.contains("flow_initializer"),
+            "flow_initializer should not be serialized"
+        );
+        assert!(
+            !serialized.contains("route"),
+            "route should not be serialized"
+        );
+        assert!(
+            !serialized.contains("io_type"),
+            "io_type should not be serialized"
+        );
+        assert!(
+            serialized.contains("name = \"input0\""),
+            "name should be serialized"
+        );
     }
 }

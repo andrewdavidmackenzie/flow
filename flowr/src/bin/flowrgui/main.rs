@@ -190,6 +190,7 @@ impl FlowrGui {
         (flowrgui, Task::none())
     }
 
+    #[allow(clippy::unused_self)]
     fn title(&self) -> String {
         String::from("flowrgui")
     }

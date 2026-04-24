@@ -52,7 +52,7 @@ jobs:
         uses: actions-rs/cargo@v1
         with:
           command: clippy
-          args: --tests --no-deps --all-features --all-targets -- --warn clippy::pedantic
+          args: --tests --no-deps --all-features --all-targets -- --warn clippy::pedantic --deny warnings
 
   build-and-test:
     runs-on: ${{ matrix.os }}
