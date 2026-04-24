@@ -46,29 +46,29 @@ pub(crate) enum LibraryAction {
 #[derive(Debug, Clone)]
 pub(crate) struct CategoryEntry {
     /// Category name (e.g., "math")
-    pub name: String,
+    pub(crate) name: String,
     /// URLs of functions in this category, pointing into `all_definitions`
-    pub function_urls: Vec<Url>,
+    pub(crate) function_urls: Vec<Url>,
     /// Whether the category is expanded in the tree view
-    pub expanded: bool,
+    pub(crate) expanded: bool,
 }
 
 /// A top-level library entry.
 #[derive(Debug, Clone)]
 pub(crate) struct LibraryEntry {
     /// Library name (e.g., "flowstdlib")
-    pub name: String,
+    pub(crate) name: String,
     /// Categories in this library
-    pub categories: Vec<CategoryEntry>,
+    pub(crate) categories: Vec<CategoryEntry>,
     /// Whether the library is expanded in the tree view
-    pub expanded: bool,
+    pub(crate) expanded: bool,
 }
 
 /// The complete library tree built from cached manifests and definitions.
 #[derive(Debug, Clone)]
 pub(crate) struct LibraryTree {
     /// All discovered libraries
-    pub libraries: Vec<LibraryEntry>,
+    pub(crate) libraries: Vec<LibraryEntry>,
 }
 
 impl LibraryTree {

@@ -19,30 +19,23 @@ pub(crate) enum HierarchyMessage {
 }
 
 #[derive(Debug, Clone)]
-pub(crate) enum NodeKind {
-    Flow,
-    Function,
-    Library,
-}
-
-#[derive(Debug, Clone)]
 pub(crate) struct HierarchyNode {
-    pub name: String,
-    pub kind: NodeKind,
-    pub source: String,
-    pub path: Option<PathBuf>,
-    pub children: Vec<HierarchyNode>,
-    pub expanded: bool,
+    pub(crate) name: String,
+    pub(crate) process: Option<Process>,
+    pub(crate) source: String,
+    pub(crate) path: Option<PathBuf>,
+    pub(crate) children: Vec<HierarchyNode>,
+    pub(crate) expanded: bool,
 }
 
 #[derive(Debug, Clone)]
 pub(crate) struct FlowHierarchy {
-    pub root: Option<HierarchyNode>,
+    pub(crate) root: Option<HierarchyNode>,
 }
 
 impl FlowHierarchy {
     pub(crate) fn from_flow_definition(flow_def: &FlowDefinition) -> Self {
-        let root = build_node_from_flow(flow_def);
+        let root = HierarchyNode::from_flow_definition(flow_def);
         Self { root: Some(root) }
     }
 
@@ -54,7 +47,7 @@ impl FlowHierarchy {
         match msg {
             HierarchyMessage::Toggle(indices) => {
                 if let Some(ref mut root) = self.root {
-                    toggle_at(root, indices, 0);
+                    root.toggle_at(indices, 0);
                 }
                 None
             }
@@ -70,7 +63,7 @@ impl FlowHierarchy {
         );
 
         if let Some(ref root) = self.root {
-            col = col.push(view_node(root, &[]));
+            col = col.push(root.view(&[]));
         }
 
         container(scrollable(col).height(Length::Fill))
@@ -88,194 +81,187 @@ impl FlowHierarchy {
     }
 }
 
-fn toggle_at(node: &mut HierarchyNode, indices: &[usize], depth: usize) {
-    if depth >= indices.len() {
-        node.expanded = !node.expanded;
-        return;
-    }
-    let Some(&idx) = indices.get(depth) else {
-        return;
-    };
-    if let Some(child) = node.children.get_mut(idx) {
-        if depth + 1 == indices.len() {
-            child.expanded = !child.expanded;
-        } else {
-            toggle_at(child, indices, depth + 1);
+const MAX_HIERARCHY_DEPTH: usize = 10;
+
+impl HierarchyNode {
+    fn toggle_at(&mut self, indices: &[usize], depth: usize) {
+        if depth >= indices.len() {
+            self.expanded = !self.expanded;
+            return;
+        }
+        let Some(&idx) = indices.get(depth) else {
+            return;
+        };
+        if let Some(child) = self.children.get_mut(idx) {
+            if depth + 1 == indices.len() {
+                child.expanded = !child.expanded;
+            } else {
+                child.toggle_at(indices, depth + 1);
+            }
         }
     }
-}
 
-#[allow(clippy::cast_precision_loss)]
-fn view_node<'a>(node: &'a HierarchyNode, path: &[usize]) -> Element<'a, HierarchyMessage> {
-    let indent = path.len() as f32 * 16.0;
-    let icon = match node.kind {
-        NodeKind::Flow => {
-            if node.expanded {
+    #[allow(clippy::cast_precision_loss)]
+    fn view<'a>(&'a self, path: &[usize]) -> Element<'a, HierarchyMessage> {
+        let indent = path.len() as f32 * 16.0;
+        let is_flow = matches!(self.process, Some(Process::FlowProcess(_)) | None)
+            && !self.source.starts_with("lib://")
+            && !self.source.starts_with("context://");
+        let is_library = match &self.process {
+            Some(Process::FunctionProcess(f)) => {
+                f.get_lib_reference().is_some() || f.get_context_reference().is_some()
+            }
+            None => self.source.starts_with("lib://") || self.source.starts_with("context://"),
+            _ => false,
+        };
+
+        let icon = if is_flow {
+            if self.expanded {
                 "\u{25BC}"
             } else {
                 "\u{25B6}"
             }
-        }
-        NodeKind::Function => "\u{25C6}",
-        NodeKind::Library => "\u{25CB}",
-    };
+        } else if is_library {
+            "\u{25CB}"
+        } else {
+            "\u{25C6}"
+        };
 
-    let color = match node.kind {
-        NodeKind::Flow => Color::from_rgb(0.9, 0.6, 0.2),
-        NodeKind::Function => Color::from_rgb(0.6, 0.3, 0.8),
-        NodeKind::Library => Color::from_rgb(0.3, 0.5, 0.9),
-    };
+        let color = if is_flow {
+            Color::from_rgb(0.9, 0.6, 0.2)
+        } else if is_library {
+            Color::from_rgb(0.3, 0.5, 0.9)
+        } else {
+            Color::from_rgb(0.6, 0.3, 0.8)
+        };
 
-    let path_vec: Vec<usize> = path.to_vec();
-    let label = Row::new()
-        .spacing(4)
-        .push(text(icon).size(11).color(color))
-        .push(text(&node.name).size(13).color(color));
+        let path_vec: Vec<usize> = path.to_vec();
+        let label = Row::new()
+            .spacing(4)
+            .push(text(icon).size(11).color(color))
+            .push(text(&self.name).size(13).color(color));
 
-    let label_btn = match node.kind {
-        NodeKind::Flow => {
-            // Flows toggle expand/collapse on click
+        let label_btn = if is_flow {
             button(label)
                 .on_press(HierarchyMessage::Toggle(path_vec))
                 .style(button::text)
                 .padding([2, 4])
-        }
-        NodeKind::Function => {
-            // Functions open in editor on click
-            if let Some(ref p) = node.path {
-                button(label)
-                    .on_press(HierarchyMessage::Open(node.source.clone(), p.clone()))
-                    .style(button::text)
-                    .padding([2, 4])
-            } else {
-                button(label).style(button::text).padding([2, 4])
+        } else if is_library {
+            button(label).style(button::text).padding([2, 4])
+        } else if let Some(ref p) = self.path {
+            button(label)
+                .on_press(HierarchyMessage::Open(self.source.clone(), p.clone()))
+                .style(button::text)
+                .padding([2, 4])
+        } else {
+            button(label).style(button::text).padding([2, 4])
+        };
+
+        let mut row = Row::new().push(container(label_btn).padding(iced::Padding {
+            top: 0.0,
+            bottom: 0.0,
+            left: indent,
+            right: 0.0,
+        }));
+        if is_flow && !path.is_empty() {
+            if let Some(ref p) = self.path {
+                row = row.push(
+                    button(text("\u{270E}").size(11).color(color))
+                        .on_press(HierarchyMessage::Open(self.source.clone(), p.clone()))
+                        .style(button::text)
+                        .padding([2, 4]),
+                );
             }
         }
-        NodeKind::Library => {
-            // Library nodes are non-interactive (no path)
-            button(label).style(button::text).padding([2, 4])
-        }
-    };
 
-    // Add a small open button for flows (except root)
-    let mut row = Row::new().push(container(label_btn).padding(iced::Padding {
-        top: 0.0,
-        bottom: 0.0,
-        left: indent,
-        right: 0.0,
-    }));
-    if matches!(node.kind, NodeKind::Flow) && !path.is_empty() {
-        if let Some(ref p) = node.path {
-            row = row.push(
-                button(text("\u{270E}").size(11).color(color))
-                    .on_press(HierarchyMessage::Open(node.source.clone(), p.clone()))
-                    .style(button::text)
-                    .padding([2, 4]),
-            );
+        let mut col = Column::new().push(row);
+
+        if self.expanded {
+            for (i, child) in self.children.iter().enumerate() {
+                let mut child_path = path.to_vec();
+                child_path.push(i);
+                col = col.push(child.view(&child_path));
+            }
         }
+
+        col.into()
     }
 
-    let mut col = Column::new().push(row);
-
-    if node.expanded {
-        for (i, child) in node.children.iter().enumerate() {
-            let mut child_path = path.to_vec();
-            child_path.push(i);
-            col = col.push(view_node(child, &child_path));
-        }
+    fn from_flow_definition(flow_def: &FlowDefinition) -> Self {
+        Self::from_flow_recursive(flow_def, 0)
     }
 
-    col.into()
-}
+    fn from_flow_recursive(flow_def: &FlowDefinition, depth: usize) -> Self {
+        let mut children = Vec::new();
 
-const MAX_HIERARCHY_DEPTH: usize = 10;
+        if depth >= MAX_HIERARCHY_DEPTH {
+            return HierarchyNode {
+                name: flow_def.name.clone(),
+                process: Some(Process::FlowProcess(flow_def.clone())),
+                source: String::new(),
+                path: flow_def.source_url.to_file_path().ok(),
+                children,
+                expanded: false,
+            };
+        }
 
-fn build_node_from_flow(flow_def: &FlowDefinition) -> HierarchyNode {
-    build_node_from_flow_recursive(flow_def, 0)
-}
+        for pref in &flow_def.process_refs {
+            let alias = if pref.alias.is_empty() {
+                crate::canvas_view::derive_short_name(&pref.source)
+            } else {
+                pref.alias.clone()
+            };
 
-fn build_node_from_flow_recursive(flow_def: &FlowDefinition, depth: usize) -> HierarchyNode {
-    let mut children = Vec::new();
+            match flow_def.subprocesses.get(&alias) {
+                Some(proc @ Process::FlowProcess(sub_flow)) => {
+                    let child = Self::from_flow_recursive(sub_flow, depth + 1);
+                    children.push(HierarchyNode {
+                        name: alias,
+                        process: Some(proc.clone()),
+                        source: pref.source.clone(),
+                        path: sub_flow.source_url.to_file_path().ok(),
+                        children: child.children,
+                        expanded: true,
+                    });
+                }
+                Some(proc @ Process::FunctionProcess(func)) => {
+                    children.push(HierarchyNode {
+                        name: alias,
+                        process: Some(proc.clone()),
+                        source: pref.source.clone(),
+                        path: func.source_url.to_file_path().ok(),
+                        children: Vec::new(),
+                        expanded: false,
+                    });
+                }
+                None => {
+                    children.push(HierarchyNode {
+                        name: alias,
+                        process: None,
+                        source: pref.source.clone(),
+                        path: None,
+                        children: Vec::new(),
+                        expanded: false,
+                    });
+                }
+            }
+        }
 
-    if depth >= MAX_HIERARCHY_DEPTH {
-        return HierarchyNode {
+        HierarchyNode {
             name: flow_def.name.clone(),
-            kind: NodeKind::Flow,
+            process: Some(Process::FlowProcess(flow_def.clone())),
             source: String::new(),
             path: flow_def.source_url.to_file_path().ok(),
             children,
-            expanded: false,
-        };
-    }
-
-    for pref in &flow_def.process_refs {
-        let alias = if pref.alias.is_empty() {
-            crate::canvas_view::derive_short_name(&pref.source)
-        } else {
-            pref.alias.clone()
-        };
-
-        match flow_def.subprocesses.get(&alias) {
-            Some(Process::FlowProcess(sub_flow)) => {
-                // Recursively build children from the sub-flow
-                let child = build_node_from_flow_recursive(sub_flow, depth + 1);
-                children.push(HierarchyNode {
-                    name: alias,
-                    kind: NodeKind::Flow,
-                    source: pref.source.clone(),
-                    path: sub_flow.source_url.to_file_path().ok(),
-                    children: child.children,
-                    expanded: true,
-                });
-            }
-            Some(Process::FunctionProcess(func)) => {
-                let kind = if func.lib_reference.is_some() || func.context_reference.is_some() {
-                    NodeKind::Library
-                } else {
-                    NodeKind::Function
-                };
-                children.push(HierarchyNode {
-                    name: alias,
-                    kind,
-                    source: pref.source.clone(),
-                    path: func.source_url.to_file_path().ok(),
-                    children: Vec::new(),
-                    expanded: false,
-                });
-            }
-            None => {
-                // Unresolved - determine kind from source string
-                let kind =
-                    if pref.source.starts_with("lib://") || pref.source.starts_with("context://") {
-                        NodeKind::Library
-                    } else {
-                        NodeKind::Function
-                    };
-                children.push(HierarchyNode {
-                    name: alias,
-                    kind,
-                    source: pref.source.clone(),
-                    path: None,
-                    children: Vec::new(),
-                    expanded: false,
-                });
-            }
+            expanded: true,
         }
-    }
-
-    HierarchyNode {
-        name: flow_def.name.clone(),
-        kind: NodeKind::Flow,
-        source: String::new(),
-        path: flow_def.source_url.to_file_path().ok(),
-        children,
-        expanded: true,
     }
 }
 
 #[cfg(test)]
 mod test {
     use super::*;
+    use flowcore::model::function_definition::FunctionDefinition;
 
     #[test]
     fn empty_hierarchy() {
@@ -283,17 +269,21 @@ mod test {
         assert!(h.root.is_none());
     }
 
+    fn flow_node(name: &str, children: Vec<HierarchyNode>, expanded: bool) -> HierarchyNode {
+        HierarchyNode {
+            name: name.into(),
+            process: Some(Process::FlowProcess(FlowDefinition::default())),
+            source: String::new(),
+            path: None,
+            children,
+            expanded,
+        }
+    }
+
     #[test]
     fn toggle_root_node() {
         let mut h = FlowHierarchy {
-            root: Some(HierarchyNode {
-                name: "root_flow".into(),
-                kind: NodeKind::Flow,
-                source: String::new(),
-                path: None,
-                children: Vec::new(),
-                expanded: true,
-            }),
+            root: Some(flow_node("root_flow", Vec::new(), true)),
         };
         h.update(&HierarchyMessage::Toggle(vec![]));
         assert!(h.root.as_ref().is_some_and(|r| !r.expanded));
@@ -304,21 +294,18 @@ mod test {
     #[test]
     fn toggle_child_node() {
         let mut h = FlowHierarchy {
-            root: Some(HierarchyNode {
-                name: "root".into(),
-                kind: NodeKind::Flow,
-                source: String::new(),
-                path: None,
-                children: vec![HierarchyNode {
+            root: Some(flow_node(
+                "root",
+                vec![HierarchyNode {
                     name: "child_flow".into(),
-                    kind: NodeKind::Flow,
+                    process: Some(Process::FlowProcess(FlowDefinition::default())),
                     source: "child.toml".into(),
                     path: None,
                     children: Vec::new(),
                     expanded: false,
                 }],
-                expanded: true,
-            }),
+                true,
+            )),
         };
         h.update(&HierarchyMessage::Toggle(vec![0]));
         assert!(h
@@ -331,28 +318,15 @@ mod test {
     #[test]
     fn toggle_nested_child() {
         let mut h = FlowHierarchy {
-            root: Some(HierarchyNode {
-                name: "root".into(),
-                kind: NodeKind::Flow,
-                source: String::new(),
-                path: None,
-                children: vec![HierarchyNode {
-                    name: "sub".into(),
-                    kind: NodeKind::Flow,
-                    source: String::new(),
-                    path: None,
-                    children: vec![HierarchyNode {
-                        name: "deep".into(),
-                        kind: NodeKind::Flow,
-                        source: String::new(),
-                        path: None,
-                        children: Vec::new(),
-                        expanded: false,
-                    }],
-                    expanded: true,
-                }],
-                expanded: true,
-            }),
+            root: Some(flow_node(
+                "root",
+                vec![flow_node(
+                    "sub",
+                    vec![flow_node("deep", Vec::new(), false)],
+                    true,
+                )],
+                true,
+            )),
         };
         h.update(&HierarchyMessage::Toggle(vec![0, 0]));
         assert!(h
@@ -366,14 +340,7 @@ mod test {
     #[test]
     fn toggle_invalid_index_no_panic() {
         let mut h = FlowHierarchy {
-            root: Some(HierarchyNode {
-                name: "root".into(),
-                kind: NodeKind::Flow,
-                source: String::new(),
-                path: None,
-                children: Vec::new(),
-                expanded: true,
-            }),
+            root: Some(flow_node("root", Vec::new(), true)),
         };
         h.update(&HierarchyMessage::Toggle(vec![99]));
     }
@@ -400,16 +367,19 @@ mod test {
 
     #[test]
     fn view_with_nodes_renders() {
+        let mut lib_func = FunctionDefinition::default();
+        lib_func.lib_reference =
+            Some(url::Url::parse("lib://flowstdlib/math/add").expect("valid url"));
         let h = FlowHierarchy {
             root: Some(HierarchyNode {
                 name: "test_flow".into(),
-                kind: NodeKind::Flow,
+                process: Some(Process::FlowProcess(FlowDefinition::default())),
                 source: String::new(),
                 path: None,
                 children: vec![
                     HierarchyNode {
                         name: "func".into(),
-                        kind: NodeKind::Function,
+                        process: Some(Process::FunctionProcess(FunctionDefinition::default())),
                         source: "func.rs".into(),
                         path: Some(PathBuf::from("/tmp/func.toml")),
                         children: Vec::new(),
@@ -417,7 +387,7 @@ mod test {
                     },
                     HierarchyNode {
                         name: "lib_func".into(),
-                        kind: NodeKind::Library,
+                        process: Some(Process::FunctionProcess(lib_func)),
                         source: "lib://flowstdlib/math/add".into(),
                         path: None,
                         children: Vec::new(),

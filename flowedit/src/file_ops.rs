@@ -7,7 +7,7 @@ use std::path::{Path, PathBuf};
 use simpath::Simpath;
 use url::Url;
 
-use crate::canvas_view::{derive_short_name, FlowCanvasState, PortInfo};
+use crate::canvas_view::{derive_short_name, FlowCanvasState};
 use crate::history::EditHistory;
 use crate::{FunctionViewer, WindowState};
 use flowcore::meta_provider::MetaProvider;
@@ -31,152 +31,166 @@ pub(crate) struct EditorPrefs {
     pub(crate) y: Option<f32>,
 }
 
-/// Save the current flow to the given path.
-pub(crate) fn perform_save(win: &mut WindowState, path: &PathBuf) {
-    match save_flow_toml(&win.flow_definition, path) {
-        Ok(()) => {
-            win.history.clear();
-            win.set_file_path(path);
-            save_editor_prefs(path, win.last_size, win.last_position);
-            if let Some(name) = path.file_name().and_then(|n| n.to_str()) {
-                win.status = format!("Saved to {name}");
-            } else {
-                win.status = String::from("Saved");
-            }
-        }
-        Err(e) => {
-            win.status = format!("Save failed: {e}");
-        }
-    }
-}
-
-/// Prompt the user with a save dialog and save to the chosen path.
-pub(crate) fn perform_save_as(win: &mut WindowState) {
-    let dialog = rfd::FileDialog::new()
-        .add_filter("Flow", &["toml"])
-        .set_file_name(format!("{}.toml", win.flow_definition.name));
-    if let Some(path) = dialog.save_file() {
-        perform_save(win, &path);
-    }
-}
-
-/// Handle save message -- saves to existing path or prompts with save dialog.
-pub(crate) fn handle_save(win: &mut WindowState) {
-    if let Some(path) = win.file_path() {
-        perform_save(win, &path);
-    } else {
-        perform_save_as(win);
-    }
-}
-
-/// Handle save-as message -- prompts with save dialog.
-pub(crate) fn handle_save_as(win: &mut WindowState) {
-    perform_save_as(win);
-}
-
-/// Prompt the user with an open dialog and load the selected flow file.
-/// Open a flow file and update the window state.
-/// Returns the lib and context references if successful, for rebuilding the library cache.
-pub(crate) fn perform_open(win: &mut WindowState) -> Option<(BTreeSet<Url>, BTreeSet<Url>)> {
-    let dialog = rfd::FileDialog::new().add_filter("Flow", &["toml"]);
-    if let Some(path) = dialog.pick_file() {
-        match load_flow(&path) {
-            Ok(loaded) => {
-                let nc = loaded.flow_def.process_refs.len();
-                let ec = loaded.flow_def.connections.len();
-                win.flow_definition = loaded.flow_def;
-                win.set_file_path(&path);
-                win.selected_node = None;
-                win.selected_connection = None;
-                win.history = EditHistory::default();
-                win.auto_fit_pending = true;
-                win.auto_fit_enabled = true;
-                win.canvas_state = FlowCanvasState::default();
-                win.status = format!("Loaded - {nc} nodes, {ec} connections");
-                return Some((loaded.lib_references, loaded.context_references));
+impl WindowState {
+    pub(crate) fn perform_save(&mut self, path: &PathBuf) {
+        match save_flow_toml(&self.flow_definition, path) {
+            Ok(()) => {
+                self.history.clear();
+                self.set_file_path(path);
+                save_editor_prefs(path, self.last_size, self.last_position);
+                if let Some(name) = path.file_name().and_then(|n| n.to_str()) {
+                    self.status = format!("Saved to {name}");
+                } else {
+                    self.status = String::from("Saved");
+                }
             }
             Err(e) => {
-                win.status = format!("Open failed: {e}");
+                self.status = format!("Save failed: {e}");
             }
         }
     }
-    None
-}
 
-/// Clear the canvas and reset to an empty flow state.
-pub(crate) fn perform_new(win: &mut WindowState) {
-    win.flow_definition = FlowDefinition::default();
-    win.flow_definition.name = String::from("(new flow)");
-    win.clear_file_path();
-    win.selected_node = None;
-    win.selected_connection = None;
-    win.history = EditHistory::default();
-    win.auto_fit_pending = false;
-    win.auto_fit_enabled = true;
-    win.canvas_state = FlowCanvasState::default();
-    win.status = String::from("New flow");
-}
-
-/// Compile the current flow to a manifest.
-///
-/// Writes a temporary copy of the current editor state for the compiler
-/// to parse -- the user's flow definition file is never modified.
-///
-/// Returns the path to the generated manifest on success, or a human-readable
-/// error message on failure.
-pub(crate) fn perform_compile(win: &mut WindowState) -> Result<PathBuf, String> {
-    // New flows must be saved first so the compiler has a real file path
-    if win.file_path().is_none() {
-        perform_save_as(win);
-    }
-    let Some(flow_path) = win.file_path() else {
-        return Err("Flow must be saved before compiling".to_string());
-    };
-
-    // Save any unsaved edits so the file on disk matches the editor state
-    if !win.history.is_empty() {
-        perform_save(win, &flow_path);
-        if !win.history.is_empty() {
-            return Err("Save failed — cannot compile stale content".to_string());
+    /// Prompt the user with a save dialog and save to the chosen path.
+    pub(crate) fn perform_save_as(&mut self) {
+        let dialog = rfd::FileDialog::new()
+            .add_filter("Flow", &["toml"])
+            .set_file_name(format!("{}.toml", self.flow_definition.name));
+        if let Some(path) = dialog.save_file() {
+            self.perform_save(&path);
         }
     }
 
-    let flow_path = &flow_path;
-    let abs_path = if flow_path.is_absolute() {
-        flow_path.clone()
-    } else {
-        std::env::current_dir()
-            .map_err(|e| format!("Could not get current directory: {e}"))?
-            .join(flow_path)
-    };
+    /// Handle save message -- saves to existing path or prompts with save dialog.
+    pub(crate) fn handle_save(&mut self) {
+        if let Some(path) = self.file_path() {
+            self.perform_save(&path);
+        } else {
+            self.perform_save_as();
+        }
+    }
 
-    let provider = build_meta_provider();
+    /// Handle save-as message -- prompts with save dialog.
+    pub(crate) fn handle_save_as(&mut self) {
+        self.perform_save_as();
+    }
 
-    let url = Url::from_file_path(&abs_path)
-        .map_err(|()| format!("Invalid file path: {}", abs_path.display()))?;
-    let process = flowrclib::compiler::parser::parse(&url, &provider)
-        .map_err(|e| format!("Parse error: {e}"))?;
-    let flow = match process {
-        Process::FlowProcess(f) => f,
-        Process::FunctionProcess(_) => return Err("Not a flow definition".to_string()),
-    };
+    /// Prompt the user with an open dialog and load the selected flow file.
+    /// Open a flow file and update the window state.
+    /// Returns the lib and context references if successful, for rebuilding the library cache.
+    pub(crate) fn perform_open(&mut self) -> Option<(BTreeSet<Url>, BTreeSet<Url>)> {
+        let dialog = rfd::FileDialog::new().add_filter("Flow", &["toml"]);
+        if let Some(path) = dialog.pick_file() {
+            match load_flow(&path) {
+                Ok(loaded) => {
+                    let nc = loaded.flow_def.process_refs.len();
+                    let ec = loaded.flow_def.connections.len();
+                    self.flow_definition = loaded.flow_def;
+                    self.set_file_path(&path);
+                    self.selected_node = None;
+                    self.selected_connection = None;
+                    self.tooltip = None;
+                    self.context_menu = None;
+                    self.initializer_editor = None;
+                    self.show_metadata = false;
+                    self.history = EditHistory::default();
+                    self.auto_fit_pending = true;
+                    self.auto_fit_enabled = true;
+                    self.canvas_state = FlowCanvasState::default();
+                    self.status = format!("Loaded - {nc} nodes, {ec} connections");
+                    return Some((loaded.lib_references, loaded.context_references));
+                }
+                Err(e) => {
+                    self.status = format!("Open failed: {e}");
+                }
+            }
+        }
+        None
+    }
 
-    let output_dir = abs_path.parent().unwrap_or(Path::new(".")).to_path_buf();
-    let mut source_urls = BTreeMap::<String, Url>::new();
-    let tables =
-        flowrclib::compiler::compile::compile(&flow, &output_dir, false, false, &mut source_urls)
-            .map_err(|e| e.to_string())?;
+    /// Clear the canvas and reset to an empty flow state.
+    pub(crate) fn perform_new(&mut self) {
+        self.flow_definition = FlowDefinition::default();
+        self.flow_definition.name = String::from("(new flow)");
+        self.clear_file_path();
+        self.selected_node = None;
+        self.selected_connection = None;
+        self.tooltip = None;
+        self.context_menu = None;
+        self.initializer_editor = None;
+        self.show_metadata = false;
+        self.history = EditHistory::default();
+        self.auto_fit_pending = false;
+        self.auto_fit_enabled = true;
+        self.canvas_state = FlowCanvasState::default();
+        self.status = String::from("New flow");
+    }
 
-    let manifest_path = flowrclib::generator::generate::write_flow_manifest(
-        &flow,
-        false,
-        &output_dir,
-        &tables,
-        source_urls,
-    )
-    .map_err(|e| format!("Manifest error: {e}"))?;
+    /// Compile the current flow to a manifest.
+    ///
+    /// Writes a temporary copy of the current editor state for the compiler
+    /// to parse -- the user's flow definition file is never modified.
+    ///
+    /// Returns the path to the generated manifest on success, or a human-readable
+    /// error message on failure.
+    pub(crate) fn perform_compile(&mut self) -> Result<PathBuf, String> {
+        // New flows must be saved first so the compiler has a real file path
+        if self.file_path().is_none() {
+            self.perform_save_as();
+        }
+        let Some(flow_path) = self.file_path() else {
+            return Err("Flow must be saved before compiling".to_string());
+        };
 
-    Ok(manifest_path)
+        // Save any unsaved edits so the file on disk matches the editor state
+        if !self.history.is_empty() {
+            self.perform_save(&flow_path);
+            if !self.history.is_empty() {
+                return Err("Save failed — cannot compile stale content".to_string());
+            }
+        }
+
+        let flow_path = &flow_path;
+        let abs_path = if flow_path.is_absolute() {
+            flow_path.clone()
+        } else {
+            std::env::current_dir()
+                .map_err(|e| format!("Could not get current directory: {e}"))?
+                .join(flow_path)
+        };
+
+        let provider = build_meta_provider();
+
+        let url = Url::from_file_path(&abs_path)
+            .map_err(|()| format!("Invalid file path: {}", abs_path.display()))?;
+        let process = flowrclib::compiler::parser::parse(&url, &provider)
+            .map_err(|e| format!("Parse error: {e}"))?;
+        let flow = match process {
+            Process::FlowProcess(f) => f,
+            Process::FunctionProcess(_) => return Err("Not a flow definition".to_string()),
+        };
+
+        let output_dir = abs_path.parent().unwrap_or(Path::new(".")).to_path_buf();
+        let mut source_urls = BTreeMap::<String, Url>::new();
+        let tables = flowrclib::compiler::compile::compile(
+            &flow,
+            &output_dir,
+            false,
+            false,
+            &mut source_urls,
+        )
+        .map_err(|e| e.to_string())?;
+
+        let manifest_path = flowrclib::generator::generate::write_flow_manifest(
+            &flow,
+            false,
+            &output_dir,
+            &tables,
+            source_urls,
+        )
+        .map_err(|e| format!("Manifest error: {e}"))?;
+
+        Ok(manifest_path)
+    }
 }
 
 /// Build a `MetaProvider` with `FLOW_LIB_PATH` (plus `~/.flow/lib` default)
@@ -225,28 +239,6 @@ pub(crate) fn resolve_lib_paths() -> Vec<String> {
     }
 
     paths
-}
-
-/// Extract input and output port information from IO definitions.
-pub(crate) fn extract_ports(
-    inputs: &[flowcore::model::io::IO],
-    outputs: &[flowcore::model::io::IO],
-) -> (Vec<PortInfo>, Vec<PortInfo>) {
-    let input_ports = inputs
-        .iter()
-        .map(|io| PortInfo {
-            name: io.name().clone(),
-            datatypes: io.datatypes().iter().map(ToString::to_string).collect(),
-        })
-        .collect();
-    let output_ports = outputs
-        .iter()
-        .map(|io| PortInfo {
-            name: io.name().clone(),
-            datatypes: io.datatypes().iter().map(ToString::to_string).collect(),
-        })
-        .collect();
-    (input_ports, output_ports)
 }
 
 /// Load a flow definition file and return the flow name, node layouts, edge layouts,
@@ -531,10 +523,10 @@ fn assign_default_positions(flow: &mut FlowDefinition) {
     let render_nodes = canvas_view::build_render_nodes(flow);
     for (pref, node) in flow.process_refs.iter_mut().zip(render_nodes.iter()) {
         if pref.x.is_none() {
-            pref.x = Some(node.x);
+            pref.x = Some(node.x());
         }
         if pref.y.is_none() {
-            pref.y = Some(node.y);
+            pref.y = Some(node.y());
         }
     }
 }
@@ -1187,7 +1179,7 @@ mod test {
         win.history.mark_modified();
         win.flow_definition.name = "saved_flow".into();
 
-        perform_save(&mut win, &path);
+        win.perform_save(&path);
         assert!(win.history.is_empty());
         let canonical = path.canonicalize().unwrap_or_else(|_| path.clone());
         assert_eq!(win.file_path(), Some(canonical));

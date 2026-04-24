@@ -2,7 +2,7 @@
 //!
 //! Each [`ProcessReference`] is drawn as a rounded rectangle with its alias
 //! displayed as a title. Node fill color is determined by the resolved
-//! [`NodeKind`]: blue for library functions, green for context functions,
+//! [`Process`] variant: blue for library functions, green for context functions,
 //! purple for provided implementations, and orange for nested flows.
 
 #![allow(
@@ -26,6 +26,7 @@ use log::info;
 use flowcore::model::input::InputInitializer;
 use flowcore::model::io::IO;
 use flowcore::model::name::HasName;
+use flowcore::model::process::Process;
 
 use crate::file_ops;
 use crate::history::EditAction;
@@ -33,8 +34,8 @@ use crate::InitializerEditor;
 use crate::WindowState;
 use crate::{Message, ViewMessage};
 
-/// Action returned by [`handle_canvas_message`] to signal that the caller
-/// (main.rs) needs to perform an operation that requires `FlowEdit` state.
+/// Action returned by [`WindowState::handle_canvas_message`] to signal that
+/// the caller needs to perform an operation that requires `FlowEdit` state.
 pub(crate) enum CanvasAction {
     /// No further action needed.
     None,
@@ -42,283 +43,285 @@ pub(crate) enum CanvasAction {
     OpenNode(usize),
 }
 
-/// Handle a [`CanvasMessage`] by mutating the given window state.
-///
-/// Returns a [`CanvasAction`] when the caller needs to perform cross-window
-/// operations (e.g. opening a sub-flow in a new editor window).
-pub(crate) fn handle_canvas_message(win: &mut WindowState, msg: CanvasMessage) -> CanvasAction {
-    match msg {
-        CanvasMessage::Selected(idx) => {
-            win.selected_node = idx;
-            win.context_menu = None;
-            if win.selected_connection.is_some() {
-                win.selected_connection = None;
-                win.canvas_state.request_redraw();
+impl WindowState {
+    /// Handle a [`CanvasMessage`] by mutating canvas/selection state.
+    ///
+    /// Returns a [`CanvasAction`] when the caller needs to perform cross-window
+    /// operations (e.g. opening a sub-flow in a new editor window).
+    pub(crate) fn handle_canvas_message(&mut self, msg: CanvasMessage) -> CanvasAction {
+        match msg {
+            CanvasMessage::Selected(idx) => {
+                self.selected_node = idx;
+                self.context_menu = None;
+                if self.selected_connection.is_some() {
+                    self.selected_connection = None;
+                    self.canvas_state.request_redraw();
+                }
+                if let Some(i) = idx {
+                    if let Some(pref) = self.flow_definition.process_refs.get(i) {
+                        let alias = if pref.alias.is_empty() {
+                            derive_short_name(&pref.source)
+                        } else {
+                            pref.alias.clone()
+                        };
+                        self.status = format!("Selected: {alias}");
+                    }
+                } else {
+                    self.status = String::from("Ready");
+                }
             }
-            if let Some(i) = idx {
-                if let Some(pref) = win.flow_definition.process_refs.get(i) {
+            CanvasMessage::Moved(idx, x, y) => {
+                if let Some(pref) = self.flow_definition.process_refs.get_mut(idx) {
+                    pref.x = Some(x);
+                    pref.y = Some(y);
+                    self.canvas_state.request_redraw();
+                }
+            }
+            CanvasMessage::Resized(idx, x, y, w, h) => {
+                if let Some(pref) = self.flow_definition.process_refs.get_mut(idx) {
+                    pref.x = Some(x);
+                    pref.y = Some(y);
+                    pref.width = Some(w);
+                    pref.height = Some(h);
+                    self.canvas_state.request_redraw();
+                }
+            }
+            CanvasMessage::MoveCompleted(idx, old_x, old_y, new_x, new_y) => {
+                info!("MoveCompleted: idx={idx}, ({old_x},{old_y}) -> ({new_x},{new_y})");
+                if (old_x - new_x).abs() > 0.5 || (old_y - new_y).abs() > 0.5 {
+                    self.history.record(EditAction::MoveNode {
+                        index: idx,
+                        old_x,
+                        old_y,
+                        new_x,
+                        new_y,
+                    });
+                }
+            }
+            #[allow(clippy::similar_names)]
+            CanvasMessage::ResizeCompleted(
+                idx,
+                old_x,
+                old_y,
+                old_w,
+                old_h,
+                new_x,
+                new_y,
+                new_w,
+                new_h,
+            ) => {
+                if (old_x - new_x).abs() > 0.5
+                    || (old_y - new_y).abs() > 0.5
+                    || (old_w - new_w).abs() > 0.5
+                    || (old_h - new_h).abs() > 0.5
+                {
+                    self.history.record(EditAction::ResizeNode {
+                        index: idx,
+                        old_x,
+                        old_y,
+                        old_w,
+                        old_h,
+                        new_x,
+                        new_y,
+                        new_w,
+                        new_h,
+                    });
+                }
+            }
+            CanvasMessage::Deleted(idx) => {
+                if idx < self.flow_definition.process_refs.len() {
+                    let Some(pref) = self.flow_definition.process_refs.get(idx).cloned() else {
+                        return CanvasAction::None;
+                    };
                     let alias = if pref.alias.is_empty() {
                         derive_short_name(&pref.source)
                     } else {
                         pref.alias.clone()
                     };
-                    win.status = format!("Selected: {alias}");
+                    let removed_connections: Vec<Connection> = self
+                        .flow_definition
+                        .connections
+                        .iter()
+                        .filter(|c| connection_references_node(c, &alias))
+                        .cloned()
+                        .collect();
+                    let removed_pref = self.flow_definition.process_refs.remove(idx);
+                    let removed_subprocess = self.flow_definition.subprocesses.remove(&alias);
+                    self.flow_definition
+                        .connections
+                        .retain(|c| !connection_references_node(c, &alias));
+                    self.history.record(EditAction::DeleteNode {
+                        index: idx,
+                        process_ref: removed_pref,
+                        subprocess: removed_subprocess.map(|p| (alias, p)),
+                        removed_connections,
+                    });
+                    self.selected_node = None;
+                    self.selected_connection = None;
+                    self.canvas_state.request_redraw();
+                    let nc = self.flow_definition.process_refs.len();
+                    let ec = self.flow_definition.connections.len();
+                    self.status = format!("Node deleted - {nc} nodes, {ec} connections");
+                    if self.auto_fit_enabled {
+                        self.auto_fit_pending = true;
+                    }
                 }
-            } else {
-                win.status = String::from("Ready");
             }
-        }
-        CanvasMessage::Moved(idx, x, y) => {
-            if let Some(pref) = win.flow_definition.process_refs.get_mut(idx) {
-                pref.x = Some(x);
-                pref.y = Some(y);
-                win.canvas_state.request_redraw();
-            }
-        }
-        CanvasMessage::Resized(idx, x, y, w, h) => {
-            if let Some(pref) = win.flow_definition.process_refs.get_mut(idx) {
-                pref.x = Some(x);
-                pref.y = Some(y);
-                pref.width = Some(w);
-                pref.height = Some(h);
-                win.canvas_state.request_redraw();
-            }
-        }
-        CanvasMessage::MoveCompleted(idx, old_x, old_y, new_x, new_y) => {
-            info!("MoveCompleted: idx={idx}, ({old_x},{old_y}) -> ({new_x},{new_y})");
-            if (old_x - new_x).abs() > 0.5 || (old_y - new_y).abs() > 0.5 {
-                win.history.record(EditAction::MoveNode {
-                    index: idx,
-                    old_x,
-                    old_y,
-                    new_x,
-                    new_y,
-                });
-            }
-        }
-        #[allow(clippy::similar_names)]
-        CanvasMessage::ResizeCompleted(
-            idx,
-            old_x,
-            old_y,
-            old_w,
-            old_h,
-            new_x,
-            new_y,
-            new_w,
-            new_h,
-        ) => {
-            if (old_x - new_x).abs() > 0.5
-                || (old_y - new_y).abs() > 0.5
-                || (old_w - new_w).abs() > 0.5
-                || (old_h - new_h).abs() > 0.5
-            {
-                win.history.record(EditAction::ResizeNode {
-                    index: idx,
-                    old_x,
-                    old_y,
-                    old_w,
-                    old_h,
-                    new_x,
-                    new_y,
-                    new_w,
-                    new_h,
-                });
-            }
-        }
-        CanvasMessage::Deleted(idx) => {
-            if idx < win.flow_definition.process_refs.len() {
-                let Some(pref) = win.flow_definition.process_refs.get(idx).cloned() else {
-                    return CanvasAction::None;
-                };
-                let alias = if pref.alias.is_empty() {
-                    derive_short_name(&pref.source)
+            CanvasMessage::ConnectionCreated {
+                from_node,
+                from_port,
+                to_node,
+                to_port,
+            } => {
+                let from_route = if from_port.is_empty() {
+                    from_node.clone()
                 } else {
-                    pref.alias.clone()
+                    format!("{from_node}/{from_port}")
                 };
-                let removed_connections: Vec<Connection> = win
-                    .flow_definition
-                    .connections
-                    .iter()
-                    .filter(|c| connection_references_node(c, &alias))
-                    .cloned()
-                    .collect();
-                let removed_pref = win.flow_definition.process_refs.remove(idx);
-                let removed_subprocess = win.flow_definition.subprocesses.remove(&alias);
-                win.flow_definition
-                    .connections
-                    .retain(|c| !connection_references_node(c, &alias));
-                win.history.record(EditAction::DeleteNode {
-                    index: idx,
-                    process_ref: removed_pref,
-                    subprocess: removed_subprocess.map(|p| (alias, p)),
-                    removed_connections,
+                let to_route = if to_port.is_empty() {
+                    to_node.clone()
+                } else {
+                    format!("{to_node}/{to_port}")
+                };
+                let connection = Connection::new(from_route, to_route);
+                self.history.record(EditAction::CreateConnection {
+                    connection: connection.clone(),
                 });
-                win.selected_node = None;
-                win.selected_connection = None;
-                win.canvas_state.request_redraw();
-                let nc = win.flow_definition.process_refs.len();
-                let ec = win.flow_definition.connections.len();
-                win.status = format!("Node deleted - {nc} nodes, {ec} connections");
-                if win.auto_fit_enabled {
-                    win.auto_fit_pending = true;
-                }
-            }
-        }
-        CanvasMessage::ConnectionCreated {
-            from_node,
-            from_port,
-            to_node,
-            to_port,
-        } => {
-            let from_route = if from_port.is_empty() {
-                from_node.clone()
-            } else {
-                format!("{from_node}/{from_port}")
-            };
-            let to_route = if to_port.is_empty() {
-                to_node.clone()
-            } else {
-                format!("{to_node}/{to_port}")
-            };
-            let connection = Connection::new(from_route, to_route);
-            win.history.record(EditAction::CreateConnection {
-                connection: connection.clone(),
-            });
-            win.flow_definition.connections.push(connection);
-            win.canvas_state.request_redraw();
-            let nc = win.flow_definition.process_refs.len();
-            let ec = win.flow_definition.connections.len();
-            win.status = format!(
+                self.flow_definition.connections.push(connection);
+                self.canvas_state.request_redraw();
+                let nc = self.flow_definition.process_refs.len();
+                let ec = self.flow_definition.connections.len();
+                self.status = format!(
                 "Connection created: {from_node}/{from_port} -> {to_node}/{to_port} - {nc} nodes, {ec} connections"
             );
-        }
-        CanvasMessage::ConnectionSelected(idx) => {
-            win.selected_connection = idx;
-            win.selected_node = None;
-            win.canvas_state.request_redraw();
-            if let Some(i) = idx {
-                if let Some(conn) = win.flow_definition.connections.get(i) {
-                    let (from_node, from_port) = split_route(conn.from().as_ref());
-                    let to_str = conn
-                        .to()
-                        .first()
-                        .map_or_else(String::new, ToString::to_string);
-                    let (to_node, to_port) = split_route(&to_str);
-                    win.status = format!(
-                        "Connection: {} -> {}",
-                        file_ops::format_endpoint(&from_node, &from_port),
-                        file_ops::format_endpoint(&to_node, &to_port),
-                    );
+            }
+            CanvasMessage::ConnectionSelected(idx) => {
+                self.selected_connection = idx;
+                self.selected_node = None;
+                self.canvas_state.request_redraw();
+                if let Some(i) = idx {
+                    if let Some(conn) = self.flow_definition.connections.get(i) {
+                        let (from_node, from_port) = split_route(conn.from().as_ref());
+                        let to_str = conn
+                            .to()
+                            .first()
+                            .map_or_else(String::new, ToString::to_string);
+                        let (to_node, to_port) = split_route(&to_str);
+                        self.status = format!(
+                            "Connection: {} -> {}",
+                            file_ops::format_endpoint(&from_node, &from_port),
+                            file_ops::format_endpoint(&to_node, &to_port),
+                        );
+                    }
+                } else {
+                    self.status = String::from("Ready");
                 }
-            } else {
-                win.status = String::from("Ready");
             }
-        }
-        CanvasMessage::ConnectionDeleted(idx) => {
-            if idx < win.flow_definition.connections.len() {
-                let connection = win.flow_definition.connections.remove(idx);
-                win.history.record(EditAction::DeleteConnection {
-                    index: idx,
-                    connection,
+            CanvasMessage::ConnectionDeleted(idx) => {
+                if idx < self.flow_definition.connections.len() {
+                    let connection = self.flow_definition.connections.remove(idx);
+                    self.history.record(EditAction::DeleteConnection {
+                        index: idx,
+                        connection,
+                    });
+                    self.selected_connection = None;
+                    self.canvas_state.request_redraw();
+                    let nc = self.flow_definition.process_refs.len();
+                    let ec = self.flow_definition.connections.len();
+                    self.status = format!("Connection deleted - {nc} nodes, {ec} connections");
+                }
+            }
+            CanvasMessage::HoverChanged(data) => {
+                self.tooltip = data;
+            }
+            CanvasMessage::AutoFitViewport(viewport) => {
+                if self.auto_fit_enabled || self.auto_fit_pending {
+                    let has_flow_io = !self.flow_definition.inputs.is_empty()
+                        || !self.flow_definition.outputs.is_empty();
+                    let render_nodes = build_render_nodes(&self.flow_definition);
+                    self.canvas_state
+                        .auto_fit(&render_nodes, has_flow_io, viewport);
+                    self.auto_fit_pending = false;
+                }
+            }
+            CanvasMessage::Pan(dx, dy) => {
+                self.auto_fit_enabled = false; // Manual pan disables auto-fit
+                self.auto_fit_pending = false;
+                self.canvas_state.scroll_offset.x += dx;
+                self.canvas_state.scroll_offset.y += dy;
+                self.canvas_state.request_redraw();
+            }
+            CanvasMessage::ZoomBy(factor) => {
+                self.auto_fit_enabled = false; // Manual zoom disables auto-fit
+                self.auto_fit_pending = false;
+                self.canvas_state.zoom = (self.canvas_state.zoom * factor).clamp(0.1, 5.0);
+                self.canvas_state.request_redraw();
+                let pct = (self.canvas_state.zoom * 100.0) as u32;
+                self.status = format!("Zoom: {pct}%");
+            }
+            CanvasMessage::InitializerEdit(node_idx, port_name) => {
+                // Look up current initializer from the model (flow definition)
+                let (init_type, value_text) = self
+                    .flow_definition
+                    .process_refs
+                    .get(node_idx)
+                    .and_then(|pr| pr.initializations.get(&port_name))
+                    .map_or_else(
+                        || ("none".to_string(), String::new()),
+                        |init| match init {
+                            InputInitializer::Once(v) => (
+                                "once".to_string(),
+                                serde_json::to_string(v).unwrap_or_default(),
+                            ),
+                            InputInitializer::Always(v) => (
+                                "always".to_string(),
+                                serde_json::to_string(v).unwrap_or_default(),
+                            ),
+                        },
+                    );
+
+                self.initializer_editor = Some(InitializerEditor {
+                    node_index: node_idx,
+                    port_name,
+                    init_type,
+                    value_text,
                 });
-                win.selected_connection = None;
-                win.canvas_state.request_redraw();
-                let nc = win.flow_definition.process_refs.len();
-                let ec = win.flow_definition.connections.len();
-                win.status = format!("Connection deleted - {nc} nodes, {ec} connections");
+            }
+            CanvasMessage::OpenNode(idx) => {
+                return CanvasAction::OpenNode(idx);
+            }
+            CanvasMessage::ContextMenu(x, y) => {
+                self.context_menu = Some(crate::window_state::MenuPosition { x, y });
             }
         }
-        CanvasMessage::HoverChanged(data) => {
-            win.tooltip = data;
-        }
-        CanvasMessage::AutoFitViewport(viewport) => {
-            if win.auto_fit_enabled || win.auto_fit_pending {
-                let has_flow_io = !win.flow_definition.inputs.is_empty()
-                    || !win.flow_definition.outputs.is_empty();
-                let render_nodes = build_render_nodes(&win.flow_definition);
-                win.canvas_state
-                    .auto_fit(&render_nodes, has_flow_io, viewport);
-                win.auto_fit_pending = false;
-            }
-        }
-        CanvasMessage::Pan(dx, dy) => {
-            win.auto_fit_enabled = false; // Manual pan disables auto-fit
-            win.auto_fit_pending = false;
-            win.canvas_state.scroll_offset.x += dx;
-            win.canvas_state.scroll_offset.y += dy;
-            win.canvas_state.request_redraw();
-        }
-        CanvasMessage::ZoomBy(factor) => {
-            win.auto_fit_enabled = false; // Manual zoom disables auto-fit
-            win.auto_fit_pending = false;
-            win.canvas_state.zoom = (win.canvas_state.zoom * factor).clamp(0.1, 5.0);
-            win.canvas_state.request_redraw();
-            let pct = (win.canvas_state.zoom * 100.0) as u32;
-            win.status = format!("Zoom: {pct}%");
-        }
-        CanvasMessage::InitializerEdit(node_idx, port_name) => {
-            // Look up current initializer from the model (flow definition)
-            let (init_type, value_text) = win
-                .flow_definition
-                .process_refs
-                .get(node_idx)
-                .and_then(|pr| pr.initializations.get(&port_name))
-                .map_or_else(
-                    || ("none".to_string(), String::new()),
-                    |init| match init {
-                        InputInitializer::Once(v) => (
-                            "once".to_string(),
-                            serde_json::to_string(v).unwrap_or_default(),
-                        ),
-                        InputInitializer::Always(v) => (
-                            "always".to_string(),
-                            serde_json::to_string(v).unwrap_or_default(),
-                        ),
-                    },
-                );
-
-            win.initializer_editor = Some(InitializerEditor {
-                node_index: node_idx,
-                port_name,
-                init_type,
-                value_text,
-            });
-        }
-        CanvasMessage::OpenNode(idx) => {
-            return CanvasAction::OpenNode(idx);
-        }
-        CanvasMessage::ContextMenu(x, y) => {
-            win.context_menu = Some((x, y));
-        }
+        CanvasAction::None
     }
-    CanvasAction::None
-}
 
-pub(crate) fn update(win: &mut WindowState, msg: &ViewMessage) {
-    match msg {
-        ViewMessage::ZoomIn => {
-            win.auto_fit_enabled = false;
-            win.auto_fit_pending = false;
-            win.canvas_state.zoom_in();
-            let pct = (win.canvas_state.zoom * 100.0) as u32;
-            win.status = format!("Zoom: {pct}%");
-        }
-        ViewMessage::ZoomOut => {
-            win.auto_fit_enabled = false;
-            win.auto_fit_pending = false;
-            win.canvas_state.zoom_out();
-            let pct = (win.canvas_state.zoom * 100.0) as u32;
-            win.status = format!("Zoom: {pct}%");
-        }
-        ViewMessage::ToggleAutoFit => {
-            win.auto_fit_enabled = !win.auto_fit_enabled;
-            if win.auto_fit_enabled {
-                win.auto_fit_pending = true;
-                win.canvas_state.request_redraw();
-                win.status = String::from("Auto-fit enabled");
-            } else {
-                win.status = String::from("Auto-fit disabled");
+    pub(crate) fn handle_view_message(&mut self, msg: &ViewMessage) {
+        match msg {
+            ViewMessage::ZoomIn => {
+                self.auto_fit_enabled = false;
+                self.auto_fit_pending = false;
+                self.canvas_state.zoom_in();
+                let pct = (self.canvas_state.zoom * 100.0) as u32;
+                self.status = format!("Zoom: {pct}%");
+            }
+            ViewMessage::ZoomOut => {
+                self.auto_fit_enabled = false;
+                self.auto_fit_pending = false;
+                self.canvas_state.zoom_out();
+                let pct = (self.canvas_state.zoom * 100.0) as u32;
+                self.status = format!("Zoom: {pct}%");
+            }
+            ViewMessage::ToggleAutoFit => {
+                self.auto_fit_enabled = !self.auto_fit_enabled;
+                if self.auto_fit_enabled {
+                    self.auto_fit_pending = true;
+                    self.canvas_state.request_redraw();
+                    self.status = String::from("Auto-fit enabled");
+                } else {
+                    self.status = String::from("Auto-fit disabled");
+                }
             }
         }
     }
@@ -395,7 +398,7 @@ pub(crate) enum CanvasMessage {
     /// Auto-fit with the actual viewport size (triggered on initial load).
     AutoFitViewport(Size),
     /// Hover state changed — full source path and screen position for tooltip (or None to hide)
-    HoverChanged(Option<(String, f32, f32)>),
+    HoverChanged(Option<crate::window_state::Tooltip>),
     /// Right-click on empty canvas — show context menu at screen position
     ContextMenu(f32, f32),
 }
@@ -489,18 +492,14 @@ struct PanState {
     last_screen_pos: Point,
 }
 
-/// Tracks a connection drag in progress (started from a port).
+// TODO: Replace from_node/from_port strings with a Route reference and derive
+// start_pos from the node layout, so renames don't cause stale data.
 #[derive(Debug, Clone)]
 struct ConnectingState {
-    /// Node alias of the starting port
     from_node: String,
-    /// Port name of the starting port
     from_port: String,
-    /// Whether we started from an output port (true) or input port (false)
     from_output: bool,
-    /// World-space position of the starting port
     start_pos: Point,
-    /// Current cursor position in screen space (updated during drag)
     current_screen_pos: Point,
 }
 
@@ -535,135 +534,231 @@ const PORT_START_Y: f32 = 55.0;
 /// Maximum characters for source label before truncation
 const MAX_SOURCE_CHARS: usize = 22;
 
-/// Information about a port (input or output) on a node.
-#[derive(Debug, Clone)]
-pub(crate) struct PortInfo {
-    /// The port name
-    pub name: String,
-    /// The data types accepted or produced by this port (stored for future hover display)
-    #[allow(dead_code)]
-    pub datatypes: Vec<String>,
-}
-
-impl PortInfo {
-    #[cfg(test)]
-    fn from_name(name: String) -> Self {
-        Self {
-            name,
-            datatypes: Vec::new(),
-        }
-    }
-}
-
-/// The kind of process a node represents, determined from resolved metadata.
-#[derive(Debug, Clone, Default)]
-enum NodeKind {
-    /// Function from a compiled library (`lib://` reference).
-    Library,
-    /// Function provided by the runtime context (`context://` reference).
-    Context,
-    /// A provided implementation (`.rs` or `.wasm` source).
-    ProvidedImplementation,
-    /// A nested flow (the default).
-    #[default]
-    Flow,
-}
-
 /// A positioned node derived from a [`ProcessReference`], ready for rendering.
+///
+/// Combines a `ProcessReference` (position, alias, source, initializations)
+/// with its resolved `Process` (ports, description, type) for rendering.
+/// Rebuilt every frame from `FlowDefinition` — not persisted.
 #[derive(Debug, Clone)]
 pub(crate) struct NodeLayout {
-    /// What kind of process this node represents.
-    kind: NodeKind,
-    /// Display name (alias) for this node
-    pub alias: String,
-    /// Source path of the process
-    pub(crate) source: String,
-    /// Optional description of what this process does
-    pub description: String,
-    /// X coordinate on the canvas
-    pub x: f32,
-    /// Y coordinate on the canvas
-    pub y: f32,
-    /// Width of the node rectangle
-    pub width: f32,
-    /// Height of the node rectangle
-    pub height: f32,
-    /// Input ports with names and type information
-    pub inputs: Vec<PortInfo>,
-    /// Output ports with names and type information
-    pub outputs: Vec<PortInfo>,
-    /// Initializer display strings keyed by port name (e.g., "start" → "1 once")
-    pub initializers: HashMap<String, String>,
+    pub(crate) process_ref: ProcessReference,
+    pub(crate) process: Option<Process>,
 }
+
+static EMPTY_IO: Vec<IO> = Vec::new();
 
 impl Default for NodeLayout {
     fn default() -> Self {
         Self {
-            kind: NodeKind::default(),
-            alias: String::new(),
-            source: String::new(),
-            description: String::new(),
-            x: 100.0,
-            y: 100.0,
-            width: 180.0,
-            height: 120.0,
-            inputs: Vec::new(),
-            outputs: Vec::new(),
-            initializers: HashMap::new(),
+            process_ref: ProcessReference {
+                alias: String::new(),
+                source: String::new(),
+                initializations: std::collections::BTreeMap::new(),
+                x: Some(100.0),
+                y: Some(100.0),
+                width: Some(180.0),
+                height: Some(120.0),
+            },
+            process: None,
         }
     }
 }
 
 impl NodeLayout {
-    /// Determine the fill color based on the resolved [`NodeKind`].
-    fn fill_color(&self) -> Color {
-        match self.kind {
-            NodeKind::Library => Color::from_rgb(0.3, 0.5, 0.9),
-            NodeKind::Context => Color::from_rgb(0.3, 0.75, 0.45),
-            NodeKind::ProvidedImplementation => Color::from_rgb(0.6, 0.3, 0.8),
-            NodeKind::Flow => Color::from_rgb(0.9, 0.6, 0.2),
+    pub(crate) fn alias(&self) -> &str {
+        if self.process_ref.alias.is_empty() {
+            &self.process_ref.source
+        } else {
+            &self.process_ref.alias
         }
     }
 
-    /// Whether this node's source can be opened (sub-flow or provided implementation).
-    pub(crate) fn is_openable(&self) -> bool {
-        matches!(self.kind, NodeKind::Flow | NodeKind::ProvidedImplementation)
+    pub(crate) fn source(&self) -> &str {
+        &self.process_ref.source
     }
 
-    /// Get the position of an output port (right edge of node)
+    pub(crate) fn description(&self) -> String {
+        match &self.process {
+            Some(Process::FunctionProcess(f)) => f.description.clone(),
+            Some(Process::FlowProcess(f)) => f.description.clone(),
+            None => String::new(),
+        }
+    }
+
+    pub(crate) fn x(&self) -> f32 {
+        self.process_ref.x.unwrap_or(100.0)
+    }
+
+    pub(crate) fn y(&self) -> f32 {
+        self.process_ref.y.unwrap_or(100.0)
+    }
+
+    pub(crate) fn width(&self) -> f32 {
+        self.process_ref.width.unwrap_or(DEFAULT_WIDTH)
+    }
+
+    pub(crate) fn height(&self) -> f32 {
+        self.process_ref.height.unwrap_or(DEFAULT_HEIGHT)
+    }
+
+    pub(crate) fn inputs(&self) -> &[IO] {
+        match &self.process {
+            Some(Process::FunctionProcess(f)) => &f.inputs,
+            Some(Process::FlowProcess(f)) => &f.inputs,
+            None => &EMPTY_IO,
+        }
+    }
+
+    pub(crate) fn outputs(&self) -> &[IO] {
+        match &self.process {
+            Some(Process::FunctionProcess(f)) => &f.outputs,
+            Some(Process::FlowProcess(f)) => &f.outputs,
+            None => &EMPTY_IO,
+        }
+    }
+
+    pub(crate) fn has_initializers(&self) -> bool {
+        !self.process_ref.initializations.is_empty()
+    }
+
+    pub(crate) fn max_initializer_display_len(&self) -> usize {
+        self.process_ref
+            .initializations
+            .values()
+            .map(|init| {
+                let s = match init {
+                    flowcore::model::input::InputInitializer::Once(v) => {
+                        format!("once: {}", format_value(v))
+                    }
+                    flowcore::model::input::InputInitializer::Always(v) => {
+                        format!("always: {}", format_value(v))
+                    }
+                };
+                s.len()
+            })
+            .max()
+            .unwrap_or(0)
+    }
+
+    pub(crate) fn initializer_display(&self, port_name: &str) -> Option<String> {
+        self.process_ref
+            .initializations
+            .get(port_name)
+            .map(|init| match init {
+                flowcore::model::input::InputInitializer::Once(v) => {
+                    format!("once: {}", format_value(v))
+                }
+                flowcore::model::input::InputInitializer::Always(v) => {
+                    format!("always: {}", format_value(v))
+                }
+            })
+    }
+
+    fn fill_color(&self) -> Color {
+        match &self.process {
+            Some(Process::FlowProcess(_)) => Color::from_rgb(0.9, 0.6, 0.2),
+            Some(Process::FunctionProcess(f)) => {
+                if f.get_lib_reference().is_some() {
+                    Color::from_rgb(0.3, 0.5, 0.9)
+                } else if f.get_context_reference().is_some() {
+                    Color::from_rgb(0.3, 0.75, 0.45)
+                } else {
+                    Color::from_rgb(0.6, 0.3, 0.8)
+                }
+            }
+            None => {
+                if self.source().starts_with("lib://") {
+                    Color::from_rgb(0.3, 0.5, 0.9)
+                } else if self.source().starts_with("context://") {
+                    Color::from_rgb(0.3, 0.75, 0.45)
+                } else {
+                    Color::from_rgb(0.9, 0.6, 0.2)
+                }
+            }
+        }
+    }
+
+    pub(crate) fn is_openable(&self) -> bool {
+        match &self.process {
+            Some(Process::FlowProcess(_)) => true,
+            Some(Process::FunctionProcess(f)) => {
+                f.get_lib_reference().is_none() && f.get_context_reference().is_none()
+            }
+            None => {
+                !self.source().starts_with("lib://") && !self.source().starts_with("context://")
+            }
+        }
+    }
+
     fn output_port_position(&self, port_index: usize) -> Point {
         Point::new(
-            self.x + self.width,
-            self.y + PORT_START_Y + port_index as f32 * PORT_SPACING,
+            self.x() + self.width(),
+            self.y() + PORT_START_Y + port_index as f32 * PORT_SPACING,
         )
     }
 
-    /// Get the position of an input port (left edge of node)
     fn input_port_position(&self, port_index: usize) -> Point {
         Point::new(
-            self.x,
-            self.y + PORT_START_Y + port_index as f32 * PORT_SPACING,
+            self.x(),
+            self.y() + PORT_START_Y + port_index as f32 * PORT_SPACING,
         )
     }
 
-    /// Return the 8 resize handle positions in world coordinates.
-    ///
-    /// Order: `TopLeft`, Top, `TopRight`, Left, Right, `BottomLeft`, Bottom, `BottomRight`.
     fn resize_handle_positions(&self) -> [(ResizeHandle, Point); 8] {
-        let mid_x = self.x + self.width / 2.0;
-        let mid_y = self.y + self.height / 2.0;
-        let right = self.x + self.width;
-        let bottom = self.y + self.height;
+        let mid_x = self.x() + self.width() / 2.0;
+        let mid_y = self.y() + self.height() / 2.0;
+        let right = self.x() + self.width();
+        let bottom = self.y() + self.height();
         [
-            (ResizeHandle::TopLeft, Point::new(self.x, self.y)),
-            (ResizeHandle::Top, Point::new(mid_x, self.y)),
-            (ResizeHandle::TopRight, Point::new(right, self.y)),
-            (ResizeHandle::Left, Point::new(self.x, mid_y)),
+            (ResizeHandle::TopLeft, Point::new(self.x(), self.y())),
+            (ResizeHandle::Top, Point::new(mid_x, self.y())),
+            (ResizeHandle::TopRight, Point::new(right, self.y())),
+            (ResizeHandle::Left, Point::new(self.x(), mid_y)),
             (ResizeHandle::Right, Point::new(right, mid_y)),
-            (ResizeHandle::BottomLeft, Point::new(self.x, bottom)),
+            (ResizeHandle::BottomLeft, Point::new(self.x(), bottom)),
             (ResizeHandle::Bottom, Point::new(mid_x, bottom)),
             (ResizeHandle::BottomRight, Point::new(right, bottom)),
         ]
+    }
+
+    fn is_in_source_text_zone(&self, point: Point) -> bool {
+        let text_center_x = self.x() + self.width() / 2.0;
+        let text_top_y = self.y() + 34.0;
+        let text_height = SOURCE_FONT_SIZE + 4.0;
+        let text_half_width = self.width() * 0.4;
+
+        point.x >= text_center_x - text_half_width
+            && point.x <= text_center_x + text_half_width
+            && point.y >= text_top_y
+            && point.y <= text_top_y + text_height
+    }
+
+    fn find_output_pos_inline(&self, port: &str) -> Point {
+        if port.is_empty() {
+            self.output_port_position(0)
+        } else {
+            let base = base_port_name(port);
+            let idx = self
+                .outputs()
+                .iter()
+                .position(|p| p.name() == base)
+                .unwrap_or(0);
+            self.output_port_position(idx)
+        }
+    }
+
+    fn find_input_pos_inline(&self, port: &str) -> Point {
+        if port.is_empty() {
+            self.input_port_position(0)
+        } else {
+            let base = base_port_name(port);
+            let idx = self
+                .inputs()
+                .iter()
+                .position(|p| p.name() == base)
+                .unwrap_or(0);
+            self.input_port_position(idx)
+        }
     }
 }
 
@@ -675,8 +770,6 @@ impl NodeLayout {
 pub(crate) fn build_render_nodes(
     flow_def: &flowcore::model::flow_definition::FlowDefinition,
 ) -> Vec<NodeLayout> {
-    use flowcore::model::process::Process;
-
     let topo_positions = compute_topological_layout(&flow_def.process_refs, &flow_def.connections);
 
     let mut nodes = Vec::with_capacity(flow_def.process_refs.len());
@@ -690,41 +783,15 @@ pub(crate) fn build_render_nodes(
 
         let resolved = flow_def.subprocesses.get(&alias);
 
-        let kind = resolved.map_or_else(
-            || {
-                // Fallback for unresolved: check source string
-                if pref.source.starts_with("lib://") {
-                    NodeKind::Library
-                } else if pref.source.starts_with("context://") {
-                    NodeKind::Context
-                } else {
-                    NodeKind::Flow
-                }
-            },
-            |proc| match proc {
-                Process::FunctionProcess(f) => {
-                    if f.get_lib_reference().is_some() {
-                        NodeKind::Library
-                    } else if f.get_context_reference().is_some() {
-                        NodeKind::Context
-                    } else {
-                        NodeKind::ProvidedImplementation
-                    }
-                }
-                Process::FlowProcess(_) => NodeKind::Flow,
-            },
-        );
-
-        let (inputs, outputs) = resolved
-            .map(|proc| match proc {
-                Process::FunctionProcess(f) => {
-                    crate::file_ops::extract_ports(&f.inputs, &f.outputs)
-                }
-                Process::FlowProcess(f) => crate::file_ops::extract_ports(&f.inputs, &f.outputs),
-            })
-            .unwrap_or_default();
-
-        let min_ports = inputs.len().max(outputs.len());
+        let input_count = resolved.map_or(0, |p| match p {
+            Process::FunctionProcess(f) => f.inputs.len(),
+            Process::FlowProcess(f) => f.inputs.len(),
+        });
+        let output_count = resolved.map_or(0, |p| match p {
+            Process::FunctionProcess(f) => f.outputs.len(),
+            Process::FlowProcess(f) => f.outputs.len(),
+        });
+        let min_ports = input_count.max(output_count);
         let min_height = PORT_START_Y + (min_ports as f32 + 1.0) * PORT_SPACING;
 
         let (default_x, default_y) = if let Some((tx, ty)) = topo_positions.get(&alias) {
@@ -737,43 +804,19 @@ pub(crate) fn build_render_nodes(
                 GRID_ORIGIN_Y + row as f32 * GRID_SPACING_Y,
             )
         };
-        let x = pref.x.unwrap_or(default_x);
-        let y = pref.y.unwrap_or(default_y);
-        let width = pref.width.unwrap_or(DEFAULT_WIDTH);
-        let height = pref.height.unwrap_or(DEFAULT_HEIGHT.max(min_height));
 
-        let mut initializers = HashMap::new();
-        for (port_name, init) in &pref.initializations {
-            let display = match init {
-                flowcore::model::input::InputInitializer::Once(v) => {
-                    format!("once: {}", format_value(v))
-                }
-                flowcore::model::input::InputInitializer::Always(v) => {
-                    format!("always: {}", format_value(v))
-                }
-            };
-            initializers.insert(port_name.clone(), display);
+        let mut process_ref = pref.clone();
+        if process_ref.alias.is_empty() {
+            process_ref.alias = alias;
         }
-
-        let description = resolved
-            .map(|proc| match proc {
-                Process::FunctionProcess(func) => func.description.clone(),
-                Process::FlowProcess(flow) => flow.description.clone(),
-            })
-            .unwrap_or_default();
+        process_ref.x = Some(pref.x.unwrap_or(default_x));
+        process_ref.y = Some(pref.y.unwrap_or(default_y));
+        process_ref.width = Some(pref.width.unwrap_or(DEFAULT_WIDTH));
+        process_ref.height = Some(pref.height.unwrap_or(DEFAULT_HEIGHT.max(min_height)));
 
         nodes.push(NodeLayout {
-            kind,
-            alias: alias.clone(),
-            source: pref.source.clone(),
-            description,
-            x,
-            y,
-            width,
-            height,
-            inputs,
-            outputs,
-            initializers,
+            process_ref,
+            process: resolved.cloned(),
         });
     }
 
@@ -940,9 +983,9 @@ pub(crate) struct FlowCanvasState {
     /// The geometry cache — cleared when the flow data changes
     cache: canvas::Cache,
     /// Current zoom level (1.0 = 100%)
-    pub zoom: f32,
+    pub(crate) zoom: f32,
     /// Scroll offset in world coordinates
-    pub scroll_offset: Point,
+    pub(crate) scroll_offset: Point,
 }
 
 impl Default for FlowCanvasState {
@@ -1027,28 +1070,22 @@ impl FlowCanvasState {
             (f32::MAX, f32::MAX, f32::MIN, f32::MIN)
         };
         for node in nodes {
-            let init_margin = if node.initializers.is_empty() {
-                0.0
+            let init_margin = if node.has_initializers() {
+                node.max_initializer_display_len() as f32 * 8.0
             } else {
-                let max_len = node
-                    .initializers
-                    .values()
-                    .map(String::len)
-                    .max()
-                    .unwrap_or(0);
-                max_len as f32 * 8.0
+                0.0
             };
-            if node.x - init_margin < min_x {
-                min_x = node.x - init_margin;
+            if node.x() - init_margin < min_x {
+                min_x = node.x() - init_margin;
             }
-            if node.y < min_y {
-                min_y = node.y;
+            if node.y() < min_y {
+                min_y = node.y();
             }
-            if node.x + node.width > max_x {
-                max_x = node.x + node.width;
+            if node.x() + node.width() > max_x {
+                max_x = node.x() + node.width();
             }
-            if node.y + node.height > max_y {
-                max_y = node.y + node.height;
+            if node.y() + node.height() > max_y {
+                max_y = node.y() + node.height();
             }
         }
 
@@ -1118,31 +1155,16 @@ struct FlowCanvas<'a> {
 /// Find the index of the first node whose bounding rectangle contains `point`.
 fn hit_test_node(nodes: &[NodeLayout], point: Point) -> Option<usize> {
     nodes.iter().enumerate().find_map(|(i, node)| {
-        if point.x >= node.x
-            && point.x <= node.x + node.width
-            && point.y >= node.y
-            && point.y <= node.y + node.height
+        if point.x >= node.x()
+            && point.x <= node.x() + node.width()
+            && point.y >= node.y()
+            && point.y <= node.y() + node.height()
         {
             Some(i)
         } else {
             None
         }
     })
-}
-
-/// Check whether `point` (world coords) is within the source text zone of a node.
-/// The source text zone is the area where the source path is displayed, centered
-/// horizontally at 34px below the node top.
-fn is_in_source_text_zone(node: &NodeLayout, point: Point) -> bool {
-    let text_center_x = node.x + node.width / 2.0;
-    let text_top_y = node.y + 34.0;
-    let text_height = SOURCE_FONT_SIZE + 4.0;
-    let text_half_width = node.width * 0.4;
-
-    point.x >= text_center_x - text_half_width
-        && point.x <= text_center_x + text_half_width
-        && point.y >= text_top_y
-        && point.y <= text_top_y + text_height
 }
 
 /// Check whether `point` (world coords) is on the open icon of an openable node.
@@ -1152,8 +1174,8 @@ fn hit_test_open_icon(nodes: &[NodeLayout], point: Point) -> Option<usize> {
         if !node.is_openable() {
             return None;
         }
-        let icon_x = node.x + node.width - 22.0;
-        let icon_y = node.y + 4.0;
+        let icon_x = node.x() + node.width() - 22.0;
+        let icon_y = node.y() + 4.0;
         if point.x >= icon_x
             && point.x <= icon_x + 24.0
             && point.y >= icon_y
@@ -1200,23 +1222,23 @@ fn hit_test_port(
 ) -> Option<(usize, String, bool)> {
     for (node_idx, node) in nodes.iter().enumerate() {
         // Check output ports (right side)
-        for (port_idx, port_info) in node.outputs.iter().enumerate() {
+        for (port_idx, port_info) in node.outputs().iter().enumerate() {
             let world_pt = node.output_port_position(port_idx);
             let screen_pt = transform_point(world_pt, zoom, offset);
             let dx = screen_pos.x - screen_pt.x;
             let dy = screen_pos.y - screen_pt.y;
             if dx * dx + dy * dy <= PORT_HIT_RADIUS * PORT_HIT_RADIUS {
-                return Some((node_idx, port_info.name.clone(), true));
+                return Some((node_idx, port_info.name().clone(), true));
             }
         }
         // Check input ports (left side)
-        for (port_idx, port_info) in node.inputs.iter().enumerate() {
+        for (port_idx, port_info) in node.inputs().iter().enumerate() {
             let world_pt = node.input_port_position(port_idx);
             let screen_pt = transform_point(world_pt, zoom, offset);
             let dx = screen_pos.x - screen_pt.x;
             let dy = screen_pos.y - screen_pt.y;
             if dx * dx + dy * dy <= PORT_HIT_RADIUS * PORT_HIT_RADIUS {
-                return Some((node_idx, port_info.name.clone(), false));
+                return Some((node_idx, port_info.name().clone(), false));
             }
         }
     }
@@ -1256,12 +1278,15 @@ fn compute_flow_io_positions(
         (150.0, 350.0, 100.0, 100.0 + default_h)
     } else {
         (
-            nodes.iter().map(|n| n.x).fold(f32::MAX, f32::min),
-            nodes.iter().map(|n| n.x + n.width).fold(f32::MIN, f32::max),
-            nodes.iter().map(|n| n.y).fold(f32::MAX, f32::min),
+            nodes.iter().map(|n| n.x()).fold(f32::MAX, f32::min),
             nodes
                 .iter()
-                .map(|n| n.y + n.height)
+                .map(|n| n.x() + n.width())
+                .fold(f32::MIN, f32::max),
+            nodes.iter().map(|n| n.y()).fold(f32::MAX, f32::min),
+            nodes
+                .iter()
+                .map(|n| n.y() + n.height())
                 .fold(f32::MIN, f32::max),
         )
     };
@@ -1292,30 +1317,6 @@ fn base_port_name(port: &str) -> &str {
         port.rsplit_once('/').map_or(port, |(base, _)| base)
     } else {
         port
-    }
-}
-
-fn find_node_output_pos_inline(node: &NodeLayout, port: &str) -> Point {
-    if port.is_empty() {
-        node.output_port_position(0)
-    } else {
-        let base = base_port_name(port);
-        let idx = node
-            .outputs
-            .iter()
-            .position(|p| p.name == base)
-            .unwrap_or(0);
-        node.output_port_position(idx)
-    }
-}
-
-fn find_node_input_pos_inline(node: &NodeLayout, port: &str) -> Point {
-    if port.is_empty() {
-        node.input_port_position(0)
-    } else {
-        let base = base_port_name(port);
-        let idx = node.inputs.iter().position(|p| p.name == base).unwrap_or(0);
-        node.input_port_position(idx)
     }
 }
 
@@ -1365,8 +1366,7 @@ fn hit_test_connection(
     offset: Point,
 ) -> Option<usize> {
     use std::collections::HashMap;
-    let node_map: HashMap<&str, &NodeLayout> =
-        nodes.iter().map(|n| (n.alias.as_str(), n)).collect();
+    let node_map: HashMap<&str, &NodeLayout> = nodes.iter().map(|n| (n.alias(), n)).collect();
 
     // Compute flow I/O port positions (same layout as draw_flow_io_ports)
     let flow_io_positions = compute_flow_io_positions(nodes, flow_inputs, flow_outputs);
@@ -1385,7 +1385,7 @@ fn hit_test_connection(
             } else {
                 node_map
                     .get(from_node_str.as_str())
-                    .map(|n| find_node_output_pos_inline(n, &from_port_str))
+                    .map(|n| n.find_output_pos_inline(&from_port_str))
             };
 
             let to_point = if to_node_str == "output" {
@@ -1394,7 +1394,7 @@ fn hit_test_connection(
             } else {
                 node_map
                     .get(to_node_str.as_str())
-                    .map(|n| find_node_input_pos_inline(n, &to_port_str))
+                    .map(|n| n.find_input_pos_inline(&to_port_str))
             };
 
             if let (Some(from_point), Some(to_point)) = (from_point, to_point) {
@@ -1410,10 +1410,10 @@ fn hit_test_connection(
                         continue;
                     };
                     let (box_right, box_bottom, box_left, mid_x) = loopback_waypoints(
-                        from_n.x,
-                        from_n.y,
-                        from_n.width,
-                        from_n.height,
+                        from_n.x(),
+                        from_n.y(),
+                        from_n.width(),
+                        from_n.height(),
                         zoom,
                         offset,
                     );
@@ -1580,10 +1580,10 @@ impl canvas::Program<CanvasMessage> for FlowCanvas<'_> {
                                 handle,
                                 start_x: world_pos.x,
                                 start_y: world_pos.y,
-                                start_node_x: sel_node.x,
-                                start_node_y: sel_node.y,
-                                start_width: sel_node.width,
-                                start_height: sel_node.height,
+                                start_node_x: sel_node.x(),
+                                start_node_y: sel_node.y(),
+                                start_width: sel_node.width(),
+                                start_height: sel_node.height(),
                             });
                             return Some(canvas::Action::request_redraw().and_capture());
                         }
@@ -1621,21 +1621,21 @@ impl canvas::Program<CanvasMessage> for FlowCanvas<'_> {
                     if let Some(node) = self.nodes.get(node_idx) {
                         let port_world_pos = if is_output {
                             let port_idx = node
-                                .outputs
+                                .outputs()
                                 .iter()
-                                .position(|p| p.name == port_name)
+                                .position(|p| p.name() == &port_name)
                                 .unwrap_or(0);
                             node.output_port_position(port_idx)
                         } else {
                             let port_idx = node
-                                .inputs
+                                .inputs()
                                 .iter()
-                                .position(|p| p.name == port_name)
+                                .position(|p| p.name() == &port_name)
                                 .unwrap_or(0);
                             node.input_port_position(port_idx)
                         };
                         state.connecting = Some(ConnectingState {
-                            from_node: node.alias.clone(),
+                            from_node: node.alias().to_string(),
                             from_port: port_name,
                             from_output: is_output,
                             start_pos: port_world_pos,
@@ -1659,10 +1659,10 @@ impl canvas::Program<CanvasMessage> for FlowCanvas<'_> {
                     state.selected_connection = None;
                     state.dragging = Some(DragState {
                         node_index: idx,
-                        offset_x: world_pos.x - node.x,
-                        offset_y: world_pos.y - node.y,
-                        start_x: node.x,
-                        start_y: node.y,
+                        offset_x: world_pos.x - node.x(),
+                        offset_y: world_pos.y - node.y(),
+                        start_x: node.x(),
+                        start_y: node.y(),
                     });
                     Some(canvas::Action::publish(CanvasMessage::Selected(Some(idx))).and_capture())
                 } else {
@@ -1794,23 +1794,35 @@ impl canvas::Program<CanvasMessage> for FlowCanvas<'_> {
                     {
                         if let Some(node) = self.nodes.get(node_idx) {
                             let ports = if is_output {
-                                &node.outputs
+                                node.outputs()
                             } else {
-                                &node.inputs
+                                node.inputs()
                             };
-                            let type_text = ports.iter().find(|p| p.name == port_name).map_or_else(
-                                || port_name.clone(),
-                                |p| {
-                                    if p.datatypes.is_empty() {
-                                        format!("{port_name}: (any)")
-                                    } else {
-                                        format!("{port_name}: {}", p.datatypes.join(", "))
-                                    }
-                                },
-                            );
+                            let type_text =
+                                ports.iter().find(|p| p.name() == &port_name).map_or_else(
+                                    || port_name.clone(),
+                                    |p| {
+                                        if p.datatypes().is_empty() {
+                                            format!("{port_name}: (any)")
+                                        } else {
+                                            format!(
+                                                "{port_name}: {}",
+                                                p.datatypes()
+                                                    .iter()
+                                                    .map(ToString::to_string)
+                                                    .collect::<Vec<_>>()
+                                                    .join(", ")
+                                            )
+                                        }
+                                    },
+                                );
                             state.hover_node = None;
                             return Some(canvas::Action::publish(CanvasMessage::HoverChanged(
-                                Some((type_text, cursor_position.x, cursor_position.y - 20.0)),
+                                Some(crate::window_state::Tooltip {
+                                    text: type_text,
+                                    x: cursor_position.x,
+                                    y: cursor_position.y - 20.0,
+                                }),
                             )));
                         }
                     }
@@ -1822,14 +1834,22 @@ impl canvas::Program<CanvasMessage> for FlowCanvas<'_> {
                         let tooltip_data =
                             new_hover.and_then(|idx| self.nodes.get(idx)).and_then(|n| {
                                 let bottom_center = transform_point(
-                                    Point::new(n.x + n.width / 2.0, n.y + n.height),
+                                    Point::new(n.x() + n.width() / 2.0, n.y() + n.height()),
                                     zoom,
                                     offset,
                                 );
-                                if is_in_source_text_zone(n, world_pos) {
-                                    Some((n.source.clone(), bottom_center.x, bottom_center.y))
-                                } else if !n.description.is_empty() {
-                                    Some((n.description.clone(), bottom_center.x, bottom_center.y))
+                                if n.is_in_source_text_zone(world_pos) {
+                                    Some(crate::window_state::Tooltip {
+                                        text: n.source().to_string(),
+                                        x: bottom_center.x,
+                                        y: bottom_center.y,
+                                    })
+                                } else if !n.description().is_empty() {
+                                    Some(crate::window_state::Tooltip {
+                                        text: n.description(),
+                                        x: bottom_center.x,
+                                        y: bottom_center.y,
+                                    })
                                 } else {
                                     None
                                 }
@@ -1853,8 +1873,10 @@ impl canvas::Program<CanvasMessage> for FlowCanvas<'_> {
                         if connecting.from_output != target_is_output {
                             if let Some(target_node) = self.nodes.get(target_idx) {
                                 // Check type compatibility before creating connection
-                                let source_node =
-                                    self.nodes.iter().find(|n| n.alias == connecting.from_node);
+                                let source_node = self
+                                    .nodes
+                                    .iter()
+                                    .find(|n| n.alias() == connecting.from_node);
                                 let types_ok = check_port_type_compatibility(
                                     source_node,
                                     &connecting.from_port,
@@ -1870,12 +1892,12 @@ impl canvas::Program<CanvasMessage> for FlowCanvas<'_> {
                                             (
                                                 connecting.from_node,
                                                 connecting.from_port,
-                                                target_node.alias.clone(),
+                                                target_node.alias().to_string(),
                                                 target_port,
                                             )
                                         } else {
                                             (
-                                                target_node.alias.clone(),
+                                                target_node.alias().to_string(),
                                                 target_port,
                                                 connecting.from_node,
                                                 connecting.from_port,
@@ -1907,10 +1929,10 @@ impl canvas::Program<CanvasMessage> for FlowCanvas<'_> {
                                 resize.start_node_y,
                                 resize.start_width,
                                 resize.start_height,
-                                node.x,
-                                node.y,
-                                node.width,
-                                node.height,
+                                node.x(),
+                                node.y(),
+                                node.width(),
+                                node.height(),
                             ))
                             .and_capture(),
                         );
@@ -1924,8 +1946,8 @@ impl canvas::Program<CanvasMessage> for FlowCanvas<'_> {
                                 drag.node_index,
                                 drag.start_x,
                                 drag.start_y,
-                                node.x,
-                                node.y,
+                                node.x(),
+                                node.y(),
                             ))
                             .and_capture(),
                         );
@@ -2027,8 +2049,8 @@ impl canvas::Program<CanvasMessage> for FlowCanvas<'_> {
             // Draw selected node highlight and resize handles
             if let Some(selected_idx) = state.selected_node {
                 if let Some(node) = self.nodes.get(selected_idx) {
-                    let screen_pos = transform_point(Point::new(node.x, node.y), zoom, offset);
-                    let screen_size = Size::new(node.width * zoom, node.height * zoom);
+                    let screen_pos = transform_point(Point::new(node.x(), node.y()), zoom, offset);
+                    let screen_size = Size::new(node.width() * zoom, node.height() * zoom);
                     let selection_color = Color::from_rgb(1.0, 0.85, 0.0);
                     let highlight = Path::new(|builder| {
                         rounded_rect(builder, screen_pos, screen_size, CORNER_RADIUS * zoom);
@@ -2098,16 +2120,16 @@ impl canvas::Program<CanvasMessage> for FlowCanvas<'_> {
                         if let Some(target_node) = self.nodes.get(target_idx) {
                             let port_world = if target_is_output {
                                 let pidx = target_node
-                                    .outputs
+                                    .outputs()
                                     .iter()
-                                    .position(|p| p.name == target_port)
+                                    .position(|p| p.name() == &target_port)
                                     .unwrap_or(0);
                                 target_node.output_port_position(pidx)
                             } else {
                                 let pidx = target_node
-                                    .inputs
+                                    .inputs()
                                     .iter()
-                                    .position(|p| p.name == target_port)
+                                    .position(|p| p.name() == &target_port)
                                     .unwrap_or(0);
                                 target_node.input_port_position(pidx)
                             };
@@ -2197,8 +2219,7 @@ fn draw_edges(
     selected: Option<usize>,
 ) {
     // Build a lookup from alias to node
-    let node_map: HashMap<&str, &NodeLayout> =
-        nodes.iter().map(|n| (n.alias.as_str(), n)).collect();
+    let node_map: HashMap<&str, &NodeLayout> = nodes.iter().map(|n| (n.alias(), n)).collect();
 
     // Draw selected connection last so it renders on top of crossing connections
     let draw_order: Vec<usize> = (0..connections.len())
@@ -2223,9 +2244,9 @@ fn draw_edges(
                 } else {
                     let base = base_port_name(&from_port_str);
                     let port_idx = from
-                        .outputs
+                        .outputs()
                         .iter()
-                        .position(|p| p.name == base)
+                        .position(|p| p.name() == base)
                         .unwrap_or(0);
                     from.output_port_position(port_idx)
                 };
@@ -2234,13 +2255,17 @@ fn draw_edges(
                     to.input_port_position(0)
                 } else {
                     let base = base_port_name(&to_port_str);
-                    let port_idx = to.inputs.iter().position(|p| p.name == base).unwrap_or(0);
+                    let port_idx = to
+                        .inputs()
+                        .iter()
+                        .position(|p| p.name() == base)
+                        .unwrap_or(0);
                     to.input_port_position(port_idx)
                 };
 
                 let is_self_connection = from_node_str == to_node_str;
                 let node_bounds = if is_self_connection {
-                    Some((from.x, from.y, from.width, from.height))
+                    Some((from.x(), from.y(), from.width(), from.height()))
                 } else {
                     None
                 };
@@ -2262,10 +2287,10 @@ fn draw_edges(
                     let to_s = transform_point(to_point, zoom, offset);
                     let mid = if is_self_connection {
                         let (_, box_bottom, box_left, mid_x) = loopback_waypoints(
-                            from.x,
-                            from.y,
-                            from.width,
-                            from.height,
+                            from.x(),
+                            from.y(),
+                            from.width(),
+                            from.height(),
                             zoom,
                             offset,
                         );
@@ -2421,12 +2446,15 @@ fn draw_flow_io_ports(
         (150.0, 350.0, 100.0, 100.0 + default_h)
     } else {
         (
-            nodes.iter().map(|n| n.x).fold(f32::MAX, f32::min),
-            nodes.iter().map(|n| n.x + n.width).fold(f32::MIN, f32::max),
-            nodes.iter().map(|n| n.y).fold(f32::MAX, f32::min),
+            nodes.iter().map(|n| n.x()).fold(f32::MAX, f32::min),
             nodes
                 .iter()
-                .map(|n| n.y + n.height)
+                .map(|n| n.x() + n.width())
+                .fold(f32::MIN, f32::max),
+            nodes.iter().map(|n| n.y()).fold(f32::MAX, f32::min),
+            nodes
+                .iter()
+                .map(|n| n.y() + n.height())
                 .fold(f32::MIN, f32::max),
         )
     };
@@ -2567,22 +2595,26 @@ fn draw_flow_io_ports(
 }
 
 fn find_node_input_pos(nodes: &[NodeLayout], alias: &str, port: &str) -> Option<Point> {
-    let node = nodes.iter().find(|n| n.alias == alias)?;
+    let node = nodes.iter().find(|n| n.alias() == alias)?;
     let base = base_port_name(port);
-    let port_idx = node.inputs.iter().position(|p| p.name == base).unwrap_or(0);
+    let port_idx = node
+        .inputs()
+        .iter()
+        .position(|p| p.name() == base)
+        .unwrap_or(0);
     Some(node.input_port_position(port_idx))
 }
 
 fn find_node_output_pos(nodes: &[NodeLayout], alias: &str, port: &str) -> Option<Point> {
-    let node = nodes.iter().find(|n| n.alias == alias)?;
+    let node = nodes.iter().find(|n| n.alias() == alias)?;
     if port.is_empty() {
         Some(node.output_port_position(0))
     } else {
         let base = base_port_name(port);
         let port_idx = node
-            .outputs
+            .outputs()
             .iter()
-            .position(|p| p.name == base)
+            .position(|p| p.name() == base)
             .unwrap_or(0);
         Some(node.output_port_position(port_idx))
     }
@@ -2616,8 +2648,8 @@ fn draw_flow_io_bezier(
 
 /// Draw a single node as a rounded rectangle with title, source, and ports.
 fn draw_node(frame: &mut Frame, node: &NodeLayout, zoom: f32, offset: Point) {
-    let top_left = transform_point(Point::new(node.x, node.y), zoom, offset);
-    let size = Size::new(node.width * zoom, node.height * zoom);
+    let top_left = transform_point(Point::new(node.x(), node.y()), zoom, offset);
+    let size = Size::new(node.width() * zoom, node.height() * zoom);
     let fill_color = node.fill_color();
 
     // Draw filled rounded rectangle
@@ -2631,12 +2663,12 @@ fn draw_node(frame: &mut Frame, node: &NodeLayout, zoom: f32, offset: Point) {
 
     // Draw alias title centered near top of node
     let title_pos = transform_point(
-        Point::new(node.x + node.width / 2.0, node.y + 12.0),
+        Point::new(node.x() + node.width() / 2.0, node.y() + 12.0),
         zoom,
         offset,
     );
     let title = CanvasText {
-        content: node.alias.clone(),
+        content: node.alias().to_string(),
         position: title_pos,
         color: Color::WHITE,
         size: (TITLE_FONT_SIZE * zoom).into(),
@@ -2647,9 +2679,9 @@ fn draw_node(frame: &mut Frame, node: &NodeLayout, zoom: f32, offset: Point) {
     frame.fill_text(title);
 
     // Draw source label below title (truncated with ellipsis)
-    let source_display = truncate_source(&node.source, MAX_SOURCE_CHARS);
+    let source_display = truncate_source(node.source(), MAX_SOURCE_CHARS);
     let source_pos = transform_point(
-        Point::new(node.x + node.width / 2.0, node.y + 34.0),
+        Point::new(node.x() + node.width() / 2.0, node.y() + 34.0),
         zoom,
         offset,
     );
@@ -2667,8 +2699,8 @@ fn draw_node(frame: &mut Frame, node: &NodeLayout, zoom: f32, offset: Point) {
     // Draw open icon for sub-flows and provided implementations
     if node.is_openable() {
         let icon_size = 26.0 * zoom;
-        let icon_x = node.x + node.width - 22.0;
-        let icon_y = node.y + 4.0;
+        let icon_x = node.x() + node.width() - 22.0;
+        let icon_y = node.y() + 4.0;
         let icon_pos = transform_point(Point::new(icon_x, icon_y), zoom, offset);
 
         let icon_text = CanvasText {
@@ -2682,27 +2714,27 @@ fn draw_node(frame: &mut Frame, node: &NodeLayout, zoom: f32, offset: Point) {
     }
 
     // Draw input ports on the left edge
-    for (i, input_port) in node.inputs.iter().enumerate() {
+    for (i, input_port) in node.inputs().iter().enumerate() {
         let port_pos = node.input_port_position(i);
-        let init_label = node.initializers.get(&input_port.name).map(String::as_str);
+        let init_label = node.initializer_display(input_port.name());
         draw_port(
             frame,
             port_pos,
-            &input_port.name,
+            input_port.name(),
             true,
-            init_label,
+            init_label.as_deref(),
             zoom,
             offset,
         );
     }
 
     // Draw output ports on the right edge
-    for (i, output_port) in node.outputs.iter().enumerate() {
+    for (i, output_port) in node.outputs().iter().enumerate() {
         let port_pos = node.output_port_position(i);
         draw_port(
             frame,
             port_pos,
-            &output_port.name,
+            output_port.name(),
             false,
             None,
             zoom,
@@ -2875,44 +2907,41 @@ fn check_port_type_compatibility(
 ) -> bool {
     let source_types = source_node.and_then(|n| {
         let ports = if source_is_output {
-            &n.outputs
+            n.outputs()
         } else {
-            &n.inputs
+            n.inputs()
         };
-        ports.iter().find(|p| p.name == source_port)
+        ports.iter().find(|p| p.name() == source_port)
     });
 
     let target_types = {
         let ports = if target_is_output {
-            &target_node.outputs
+            target_node.outputs()
         } else {
-            &target_node.inputs
+            target_node.inputs()
         };
-        ports.iter().find(|p| p.name == target_port)
+        ports.iter().find(|p| p.name() == target_port)
     };
 
     match (source_types, target_types) {
         (Some(src), Some(tgt)) => {
             log::info!(
                 "Type check: src port '{}' types {:?} → tgt port '{}' types {:?}",
-                src.name,
-                src.datatypes,
-                tgt.name,
-                tgt.datatypes
+                src.name(),
+                src.datatypes(),
+                tgt.name(),
+                tgt.datatypes()
             );
-            // If either has no type info (empty list or only empty strings),
-            // allow the connection — untyped ports accept anything
-            let src_untyped =
-                src.datatypes.is_empty() || src.datatypes.iter().all(String::is_empty);
-            let tgt_untyped =
-                tgt.datatypes.is_empty() || tgt.datatypes.iter().all(String::is_empty);
+            let src_untyped = src.datatypes().is_empty()
+                || src.datatypes().iter().all(|d| d.to_string().is_empty());
+            let tgt_untyped = tgt.datatypes().is_empty()
+                || tgt.datatypes().iter().all(|d| d.to_string().is_empty());
             if src_untyped || tgt_untyped {
                 return true;
             }
-            // Check for at least one matching type
-            src.datatypes
+            src.datatypes()
                 .iter()
-                .any(|st| tgt.datatypes.iter().any(|tt| st == tt))
+                .any(|st| tgt.datatypes().iter().any(|tt| st == tt))
         }
         // Unknown port or no type info — allow
         (src, tgt) => {
@@ -2929,235 +2958,273 @@ fn check_port_type_compatibility(
 /// Build the complete canvas area for a flow-editor window, including the
 /// interactive canvas, zoom controls, tooltip overlay, initializer editor
 /// dialog, and right-click context menu.
-pub(crate) fn view_canvas_area(win: &WindowState, window_id: window::Id) -> Element<'_, Message> {
-    let canvas = win
-        .canvas_state
-        .view(
-            &win.flow_definition,
-            &win.flow_definition.connections,
-            &win.flow_definition.name,
-            &win.flow_definition.inputs,
-            &win.flow_definition.outputs,
-            !win.is_root,
-            win.auto_fit_pending,
-            win.auto_fit_enabled,
-        )
-        .map(move |msg| Message::WindowCanvas(window_id, msg));
+impl WindowState {
+    pub(crate) fn view_canvas_area(&self, window_id: window::Id) -> Element<'_, Message> {
+        let canvas = self
+            .canvas_state
+            .view(
+                &self.flow_definition,
+                &self.flow_definition.connections,
+                &self.flow_definition.name,
+                &self.flow_definition.inputs,
+                &self.flow_definition.outputs,
+                !self.is_root,
+                self.auto_fit_pending,
+                self.auto_fit_enabled,
+            )
+            .map(move |msg| Message::WindowCanvas(window_id, msg));
 
-    let zoom_btn = |_theme: &Theme, status: button::Status| -> button::Style {
-        let is_hovered = matches!(status, button::Status::Hovered);
-        button::Style {
-            background: Some(iced::Background::Color(Color::from_rgb(0.25, 0.25, 0.30))),
-            text_color: Color::WHITE,
-            border: iced::Border {
-                color: if is_hovered {
-                    Color::WHITE
-                } else {
-                    Color::from_rgb(0.4, 0.4, 0.45)
-                },
-                width: 2.0,
-                radius: 8.0.into(),
-            },
-            ..Default::default()
-        }
-    };
-    let zoom_btn_active = |_theme: &Theme, status: button::Status| -> button::Style {
-        let is_hovered = matches!(status, button::Status::Hovered);
-        button::Style {
-            background: Some(iced::Background::Color(Color::from_rgb(0.3, 0.35, 0.5))),
-            text_color: Color::WHITE,
-            border: iced::Border {
-                color: if is_hovered {
-                    Color::WHITE
-                } else {
-                    Color::from_rgb(0.4, 0.5, 0.7)
-                },
-                width: 2.0,
-                radius: 8.0.into(),
-            },
-            ..Default::default()
-        }
-    };
-    let btn_width = 40;
-    let zoom_controls = container(
-        Column::new()
-            .spacing(4)
-            .push(
-                button(Text::new("+").center())
-                    .on_press(Message::View(window_id, ViewMessage::ZoomIn))
-                    .width(btn_width)
-                    .style(zoom_btn),
-            )
-            .push(
-                button(Text::new("\u{2212}").center())
-                    .on_press(Message::View(window_id, ViewMessage::ZoomOut))
-                    .width(btn_width)
-                    .style(zoom_btn),
-            )
-            .push(
-                button(Text::new("Fit").center())
-                    .on_press(Message::View(window_id, ViewMessage::ToggleAutoFit))
-                    .width(btn_width)
-                    .style(if win.auto_fit_enabled {
-                        zoom_btn_active
+        let zoom_btn = |_theme: &Theme, status: button::Status| -> button::Style {
+            let is_hovered = matches!(status, button::Status::Hovered);
+            button::Style {
+                background: Some(iced::Background::Color(Color::from_rgb(0.25, 0.25, 0.30))),
+                text_color: Color::WHITE,
+                border: iced::Border {
+                    color: if is_hovered {
+                        Color::WHITE
                     } else {
-                        zoom_btn
-                    }),
-            ),
-    )
-    .align_right(Fill)
-    .align_bottom(Fill)
-    .padding(10);
-
-    let mut canvas_stack: Vec<Element<'_, Message>> = vec![canvas, zoom_controls.into()];
-
-    if let Some((ref tip_text, tx, ty)) = win.tooltip {
-        let tooltip_widget = container(
-            container(Text::new(tip_text.clone()).size(20).color(Color::WHITE))
-                .padding(8)
-                .style(|_theme: &Theme| container::Style {
-                    background: Some(iced::Background::Color(Color::from_rgb(0.12, 0.12, 0.12))),
-                    border: iced::Border {
-                        color: Color::WHITE,
-                        width: 1.0,
-                        radius: 6.0.into(),
+                        Color::from_rgb(0.4, 0.4, 0.45)
                     },
-                    ..Default::default()
-                }),
-        )
-        .padding(iced::Padding {
-            top: ty + 6.0,
-            right: 0.0,
-            bottom: 0.0,
-            left: (tx - 80.0).max(0.0),
-        });
-        canvas_stack.push(tooltip_widget.into());
-    }
-
-    // Initializer editor dialog overlay
-    if let Some(ref editor) = win.initializer_editor {
-        let port_label = if let Some(pref) = win.flow_definition.process_refs.get(editor.node_index)
-        {
-            let alias = if pref.alias.is_empty() {
-                derive_short_name(&pref.source)
-            } else {
-                pref.alias.clone()
-            };
-            format!("{}/{}", alias, editor.port_name)
-        } else {
-            editor.port_name.clone()
+                    width: 2.0,
+                    radius: 8.0.into(),
+                },
+                ..Default::default()
+            }
         };
-
-        let init_types = vec!["none", "once", "always"];
-        let selected: Option<&str> = init_types.iter().find(|&&t| t == editor.init_type).copied();
-
-        let mut dialog_col = Column::new()
-            .spacing(8)
-            .padding(12)
-            .push(Text::new(format!("Initializer: {port_label}")).size(14))
-            .push(
-                pick_list(init_types, selected, move |s: &str| {
-                    Message::InitializerTypeChanged(window_id, s.to_string())
-                })
-                .text_size(12),
-            );
-
-        if editor.init_type != "none" {
-            dialog_col = dialog_col.push(
-                text_input("JSON value (e.g. 42, \"hello\", true)", &editor.value_text)
-                    .on_input(move |v| Message::InitializerValueChanged(window_id, v))
-                    .size(12)
-                    .padding(6),
-            );
-        }
-
-        dialog_col = dialog_col.push(
-            Row::new()
-                .spacing(8)
+        let zoom_btn_active = |_theme: &Theme, status: button::Status| -> button::Style {
+            let is_hovered = matches!(status, button::Status::Hovered);
+            button::Style {
+                background: Some(iced::Background::Color(Color::from_rgb(0.3, 0.35, 0.5))),
+                text_color: Color::WHITE,
+                border: iced::Border {
+                    color: if is_hovered {
+                        Color::WHITE
+                    } else {
+                        Color::from_rgb(0.4, 0.5, 0.7)
+                    },
+                    width: 2.0,
+                    radius: 8.0.into(),
+                },
+                ..Default::default()
+            }
+        };
+        let btn_width = 40;
+        let zoom_controls = container(
+            Column::new()
+                .spacing(4)
                 .push(
-                    button(Text::new("Apply").size(12).center())
-                        .on_press(Message::InitializerApply(window_id))
-                        .style(button::primary)
-                        .padding(6),
+                    button(Text::new("+").center())
+                        .on_press(Message::View(window_id, ViewMessage::ZoomIn))
+                        .width(btn_width)
+                        .style(zoom_btn),
                 )
                 .push(
-                    button(Text::new("Cancel").size(12).center())
-                        .on_press(Message::InitializerCancel(window_id))
-                        .style(button::secondary)
-                        .padding(6),
+                    button(Text::new("\u{2212}").center())
+                        .on_press(Message::View(window_id, ViewMessage::ZoomOut))
+                        .width(btn_width)
+                        .style(zoom_btn),
+                )
+                .push(
+                    button(Text::new("Fit").center())
+                        .on_press(Message::View(window_id, ViewMessage::ToggleAutoFit))
+                        .width(btn_width)
+                        .style(if self.auto_fit_enabled {
+                            zoom_btn_active
+                        } else {
+                            zoom_btn
+                        }),
                 ),
-        );
+        )
+        .align_right(Fill)
+        .align_bottom(Fill)
+        .padding(10);
 
-        let dialog =
-            container(
-                container(dialog_col)
-                    .width(280)
+        let mut canvas_stack: Vec<Element<'_, Message>> = vec![canvas, zoom_controls.into()];
+
+        if let Some(ref tip) = self.tooltip {
+            let tooltip_widget = container(
+                container(Text::new(tip.text.clone()).size(20).color(Color::WHITE))
+                    .padding(8)
                     .style(|_theme: &Theme| container::Style {
                         background: Some(iced::Background::Color(Color::from_rgb(
-                            0.15, 0.15, 0.15,
+                            0.12, 0.12, 0.12,
                         ))),
                         border: iced::Border {
-                            color: Color::from_rgb(0.4, 0.4, 0.4),
+                            color: Color::WHITE,
                             width: 1.0,
-                            radius: 8.0.into(),
+                            radius: 6.0.into(),
                         },
                         ..Default::default()
                     }),
             )
+            .padding(iced::Padding {
+                top: tip.y + 26.0,
+                right: 0.0,
+                bottom: 0.0,
+                left: (tip.x - 80.0).max(0.0),
+            });
+            canvas_stack.push(tooltip_widget.into());
+        }
+
+        // Initializer editor dialog overlay
+        if let Some(ref editor) = self.initializer_editor {
+            let port_label =
+                if let Some(pref) = self.flow_definition.process_refs.get(editor.node_index) {
+                    let alias = if pref.alias.is_empty() {
+                        derive_short_name(&pref.source)
+                    } else {
+                        pref.alias.clone()
+                    };
+                    format!("{}/{}", alias, editor.port_name)
+                } else {
+                    editor.port_name.clone()
+                };
+
+            let init_types = vec!["none", "once", "always"];
+            let selected: Option<&str> =
+                init_types.iter().find(|&&t| t == editor.init_type).copied();
+
+            let mut dialog_col = Column::new()
+                .spacing(8)
+                .padding(12)
+                .push(Text::new(format!("Initializer: {port_label}")).size(14))
+                .push(
+                    pick_list(init_types, selected, move |s: &str| {
+                        Message::InitializerTypeChanged(window_id, s.to_string())
+                    })
+                    .text_size(12),
+                );
+
+            if editor.init_type != "none" {
+                dialog_col = dialog_col.push(
+                    text_input("JSON value (e.g. 42, \"hello\", true)", &editor.value_text)
+                        .on_input(move |v| Message::InitializerValueChanged(window_id, v))
+                        .size(12)
+                        .padding(6),
+                );
+            }
+
+            dialog_col = dialog_col.push(
+                Row::new()
+                    .spacing(8)
+                    .push(
+                        button(Text::new("Apply").size(12).center())
+                            .on_press(Message::InitializerApply(window_id))
+                            .style(button::primary)
+                            .padding(6),
+                    )
+                    .push(
+                        button(Text::new("Cancel").size(12).center())
+                            .on_press(Message::InitializerCancel(window_id))
+                            .style(button::secondary)
+                            .padding(6),
+                    ),
+            );
+
+            let dialog = container(container(dialog_col).width(280).style(|_theme: &Theme| {
+                container::Style {
+                    background: Some(iced::Background::Color(Color::from_rgb(0.15, 0.15, 0.15))),
+                    border: iced::Border {
+                        color: Color::from_rgb(0.4, 0.4, 0.4),
+                        width: 1.0,
+                        radius: 8.0.into(),
+                    },
+                    ..Default::default()
+                }
+            }))
             .center(Fill);
 
-        canvas_stack.push(dialog.into());
+            canvas_stack.push(dialog.into());
+        }
+
+        // Context menu overlay (right-click on empty canvas)
+        if let Some(menu_pos) = self.context_menu {
+            let menu = container(
+                Column::new()
+                    .spacing(2)
+                    .push(
+                        button(Text::new("+ New Sub-flow").size(13))
+                            .on_press(Message::NewSubFlow(window_id))
+                            .style(button::text)
+                            .padding([6, 16])
+                            .width(Fill),
+                    )
+                    .push(
+                        button(Text::new("+ New Function").size(13))
+                            .on_press(Message::NewFunction(window_id))
+                            .style(button::text)
+                            .padding([6, 16])
+                            .width(Fill),
+                    ),
+            )
+            .style(|_theme: &Theme| container::Style {
+                background: Some(iced::Background::Color(Color::from_rgb(0.18, 0.18, 0.22))),
+                border: iced::Border {
+                    color: Color::from_rgb(0.4, 0.4, 0.4),
+                    width: 1.0,
+                    radius: 6.0.into(),
+                },
+                ..Default::default()
+            })
+            .width(160)
+            .padding(4);
+
+            let positioned = container(menu).padding(iced::Padding {
+                top: menu_pos.y,
+                left: menu_pos.x,
+                right: 0.0,
+                bottom: 0.0,
+            });
+            canvas_stack.push(positioned.into());
+        }
+
+        stack(canvas_stack).into()
     }
-
-    // Context menu overlay (right-click on empty canvas)
-    if let Some((cx, cy)) = win.context_menu {
-        let menu = container(
-            Column::new()
-                .spacing(2)
-                .push(
-                    button(Text::new("+ New Sub-flow").size(13))
-                        .on_press(Message::NewSubFlow(window_id))
-                        .style(button::text)
-                        .padding([6, 16])
-                        .width(Fill),
-                )
-                .push(
-                    button(Text::new("+ New Function").size(13))
-                        .on_press(Message::NewFunction(window_id))
-                        .style(button::text)
-                        .padding([6, 16])
-                        .width(Fill),
-                ),
-        )
-        .style(|_theme: &Theme| container::Style {
-            background: Some(iced::Background::Color(Color::from_rgb(0.18, 0.18, 0.22))),
-            border: iced::Border {
-                color: Color::from_rgb(0.4, 0.4, 0.4),
-                width: 1.0,
-                radius: 6.0.into(),
-            },
-            ..Default::default()
-        })
-        .width(160)
-        .padding(4);
-
-        let positioned = container(menu).padding(iced::Padding {
-            top: cy,
-            left: cx,
-            right: 0.0,
-            bottom: 0.0,
-        });
-        canvas_stack.push(positioned.into());
-    }
-
-    stack(canvas_stack).into()
-}
+} // impl WindowState (view)
 
 #[cfg(test)]
 #[allow(clippy::indexing_slicing)]
 mod test {
     use super::*;
+    use flowcore::model::flow_definition::FlowDefinition;
+    use flowcore::model::function_definition::FunctionDefinition;
+    use flowcore::model::route::Route;
     use iced::Point;
+    use url::Url;
+
+    fn test_node(alias: &str, source: &str, process: Option<Process>) -> NodeLayout {
+        NodeLayout {
+            process_ref: ProcessReference {
+                alias: alias.into(),
+                source: source.into(),
+                initializations: std::collections::BTreeMap::new(),
+                x: Some(100.0),
+                y: Some(100.0),
+                width: Some(180.0),
+                height: Some(120.0),
+            },
+            process,
+        }
+    }
+
+    fn lib_function() -> FunctionDefinition {
+        let mut f = FunctionDefinition::default();
+        f.lib_reference = Some(Url::parse("lib://test").expect("valid url"));
+        f
+    }
+
+    fn context_function() -> FunctionDefinition {
+        let mut f = FunctionDefinition::default();
+        f.context_reference = Some(Url::parse("context://stdio/stdout").expect("valid url"));
+        f
+    }
+
+    fn function_with_io(inputs: Vec<IO>, outputs: Vec<IO>) -> FunctionDefinition {
+        let mut f = FunctionDefinition::default();
+        f.inputs = inputs;
+        f.outputs = outputs;
+        f
+    }
 
     #[test]
     fn split_route_with_port() {
@@ -3279,37 +3346,25 @@ mod test {
 
     #[test]
     fn hit_test_node_inside() {
-        let nodes = vec![NodeLayout {
-            alias: "test".into(),
-            source: "lib://test".into(),
-            ..Default::default()
-        }];
+        let nodes = vec![test_node("test", "lib://test", None)];
         assert_eq!(hit_test_node(&nodes, Point::new(150.0, 150.0)), Some(0));
     }
 
     #[test]
     fn hit_test_node_outside() {
-        let nodes = vec![NodeLayout {
-            alias: "test".into(),
-            source: "lib://test".into(),
-            ..Default::default()
-        }];
+        let nodes = vec![test_node("test", "lib://test", None)];
         assert_eq!(hit_test_node(&nodes, Point::new(50.0, 50.0)), None);
     }
 
     #[test]
     fn hit_test_source_text_zone() {
-        let node = NodeLayout {
-            alias: "test".into(),
-            source: "lib://flowstdlib/math/add".into(),
-            ..Default::default()
-        };
-        // Source text is centered at (node.x + width/2, node.y + 34.0)
+        let node = test_node("test", "lib://flowstdlib/math/add", None);
+        // Source text is centered at (node.x() + width/2, node.y() + 34.0)
         let source_center = Point::new(190.0, 134.0);
-        assert!(is_in_source_text_zone(&node, source_center));
+        assert!(node.is_in_source_text_zone(source_center));
         // Point clearly outside source text zone but inside node
         let node_body = Point::new(110.0, 200.0);
-        assert!(!is_in_source_text_zone(&node, node_body));
+        assert!(!node.is_in_source_text_zone(node_body));
     }
 
     #[test]
@@ -3323,16 +3378,14 @@ mod test {
 
     #[test]
     fn node_layout_port_positions() {
-        let node = NodeLayout {
-            alias: "test".into(),
-            source: "lib://test".into(),
-            inputs: vec![
-                PortInfo::from_name("i1".into()),
-                PortInfo::from_name("i2".into()),
+        let f = function_with_io(
+            vec![
+                IO::new_named(vec![], Route::default(), "i1"),
+                IO::new_named(vec![], Route::default(), "i2"),
             ],
-            outputs: vec![PortInfo::from_name("out".into())],
-            ..Default::default()
-        };
+            vec![IO::new_named(vec![], Route::default(), "out")],
+        );
+        let node = test_node("test", "lib://test", Some(Process::FunctionProcess(f)));
         let ip0 = node.input_port_position(0);
         let ip1 = node.input_port_position(1);
         let op0 = node.output_port_position(0);
@@ -3440,11 +3493,7 @@ mod test {
 
     #[test]
     fn hit_test_node_miss() {
-        let node = NodeLayout {
-            alias: "n".into(),
-            source: "lib://test".into(),
-            ..Default::default()
-        };
+        let node = test_node("n", "lib://test", None);
         assert_eq!(
             hit_test_node(std::slice::from_ref(&node), Point::new(150.0, 150.0)),
             Some(0)
@@ -3454,17 +3503,16 @@ mod test {
 
     #[test]
     fn hit_test_open_icon_only_openable() {
-        let lib_node = NodeLayout {
-            kind: NodeKind::Library,
-            alias: "n".into(),
-            source: "lib://test".into(),
-            ..Default::default()
-        };
-        let local_node = NodeLayout {
-            kind: NodeKind::Flow,
-            source: "subflow".into(),
-            ..lib_node.clone()
-        };
+        let lib_node = test_node(
+            "n",
+            "lib://test",
+            Some(Process::FunctionProcess(lib_function())),
+        );
+        let local_node = test_node(
+            "n",
+            "subflow",
+            Some(Process::FlowProcess(FlowDefinition::default())),
+        );
         // Library nodes are not openable
         assert_eq!(
             hit_test_open_icon(&[lib_node], Point::new(278.0, 104.0)),
@@ -3476,41 +3524,33 @@ mod test {
 
     #[test]
     fn is_openable_lib() {
-        let node = NodeLayout {
-            kind: NodeKind::Library,
-            alias: "n".into(),
-            ..Default::default()
-        };
+        let node = test_node("n", "", Some(Process::FunctionProcess(lib_function())));
         assert!(!node.is_openable());
     }
 
     #[test]
     fn is_openable_context() {
-        let node = NodeLayout {
-            kind: NodeKind::Context,
-            alias: "n".into(),
-            ..Default::default()
-        };
+        let node = test_node("n", "", Some(Process::FunctionProcess(context_function())));
         assert!(!node.is_openable());
     }
 
     #[test]
     fn is_openable_local() {
-        let node = NodeLayout {
-            kind: NodeKind::Flow,
-            alias: "n".into(),
-            ..Default::default()
-        };
+        let node = test_node(
+            "n",
+            "",
+            Some(Process::FlowProcess(FlowDefinition::default())),
+        );
         assert!(node.is_openable());
     }
 
     #[test]
     fn is_openable_provided_impl() {
-        let node = NodeLayout {
-            kind: NodeKind::ProvidedImplementation,
-            alias: "n".into(),
-            ..Default::default()
-        };
+        let node = test_node(
+            "n",
+            "",
+            Some(Process::FunctionProcess(FunctionDefinition::default())),
+        );
         assert!(node.is_openable());
     }
 
@@ -3530,26 +3570,26 @@ mod test {
     #[test]
     fn check_type_compat_same_type() {
         let nodes = [
-            NodeLayout {
-                alias: "a".into(),
-                x: 0.0,
-                y: 0.0,
-                outputs: vec![PortInfo {
-                    name: "out".into(),
-                    datatypes: vec!["number".into()],
-                }],
-                ..Default::default()
-            },
-            NodeLayout {
-                alias: "b".into(),
-                x: 0.0,
-                y: 0.0,
-                inputs: vec![PortInfo {
-                    name: "in".into(),
-                    datatypes: vec!["number".into()],
-                }],
-                ..Default::default()
-            },
+            test_node(
+                "a",
+                "",
+                Some(Process::FunctionProcess(function_with_io(
+                    vec![],
+                    vec![IO::new_named(
+                        vec!["number".into()],
+                        Route::default(),
+                        "out",
+                    )],
+                ))),
+            ),
+            test_node(
+                "b",
+                "",
+                Some(Process::FunctionProcess(function_with_io(
+                    vec![IO::new_named(vec!["number".into()], Route::default(), "in")],
+                    vec![],
+                ))),
+            ),
         ];
         assert!(check_port_type_compatibility(
             Some(&nodes[0]),
@@ -3564,26 +3604,26 @@ mod test {
     #[test]
     fn check_type_compat_different_type() {
         let nodes = [
-            NodeLayout {
-                alias: "a".into(),
-                x: 0.0,
-                y: 0.0,
-                outputs: vec![PortInfo {
-                    name: "out".into(),
-                    datatypes: vec!["number".into()],
-                }],
-                ..Default::default()
-            },
-            NodeLayout {
-                alias: "b".into(),
-                x: 0.0,
-                y: 0.0,
-                inputs: vec![PortInfo {
-                    name: "in".into(),
-                    datatypes: vec!["string".into()],
-                }],
-                ..Default::default()
-            },
+            test_node(
+                "a",
+                "",
+                Some(Process::FunctionProcess(function_with_io(
+                    vec![],
+                    vec![IO::new_named(
+                        vec!["number".into()],
+                        Route::default(),
+                        "out",
+                    )],
+                ))),
+            ),
+            test_node(
+                "b",
+                "",
+                Some(Process::FunctionProcess(function_with_io(
+                    vec![IO::new_named(vec!["string".into()], Route::default(), "in")],
+                    vec![],
+                ))),
+            ),
         ];
         assert!(!check_port_type_compatibility(
             Some(&nodes[0]),
@@ -3598,26 +3638,22 @@ mod test {
     #[test]
     fn check_type_compat_untyped_allows_any() {
         let nodes = [
-            NodeLayout {
-                alias: "a".into(),
-                x: 0.0,
-                y: 0.0,
-                outputs: vec![PortInfo {
-                    name: "out".into(),
-                    datatypes: vec![],
-                }],
-                ..Default::default()
-            },
-            NodeLayout {
-                alias: "b".into(),
-                x: 0.0,
-                y: 0.0,
-                inputs: vec![PortInfo {
-                    name: "in".into(),
-                    datatypes: vec!["string".into()],
-                }],
-                ..Default::default()
-            },
+            test_node(
+                "a",
+                "",
+                Some(Process::FunctionProcess(function_with_io(
+                    vec![],
+                    vec![IO::new_named(vec![], Route::default(), "out")],
+                ))),
+            ),
+            test_node(
+                "b",
+                "",
+                Some(Process::FunctionProcess(function_with_io(
+                    vec![IO::new_named(vec!["string".into()], Route::default(), "in")],
+                    vec![],
+                ))),
+            ),
         ];
         assert!(check_port_type_compatibility(
             Some(&nodes[0]),
@@ -3631,11 +3667,7 @@ mod test {
 
     #[test]
     fn compute_flow_io_positions_with_nodes() {
-        use flowcore::model::route::Route;
-        let nodes = vec![NodeLayout {
-            alias: "n".into(),
-            ..Default::default()
-        }];
+        let nodes = vec![test_node("n", "", None)];
         let inputs = vec![IO::new_named(vec![], Route::default(), "data")];
         let outputs = vec![IO::new_named(vec![], Route::default(), "result")];
         let (inp, outp) = compute_flow_io_positions(&nodes, &inputs, &outputs);
@@ -3649,7 +3681,6 @@ mod test {
 
     #[test]
     fn compute_flow_io_positions_empty_nodes() {
-        use flowcore::model::route::Route;
         let inputs = vec![IO::new_named(vec![], Route::default(), "in")];
         let outputs = vec![IO::new_named(vec![], Route::default(), "out")];
         let (inp, outp) = compute_flow_io_positions(&[], &inputs, &outputs);
@@ -3666,38 +3697,34 @@ mod test {
 
     #[test]
     fn find_node_output_inline_with_subroute() {
-        let node = NodeLayout {
-            alias: "get".into(),
-            outputs: vec![
-                PortInfo {
-                    name: "string".into(),
-                    datatypes: vec![],
-                },
-                PortInfo {
-                    name: "json".into(),
-                    datatypes: vec![],
-                },
+        let f = function_with_io(
+            vec![],
+            vec![
+                IO::new_named(vec![], Route::default(), "string"),
+                IO::new_named(vec![], Route::default(), "json"),
             ],
-            ..Default::default()
-        };
-        let string_pos = find_node_output_pos_inline(&node, "string/1");
-        let json_pos = find_node_output_pos_inline(&node, "json/2");
+        );
+        let node = test_node("get", "", Some(Process::FunctionProcess(f)));
+        let string_pos = node.find_output_pos_inline("string/1");
+        let json_pos = node.find_output_pos_inline("json/2");
         // string is output 0, json is output 1 — different y positions
         assert!((json_pos.y - string_pos.y).abs() > 1.0);
     }
 
     #[test]
-    fn fill_color_by_kind() {
-        let make = |kind: NodeKind| NodeLayout {
-            kind,
-            alias: "n".into(),
-            ..Default::default()
-        };
-        let lib = make(NodeKind::Library);
-        let ctx = make(NodeKind::Context);
-        let prov = make(NodeKind::ProvidedImplementation);
-        let flow = make(NodeKind::Flow);
-        // Different kinds should produce different colors
+    fn fill_color_by_process() {
+        let lib = test_node("n", "", Some(Process::FunctionProcess(lib_function())));
+        let ctx = test_node("n", "", Some(Process::FunctionProcess(context_function())));
+        let prov = test_node(
+            "n",
+            "",
+            Some(Process::FunctionProcess(FunctionDefinition::default())),
+        );
+        let flow = test_node(
+            "n",
+            "",
+            Some(Process::FlowProcess(FlowDefinition::default())),
+        );
         assert_ne!(lib.fill_color(), ctx.fill_color());
         assert_ne!(lib.fill_color(), prov.fill_color());
         assert_ne!(lib.fill_color(), flow.fill_color());
