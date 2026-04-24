@@ -77,6 +77,7 @@ impl WindowState {
                         new_x,
                         new_y,
                     });
+                    self.trigger_auto_fit_if_enabled();
                 }
             }
             #[allow(clippy::similar_names)]
@@ -109,11 +110,15 @@ impl WindowState {
             }
             CanvasMessage::AutoFitViewport(viewport) => {
                 if self.auto_fit_enabled || self.auto_fit_pending {
-                    let has_flow_io = !self.flow_definition.inputs.is_empty()
-                        || !self.flow_definition.outputs.is_empty();
                     let render_nodes = build_render_nodes(&self.flow_definition);
-                    self.canvas_state
-                        .auto_fit(&render_nodes, has_flow_io, viewport);
+                    let is_subflow = !self.is_root;
+                    self.canvas_state.auto_fit(
+                        &render_nodes,
+                        &self.flow_definition.inputs,
+                        &self.flow_definition.outputs,
+                        is_subflow,
+                        viewport,
+                    );
                     self.auto_fit_pending = false;
                 }
             }
@@ -143,6 +148,13 @@ impl WindowState {
             }
         }
         CanvasAction::None
+    }
+
+    pub(crate) fn trigger_auto_fit_if_enabled(&mut self) {
+        if self.auto_fit_enabled {
+            self.auto_fit_pending = true;
+            self.canvas_state.request_redraw();
+        }
     }
 
     fn handle_selected(&mut self, idx: Option<usize>) {
@@ -195,6 +207,7 @@ impl WindowState {
                 new_w,
                 new_h,
             });
+            self.trigger_auto_fit_if_enabled();
         }
     }
 
@@ -232,9 +245,7 @@ impl WindowState {
             let nc = self.flow_definition.process_refs.len();
             let ec = self.flow_definition.connections.len();
             self.status = format!("Node deleted - {nc} nodes, {ec} connections");
-            if self.auto_fit_enabled {
-                self.auto_fit_pending = true;
-            }
+            self.trigger_auto_fit_if_enabled();
         }
     }
 
@@ -266,6 +277,7 @@ impl WindowState {
         self.status = format!(
             "Connection created: {from_node}/{from_port} -> {to_node}/{to_port} - {nc} nodes, {ec} connections"
         );
+        self.trigger_auto_fit_if_enabled();
     }
 
     fn handle_connection_selected(&mut self, idx: Option<usize>) {
@@ -304,6 +316,7 @@ impl WindowState {
             let nc = self.flow_definition.process_refs.len();
             let ec = self.flow_definition.connections.len();
             self.status = format!("Connection deleted - {nc} nodes, {ec} connections");
+            self.trigger_auto_fit_if_enabled();
         }
     }
 
@@ -372,8 +385,8 @@ const MIN_ZOOM: f32 = 0.1;
 const MAX_ZOOM: f32 = 5.0;
 /// Zoom factor applied per step (zoom-in multiplies, zoom-out divides)
 const ZOOM_STEP: f32 = 1.1;
-/// Padding in world units used when auto-fitting nodes into the viewport
-const AUTO_FIT_PADDING: f32 = 50.0;
+/// Padding in world units around canvas content for auto-fit
+const CANVAS_PADDING: f32 = 20.0;
 /// Scroll speed multiplier for panning with the scroll wheel (line-based)
 const SCROLL_SPEED: f32 = 20.0;
 /// Minimum allowed node width when resizing
@@ -1092,7 +1105,15 @@ impl FlowCanvasState {
     /// Compute zoom and offset so that all nodes fit within the given viewport with padding.
     ///
     /// If `nodes` is empty, resets to default zoom and offset.
-    pub(crate) fn auto_fit(&mut self, nodes: &[NodeLayout], has_flow_io: bool, viewport: Size) {
+    pub(crate) fn auto_fit(
+        &mut self,
+        nodes: &[NodeLayout],
+        flow_inputs: &[IO],
+        flow_outputs: &[IO],
+        is_subflow: bool,
+        viewport: Size,
+    ) {
+        let has_flow_io = is_subflow && (!flow_inputs.is_empty() || !flow_outputs.is_empty());
         if nodes.is_empty() && !has_flow_io {
             self.zoom = 1.0;
             self.scroll_offset = Point::new(0.0, 0.0);
@@ -1100,36 +1121,11 @@ impl FlowCanvasState {
             return;
         }
 
-        // Extra margin when flow I/O bounding box is drawn (padding + port labels)
-        let flow_io_margin = if has_flow_io { 200.0 } else { 0.0 };
+        let (min_x, min_y, max_x, max_y) =
+            content_extents(nodes, flow_inputs, flow_outputs, has_flow_io);
 
-        let (mut min_x, mut min_y, mut max_x, mut max_y) = if nodes.is_empty() {
-            (150.0, 50.0, 350.0, 450.0)
-        } else {
-            (f32::MAX, f32::MAX, f32::MIN, f32::MIN)
-        };
-        for node in nodes {
-            let init_margin = if node.has_initializers() {
-                node.max_initializer_display_len() as f32 * 8.0
-            } else {
-                0.0
-            };
-            if node.x() - init_margin < min_x {
-                min_x = node.x() - init_margin;
-            }
-            if node.y() < min_y {
-                min_y = node.y();
-            }
-            if node.x() + node.width() > max_x {
-                max_x = node.x() + node.width();
-            }
-            if node.y() + node.height() > max_y {
-                max_y = node.y() + node.height();
-            }
-        }
-
-        let content_width = max_x - min_x + AUTO_FIT_PADDING * 2.0 + flow_io_margin * 2.0;
-        let content_height = max_y - min_y + AUTO_FIT_PADDING * 2.0 + flow_io_margin;
+        let content_width = max_x - min_x + CANVAS_PADDING * 2.0;
+        let content_height = max_y - min_y + CANVAS_PADDING * 2.0;
 
         // Avoid division by zero
         if content_width <= 0.0 || content_height <= 0.0 {
@@ -1156,6 +1152,52 @@ impl FlowCanvasState {
             viewport_center_y - content_center_y,
         );
         self.cache.clear();
+    }
+}
+
+fn content_extents(
+    nodes: &[NodeLayout],
+    flow_inputs: &[IO],
+    flow_outputs: &[IO],
+    has_flow_io: bool,
+) -> (f32, f32, f32, f32) {
+    if has_flow_io {
+        let (box_x, box_y, box_w, box_h, _, _) =
+            flow_io_bounding_box(nodes, flow_inputs, flow_outputs);
+        let max_input_label = flow_inputs
+            .iter()
+            .map(|io| io.name().len())
+            .max()
+            .unwrap_or(0);
+        let max_output_label = flow_outputs
+            .iter()
+            .map(|io| io.name().len())
+            .max()
+            .unwrap_or(0);
+        let label_margin = max_input_label.max(max_output_label) as f32 * PORT_FONT_SIZE + 20.0;
+        (
+            box_x - label_margin,
+            box_y,
+            box_x + box_w + label_margin,
+            box_y + box_h,
+        )
+    } else {
+        let mut min_x = f32::MAX;
+        let mut min_y = f32::MAX;
+        let mut max_x = f32::MIN;
+        let mut max_y = f32::MIN;
+        for node in nodes {
+            let init_margin = if node.has_initializers() {
+                node.max_initializer_display_len() as f32 * 8.0
+            } else {
+                0.0
+            };
+            min_x = min_x.min(node.x() - init_margin);
+            min_y = min_y.min(node.y());
+            max_x = max_x.max(node.x() + node.width());
+            max_y = max_y.max(node.y() + node.height());
+        }
+        (min_x, min_y, max_x, max_y)
     }
 }
 
@@ -3370,6 +3412,7 @@ impl WindowState {
 #[allow(clippy::indexing_slicing)]
 mod test {
     use super::*;
+    use flowcore::model::datatype::DataType;
     use flowcore::model::flow_definition::FlowDefinition;
     use flowcore::model::function_definition::FunctionDefinition;
     use flowcore::model::route::Route;
@@ -3915,5 +3958,70 @@ mod test {
         assert_ne!(ctx.fill_color(), prov.fill_color());
         assert_ne!(ctx.fill_color(), flow.fill_color());
         assert_ne!(prov.fill_color(), flow.fill_color());
+    }
+
+    #[test]
+    fn auto_fit_empty_resets() {
+        let mut state = FlowCanvasState::default();
+        state.auto_fit(&[], &[], &[], false, Size::new(800.0, 600.0));
+        assert!((state.zoom - 1.0).abs() < 0.01);
+        assert!((state.scroll_offset.x).abs() < 0.01);
+    }
+
+    #[test]
+    fn auto_fit_single_node() {
+        let mut state = FlowCanvasState::default();
+        let node = test_node("n", "", None);
+        state.auto_fit(&[node], &[], &[], false, Size::new(800.0, 600.0));
+        assert!(state.zoom > 0.0);
+        assert!(state.zoom <= MAX_ZOOM);
+    }
+
+    #[test]
+    fn auto_fit_with_flow_io() {
+        let mut state = FlowCanvasState::default();
+        let node = test_node("n", "", None);
+        let input = IO::new_named(vec![DataType::from("string")], Route::default(), "in0");
+        let output = IO::new_named(vec![DataType::from("string")], Route::default(), "out0");
+        state.auto_fit(&[node], &[input], &[output], true, Size::new(800.0, 600.0));
+        assert!(state.zoom > 0.0);
+    }
+
+    #[test]
+    fn content_extents_nodes_only() {
+        let node = test_node("n", "", None);
+        let (min_x, min_y, max_x, max_y) = content_extents(&[node], &[], &[], false);
+        assert!(min_x <= 100.0);
+        assert!(min_y <= 100.0);
+        assert!(max_x >= 280.0);
+        assert!(max_y >= 220.0);
+    }
+
+    #[test]
+    fn content_extents_with_flow_io() {
+        let node = test_node("n", "", None);
+        let input = IO::new_named(vec![DataType::from("string")], Route::default(), "input0");
+        let (min_x, _, max_x, _) = content_extents(&[node], &[input], &[], true);
+        assert!(max_x - min_x > 280.0);
+    }
+
+    #[test]
+    fn trigger_auto_fit_when_enabled() {
+        let mut win = WindowState {
+            auto_fit_enabled: true,
+            ..Default::default()
+        };
+        win.trigger_auto_fit_if_enabled();
+        assert!(win.auto_fit_pending);
+    }
+
+    #[test]
+    fn trigger_auto_fit_when_disabled() {
+        let mut win = WindowState {
+            auto_fit_enabled: false,
+            ..Default::default()
+        };
+        win.trigger_auto_fit_if_enabled();
+        assert!(!win.auto_fit_pending);
     }
 }
