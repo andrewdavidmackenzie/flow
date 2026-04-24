@@ -50,26 +50,7 @@ impl WindowState {
     /// operations (e.g. opening a sub-flow in a new editor window).
     pub(crate) fn handle_canvas_message(&mut self, msg: CanvasMessage) -> CanvasAction {
         match msg {
-            CanvasMessage::Selected(idx) => {
-                self.selected_node = idx;
-                self.context_menu = None;
-                if self.selected_connection.is_some() {
-                    self.selected_connection = None;
-                    self.canvas_state.request_redraw();
-                }
-                if let Some(i) = idx {
-                    if let Some(pref) = self.flow_definition.process_refs.get(i) {
-                        let alias = if pref.alias.is_empty() {
-                            derive_short_name(&pref.source)
-                        } else {
-                            pref.alias.clone()
-                        };
-                        self.status = format!("Selected: {alias}");
-                    }
-                } else {
-                    self.status = String::from("Ready");
-                }
-            }
+            CanvasMessage::Selected(idx) => self.handle_selected(idx),
             CanvasMessage::Moved(idx, x, y) => {
                 if let Some(pref) = self.flow_definition.process_refs.get_mut(idx) {
                     pref.x = Some(x);
@@ -110,127 +91,19 @@ impl WindowState {
                 new_w,
                 new_h,
             ) => {
-                if (old_x - new_x).abs() > 0.5
-                    || (old_y - new_y).abs() > 0.5
-                    || (old_w - new_w).abs() > 0.5
-                    || (old_h - new_h).abs() > 0.5
-                {
-                    self.history.record(EditAction::ResizeNode {
-                        index: idx,
-                        old_x,
-                        old_y,
-                        old_w,
-                        old_h,
-                        new_x,
-                        new_y,
-                        new_w,
-                        new_h,
-                    });
-                }
+                self.handle_resize_completed(
+                    idx, old_x, old_y, old_w, old_h, new_x, new_y, new_w, new_h,
+                );
             }
-            CanvasMessage::Deleted(idx) => {
-                if idx < self.flow_definition.process_refs.len() {
-                    let Some(pref) = self.flow_definition.process_refs.get(idx).cloned() else {
-                        return CanvasAction::None;
-                    };
-                    let alias = if pref.alias.is_empty() {
-                        derive_short_name(&pref.source)
-                    } else {
-                        pref.alias.clone()
-                    };
-                    let removed_connections: Vec<Connection> = self
-                        .flow_definition
-                        .connections
-                        .iter()
-                        .filter(|c| connection_references_node(c, &alias))
-                        .cloned()
-                        .collect();
-                    let removed_pref = self.flow_definition.process_refs.remove(idx);
-                    let removed_subprocess = self.flow_definition.subprocesses.remove(&alias);
-                    self.flow_definition
-                        .connections
-                        .retain(|c| !connection_references_node(c, &alias));
-                    self.history.record(EditAction::DeleteNode {
-                        index: idx,
-                        process_ref: removed_pref,
-                        subprocess: removed_subprocess.map(|p| (alias, p)),
-                        removed_connections,
-                    });
-                    self.selected_node = None;
-                    self.selected_connection = None;
-                    self.canvas_state.request_redraw();
-                    let nc = self.flow_definition.process_refs.len();
-                    let ec = self.flow_definition.connections.len();
-                    self.status = format!("Node deleted - {nc} nodes, {ec} connections");
-                    if self.auto_fit_enabled {
-                        self.auto_fit_pending = true;
-                    }
-                }
-            }
+            CanvasMessage::Deleted(idx) => self.handle_deleted(idx),
             CanvasMessage::ConnectionCreated {
                 from_node,
                 from_port,
                 to_node,
                 to_port,
-            } => {
-                let from_route = if from_port.is_empty() {
-                    from_node.clone()
-                } else {
-                    format!("{from_node}/{from_port}")
-                };
-                let to_route = if to_port.is_empty() {
-                    to_node.clone()
-                } else {
-                    format!("{to_node}/{to_port}")
-                };
-                let connection = Connection::new(from_route, to_route);
-                self.history.record(EditAction::CreateConnection {
-                    connection: connection.clone(),
-                });
-                self.flow_definition.connections.push(connection);
-                self.canvas_state.request_redraw();
-                let nc = self.flow_definition.process_refs.len();
-                let ec = self.flow_definition.connections.len();
-                self.status = format!(
-                "Connection created: {from_node}/{from_port} -> {to_node}/{to_port} - {nc} nodes, {ec} connections"
-            );
-            }
-            CanvasMessage::ConnectionSelected(idx) => {
-                self.selected_connection = idx;
-                self.selected_node = None;
-                self.canvas_state.request_redraw();
-                if let Some(i) = idx {
-                    if let Some(conn) = self.flow_definition.connections.get(i) {
-                        let (from_node, from_port) = split_route(conn.from().as_ref());
-                        let to_str = conn
-                            .to()
-                            .first()
-                            .map_or_else(String::new, ToString::to_string);
-                        let (to_node, to_port) = split_route(&to_str);
-                        self.status = format!(
-                            "Connection: {} -> {}",
-                            file_ops::format_endpoint(&from_node, &from_port),
-                            file_ops::format_endpoint(&to_node, &to_port),
-                        );
-                    }
-                } else {
-                    self.status = String::from("Ready");
-                }
-            }
-            CanvasMessage::ConnectionDeleted(idx) => {
-                if idx < self.flow_definition.connections.len() {
-                    let connection = self.flow_definition.connections.remove(idx);
-                    self.history.record(EditAction::DeleteConnection {
-                        index: idx,
-                        connection,
-                    });
-                    self.selected_connection = None;
-                    self.canvas_state.request_redraw();
-                    let nc = self.flow_definition.process_refs.len();
-                    let ec = self.flow_definition.connections.len();
-                    self.status = format!("Connection deleted - {nc} nodes, {ec} connections");
-                }
-            }
+            } => self.handle_connection_created(&from_node, &from_port, &to_node, &to_port),
+            CanvasMessage::ConnectionSelected(idx) => self.handle_connection_selected(idx),
+            CanvasMessage::ConnectionDeleted(idx) => self.handle_connection_deleted(idx),
             CanvasMessage::HoverChanged(data) => {
                 self.tooltip = data;
             }
@@ -245,14 +118,14 @@ impl WindowState {
                 }
             }
             CanvasMessage::Pan(dx, dy) => {
-                self.auto_fit_enabled = false; // Manual pan disables auto-fit
+                self.auto_fit_enabled = false;
                 self.auto_fit_pending = false;
                 self.canvas_state.scroll_offset.x += dx;
                 self.canvas_state.scroll_offset.y += dy;
                 self.canvas_state.request_redraw();
             }
             CanvasMessage::ZoomBy(factor) => {
-                self.auto_fit_enabled = false; // Manual zoom disables auto-fit
+                self.auto_fit_enabled = false;
                 self.auto_fit_pending = false;
                 self.canvas_state.zoom = (self.canvas_state.zoom * factor).clamp(0.1, 5.0);
                 self.canvas_state.request_redraw();
@@ -260,32 +133,7 @@ impl WindowState {
                 self.status = format!("Zoom: {pct}%");
             }
             CanvasMessage::InitializerEdit(node_idx, port_name) => {
-                // Look up current initializer from the model (flow definition)
-                let (init_type, value_text) = self
-                    .flow_definition
-                    .process_refs
-                    .get(node_idx)
-                    .and_then(|pr| pr.initializations.get(&port_name))
-                    .map_or_else(
-                        || ("none".to_string(), String::new()),
-                        |init| match init {
-                            InputInitializer::Once(v) => (
-                                "once".to_string(),
-                                serde_json::to_string(v).unwrap_or_default(),
-                            ),
-                            InputInitializer::Always(v) => (
-                                "always".to_string(),
-                                serde_json::to_string(v).unwrap_or_default(),
-                            ),
-                        },
-                    );
-
-                self.initializer_editor = Some(InitializerEditor {
-                    node_index: node_idx,
-                    port_name,
-                    init_type,
-                    value_text,
-                });
+                self.handle_initializer_edit(node_idx, port_name);
             }
             CanvasMessage::OpenNode(idx) => {
                 return CanvasAction::OpenNode(idx);
@@ -295,6 +143,195 @@ impl WindowState {
             }
         }
         CanvasAction::None
+    }
+
+    fn handle_selected(&mut self, idx: Option<usize>) {
+        self.selected_node = idx;
+        self.context_menu = None;
+        if self.selected_connection.is_some() {
+            self.selected_connection = None;
+            self.canvas_state.request_redraw();
+        }
+        if let Some(i) = idx {
+            if let Some(pref) = self.flow_definition.process_refs.get(i) {
+                let alias = if pref.alias.is_empty() {
+                    derive_short_name(&pref.source)
+                } else {
+                    pref.alias.clone()
+                };
+                self.status = format!("Selected: {alias}");
+            }
+        } else {
+            self.status = String::from("Ready");
+        }
+    }
+
+    #[allow(clippy::similar_names, clippy::too_many_arguments)]
+    fn handle_resize_completed(
+        &mut self,
+        idx: usize,
+        old_x: f32,
+        old_y: f32,
+        old_w: f32,
+        old_h: f32,
+        new_x: f32,
+        new_y: f32,
+        new_w: f32,
+        new_h: f32,
+    ) {
+        if (old_x - new_x).abs() > 0.5
+            || (old_y - new_y).abs() > 0.5
+            || (old_w - new_w).abs() > 0.5
+            || (old_h - new_h).abs() > 0.5
+        {
+            self.history.record(EditAction::ResizeNode {
+                index: idx,
+                old_x,
+                old_y,
+                old_w,
+                old_h,
+                new_x,
+                new_y,
+                new_w,
+                new_h,
+            });
+        }
+    }
+
+    fn handle_deleted(&mut self, idx: usize) {
+        if idx < self.flow_definition.process_refs.len() {
+            let Some(pref) = self.flow_definition.process_refs.get(idx).cloned() else {
+                return;
+            };
+            let alias = if pref.alias.is_empty() {
+                derive_short_name(&pref.source)
+            } else {
+                pref.alias.clone()
+            };
+            let removed_connections: Vec<Connection> = self
+                .flow_definition
+                .connections
+                .iter()
+                .filter(|c| connection_references_node(c, &alias))
+                .cloned()
+                .collect();
+            let removed_pref = self.flow_definition.process_refs.remove(idx);
+            let removed_subprocess = self.flow_definition.subprocesses.remove(&alias);
+            self.flow_definition
+                .connections
+                .retain(|c| !connection_references_node(c, &alias));
+            self.history.record(EditAction::DeleteNode {
+                index: idx,
+                process_ref: removed_pref,
+                subprocess: removed_subprocess.map(|p| (alias, p)),
+                removed_connections,
+            });
+            self.selected_node = None;
+            self.selected_connection = None;
+            self.canvas_state.request_redraw();
+            let nc = self.flow_definition.process_refs.len();
+            let ec = self.flow_definition.connections.len();
+            self.status = format!("Node deleted - {nc} nodes, {ec} connections");
+            if self.auto_fit_enabled {
+                self.auto_fit_pending = true;
+            }
+        }
+    }
+
+    fn handle_connection_created(
+        &mut self,
+        from_node: &str,
+        from_port: &str,
+        to_node: &str,
+        to_port: &str,
+    ) {
+        let from_route = if from_port.is_empty() {
+            from_node.to_string()
+        } else {
+            format!("{from_node}/{from_port}")
+        };
+        let to_route = if to_port.is_empty() {
+            to_node.to_string()
+        } else {
+            format!("{to_node}/{to_port}")
+        };
+        let connection = Connection::new(from_route, to_route);
+        self.history.record(EditAction::CreateConnection {
+            connection: connection.clone(),
+        });
+        self.flow_definition.connections.push(connection);
+        self.canvas_state.request_redraw();
+        let nc = self.flow_definition.process_refs.len();
+        let ec = self.flow_definition.connections.len();
+        self.status = format!(
+            "Connection created: {from_node}/{from_port} -> {to_node}/{to_port} - {nc} nodes, {ec} connections"
+        );
+    }
+
+    fn handle_connection_selected(&mut self, idx: Option<usize>) {
+        self.selected_connection = idx;
+        self.selected_node = None;
+        self.canvas_state.request_redraw();
+        if let Some(i) = idx {
+            if let Some(conn) = self.flow_definition.connections.get(i) {
+                let (from_node, from_port) = split_route(conn.from().as_ref());
+                let to_str = conn
+                    .to()
+                    .first()
+                    .map_or_else(String::new, ToString::to_string);
+                let (to_node, to_port) = split_route(&to_str);
+                self.status = format!(
+                    "Connection: {} -> {}",
+                    file_ops::format_endpoint(&from_node, &from_port),
+                    file_ops::format_endpoint(&to_node, &to_port),
+                );
+            }
+        } else {
+            self.status = String::from("Ready");
+        }
+    }
+
+    fn handle_connection_deleted(&mut self, idx: usize) {
+        if idx < self.flow_definition.connections.len() {
+            let connection = self.flow_definition.connections.remove(idx);
+            self.history.record(EditAction::DeleteConnection {
+                index: idx,
+                connection,
+            });
+            self.selected_connection = None;
+            self.canvas_state.request_redraw();
+            let nc = self.flow_definition.process_refs.len();
+            let ec = self.flow_definition.connections.len();
+            self.status = format!("Connection deleted - {nc} nodes, {ec} connections");
+        }
+    }
+
+    fn handle_initializer_edit(&mut self, node_idx: usize, port_name: String) {
+        let (init_type, value_text) = self
+            .flow_definition
+            .process_refs
+            .get(node_idx)
+            .and_then(|pr| pr.initializations.get(&port_name))
+            .map_or_else(
+                || ("none".to_string(), String::new()),
+                |init| match init {
+                    InputInitializer::Once(v) => (
+                        "once".to_string(),
+                        serde_json::to_string(v).unwrap_or_default(),
+                    ),
+                    InputInitializer::Always(v) => (
+                        "always".to_string(),
+                        serde_json::to_string(v).unwrap_or_default(),
+                    ),
+                },
+            );
+
+        self.initializer_editor = Some(InitializerEditor {
+            node_index: node_idx,
+            port_name,
+            init_type,
+            value_text,
+        });
     }
 
     pub(crate) fn handle_view_message(&mut self, msg: &ViewMessage) {
@@ -1499,6 +1536,459 @@ fn resize_cursor(handle: ResizeHandle) -> mouse::Interaction {
     }
 }
 
+fn handle_delete_key(state: &mut CanvasInteractionState) -> Option<canvas::Action<CanvasMessage>> {
+    if let Some(sel_conn) = state.selected_connection {
+        state.selected_connection = None;
+        return Some(
+            canvas::Action::publish(CanvasMessage::ConnectionDeleted(sel_conn)).and_capture(),
+        );
+    }
+    if let Some(sel_idx) = state.selected_node {
+        state.selected_node = None;
+        return Some(canvas::Action::publish(CanvasMessage::Deleted(sel_idx)).and_capture());
+    }
+    None
+}
+
+fn try_start_connection(
+    canvas: &FlowCanvas<'_>,
+    state: &mut CanvasInteractionState,
+    cursor_position: Point,
+    zoom: f32,
+    offset: Point,
+) -> Option<canvas::Action<CanvasMessage>> {
+    let (node_idx, port_name, is_output) =
+        hit_test_port(&canvas.nodes, cursor_position, zoom, offset)?;
+    let node = canvas.nodes.get(node_idx)?;
+    let port_world_pos = if is_output {
+        let port_idx = node
+            .outputs()
+            .iter()
+            .position(|p| p.name() == &port_name)
+            .unwrap_or(0);
+        node.output_port_position(port_idx)
+    } else {
+        let port_idx = node
+            .inputs()
+            .iter()
+            .position(|p| p.name() == &port_name)
+            .unwrap_or(0);
+        node.input_port_position(port_idx)
+    };
+    state.connecting = Some(ConnectingState {
+        from_node: node.alias().to_string(),
+        from_port: port_name,
+        from_output: is_output,
+        start_pos: port_world_pos,
+        current_screen_pos: cursor_position,
+    });
+    Some(canvas::Action::request_redraw().and_capture())
+}
+
+fn handle_left_press(
+    canvas: &FlowCanvas<'_>,
+    state: &mut CanvasInteractionState,
+    cursor_position: Point,
+    zoom: f32,
+    offset: Point,
+    world_pos: Point,
+) -> Option<canvas::Action<CanvasMessage>> {
+    if let Some(sel_idx) = state.selected_node {
+        if let Some(sel_node) = canvas.nodes.get(sel_idx) {
+            if let Some((_idx, handle)) =
+                hit_test_resize_handle(sel_node, sel_idx, cursor_position, zoom, offset)
+            {
+                state.resizing = Some(ResizeState {
+                    node_index: sel_idx,
+                    handle,
+                    start_x: world_pos.x,
+                    start_y: world_pos.y,
+                    start_node_x: sel_node.x(),
+                    start_node_y: sel_node.y(),
+                    start_width: sel_node.width(),
+                    start_height: sel_node.height(),
+                });
+                return Some(canvas::Action::request_redraw().and_capture());
+            }
+        }
+    }
+
+    let on_a_port = hit_test_port(&canvas.nodes, cursor_position, zoom, offset).is_some();
+    if !on_a_port {
+        if let Some(conn_idx) = hit_test_connection(
+            canvas.connections,
+            &canvas.nodes,
+            canvas.flow_inputs,
+            canvas.flow_outputs,
+            cursor_position,
+            zoom,
+            offset,
+        ) {
+            state.selected_connection = Some(conn_idx);
+            state.selected_node = None;
+            state.dragging = None;
+            return Some(
+                canvas::Action::publish(CanvasMessage::ConnectionSelected(Some(conn_idx)))
+                    .and_capture(),
+            );
+        }
+    }
+
+    if let Some(action) = try_start_connection(canvas, state, cursor_position, zoom, offset) {
+        return Some(action);
+    }
+
+    if let Some(idx) = hit_test_open_icon(&canvas.nodes, world_pos) {
+        return Some(canvas::Action::publish(CanvasMessage::OpenNode(idx)).and_capture());
+    }
+
+    if let Some(idx) = hit_test_node(&canvas.nodes, world_pos) {
+        let node = canvas.nodes.get(idx)?;
+        state.selected_node = Some(idx);
+        state.selected_connection = None;
+        state.dragging = Some(DragState {
+            node_index: idx,
+            offset_x: world_pos.x - node.x(),
+            offset_y: world_pos.y - node.y(),
+            start_x: node.x(),
+            start_y: node.y(),
+        });
+        Some(canvas::Action::publish(CanvasMessage::Selected(Some(idx))).and_capture())
+    } else {
+        state.selected_node = None;
+        state.selected_connection = None;
+        state.dragging = None;
+        Some(canvas::Action::publish(CanvasMessage::Selected(None)).and_capture())
+    }
+}
+
+fn handle_right_press(
+    canvas: &FlowCanvas<'_>,
+    cursor_position: Point,
+    zoom: f32,
+    offset: Point,
+    world_pos: Point,
+) -> Option<canvas::Action<CanvasMessage>> {
+    if let Some((node_idx, port_name, is_output)) =
+        hit_test_port(&canvas.nodes, cursor_position, zoom, offset)
+    {
+        if !is_output {
+            return Some(
+                canvas::Action::publish(CanvasMessage::InitializerEdit(node_idx, port_name))
+                    .and_capture(),
+            );
+        }
+    }
+    if hit_test_node(&canvas.nodes, world_pos).is_none() {
+        return Some(
+            canvas::Action::publish(CanvasMessage::ContextMenu(
+                cursor_position.x,
+                cursor_position.y,
+            ))
+            .and_capture(),
+        );
+    }
+    None
+}
+
+fn handle_cursor_moved(
+    canvas: &FlowCanvas<'_>,
+    state: &mut CanvasInteractionState,
+    cursor_position: Point,
+    zoom: f32,
+    offset: Point,
+    world_pos: Point,
+) -> Option<canvas::Action<CanvasMessage>> {
+    if let Some(ref mut connecting) = state.connecting {
+        connecting.current_screen_pos = cursor_position;
+        return Some(canvas::Action::request_redraw().and_capture());
+    }
+    if let Some(ref resize) = state.resizing {
+        return Some(compute_resize(resize, world_pos));
+    }
+    if let Some(ref pan) = state.panning {
+        let dx = (cursor_position.x - pan.last_screen_pos.x) / zoom;
+        let dy = (cursor_position.y - pan.last_screen_pos.y) / zoom;
+        state.panning = Some(PanState {
+            last_screen_pos: cursor_position,
+        });
+        return Some(canvas::Action::publish(CanvasMessage::Pan(dx, dy)).and_capture());
+    }
+    if let Some(ref drag) = state.dragging {
+        let new_x = world_pos.x - drag.offset_x;
+        let new_y = world_pos.y - drag.offset_y;
+        return Some(
+            canvas::Action::publish(CanvasMessage::Moved(drag.node_index, new_x, new_y))
+                .and_capture(),
+        );
+    }
+
+    handle_hover(canvas, state, cursor_position, zoom, offset, world_pos)
+}
+
+fn compute_resize(resize: &ResizeState, world_pos: Point) -> canvas::Action<CanvasMessage> {
+    let dx = world_pos.x - resize.start_x;
+    let dy = world_pos.y - resize.start_y;
+    let (mut new_x, mut new_y, mut new_w, mut new_h) = (
+        resize.start_node_x,
+        resize.start_node_y,
+        resize.start_width,
+        resize.start_height,
+    );
+    match resize.handle {
+        ResizeHandle::TopLeft => {
+            new_w = (resize.start_width - dx).max(MIN_NODE_WIDTH);
+            new_h = (resize.start_height - dy).max(MIN_NODE_HEIGHT);
+            new_x = resize.start_node_x + resize.start_width - new_w;
+            new_y = resize.start_node_y + resize.start_height - new_h;
+        }
+        ResizeHandle::Top => {
+            new_h = (resize.start_height - dy).max(MIN_NODE_HEIGHT);
+            new_y = resize.start_node_y + resize.start_height - new_h;
+        }
+        ResizeHandle::TopRight => {
+            new_w = (resize.start_width + dx).max(MIN_NODE_WIDTH);
+            new_h = (resize.start_height - dy).max(MIN_NODE_HEIGHT);
+            new_y = resize.start_node_y + resize.start_height - new_h;
+        }
+        ResizeHandle::Left => {
+            new_w = (resize.start_width - dx).max(MIN_NODE_WIDTH);
+            new_x = resize.start_node_x + resize.start_width - new_w;
+        }
+        ResizeHandle::Right => {
+            new_w = (resize.start_width + dx).max(MIN_NODE_WIDTH);
+        }
+        ResizeHandle::BottomLeft => {
+            new_w = (resize.start_width - dx).max(MIN_NODE_WIDTH);
+            new_h = (resize.start_height + dy).max(MIN_NODE_HEIGHT);
+            new_x = resize.start_node_x + resize.start_width - new_w;
+        }
+        ResizeHandle::Bottom => {
+            new_h = (resize.start_height + dy).max(MIN_NODE_HEIGHT);
+        }
+        ResizeHandle::BottomRight => {
+            new_w = (resize.start_width + dx).max(MIN_NODE_WIDTH);
+            new_h = (resize.start_height + dy).max(MIN_NODE_HEIGHT);
+        }
+    }
+    canvas::Action::publish(CanvasMessage::Resized(
+        resize.node_index,
+        new_x,
+        new_y,
+        new_w,
+        new_h,
+    ))
+    .and_capture()
+}
+
+fn handle_hover(
+    canvas: &FlowCanvas<'_>,
+    state: &mut CanvasInteractionState,
+    cursor_position: Point,
+    zoom: f32,
+    offset: Point,
+    world_pos: Point,
+) -> Option<canvas::Action<CanvasMessage>> {
+    if let Some((node_idx, port_name, is_output)) =
+        hit_test_port(&canvas.nodes, cursor_position, zoom, offset)
+    {
+        if let Some(node) = canvas.nodes.get(node_idx) {
+            let ports = if is_output {
+                node.outputs()
+            } else {
+                node.inputs()
+            };
+            let type_text = ports.iter().find(|p| p.name() == &port_name).map_or_else(
+                || port_name.clone(),
+                |p| {
+                    if p.datatypes().is_empty() {
+                        format!("{port_name}: (any)")
+                    } else {
+                        format!(
+                            "{port_name}: {}",
+                            p.datatypes()
+                                .iter()
+                                .map(ToString::to_string)
+                                .collect::<Vec<_>>()
+                                .join(", ")
+                        )
+                    }
+                },
+            );
+            state.hover_node = None;
+            return Some(canvas::Action::publish(CanvasMessage::HoverChanged(Some(
+                crate::window_state::Tooltip {
+                    text: type_text,
+                    x: cursor_position.x,
+                    y: cursor_position.y - 20.0,
+                },
+            ))));
+        }
+    }
+
+    let new_hover = hit_test_node(&canvas.nodes, world_pos);
+    if new_hover != state.hover_node || new_hover.is_some() {
+        state.hover_node = new_hover;
+        let tooltip_data = new_hover
+            .and_then(|idx| canvas.nodes.get(idx))
+            .and_then(|n| {
+                let bottom_center = transform_point(
+                    Point::new(n.x() + n.width() / 2.0, n.y() + n.height()),
+                    zoom,
+                    offset,
+                );
+                if n.is_in_source_text_zone(world_pos) {
+                    Some(crate::window_state::Tooltip {
+                        text: n.source().to_string(),
+                        x: bottom_center.x,
+                        y: bottom_center.y,
+                    })
+                } else if !n.description().is_empty() {
+                    Some(crate::window_state::Tooltip {
+                        text: n.description(),
+                        x: bottom_center.x,
+                        y: bottom_center.y,
+                    })
+                } else {
+                    None
+                }
+            });
+        return Some(canvas::Action::publish(CanvasMessage::HoverChanged(
+            tooltip_data,
+        )));
+    }
+    None
+}
+
+fn handle_left_release(
+    canvas: &FlowCanvas<'_>,
+    state: &mut CanvasInteractionState,
+    cursor_position: Point,
+    zoom: f32,
+    offset: Point,
+) -> Option<canvas::Action<CanvasMessage>> {
+    if let Some(connecting) = state.connecting.take() {
+        return finish_connecting(canvas, &connecting, cursor_position, zoom, offset);
+    }
+    if let Some(resize) = state.resizing.take() {
+        if let Some(node) = canvas.nodes.get(resize.node_index) {
+            return Some(
+                canvas::Action::publish(CanvasMessage::ResizeCompleted(
+                    resize.node_index,
+                    resize.start_node_x,
+                    resize.start_node_y,
+                    resize.start_width,
+                    resize.start_height,
+                    node.x(),
+                    node.y(),
+                    node.width(),
+                    node.height(),
+                ))
+                .and_capture(),
+            );
+        }
+        Some(canvas::Action::request_redraw().and_capture())
+    } else if let Some(drag) = state.dragging.take() {
+        if let Some(node) = canvas.nodes.get(drag.node_index) {
+            return Some(
+                canvas::Action::publish(CanvasMessage::MoveCompleted(
+                    drag.node_index,
+                    drag.start_x,
+                    drag.start_y,
+                    node.x(),
+                    node.y(),
+                ))
+                .and_capture(),
+            );
+        }
+        Some(canvas::Action::request_redraw().and_capture())
+    } else {
+        None
+    }
+}
+
+fn finish_connecting(
+    canvas: &FlowCanvas<'_>,
+    connecting: &ConnectingState,
+    cursor_position: Point,
+    zoom: f32,
+    offset: Point,
+) -> Option<canvas::Action<CanvasMessage>> {
+    if let Some((target_idx, target_port, target_is_output)) =
+        hit_test_port(&canvas.nodes, cursor_position, zoom, offset)
+    {
+        if connecting.from_output != target_is_output {
+            if let Some(target_node) = canvas.nodes.get(target_idx) {
+                let source_node = canvas
+                    .nodes
+                    .iter()
+                    .find(|n| n.alias() == connecting.from_node);
+                let types_ok = check_port_type_compatibility(
+                    source_node,
+                    &connecting.from_port,
+                    connecting.from_output,
+                    target_node,
+                    &target_port,
+                    target_is_output,
+                );
+
+                if types_ok {
+                    let (from_node, from_port, to_node, to_port) = if connecting.from_output {
+                        (
+                            connecting.from_node.clone(),
+                            connecting.from_port.clone(),
+                            target_node.alias().to_string(),
+                            target_port,
+                        )
+                    } else {
+                        (
+                            target_node.alias().to_string(),
+                            target_port,
+                            connecting.from_node.clone(),
+                            connecting.from_port.clone(),
+                        )
+                    };
+                    return Some(
+                        canvas::Action::publish(CanvasMessage::ConnectionCreated {
+                            from_node,
+                            from_port,
+                            to_node,
+                            to_port,
+                        })
+                        .and_capture(),
+                    );
+                }
+            }
+        }
+    }
+    Some(canvas::Action::request_redraw().and_capture())
+}
+
+fn handle_scroll(
+    state: &CanvasInteractionState,
+    zoom: f32,
+    delta: &mouse::ScrollDelta,
+) -> Option<canvas::Action<CanvasMessage>> {
+    let (dx, dy) = match *delta {
+        mouse::ScrollDelta::Lines { x, y } => (x * SCROLL_SPEED, y * SCROLL_SPEED),
+        mouse::ScrollDelta::Pixels { x, y } => (x, y),
+    };
+
+    if state.modifiers.command() {
+        if dy > 0.0 {
+            Some(canvas::Action::publish(CanvasMessage::ZoomBy(ZOOM_STEP)).and_capture())
+        } else if dy < 0.0 {
+            Some(canvas::Action::publish(CanvasMessage::ZoomBy(1.0 / ZOOM_STEP)).and_capture())
+        } else {
+            None
+        }
+    } else {
+        let pan_x = dx / zoom;
+        let pan_y = dy / zoom;
+        Some(canvas::Action::publish(CanvasMessage::Pan(pan_x, pan_y)).and_capture())
+    }
+}
+
 impl canvas::Program<CanvasMessage> for FlowCanvas<'_> {
     type State = CanvasInteractionState;
 
@@ -1509,7 +1999,6 @@ impl canvas::Program<CanvasMessage> for FlowCanvas<'_> {
         bounds: Rectangle,
         cursor: mouse::Cursor,
     ) -> Option<canvas::Action<CanvasMessage>> {
-        // Trigger auto-fit when pending or when auto-fit is enabled and bounds changed
         let bounds_changed = state.last_bounds.is_none_or(|last| {
             (last.width - bounds.width).abs() > 1.0 || (last.height - bounds.height).abs() > 1.0
         });
@@ -1521,8 +2010,6 @@ impl canvas::Program<CanvasMessage> for FlowCanvas<'_> {
             );
         }
 
-        // Handle keyboard events before cursor position check — keyboard events
-        // should work even when the cursor is off-canvas
         match event {
             Event::Keyboard(keyboard::Event::ModifiersChanged(modifiers)) => {
                 state.modifiers = *modifiers;
@@ -1532,23 +2019,7 @@ impl canvas::Program<CanvasMessage> for FlowCanvas<'_> {
                 key:
                     keyboard::Key::Named(keyboard::key::Named::Delete | keyboard::key::Named::Backspace),
                 ..
-            }) => {
-                if let Some(sel_conn) = state.selected_connection {
-                    state.selected_connection = None;
-                    return Some(
-                        canvas::Action::publish(CanvasMessage::ConnectionDeleted(sel_conn))
-                            .and_capture(),
-                    );
-                }
-                if let Some(sel_idx) = state.selected_node {
-                    state.selected_node = None;
-                    return Some(
-                        canvas::Action::publish(CanvasMessage::Deleted(sel_idx)).and_capture(),
-                    );
-                }
-                return None;
-            }
-            // Clear stuck drag/resize/connect states when mouse released off-canvas
+            }) => return handle_delete_key(state),
             Event::Mouse(mouse::Event::ButtonReleased(_))
                 if cursor.position_in(bounds).is_none() =>
             {
@@ -1567,398 +2038,24 @@ impl canvas::Program<CanvasMessage> for FlowCanvas<'_> {
         let world_pos = screen_to_world(cursor_position, zoom, offset);
 
         match event {
-            // Left mouse button pressed — check resize handles, ports, connections, nodes, or deselect
             Event::Mouse(mouse::Event::ButtonPressed(mouse::Button::Left)) => {
-                // 1. Check if cursor is on a resize handle of the selected node
-                if let Some(sel_idx) = state.selected_node {
-                    if let Some(sel_node) = self.nodes.get(sel_idx) {
-                        if let Some((_idx, handle)) =
-                            hit_test_resize_handle(sel_node, sel_idx, cursor_position, zoom, offset)
-                        {
-                            state.resizing = Some(ResizeState {
-                                node_index: sel_idx,
-                                handle,
-                                start_x: world_pos.x,
-                                start_y: world_pos.y,
-                                start_node_x: sel_node.x(),
-                                start_node_y: sel_node.y(),
-                                start_width: sel_node.width(),
-                                start_height: sel_node.height(),
-                            });
-                            return Some(canvas::Action::request_redraw().and_capture());
-                        }
-                    }
-                }
-
-                // 2. Check if cursor is near a connection line (but NOT on a port) — select it
-                let on_a_port = hit_test_port(&self.nodes, cursor_position, zoom, offset).is_some();
-                if !on_a_port {
-                    if let Some(conn_idx) = hit_test_connection(
-                        self.connections,
-                        &self.nodes,
-                        self.flow_inputs,
-                        self.flow_outputs,
-                        cursor_position,
-                        zoom,
-                        offset,
-                    ) {
-                        state.selected_connection = Some(conn_idx);
-                        state.selected_node = None;
-                        state.dragging = None;
-                        return Some(
-                            canvas::Action::publish(CanvasMessage::ConnectionSelected(Some(
-                                conn_idx,
-                            )))
-                            .and_capture(),
-                        );
-                    }
-                }
-
-                // 3. Check if cursor is on a port — start connection drag
-                if let Some((node_idx, port_name, is_output)) =
-                    hit_test_port(&self.nodes, cursor_position, zoom, offset)
-                {
-                    if let Some(node) = self.nodes.get(node_idx) {
-                        let port_world_pos = if is_output {
-                            let port_idx = node
-                                .outputs()
-                                .iter()
-                                .position(|p| p.name() == &port_name)
-                                .unwrap_or(0);
-                            node.output_port_position(port_idx)
-                        } else {
-                            let port_idx = node
-                                .inputs()
-                                .iter()
-                                .position(|p| p.name() == &port_name)
-                                .unwrap_or(0);
-                            node.input_port_position(port_idx)
-                        };
-                        state.connecting = Some(ConnectingState {
-                            from_node: node.alias().to_string(),
-                            from_port: port_name,
-                            from_output: is_output,
-                            start_pos: port_world_pos,
-                            current_screen_pos: cursor_position,
-                        });
-                        return Some(canvas::Action::request_redraw().and_capture());
-                    }
-                }
-
-                // 4. Check if cursor is on an openable node's open icon
-                if let Some(idx) = hit_test_open_icon(&self.nodes, world_pos) {
-                    return Some(
-                        canvas::Action::publish(CanvasMessage::OpenNode(idx)).and_capture(),
-                    );
-                }
-
-                // 6. Check if cursor is on a node — select/drag it
-                if let Some(idx) = hit_test_node(&self.nodes, world_pos) {
-                    let node = self.nodes.get(idx)?;
-                    state.selected_node = Some(idx);
-                    state.selected_connection = None;
-                    state.dragging = Some(DragState {
-                        node_index: idx,
-                        offset_x: world_pos.x - node.x(),
-                        offset_y: world_pos.y - node.y(),
-                        start_x: node.x(),
-                        start_y: node.y(),
-                    });
-                    Some(canvas::Action::publish(CanvasMessage::Selected(Some(idx))).and_capture())
-                } else {
-                    // 7. Clicked empty canvas — deselect all
-                    state.selected_node = None;
-                    state.selected_connection = None;
-                    state.dragging = None;
-                    Some(canvas::Action::publish(CanvasMessage::Selected(None)).and_capture())
-                }
+                handle_left_press(self, state, cursor_position, zoom, offset, world_pos)
             }
-
-            // Right mouse button pressed — edit initializer on input port, or context menu
             Event::Mouse(mouse::Event::ButtonPressed(mouse::Button::Right)) => {
-                if let Some((node_idx, port_name, is_output)) =
-                    hit_test_port(&self.nodes, cursor_position, zoom, offset)
-                {
-                    if !is_output {
-                        return Some(
-                            canvas::Action::publish(CanvasMessage::InitializerEdit(
-                                node_idx, port_name,
-                            ))
-                            .and_capture(),
-                        );
-                    }
-                }
-                // Right-click on empty canvas — show context menu
-                if hit_test_node(&self.nodes, world_pos).is_none() {
-                    return Some(
-                        canvas::Action::publish(CanvasMessage::ContextMenu(
-                            cursor_position.x,
-                            cursor_position.y,
-                        ))
-                        .and_capture(),
-                    );
-                }
-                None
+                handle_right_press(self, cursor_position, zoom, offset, world_pos)
             }
-
-            // Middle mouse button pressed — start panning
             Event::Mouse(mouse::Event::ButtonPressed(mouse::Button::Middle)) => {
                 state.panning = Some(PanState {
                     last_screen_pos: cursor_position,
                 });
                 Some(canvas::Action::request_redraw().and_capture())
             }
-
-            // Mouse moved — handle connecting, resize, drag, or pan
             Event::Mouse(mouse::Event::CursorMoved { .. }) => {
-                if let Some(ref mut connecting) = state.connecting {
-                    connecting.current_screen_pos = cursor_position;
-                    return Some(canvas::Action::request_redraw().and_capture());
-                }
-                if let Some(ref resize) = state.resizing {
-                    let dx = world_pos.x - resize.start_x;
-                    let dy = world_pos.y - resize.start_y;
-                    let (mut new_x, mut new_y, mut new_w, mut new_h) = (
-                        resize.start_node_x,
-                        resize.start_node_y,
-                        resize.start_width,
-                        resize.start_height,
-                    );
-                    match resize.handle {
-                        ResizeHandle::TopLeft => {
-                            new_w = (resize.start_width - dx).max(MIN_NODE_WIDTH);
-                            new_h = (resize.start_height - dy).max(MIN_NODE_HEIGHT);
-                            // Position moves by the amount size didn't change due to clamping
-                            new_x = resize.start_node_x + resize.start_width - new_w;
-                            new_y = resize.start_node_y + resize.start_height - new_h;
-                        }
-                        ResizeHandle::Top => {
-                            new_h = (resize.start_height - dy).max(MIN_NODE_HEIGHT);
-                            new_y = resize.start_node_y + resize.start_height - new_h;
-                        }
-                        ResizeHandle::TopRight => {
-                            new_w = (resize.start_width + dx).max(MIN_NODE_WIDTH);
-                            new_h = (resize.start_height - dy).max(MIN_NODE_HEIGHT);
-                            new_y = resize.start_node_y + resize.start_height - new_h;
-                        }
-                        ResizeHandle::Left => {
-                            new_w = (resize.start_width - dx).max(MIN_NODE_WIDTH);
-                            new_x = resize.start_node_x + resize.start_width - new_w;
-                        }
-                        ResizeHandle::Right => {
-                            new_w = (resize.start_width + dx).max(MIN_NODE_WIDTH);
-                        }
-                        ResizeHandle::BottomLeft => {
-                            new_w = (resize.start_width - dx).max(MIN_NODE_WIDTH);
-                            new_h = (resize.start_height + dy).max(MIN_NODE_HEIGHT);
-                            new_x = resize.start_node_x + resize.start_width - new_w;
-                        }
-                        ResizeHandle::Bottom => {
-                            new_h = (resize.start_height + dy).max(MIN_NODE_HEIGHT);
-                        }
-                        ResizeHandle::BottomRight => {
-                            new_w = (resize.start_width + dx).max(MIN_NODE_WIDTH);
-                            new_h = (resize.start_height + dy).max(MIN_NODE_HEIGHT);
-                        }
-                    }
-                    let idx = resize.node_index;
-                    Some(
-                        canvas::Action::publish(CanvasMessage::Resized(
-                            idx, new_x, new_y, new_w, new_h,
-                        ))
-                        .and_capture(),
-                    )
-                } else if let Some(ref pan) = state.panning {
-                    // Pan: adjust scroll_offset based on screen-space delta
-                    let dx = (cursor_position.x - pan.last_screen_pos.x) / zoom;
-                    let dy = (cursor_position.y - pan.last_screen_pos.y) / zoom;
-                    state.panning = Some(PanState {
-                        last_screen_pos: cursor_position,
-                    });
-                    Some(canvas::Action::publish(CanvasMessage::Pan(dx, dy)).and_capture())
-                } else if let Some(ref drag) = state.dragging {
-                    let new_x = world_pos.x - drag.offset_x;
-                    let new_y = world_pos.y - drag.offset_y;
-                    Some(
-                        canvas::Action::publish(CanvasMessage::Moved(
-                            drag.node_index,
-                            new_x,
-                            new_y,
-                        ))
-                        .and_capture(),
-                    )
-                } else {
-                    // Check port hover for type tooltip
-                    if let Some((node_idx, port_name, is_output)) =
-                        hit_test_port(&self.nodes, cursor_position, zoom, offset)
-                    {
-                        if let Some(node) = self.nodes.get(node_idx) {
-                            let ports = if is_output {
-                                node.outputs()
-                            } else {
-                                node.inputs()
-                            };
-                            let type_text =
-                                ports.iter().find(|p| p.name() == &port_name).map_or_else(
-                                    || port_name.clone(),
-                                    |p| {
-                                        if p.datatypes().is_empty() {
-                                            format!("{port_name}: (any)")
-                                        } else {
-                                            format!(
-                                                "{port_name}: {}",
-                                                p.datatypes()
-                                                    .iter()
-                                                    .map(ToString::to_string)
-                                                    .collect::<Vec<_>>()
-                                                    .join(", ")
-                                            )
-                                        }
-                                    },
-                                );
-                            state.hover_node = None;
-                            return Some(canvas::Action::publish(CanvasMessage::HoverChanged(
-                                Some(crate::window_state::Tooltip {
-                                    text: type_text,
-                                    x: cursor_position.x,
-                                    y: cursor_position.y - 20.0,
-                                }),
-                            )));
-                        }
-                    }
-
-                    // Track hover for two-zone node tooltip
-                    let new_hover = hit_test_node(&self.nodes, world_pos);
-                    if new_hover != state.hover_node || new_hover.is_some() {
-                        state.hover_node = new_hover;
-                        let tooltip_data =
-                            new_hover.and_then(|idx| self.nodes.get(idx)).and_then(|n| {
-                                let bottom_center = transform_point(
-                                    Point::new(n.x() + n.width() / 2.0, n.y() + n.height()),
-                                    zoom,
-                                    offset,
-                                );
-                                if n.is_in_source_text_zone(world_pos) {
-                                    Some(crate::window_state::Tooltip {
-                                        text: n.source().to_string(),
-                                        x: bottom_center.x,
-                                        y: bottom_center.y,
-                                    })
-                                } else if !n.description().is_empty() {
-                                    Some(crate::window_state::Tooltip {
-                                        text: n.description(),
-                                        x: bottom_center.x,
-                                        y: bottom_center.y,
-                                    })
-                                } else {
-                                    None
-                                }
-                            });
-                        return Some(canvas::Action::publish(CanvasMessage::HoverChanged(
-                            tooltip_data,
-                        )));
-                    }
-                    None
-                }
+                handle_cursor_moved(self, state, cursor_position, zoom, offset, world_pos)
             }
-
-            // Left mouse button released — stop connecting, dragging, or resizing
             Event::Mouse(mouse::Event::ButtonReleased(mouse::Button::Left)) => {
-                if let Some(connecting) = state.connecting.take() {
-                    // Check if cursor is on a compatible port
-                    if let Some((target_idx, target_port, target_is_output)) =
-                        hit_test_port(&self.nodes, cursor_position, zoom, offset)
-                    {
-                        // Must connect output→input or input→output
-                        if connecting.from_output != target_is_output {
-                            if let Some(target_node) = self.nodes.get(target_idx) {
-                                // Check type compatibility before creating connection
-                                let source_node = self
-                                    .nodes
-                                    .iter()
-                                    .find(|n| n.alias() == connecting.from_node);
-                                let types_ok = check_port_type_compatibility(
-                                    source_node,
-                                    &connecting.from_port,
-                                    connecting.from_output,
-                                    target_node,
-                                    &target_port,
-                                    target_is_output,
-                                );
-
-                                if types_ok {
-                                    let (from_node, from_port, to_node, to_port) =
-                                        if connecting.from_output {
-                                            (
-                                                connecting.from_node,
-                                                connecting.from_port,
-                                                target_node.alias().to_string(),
-                                                target_port,
-                                            )
-                                        } else {
-                                            (
-                                                target_node.alias().to_string(),
-                                                target_port,
-                                                connecting.from_node,
-                                                connecting.from_port,
-                                            )
-                                        };
-                                    return Some(
-                                        canvas::Action::publish(CanvasMessage::ConnectionCreated {
-                                            from_node,
-                                            from_port,
-                                            to_node,
-                                            to_port,
-                                        })
-                                        .and_capture(),
-                                    );
-                                }
-                            }
-                        }
-                    }
-                    // Released on empty area or incompatible port — cancel
-                    return Some(canvas::Action::request_redraw().and_capture());
-                }
-                if let Some(resize) = state.resizing.take() {
-                    // Emit resize completed with old and new geometry
-                    if let Some(node) = self.nodes.get(resize.node_index) {
-                        return Some(
-                            canvas::Action::publish(CanvasMessage::ResizeCompleted(
-                                resize.node_index,
-                                resize.start_node_x,
-                                resize.start_node_y,
-                                resize.start_width,
-                                resize.start_height,
-                                node.x(),
-                                node.y(),
-                                node.width(),
-                                node.height(),
-                            ))
-                            .and_capture(),
-                        );
-                    }
-                    Some(canvas::Action::request_redraw().and_capture())
-                } else if let Some(drag) = state.dragging.take() {
-                    // Emit move completed with old and new position
-                    if let Some(node) = self.nodes.get(drag.node_index) {
-                        return Some(
-                            canvas::Action::publish(CanvasMessage::MoveCompleted(
-                                drag.node_index,
-                                drag.start_x,
-                                drag.start_y,
-                                node.x(),
-                                node.y(),
-                            ))
-                            .and_capture(),
-                        );
-                    }
-                    Some(canvas::Action::request_redraw().and_capture())
-                } else {
-                    None
-                }
+                handle_left_release(self, state, cursor_position, zoom, offset)
             }
-
-            // Middle mouse button released — stop panning
             Event::Mouse(mouse::Event::ButtonReleased(mouse::Button::Middle)) => {
                 if state.panning.is_some() {
                     state.panning = None;
@@ -1967,36 +2064,9 @@ impl canvas::Program<CanvasMessage> for FlowCanvas<'_> {
                     None
                 }
             }
-
-            // Scroll wheel: pan or zoom depending on modifier keys
             Event::Mouse(mouse::Event::WheelScrolled { delta }) => {
-                let (dx, dy) = match *delta {
-                    mouse::ScrollDelta::Lines { x, y } => (x * SCROLL_SPEED, y * SCROLL_SPEED),
-                    mouse::ScrollDelta::Pixels { x, y } => (x, y),
-                };
-
-                if state.modifiers.command() {
-                    // Zoom: positive dy = zoom in, negative = zoom out
-                    if dy > 0.0 {
-                        Some(
-                            canvas::Action::publish(CanvasMessage::ZoomBy(ZOOM_STEP)).and_capture(),
-                        )
-                    } else if dy < 0.0 {
-                        Some(
-                            canvas::Action::publish(CanvasMessage::ZoomBy(1.0 / ZOOM_STEP))
-                                .and_capture(),
-                        )
-                    } else {
-                        None
-                    }
-                } else {
-                    // Pan
-                    let pan_x = dx / zoom;
-                    let pan_y = dy / zoom;
-                    Some(canvas::Action::publish(CanvasMessage::Pan(pan_x, pan_y)).and_capture())
-                }
+                handle_scroll(state, zoom, delta)
             }
-
             _ => None,
         }
     }
@@ -2037,8 +2107,6 @@ impl canvas::Program<CanvasMessage> for FlowCanvas<'_> {
             );
         });
 
-        // Build an overlay for selection highlights, connection previews, tooltips, etc.
-        // (Selected connections are drawn inline by draw_edges, not as an overlay)
         let needs_overlay = state.selected_node.is_some()
             || state.connecting.is_some()
             || state.hover_node.is_some();
@@ -2046,102 +2114,12 @@ impl canvas::Program<CanvasMessage> for FlowCanvas<'_> {
         if needs_overlay {
             let mut overlay = Frame::new(renderer, bounds.size());
 
-            // Draw selected node highlight and resize handles
             if let Some(selected_idx) = state.selected_node {
-                if let Some(node) = self.nodes.get(selected_idx) {
-                    let screen_pos = transform_point(Point::new(node.x(), node.y()), zoom, offset);
-                    let screen_size = Size::new(node.width() * zoom, node.height() * zoom);
-                    let selection_color = Color::from_rgb(1.0, 0.85, 0.0);
-                    let highlight = Path::new(|builder| {
-                        rounded_rect(builder, screen_pos, screen_size, CORNER_RADIUS * zoom);
-                    });
-                    overlay.stroke(
-                        &highlight,
-                        Stroke::default()
-                            .with_width(4.0)
-                            .with_color(selection_color),
-                    );
-
-                    // Draw resize handles at the 8 positions
-                    for (_handle, world_pt) in &node.resize_handle_positions() {
-                        let sp = transform_point(*world_pt, zoom, offset);
-                        let handle_rect = Path::rectangle(
-                            Point::new(sp.x - RESIZE_HANDLE_HALF, sp.y - RESIZE_HANDLE_HALF),
-                            Size::new(RESIZE_HANDLE_HALF * 2.0, RESIZE_HANDLE_HALF * 2.0),
-                        );
-                        overlay.fill(&handle_rect, selection_color);
-                        overlay.stroke(
-                            &handle_rect,
-                            Stroke::default()
-                                .with_width(1.0)
-                                .with_color(Color::from_rgb(0.3, 0.3, 0.0)),
-                        );
-                    }
-                }
+                draw_selection_highlight(&mut overlay, &self.nodes, selected_idx, zoom, offset);
             }
 
-            // Draw connection preview (bezier from start port to cursor)
             if let Some(ref connecting) = state.connecting {
-                let start_screen = transform_point(connecting.start_pos, zoom, offset);
-                let end_screen = connecting.current_screen_pos;
-
-                let preview_color = Color::from_rgb(0.3, 0.9, 0.3);
-                let dx_ctrl = (end_screen.x - start_screen.x).abs().max(60.0 * zoom) * 0.5;
-
-                // Direction of control points depends on whether we started from output or input
-                let (ctrl1, ctrl2) = if connecting.from_output {
-                    (
-                        Point::new(start_screen.x + dx_ctrl, start_screen.y),
-                        Point::new(end_screen.x - dx_ctrl, end_screen.y),
-                    )
-                } else {
-                    (
-                        Point::new(start_screen.x - dx_ctrl, start_screen.y),
-                        Point::new(end_screen.x + dx_ctrl, end_screen.y),
-                    )
-                };
-
-                let preview_path = Path::new(|builder| {
-                    builder.move_to(start_screen);
-                    builder.bezier_curve_to(ctrl1, ctrl2, end_screen);
-                });
-                overlay.stroke(
-                    &preview_path,
-                    Stroke::default()
-                        .with_width(2.0 * zoom)
-                        .with_color(preview_color),
-                );
-
-                // Highlight the target port if hovering over a compatible one
-                if let Some((target_idx, target_port, target_is_output)) =
-                    hit_test_port(&self.nodes, end_screen, zoom, offset)
-                {
-                    if connecting.from_output != target_is_output {
-                        if let Some(target_node) = self.nodes.get(target_idx) {
-                            let port_world = if target_is_output {
-                                let pidx = target_node
-                                    .outputs()
-                                    .iter()
-                                    .position(|p| p.name() == &target_port)
-                                    .unwrap_or(0);
-                                target_node.output_port_position(pidx)
-                            } else {
-                                let pidx = target_node
-                                    .inputs()
-                                    .iter()
-                                    .position(|p| p.name() == &target_port)
-                                    .unwrap_or(0);
-                                target_node.input_port_position(pidx)
-                            };
-                            let port_screen = transform_point(port_world, zoom, offset);
-                            let highlight_circle = Path::circle(port_screen, PORT_HIT_RADIUS);
-                            overlay.stroke(
-                                &highlight_circle,
-                                Stroke::default().with_width(2.0).with_color(preview_color),
-                            );
-                        }
-                    }
-                }
+                draw_connection_preview(&mut overlay, &self.nodes, connecting, zoom, offset);
             }
 
             return vec![content, overlay.into_geometry()];
@@ -2206,6 +2184,111 @@ impl canvas::Program<CanvasMessage> for FlowCanvas<'_> {
         }
 
         mouse::Interaction::default()
+    }
+}
+
+fn draw_selection_highlight(
+    overlay: &mut Frame,
+    nodes: &[NodeLayout],
+    selected_idx: usize,
+    zoom: f32,
+    offset: Point,
+) {
+    if let Some(node) = nodes.get(selected_idx) {
+        let screen_pos = transform_point(Point::new(node.x(), node.y()), zoom, offset);
+        let screen_size = Size::new(node.width() * zoom, node.height() * zoom);
+        let selection_color = Color::from_rgb(1.0, 0.85, 0.0);
+        let highlight = Path::new(|builder| {
+            rounded_rect(builder, screen_pos, screen_size, CORNER_RADIUS * zoom);
+        });
+        overlay.stroke(
+            &highlight,
+            Stroke::default()
+                .with_width(4.0)
+                .with_color(selection_color),
+        );
+
+        for (_handle, world_pt) in &node.resize_handle_positions() {
+            let sp = transform_point(*world_pt, zoom, offset);
+            let handle_rect = Path::rectangle(
+                Point::new(sp.x - RESIZE_HANDLE_HALF, sp.y - RESIZE_HANDLE_HALF),
+                Size::new(RESIZE_HANDLE_HALF * 2.0, RESIZE_HANDLE_HALF * 2.0),
+            );
+            overlay.fill(&handle_rect, selection_color);
+            overlay.stroke(
+                &handle_rect,
+                Stroke::default()
+                    .with_width(1.0)
+                    .with_color(Color::from_rgb(0.3, 0.3, 0.0)),
+            );
+        }
+    }
+}
+
+fn draw_connection_preview(
+    overlay: &mut Frame,
+    nodes: &[NodeLayout],
+    connecting: &ConnectingState,
+    zoom: f32,
+    offset: Point,
+) {
+    let start_screen = transform_point(connecting.start_pos, zoom, offset);
+    let end_screen = connecting.current_screen_pos;
+
+    let preview_color = Color::from_rgb(0.3, 0.9, 0.3);
+    let dx_ctrl = (end_screen.x - start_screen.x).abs().max(60.0 * zoom) * 0.5;
+
+    let (ctrl1, ctrl2) = if connecting.from_output {
+        (
+            Point::new(start_screen.x + dx_ctrl, start_screen.y),
+            Point::new(end_screen.x - dx_ctrl, end_screen.y),
+        )
+    } else {
+        (
+            Point::new(start_screen.x - dx_ctrl, start_screen.y),
+            Point::new(end_screen.x + dx_ctrl, end_screen.y),
+        )
+    };
+
+    let preview_path = Path::new(|builder| {
+        builder.move_to(start_screen);
+        builder.bezier_curve_to(ctrl1, ctrl2, end_screen);
+    });
+    overlay.stroke(
+        &preview_path,
+        Stroke::default()
+            .with_width(2.0 * zoom)
+            .with_color(preview_color),
+    );
+
+    if let Some((target_idx, target_port, target_is_output)) =
+        hit_test_port(nodes, end_screen, zoom, offset)
+    {
+        if connecting.from_output != target_is_output {
+            if let Some(target_node) = nodes.get(target_idx) {
+                let port_world = if target_is_output {
+                    let pidx = target_node
+                        .outputs()
+                        .iter()
+                        .position(|p| p.name() == &target_port)
+                        .unwrap_or(0);
+                    target_node.output_port_position(pidx)
+                } else {
+                    let pidx = target_node
+                        .inputs()
+                        .iter()
+                        .position(|p| p.name() == &target_port)
+                        .unwrap_or(0);
+                    target_node.input_port_position(pidx)
+                };
+                let port_screen = transform_point(port_world, zoom, offset);
+                let highlight_circle = Path::circle(port_screen, PORT_HIT_RADIUS);
+                overlay.stroke(
+                    &highlight_circle,
+                    Stroke::default().with_width(2.0).with_color(preview_color),
+                );
+            }
+        }
     }
 }
 
@@ -2416,30 +2499,13 @@ fn draw_nodes(frame: &mut Frame, nodes: &[NodeLayout], zoom: f32, offset: Point)
 /// Draw a rounded bounding box around all subprocess nodes with flow I/O
 /// ports on the box edges and bezier connections to internal nodes.
 #[allow(clippy::too_many_arguments)]
-fn draw_flow_io_ports(
-    frame: &mut Frame,
-    flow_name: &str,
+fn flow_io_bounding_box(
+    nodes: &[NodeLayout],
     flow_inputs: &[IO],
     flow_outputs: &[IO],
-    nodes: &[NodeLayout],
-    connections: &[Connection],
-    is_subflow: bool,
-    selected_connection: Option<usize>,
-    zoom: f32,
-    offset: Point,
-) {
-    use std::f32::consts::PI;
-
-    if !is_subflow {
-        return;
-    }
-
-    let port_radius = 6.0;
-    let font_size = 13.0;
+) -> (f32, f32, f32, f32, f32, f32) {
     let spacing = 28.0;
     let padding = 80.0;
-    let corner = 16.0;
-
     let max_ports = flow_inputs.len().max(flow_outputs.len()).max(1) as f32;
     let default_h = max_ports * spacing + 60.0;
     let (min_x, max_x, min_y, max_y) = if nodes.is_empty() {
@@ -2458,13 +2524,38 @@ fn draw_flow_io_ports(
                 .fold(f32::MIN, f32::max),
         )
     };
-
     let box_x = min_x - padding;
     let box_y = min_y - padding;
     let box_w = (max_x - min_x) + 2.0 * padding;
     let box_h = (max_y - min_y) + 2.0 * padding;
+    let center_y = min_y.midpoint(max_y);
+    (box_x, box_y, box_w, box_h, center_y, spacing)
+}
 
-    // Draw the rounded bounding box
+#[allow(clippy::too_many_arguments)]
+fn draw_flow_io_ports(
+    frame: &mut Frame,
+    flow_name: &str,
+    flow_inputs: &[IO],
+    flow_outputs: &[IO],
+    nodes: &[NodeLayout],
+    connections: &[Connection],
+    is_subflow: bool,
+    selected_connection: Option<usize>,
+    zoom: f32,
+    offset: Point,
+) {
+    if !is_subflow {
+        return;
+    }
+
+    let port_radius = 6.0;
+    let font_size = 13.0;
+    let corner = 16.0;
+
+    let (box_x, box_y, box_w, box_h, center_y, spacing) =
+        flow_io_bounding_box(nodes, flow_inputs, flow_outputs);
+
     let top_left = transform_point(Point::new(box_x, box_y), zoom, offset);
     let size = Size::new(box_w * zoom, box_h * zoom);
     let border_path = Path::new(|builder| {
@@ -2477,7 +2568,6 @@ fn draw_flow_io_ports(
             .with_color(Color::from_rgba(0.6, 0.6, 0.6, 0.5)),
     );
 
-    // Draw flow name at top center of the bounding box
     if !flow_name.is_empty() {
         let name_pos = transform_point(Point::new(box_x + box_w / 2.0, box_y + 8.0), zoom, offset);
         frame.fill_text(CanvasText {
@@ -2490,17 +2580,62 @@ fn draw_flow_io_ports(
         });
     }
 
-    let center_y = min_y.midpoint(max_y);
-    let input_color = Color::from_rgb(0.4, 0.8, 1.0);
-    let output_color = Color::from_rgb(1.0, 0.6, 0.3);
+    let input_positions = draw_flow_input_port_labels(
+        frame,
+        flow_inputs,
+        box_x,
+        center_y,
+        spacing,
+        port_radius,
+        font_size,
+        zoom,
+        offset,
+    );
+    let output_positions = draw_flow_output_port_labels(
+        frame,
+        flow_outputs,
+        box_x + box_w,
+        center_y,
+        spacing,
+        port_radius,
+        font_size,
+        zoom,
+        offset,
+    );
 
-    // Compute and draw flow input ports on the left edge
-    let mut input_positions: HashMap<String, Point> = HashMap::new();
-    let input_start_y = center_y - (flow_inputs.len() as f32 - 1.0) * spacing / 2.0;
+    draw_flow_io_connections(
+        frame,
+        connections,
+        nodes,
+        &input_positions,
+        &output_positions,
+        selected_connection,
+        zoom,
+        offset,
+    );
+}
+
+#[allow(clippy::too_many_arguments)]
+fn draw_flow_input_port_labels(
+    frame: &mut Frame,
+    flow_inputs: &[IO],
+    left_x: f32,
+    center_y: f32,
+    spacing: f32,
+    port_radius: f32,
+    font_size: f32,
+    zoom: f32,
+    offset: Point,
+) -> HashMap<String, Point> {
+    use std::f32::consts::PI;
+
+    let input_color = Color::from_rgb(0.4, 0.8, 1.0);
+    let mut positions: HashMap<String, Point> = HashMap::new();
+    let start_y = center_y - (flow_inputs.len() as f32 - 1.0) * spacing / 2.0;
     for (i, input) in flow_inputs.iter().enumerate() {
-        let world_y = input_start_y + i as f32 * spacing;
-        let world_pos = Point::new(box_x, world_y);
-        input_positions.insert(input.name().clone(), world_pos);
+        let world_y = start_y + i as f32 * spacing;
+        let world_pos = Point::new(left_x, world_y);
+        positions.insert(input.name().clone(), world_pos);
         let screen_pos = transform_point(world_pos, zoom, offset);
         let scaled_r = port_radius * zoom;
         let semi = Path::new(|builder| {
@@ -2525,15 +2660,30 @@ fn draw_flow_io_ports(
             ..CanvasText::default()
         });
     }
+    positions
+}
 
-    // Compute and draw flow output ports on the right edge
-    let mut output_positions: HashMap<String, Point> = HashMap::new();
-    let right_x = box_x + box_w;
-    let output_start_y = center_y - (flow_outputs.len() as f32 - 1.0) * spacing / 2.0;
+#[allow(clippy::too_many_arguments)]
+fn draw_flow_output_port_labels(
+    frame: &mut Frame,
+    flow_outputs: &[IO],
+    right_x: f32,
+    center_y: f32,
+    spacing: f32,
+    port_radius: f32,
+    font_size: f32,
+    zoom: f32,
+    offset: Point,
+) -> HashMap<String, Point> {
+    use std::f32::consts::PI;
+
+    let output_color = Color::from_rgb(1.0, 0.6, 0.3);
+    let mut positions: HashMap<String, Point> = HashMap::new();
+    let start_y = center_y - (flow_outputs.len() as f32 - 1.0) * spacing / 2.0;
     for (i, output) in flow_outputs.iter().enumerate() {
-        let world_y = output_start_y + i as f32 * spacing;
+        let world_y = start_y + i as f32 * spacing;
         let world_pos = Point::new(right_x, world_y);
-        output_positions.insert(output.name().clone(), world_pos);
+        positions.insert(output.name().clone(), world_pos);
         let screen_pos = transform_point(world_pos, zoom, offset);
         let scaled_r = port_radius * zoom;
         let semi = Path::new(|builder| {
@@ -2557,8 +2707,20 @@ fn draw_flow_io_ports(
             ..CanvasText::default()
         });
     }
+    positions
+}
 
-    // Draw bezier connections from flow inputs/outputs to internal node ports
+#[allow(clippy::too_many_arguments)]
+fn draw_flow_io_connections(
+    frame: &mut Frame,
+    connections: &[Connection],
+    nodes: &[NodeLayout],
+    input_positions: &HashMap<String, Point>,
+    output_positions: &HashMap<String, Point>,
+    selected_connection: Option<usize>,
+    zoom: f32,
+    offset: Point,
+) {
     let conn_color = Color::from_rgba(0.7, 0.7, 0.7, 0.6);
     let sel_color = Color::from_rgb(1.0, 0.85, 0.0);
     for (conn_idx, conn) in connections.iter().enumerate() {
@@ -3042,87 +3204,104 @@ impl WindowState {
         let mut canvas_stack: Vec<Element<'_, Message>> = vec![canvas, zoom_controls.into()];
 
         if let Some(ref tip) = self.tooltip {
-            let tooltip_widget = container(
-                container(Text::new(tip.text.clone()).size(20).color(Color::WHITE))
-                    .padding(8)
-                    .style(|_theme: &Theme| container::Style {
-                        background: Some(iced::Background::Color(Color::from_rgb(
-                            0.12, 0.12, 0.12,
-                        ))),
-                        border: iced::Border {
-                            color: Color::WHITE,
-                            width: 1.0,
-                            radius: 6.0.into(),
-                        },
-                        ..Default::default()
-                    }),
-            )
-            .padding(iced::Padding {
-                top: tip.y + 26.0,
-                right: 0.0,
-                bottom: 0.0,
-                left: (tip.x - 80.0).max(0.0),
-            });
-            canvas_stack.push(tooltip_widget.into());
+            canvas_stack.push(Self::build_tooltip_overlay(tip));
         }
 
-        // Initializer editor dialog overlay
         if let Some(ref editor) = self.initializer_editor {
-            let port_label =
-                if let Some(pref) = self.flow_definition.process_refs.get(editor.node_index) {
-                    let alias = if pref.alias.is_empty() {
-                        derive_short_name(&pref.source)
-                    } else {
-                        pref.alias.clone()
-                    };
-                    format!("{}/{}", alias, editor.port_name)
+            canvas_stack.push(self.build_initializer_dialog(window_id, editor));
+        }
+
+        if let Some(menu_pos) = self.context_menu {
+            canvas_stack.push(Self::build_context_menu(window_id, menu_pos));
+        }
+
+        stack(canvas_stack).into()
+    }
+
+    fn build_tooltip_overlay<'a>(tip: &crate::window_state::Tooltip) -> Element<'a, Message> {
+        container(
+            container(Text::new(tip.text.clone()).size(20).color(Color::WHITE))
+                .padding(8)
+                .style(|_theme: &Theme| container::Style {
+                    background: Some(iced::Background::Color(Color::from_rgb(0.12, 0.12, 0.12))),
+                    border: iced::Border {
+                        color: Color::WHITE,
+                        width: 1.0,
+                        radius: 6.0.into(),
+                    },
+                    ..Default::default()
+                }),
+        )
+        .padding(iced::Padding {
+            top: tip.y + 26.0,
+            right: 0.0,
+            bottom: 0.0,
+            left: (tip.x - 80.0).max(0.0),
+        })
+        .into()
+    }
+
+    fn build_initializer_dialog<'a>(
+        &self,
+        window_id: window::Id,
+        editor: &InitializerEditor,
+    ) -> Element<'a, Message> {
+        let port_label =
+            if let Some(pref) = self.flow_definition.process_refs.get(editor.node_index) {
+                let alias = if pref.alias.is_empty() {
+                    derive_short_name(&pref.source)
                 } else {
-                    editor.port_name.clone()
+                    pref.alias.clone()
                 };
+                format!("{}/{}", alias, editor.port_name)
+            } else {
+                editor.port_name.clone()
+            };
 
-            let init_types = vec!["none", "once", "always"];
-            let selected: Option<&str> =
-                init_types.iter().find(|&&t| t == editor.init_type).copied();
+        let init_types = vec!["none", "once", "always"];
+        let selected: Option<&str> = init_types.iter().find(|&&t| t == editor.init_type).copied();
 
-            let mut dialog_col = Column::new()
-                .spacing(8)
-                .padding(12)
-                .push(Text::new(format!("Initializer: {port_label}")).size(14))
-                .push(
-                    pick_list(init_types, selected, move |s: &str| {
-                        Message::InitializerTypeChanged(window_id, s.to_string())
-                    })
-                    .text_size(12),
-                );
-
-            if editor.init_type != "none" {
-                dialog_col = dialog_col.push(
-                    text_input("JSON value (e.g. 42, \"hello\", true)", &editor.value_text)
-                        .on_input(move |v| Message::InitializerValueChanged(window_id, v))
-                        .size(12)
-                        .padding(6),
-                );
-            }
-
-            dialog_col = dialog_col.push(
-                Row::new()
-                    .spacing(8)
-                    .push(
-                        button(Text::new("Apply").size(12).center())
-                            .on_press(Message::InitializerApply(window_id))
-                            .style(button::primary)
-                            .padding(6),
-                    )
-                    .push(
-                        button(Text::new("Cancel").size(12).center())
-                            .on_press(Message::InitializerCancel(window_id))
-                            .style(button::secondary)
-                            .padding(6),
-                    ),
+        let mut dialog_col = Column::new()
+            .spacing(8)
+            .padding(12)
+            .push(Text::new(format!("Initializer: {port_label}")).size(14))
+            .push(
+                pick_list(init_types, selected, move |s: &str| {
+                    Message::InitializerTypeChanged(window_id, s.to_string())
+                })
+                .text_size(12),
             );
 
-            let dialog = container(container(dialog_col).width(280).style(|_theme: &Theme| {
-                container::Style {
+        if editor.init_type != "none" {
+            dialog_col = dialog_col.push(
+                text_input("JSON value (e.g. 42, \"hello\", true)", &editor.value_text)
+                    .on_input(move |v| Message::InitializerValueChanged(window_id, v))
+                    .size(12)
+                    .padding(6),
+            );
+        }
+
+        dialog_col = dialog_col.push(
+            Row::new()
+                .spacing(8)
+                .push(
+                    button(Text::new("Apply").size(12).center())
+                        .on_press(Message::InitializerApply(window_id))
+                        .style(button::primary)
+                        .padding(6),
+                )
+                .push(
+                    button(Text::new("Cancel").size(12).center())
+                        .on_press(Message::InitializerCancel(window_id))
+                        .style(button::secondary)
+                        .padding(6),
+                ),
+        );
+
+        container(
+            container(dialog_col)
+                .width(280)
+                .style(|_theme: &Theme| container::Style {
                     background: Some(iced::Background::Color(Color::from_rgb(0.15, 0.15, 0.15))),
                     border: iced::Border {
                         color: Color::from_rgb(0.4, 0.4, 0.4),
@@ -3130,55 +3309,54 @@ impl WindowState {
                         radius: 8.0.into(),
                     },
                     ..Default::default()
-                }
-            }))
-            .center(Fill);
+                }),
+        )
+        .center(Fill)
+        .into()
+    }
 
-            canvas_stack.push(dialog.into());
-        }
+    fn build_context_menu(
+        window_id: window::Id,
+        menu_pos: crate::window_state::MenuPosition,
+    ) -> Element<'static, Message> {
+        let menu = container(
+            Column::new()
+                .spacing(2)
+                .push(
+                    button(Text::new("+ New Sub-flow").size(13))
+                        .on_press(Message::NewSubFlow(window_id))
+                        .style(button::text)
+                        .padding([6, 16])
+                        .width(Fill),
+                )
+                .push(
+                    button(Text::new("+ New Function").size(13))
+                        .on_press(Message::NewFunction(window_id))
+                        .style(button::text)
+                        .padding([6, 16])
+                        .width(Fill),
+                ),
+        )
+        .style(|_theme: &Theme| container::Style {
+            background: Some(iced::Background::Color(Color::from_rgb(0.18, 0.18, 0.22))),
+            border: iced::Border {
+                color: Color::from_rgb(0.4, 0.4, 0.4),
+                width: 1.0,
+                radius: 6.0.into(),
+            },
+            ..Default::default()
+        })
+        .width(160)
+        .padding(4);
 
-        // Context menu overlay (right-click on empty canvas)
-        if let Some(menu_pos) = self.context_menu {
-            let menu = container(
-                Column::new()
-                    .spacing(2)
-                    .push(
-                        button(Text::new("+ New Sub-flow").size(13))
-                            .on_press(Message::NewSubFlow(window_id))
-                            .style(button::text)
-                            .padding([6, 16])
-                            .width(Fill),
-                    )
-                    .push(
-                        button(Text::new("+ New Function").size(13))
-                            .on_press(Message::NewFunction(window_id))
-                            .style(button::text)
-                            .padding([6, 16])
-                            .width(Fill),
-                    ),
-            )
-            .style(|_theme: &Theme| container::Style {
-                background: Some(iced::Background::Color(Color::from_rgb(0.18, 0.18, 0.22))),
-                border: iced::Border {
-                    color: Color::from_rgb(0.4, 0.4, 0.4),
-                    width: 1.0,
-                    radius: 6.0.into(),
-                },
-                ..Default::default()
-            })
-            .width(160)
-            .padding(4);
-
-            let positioned = container(menu).padding(iced::Padding {
+        container(menu)
+            .padding(iced::Padding {
                 top: menu_pos.y,
                 left: menu_pos.x,
                 right: 0.0,
                 bottom: 0.0,
-            });
-            canvas_stack.push(positioned.into());
-        }
-
-        stack(canvas_stack).into()
+            })
+            .into()
     }
 } // impl WindowState (view)
 

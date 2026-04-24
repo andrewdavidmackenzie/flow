@@ -213,58 +213,7 @@ impl LibraryTree {
 
                     if cat.expanded {
                         for func_url in &cat.function_urls {
-                            let func_name = func_name_from_url(func_url);
-                            let description =
-                                func_description_from_definitions(func_url, all_definitions);
-                            let source = func_url.to_string();
-
-                            let view_btn = button(text("\u{270E}").size(10))
-                                .on_press(LibraryMessage::ViewFunction(
-                                    source.clone(),
-                                    func_name.clone(),
-                                ))
-                                .style(button::text)
-                                .padding([1, 3]);
-
-                            let func_btn = button(text(func_name.clone()).size(11))
-                                .on_press(LibraryMessage::AddFunction(source, func_name))
-                                .style(button::text)
-                                .padding([2, 4]);
-
-                            let row = Row::new()
-                                .spacing(2)
-                                .align_y(iced::Alignment::Center)
-                                .push(view_btn)
-                                .push(func_btn);
-
-                            let entry_widget: Element<'_, LibraryMessage> = if description
-                                .is_empty()
-                            {
-                                row.into()
-                            } else {
-                                tooltip(row, text(description).size(14), tooltip::Position::Bottom)
-                                    .gap(2)
-                                    .style(|_theme: &iced::Theme| container::Style {
-                                        background: Some(iced::Background::Color(
-                                            iced::Color::from_rgb(0.12, 0.12, 0.12),
-                                        )),
-                                        border: iced::Border {
-                                            color: iced::Color::WHITE,
-                                            width: 1.0,
-                                            radius: 4.0.into(),
-                                        },
-                                        ..Default::default()
-                                    })
-                                    .into()
-                            };
-
-                            content =
-                                content.push(container(entry_widget).padding(iced::Padding {
-                                    top: 0.0,
-                                    right: 0.0,
-                                    bottom: 0.0,
-                                    left: 24.0,
-                                }));
+                            content = content.push(view_function_entry(func_url, all_definitions));
                         }
                     }
                 }
@@ -284,6 +233,62 @@ impl LibraryTree {
             })
             .into()
     }
+}
+
+fn view_function_entry<'a>(
+    func_url: &Url,
+    all_definitions: &'a HashMap<Url, Process>,
+) -> Element<'a, LibraryMessage> {
+    let func_name = func_name_from_url(func_url);
+    let description = func_description_from_definitions(func_url, all_definitions);
+    let source = func_url.to_string();
+
+    let view_btn = button(text("\u{270E}").size(10))
+        .on_press(LibraryMessage::ViewFunction(
+            source.clone(),
+            func_name.clone(),
+        ))
+        .style(button::text)
+        .padding([1, 3]);
+
+    let func_btn = button(text(func_name.clone()).size(11))
+        .on_press(LibraryMessage::AddFunction(source, func_name))
+        .style(button::text)
+        .padding([2, 4]);
+
+    let row = Row::new()
+        .spacing(2)
+        .align_y(iced::Alignment::Center)
+        .push(view_btn)
+        .push(func_btn);
+
+    let entry_widget: Element<'_, LibraryMessage> = if description.is_empty() {
+        row.into()
+    } else {
+        tooltip(row, text(description).size(14), tooltip::Position::Bottom)
+            .gap(2)
+            .style(|_theme: &iced::Theme| container::Style {
+                background: Some(iced::Background::Color(iced::Color::from_rgb(
+                    0.12, 0.12, 0.12,
+                ))),
+                border: iced::Border {
+                    color: iced::Color::WHITE,
+                    width: 1.0,
+                    radius: 4.0.into(),
+                },
+                ..Default::default()
+            })
+            .into()
+    };
+
+    container(entry_widget)
+        .padding(iced::Padding {
+            top: 0.0,
+            right: 0.0,
+            bottom: 0.0,
+            left: 24.0,
+        })
+        .into()
 }
 
 /// Extract a display name for a function from its URL.

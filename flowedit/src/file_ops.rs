@@ -380,40 +380,12 @@ pub(crate) fn save_flow_toml(flow: &FlowDefinition, path: &PathBuf) -> Result<()
         }
     }
 
-    // Flow-level inputs
     for input in &flow.inputs {
-        out.push_str("\n[[input]]\n");
-        let name = input.name();
-        if !name.is_empty() {
-            let _ = writeln!(out, "name = \"{name}\"");
-        }
-        let types = input.datatypes();
-        if types.len() == 1 {
-            if let Some(t) = types.first() {
-                let _ = writeln!(out, "type = \"{t}\"");
-            }
-        } else if types.len() > 1 {
-            let ts: Vec<String> = types.iter().map(|t| format!("\"{t}\"")).collect();
-            let _ = writeln!(out, "type = [{}]", ts.join(", "));
-        }
+        write_io_toml(&mut out, "input", input);
     }
 
-    // Flow-level outputs
     for output in &flow.outputs {
-        out.push_str("\n[[output]]\n");
-        let name = output.name();
-        if !name.is_empty() {
-            let _ = writeln!(out, "name = \"{name}\"");
-        }
-        let types = output.datatypes();
-        if types.len() == 1 {
-            if let Some(t) = types.first() {
-                let _ = writeln!(out, "type = \"{t}\"");
-            }
-        } else if types.len() > 1 {
-            let ts: Vec<String> = types.iter().map(|t| format!("\"{t}\"")).collect();
-            let _ = writeln!(out, "type = [{}]", ts.join(", "));
-        }
+        write_io_toml(&mut out, "output", output);
     }
 
     // Processes
@@ -460,6 +432,24 @@ pub(crate) fn save_flow_toml(flow: &FlowDefinition, path: &PathBuf) -> Result<()
     }
 
     std::fs::write(path, out).map_err(|e| format!("Could not write file: {e}"))
+}
+
+fn write_io_toml(out: &mut String, section: &str, io: &flowcore::model::io::IO) {
+    use flowcore::model::name::HasName;
+    let _ = writeln!(out, "\n[[{section}]]");
+    let name = io.name();
+    if !name.is_empty() {
+        let _ = writeln!(out, "name = \"{name}\"");
+    }
+    let types = io.datatypes();
+    if types.len() == 1 {
+        if let Some(t) = types.first() {
+            let _ = writeln!(out, "type = \"{t}\"");
+        }
+    } else if types.len() > 1 {
+        let ts: Vec<String> = types.iter().map(|t| format!("\"{t}\"")).collect();
+        let _ = writeln!(out, "type = [{}]", ts.join(", "));
+    }
 }
 
 /// Generate a unique alias for a new node, appending a numeric suffix if needed.
@@ -597,60 +587,73 @@ pub(crate) fn save_function_definition(viewer: &FunctionViewer) -> Result<(), St
     std::fs::write(&toml_path, &toml)
         .map_err(|e| format!("Could not write {}: {e}", toml_path.display()))?;
 
-    // 2. Generate skeleton .rs if it doesn't exist
-    let rs_path = dir.join(&func.source);
-    if !rs_path.exists() {
-        let input_count = func.inputs.len();
-        let input_bindings = (0..input_count).fold(String::new(), |mut acc, i| {
-            use std::fmt::Write;
-            let _ = writeln!(acc, "    let _input{i} = &inputs[{i}];");
-            acc
-        });
-        let skeleton = format!(
-            "use flowcore::{{RUN_AGAIN, RunAgain}};\n\
-             use flowcore::errors::*;\n\
-             use flowmacro::flow_function;\n\
-             use serde_json::Value;\n\
-             \n\
-             #[flow_function]\n\
-             fn _{name}(inputs: &[Value]) -> Result<(Option<Value>, RunAgain)> {{\n\
-             {input_bindings}\
-             \n    // TODO: implement function logic\n\
-             \n    Ok((None, RUN_AGAIN))\n\
-             }}\n",
-            name = func.name,
-        );
-        std::fs::write(&rs_path, &skeleton)
-            .map_err(|e| format!("Could not write {}: {e}", rs_path.display()))?;
-    }
-
-    // 3. Generate function.toml (Cargo manifest) if it doesn't exist
-    let cargo_path = dir.join("function.toml");
-    if !cargo_path.exists() {
-        let stem = func.source.strip_suffix(".rs").unwrap_or(&func.source);
-        let cargo = format!(
-            "[package]\n\
-             name = \"{name}\"\n\
-             version = \"0.1.0\"\n\
-             edition = \"2021\"\n\
-             \n\
-             [lib]\n\
-             name = \"{name}\"\n\
-             crate-type = [\"cdylib\"]\n\
-             path = \"{source}\"\n\
-             \n\
-             [dependencies]\n\
-             flowcore = {{version = \"0\"}}\n\
-             flowmacro = {{version = \"0\"}}\n\
-             serde_json = {{version = \"1.0\", default-features = false}}\n",
-            name = escape_toml_string(&func.name),
-            source = escape_toml_string(stem),
-        );
-        std::fs::write(&cargo_path, &cargo)
-            .map_err(|e| format!("Could not write {}: {e}", cargo_path.display()))?;
-    }
+    generate_skeleton_rs(dir, func)?;
+    generate_cargo_manifest(dir, func)?;
 
     Ok(())
+}
+
+fn generate_skeleton_rs(
+    dir: &Path,
+    func: &flowcore::model::function_definition::FunctionDefinition,
+) -> Result<(), String> {
+    let rs_path = dir.join(&func.source);
+    if rs_path.exists() {
+        return Ok(());
+    }
+    let input_count = func.inputs.len();
+    let input_bindings = (0..input_count).fold(String::new(), |mut acc, i| {
+        use std::fmt::Write;
+        let _ = writeln!(acc, "    let _input{i} = &inputs[{i}];");
+        acc
+    });
+    let skeleton = format!(
+        "use flowcore::{{RUN_AGAIN, RunAgain}};\n\
+         use flowcore::errors::*;\n\
+         use flowmacro::flow_function;\n\
+         use serde_json::Value;\n\
+         \n\
+         #[flow_function]\n\
+         fn _{name}(inputs: &[Value]) -> Result<(Option<Value>, RunAgain)> {{\n\
+         {input_bindings}\
+         \n    // TODO: implement function logic\n\
+         \n    Ok((None, RUN_AGAIN))\n\
+         }}\n",
+        name = func.name,
+    );
+    std::fs::write(&rs_path, &skeleton)
+        .map_err(|e| format!("Could not write {}: {e}", rs_path.display()))
+}
+
+fn generate_cargo_manifest(
+    dir: &Path,
+    func: &flowcore::model::function_definition::FunctionDefinition,
+) -> Result<(), String> {
+    let cargo_path = dir.join("function.toml");
+    if cargo_path.exists() {
+        return Ok(());
+    }
+    let stem = func.source.strip_suffix(".rs").unwrap_or(&func.source);
+    let cargo = format!(
+        "[package]\n\
+         name = \"{name}\"\n\
+         version = \"0.1.0\"\n\
+         edition = \"2021\"\n\
+         \n\
+         [lib]\n\
+         name = \"{name}\"\n\
+         crate-type = [\"cdylib\"]\n\
+         path = \"{source}\"\n\
+         \n\
+         [dependencies]\n\
+         flowcore = {{version = \"0\"}}\n\
+         flowmacro = {{version = \"0\"}}\n\
+         serde_json = {{version = \"1.0\", default-features = false}}\n",
+        name = escape_toml_string(&func.name),
+        source = escape_toml_string(stem),
+    );
+    std::fs::write(&cargo_path, &cargo)
+        .map_err(|e| format!("Could not write {}: {e}", cargo_path.display()))
 }
 
 /// Compute the path for the editor preferences file alongside the flow file.

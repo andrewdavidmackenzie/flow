@@ -502,6 +502,7 @@ mod test {
         /// * array/{type}  --> object (`is_array` = false) - values in Array will be serialized
         ///   and sent to input one by one
         #[test]
+        #[allow(clippy::too_many_lines)]
         fn valid_type_conversions() {
             let valid_type_conversions: Vec<(String, String, &str)> = vec![
                 // equal types are compatible (equality)
