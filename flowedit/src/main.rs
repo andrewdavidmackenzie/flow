@@ -622,13 +622,13 @@ impl FlowEdit {
                             history: EditHistory::default(),
                             auto_fit_pending: has_nodes,
                             auto_fit_enabled: true,
+                            flow_hierarchy: FlowHierarchy::from_flow_definition(&flow_def),
                             flow_definition: flow_def,
                             tooltip: None,
                             initializer_editor: None,
                             is_root: false,
                             context_menu: None,
                             show_metadata: false,
-                            flow_hierarchy: self.build_hierarchy(),
                             last_size: None,
                             last_position: None,
                         };
@@ -1747,13 +1747,13 @@ impl FlowEdit {
                         history: EditHistory::default(),
                         auto_fit_pending: has_nodes,
                         auto_fit_enabled: true,
+                        flow_hierarchy: FlowHierarchy::from_flow_definition(&flow_def),
                         flow_definition: flow_def,
                         tooltip: None,
                         initializer_editor: None,
                         is_root: false,
                         context_menu: None,
                         show_metadata: false,
-                        flow_hierarchy: self.build_hierarchy(),
                         last_size: None,
                         last_position: None,
                     };
@@ -1781,14 +1781,6 @@ impl FlowEdit {
         self.library_cache = lc;
         self.all_definitions = ad;
         self.library_tree = LibraryTree::from_cache(&self.library_cache, &self.all_definitions);
-    }
-
-    fn build_hierarchy(&self) -> FlowHierarchy {
-        self.root_window
-            .and_then(|id| self.windows.get(&id))
-            .map_or_else(FlowHierarchy::empty, |win| {
-                FlowHierarchy::from_flow_definition(&win.flow_definition)
-            })
     }
 
     #[allow(clippy::cast_precision_loss)]
@@ -1872,13 +1864,13 @@ impl FlowEdit {
                     history: EditHistory::default(),
                     auto_fit_pending: has_nodes,
                     auto_fit_enabled: true,
+                    flow_hierarchy: FlowHierarchy::from_flow_definition(&flow_def),
                     flow_definition: flow_def,
                     tooltip: None,
                     initializer_editor: None,
                     is_root: false,
                     context_menu: None,
                     show_metadata: false,
-                    flow_hierarchy: self.build_hierarchy(),
                     last_size: None,
                     last_position: None,
                 };
@@ -1946,13 +1938,13 @@ impl FlowEdit {
             history: EditHistory::default(),
             auto_fit_pending: false,
             auto_fit_enabled: false,
+            flow_hierarchy: FlowHierarchy::from_flow_definition(&func_flow_def),
             flow_definition: func_flow_def,
             tooltip: None,
             initializer_editor: None,
             is_root: false,
             context_menu: None,
             show_metadata: false,
-            flow_hierarchy: self.build_hierarchy(),
             last_size: None,
             last_position: None,
         };
@@ -2065,13 +2057,13 @@ impl FlowEdit {
             history: EditHistory::default(),
             auto_fit_pending: false,
             auto_fit_enabled: true,
+            flow_hierarchy: FlowHierarchy::from_flow_definition(&flow_def),
             flow_definition: flow_def,
             tooltip: None,
             initializer_editor: None,
             is_root: false,
             context_menu: None,
             show_metadata: false,
-            flow_hierarchy: self.build_hierarchy(),
             last_size: None,
             last_position: None,
         };
@@ -2185,13 +2177,13 @@ impl FlowEdit {
             history: EditHistory::default(),
             auto_fit_pending: false,
             auto_fit_enabled: false,
+            flow_hierarchy: FlowHierarchy::from_flow_definition(&func_flow_def),
             flow_definition: func_flow_def,
             tooltip: None,
             initializer_editor: None,
             is_root: false,
             context_menu: None,
             show_metadata: false,
-            flow_hierarchy: self.build_hierarchy(),
             last_size: None,
             last_position: None,
         };
