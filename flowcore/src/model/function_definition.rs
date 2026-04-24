@@ -51,7 +51,7 @@ pub struct FunctionDefinition {
     pub alias: Name,
     /// `source_url` is where this function definition was read from
     #[serde(skip_deserializing, default = "FunctionDefinition::default_url")]
-    pub source_url: Url,
+    pub(crate) source_url: Url,
     /// the `route` in the flow hierarchy where this function is located
     #[serde(skip_deserializing)]
     pub route: Route,
@@ -297,9 +297,9 @@ impl FunctionDefinition {
         &self.source_url
     }
 
-    // Set the source url where this function is defined
-    fn set_source_url(&mut self, source: &Url) {
-        self.source_url = source.clone();
+    /// Set the source url where this function is defined
+    pub fn set_source_url(&mut self, source_url: &Url) {
+        self.source_url = source_url.clone();
     }
 
     // Set the alias of this function

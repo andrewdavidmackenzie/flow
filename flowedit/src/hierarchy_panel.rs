@@ -153,7 +153,7 @@ impl FlowHierarchy {
                         col = col.push(view_leaf(
                             &alias,
                             &pref.source,
-                            func.source_url.to_file_path().ok(),
+                            func.get_source_url().to_file_path().ok(),
                             is_library,
                             &child_path,
                         ));

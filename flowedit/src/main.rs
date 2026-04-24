@@ -1917,7 +1917,7 @@ impl FlowEdit {
         let read_only = node_source.starts_with("lib://") || node_source.starts_with("context://");
         let mut func_def = func.clone();
         if let Ok(url) = Url::from_file_path(toml_path) {
-            func_def.source_url = url;
+            func_def.set_source_url(&url);
         }
         let viewer = FunctionViewer {
             func_def: func_def.clone(),
@@ -2156,7 +2156,7 @@ impl FlowEdit {
         func_def.name.clone_from(&func_name);
         func_def.source.clone_from(&rs_filename);
         if let Ok(url) = Url::from_file_path(&path) {
-            func_def.source_url = url;
+            func_def.set_source_url(&url);
         }
         let viewer = FunctionViewer {
             func_def: func_def.clone(),
