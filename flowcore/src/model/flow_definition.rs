@@ -290,15 +290,20 @@ impl FlowDefinition {
         let alias = *segments.first()?;
         let process = self.subprocesses.get(alias)?;
 
-        match (process, segments.get(1..)) {
-            (Process::FlowProcess(sub_flow), Some(rest)) if !rest.is_empty() => {
+        let rest = segments.get(1..).unwrap_or_default();
+        if rest.is_empty() {
+            return Some(process);
+        }
+
+        match process {
+            Process::FlowProcess(sub_flow) => {
                 let remaining = Route::from(rest.join("/"));
                 let mut child_route = self.route.clone();
                 child_route.extend(&Route::from(alias));
                 child_route.extend(&remaining);
                 sub_flow.process_from_route(&child_route)
             }
-            _ => Some(process),
+            Process::FunctionProcess(_) => None,
         }
     }
 

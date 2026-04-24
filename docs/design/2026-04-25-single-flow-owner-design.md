@@ -74,7 +74,7 @@ added to flowcore, moving logic currently in flowedit's `file_ops.rs`.
 
 ### Data Flow Diagram
 
-```
+```text
 Window A (Route: /root)        Window B (Route: /root/parser)
      |                              |
      | edit msg + Route             | edit msg + Route
@@ -95,8 +95,8 @@ Window A (Route: /root)        Window B (Route: /root/parser)
         |                           |
         v                           v
    Window A                    Window B
-   process_from_route(         process_from_route(
-     &root, /root)               &root, /root/parser)
+   uses &root_flow             process_from_route(
+   directly (root window)        &root, /root/parser)
    -> render root flow         -> render sub-flow
 ```
 

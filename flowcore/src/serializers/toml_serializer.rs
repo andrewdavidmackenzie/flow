@@ -34,7 +34,7 @@ fn escape_toml_string(s: &str) -> String {
 pub fn value_to_toml(v: &serde_json::Value) -> String {
     match v {
         serde_json::Value::String(s) => {
-            format!("\"{}\"", s.replace('\\', "\\\\").replace('"', "\\\""))
+            format!("\"{}\"", escape_toml_string(s))
         }
         serde_json::Value::Number(n) => n.to_string(),
         serde_json::Value::Bool(b) => b.to_string(),
@@ -199,31 +199,11 @@ impl FunctionDefinition {
         }
 
         for input in &self.inputs {
-            let dtype = input
-                .datatypes()
-                .first()
-                .map(ToString::to_string)
-                .unwrap_or_default();
-            let name = input.name();
-            if name.is_empty() || name == "input" || name == "name" {
-                let _ = write!(out, "\n[[input]]\ntype = \"{dtype}\"\n");
-            } else {
-                let _ = write!(out, "\n[[input]]\nname = \"{name}\"\ntype = \"{dtype}\"\n");
-            }
+            write_io_toml(&mut out, "input", input);
         }
 
         for output in &self.outputs {
-            let dtype = output
-                .datatypes()
-                .first()
-                .map(ToString::to_string)
-                .unwrap_or_default();
-            let name = output.name();
-            if name.is_empty() || name == "output" || name == "name" {
-                let _ = write!(out, "\n[[output]]\ntype = \"{dtype}\"\n");
-            } else {
-                let _ = write!(out, "\n[[output]]\nname = \"{name}\"\ntype = \"{dtype}\"\n");
-            }
+            write_io_toml(&mut out, "output", output);
         }
 
         out
