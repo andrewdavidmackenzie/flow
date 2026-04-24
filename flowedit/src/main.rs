@@ -67,17 +67,17 @@ fn next_unique_io_name(prefix: &str, existing: &[IO]) -> String {
 }
 
 impl WindowState {
-    fn rename_flow_input(&mut self, idx: usize, name: String) {
+    fn rename_flow_input(&mut self, idx: usize, name: &str) {
         let duplicate = self
             .flow_definition
             .inputs
             .iter()
             .enumerate()
-            .any(|(i, io)| i != idx && io.name() == &name);
+            .any(|(i, io)| i != idx && io.name() == name);
         if !duplicate {
             if let Some(io) = self.flow_definition.inputs.get_mut(idx) {
                 let old_name = io.name().clone();
-                io.set_name(name.clone());
+                io.set_name(name.into());
                 let old_route = format!("input/{old_name}");
                 let new_route = format!("input/{name}");
                 for conn in &mut self.flow_definition.connections {
@@ -91,17 +91,17 @@ impl WindowState {
         }
     }
 
-    fn rename_flow_output(&mut self, idx: usize, name: String) {
+    fn rename_flow_output(&mut self, idx: usize, name: &str) {
         let duplicate = self
             .flow_definition
             .outputs
             .iter()
             .enumerate()
-            .any(|(i, io)| i != idx && io.name() == &name);
+            .any(|(i, io)| i != idx && io.name() == name);
         if !duplicate {
             if let Some(io) = self.flow_definition.outputs.get_mut(idx) {
                 let old_name = io.name().clone();
-                io.set_name(name.clone());
+                io.set_name(name.into());
                 let old_route_str = format!("output/{old_name}");
                 let new_route_str = format!("output/{name}");
                 for conn in &mut self.flow_definition.connections {
@@ -202,7 +202,7 @@ impl WindowState {
                     self.canvas_state.request_redraw();
                 }
             }
-            FlowEditMessage::InputNameChanged(idx, name) => self.rename_flow_input(idx, name),
+            FlowEditMessage::InputNameChanged(idx, name) => self.rename_flow_input(idx, &name),
             FlowEditMessage::InputTypeChanged(idx, dtype) => {
                 if let Some(io) = self.flow_definition.inputs.get_mut(idx) {
                     io.set_datatypes(&[DataType::from(dtype)]);
@@ -210,7 +210,7 @@ impl WindowState {
                 self.history.mark_modified();
                 self.canvas_state.request_redraw();
             }
-            FlowEditMessage::OutputNameChanged(idx, name) => self.rename_flow_output(idx, name),
+            FlowEditMessage::OutputNameChanged(idx, name) => self.rename_flow_output(idx, &name),
             FlowEditMessage::OutputTypeChanged(idx, dtype) => {
                 if let Some(io) = self.flow_definition.outputs.get_mut(idx) {
                     io.set_datatypes(&[DataType::from(dtype)]);
@@ -1399,10 +1399,10 @@ impl FlowEdit {
         container(io_box).padding([6, 12]).width(Fill).into()
     }
 
-    fn view_function_definition_tab<'a>(
+    fn view_function_definition_tab(
         window_id: window::Id,
-        viewer: &'a FunctionViewer,
-    ) -> Element<'a, Message> {
+        viewer: &FunctionViewer,
+    ) -> Element<'_, Message> {
         let input_color = Color::from_rgb(0.4, 0.8, 1.0);
         let output_color = Color::from_rgb(1.0, 0.6, 0.3);
         let editable = !viewer.read_only;
@@ -1508,12 +1508,12 @@ impl FlowEdit {
         container(func_box).center(Fill).padding(40).into()
     }
 
-    fn view_function_input_ports<'a>(
+    fn view_function_input_ports(
         window_id: window::Id,
-        viewer: &'a FunctionViewer,
+        viewer: &FunctionViewer,
         input_color: Color,
         editable: bool,
-    ) -> Column<'a, Message> {
+    ) -> Column<'_, Message> {
         let mut input_col = Column::new().spacing(6);
         for (i, io) in viewer.func_def.inputs.iter().enumerate() {
             let port_name = io.name().clone();
@@ -1565,12 +1565,12 @@ impl FlowEdit {
         input_col
     }
 
-    fn view_function_output_ports<'a>(
+    fn view_function_output_ports(
         window_id: window::Id,
-        viewer: &'a FunctionViewer,
+        viewer: &FunctionViewer,
         output_color: Color,
         editable: bool,
-    ) -> Column<'a, Message> {
+    ) -> Column<'_, Message> {
         let mut output_col = Column::new().spacing(6).align_x(iced::Alignment::End);
         for (i, io) in viewer.func_def.outputs.iter().enumerate() {
             let port_name = io.name().clone();
@@ -1991,7 +1991,7 @@ impl FlowEdit {
             func_flow_def.source_url = url;
         }
         let child = WindowState {
-            kind: WindowKind::FunctionViewer(viewer),
+            kind: WindowKind::FunctionViewer(Box::new(viewer)),
 
             canvas_state: FlowCanvasState::default(),
             status: format!("Function: {func_name}"),
@@ -2230,7 +2230,7 @@ impl FlowEdit {
             func_flow_def.source_url = url;
         }
         let mut child = WindowState {
-            kind: WindowKind::FunctionViewer(viewer),
+            kind: WindowKind::FunctionViewer(Box::new(viewer)),
 
             canvas_state: FlowCanvasState::default(),
             status: String::from("New function — add ports and Save"),
@@ -2342,7 +2342,7 @@ impl FlowEdit {
         }
     }
 
-    fn handle_func_description_changed(&mut self, win_id: window::Id, new_desc: String) {
+    fn handle_func_description_changed(&mut self, win_id: window::Id, new_desc: &str) {
         let parent_info = self.windows.get(&win_id).and_then(|win| {
             if let WindowKind::FunctionViewer(ref viewer) = win.kind {
                 viewer
@@ -2354,7 +2354,7 @@ impl FlowEdit {
         });
         if let Some(win) = self.windows.get_mut(&win_id) {
             if let WindowKind::FunctionViewer(ref mut viewer) = win.kind {
-                viewer.func_def.description.clone_from(&new_desc);
+                viewer.func_def.description = new_desc.to_string();
             }
             win.history.mark_modified();
         }
@@ -2371,10 +2371,10 @@ impl FlowEdit {
                         {
                             match proc {
                                 Process::FunctionProcess(ref mut f) => {
-                                    f.description.clone_from(&new_desc);
+                                    f.description = new_desc.to_string();
                                 }
                                 Process::FlowProcess(ref mut f) => {
-                                    f.description.clone_from(&new_desc);
+                                    f.description = new_desc.to_string();
                                 }
                             }
                         }
@@ -2432,7 +2432,7 @@ impl FlowEdit {
         &mut self,
         win_id: window::Id,
         idx: usize,
-        name: String,
+        name: &str,
         is_input: bool,
     ) {
         let old_name = self.windows.get(&win_id).and_then(|win| {
@@ -2455,14 +2455,14 @@ impl FlowEdit {
                     &mut v.func_def.outputs
                 };
                 if let Some(io) = ports.get_mut(idx) {
-                    io.set_name(name.clone());
+                    io.set_name(name.into());
                 }
             }
             win.history.mark_modified();
         }
         Self::propagate_function_ports(&mut self.windows, win_id);
         if let Some(old) = old_name {
-            Self::rename_parent_connections_port(&mut self.windows, win_id, &old, &name, is_input);
+            Self::rename_parent_connections_port(&mut self.windows, win_id, &old, name, is_input);
         }
     }
 
@@ -2566,7 +2566,7 @@ impl FlowEdit {
                 }
             }
             FunctionEditMessage::DescriptionChanged(new_desc) => {
-                self.handle_func_description_changed(win_id, new_desc);
+                self.handle_func_description_changed(win_id, &new_desc);
             }
             FunctionEditMessage::BrowseSource => self.handle_func_browse_source(win_id),
             FunctionEditMessage::AddInput => self.handle_func_add_io(win_id, true),
@@ -2578,13 +2578,13 @@ impl FlowEdit {
                 self.handle_func_delete_io(win_id, idx, false);
             }
             FunctionEditMessage::InputNameChanged(idx, name) => {
-                self.handle_func_io_name_changed(win_id, idx, name, true);
+                self.handle_func_io_name_changed(win_id, idx, &name, true);
             }
             FunctionEditMessage::InputTypeChanged(idx, dtype) => {
                 self.handle_func_io_type_changed(win_id, idx, dtype, true);
             }
             FunctionEditMessage::OutputNameChanged(idx, name) => {
-                self.handle_func_io_name_changed(win_id, idx, name, false);
+                self.handle_func_io_name_changed(win_id, idx, &name, false);
             }
             FunctionEditMessage::OutputTypeChanged(idx, dtype) => {
                 self.handle_func_io_type_changed(win_id, idx, dtype, false);

@@ -1315,12 +1315,12 @@ fn compute_flow_io_positions(
         (150.0, 350.0, 100.0, 100.0 + default_h)
     } else {
         (
-            nodes.iter().map(|n| n.x()).fold(f32::MAX, f32::min),
+            nodes.iter().map(NodeLayout::x).fold(f32::MAX, f32::min),
             nodes
                 .iter()
                 .map(|n| n.x() + n.width())
                 .fold(f32::MIN, f32::max),
-            nodes.iter().map(|n| n.y()).fold(f32::MAX, f32::min),
+            nodes.iter().map(NodeLayout::y).fold(f32::MAX, f32::min),
             nodes
                 .iter()
                 .map(|n| n.y() + n.height())
@@ -1868,7 +1868,13 @@ fn handle_left_release(
     offset: Point,
 ) -> Option<canvas::Action<CanvasMessage>> {
     if let Some(connecting) = state.connecting.take() {
-        return finish_connecting(canvas, &connecting, cursor_position, zoom, offset);
+        return Some(finish_connecting(
+            canvas,
+            &connecting,
+            cursor_position,
+            zoom,
+            offset,
+        ));
     }
     if let Some(resize) = state.resizing.take() {
         if let Some(node) = canvas.nodes.get(resize.node_index) {
@@ -1913,7 +1919,7 @@ fn finish_connecting(
     cursor_position: Point,
     zoom: f32,
     offset: Point,
-) -> Option<canvas::Action<CanvasMessage>> {
+) -> canvas::Action<CanvasMessage> {
     if let Some((target_idx, target_port, target_is_output)) =
         hit_test_port(&canvas.nodes, cursor_position, zoom, offset)
     {
@@ -1948,20 +1954,18 @@ fn finish_connecting(
                             connecting.from_port.clone(),
                         )
                     };
-                    return Some(
-                        canvas::Action::publish(CanvasMessage::ConnectionCreated {
-                            from_node,
-                            from_port,
-                            to_node,
-                            to_port,
-                        })
-                        .and_capture(),
-                    );
+                    return canvas::Action::publish(CanvasMessage::ConnectionCreated {
+                        from_node,
+                        from_port,
+                        to_node,
+                        to_port,
+                    })
+                    .and_capture();
                 }
             }
         }
     }
-    Some(canvas::Action::request_redraw().and_capture())
+    canvas::Action::request_redraw().and_capture()
 }
 
 fn handle_scroll(
@@ -2512,12 +2516,12 @@ fn flow_io_bounding_box(
         (150.0, 350.0, 100.0, 100.0 + default_h)
     } else {
         (
-            nodes.iter().map(|n| n.x()).fold(f32::MAX, f32::min),
+            nodes.iter().map(NodeLayout::x).fold(f32::MAX, f32::min),
             nodes
                 .iter()
                 .map(|n| n.x() + n.width())
                 .fold(f32::MIN, f32::max),
-            nodes.iter().map(|n| n.y()).fold(f32::MAX, f32::min),
+            nodes.iter().map(NodeLayout::y).fold(f32::MAX, f32::min),
             nodes
                 .iter()
                 .map(|n| n.y() + n.height())

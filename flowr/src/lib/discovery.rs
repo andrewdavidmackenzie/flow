@@ -19,6 +19,10 @@ const DEFAULT_DISCOVERY_TIMEOUT: Duration = Duration::from_secs(30);
 ///
 /// The returned `ServiceDaemon` must be kept alive by the caller — the service is
 /// unregistered when the daemon is dropped.
+///
+/// # Errors
+///
+/// Returns an error if the mDNS daemon or service registration fails.
 pub fn enable_service_discovery(name: &str, service_port: u16) -> Result<ServiceDaemon> {
     let mdns = ServiceDaemon::new().map_err(|e| format!("Could not create mDNS daemon: {e}"))?;
 
@@ -70,7 +74,9 @@ pub fn discover_service(name: &str) -> Result<String> {
             ));
         }
 
-        if let Ok(ServiceEvent::ServiceResolved(info)) = receiver.recv_timeout(Duration::from_millis(500)) {
+        if let Ok(ServiceEvent::ServiceResolved(info)) =
+            receiver.recv_timeout(Duration::from_millis(500))
+        {
             let instance = info
                 .get_fullname()
                 .strip_suffix(&full_name_suffix)

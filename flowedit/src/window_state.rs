@@ -64,10 +64,11 @@ impl FunctionViewer {
 /// What kind of content a window displays.
 pub(crate) enum WindowKind {
     FlowEditor,
-    FunctionViewer(FunctionViewer),
+    FunctionViewer(Box<FunctionViewer>),
 }
 
 /// Per-window state for the flow editor.
+#[allow(clippy::struct_excessive_bools)]
 pub(crate) struct WindowState {
     /// What this window displays
     pub(crate) kind: WindowKind,
