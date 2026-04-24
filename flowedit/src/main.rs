@@ -157,6 +157,7 @@ impl WindowState {
                 self.flow_definition.inputs.push(io);
                 self.history.mark_modified();
                 self.canvas_state.request_redraw();
+                self.trigger_auto_fit_if_enabled();
             }
             FlowEditMessage::AddOutput => {
                 let name = next_unique_io_name("output", &self.flow_definition.outputs);
@@ -165,6 +166,7 @@ impl WindowState {
                 self.flow_definition.outputs.push(io);
                 self.history.mark_modified();
                 self.canvas_state.request_redraw();
+                self.trigger_auto_fit_if_enabled();
             }
             FlowEditMessage::DeleteInput(idx) => {
                 if let Some(io) = self.flow_definition.inputs.get(idx) {
@@ -176,6 +178,7 @@ impl WindowState {
                     });
                     self.history.mark_modified();
                     self.canvas_state.request_redraw();
+                    self.trigger_auto_fit_if_enabled();
                 }
             }
             FlowEditMessage::DeleteOutput(idx) => {
@@ -200,6 +203,7 @@ impl WindowState {
                         .retain(|c| !c.to().is_empty());
                     self.history.mark_modified();
                     self.canvas_state.request_redraw();
+                    self.trigger_auto_fit_if_enabled();
                 }
             }
             FlowEditMessage::InputNameChanged(idx, name) => self.rename_flow_input(idx, &name),
@@ -209,6 +213,7 @@ impl WindowState {
                 }
                 self.history.mark_modified();
                 self.canvas_state.request_redraw();
+                self.trigger_auto_fit_if_enabled();
             }
             FlowEditMessage::OutputNameChanged(idx, name) => self.rename_flow_output(idx, &name),
             FlowEditMessage::OutputTypeChanged(idx, dtype) => {
@@ -217,6 +222,7 @@ impl WindowState {
                 }
                 self.history.mark_modified();
                 self.canvas_state.request_redraw();
+                self.trigger_auto_fit_if_enabled();
             }
         }
     }
@@ -2192,7 +2198,7 @@ impl FlowEdit {
 
             win.flow_definition.process_refs.push(ProcessReference {
                 alias: alias.clone(),
-                source,
+                source: source.clone(),
                 initializations: std::collections::BTreeMap::new(),
                 x: Some(x),
                 y: Some(y),
@@ -2206,7 +2212,8 @@ impl FlowEdit {
         }
 
         let (new_id, open_task) = window::open(self.child_window_settings(700.0, 500.0));
-        let viewer = Self::build_new_function_viewer(&func_name, &rs_filename, &path, target_id);
+        let viewer =
+            Self::build_new_function_viewer(&func_name, &rs_filename, &source, &path, target_id);
 
         let mut func_flow_def = FlowDefinition {
             name: func_name,
@@ -2548,6 +2555,7 @@ impl FlowEdit {
     fn build_new_function_viewer(
         func_name: &str,
         rs_filename: &str,
+        node_source: &str,
         path: &Path,
         parent_id: window::Id,
     ) -> FunctionViewer {
@@ -2563,7 +2571,7 @@ impl FlowEdit {
             docs_content: None,
             active_tab: 0,
             parent_window: Some(parent_id),
-            node_source: rs_filename.into(),
+            node_source: node_source.into(),
             read_only: false,
         }
     }

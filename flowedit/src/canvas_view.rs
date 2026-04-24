@@ -1164,11 +1164,21 @@ fn content_extents(
     if has_flow_io {
         let (box_x, box_y, box_w, box_h, _, _) =
             flow_io_bounding_box(nodes, flow_inputs, flow_outputs);
-        let port_label_margin = 60.0;
+        let max_input_label = flow_inputs
+            .iter()
+            .map(|io| io.name().len())
+            .max()
+            .unwrap_or(0);
+        let max_output_label = flow_outputs
+            .iter()
+            .map(|io| io.name().len())
+            .max()
+            .unwrap_or(0);
+        let label_margin = max_input_label.max(max_output_label) as f32 * PORT_FONT_SIZE + 20.0;
         (
-            box_x - port_label_margin,
+            box_x - label_margin,
             box_y,
-            box_x + box_w + port_label_margin,
+            box_x + box_w + label_margin,
             box_y + box_h,
         )
     } else {
@@ -3402,6 +3412,7 @@ impl WindowState {
 #[allow(clippy::indexing_slicing)]
 mod test {
     use super::*;
+    use flowcore::model::datatype::DataType;
     use flowcore::model::flow_definition::FlowDefinition;
     use flowcore::model::function_definition::FunctionDefinition;
     use flowcore::model::route::Route;
@@ -3947,5 +3958,70 @@ mod test {
         assert_ne!(ctx.fill_color(), prov.fill_color());
         assert_ne!(ctx.fill_color(), flow.fill_color());
         assert_ne!(prov.fill_color(), flow.fill_color());
+    }
+
+    #[test]
+    fn auto_fit_empty_resets() {
+        let mut state = FlowCanvasState::default();
+        state.auto_fit(&[], &[], &[], false, Size::new(800.0, 600.0));
+        assert!((state.zoom - 1.0).abs() < 0.01);
+        assert!((state.scroll_offset.x).abs() < 0.01);
+    }
+
+    #[test]
+    fn auto_fit_single_node() {
+        let mut state = FlowCanvasState::default();
+        let node = test_node("n", "", None);
+        state.auto_fit(&[node], &[], &[], false, Size::new(800.0, 600.0));
+        assert!(state.zoom > 0.0);
+        assert!(state.zoom <= MAX_ZOOM);
+    }
+
+    #[test]
+    fn auto_fit_with_flow_io() {
+        let mut state = FlowCanvasState::default();
+        let node = test_node("n", "", None);
+        let input = IO::new_named(vec![DataType::from("string")], Route::default(), "in0");
+        let output = IO::new_named(vec![DataType::from("string")], Route::default(), "out0");
+        state.auto_fit(&[node], &[input], &[output], true, Size::new(800.0, 600.0));
+        assert!(state.zoom > 0.0);
+    }
+
+    #[test]
+    fn content_extents_nodes_only() {
+        let node = test_node("n", "", None);
+        let (min_x, min_y, max_x, max_y) = content_extents(&[node], &[], &[], false);
+        assert!(min_x <= 100.0);
+        assert!(min_y <= 100.0);
+        assert!(max_x >= 280.0);
+        assert!(max_y >= 220.0);
+    }
+
+    #[test]
+    fn content_extents_with_flow_io() {
+        let node = test_node("n", "", None);
+        let input = IO::new_named(vec![DataType::from("string")], Route::default(), "input0");
+        let (min_x, _, max_x, _) = content_extents(&[node], &[input], &[], true);
+        assert!(max_x - min_x > 280.0);
+    }
+
+    #[test]
+    fn trigger_auto_fit_when_enabled() {
+        let mut win = WindowState {
+            auto_fit_enabled: true,
+            ..Default::default()
+        };
+        win.trigger_auto_fit_if_enabled();
+        assert!(win.auto_fit_pending);
+    }
+
+    #[test]
+    fn trigger_auto_fit_when_disabled() {
+        let mut win = WindowState {
+            auto_fit_enabled: false,
+            ..Default::default()
+        };
+        win.trigger_auto_fit_if_enabled();
+        assert!(!win.auto_fit_pending);
     }
 }
