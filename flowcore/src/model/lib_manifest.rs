@@ -28,7 +28,7 @@ pub const DEFAULT_LIB_RUST_MANIFEST_FILENAME: &str = "manifest.rs";
 #[serde(untagged)]
 /// `ImplementationLocator` describes where an implementation can be located.
 pub enum ImplementationLocator {
-    #[serde(skip_deserializing, skip_serializing)]
+    #[serde(skip)]
     /// A `Native` - A reference to a trait object statically linked with the library
     Native(Arc<dyn Implementation>),
     /// A path indicating where the implementation file is located within the Library directory

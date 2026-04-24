@@ -47,31 +47,31 @@ pub struct FunctionDefinition {
     pub outputs: IOSet,
     /// As a function can be used multiple times in a single flow, the repeated instances must
     /// be referred to using an alias to disambiguate which instance is being referred to
-    #[serde(skip_deserializing)]
+    #[serde(skip)]
     pub alias: Name,
     /// `source_url` is where this function definition was read from
-    #[serde(skip_deserializing, default = "FunctionDefinition::default_url")]
+    #[serde(skip, default = "FunctionDefinition::default_url")]
     pub(crate) source_url: Url,
     /// the `route` in the flow hierarchy where this function is located
-    #[serde(skip_deserializing)]
+    #[serde(skip)]
     pub route: Route,
     /// Implementation is the relative path from the lib root to the compiled wasm implementation
-    #[serde(skip_deserializing)]
+    #[serde(skip)]
     pub implementation: String,
     /// Is the function being used part of a library and where is it found
-    #[serde(skip_deserializing)]
+    #[serde(skip)]
     pub lib_reference: Option<Url>,
     /// Is the function a context function and where is it found
-    #[serde(skip_deserializing)]
+    #[serde(skip)]
     pub context_reference: Option<Url>,
     /// The output connections from this function to other processes (functions or flows)
-    #[serde(skip_deserializing)]
+    #[serde(skip)]
     pub output_connections: Vec<OutputConnection>,
     /// A unique `id` assigned to the function as the flow is parsed hierarchically
-    #[serde(skip_deserializing)]
+    #[serde(skip)]
     pub(crate) function_id: usize,
     /// the `id` of the `FlowDefinition` that this `FunctionDefinition` lies within in the hierarchy
-    #[serde(skip_deserializing)]
+    #[serde(skip)]
     pub(crate) flow_id: usize,
 }
 
@@ -678,6 +678,68 @@ mod test {
         assert_eq!(
             *output1.route(),
             Route::from("/flow/test_alias/other_output")
+        );
+    }
+
+    #[test]
+    fn runtime_fields_not_serialized() {
+        let mut func = FunctionDefinition {
+            name: "test".into(),
+            source: "test.rs".into(),
+            ..FunctionDefinition::default()
+        };
+        func.alias = "my_alias".into();
+        func.set_source_url(&Url::parse("file:///tmp/test.toml").expect("valid url"));
+        func.route = Route::from("/flow/my_alias");
+        func.implementation = "test.wasm".into();
+        func.lib_reference = Some(Url::parse("lib://testlib").expect("valid url"));
+        func.context_reference = Some(Url::parse("context://stdio").expect("valid url"));
+        func.set_id(42);
+
+        let serialized = toml::to_string(&func).expect("serialization failed");
+        assert!(
+            !serialized.contains("alias"),
+            "alias should not be serialized"
+        );
+        assert!(
+            !serialized.contains("source_url"),
+            "source_url should not be serialized"
+        );
+        assert!(
+            !serialized.contains("route"),
+            "route should not be serialized"
+        );
+        assert!(
+            !serialized.contains("implementation"),
+            "implementation should not be serialized"
+        );
+        assert!(
+            !serialized.contains("lib_reference"),
+            "lib_reference should not be serialized"
+        );
+        assert!(
+            !serialized.contains("context_reference"),
+            "context_reference should not be serialized"
+        );
+        assert!(
+            !serialized.contains("output_connections"),
+            "output_connections should not be serialized"
+        );
+        assert!(
+            !serialized.contains("function_id"),
+            "function_id should not be serialized"
+        );
+        assert!(
+            !serialized.contains("flow_id"),
+            "flow_id should not be serialized"
+        );
+        assert!(
+            serialized.contains("function = \"test\""),
+            "name should be serialized"
+        );
+        assert!(
+            serialized.contains("source = \"test.rs\""),
+            "source should be serialized"
         );
     }
 }
