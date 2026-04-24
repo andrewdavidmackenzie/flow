@@ -941,7 +941,7 @@ impl FlowEdit {
 
         let hierarchy_panel = win
             .flow_hierarchy
-            .view()
+            .view(&win.flow_definition)
             .map(move |msg| Message::Hierarchy(window_id, msg));
 
         let library_panel = self
