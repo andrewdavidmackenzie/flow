@@ -322,7 +322,6 @@ fn quadratic_bezier_pt(p0: Point, p1: Point, p2: Point, t: f32) -> Point {
     )
 }
 
-/// Evaluate a cubic bezier curve at parameter `t` (0.0..=1.0).
 /// Compute flow I/O port world positions (same layout as `draw_flow_io_ports`).
 fn compute_flow_io_positions(
     nodes: &[NodeLayout],
@@ -397,6 +396,7 @@ fn distance_to_segment_sq(p: Point, a: Point, b: Point) -> f32 {
     dx * dx + dy * dy
 }
 
+/// Evaluate a cubic bezier curve at parameter `t` (0.0..=1.0).
 fn cubic_bezier(p0: Point, p1: Point, p2: Point, p3: Point, t: f32) -> Point {
     let u = 1.0 - t;
     let uu = u * u;

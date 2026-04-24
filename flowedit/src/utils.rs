@@ -45,7 +45,9 @@ pub(crate) fn connection_references_node(conn: &Connection, alias: &str) -> bool
 /// Format a [`serde_json::Value`] for compact display
 pub(crate) fn format_value(v: &serde_json::Value) -> String {
     match v {
-        serde_json::Value::String(s) => format!("\"{s}\""),
+        serde_json::Value::String(s) => {
+            serde_json::to_string(s).unwrap_or_else(|_| format!("\"{s}\""))
+        }
         serde_json::Value::Number(n) => n.to_string(),
         serde_json::Value::Bool(b) => b.to_string(),
         serde_json::Value::Null => "null".to_string(),

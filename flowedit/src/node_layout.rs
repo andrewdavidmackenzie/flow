@@ -358,14 +358,17 @@ fn compute_topological_layout(
         outgoing.entry(alias.clone()).or_default();
     }
 
+    let alias_set: std::collections::HashSet<&str> = aliases.iter().map(String::as_str).collect();
     for conn in connections {
         let from_route = conn.from().to_string();
         let (from_node, _) = split_route(&from_route);
+        if !alias_set.contains(from_node.as_str()) {
+            continue;
+        }
         for to_route in conn.to() {
             let to_str = to_route.to_string();
             let (to_node, _) = split_route(&to_str);
-            if from_node != to_node {
-                // Skip self-loops for layout purposes
+            if from_node != to_node && alias_set.contains(to_node.as_str()) {
                 outgoing
                     .entry(from_node.clone())
                     .or_default()
