@@ -225,9 +225,9 @@ mod test {
     use std::path::Path;
 
     use super::*;
-    use crate::canvas_view::FlowCanvasState;
     use crate::hierarchy_panel::FlowHierarchy;
     use crate::history::EditHistory;
+    use crate::window_state::FlowCanvasState;
     use crate::WindowKind;
 
     fn test_win_state() -> WindowState {

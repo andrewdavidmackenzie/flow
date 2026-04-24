@@ -7,8 +7,9 @@ use std::path::{Path, PathBuf};
 use simpath::Simpath;
 use url::Url;
 
-use crate::canvas_view::{derive_short_name, FlowCanvasState};
 use crate::history::EditHistory;
+use crate::utils::derive_short_name;
+use crate::window_state::FlowCanvasState;
 use crate::{FunctionViewer, WindowState};
 use flowcore::meta_provider::MetaProvider;
 use flowcore::model::flow_definition::FlowDefinition;
@@ -499,7 +500,7 @@ pub(crate) fn next_node_position(
 ///
 /// Uses topological layout based on connections to determine column placement.
 fn assign_default_positions(flow: &mut FlowDefinition) {
-    use crate::canvas_view;
+    use crate::node_layout::NodeLayout;
 
     let needs_layout = flow
         .process_refs
@@ -510,7 +511,7 @@ fn assign_default_positions(flow: &mut FlowDefinition) {
     }
 
     // Build render nodes (which computes topo positions) and copy back positions
-    let render_nodes = canvas_view::build_render_nodes(flow);
+    let render_nodes = NodeLayout::build_from_flow(flow);
     for (pref, node) in flow.process_refs.iter_mut().zip(render_nodes.iter()) {
         if pref.x.is_none() {
             pref.x = Some(node.x());
@@ -722,9 +723,9 @@ mod test {
     use flowcore::model::process_reference::ProcessReference;
     use flowcore::model::route::Route;
 
-    use crate::canvas_view::FlowCanvasState;
     use crate::hierarchy_panel::FlowHierarchy;
     use crate::history::EditHistory;
+    use crate::window_state::FlowCanvasState;
     use crate::WindowKind;
 
     fn test_pref(alias: &str, source: &str) -> ProcessReference {

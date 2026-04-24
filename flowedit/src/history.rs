@@ -217,7 +217,7 @@ impl WindowState {
                     ..
                 } => {
                     let alias = if process_ref.alias.is_empty() {
-                        crate::canvas_view::derive_short_name(&process_ref.source)
+                        crate::utils::derive_short_name(&process_ref.source)
                     } else {
                         process_ref.alias.clone()
                     };
@@ -226,7 +226,7 @@ impl WindowState {
                         self.flow_definition.subprocesses.remove(&alias);
                         self.flow_definition
                             .connections
-                            .retain(|c| !crate::canvas_view::connection_references_node(c, &alias));
+                            .retain(|c| !crate::utils::connection_references_node(c, &alias));
                     }
                     self.status = String::from("Undo: create node");
                 }
@@ -324,7 +324,7 @@ impl WindowState {
                     if index < self.flow_definition.process_refs.len() {
                         let removed = self.flow_definition.process_refs.remove(index);
                         let alias = if removed.alias.is_empty() {
-                            crate::canvas_view::derive_short_name(&removed.source)
+                            crate::utils::derive_short_name(&removed.source)
                         } else {
                             removed.alias.clone()
                         };
@@ -536,7 +536,7 @@ mod test {
 
     #[test]
     fn create_connection_roundtrip() {
-        use crate::canvas_view::split_route;
+        use crate::utils::split_route;
         let mut history = EditHistory::default();
         let connection = Connection::new("a/out", "b/in");
         history.record(EditAction::CreateConnection {
