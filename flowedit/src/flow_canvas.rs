@@ -15,14 +15,17 @@ use std::collections::HashMap;
 
 use iced::keyboard;
 use iced::mouse;
-use iced::widget::canvas::{
-    self, Canvas, Event, Frame, Geometry, Path, Stroke, Text as CanvasText,
-};
-use iced::{Color, Element, Fill, Point, Rectangle, Renderer, Size, Theme};
+use iced::widget::canvas::{self, Event, Frame, Geometry, Path, Stroke, Text as CanvasText};
+use iced::{Color, Point, Rectangle, Renderer, Size, Theme};
 
 use flowcore::model::io::IO;
 use flowcore::model::name::HasName;
-use flowcore::model::process::Process;
+
+use crate::node_layout::{NodeLayout, PORT_FONT_SIZE};
+use crate::utils::{
+    base_port_name, check_port_type_compatibility, rounded_rect, split_route, truncate_source,
+};
+use crate::window_state::{FlowCanvasState, ZOOM_STEP};
 
 /// Action returned by [`WindowState::handle_canvas_message`] to signal that
 /// the caller needs to perform an operation that requires `FlowEdit` state.
@@ -33,14 +36,6 @@ pub(crate) enum CanvasAction {
     OpenNode(usize),
 }
 
-/// Minimum allowed zoom level
-const MIN_ZOOM: f32 = 0.1;
-/// Maximum allowed zoom level
-const MAX_ZOOM: f32 = 5.0;
-/// Zoom factor applied per step (zoom-in multiplies, zoom-out divides)
-const ZOOM_STEP: f32 = 1.1;
-/// Padding in world units around canvas content for auto-fit
-const CANVAS_PADDING: f32 = 20.0;
 /// Scroll speed multiplier for panning with the scroll wheel (line-based)
 const SCROLL_SPEED: f32 = 20.0;
 /// Minimum allowed node width when resizing
@@ -59,8 +54,6 @@ const CONNECTION_HIT_DISTANCE: f32 = 8.0;
 const BEZIER_SAMPLES: usize = 64;
 
 use flowcore::model::connection::Connection;
-use flowcore::model::process_reference::ProcessReference;
-use flowcore::model::route::Route;
 
 /// Messages produced by the canvas interaction layer.
 #[derive(Debug, Clone)]
@@ -126,7 +119,7 @@ struct DragState {
 
 /// Which resize handle is being dragged.
 #[derive(Debug, Clone, Copy)]
-enum ResizeHandle {
+pub(crate) enum ResizeHandle {
     /// Top-left corner
     TopLeft,
     /// Top edge midpoint
@@ -209,607 +202,18 @@ struct ConnectingState {
     current_screen_pos: Point,
 }
 
-/// Default node width when no layout width is specified
-const DEFAULT_WIDTH: f32 = 180.0;
-/// Default node height when no layout height is specified
-const DEFAULT_HEIGHT: f32 = 120.0;
-/// Horizontal spacing between auto-laid-out nodes
-const GRID_SPACING_X: f32 = 250.0;
-/// Vertical spacing between auto-laid-out nodes
-const GRID_SPACING_Y: f32 = 170.0;
-/// Number of columns in auto-layout grid
-const GRID_COLUMNS: usize = 3;
-/// Starting X offset for auto-layout
-const GRID_ORIGIN_X: f32 = 50.0;
-/// Starting Y offset for auto-layout
-const GRID_ORIGIN_Y: f32 = 50.0;
 /// Corner radius for rounded rectangles
-const CORNER_RADIUS: f32 = 10.0;
+pub(crate) const CORNER_RADIUS: f32 = 10.0;
 /// Title font size (minimum readable)
 const TITLE_FONT_SIZE: f32 = 16.0;
 /// Source label font size (minimum readable)
-const SOURCE_FONT_SIZE: f32 = 12.0;
-/// Port label font size
-const PORT_FONT_SIZE: f32 = 11.0;
+pub(crate) const SOURCE_FONT_SIZE: f32 = 12.0;
 /// Port circle radius
 const PORT_RADIUS: f32 = 5.0;
-/// Vertical spacing between ports
-const PORT_SPACING: f32 = 20.0;
-/// Vertical offset from top of node to first port
-const PORT_START_Y: f32 = 55.0;
 /// Maximum characters for source label before truncation
 const MAX_SOURCE_CHARS: usize = 22;
 
-/// A positioned node derived from a [`ProcessReference`], ready for rendering.
-///
-/// Combines a `ProcessReference` (position, alias, source, initializations)
-/// with its resolved `Process` (ports, description, type) for rendering.
-/// Rebuilt every frame from `FlowDefinition` — not persisted.
-#[derive(Debug, Clone)]
-pub(crate) struct NodeLayout {
-    pub(crate) process_ref: ProcessReference,
-    pub(crate) process: Option<Process>,
-}
-
-static EMPTY_IO: Vec<IO> = Vec::new();
-
-impl Default for NodeLayout {
-    fn default() -> Self {
-        Self {
-            process_ref: ProcessReference {
-                alias: String::new(),
-                source: String::new(),
-                initializations: std::collections::BTreeMap::new(),
-                x: Some(100.0),
-                y: Some(100.0),
-                width: Some(180.0),
-                height: Some(120.0),
-            },
-            process: None,
-        }
-    }
-}
-
-impl NodeLayout {
-    pub(crate) fn alias(&self) -> &str {
-        if self.process_ref.alias.is_empty() {
-            &self.process_ref.source
-        } else {
-            &self.process_ref.alias
-        }
-    }
-
-    pub(crate) fn source(&self) -> &str {
-        &self.process_ref.source
-    }
-
-    pub(crate) fn description(&self) -> String {
-        match &self.process {
-            Some(Process::FunctionProcess(f)) => f.description.clone(),
-            Some(Process::FlowProcess(f)) => f.description.clone(),
-            None => String::new(),
-        }
-    }
-
-    pub(crate) fn x(&self) -> f32 {
-        self.process_ref.x.unwrap_or(100.0)
-    }
-
-    pub(crate) fn y(&self) -> f32 {
-        self.process_ref.y.unwrap_or(100.0)
-    }
-
-    pub(crate) fn width(&self) -> f32 {
-        self.process_ref.width.unwrap_or(DEFAULT_WIDTH)
-    }
-
-    pub(crate) fn height(&self) -> f32 {
-        self.process_ref.height.unwrap_or(DEFAULT_HEIGHT)
-    }
-
-    pub(crate) fn inputs(&self) -> &[IO] {
-        match &self.process {
-            Some(Process::FunctionProcess(f)) => &f.inputs,
-            Some(Process::FlowProcess(f)) => &f.inputs,
-            None => &EMPTY_IO,
-        }
-    }
-
-    pub(crate) fn outputs(&self) -> &[IO] {
-        match &self.process {
-            Some(Process::FunctionProcess(f)) => &f.outputs,
-            Some(Process::FlowProcess(f)) => &f.outputs,
-            None => &EMPTY_IO,
-        }
-    }
-
-    pub(crate) fn has_initializers(&self) -> bool {
-        !self.process_ref.initializations.is_empty()
-    }
-
-    pub(crate) fn max_initializer_display_len(&self) -> usize {
-        self.process_ref
-            .initializations
-            .values()
-            .map(|init| {
-                let s = match init {
-                    flowcore::model::input::InputInitializer::Once(v) => {
-                        format!("once: {}", format_value(v))
-                    }
-                    flowcore::model::input::InputInitializer::Always(v) => {
-                        format!("always: {}", format_value(v))
-                    }
-                };
-                s.len()
-            })
-            .max()
-            .unwrap_or(0)
-    }
-
-    pub(crate) fn initializer_display(&self, port_name: &str) -> Option<String> {
-        self.process_ref
-            .initializations
-            .get(port_name)
-            .map(|init| match init {
-                flowcore::model::input::InputInitializer::Once(v) => {
-                    format!("once: {}", format_value(v))
-                }
-                flowcore::model::input::InputInitializer::Always(v) => {
-                    format!("always: {}", format_value(v))
-                }
-            })
-    }
-
-    fn fill_color(&self) -> Color {
-        match &self.process {
-            Some(Process::FlowProcess(_)) => Color::from_rgb(0.9, 0.6, 0.2),
-            Some(Process::FunctionProcess(f)) => {
-                if f.get_lib_reference().is_some() {
-                    Color::from_rgb(0.3, 0.5, 0.9)
-                } else if f.get_context_reference().is_some() {
-                    Color::from_rgb(0.3, 0.75, 0.45)
-                } else {
-                    Color::from_rgb(0.6, 0.3, 0.8)
-                }
-            }
-            None => {
-                if self.source().starts_with("lib://") {
-                    Color::from_rgb(0.3, 0.5, 0.9)
-                } else if self.source().starts_with("context://") {
-                    Color::from_rgb(0.3, 0.75, 0.45)
-                } else {
-                    Color::from_rgb(0.9, 0.6, 0.2)
-                }
-            }
-        }
-    }
-
-    pub(crate) fn is_openable(&self) -> bool {
-        match &self.process {
-            Some(Process::FlowProcess(_)) => true,
-            Some(Process::FunctionProcess(f)) => {
-                f.get_lib_reference().is_none() && f.get_context_reference().is_none()
-            }
-            None => {
-                !self.source().starts_with("lib://") && !self.source().starts_with("context://")
-            }
-        }
-    }
-
-    fn output_port_position(&self, port_index: usize) -> Point {
-        Point::new(
-            self.x() + self.width(),
-            self.y() + PORT_START_Y + port_index as f32 * PORT_SPACING,
-        )
-    }
-
-    fn input_port_position(&self, port_index: usize) -> Point {
-        Point::new(
-            self.x(),
-            self.y() + PORT_START_Y + port_index as f32 * PORT_SPACING,
-        )
-    }
-
-    fn resize_handle_positions(&self) -> [(ResizeHandle, Point); 8] {
-        let mid_x = self.x() + self.width() / 2.0;
-        let mid_y = self.y() + self.height() / 2.0;
-        let right = self.x() + self.width();
-        let bottom = self.y() + self.height();
-        [
-            (ResizeHandle::TopLeft, Point::new(self.x(), self.y())),
-            (ResizeHandle::Top, Point::new(mid_x, self.y())),
-            (ResizeHandle::TopRight, Point::new(right, self.y())),
-            (ResizeHandle::Left, Point::new(self.x(), mid_y)),
-            (ResizeHandle::Right, Point::new(right, mid_y)),
-            (ResizeHandle::BottomLeft, Point::new(self.x(), bottom)),
-            (ResizeHandle::Bottom, Point::new(mid_x, bottom)),
-            (ResizeHandle::BottomRight, Point::new(right, bottom)),
-        ]
-    }
-
-    fn is_in_source_text_zone(&self, point: Point) -> bool {
-        let text_center_x = self.x() + self.width() / 2.0;
-        let text_top_y = self.y() + 34.0;
-        let text_height = SOURCE_FONT_SIZE + 4.0;
-        let text_half_width = self.width() * 0.4;
-
-        point.x >= text_center_x - text_half_width
-            && point.x <= text_center_x + text_half_width
-            && point.y >= text_top_y
-            && point.y <= text_top_y + text_height
-    }
-
-    fn find_output_pos_inline(&self, port: &str) -> Point {
-        if port.is_empty() {
-            self.output_port_position(0)
-        } else {
-            let base = base_port_name(port);
-            let idx = self
-                .outputs()
-                .iter()
-                .position(|p| p.name() == base)
-                .unwrap_or(0);
-            self.output_port_position(idx)
-        }
-    }
-
-    fn find_input_pos_inline(&self, port: &str) -> Point {
-        if port.is_empty() {
-            self.input_port_position(0)
-        } else {
-            let base = base_port_name(port);
-            let idx = self
-                .inputs()
-                .iter()
-                .position(|p| p.name() == base)
-                .unwrap_or(0);
-            self.input_port_position(idx)
-        }
-    }
-}
-
-/// Build render-only [`NodeLayout`] list directly from a [`FlowDefinition`].
-///
-/// This is the single entry point for converting process references and their
-/// resolved subprocess definitions into the rendering representation.
-/// The returned layouts are ephemeral and must not be stored in persistent state.
-pub(crate) fn build_render_nodes(
-    flow_def: &flowcore::model::flow_definition::FlowDefinition,
-) -> Vec<NodeLayout> {
-    let topo_positions = compute_topological_layout(&flow_def.process_refs, &flow_def.connections);
-
-    let mut nodes = Vec::with_capacity(flow_def.process_refs.len());
-
-    for (i, pref) in flow_def.process_refs.iter().enumerate() {
-        let alias = if pref.alias.is_empty() {
-            derive_short_name(&pref.source)
-        } else {
-            pref.alias.clone()
-        };
-
-        let resolved = flow_def.subprocesses.get(&alias);
-
-        let input_count = resolved.map_or(0, |p| match p {
-            Process::FunctionProcess(f) => f.inputs.len(),
-            Process::FlowProcess(f) => f.inputs.len(),
-        });
-        let output_count = resolved.map_or(0, |p| match p {
-            Process::FunctionProcess(f) => f.outputs.len(),
-            Process::FlowProcess(f) => f.outputs.len(),
-        });
-        let min_ports = input_count.max(output_count);
-        let min_height = PORT_START_Y + (min_ports as f32 + 1.0) * PORT_SPACING;
-
-        let (default_x, default_y) = if let Some((tx, ty)) = topo_positions.get(&alias) {
-            (*tx, *ty)
-        } else {
-            let col = i % GRID_COLUMNS;
-            let row = i / GRID_COLUMNS;
-            (
-                GRID_ORIGIN_X + col as f32 * GRID_SPACING_X,
-                GRID_ORIGIN_Y + row as f32 * GRID_SPACING_Y,
-            )
-        };
-
-        let mut process_ref = pref.clone();
-        if process_ref.alias.is_empty() {
-            process_ref.alias = alias;
-        }
-        process_ref.x = Some(pref.x.unwrap_or(default_x));
-        process_ref.y = Some(pref.y.unwrap_or(default_y));
-        process_ref.width = Some(pref.width.unwrap_or(DEFAULT_WIDTH));
-        process_ref.height = Some(pref.height.unwrap_or(DEFAULT_HEIGHT.max(min_height)));
-
-        nodes.push(NodeLayout {
-            process_ref,
-            process: resolved.cloned(),
-        });
-    }
-
-    nodes
-}
-
-/// Compute topology-based positions for nodes without saved layout.
-///
-/// Assigns each node a column based on its depth from source nodes (nodes with no
-/// incoming connections). Nodes are spread vertically within each column.
-fn compute_topological_layout(
-    process_refs: &[ProcessReference],
-    connections: &[Connection],
-) -> HashMap<String, (f32, f32)> {
-    // Build alias list
-    let aliases: Vec<String> = process_refs
-        .iter()
-        .map(|p| {
-            if p.alias.is_empty() {
-                derive_short_name(&p.source)
-            } else {
-                p.alias.clone()
-            }
-        })
-        .collect();
-
-    // Build adjacency: which nodes feed which
-    let mut incoming: HashMap<String, Vec<String>> = HashMap::new();
-    let mut outgoing: HashMap<String, Vec<String>> = HashMap::new();
-    for alias in &aliases {
-        incoming.entry(alias.clone()).or_default();
-        outgoing.entry(alias.clone()).or_default();
-    }
-
-    for conn in connections {
-        let from_route = conn.from().to_string();
-        let (from_node, _) = split_route(&from_route);
-        for to_route in conn.to() {
-            let to_str = to_route.to_string();
-            let (to_node, _) = split_route(&to_str);
-            if from_node != to_node {
-                // Skip self-loops for layout purposes
-                outgoing
-                    .entry(from_node.clone())
-                    .or_default()
-                    .push(to_node.clone());
-                incoming.entry(to_node).or_default().push(from_node.clone());
-            }
-        }
-    }
-
-    // Assign column depth using BFS from source nodes (no incoming edges)
-    let mut depth: HashMap<String, usize> = HashMap::new();
-    let mut queue: std::collections::VecDeque<String> = std::collections::VecDeque::new();
-
-    for alias in &aliases {
-        if incoming.get(alias).is_none_or(std::vec::Vec::is_empty) {
-            depth.insert(alias.clone(), 0);
-            queue.push_back(alias.clone());
-        }
-    }
-
-    // BFS to assign max depth (longest path from any source).
-    // Cap depth to prevent infinite loops on cyclic flows (e.g., fibonacci feedback).
-    let max_depth = aliases.len().saturating_sub(1);
-    while let Some(node) = queue.pop_front() {
-        let node_depth = depth.get(&node).copied().unwrap_or(0);
-        if let Some(neighbors) = outgoing.get(&node) {
-            for neighbor in neighbors {
-                let new_depth = (node_depth + 1).min(max_depth);
-                let current = depth.get(neighbor).copied().unwrap_or(0);
-                if new_depth > current {
-                    depth.insert(neighbor.clone(), new_depth);
-                    queue.push_back(neighbor.clone());
-                }
-            }
-        }
-    }
-
-    // Assign any unvisited nodes depth 0
-    for alias in &aliases {
-        depth.entry(alias.clone()).or_insert(0);
-    }
-
-    // Group nodes by column
-    let mut columns: HashMap<usize, Vec<String>> = HashMap::new();
-    for alias in &aliases {
-        let col = depth.get(alias).copied().unwrap_or(0);
-        columns.entry(col).or_default().push(alias.clone());
-    }
-
-    // Compute positions: spread columns horizontally, nodes vertically within each column
-    let mut positions = HashMap::new();
-    for (col, col_nodes) in &columns {
-        let x = GRID_ORIGIN_X + *col as f32 * GRID_SPACING_X;
-        let total_height = col_nodes.len() as f32 * GRID_SPACING_Y;
-        let start_y = GRID_ORIGIN_Y + (GRID_SPACING_Y - total_height) / 2.0;
-
-        for (row, alias) in col_nodes.iter().enumerate() {
-            let y = start_y.max(GRID_ORIGIN_Y) + row as f32 * GRID_SPACING_Y;
-            positions.insert(alias.clone(), (x, y));
-        }
-    }
-
-    positions
-}
-
-/// Format a [`serde_json::Value`] for compact display
-fn format_value(v: &serde_json::Value) -> String {
-    match v {
-        serde_json::Value::String(s) => format!("\"{s}\""),
-        serde_json::Value::Number(n) => n.to_string(),
-        serde_json::Value::Bool(b) => b.to_string(),
-        serde_json::Value::Null => "null".to_string(),
-        serde_json::Value::Array(a) => {
-            if a.len() <= 3 {
-                format!(
-                    "[{}]",
-                    a.iter().map(format_value).collect::<Vec<_>>().join(",")
-                )
-            } else {
-                format!("[{}...]", a.len())
-            }
-        }
-        serde_json::Value::Object(_) => "{...}".to_string(),
-    }
-}
-
-/// Derive a short display name from a source URL.
-/// e.g., `"lib://flowstdlib/math/sequence"` → `"sequence"`
-/// e.g., `"context://stdio/stdout"` → `"stdout"`
-pub(crate) fn derive_short_name(source: &str) -> String {
-    source.rsplit('/').next().unwrap_or(source).to_string()
-}
-
-/// Split a route string like "sequence/number" into ("sequence", "number")
-/// or "add1" into ("add1", "")
-pub(crate) fn split_route(route: &str) -> (String, String) {
-    let route = route.trim_start_matches('/');
-    if let Some(pos) = route.find('/') {
-        (route[..pos].to_string(), route[pos + 1..].to_string())
-    } else {
-        (route.to_string(), String::new())
-    }
-}
-
-/// Check whether a Connection references a node by alias in its from or to routes.
-pub(crate) fn connection_references_node(conn: &Connection, alias: &str) -> bool {
-    let (from_node, _) = split_route(conn.from().as_ref());
-    if from_node == alias {
-        return true;
-    }
-    for to_route in conn.to() {
-        let (to_node, _) = split_route(to_route.as_ref());
-        if to_node == alias {
-            return true;
-        }
-    }
-    false
-}
-
-/// Persistent canvas state that caches the rendered geometry.
-pub(crate) struct FlowCanvasState {
-    /// The geometry cache — cleared when the flow data changes
-    cache: canvas::Cache,
-    /// Current zoom level (1.0 = 100%)
-    pub(crate) zoom: f32,
-    /// Scroll offset in world coordinates
-    pub(crate) scroll_offset: Point,
-}
-
-impl Default for FlowCanvasState {
-    fn default() -> Self {
-        Self {
-            cache: canvas::Cache::new(),
-            zoom: 1.0,
-            scroll_offset: Point::new(0.0, 0.0),
-        }
-    }
-}
-
-impl FlowCanvasState {
-    /// Create the canvas [`Element`] for displaying the given flow definition.
-    ///
-    /// Builds render nodes from the flow definition's process references and
-    /// subprocess definitions. The `FlowCanvas` owns these render nodes for the
-    /// duration of the frame.
-    #[allow(clippy::too_many_arguments)]
-    pub(crate) fn view<'a>(
-        &'a self,
-        flow_def: &flowcore::model::flow_definition::FlowDefinition,
-        connections: &'a [Connection],
-        flow_name: &'a str,
-        flow_inputs: &'a [IO],
-        flow_outputs: &'a [IO],
-        is_subflow: bool,
-        auto_fit_pending: bool,
-        auto_fit_enabled: bool,
-    ) -> Element<'a, CanvasMessage> {
-        let nodes = build_render_nodes(flow_def);
-        Canvas::new(FlowCanvas {
-            state: self,
-            nodes,
-            connections,
-            flow_name,
-            flow_inputs,
-            flow_outputs,
-            is_subflow,
-            auto_fit_pending,
-            auto_fit_enabled,
-        })
-        .width(Fill)
-        .height(Fill)
-        .into()
-    }
-
-    /// Invalidate the cached geometry so the canvas redraws on the next frame.
-    pub(crate) fn request_redraw(&mut self) {
-        self.cache.clear();
-    }
-
-    /// Zoom in by one step (multiply zoom by [`ZOOM_STEP`]).
-    pub(crate) fn zoom_in(&mut self) {
-        self.zoom = (self.zoom * ZOOM_STEP).min(MAX_ZOOM);
-        self.cache.clear();
-    }
-
-    /// Zoom out by one step (divide zoom by [`ZOOM_STEP`]).
-    pub(crate) fn zoom_out(&mut self) {
-        self.zoom = (self.zoom / ZOOM_STEP).max(MIN_ZOOM);
-        self.cache.clear();
-    }
-
-    /// Compute zoom and offset so that all nodes fit within the given viewport with padding.
-    ///
-    /// If `nodes` is empty, resets to default zoom and offset.
-    pub(crate) fn auto_fit(
-        &mut self,
-        nodes: &[NodeLayout],
-        flow_inputs: &[IO],
-        flow_outputs: &[IO],
-        is_subflow: bool,
-        viewport: Size,
-    ) {
-        let has_flow_io = is_subflow && (!flow_inputs.is_empty() || !flow_outputs.is_empty());
-        if nodes.is_empty() && !has_flow_io {
-            self.zoom = 1.0;
-            self.scroll_offset = Point::new(0.0, 0.0);
-            self.cache.clear();
-            return;
-        }
-
-        let (min_x, min_y, max_x, max_y) =
-            content_extents(nodes, flow_inputs, flow_outputs, has_flow_io);
-
-        let content_width = max_x - min_x + CANVAS_PADDING * 2.0;
-        let content_height = max_y - min_y + CANVAS_PADDING * 2.0;
-
-        // Avoid division by zero
-        if content_width <= 0.0 || content_height <= 0.0 {
-            self.zoom = 1.0;
-            self.scroll_offset = Point::new(0.0, 0.0);
-            self.cache.clear();
-            return;
-        }
-
-        let zoom_x = viewport.width / content_width;
-        let zoom_y = viewport.height / content_height;
-        self.zoom = zoom_x.min(zoom_y).clamp(MIN_ZOOM, MAX_ZOOM);
-
-        // Set offset so that the content is centered
-        // screen_x = (world_x + offset_x) * zoom
-        // We want the center of the content to map to the center of the viewport
-        let content_center_x = min_x.midpoint(max_x);
-        let content_center_y = min_y.midpoint(max_y);
-        let viewport_center_x = viewport.width / 2.0 / self.zoom;
-        let viewport_center_y = viewport.height / 2.0 / self.zoom;
-
-        self.scroll_offset = Point::new(
-            viewport_center_x - content_center_x,
-            viewport_center_y - content_center_y,
-        );
-        self.cache.clear();
-    }
-}
-
-fn content_extents(
+pub(crate) fn content_extents(
     nodes: &[NodeLayout],
     flow_inputs: &[IO],
     flow_outputs: &[IO],
@@ -866,25 +270,25 @@ fn screen_to_world(screen: Point, zoom: f32, offset: Point) -> Point {
 }
 
 /// The canvas program that draws flow nodes and connections.
-struct FlowCanvas<'a> {
+pub(crate) struct FlowCanvas<'a> {
     /// Reference to the persistent canvas state (zoom, offset, cache)
-    state: &'a FlowCanvasState,
+    pub(crate) state: &'a FlowCanvasState,
     /// Render nodes built from `process_refs` (owned, rebuilt each frame)
-    nodes: Vec<NodeLayout>,
+    pub(crate) nodes: Vec<NodeLayout>,
     /// Connections to render
-    connections: &'a [Connection],
+    pub(crate) connections: &'a [Connection],
     /// Flow name (displayed on sub-flow bounding box)
-    flow_name: &'a str,
+    pub(crate) flow_name: &'a str,
     /// Flow-level input ports (displayed on left edge for sub-flows)
-    flow_inputs: &'a [IO],
+    pub(crate) flow_inputs: &'a [IO],
     /// Flow-level output ports (displayed on right edge for sub-flows)
-    flow_outputs: &'a [IO],
+    pub(crate) flow_outputs: &'a [IO],
     /// Whether this is a sub-flow (always draws bounding box)
-    is_subflow: bool,
+    pub(crate) is_subflow: bool,
     /// Whether an auto-fit should be triggered on the next event
-    auto_fit_pending: bool,
+    pub(crate) auto_fit_pending: bool,
     /// Whether auto-fit mode is active (continuously fits to window)
-    auto_fit_enabled: bool,
+    pub(crate) auto_fit_enabled: bool,
 }
 
 impl FlowCanvas<'_> {
@@ -1047,16 +451,6 @@ fn compute_flow_io_positions(
     }
 
     (input_positions, output_positions)
-}
-
-/// Extract the base port name, stripping any trailing array index.
-/// Uses flowcore's Route to detect array selectors properly.
-fn base_port_name(port: &str) -> &str {
-    if Route::from(port).is_array_selector() {
-        port.rsplit_once('/').map_or(port, |(base, _)| base)
-    } else {
-        port
-    }
 }
 
 /// Squared distance from point `p` to the line segment `a`--`b`.
@@ -2165,8 +1559,7 @@ fn draw_bezier_connection(
 
 /// Draw a rounded bounding box around all subprocess nodes with flow I/O
 /// ports on the box edges and bezier connections to internal nodes.
-#[allow(clippy::too_many_arguments)]
-fn flow_io_bounding_box(
+pub(crate) fn flow_io_bounding_box(
     nodes: &[NodeLayout],
     flow_inputs: &[IO],
     flow_outputs: &[IO],
@@ -2673,122 +2066,17 @@ fn draw_port(
     }
 }
 
-/// Build a rounded rectangle path using quadratic bezier curves at corners.
-fn rounded_rect(builder: &mut canvas::path::Builder, top_left: Point, size: Size, radius: f32) {
-    let cr = radius.min(size.width / 2.0).min(size.height / 2.0);
-    let left = top_left.x;
-    let top = top_left.y;
-    let width = size.width;
-    let height = size.height;
-
-    builder.move_to(Point::new(left + cr, top));
-    builder.line_to(Point::new(left + width - cr, top));
-    builder.quadratic_curve_to(
-        Point::new(left + width, top),
-        Point::new(left + width, top + cr),
-    );
-    builder.line_to(Point::new(left + width, top + height - cr));
-    builder.quadratic_curve_to(
-        Point::new(left + width, top + height),
-        Point::new(left + width - cr, top + height),
-    );
-    builder.line_to(Point::new(left + cr, top + height));
-    builder.quadratic_curve_to(
-        Point::new(left, top + height),
-        Point::new(left, top + height - cr),
-    );
-    builder.line_to(Point::new(left, top + cr));
-    builder.quadratic_curve_to(Point::new(left, top), Point::new(left + cr, top));
-    builder.close();
-}
-
-/// Truncate a source string to fit within the node, adding an ellipsis if needed.
-fn truncate_source(source: &str, max_len: usize) -> String {
-    if source.len() <= max_len {
-        source.to_string()
-    } else {
-        let end = source
-            .char_indices()
-            .nth(max_len.saturating_sub(3))
-            .map_or(source.len(), |(i, _)| i);
-        let mut truncated = source.get(..end).unwrap_or(source).to_string();
-        truncated.push_str("...");
-        truncated
-    }
-}
-
-/// Check if the types of two ports are compatible for a connection.
-///
-/// Returns true if:
-/// - Either port has no type info (unknown types are assumed compatible)
-/// - At least one type from the source port matches a type on the destination port
-fn check_port_type_compatibility(
-    source_node: Option<&NodeLayout>,
-    source_port: &str,
-    source_is_output: bool,
-    target_node: &NodeLayout,
-    target_port: &str,
-    target_is_output: bool,
-) -> bool {
-    let source_types = source_node.and_then(|n| {
-        let ports = if source_is_output {
-            n.outputs()
-        } else {
-            n.inputs()
-        };
-        ports.iter().find(|p| p.name() == source_port)
-    });
-
-    let target_types = {
-        let ports = if target_is_output {
-            target_node.outputs()
-        } else {
-            target_node.inputs()
-        };
-        ports.iter().find(|p| p.name() == target_port)
-    };
-
-    match (source_types, target_types) {
-        (Some(src), Some(tgt)) => {
-            log::info!(
-                "Type check: src port '{}' types {:?} → tgt port '{}' types {:?}",
-                src.name(),
-                src.datatypes(),
-                tgt.name(),
-                tgt.datatypes()
-            );
-            let src_untyped = src.datatypes().is_empty()
-                || src.datatypes().iter().all(|d| d.to_string().is_empty());
-            let tgt_untyped = tgt.datatypes().is_empty()
-                || tgt.datatypes().iter().all(|d| d.to_string().is_empty());
-            if src_untyped || tgt_untyped {
-                return true;
-            }
-            src.datatypes()
-                .iter()
-                .any(|st| tgt.datatypes().iter().any(|tt| st == tt))
-        }
-        // Unknown port or no type info — allow
-        (src, tgt) => {
-            log::info!(
-                "Type check: src={}, tgt={} — allowing (unknown port)",
-                src.is_some(),
-                tgt.is_some()
-            );
-            true
-        }
-    }
-}
 #[cfg(test)]
 #[allow(clippy::indexing_slicing)]
 mod test {
     use super::*;
-    use crate::WindowState;
-    use flowcore::model::datatype::DataType;
+    use crate::node_layout::NodeLayout;
     use flowcore::model::flow_definition::FlowDefinition;
     use flowcore::model::function_definition::FunctionDefinition;
+    use flowcore::model::io::IO;
+    use flowcore::model::process::Process;
+    use flowcore::model::process_reference::ProcessReference;
     use flowcore::model::route::Route;
-    use iced::Point;
     use url::Url;
 
     fn make_flow_canvas(state: &FlowCanvasState, nodes: Vec<NodeLayout>) -> FlowCanvas<'_> {
@@ -2826,105 +2114,6 @@ mod test {
         f
     }
 
-    fn context_function() -> FunctionDefinition {
-        let mut f = FunctionDefinition::default();
-        f.context_reference = Some(Url::parse("context://stdio/stdout").expect("valid url"));
-        f
-    }
-
-    fn function_with_io(inputs: Vec<IO>, outputs: Vec<IO>) -> FunctionDefinition {
-        let mut f = FunctionDefinition::default();
-        f.inputs = inputs;
-        f.outputs = outputs;
-        f
-    }
-
-    #[test]
-    fn split_route_with_port() {
-        let (node, port) = split_route("sequence/number");
-        assert_eq!(node, "sequence");
-        assert_eq!(port, "number");
-    }
-
-    #[test]
-    fn split_route_no_port() {
-        let (node, port) = split_route("add1");
-        assert_eq!(node, "add1");
-        assert_eq!(port, "");
-    }
-
-    #[test]
-    fn split_route_leading_slash() {
-        let (node, port) = split_route("/sequence/number");
-        assert_eq!(node, "sequence");
-        assert_eq!(port, "number");
-    }
-
-    #[test]
-    fn derive_short_name_lib() {
-        assert_eq!(
-            derive_short_name("lib://flowstdlib/math/sequence"),
-            "sequence"
-        );
-    }
-
-    #[test]
-    fn derive_short_name_context() {
-        assert_eq!(derive_short_name("context://stdio/stdout"), "stdout");
-    }
-
-    #[test]
-    fn derive_short_name_simple() {
-        assert_eq!(derive_short_name("add"), "add");
-    }
-
-    #[test]
-    fn format_value_string() {
-        assert_eq!(format_value(&serde_json::json!("hello")), "\"hello\"");
-    }
-
-    #[test]
-    fn format_value_number() {
-        assert_eq!(format_value(&serde_json::json!(42)), "42");
-    }
-
-    #[test]
-    fn format_value_bool() {
-        assert_eq!(format_value(&serde_json::json!(true)), "true");
-    }
-
-    #[test]
-    fn format_value_null() {
-        assert_eq!(format_value(&serde_json::json!(null)), "null");
-    }
-
-    #[test]
-    fn format_value_small_array() {
-        assert_eq!(format_value(&serde_json::json!([1, 2, 3])), "[1,2,3]");
-    }
-
-    #[test]
-    fn format_value_large_array() {
-        assert_eq!(format_value(&serde_json::json!([1, 2, 3, 4])), "[4...]");
-    }
-
-    #[test]
-    fn format_value_object() {
-        assert_eq!(format_value(&serde_json::json!({"a": 1})), "{...}");
-    }
-
-    #[test]
-    fn truncate_source_short() {
-        assert_eq!(truncate_source("short", 10), "short");
-    }
-
-    #[test]
-    fn truncate_source_long() {
-        let result = truncate_source("this is a very long source string", 15);
-        assert!(result.ends_with("..."));
-        assert!(result.len() <= 15);
-    }
-
     #[test]
     fn transform_point_identity() {
         let p = transform_point(Point::new(10.0, 20.0), 1.0, Point::new(0.0, 0.0));
@@ -2955,88 +2144,6 @@ mod test {
         let back = screen_to_world(screen, zoom, offset);
         assert!((back.x - world.x).abs() < 0.01);
         assert!((back.y - world.y).abs() < 0.01);
-    }
-
-    #[test]
-    fn hit_test_node_inside() {
-        let state = FlowCanvasState::default();
-        let canvas = make_flow_canvas(&state, vec![test_node("test", "lib://test", None)]);
-        assert_eq!(canvas.hit_test_node(Point::new(150.0, 150.0)), Some(0));
-    }
-
-    #[test]
-    fn hit_test_node_outside() {
-        let state = FlowCanvasState::default();
-        let canvas = make_flow_canvas(&state, vec![test_node("test", "lib://test", None)]);
-        assert_eq!(canvas.hit_test_node(Point::new(50.0, 50.0)), None);
-    }
-
-    #[test]
-    fn hit_test_source_text_zone() {
-        let node = test_node("test", "lib://flowstdlib/math/add", None);
-        // Source text is centered at (node.x() + width/2, node.y() + 34.0)
-        let source_center = Point::new(190.0, 134.0);
-        assert!(node.is_in_source_text_zone(source_center));
-        // Point clearly outside source text zone but inside node
-        let node_body = Point::new(110.0, 200.0);
-        assert!(!node.is_in_source_text_zone(node_body));
-    }
-
-    #[test]
-    fn connection_references_node_check() {
-        use flowcore::model::connection::Connection;
-        let conn = Connection::new("a/out", "b/in");
-        assert!(connection_references_node(&conn, "a"));
-        assert!(connection_references_node(&conn, "b"));
-        assert!(!connection_references_node(&conn, "c"));
-    }
-
-    #[test]
-    fn node_layout_port_positions() {
-        let f = function_with_io(
-            vec![
-                IO::new_named(vec![], Route::default(), "i1"),
-                IO::new_named(vec![], Route::default(), "i2"),
-            ],
-            vec![IO::new_named(vec![], Route::default(), "out")],
-        );
-        let node = test_node("test", "lib://test", Some(Process::FunctionProcess(f)));
-        let ip0 = node.input_port_position(0);
-        let ip1 = node.input_port_position(1);
-        let op0 = node.output_port_position(0);
-
-        // Input ports on left edge
-        assert!((ip0.x - 100.0).abs() < 0.01);
-        assert!((ip1.x - 100.0).abs() < 0.01);
-        // Output ports on right edge
-        assert!((op0.x - 280.0).abs() < 0.01);
-        // Ports vertically spaced
-        assert!(ip1.y > ip0.y);
-    }
-
-    #[test]
-    fn base_port_name_simple() {
-        assert_eq!(base_port_name("string"), "string");
-    }
-
-    #[test]
-    fn base_port_name_with_array_index() {
-        assert_eq!(base_port_name("string/1"), "string");
-    }
-
-    #[test]
-    fn base_port_name_with_deep_array_index() {
-        assert_eq!(base_port_name("json/3"), "json");
-    }
-
-    #[test]
-    fn base_port_name_no_index() {
-        assert_eq!(base_port_name("array/number"), "array/number");
-    }
-
-    #[test]
-    fn base_port_name_empty() {
-        assert_eq!(base_port_name(""), "");
     }
 
     #[test]
@@ -3107,6 +2214,20 @@ mod test {
     }
 
     #[test]
+    fn hit_test_node_inside() {
+        let state = FlowCanvasState::default();
+        let canvas = make_flow_canvas(&state, vec![test_node("test", "lib://test", None)]);
+        assert_eq!(canvas.hit_test_node(Point::new(150.0, 150.0)), Some(0));
+    }
+
+    #[test]
+    fn hit_test_node_outside() {
+        let state = FlowCanvasState::default();
+        let canvas = make_flow_canvas(&state, vec![test_node("test", "lib://test", None)]);
+        assert_eq!(canvas.hit_test_node(Point::new(50.0, 50.0)), None);
+    }
+
+    #[test]
     fn hit_test_node_miss() {
         let state = FlowCanvasState::default();
         let node = test_node("n", "lib://test", None);
@@ -3140,149 +2261,6 @@ mod test {
     }
 
     #[test]
-    fn is_openable_lib() {
-        let node = test_node("n", "", Some(Process::FunctionProcess(lib_function())));
-        assert!(!node.is_openable());
-    }
-
-    #[test]
-    fn is_openable_context() {
-        let node = test_node("n", "", Some(Process::FunctionProcess(context_function())));
-        assert!(!node.is_openable());
-    }
-
-    #[test]
-    fn is_openable_local() {
-        let node = test_node(
-            "n",
-            "",
-            Some(Process::FlowProcess(FlowDefinition::default())),
-        );
-        assert!(node.is_openable());
-    }
-
-    #[test]
-    fn is_openable_provided_impl() {
-        let node = test_node(
-            "n",
-            "",
-            Some(Process::FunctionProcess(FunctionDefinition::default())),
-        );
-        assert!(node.is_openable());
-    }
-
-    #[test]
-    fn truncate_source_under_limit() {
-        assert_eq!(truncate_source("short", 22), "short");
-    }
-
-    #[test]
-    fn truncate_source_with_ellipsis() {
-        let long = "lib://flowstdlib/math/very_long_function_name";
-        let result = truncate_source(long, 22);
-        assert!(result.len() <= 25); // with ellipsis
-        assert!(result.contains("..."));
-    }
-
-    #[test]
-    fn check_type_compat_same_type() {
-        let nodes = [
-            test_node(
-                "a",
-                "",
-                Some(Process::FunctionProcess(function_with_io(
-                    vec![],
-                    vec![IO::new_named(
-                        vec!["number".into()],
-                        Route::default(),
-                        "out",
-                    )],
-                ))),
-            ),
-            test_node(
-                "b",
-                "",
-                Some(Process::FunctionProcess(function_with_io(
-                    vec![IO::new_named(vec!["number".into()], Route::default(), "in")],
-                    vec![],
-                ))),
-            ),
-        ];
-        assert!(check_port_type_compatibility(
-            Some(&nodes[0]),
-            "out",
-            true,
-            &nodes[1],
-            "in",
-            false
-        ));
-    }
-
-    #[test]
-    fn check_type_compat_different_type() {
-        let nodes = [
-            test_node(
-                "a",
-                "",
-                Some(Process::FunctionProcess(function_with_io(
-                    vec![],
-                    vec![IO::new_named(
-                        vec!["number".into()],
-                        Route::default(),
-                        "out",
-                    )],
-                ))),
-            ),
-            test_node(
-                "b",
-                "",
-                Some(Process::FunctionProcess(function_with_io(
-                    vec![IO::new_named(vec!["string".into()], Route::default(), "in")],
-                    vec![],
-                ))),
-            ),
-        ];
-        assert!(!check_port_type_compatibility(
-            Some(&nodes[0]),
-            "out",
-            true,
-            &nodes[1],
-            "in",
-            false
-        ));
-    }
-
-    #[test]
-    fn check_type_compat_untyped_allows_any() {
-        let nodes = [
-            test_node(
-                "a",
-                "",
-                Some(Process::FunctionProcess(function_with_io(
-                    vec![],
-                    vec![IO::new_named(vec![], Route::default(), "out")],
-                ))),
-            ),
-            test_node(
-                "b",
-                "",
-                Some(Process::FunctionProcess(function_with_io(
-                    vec![IO::new_named(vec!["string".into()], Route::default(), "in")],
-                    vec![],
-                ))),
-            ),
-        ];
-        assert!(check_port_type_compatibility(
-            Some(&nodes[0]),
-            "out",
-            true,
-            &nodes[1],
-            "in",
-            false
-        ));
-    }
-
-    #[test]
     fn compute_flow_io_positions_with_nodes() {
         let nodes = vec![test_node("n", "", None)];
         let inputs = vec![IO::new_named(vec![], Route::default(), "data")];
@@ -3310,108 +2288,5 @@ mod test {
         let (inp, outp) = compute_flow_io_positions(&[], &[], &[]);
         assert!(inp.is_empty());
         assert!(outp.is_empty());
-    }
-
-    #[test]
-    fn find_node_output_inline_with_subroute() {
-        let f = function_with_io(
-            vec![],
-            vec![
-                IO::new_named(vec![], Route::default(), "string"),
-                IO::new_named(vec![], Route::default(), "json"),
-            ],
-        );
-        let node = test_node("get", "", Some(Process::FunctionProcess(f)));
-        let string_pos = node.find_output_pos_inline("string/1");
-        let json_pos = node.find_output_pos_inline("json/2");
-        // string is output 0, json is output 1 — different y positions
-        assert!((json_pos.y - string_pos.y).abs() > 1.0);
-    }
-
-    #[test]
-    fn fill_color_by_process() {
-        let lib = test_node("n", "", Some(Process::FunctionProcess(lib_function())));
-        let ctx = test_node("n", "", Some(Process::FunctionProcess(context_function())));
-        let prov = test_node(
-            "n",
-            "",
-            Some(Process::FunctionProcess(FunctionDefinition::default())),
-        );
-        let flow = test_node(
-            "n",
-            "",
-            Some(Process::FlowProcess(FlowDefinition::default())),
-        );
-        assert_ne!(lib.fill_color(), ctx.fill_color());
-        assert_ne!(lib.fill_color(), prov.fill_color());
-        assert_ne!(lib.fill_color(), flow.fill_color());
-        assert_ne!(ctx.fill_color(), prov.fill_color());
-        assert_ne!(ctx.fill_color(), flow.fill_color());
-        assert_ne!(prov.fill_color(), flow.fill_color());
-    }
-
-    #[test]
-    fn auto_fit_empty_resets() {
-        let mut state = FlowCanvasState::default();
-        state.auto_fit(&[], &[], &[], false, Size::new(800.0, 600.0));
-        assert!((state.zoom - 1.0).abs() < 0.01);
-        assert!((state.scroll_offset.x).abs() < 0.01);
-    }
-
-    #[test]
-    fn auto_fit_single_node() {
-        let mut state = FlowCanvasState::default();
-        let node = test_node("n", "", None);
-        state.auto_fit(&[node], &[], &[], false, Size::new(800.0, 600.0));
-        assert!(state.zoom > 0.0);
-        assert!(state.zoom <= MAX_ZOOM);
-    }
-
-    #[test]
-    fn auto_fit_with_flow_io() {
-        let mut state = FlowCanvasState::default();
-        let node = test_node("n", "", None);
-        let input = IO::new_named(vec![DataType::from("string")], Route::default(), "in0");
-        let output = IO::new_named(vec![DataType::from("string")], Route::default(), "out0");
-        state.auto_fit(&[node], &[input], &[output], true, Size::new(800.0, 600.0));
-        assert!(state.zoom > 0.0);
-    }
-
-    #[test]
-    fn content_extents_nodes_only() {
-        let node = test_node("n", "", None);
-        let (min_x, min_y, max_x, max_y) = content_extents(&[node], &[], &[], false);
-        assert!(min_x <= 100.0);
-        assert!(min_y <= 100.0);
-        assert!(max_x >= 280.0);
-        assert!(max_y >= 220.0);
-    }
-
-    #[test]
-    fn content_extents_with_flow_io() {
-        let node = test_node("n", "", None);
-        let input = IO::new_named(vec![DataType::from("string")], Route::default(), "input0");
-        let (min_x, _, max_x, _) = content_extents(&[node], &[input], &[], true);
-        assert!(max_x - min_x > 280.0);
-    }
-
-    #[test]
-    fn trigger_auto_fit_when_enabled() {
-        let mut win = WindowState {
-            auto_fit_enabled: true,
-            ..Default::default()
-        };
-        win.trigger_auto_fit_if_enabled();
-        assert!(win.auto_fit_pending);
-    }
-
-    #[test]
-    fn trigger_auto_fit_when_disabled() {
-        let mut win = WindowState {
-            auto_fit_enabled: false,
-            ..Default::default()
-        };
-        win.trigger_auto_fit_if_enabled();
-        assert!(!win.auto_fit_pending);
     }
 }

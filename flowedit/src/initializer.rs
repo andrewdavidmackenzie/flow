@@ -2,8 +2,8 @@
 
 use flowcore::model::input::InputInitializer;
 
-use crate::flow_canvas::derive_short_name;
 use crate::history::EditAction;
+use crate::utils::derive_short_name;
 use crate::{InitializerEditor, WindowState};
 
 impl WindowState {

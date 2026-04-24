@@ -8,8 +8,9 @@
 
 use std::path::{Path, PathBuf};
 
+use iced::widget::canvas::{self, Canvas};
 use iced::widget::{button, container, pick_list, stack, text_input, Column, Row, Text};
-use iced::{window, Color, Element, Fill, Theme};
+use iced::{window, Color, Element, Fill, Point, Size, Theme};
 use log::info;
 use url::Url;
 
@@ -17,14 +18,14 @@ use flowcore::model::connection::Connection;
 use flowcore::model::flow_definition::FlowDefinition;
 use flowcore::model::function_definition::FunctionDefinition;
 use flowcore::model::input::InputInitializer;
+use flowcore::model::io::IO;
 
 use crate::file_ops;
-use crate::flow_canvas::{
-    build_render_nodes, connection_references_node, derive_short_name, split_route, CanvasAction,
-    CanvasMessage, FlowCanvasState,
-};
+use crate::flow_canvas::{content_extents, CanvasAction, CanvasMessage, FlowCanvas};
 use crate::hierarchy_panel::FlowHierarchy;
 use crate::history::{EditAction, EditHistory};
+use crate::node_layout::NodeLayout;
+use crate::utils::{connection_references_node, derive_short_name, split_route};
 use crate::{Message, ViewMessage};
 
 /// Tooltip text and screen position for hover display.
@@ -73,6 +74,140 @@ impl FunctionViewer {
     /// Derive the TOML file path from the function definition's source URL.
     pub(crate) fn toml_path(&self) -> Option<PathBuf> {
         self.func_def.get_source_url().to_file_path().ok()
+    }
+}
+
+/// Minimum allowed zoom level
+const MIN_ZOOM: f32 = 0.1;
+/// Maximum allowed zoom level
+pub(crate) const MAX_ZOOM: f32 = 5.0;
+/// Zoom factor applied per step (zoom-in multiplies, zoom-out divides)
+pub(crate) const ZOOM_STEP: f32 = 1.1;
+/// Padding in world units around canvas content for auto-fit
+const CANVAS_PADDING: f32 = 20.0;
+
+/// Persistent canvas state that caches the rendered geometry.
+pub(crate) struct FlowCanvasState {
+    /// The geometry cache — cleared when the flow data changes
+    pub(crate) cache: canvas::Cache,
+    /// Current zoom level (1.0 = 100%)
+    pub(crate) zoom: f32,
+    /// Scroll offset in world coordinates
+    pub(crate) scroll_offset: Point,
+}
+
+impl Default for FlowCanvasState {
+    fn default() -> Self {
+        Self {
+            cache: canvas::Cache::new(),
+            zoom: 1.0,
+            scroll_offset: Point::new(0.0, 0.0),
+        }
+    }
+}
+
+impl FlowCanvasState {
+    /// Create the canvas [`Element`] for displaying the given flow definition.
+    ///
+    /// Builds render nodes from the flow definition's process references and
+    /// subprocess definitions. The `FlowCanvas` owns these render nodes for the
+    /// duration of the frame.
+    #[allow(clippy::too_many_arguments)]
+    pub(crate) fn view<'a>(
+        &'a self,
+        flow_def: &FlowDefinition,
+        connections: &'a [Connection],
+        flow_name: &'a str,
+        flow_inputs: &'a [IO],
+        flow_outputs: &'a [IO],
+        is_subflow: bool,
+        auto_fit_pending: bool,
+        auto_fit_enabled: bool,
+    ) -> Element<'a, CanvasMessage> {
+        let nodes = NodeLayout::build_from_flow(flow_def);
+        Canvas::new(FlowCanvas {
+            state: self,
+            nodes,
+            connections,
+            flow_name,
+            flow_inputs,
+            flow_outputs,
+            is_subflow,
+            auto_fit_pending,
+            auto_fit_enabled,
+        })
+        .width(Fill)
+        .height(Fill)
+        .into()
+    }
+
+    /// Invalidate the cached geometry so the canvas redraws on the next frame.
+    pub(crate) fn request_redraw(&mut self) {
+        self.cache.clear();
+    }
+
+    /// Zoom in by one step (multiply zoom by [`ZOOM_STEP`]).
+    pub(crate) fn zoom_in(&mut self) {
+        self.zoom = (self.zoom * ZOOM_STEP).min(MAX_ZOOM);
+        self.cache.clear();
+    }
+
+    /// Zoom out by one step (divide zoom by [`ZOOM_STEP`]).
+    pub(crate) fn zoom_out(&mut self) {
+        self.zoom = (self.zoom / ZOOM_STEP).max(MIN_ZOOM);
+        self.cache.clear();
+    }
+
+    /// Compute zoom and offset so that all nodes fit within the given viewport with padding.
+    ///
+    /// If `nodes` is empty, resets to default zoom and offset.
+    pub(crate) fn auto_fit(
+        &mut self,
+        nodes: &[NodeLayout],
+        flow_inputs: &[IO],
+        flow_outputs: &[IO],
+        is_subflow: bool,
+        viewport: Size,
+    ) {
+        let has_flow_io = is_subflow && (!flow_inputs.is_empty() || !flow_outputs.is_empty());
+        if nodes.is_empty() && !has_flow_io {
+            self.zoom = 1.0;
+            self.scroll_offset = Point::new(0.0, 0.0);
+            self.cache.clear();
+            return;
+        }
+
+        let (min_x, min_y, max_x, max_y) =
+            content_extents(nodes, flow_inputs, flow_outputs, has_flow_io);
+
+        let content_width = max_x - min_x + CANVAS_PADDING * 2.0;
+        let content_height = max_y - min_y + CANVAS_PADDING * 2.0;
+
+        // Avoid division by zero
+        if content_width <= 0.0 || content_height <= 0.0 {
+            self.zoom = 1.0;
+            self.scroll_offset = Point::new(0.0, 0.0);
+            self.cache.clear();
+            return;
+        }
+
+        let zoom_x = viewport.width / content_width;
+        let zoom_y = viewport.height / content_height;
+        self.zoom = zoom_x.min(zoom_y).clamp(MIN_ZOOM, MAX_ZOOM);
+
+        // Set offset so that the content is centered
+        // screen_x = (world_x + offset_x) * zoom
+        // We want the center of the content to map to the center of the viewport
+        let content_center_x = min_x.midpoint(max_x);
+        let content_center_y = min_y.midpoint(max_y);
+        let viewport_center_x = viewport.width / 2.0 / self.zoom;
+        let viewport_center_y = viewport.height / 2.0 / self.zoom;
+
+        self.scroll_offset = Point::new(
+            viewport_center_x - content_center_x,
+            viewport_center_y - content_center_y,
+        );
+        self.cache.clear();
     }
 }
 
@@ -238,7 +373,7 @@ impl WindowState {
             }
             CanvasMessage::AutoFitViewport(viewport) => {
                 if self.auto_fit_enabled || self.auto_fit_pending {
-                    let render_nodes = build_render_nodes(&self.flow_definition);
+                    let render_nodes = NodeLayout::build_from_flow(&self.flow_definition);
                     let is_subflow = !self.is_root;
                     self.canvas_state.auto_fit(
                         &render_nodes,
@@ -745,3 +880,97 @@ impl WindowState {
             .into()
     }
 } // impl WindowState (view)
+
+#[cfg(test)]
+#[allow(clippy::indexing_slicing)]
+mod test {
+    use super::*;
+    use crate::node_layout::NodeLayout;
+    use flowcore::model::datatype::DataType;
+    use flowcore::model::process_reference::ProcessReference;
+    use flowcore::model::route::Route;
+
+    fn test_node(
+        alias: &str,
+        source: &str,
+        process: Option<flowcore::model::process::Process>,
+    ) -> NodeLayout {
+        NodeLayout {
+            process_ref: ProcessReference {
+                alias: alias.into(),
+                source: source.into(),
+                initializations: std::collections::BTreeMap::new(),
+                x: Some(100.0),
+                y: Some(100.0),
+                width: Some(180.0),
+                height: Some(120.0),
+            },
+            process,
+        }
+    }
+
+    #[test]
+    fn auto_fit_empty_resets() {
+        let mut state = FlowCanvasState::default();
+        state.auto_fit(&[], &[], &[], false, Size::new(800.0, 600.0));
+        assert!((state.zoom - 1.0).abs() < 0.01);
+        assert!((state.scroll_offset.x).abs() < 0.01);
+    }
+
+    #[test]
+    fn auto_fit_single_node() {
+        let mut state = FlowCanvasState::default();
+        let node = test_node("n", "", None);
+        state.auto_fit(&[node], &[], &[], false, Size::new(800.0, 600.0));
+        assert!(state.zoom > 0.0);
+        assert!(state.zoom <= MAX_ZOOM);
+    }
+
+    #[test]
+    fn auto_fit_with_flow_io() {
+        let mut state = FlowCanvasState::default();
+        let node = test_node("n", "", None);
+        let input = IO::new_named(vec![DataType::from("string")], Route::default(), "in0");
+        let output = IO::new_named(vec![DataType::from("string")], Route::default(), "out0");
+        state.auto_fit(&[node], &[input], &[output], true, Size::new(800.0, 600.0));
+        assert!(state.zoom > 0.0);
+    }
+
+    #[test]
+    fn content_extents_nodes_only() {
+        let node = test_node("n", "", None);
+        let (min_x, min_y, max_x, max_y) = content_extents(&[node], &[], &[], false);
+        assert!(min_x <= 100.0);
+        assert!(min_y <= 100.0);
+        assert!(max_x >= 280.0);
+        assert!(max_y >= 220.0);
+    }
+
+    #[test]
+    fn content_extents_with_flow_io() {
+        let node = test_node("n", "", None);
+        let input = IO::new_named(vec![DataType::from("string")], Route::default(), "input0");
+        let (min_x, _, max_x, _) = content_extents(&[node], &[input], &[], true);
+        assert!(max_x - min_x > 280.0);
+    }
+
+    #[test]
+    fn trigger_auto_fit_when_enabled() {
+        let mut win = WindowState {
+            auto_fit_enabled: true,
+            ..Default::default()
+        };
+        win.trigger_auto_fit_if_enabled();
+        assert!(win.auto_fit_pending);
+    }
+
+    #[test]
+    fn trigger_auto_fit_when_disabled() {
+        let mut win = WindowState {
+            auto_fit_enabled: false,
+            ..Default::default()
+        };
+        win.trigger_auto_fit_if_enabled();
+        assert!(!win.auto_fit_pending);
+    }
+}
