@@ -7,6 +7,9 @@ use crate::errors::Result;
 /// serializers to read definition files from various text formats based on file extension
 pub mod deserializers;
 
+/// Serializers for writing flow model types to disk (TOML format)
+pub mod serializers;
+
 /// contains [Error] that other modules in this crate will `use errors::*;`
 /// to get access to everything `error_chain` creates.
 pub mod errors;
