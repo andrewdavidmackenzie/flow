@@ -42,15 +42,16 @@ impl WindowState {
             _ => return,
         };
 
-        if let Some(pref) = self.flow_definition.process_refs.get_mut(editor.node_index) {
-            match &new_init {
-                Some(init) => {
-                    pref.initializations
-                        .insert(editor.port_name.clone(), init.clone());
-                }
-                None => {
-                    pref.initializations.remove(&editor.port_name);
-                }
+        let Some(pref) = self.flow_definition.process_refs.get_mut(editor.node_index) else {
+            return;
+        };
+        match &new_init {
+            Some(init) => {
+                pref.initializations
+                    .insert(editor.port_name.clone(), init.clone());
+            }
+            None => {
+                pref.initializations.remove(&editor.port_name);
             }
         }
 

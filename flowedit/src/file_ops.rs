@@ -88,6 +88,10 @@ impl WindowState {
                     self.set_file_path(&path);
                     self.selected_node = None;
                     self.selected_connection = None;
+                    self.tooltip = None;
+                    self.context_menu = None;
+                    self.initializer_editor = None;
+                    self.show_metadata = false;
                     self.history = EditHistory::default();
                     self.auto_fit_pending = true;
                     self.auto_fit_enabled = true;
@@ -110,6 +114,10 @@ impl WindowState {
         self.clear_file_path();
         self.selected_node = None;
         self.selected_connection = None;
+        self.tooltip = None;
+        self.context_menu = None;
+        self.initializer_editor = None;
+        self.show_metadata = false;
         self.history = EditHistory::default();
         self.auto_fit_pending = false;
         self.auto_fit_enabled = true;
