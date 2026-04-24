@@ -370,6 +370,8 @@ enum Message {
 struct FlowEdit {
     /// Per-window states, keyed by window ID
     windows: HashMap<window::Id, WindowState>,
+    /// The single source of truth for the flow hierarchy
+    root_flow: FlowDefinition,
     /// The ID of the root (main) window, if known
     root_window: Option<window::Id>,
     /// The ID of the currently focused window (updated on focus events)
@@ -388,6 +390,7 @@ impl Default for FlowEdit {
     fn default() -> Self {
         Self {
             windows: HashMap::new(),
+            root_flow: FlowDefinition::default(),
             root_window: None,
             focused_window: None,
             library_tree: LibraryTree { libraries: vec![] },
@@ -536,6 +539,7 @@ impl FlowEdit {
         });
 
         let flow_hierarchy = FlowHierarchy::from_flow_definition(&flow_definition);
+        let root_flow = flow_definition.clone();
 
         let win_state = WindowState {
             route: flow_definition.route.clone(),
@@ -564,6 +568,7 @@ impl FlowEdit {
         let lib_paths = file_ops::resolve_lib_paths();
         let app = FlowEdit {
             windows,
+            root_flow,
             root_window: Some(root_id),
             focused_window: Some(root_id),
             library_tree,
