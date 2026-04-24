@@ -33,11 +33,11 @@ pub(crate) struct EditorPrefs {
 }
 
 impl WindowState {
-    pub(crate) fn perform_save(&mut self, path: &PathBuf) {
-        match save_flow_toml(&self.flow_definition, path) {
+    pub(crate) fn perform_save(&mut self, flow_def: &mut FlowDefinition, path: &PathBuf) {
+        match save_flow_toml(flow_def, path) {
             Ok(()) => {
                 self.history.clear();
-                self.set_file_path(path);
+                Self::set_file_path_on(flow_def, path);
                 save_editor_prefs(path, self.last_size, self.last_position);
                 if let Some(name) = path.file_name().and_then(|n| n.to_str()) {
                     self.status = format!("Saved to {name}");
@@ -52,41 +52,44 @@ impl WindowState {
     }
 
     /// Prompt the user with a save dialog and save to the chosen path.
-    pub(crate) fn perform_save_as(&mut self) {
+    pub(crate) fn perform_save_as(&mut self, flow_def: &mut FlowDefinition) {
         let dialog = rfd::FileDialog::new()
             .add_filter("Flow", &["toml"])
-            .set_file_name(format!("{}.toml", self.flow_definition.name));
+            .set_file_name(format!("{}.toml", flow_def.name));
         if let Some(path) = dialog.save_file() {
-            self.perform_save(&path);
+            self.perform_save(flow_def, &path);
         }
     }
 
     /// Handle save message -- saves to existing path or prompts with save dialog.
-    pub(crate) fn handle_save(&mut self) {
-        if let Some(path) = self.file_path() {
-            self.perform_save(&path);
+    pub(crate) fn handle_save(&mut self, flow_def: &mut FlowDefinition) {
+        if let Some(path) = Self::file_path_of(flow_def) {
+            self.perform_save(flow_def, &path);
         } else {
-            self.perform_save_as();
+            self.perform_save_as(flow_def);
         }
     }
 
     /// Handle save-as message -- prompts with save dialog.
-    pub(crate) fn handle_save_as(&mut self) {
-        self.perform_save_as();
+    pub(crate) fn handle_save_as(&mut self, flow_def: &mut FlowDefinition) {
+        self.perform_save_as(flow_def);
     }
 
     /// Prompt the user with an open dialog and load the selected flow file.
     /// Open a flow file and update the window state.
-    /// Returns the lib and context references if successful, for rebuilding the library cache.
-    pub(crate) fn perform_open(&mut self) -> Option<(BTreeSet<Url>, BTreeSet<Url>)> {
+    /// Returns the loaded flow definition and lib/context references if successful.
+    pub(crate) fn perform_open(
+        &mut self,
+        flow_def: &mut FlowDefinition,
+    ) -> Option<(BTreeSet<Url>, BTreeSet<Url>)> {
         let dialog = rfd::FileDialog::new().add_filter("Flow", &["toml"]);
         if let Some(path) = dialog.pick_file() {
             match load_flow(&path) {
                 Ok(loaded) => {
                     let nc = loaded.flow_def.process_refs.len();
                     let ec = loaded.flow_def.connections.len();
-                    self.flow_definition = loaded.flow_def;
-                    self.set_file_path(&path);
+                    *flow_def = loaded.flow_def;
+                    Self::set_file_path_on(flow_def, &path);
                     self.selected_node = None;
                     self.selected_connection = None;
                     self.tooltip = None;
@@ -109,10 +112,10 @@ impl WindowState {
     }
 
     /// Clear the canvas and reset to an empty flow state.
-    pub(crate) fn perform_new(&mut self) {
-        self.flow_definition = FlowDefinition::default();
-        self.flow_definition.name = String::from("(new flow)");
-        self.clear_file_path();
+    pub(crate) fn perform_new(&mut self, flow_def: &mut FlowDefinition) {
+        *flow_def = FlowDefinition::default();
+        flow_def.name = String::from("(new flow)");
+        Self::clear_file_path_on(flow_def);
         self.selected_node = None;
         self.selected_connection = None;
         self.tooltip = None;
@@ -133,18 +136,21 @@ impl WindowState {
     ///
     /// Returns the path to the generated manifest on success, or a human-readable
     /// error message on failure.
-    pub(crate) fn perform_compile(&mut self) -> Result<PathBuf, String> {
+    pub(crate) fn perform_compile(
+        &mut self,
+        flow_def: &mut FlowDefinition,
+    ) -> Result<PathBuf, String> {
         // New flows must be saved first so the compiler has a real file path
-        if self.file_path().is_none() {
-            self.perform_save_as();
+        if Self::file_path_of(flow_def).is_none() {
+            self.perform_save_as(flow_def);
         }
-        let Some(flow_path) = self.file_path() else {
+        let Some(flow_path) = Self::file_path_of(flow_def) else {
             return Err("Flow must be saved before compiling".to_string());
         };
 
         // Save any unsaved edits so the file on disk matches the editor state
         if !self.history.is_empty() {
-            self.perform_save(&flow_path);
+            self.perform_save(flow_def, &flow_path);
             if !self.history.is_empty() {
                 return Err("Save failed — cannot compile stale content".to_string());
             }
@@ -723,11 +729,6 @@ mod test {
     use flowcore::model::process_reference::ProcessReference;
     use flowcore::model::route::Route;
 
-    use crate::hierarchy_panel::FlowHierarchy;
-    use crate::history::EditHistory;
-    use crate::window_state::FlowCanvasState;
-    use crate::WindowKind;
-
     fn test_pref(alias: &str, source: &str) -> ProcessReference {
         ProcessReference {
             alias: alias.into(),
@@ -1144,34 +1145,14 @@ mod test {
         let _ = std::fs::remove_dir_all(&dir);
     }
 
-    fn test_win_state() -> WindowState {
-        let flow_def = FlowDefinition {
+    fn test_flow_def() -> FlowDefinition {
+        FlowDefinition {
             name: String::from("test"),
             process_refs: vec![
                 test_pref("add", "lib://flowstdlib/math/add"),
                 test_pref("stdout", "context://stdio/stdout"),
             ],
             ..FlowDefinition::default()
-        };
-        WindowState {
-            route: flowcore::model::route::Route::default(),
-            kind: WindowKind::FlowEditor,
-            canvas_state: FlowCanvasState::default(),
-            status: String::new(),
-            selected_node: None,
-            selected_connection: None,
-            history: EditHistory::default(),
-            auto_fit_pending: false,
-            auto_fit_enabled: false,
-            flow_definition: flow_def,
-            tooltip: None,
-            initializer_editor: None,
-            is_root: true,
-            context_menu: None,
-            show_metadata: false,
-            flow_hierarchy: FlowHierarchy::empty(),
-            last_size: None,
-            last_position: None,
         }
     }
 
@@ -1180,14 +1161,15 @@ mod test {
         let dir = temp_dir("perform_save");
         let path = dir.join("saved.toml");
 
-        let mut win = test_win_state();
+        let mut flow_def = test_flow_def();
+        let mut win = WindowState::default();
         win.history.mark_modified();
-        win.flow_definition.name = "saved_flow".into();
+        flow_def.name = "saved_flow".into();
 
-        win.perform_save(&path);
+        win.perform_save(&mut flow_def, &path);
         assert!(win.history.is_empty());
         let canonical = path.canonicalize().unwrap_or_else(|_| path.clone());
-        assert_eq!(win.file_path(), Some(canonical));
+        assert_eq!(WindowState::file_path_of(&flow_def), Some(canonical));
 
         let contents = std::fs::read_to_string(&path).expect("read failed");
         assert!(contents.contains("flow = \"saved_flow\""));

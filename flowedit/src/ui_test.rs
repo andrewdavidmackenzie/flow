@@ -6,32 +6,7 @@ use iced_test::simulator::{self, simulator};
 use std::collections::HashMap;
 
 fn test_win_state() -> WindowState {
-    let flow_def = FlowDefinition {
-        name: String::from("test"),
-        process_refs: vec![
-            ProcessReference {
-                alias: "add".into(),
-                source: "lib://flowstdlib/math/add".into(),
-                initializations: std::collections::BTreeMap::new(),
-                x: Some(100.0),
-                y: Some(100.0),
-                width: Some(180.0),
-                height: Some(120.0),
-            },
-            ProcessReference {
-                alias: "stdout".into(),
-                source: "context://stdio/stdout".into(),
-                initializations: std::collections::BTreeMap::new(),
-                x: Some(400.0),
-                y: Some(100.0),
-                width: Some(180.0),
-                height: Some(120.0),
-            },
-        ],
-        ..FlowDefinition::default()
-    };
     WindowState {
-        flow_definition: flow_def,
         is_root: true,
         ..Default::default()
     }
@@ -40,13 +15,13 @@ fn test_win_state() -> WindowState {
 fn test_app_with_flow(flow: FlowDefinition) -> (FlowEdit, window::Id) {
     let win_id = window::Id::unique();
     let win_state = WindowState {
-        flow_definition: flow,
         is_root: true,
         ..Default::default()
     };
 
     let app = FlowEdit {
         windows: HashMap::from([(win_id, win_state)]),
+        root_flow: flow,
         root_window: Some(win_id),
         focused_window: Some(win_id),
         library_tree: LibraryTree {
@@ -170,10 +145,7 @@ fn update_canvas_move_node() {
         win_id,
         CanvasMessage::Moved(0, 200.0, 300.0),
     ));
-    let node = app
-        .windows
-        .get(&win_id)
-        .and_then(|w| w.flow_definition.process_refs.first());
+    let node = app.root_flow.process_refs.first();
     assert!((node.map_or(0.0, |n| n.x.unwrap_or(0.0)) - 200.0).abs() < 0.01);
     assert!((node.map_or(0.0, |n| n.y.unwrap_or(0.0)) - 300.0).abs() < 0.01);
 }
@@ -194,19 +166,9 @@ fn update_canvas_move_completed_records_history() {
 #[test]
 fn update_canvas_delete_node() {
     let (mut app, win_id) = test_app();
-    assert_eq!(
-        app.windows
-            .get(&win_id)
-            .map(|w| w.flow_definition.process_refs.len()),
-        Some(2)
-    );
+    assert_eq!(Some(app.root_flow.process_refs.len()), Some(2));
     let _ = app.update(Message::WindowCanvas(win_id, CanvasMessage::Deleted(0)));
-    assert_eq!(
-        app.windows
-            .get(&win_id)
-            .map(|w| w.flow_definition.process_refs.len()),
-        Some(1)
-    );
+    assert_eq!(Some(app.root_flow.process_refs.len()), Some(1));
     assert!(app
         .windows
         .get(&win_id)
@@ -225,12 +187,7 @@ fn update_canvas_create_connection() {
             to_port: String::new(),
         },
     ));
-    assert_eq!(
-        app.windows
-            .get(&win_id)
-            .map(|w| w.flow_definition.connections.len()),
-        Some(1)
-    );
+    assert_eq!(Some(app.root_flow.connections.len()), Some(1));
     assert!(app
         .windows
         .get(&win_id)
@@ -241,11 +198,9 @@ fn update_canvas_create_connection() {
 fn update_canvas_select_connection() {
     let (mut app, win_id) = test_app();
     // Add a connection first
-    if let Some(win) = app.windows.get_mut(&win_id) {
-        win.flow_definition
-            .connections
-            .push(Connection::new("add", "stdout"));
-    }
+    app.root_flow
+        .connections
+        .push(Connection::new("add", "stdout"));
     let _ = app.update(Message::WindowCanvas(
         win_id,
         CanvasMessage::ConnectionSelected(Some(0)),
@@ -259,21 +214,14 @@ fn update_canvas_select_connection() {
 #[test]
 fn update_canvas_delete_connection() {
     let (mut app, win_id) = test_app();
-    if let Some(win) = app.windows.get_mut(&win_id) {
-        win.flow_definition
-            .connections
-            .push(Connection::new("add", "stdout"));
-    }
+    app.root_flow
+        .connections
+        .push(Connection::new("add", "stdout"));
     let _ = app.update(Message::WindowCanvas(
         win_id,
         CanvasMessage::ConnectionDeleted(0),
     ));
-    assert_eq!(
-        app.windows
-            .get(&win_id)
-            .map(|w| w.flow_definition.connections.len()),
-        Some(0)
-    );
+    assert_eq!(Some(app.root_flow.connections.len()), Some(0));
 }
 
 #[test]
@@ -295,18 +243,12 @@ fn update_undo_redo_cycle() {
 
     // Undo
     let _ = app.update(Message::Undo);
-    let node = app
-        .windows
-        .get(&win_id)
-        .and_then(|w| w.flow_definition.process_refs.first());
+    let node = app.root_flow.process_refs.first();
     assert!((node.map_or(0.0, |n| n.x.unwrap_or(0.0)) - 100.0).abs() < 0.01);
 
     // Redo
     let _ = app.update(Message::Redo);
-    let node = app
-        .windows
-        .get(&win_id)
-        .and_then(|w| w.flow_definition.process_refs.first());
+    let node = app.root_flow.process_refs.first();
     assert!((node.map_or(0.0, |n| n.x.unwrap_or(0.0)) - 200.0).abs() < 0.01);
 }
 
@@ -327,12 +269,7 @@ fn update_flow_name_changed() {
         win_id,
         FlowEditMessage::NameChanged("new_name".into()),
     ));
-    assert_eq!(
-        app.windows
-            .get(&win_id)
-            .map(|w| w.flow_definition.name.as_str()),
-        Some("new_name")
-    );
+    assert_eq!(Some(app.root_flow.name.as_str()), Some("new_name"));
     assert!(app
         .windows
         .get(&win_id)
@@ -346,12 +283,7 @@ fn update_flow_version_changed() {
         win_id,
         FlowEditMessage::VersionChanged("2.0.0".into()),
     ));
-    assert_eq!(
-        app.windows
-            .get(&win_id)
-            .map(|w| w.flow_definition.metadata.version.as_str()),
-        Some("2.0.0")
-    );
+    assert_eq!(Some(app.root_flow.metadata.version.as_str()), Some("2.0.0"));
 }
 
 #[test]
@@ -362,9 +294,7 @@ fn update_flow_description_changed() {
         FlowEditMessage::DescriptionChanged("A test flow".into()),
     ));
     assert_eq!(
-        app.windows
-            .get(&win_id)
-            .map(|w| w.flow_definition.metadata.description.as_str()),
+        Some(app.root_flow.metadata.description.as_str()),
         Some("A test flow")
     );
 }
@@ -376,11 +306,7 @@ fn update_flow_authors_changed() {
         win_id,
         FlowEditMessage::AuthorsChanged("Alice, Bob".into()),
     ));
-    let authors = app
-        .windows
-        .get(&win_id)
-        .map(|w| w.flow_definition.metadata.authors.clone())
-        .unwrap_or_default();
+    let authors = app.root_flow.metadata.authors.clone();
     assert_eq!(authors, vec!["Alice", "Bob"]);
 }
 
@@ -388,12 +314,7 @@ fn update_flow_authors_changed() {
 fn update_flow_add_input() {
     let (mut app, win_id) = test_app();
     let _ = app.update(Message::FlowEdit(win_id, FlowEditMessage::AddInput));
-    assert_eq!(
-        app.windows
-            .get(&win_id)
-            .map(|w| w.flow_definition.inputs.len()),
-        Some(1)
-    );
+    assert_eq!(Some(app.root_flow.inputs.len()), Some(1));
     assert!(app
         .windows
         .get(&win_id)
@@ -404,12 +325,7 @@ fn update_flow_add_input() {
 fn update_flow_add_output() {
     let (mut app, win_id) = test_app();
     let _ = app.update(Message::FlowEdit(win_id, FlowEditMessage::AddOutput));
-    assert_eq!(
-        app.windows
-            .get(&win_id)
-            .map(|w| w.flow_definition.outputs.len()),
-        Some(1)
-    );
+    assert_eq!(Some(app.root_flow.outputs.len()), Some(1));
 }
 
 #[test]
@@ -417,12 +333,7 @@ fn update_flow_delete_input() {
     let (mut app, win_id) = test_app();
     let _ = app.update(Message::FlowEdit(win_id, FlowEditMessage::AddInput));
     let _ = app.update(Message::FlowEdit(win_id, FlowEditMessage::DeleteInput(0)));
-    assert_eq!(
-        app.windows
-            .get(&win_id)
-            .map(|w| w.flow_definition.inputs.len()),
-        Some(0)
-    );
+    assert_eq!(Some(app.root_flow.inputs.len()), Some(0));
 }
 
 #[test]
@@ -434,11 +345,7 @@ fn update_flow_input_name_changed() {
         FlowEditMessage::InputNameChanged(0, "data".into()),
     ));
     assert_eq!(
-        app.windows.get(&win_id).and_then(|w| w
-            .flow_definition
-            .inputs
-            .first()
-            .map(|io| io.name().as_str())),
+        app.root_flow.inputs.first().map(|io| io.name().as_str()),
         Some("data")
     );
 }
@@ -509,10 +416,7 @@ fn update_canvas_resize_node() {
         win_id,
         CanvasMessage::Resized(0, 50.0, 50.0, 200.0, 150.0),
     ));
-    let node = app
-        .windows
-        .get(&win_id)
-        .and_then(|w| w.flow_definition.process_refs.first());
+    let node = app.root_flow.process_refs.first();
     assert!((node.map_or(0.0, |n| n.width.unwrap_or(0.0)) - 200.0).abs() < 0.01);
     assert!((node.map_or(0.0, |n| n.height.unwrap_or(0.0)) - 150.0).abs() < 0.01);
 }
@@ -792,11 +696,10 @@ fn click_build_with_saved_flow() {
     let dir = temp_dir("ui_build");
     let path = dir.join("test.toml");
     let (mut app, win_id) = test_app();
-    if let Some(win) = app.windows.get_mut(&win_id) {
-        win.set_file_path(&path);
-        win.flow_definition.name = "test_build".into();
-        win.perform_save(&path);
-    }
+    WindowState::set_file_path_on(&mut app.root_flow, &path);
+    app.root_flow.name = "test_build".into();
+    // Save through the message handler which properly borrows root_flow
+    let _ = app.update(Message::Save);
     click_and_update(&mut app, win_id, "\u{1F528} Build");
     let status = app
         .windows
@@ -829,12 +732,7 @@ fn helper_right_click_sets_context_menu() {
 #[test]
 fn helper_send_key_delete() {
     let (mut app, win_id) = test_app();
-    assert_eq!(
-        app.windows
-            .get(&win_id)
-            .map(|w| w.flow_definition.process_refs.len()),
-        Some(2)
-    );
+    assert_eq!(Some(app.root_flow.process_refs.len()), Some(2));
 
     // First, select a node via direct canvas click so the canvas internal state
     // has selected_node set. Then send Delete in the same simulator cycle.
@@ -859,9 +757,7 @@ fn helper_send_key_delete() {
     // The canvas should have emitted Selected(Some(0)) from the click,
     // then Deleted(0) from the Delete key
     assert_eq!(
-        app.windows
-            .get(&win_id)
-            .map(|w| w.flow_definition.process_refs.len()),
+        Some(app.root_flow.process_refs.len()),
         Some(1),
         "Delete key after selecting a node should remove it"
     );
@@ -888,10 +784,7 @@ fn helper_drag_via_direct_messages() {
         CanvasMessage::MoveCompleted(0, 100.0, 100.0, 250.0, 350.0),
     ));
 
-    let node = app
-        .windows
-        .get(&win_id)
-        .and_then(|w| w.flow_definition.process_refs.first());
+    let node = app.root_flow.process_refs.first();
     assert!(
         (node.map_or(0.0, |n| n.x.unwrap_or(0.0)) - 250.0).abs() < 0.01,
         "Node x should be 250 after drag"
@@ -916,9 +809,9 @@ fn helper_drag_simulator_smoke_test() {
     // the app state remains consistent.
     let (mut app, win_id) = test_app();
     let original_x = app
-        .windows
-        .get(&win_id)
-        .and_then(|w| w.flow_definition.process_refs.first())
+        .root_flow
+        .process_refs
+        .first()
         .map_or(0.0, |n| n.x.unwrap_or(0.0));
 
     drag(
@@ -936,9 +829,9 @@ fn helper_drag_simulator_smoke_test() {
         "Window state should still exist after drag"
     );
     let _current_x = app
-        .windows
-        .get(&win_id)
-        .and_then(|w| w.flow_definition.process_refs.first())
+        .root_flow
+        .process_refs
+        .first()
         .map_or(0.0, |n| n.x.unwrap_or(0.0));
     // Note: if current_x == original_x, the simulator drag didn't produce
     // canvas events. This is expected due to the limitation documented above.
@@ -951,29 +844,15 @@ fn helper_drag_simulator_smoke_test() {
 fn ui_delete_node_removes_connected_edges() {
     let (mut app, win_id) = test_app();
     // Add a connection between the two nodes
-    if let Some(win) = app.windows.get_mut(&win_id) {
-        win.flow_definition
-            .connections
-            .push(Connection::new("add/out", "stdout/in"));
-    }
-    assert_eq!(
-        app.windows
-            .get(&win_id)
-            .map(|w| w.flow_definition.connections.len()),
-        Some(1)
-    );
+    app.root_flow
+        .connections
+        .push(Connection::new("add/out", "stdout/in"));
+    assert_eq!(Some(app.root_flow.connections.len()), Some(1));
     // Delete node 0 ("add")
     let _ = app.update(Message::WindowCanvas(win_id, CanvasMessage::Deleted(0)));
+    assert_eq!(Some(app.root_flow.process_refs.len()), Some(1));
     assert_eq!(
-        app.windows
-            .get(&win_id)
-            .map(|w| w.flow_definition.process_refs.len()),
-        Some(1)
-    );
-    assert_eq!(
-        app.windows
-            .get(&win_id)
-            .map(|w| w.flow_definition.connections.len()),
+        Some(app.root_flow.connections.len()),
         Some(0),
         "Edge should be removed when connected node is deleted"
     );
@@ -982,10 +861,7 @@ fn ui_delete_node_removes_connected_edges() {
 #[test]
 fn ui_delete_with_nothing_selected_no_change() {
     let (mut app, win_id) = test_app();
-    let count_before = app
-        .windows
-        .get(&win_id)
-        .map(|w| w.flow_definition.process_refs.len());
+    let count_before = app.root_flow.process_refs.len();
     // Deselect — no node is selected
     let _ = app.update(Message::WindowCanvas(win_id, CanvasMessage::Selected(None)));
     // Send Delete key — should not change anything with nothing selected
@@ -994,12 +870,7 @@ fn ui_delete_with_nothing_selected_no_change() {
         win_id,
         iced::keyboard::Key::Named(iced::keyboard::key::Named::Delete),
     );
-    assert_eq!(
-        app.windows
-            .get(&win_id)
-            .map(|w| w.flow_definition.process_refs.len()),
-        count_before
-    );
+    assert_eq!(app.root_flow.process_refs.len(), count_before);
 }
 
 // ---- Group 2: Connection Selection/Deletion ----
@@ -1016,12 +887,7 @@ fn ui_select_and_delete_connection() {
             to_port: String::new(),
         },
     ));
-    assert_eq!(
-        app.windows
-            .get(&win_id)
-            .map(|w| w.flow_definition.connections.len()),
-        Some(1)
-    );
+    assert_eq!(Some(app.root_flow.connections.len()), Some(1));
     // Select
     let _ = app.update(Message::WindowCanvas(
         win_id,
@@ -1036,19 +902,14 @@ fn ui_select_and_delete_connection() {
         win_id,
         CanvasMessage::ConnectionDeleted(0),
     ));
-    assert_eq!(
-        app.windows
-            .get(&win_id)
-            .map(|w| w.flow_definition.connections.len()),
-        Some(0)
-    );
+    assert_eq!(Some(app.root_flow.connections.len()), Some(0));
 }
 
 #[test]
 fn ui_connection_deselect_on_canvas_click() {
     let (mut app, win_id) = test_app();
     if let Some(win) = app.windows.get_mut(&win_id) {
-        win.flow_definition
+        app.root_flow
             .connections
             .push(Connection::new("add", "stdout"));
         win.selected_connection = Some(0);
@@ -1065,24 +926,12 @@ fn ui_connection_deselect_on_canvas_click() {
 #[test]
 fn ui_undo_node_deletion() {
     let (mut app, win_id) = test_app();
-    assert_eq!(
-        app.windows
-            .get(&win_id)
-            .map(|w| w.flow_definition.process_refs.len()),
-        Some(2)
-    );
+    assert_eq!(Some(app.root_flow.process_refs.len()), Some(2));
     let _ = app.update(Message::WindowCanvas(win_id, CanvasMessage::Deleted(0)));
-    assert_eq!(
-        app.windows
-            .get(&win_id)
-            .map(|w| w.flow_definition.process_refs.len()),
-        Some(1)
-    );
+    assert_eq!(Some(app.root_flow.process_refs.len()), Some(1));
     let _ = app.update(Message::Undo);
     assert_eq!(
-        app.windows
-            .get(&win_id)
-            .map(|w| w.flow_definition.process_refs.len()),
+        Some(app.root_flow.process_refs.len()),
         Some(2),
         "Undo should restore deleted node"
     );
@@ -1100,27 +949,15 @@ fn ui_undo_connection_deletion() {
             to_port: String::new(),
         },
     ));
-    assert_eq!(
-        app.windows
-            .get(&win_id)
-            .map(|w| w.flow_definition.connections.len()),
-        Some(1)
-    );
+    assert_eq!(Some(app.root_flow.connections.len()), Some(1));
     let _ = app.update(Message::WindowCanvas(
         win_id,
         CanvasMessage::ConnectionDeleted(0),
     ));
-    assert_eq!(
-        app.windows
-            .get(&win_id)
-            .map(|w| w.flow_definition.connections.len()),
-        Some(0)
-    );
+    assert_eq!(Some(app.root_flow.connections.len()), Some(0));
     let _ = app.update(Message::Undo);
     assert_eq!(
-        app.windows
-            .get(&win_id)
-            .map(|w| w.flow_definition.connections.len()),
+        Some(app.root_flow.connections.len()),
         Some(1),
         "Undo should restore deleted connection"
     );
@@ -1151,10 +988,7 @@ fn undo_restores_move() {
         CanvasMessage::MoveCompleted(0, 100.0, 100.0, 200.0, 300.0),
     ));
     let _ = app.update(Message::Undo);
-    let node = app
-        .windows
-        .get(&win_id)
-        .and_then(|w| w.flow_definition.process_refs.first());
+    let node = app.root_flow.process_refs.first();
     assert!((node.map_or(0.0, |n| n.x.unwrap_or(0.0)) - 100.0).abs() < 0.01);
 }
 
@@ -1171,10 +1005,7 @@ fn redo_reapplies_move() {
     ));
     let _ = app.update(Message::Undo);
     let _ = app.update(Message::Redo);
-    let node = app
-        .windows
-        .get(&win_id)
-        .and_then(|w| w.flow_definition.process_refs.first());
+    let node = app.root_flow.process_refs.first();
     assert!((node.map_or(0.0, |n| n.x.unwrap_or(0.0)) - 200.0).abs() < 0.01);
 }
 
@@ -1219,18 +1050,12 @@ fn ui_initializer_editor_open_and_cancel() {
 #[test]
 fn ui_library_add_function_creates_node() {
     let (mut app, win_id) = test_app();
-    let count_before = app
-        .windows
-        .get(&win_id)
-        .map_or(0, |w| w.flow_definition.process_refs.len());
+    let count_before = app.root_flow.process_refs.len();
     let _ = app.update(Message::Library(
         win_id,
         library_panel::LibraryMessage::AddFunction("lib://test_lib/math/add".into(), "add".into()),
     ));
-    let count_after = app
-        .windows
-        .get(&win_id)
-        .map_or(0, |w| w.flow_definition.process_refs.len());
+    let count_after = app.root_flow.process_refs.len();
     assert_eq!(
         count_after,
         count_before + 1,
@@ -1334,10 +1159,7 @@ fn ui_resize_node_records_history() {
             .is_some_and(|w| !w.history.is_empty()),
         "Resize should record an edit"
     );
-    let node = app
-        .windows
-        .get(&win_id)
-        .and_then(|w| w.flow_definition.process_refs.first());
+    let node = app.root_flow.process_refs.first();
     assert!(
         (node.map_or(0.0, |n| n.width.unwrap_or(0.0)) - 250.0).abs() < 0.01,
         "Node width should be 250 after resize"
@@ -1356,23 +1178,14 @@ fn flow_delete_input_removes_edges() {
     // Add a flow input
     let _ = app.update(Message::FlowEdit(win_id, FlowEditMessage::AddInput));
     // Add a connection referencing "input" node
-    if let Some(win) = app.windows.get_mut(&win_id) {
-        win.flow_definition
-            .connections
-            .push(Connection::new("input/input0", "add"));
-    }
-    assert_eq!(
-        app.windows
-            .get(&win_id)
-            .map_or(0, |w| w.flow_definition.connections.len()),
-        1
-    );
+    app.root_flow
+        .connections
+        .push(Connection::new("input/input0", "add"));
+    assert_eq!(app.root_flow.connections.len(), 1);
     // Delete the input — edge should be removed
     let _ = app.update(Message::FlowEdit(win_id, FlowEditMessage::DeleteInput(0)));
     assert_eq!(
-        app.windows
-            .get(&win_id)
-            .map_or(0, |w| w.flow_definition.connections.len()),
+        app.root_flow.connections.len(),
         0,
         "Edge should be removed when flow input is deleted"
     );
@@ -1384,23 +1197,14 @@ fn flow_delete_output_removes_edges() {
     // Add a flow output
     let _ = app.update(Message::FlowEdit(win_id, FlowEditMessage::AddOutput));
     // Add a connection referencing "output" node
-    if let Some(win) = app.windows.get_mut(&win_id) {
-        win.flow_definition
-            .connections
-            .push(Connection::new("add", "output/output0"));
-    }
-    assert_eq!(
-        app.windows
-            .get(&win_id)
-            .map_or(0, |w| w.flow_definition.connections.len()),
-        1
-    );
+    app.root_flow
+        .connections
+        .push(Connection::new("add", "output/output0"));
+    assert_eq!(app.root_flow.connections.len(), 1);
     // Delete the output — edge should be removed
     let _ = app.update(Message::FlowEdit(win_id, FlowEditMessage::DeleteOutput(0)));
     assert_eq!(
-        app.windows
-            .get(&win_id)
-            .map_or(0, |w| w.flow_definition.connections.len()),
+        app.root_flow.connections.len(),
         0,
         "Edge should be removed when flow output is deleted"
     );
@@ -1410,20 +1214,18 @@ fn flow_delete_output_removes_edges() {
 fn flow_input_rename_updates_edges() {
     let (mut app, win_id) = test_app();
     let _ = app.update(Message::FlowEdit(win_id, FlowEditMessage::AddInput));
-    if let Some(win) = app.windows.get_mut(&win_id) {
-        win.flow_definition
-            .connections
-            .push(Connection::new("input/input0", "add"));
-    }
+    app.root_flow
+        .connections
+        .push(Connection::new("input/input0", "add"));
     let _ = app.update(Message::FlowEdit(
         win_id,
         FlowEditMessage::InputNameChanged(0, "data".into()),
     ));
     // Connection from-route should now reference "input/data" instead of "input/input0"
     let from_route = app
-        .windows
-        .get(&win_id)
-        .and_then(|w| w.flow_definition.connections.first())
+        .root_flow
+        .connections
+        .first()
         .map(|c| c.from().to_string());
     assert_eq!(from_route, Some("input/data".into()));
 }
@@ -1432,20 +1234,18 @@ fn flow_input_rename_updates_edges() {
 fn flow_output_rename_updates_edges() {
     let (mut app, win_id) = test_app();
     let _ = app.update(Message::FlowEdit(win_id, FlowEditMessage::AddOutput));
-    if let Some(win) = app.windows.get_mut(&win_id) {
-        win.flow_definition
-            .connections
-            .push(Connection::new("add", "output/output0"));
-    }
+    app.root_flow
+        .connections
+        .push(Connection::new("add", "output/output0"));
     let _ = app.update(Message::FlowEdit(
         win_id,
         FlowEditMessage::OutputNameChanged(0, "result".into()),
     ));
     // Connection to-route should now reference "output/result" instead of "output/output0"
     let to_route = app
-        .windows
-        .get(&win_id)
-        .and_then(|w| w.flow_definition.connections.first())
+        .root_flow
+        .connections
+        .first()
         .and_then(|c| c.to().first().map(ToString::to_string));
     assert_eq!(to_route, Some("output/result".into()));
 }
@@ -1498,19 +1298,9 @@ fn flow_edit_toggle_metadata() {
 fn flow_edit_add_delete_output() {
     let (mut app, win_id) = test_app();
     let _ = app.update(Message::FlowEdit(win_id, FlowEditMessage::AddOutput));
-    assert_eq!(
-        app.windows
-            .get(&win_id)
-            .map_or(0, |w| w.flow_definition.outputs.len()),
-        1
-    );
+    assert_eq!(app.root_flow.outputs.len(), 1);
     let _ = app.update(Message::FlowEdit(win_id, FlowEditMessage::DeleteOutput(0)));
-    assert_eq!(
-        app.windows
-            .get(&win_id)
-            .map_or(0, |w| w.flow_definition.outputs.len()),
-        0
-    );
+    assert_eq!(app.root_flow.outputs.len(), 0);
 }
 
 #[test]
@@ -1522,9 +1312,9 @@ fn flow_edit_input_type_changed() {
         FlowEditMessage::InputTypeChanged(0, "number".into()),
     ));
     let dtype = app
-        .windows
-        .get(&win_id)
-        .and_then(|w| w.flow_definition.inputs.first())
+        .root_flow
+        .inputs
+        .first()
         .and_then(|io| io.datatypes().first())
         .map(ToString::to_string);
     assert_eq!(dtype.as_deref(), Some("number"));
@@ -1539,9 +1329,9 @@ fn flow_edit_output_type_changed() {
         FlowEditMessage::OutputTypeChanged(0, "boolean".into()),
     ));
     let dtype = app
-        .windows
-        .get(&win_id)
-        .and_then(|w| w.flow_definition.outputs.first())
+        .root_flow
+        .outputs
+        .first()
         .and_then(|io| io.datatypes().first())
         .map(ToString::to_string);
     assert_eq!(dtype.as_deref(), Some("boolean"));
