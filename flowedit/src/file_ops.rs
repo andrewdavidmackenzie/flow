@@ -1154,6 +1154,7 @@ mod test {
             ..FlowDefinition::default()
         };
         WindowState {
+            route: flowcore::model::route::Route::default(),
             kind: WindowKind::FlowEditor,
             canvas_state: FlowCanvasState::default(),
             status: String::new(),

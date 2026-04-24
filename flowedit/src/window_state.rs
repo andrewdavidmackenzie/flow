@@ -19,6 +19,7 @@ use flowcore::model::flow_definition::FlowDefinition;
 use flowcore::model::function_definition::FunctionDefinition;
 use flowcore::model::input::InputInitializer;
 use flowcore::model::io::IO;
+use flowcore::model::route::Route;
 
 use crate::file_ops;
 use crate::flow_canvas::{content_extents, CanvasAction, CanvasMessage, FlowCanvas};
@@ -220,6 +221,9 @@ pub(crate) enum WindowKind {
 /// Per-window state for the flow editor.
 #[allow(clippy::struct_excessive_bools)]
 pub(crate) struct WindowState {
+    /// Route in the flow hierarchy that this window is editing
+    #[allow(dead_code)]
+    pub(crate) route: Route,
     /// What this window displays
     pub(crate) kind: WindowKind,
     /// Canvas state for caching rendered geometry
@@ -259,6 +263,7 @@ pub(crate) struct WindowState {
 impl Default for WindowState {
     fn default() -> Self {
         Self {
+            route: Route::default(),
             kind: WindowKind::FlowEditor,
             canvas_state: FlowCanvasState::default(),
             status: String::new(),

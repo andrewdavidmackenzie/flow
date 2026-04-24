@@ -538,6 +538,7 @@ impl FlowEdit {
         let flow_hierarchy = FlowHierarchy::from_flow_definition(&flow_definition);
 
         let win_state = WindowState {
+            route: flow_definition.route.clone(),
             kind: WindowKind::FlowEditor,
             canvas_state: FlowCanvasState::default(),
             status,
@@ -623,6 +624,7 @@ impl FlowEdit {
                 flow_def.source_url = url;
             }
             let child = WindowState {
+                route: flow_def.route.clone(),
                 kind: WindowKind::FlowEditor,
                 canvas_state: FlowCanvasState::default(),
                 status: format!("Ready - {nc} nodes, {ec} connections"),
@@ -1808,6 +1810,7 @@ impl FlowEdit {
                         flow_def.source_url = url;
                     }
                     let child = WindowState {
+                        route: flow_def.route.clone(),
                         kind: WindowKind::FlowEditor,
 
                         canvas_state: FlowCanvasState::default(),
@@ -1925,6 +1928,7 @@ impl FlowEdit {
                     flow_def.source_url = url;
                 }
                 let child = WindowState {
+                    route: flow_def.route.clone(),
                     kind: WindowKind::FlowEditor,
 
                     canvas_state: FlowCanvasState::default(),
@@ -1999,6 +2003,7 @@ impl FlowEdit {
             func_flow_def.source_url = url;
         }
         let child = WindowState {
+            route: func_flow_def.route.clone(),
             kind: WindowKind::FunctionViewer(Box::new(viewer)),
 
             canvas_state: FlowCanvasState::default(),
@@ -2119,6 +2124,7 @@ impl FlowEdit {
         let (new_id, open_task) = window::open(self.child_window_settings(1024.0, 768.0));
 
         let child = WindowState {
+            route: flow_def.route.clone(),
             kind: WindowKind::FlowEditor,
 
             canvas_state: FlowCanvasState::default(),
@@ -2225,6 +2231,7 @@ impl FlowEdit {
             func_flow_def.source_url = url;
         }
         let mut child = WindowState {
+            route: func_flow_def.route.clone(),
             kind: WindowKind::FunctionViewer(Box::new(viewer)),
 
             canvas_state: FlowCanvasState::default(),
