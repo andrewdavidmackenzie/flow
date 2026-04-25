@@ -18,8 +18,10 @@ use iced::mouse;
 use iced::widget::canvas::{self, Event, Frame, Geometry, Path, Stroke, Text as CanvasText};
 use iced::{Color, Point, Rectangle, Renderer, Size, Theme};
 
+use flowcore::model::flow_definition::FlowDefinition;
 use flowcore::model::io::IO;
 use flowcore::model::name::HasName;
+use flowcore::model::route::Route;
 
 use crate::node_layout::{NodeLayout, PORT_FONT_SIZE};
 use crate::utils::{
@@ -45,15 +47,13 @@ const MIN_NODE_HEIGHT: f32 = 80.0;
 /// Half-size of resize handle squares in screen pixels
 const RESIZE_HANDLE_HALF: f32 = 3.0;
 /// Hit test radius for resize handles in screen pixels
-const RESIZE_HANDLE_HIT: f32 = 6.0;
+pub(crate) const RESIZE_HANDLE_HIT: f32 = 6.0;
 /// Hit test radius for port semi-circles in screen pixels
 const PORT_HIT_RADIUS: f32 = 8.0;
 /// Hit test distance for connection bezier curves in screen pixels
 const CONNECTION_HIT_DISTANCE: f32 = 8.0;
 /// Number of sample points along a bezier curve for hit testing
 const BEZIER_SAMPLES: usize = 64;
-
-use flowcore::model::connection::Connection;
 
 /// Messages produced by the canvas interaction layer.
 #[derive(Debug, Clone)]
@@ -191,12 +191,9 @@ struct PanState {
     last_screen_pos: Point,
 }
 
-// TODO: Replace from_node/from_port strings with a Route reference and derive
-// start_pos from the node layout, so renames don't cause stale data.
 #[derive(Debug, Clone)]
 struct ConnectingState {
-    from_node: String,
-    from_port: String,
+    from_route: Route,
     from_output: bool,
     start_pos: Point,
     current_screen_pos: Point,
@@ -213,54 +210,8 @@ const PORT_RADIUS: f32 = 5.0;
 /// Maximum characters for source label before truncation
 const MAX_SOURCE_CHARS: usize = 22;
 
-pub(crate) fn content_extents(
-    nodes: &[NodeLayout],
-    flow_inputs: &[IO],
-    flow_outputs: &[IO],
-    has_flow_io: bool,
-) -> (f32, f32, f32, f32) {
-    if has_flow_io {
-        let (box_x, box_y, box_w, box_h, _, _) =
-            flow_io_bounding_box(nodes, flow_inputs, flow_outputs);
-        let max_input_label = flow_inputs
-            .iter()
-            .map(|io| io.name().len())
-            .max()
-            .unwrap_or(0);
-        let max_output_label = flow_outputs
-            .iter()
-            .map(|io| io.name().len())
-            .max()
-            .unwrap_or(0);
-        let label_margin = max_input_label.max(max_output_label) as f32 * PORT_FONT_SIZE + 20.0;
-        (
-            box_x - label_margin,
-            box_y,
-            box_x + box_w + label_margin,
-            box_y + box_h,
-        )
-    } else {
-        let mut min_x = f32::MAX;
-        let mut min_y = f32::MAX;
-        let mut max_x = f32::MIN;
-        let mut max_y = f32::MIN;
-        for node in nodes {
-            let init_margin = if node.has_initializers() {
-                node.max_initializer_display_len() as f32 * 8.0
-            } else {
-                0.0
-            };
-            min_x = min_x.min(node.x() - init_margin);
-            min_y = min_y.min(node.y());
-            max_x = max_x.max(node.x() + node.width());
-            max_y = max_y.max(node.y() + node.height());
-        }
-        (min_x, min_y, max_x, max_y)
-    }
-}
-
 /// Transform a world-space point to screen-space using the given zoom and scroll offset.
-fn transform_point(p: Point, zoom: f32, offset: Point) -> Point {
+pub(crate) fn transform_point(p: Point, zoom: f32, offset: Point) -> Point {
     Point::new((p.x + offset.x) * zoom, (p.y + offset.y) * zoom)
 }
 
@@ -273,44 +224,16 @@ fn screen_to_world(screen: Point, zoom: f32, offset: Point) -> Point {
 pub(crate) struct FlowCanvas<'a> {
     /// Reference to the persistent canvas state (zoom, offset, cache)
     pub(crate) state: &'a FlowCanvasState,
-    /// Render nodes built from `process_refs` (owned, rebuilt each frame)
-    pub(crate) nodes: Vec<NodeLayout>,
-    /// Connections to render
-    pub(crate) connections: &'a [Connection],
-    /// Flow name (displayed on sub-flow bounding box)
-    pub(crate) flow_name: &'a str,
-    /// Flow-level input ports (displayed on left edge for sub-flows)
-    pub(crate) flow_inputs: &'a [IO],
-    /// Flow-level output ports (displayed on right edge for sub-flows)
-    pub(crate) flow_outputs: &'a [IO],
+    /// The flow definition being rendered
+    pub(crate) flow_def: &'a FlowDefinition,
+    /// Render nodes built from `process_refs` (references, rebuilt each frame)
+    pub(crate) nodes: Vec<NodeLayout<'a>>,
     /// Whether this is a sub-flow (always draws bounding box)
     pub(crate) is_subflow: bool,
     /// Whether an auto-fit should be triggered on the next event
     pub(crate) auto_fit_pending: bool,
     /// Whether auto-fit mode is active (continuously fits to window)
     pub(crate) auto_fit_enabled: bool,
-}
-
-/// Check whether `screen_pos` is within [`RESIZE_HANDLE_HIT`] pixels of any resize handle
-/// on the node at `node_index`. Returns the handle variant if hit.
-///
-/// The hit test is performed in screen space so the grab area is constant regardless of zoom.
-fn hit_test_resize_handle(
-    node: &NodeLayout,
-    node_index: usize,
-    screen_pos: Point,
-    zoom: f32,
-    offset: Point,
-) -> Option<(usize, ResizeHandle)> {
-    for (handle, world_pt) in &node.resize_handle_positions() {
-        let screen_pt = transform_point(*world_pt, zoom, offset);
-        let dx = (screen_pos.x - screen_pt.x).abs();
-        let dy = (screen_pos.y - screen_pt.y).abs();
-        if dx <= RESIZE_HANDLE_HIT && dy <= RESIZE_HANDLE_HIT {
-            return Some((node_index, *handle));
-        }
-    }
-    None
 }
 
 /// Evaluate a quadratic bezier curve at parameter `t` (0.0..=1.0).
@@ -846,11 +769,11 @@ impl FlowCanvas<'_> {
 
         // Compute flow I/O port positions (same layout as draw_flow_io_ports)
         let flow_io_positions =
-            compute_flow_io_positions(&self.nodes, self.flow_inputs, self.flow_outputs);
+            compute_flow_io_positions(&self.nodes, &self.flow_def.inputs, &self.flow_def.outputs);
 
         let threshold_sq = CONNECTION_HIT_DISTANCE * CONNECTION_HIT_DISTANCE;
 
-        for (conn_idx, conn) in self.connections.iter().enumerate() {
+        for (conn_idx, conn) in self.flow_def.connections.iter().enumerate() {
             let (from_node_str, from_port_str) = split_route(conn.from().as_ref());
             for to_route in conn.to() {
                 let (to_node_str, to_port_str) = split_route(to_route.as_ref());
@@ -986,9 +909,13 @@ impl FlowCanvas<'_> {
                 .unwrap_or(0);
             node.input_port_position(port_idx)
         };
+        let from_route = if port_name.is_empty() {
+            Route::from(node.alias())
+        } else {
+            Route::from(format!("{}/{}", node.alias(), port_name))
+        };
         state.connecting = Some(ConnectingState {
-            from_node: node.alias().to_string(),
-            from_port: port_name,
+            from_route,
             from_output: is_output,
             start_pos: port_world_pos,
             current_screen_pos: cursor_position,
@@ -1007,7 +934,7 @@ impl FlowCanvas<'_> {
         if let Some(sel_idx) = state.selected_node {
             if let Some(sel_node) = self.nodes.get(sel_idx) {
                 if let Some((_idx, handle)) =
-                    hit_test_resize_handle(sel_node, sel_idx, cursor_position, zoom, offset)
+                    sel_node.hit_test_resize_handle(sel_idx, cursor_position, zoom, offset)
                 {
                     state.resizing = Some(ResizeState {
                         node_index: sel_idx,
@@ -1265,13 +1192,12 @@ impl FlowCanvas<'_> {
         {
             if connecting.from_output != target_is_output {
                 if let Some(target_node) = self.nodes.get(target_idx) {
-                    let source_node = self
-                        .nodes
-                        .iter()
-                        .find(|n| n.alias() == connecting.from_node);
+                    let (conn_from_node, conn_from_port) =
+                        split_route(connecting.from_route.as_ref());
+                    let source_node = self.nodes.iter().find(|n| n.alias() == conn_from_node);
                     let types_ok = check_port_type_compatibility(
                         source_node,
-                        &connecting.from_port,
+                        &conn_from_port,
                         connecting.from_output,
                         target_node,
                         &target_port,
@@ -1281,8 +1207,8 @@ impl FlowCanvas<'_> {
                     if types_ok {
                         let (from_node, from_port, to_node, to_port) = if connecting.from_output {
                             (
-                                connecting.from_node.clone(),
-                                connecting.from_port.clone(),
+                                conn_from_node,
+                                conn_from_port,
                                 target_node.alias().to_string(),
                                 target_port,
                             )
@@ -1290,8 +1216,8 @@ impl FlowCanvas<'_> {
                             (
                                 target_node.alias().to_string(),
                                 target_port,
-                                connecting.from_node.clone(),
-                                connecting.from_port.clone(),
+                                conn_from_node,
+                                conn_from_port,
                             )
                         };
                         return canvas::Action::publish(CanvasMessage::ConnectionCreated {
@@ -1420,13 +1346,13 @@ impl FlowCanvas<'_> {
             self.nodes.iter().map(|n| (n.alias(), n)).collect();
 
         // Draw selected connection last so it renders on top of crossing connections
-        let draw_order: Vec<usize> = (0..self.connections.len())
+        let draw_order: Vec<usize> = (0..self.flow_def.connections.len())
             .filter(|i| selected != Some(*i))
-            .chain(selected.filter(|i| *i < self.connections.len()))
+            .chain(selected.filter(|i| *i < self.flow_def.connections.len()))
             .collect();
 
         for conn_idx in draw_order {
-            let Some(conn) = self.connections.get(conn_idx) else {
+            let Some(conn) = self.flow_def.connections.get(conn_idx) else {
                 continue;
             };
             let (from_node_str, from_port_str) = split_route(conn.from().as_ref());
@@ -1536,7 +1462,7 @@ impl FlowCanvas<'_> {
         let corner = 16.0;
 
         let (box_x, box_y, box_w, box_h, center_y, spacing) =
-            flow_io_bounding_box(&self.nodes, self.flow_inputs, self.flow_outputs);
+            flow_io_bounding_box(&self.nodes, &self.flow_def.inputs, &self.flow_def.outputs);
 
         let top_left = transform_point(Point::new(box_x, box_y), zoom, offset);
         let size = Size::new(box_w * zoom, box_h * zoom);
@@ -1550,11 +1476,11 @@ impl FlowCanvas<'_> {
                 .with_color(Color::from_rgba(0.6, 0.6, 0.6, 0.5)),
         );
 
-        if !self.flow_name.is_empty() {
+        if !self.flow_def.name.is_empty() {
             let name_pos =
                 transform_point(Point::new(box_x + box_w / 2.0, box_y + 8.0), zoom, offset);
             frame.fill_text(CanvasText {
-                content: self.flow_name.to_string(),
+                content: self.flow_def.name.clone(),
                 position: name_pos,
                 color: Color::from_rgb(0.9, 0.6, 0.2),
                 size: (16.0 * zoom).into(),
@@ -1565,7 +1491,7 @@ impl FlowCanvas<'_> {
 
         let input_positions = draw_flow_input_port_labels(
             frame,
-            self.flow_inputs,
+            &self.flow_def.inputs,
             box_x,
             center_y,
             spacing,
@@ -1576,7 +1502,7 @@ impl FlowCanvas<'_> {
         );
         let output_positions = draw_flow_output_port_labels(
             frame,
-            self.flow_outputs,
+            &self.flow_def.outputs,
             box_x + box_w,
             center_y,
             spacing,
@@ -1607,7 +1533,7 @@ impl FlowCanvas<'_> {
     ) {
         let conn_color = Color::from_rgba(0.7, 0.7, 0.7, 0.6);
         let sel_color = Color::from_rgb(1.0, 0.85, 0.0);
-        for (conn_idx, conn) in self.connections.iter().enumerate() {
+        for (conn_idx, conn) in self.flow_def.connections.iter().enumerate() {
             let is_selected = selected_connection == Some(conn_idx);
             let color = if is_selected { sel_color } else { conn_color };
             let width = if is_selected { 3.0 } else { 1.5 };
@@ -1815,8 +1741,7 @@ impl canvas::Program<CanvasMessage> for FlowCanvas<'_> {
             // Check resize handles on the selected node first
             if let Some(sel_idx) = state.selected_node {
                 if let Some(sel_node) = self.nodes.get(sel_idx) {
-                    if let Some((_idx, handle)) = hit_test_resize_handle(
-                        sel_node,
+                    if let Some((_idx, handle)) = sel_node.hit_test_resize_handle(
                         sel_idx,
                         pos,
                         self.state.zoom,
@@ -2065,23 +1990,28 @@ mod test {
     use flowcore::model::route::Route;
     use url::Url;
 
-    fn make_flow_canvas(state: &FlowCanvasState, nodes: Vec<NodeLayout>) -> FlowCanvas<'_> {
+    fn make_flow_canvas<'a>(
+        state: &'a FlowCanvasState,
+        flow_def: &'a FlowDefinition,
+        nodes: Vec<NodeLayout<'a>>,
+    ) -> FlowCanvas<'a> {
         FlowCanvas {
             state,
+            flow_def,
             nodes,
-            connections: &[],
-            flow_name: "",
-            flow_inputs: &[],
-            flow_outputs: &[],
             is_subflow: false,
             auto_fit_pending: false,
             auto_fit_enabled: false,
         }
     }
 
-    fn test_node(alias: &str, source: &str, process: Option<Process>) -> NodeLayout {
-        NodeLayout {
-            process_ref: ProcessReference {
+    fn test_node(
+        alias: &str,
+        source: &str,
+        process: Option<Process>,
+    ) -> (ProcessReference, Option<Process>) {
+        (
+            ProcessReference {
                 alias: alias.into(),
                 source: source.into(),
                 initializations: std::collections::BTreeMap::new(),
@@ -2091,6 +2021,13 @@ mod test {
                 height: Some(120.0),
             },
             process,
+        )
+    }
+
+    fn as_layout(data: &(ProcessReference, Option<Process>)) -> NodeLayout<'_> {
+        NodeLayout {
+            process_ref: &data.0,
+            process: data.1.as_ref(),
         }
     }
 
@@ -2202,45 +2139,51 @@ mod test {
     #[test]
     fn hit_test_node_inside() {
         let state = FlowCanvasState::default();
-        let canvas = make_flow_canvas(&state, vec![test_node("test", "lib://test", None)]);
+        let flow_def = FlowDefinition::default();
+        let d = test_node("test", "lib://test", None);
+        let canvas = make_flow_canvas(&state, &flow_def, vec![as_layout(&d)]);
         assert_eq!(canvas.hit_test_node(Point::new(150.0, 150.0)), Some(0));
     }
 
     #[test]
     fn hit_test_node_outside() {
         let state = FlowCanvasState::default();
-        let canvas = make_flow_canvas(&state, vec![test_node("test", "lib://test", None)]);
+        let flow_def = FlowDefinition::default();
+        let d = test_node("test", "lib://test", None);
+        let canvas = make_flow_canvas(&state, &flow_def, vec![as_layout(&d)]);
         assert_eq!(canvas.hit_test_node(Point::new(50.0, 50.0)), None);
     }
 
     #[test]
     fn hit_test_node_miss() {
         let state = FlowCanvasState::default();
-        let node = test_node("n", "lib://test", None);
-        let canvas = make_flow_canvas(&state, vec![node.clone()]);
+        let flow_def = FlowDefinition::default();
+        let d = test_node("n", "lib://test", None);
+        let canvas = make_flow_canvas(&state, &flow_def, vec![as_layout(&d)]);
         assert_eq!(canvas.hit_test_node(Point::new(150.0, 150.0)), Some(0));
-        let canvas2 = make_flow_canvas(&state, vec![node]);
+        let canvas2 = make_flow_canvas(&state, &flow_def, vec![as_layout(&d)]);
         assert_eq!(canvas2.hit_test_node(Point::new(50.0, 50.0)), None);
     }
 
     #[test]
     fn hit_test_open_icon_only_openable() {
         let state = FlowCanvasState::default();
-        let lib_node = test_node(
+        let flow_def = FlowDefinition::default();
+        let lib_data = test_node(
             "n",
             "lib://test",
             Some(Process::FunctionProcess(lib_function())),
         );
-        let local_node = test_node(
+        let local_data = test_node(
             "n",
             "subflow",
             Some(Process::FlowProcess(FlowDefinition::default())),
         );
         // Library nodes are not openable
-        let canvas = make_flow_canvas(&state, vec![lib_node]);
+        let canvas = make_flow_canvas(&state, &flow_def, vec![as_layout(&lib_data)]);
         assert_eq!(canvas.hit_test_open_icon(Point::new(278.0, 104.0)), None);
         // Flow nodes are openable
-        let canvas = make_flow_canvas(&state, vec![local_node]);
+        let canvas = make_flow_canvas(&state, &flow_def, vec![as_layout(&local_data)]);
         assert!(canvas
             .hit_test_open_icon(Point::new(278.0, 104.0))
             .is_some());
@@ -2248,7 +2191,8 @@ mod test {
 
     #[test]
     fn compute_flow_io_positions_with_nodes() {
-        let nodes = vec![test_node("n", "", None)];
+        let d = test_node("n", "", None);
+        let nodes = vec![as_layout(&d)];
         let inputs = vec![IO::new_named(vec![], Route::default(), "data")];
         let outputs = vec![IO::new_named(vec![], Route::default(), "result")];
         let (inp, outp) = compute_flow_io_positions(&nodes, &inputs, &outputs);

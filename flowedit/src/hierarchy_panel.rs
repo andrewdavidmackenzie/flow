@@ -7,13 +7,13 @@
 //! are expanded) is stored separately.
 
 use std::collections::HashSet;
-use std::path::PathBuf;
 
 use iced::widget::{button, container, scrollable, text, Column, Row};
 use iced::{Color, Element, Length};
 
 use flowcore::model::flow_definition::FlowDefinition;
 use flowcore::model::process::Process;
+use flowcore::model::route::Route;
 
 const PANEL_WIDTH: f32 = 220.0;
 const MAX_HIERARCHY_DEPTH: usize = 10;
@@ -21,7 +21,7 @@ const MAX_HIERARCHY_DEPTH: usize = 10;
 #[derive(Debug, Clone)]
 pub(crate) enum HierarchyMessage {
     Toggle(Vec<usize>),
-    Open(String, PathBuf),
+    Open(Route),
 }
 
 /// Tracks which tree nodes are expanded in the hierarchy panel.
@@ -50,7 +50,7 @@ impl FlowHierarchy {
         }
     }
 
-    pub(crate) fn update(&mut self, msg: &HierarchyMessage) -> Option<(String, PathBuf)> {
+    pub(crate) fn update(&mut self, msg: &HierarchyMessage) -> Option<Route> {
         match msg {
             HierarchyMessage::Toggle(path) => {
                 if self.expanded.contains(path) {
@@ -60,7 +60,7 @@ impl FlowHierarchy {
                 }
                 None
             }
-            HierarchyMessage::Open(source, path) => Some((source.clone(), path.clone())),
+            HierarchyMessage::Open(route) => Some(route.clone()),
         }
     }
 
@@ -118,16 +118,13 @@ impl FlowHierarchy {
             left: indent,
             right: 0.0,
         }));
-        if !path.is_empty() {
-            if let Ok(p) = flow_def.source_url.to_file_path() {
-                let source = flow_def.source_url.to_string();
-                row = row.push(
-                    button(text("\u{270E}").size(11).color(color))
-                        .on_press(HierarchyMessage::Open(source, p))
-                        .style(button::text)
-                        .padding([2, 4]),
-                );
-            }
+        if !path.is_empty() && !flow_def.route.is_empty() {
+            row = row.push(
+                button(text("\u{270E}").size(11).color(color))
+                    .on_press(HierarchyMessage::Open(flow_def.route.clone()))
+                    .style(button::text)
+                    .padding([2, 4]),
+            );
         }
 
         let mut col = Column::new().push(row);
@@ -152,8 +149,7 @@ impl FlowHierarchy {
                             || func.get_context_reference().is_some();
                         col = col.push(view_leaf(
                             &alias,
-                            &pref.source,
-                            func.get_source_url().to_file_path().ok(),
+                            func.route.clone(),
                             is_library,
                             &child_path,
                         ));
@@ -161,13 +157,8 @@ impl FlowHierarchy {
                     None => {
                         let is_library = pref.source.starts_with("lib://")
                             || pref.source.starts_with("context://");
-                        col = col.push(view_leaf(
-                            &alias,
-                            &pref.source,
-                            None,
-                            is_library,
-                            &child_path,
-                        ));
+                        col =
+                            col.push(view_leaf(&alias, Route::default(), is_library, &child_path));
                     }
                 }
             }
@@ -181,8 +172,7 @@ impl FlowHierarchy {
 #[allow(clippy::cast_precision_loss)]
 fn view_leaf<'a>(
     name: &str,
-    source: &str,
-    path: Option<PathBuf>,
+    route: Route,
     is_library: bool,
     tree_path: &[usize],
 ) -> Element<'a, HierarchyMessage> {
@@ -198,15 +188,13 @@ fn view_leaf<'a>(
         .push(text(icon).size(11).color(color))
         .push(text(name.to_string()).size(13).color(color));
 
-    let label_btn = if is_library {
+    let label_btn = if is_library || route.is_empty() {
         button(label).style(button::text).padding([2, 4])
-    } else if let Some(p) = path {
+    } else {
         button(label)
-            .on_press(HierarchyMessage::Open(source.to_string(), p))
+            .on_press(HierarchyMessage::Open(route))
             .style(button::text)
             .padding([2, 4])
-    } else {
-        button(label).style(button::text).padding([2, 4])
     };
 
     container(label_btn)
@@ -321,14 +309,10 @@ mod test {
     #[test]
     fn open_returns_source_and_path() {
         let mut h = FlowHierarchy::empty();
-        let result = h.update(&HierarchyMessage::Open(
-            "sub.toml".into(),
-            PathBuf::from("/tmp/sub.toml"),
-        ));
+        let result = h.update(&HierarchyMessage::Open(Route::from("/root/sub")));
         assert!(result.is_some());
-        if let Some((source, path)) = result {
-            assert_eq!(source, "sub.toml");
-            assert_eq!(path, PathBuf::from("/tmp/sub.toml"));
+        if let Some(route) = result {
+            assert_eq!(route, Route::from("/root/sub"));
         }
     }
 

@@ -6,6 +6,7 @@
     clippy::cast_sign_loss
 )]
 
+use std::collections::{BTreeMap, BTreeSet};
 use std::path::{Path, PathBuf};
 
 use iced::widget::canvas::{self, Canvas};
@@ -15,19 +16,26 @@ use log::info;
 use url::Url;
 
 use flowcore::model::connection::Connection;
+use flowcore::model::datatype::DataType;
 use flowcore::model::flow_definition::FlowDefinition;
 use flowcore::model::function_definition::FunctionDefinition;
 use flowcore::model::input::InputInitializer;
-use flowcore::model::io::IO;
+use flowcore::model::io::{IOType, IO};
+use flowcore::model::name::HasName;
+use flowcore::model::process::Process;
+use flowcore::model::process_reference::ProcessReference;
 use flowcore::model::route::Route;
 
 use crate::file_ops;
-use crate::flow_canvas::{content_extents, CanvasAction, CanvasMessage, FlowCanvas};
+use crate::flow_canvas::{flow_io_bounding_box, CanvasAction, CanvasMessage, FlowCanvas};
 use crate::hierarchy_panel::FlowHierarchy;
 use crate::history::{EditAction, EditHistory};
 use crate::node_layout::NodeLayout;
-use crate::utils::{connection_references_node, derive_short_name, split_route};
-use crate::{Message, ViewMessage};
+use crate::node_layout::PORT_FONT_SIZE;
+use crate::utils::{
+    connection_references_node, derive_short_name, next_unique_io_name, split_route,
+};
+use crate::{FlowEditMessage, Message, ViewMessage};
 
 /// Tooltip text and screen position for hover display.
 #[derive(Debug, Clone)]
@@ -113,14 +121,9 @@ impl FlowCanvasState {
     /// Builds render nodes from the flow definition's process references and
     /// subprocess definitions. The `FlowCanvas` owns these render nodes for the
     /// duration of the frame.
-    #[allow(clippy::too_many_arguments)]
     pub(crate) fn view<'a>(
         &'a self,
-        flow_def: &FlowDefinition,
-        connections: &'a [Connection],
-        flow_name: &'a str,
-        flow_inputs: &'a [IO],
-        flow_outputs: &'a [IO],
+        flow_def: &'a FlowDefinition,
         is_subflow: bool,
         auto_fit_pending: bool,
         auto_fit_enabled: bool,
@@ -128,11 +131,8 @@ impl FlowCanvasState {
         let nodes = NodeLayout::build_from_flow(flow_def);
         Canvas::new(FlowCanvas {
             state: self,
+            flow_def,
             nodes,
-            connections,
-            flow_name,
-            flow_inputs,
-            flow_outputs,
             is_subflow,
             auto_fit_pending,
             auto_fit_enabled,
@@ -162,6 +162,52 @@ impl FlowCanvasState {
     /// Compute zoom and offset so that all nodes fit within the given viewport with padding.
     ///
     /// If `nodes` is empty, resets to default zoom and offset.
+    fn content_extents(
+        nodes: &[NodeLayout],
+        flow_inputs: &[IO],
+        flow_outputs: &[IO],
+        has_flow_io: bool,
+    ) -> (f32, f32, f32, f32) {
+        if has_flow_io {
+            let (box_x, box_y, box_w, box_h, _, _) =
+                flow_io_bounding_box(nodes, flow_inputs, flow_outputs);
+            let max_input_label = flow_inputs
+                .iter()
+                .map(|io| io.name().len())
+                .max()
+                .unwrap_or(0);
+            let max_output_label = flow_outputs
+                .iter()
+                .map(|io| io.name().len())
+                .max()
+                .unwrap_or(0);
+            let label_margin = max_input_label.max(max_output_label) as f32 * PORT_FONT_SIZE + 20.0;
+            (
+                box_x - label_margin,
+                box_y,
+                box_x + box_w + label_margin,
+                box_y + box_h,
+            )
+        } else {
+            let mut min_x = f32::MAX;
+            let mut min_y = f32::MAX;
+            let mut max_x = f32::MIN;
+            let mut max_y = f32::MIN;
+            for node in nodes {
+                let init_margin = if node.has_initializers() {
+                    node.max_initializer_display_len() as f32 * 8.0
+                } else {
+                    0.0
+                };
+                min_x = min_x.min(node.x() - init_margin);
+                min_y = min_y.min(node.y());
+                max_x = max_x.max(node.x() + node.width());
+                max_y = max_y.max(node.y() + node.height());
+            }
+            (min_x, min_y, max_x, max_y)
+        }
+    }
+
     pub(crate) fn auto_fit(
         &mut self,
         nodes: &[NodeLayout],
@@ -179,7 +225,7 @@ impl FlowCanvasState {
         }
 
         let (min_x, min_y, max_x, max_y) =
-            content_extents(nodes, flow_inputs, flow_outputs, has_flow_io);
+            Self::content_extents(nodes, flow_inputs, flow_outputs, has_flow_io);
 
         let content_width = max_x - min_x + CANVAS_PADDING * 2.0;
         let content_height = max_y - min_y + CANVAS_PADDING * 2.0;
@@ -240,8 +286,6 @@ pub(crate) struct WindowState {
     pub(crate) auto_fit_pending: bool,
     /// Whether auto-fit mode is active (continuously fits to window)
     pub(crate) auto_fit_enabled: bool,
-    /// The original flow definition, used to preserve metadata when saving
-    pub(crate) flow_definition: FlowDefinition,
     /// Tooltip text and screen position to display (full source path on hover)
     pub(crate) tooltip: Option<Tooltip>,
     /// Active initializer editor dialog, if any
@@ -272,7 +316,6 @@ impl Default for WindowState {
             history: EditHistory::default(),
             auto_fit_pending: false,
             auto_fit_enabled: false,
-            flow_definition: FlowDefinition::default(),
             tooltip: None,
             initializer_editor: None,
             is_root: false,
@@ -286,12 +329,6 @@ impl Default for WindowState {
 }
 
 impl WindowState {
-    /// Get the file path from the flow definition's source URL.
-    /// Returns `None` if no file has been saved/loaded yet.
-    pub(crate) fn file_path(&self) -> Option<PathBuf> {
-        self.flow_definition.source_url.to_file_path().ok()
-    }
-
     /// Get the file path from a given flow definition's source URL.
     pub(crate) fn file_path_of(flow_def: &FlowDefinition) -> Option<PathBuf> {
         flow_def.source_url.to_file_path().ok()
@@ -315,8 +352,7 @@ impl WindowState {
     pub(crate) fn clear_file_path_on(flow_def: &mut FlowDefinition) {
         flow_def.source_url = FlowDefinition::default_url();
     }
-}
-impl WindowState {
+
     /// Handle a [`CanvasMessage`] by mutating canvas/selection state.
     ///
     /// Returns a [`CanvasAction`] when the caller needs to perform cross-window
@@ -667,8 +703,7 @@ impl WindowState {
             }
         }
     }
-}
-impl WindowState {
+
     pub(crate) fn view_canvas_area<'a>(
         &'a self,
         flow_def: &'a FlowDefinition,
@@ -678,10 +713,6 @@ impl WindowState {
             .canvas_state
             .view(
                 flow_def,
-                &flow_def.connections,
-                &flow_def.name,
-                &flow_def.inputs,
-                &flow_def.outputs,
                 !self.is_root,
                 self.auto_fit_pending,
                 self.auto_fit_enabled,
@@ -911,7 +942,712 @@ impl WindowState {
             })
             .into()
     }
-} // impl WindowState (view)
+    // --- File operations (from file_ops.rs) ---
+
+    pub(crate) fn perform_save(&mut self, flow_def: &mut FlowDefinition, path: &PathBuf) {
+        match file_ops::save_flow_toml(flow_def, path) {
+            Ok(()) => {
+                self.history.clear();
+                Self::set_file_path_on(flow_def, path);
+                file_ops::save_editor_prefs(path, self.last_size, self.last_position);
+                if let Some(name) = path.file_name().and_then(|n| n.to_str()) {
+                    self.status = format!("Saved to {name}");
+                } else {
+                    self.status = String::from("Saved");
+                }
+            }
+            Err(e) => {
+                self.status = format!("Save failed: {e}");
+            }
+        }
+    }
+
+    /// Prompt the user with a save dialog and save to the chosen path.
+    pub(crate) fn perform_save_as(&mut self, flow_def: &mut FlowDefinition) {
+        let dialog = rfd::FileDialog::new()
+            .add_filter("Flow", &["toml"])
+            .set_file_name(format!("{}.toml", flow_def.name));
+        if let Some(path) = dialog.save_file() {
+            self.perform_save(flow_def, &path);
+        }
+    }
+
+    /// Handle save message -- saves to existing path or prompts with save dialog.
+    pub(crate) fn handle_save(&mut self, flow_def: &mut FlowDefinition) {
+        if let Some(path) = Self::file_path_of(flow_def) {
+            self.perform_save(flow_def, &path);
+        } else {
+            self.perform_save_as(flow_def);
+        }
+    }
+
+    /// Handle save-as message -- prompts with save dialog.
+    pub(crate) fn handle_save_as(&mut self, flow_def: &mut FlowDefinition) {
+        self.perform_save_as(flow_def);
+    }
+
+    /// Prompt the user with an open dialog and load the selected flow file.
+    /// Open a flow file and update the window state.
+    /// Returns the loaded flow definition and lib/context references if successful.
+    pub(crate) fn perform_open(
+        &mut self,
+        flow_def: &mut FlowDefinition,
+    ) -> Option<(BTreeSet<Url>, BTreeSet<Url>)> {
+        let dialog = rfd::FileDialog::new().add_filter("Flow", &["toml"]);
+        if let Some(path) = dialog.pick_file() {
+            match file_ops::load_flow(&path) {
+                Ok(loaded_flow) => {
+                    let lib_refs = loaded_flow.lib_references.clone();
+                    let ctx_refs = loaded_flow.context_references.clone();
+                    let nc = loaded_flow.process_refs.len();
+                    let ec = loaded_flow.connections.len();
+                    *flow_def = loaded_flow;
+                    Self::set_file_path_on(flow_def, &path);
+                    self.selected_node = None;
+                    self.selected_connection = None;
+                    self.tooltip = None;
+                    self.context_menu = None;
+                    self.initializer_editor = None;
+                    self.show_metadata = false;
+                    self.history = EditHistory::default();
+                    self.auto_fit_pending = true;
+                    self.auto_fit_enabled = true;
+                    self.canvas_state = FlowCanvasState::default();
+                    self.status = format!("Loaded - {nc} nodes, {ec} connections");
+                    return Some((lib_refs, ctx_refs));
+                }
+                Err(e) => {
+                    self.status = format!("Open failed: {e}");
+                }
+            }
+        }
+        None
+    }
+
+    /// Clear the canvas and reset to an empty flow state.
+    pub(crate) fn perform_new(&mut self, flow_def: &mut FlowDefinition) {
+        *flow_def = FlowDefinition::default();
+        flow_def.name = String::from("(new flow)");
+        Self::clear_file_path_on(flow_def);
+        self.selected_node = None;
+        self.selected_connection = None;
+        self.tooltip = None;
+        self.context_menu = None;
+        self.initializer_editor = None;
+        self.show_metadata = false;
+        self.history = EditHistory::default();
+        self.auto_fit_pending = false;
+        self.auto_fit_enabled = true;
+        self.canvas_state = FlowCanvasState::default();
+        self.status = String::from("New flow");
+    }
+
+    /// Compile the current flow to a manifest.
+    pub(crate) fn perform_compile(
+        &mut self,
+        flow_def: &mut FlowDefinition,
+    ) -> Result<PathBuf, String> {
+        if Self::file_path_of(flow_def).is_none() {
+            self.perform_save_as(flow_def);
+        }
+        let Some(flow_path) = Self::file_path_of(flow_def) else {
+            return Err("Flow must be saved before compiling".to_string());
+        };
+
+        if !self.history.is_empty() {
+            self.perform_save(flow_def, &flow_path);
+            if !self.history.is_empty() {
+                return Err("Save failed — cannot compile stale content".to_string());
+            }
+        }
+
+        let flow_path = &flow_path;
+        let abs_path = if flow_path.is_absolute() {
+            flow_path.clone()
+        } else {
+            std::env::current_dir()
+                .map_err(|e| format!("Could not get current directory: {e}"))?
+                .join(flow_path)
+        };
+
+        let provider = file_ops::build_meta_provider();
+
+        let url = Url::from_file_path(&abs_path)
+            .map_err(|()| format!("Invalid file path: {}", abs_path.display()))?;
+        let process = flowrclib::compiler::parser::parse(&url, &provider)
+            .map_err(|e| format!("Parse error: {e}"))?;
+        let flow = match process {
+            Process::FlowProcess(f) => f,
+            Process::FunctionProcess(_) => return Err("Not a flow definition".to_string()),
+        };
+
+        let output_dir = abs_path.parent().unwrap_or(Path::new(".")).to_path_buf();
+        let mut source_urls = BTreeMap::<String, Url>::new();
+        let tables = flowrclib::compiler::compile::compile(
+            &flow,
+            &output_dir,
+            false,
+            false,
+            &mut source_urls,
+        )
+        .map_err(|e| e.to_string())?;
+
+        let manifest_path = flowrclib::generator::generate::write_flow_manifest(
+            &flow,
+            false,
+            &output_dir,
+            &tables,
+            source_urls,
+        )
+        .map_err(|e| format!("Manifest error: {e}"))?;
+
+        Ok(manifest_path)
+    }
+
+    // --- Undo/redo (from history.rs) ---
+
+    fn apply_undo(&mut self, flow_def: &mut FlowDefinition) {
+        if let Some(action) = self.history.undo() {
+            match action {
+                EditAction::MoveNode {
+                    index,
+                    old_x,
+                    old_y,
+                    ..
+                } => {
+                    if let Some(pref) = flow_def.process_refs.get_mut(index) {
+                        pref.x = Some(old_x);
+                        pref.y = Some(old_y);
+                    }
+                    self.status = String::from("Undo: move");
+                }
+                EditAction::ResizeNode {
+                    index,
+                    old_x,
+                    old_y,
+                    old_w,
+                    old_h,
+                    ..
+                } => {
+                    if let Some(pref) = flow_def.process_refs.get_mut(index) {
+                        pref.x = Some(old_x);
+                        pref.y = Some(old_y);
+                        pref.width = Some(old_w);
+                        pref.height = Some(old_h);
+                    }
+                    self.status = String::from("Undo: resize");
+                }
+                EditAction::CreateNode {
+                    index,
+                    ref process_ref,
+                    ..
+                } => {
+                    let alias = if process_ref.alias.is_empty() {
+                        derive_short_name(&process_ref.source)
+                    } else {
+                        process_ref.alias.clone()
+                    };
+                    if index < flow_def.process_refs.len() {
+                        flow_def.process_refs.remove(index);
+                        flow_def.subprocesses.remove(&alias);
+                        flow_def
+                            .connections
+                            .retain(|c| !connection_references_node(c, &alias));
+                    }
+                    self.status = String::from("Undo: create node");
+                }
+                EditAction::DeleteNode {
+                    index,
+                    process_ref,
+                    subprocess,
+                    removed_connections,
+                } => {
+                    flow_def.process_refs.insert(index, process_ref);
+                    if let Some((name, proc)) = subprocess {
+                        flow_def.subprocesses.insert(name, proc);
+                    }
+                    flow_def.connections.extend(removed_connections);
+                    self.status = String::from("Undo: delete node");
+                }
+                EditAction::CreateConnection { connection } => {
+                    let from_str = connection.from().to_string();
+                    let to_strs: Vec<String> =
+                        connection.to().iter().map(ToString::to_string).collect();
+                    flow_def.connections.retain(|c| {
+                        c.from().to_string() != from_str
+                            || c.to().iter().map(ToString::to_string).collect::<Vec<_>>() != to_strs
+                    });
+                    self.status = String::from("Undo: create connection");
+                }
+                EditAction::DeleteConnection { index, connection } => {
+                    flow_def.connections.insert(index, connection);
+                    self.status = String::from("Undo: delete connection");
+                }
+                EditAction::EditInitializer {
+                    node_index,
+                    ref port_name,
+                    ref old_init,
+                    ..
+                } => {
+                    self.apply_initializer_state(
+                        flow_def,
+                        node_index,
+                        port_name,
+                        old_init.as_ref(),
+                    );
+                    self.status = String::from("Undo: initializer");
+                }
+            }
+            self.canvas_state.request_redraw();
+            self.trigger_auto_fit_if_enabled();
+        }
+    }
+
+    fn apply_redo(&mut self, flow_def: &mut FlowDefinition) {
+        if let Some(action) = self.history.redo() {
+            match action {
+                EditAction::MoveNode {
+                    index,
+                    new_x,
+                    new_y,
+                    ..
+                } => {
+                    if let Some(pref) = flow_def.process_refs.get_mut(index) {
+                        pref.x = Some(new_x);
+                        pref.y = Some(new_y);
+                    }
+                    self.status = String::from("Redo: move");
+                }
+                EditAction::ResizeNode {
+                    index,
+                    new_x,
+                    new_y,
+                    new_w,
+                    new_h,
+                    ..
+                } => {
+                    if let Some(pref) = flow_def.process_refs.get_mut(index) {
+                        pref.x = Some(new_x);
+                        pref.y = Some(new_y);
+                        pref.width = Some(new_w);
+                        pref.height = Some(new_h);
+                    }
+                    self.status = String::from("Redo: resize");
+                }
+                EditAction::CreateNode {
+                    index,
+                    process_ref,
+                    subprocess,
+                } => {
+                    let idx = index.min(flow_def.process_refs.len());
+                    flow_def.process_refs.insert(idx, process_ref);
+                    if let Some((name, proc)) = subprocess {
+                        flow_def.subprocesses.insert(name, proc);
+                    }
+                    self.status = String::from("Redo: create node");
+                }
+                EditAction::DeleteNode {
+                    index,
+                    subprocess,
+                    removed_connections,
+                    ..
+                } => {
+                    if index < flow_def.process_refs.len() {
+                        let removed = flow_def.process_refs.remove(index);
+                        let alias = if removed.alias.is_empty() {
+                            derive_short_name(&removed.source)
+                        } else {
+                            removed.alias.clone()
+                        };
+                        flow_def.subprocesses.remove(&alias);
+                    }
+                    if let Some((ref name, _)) = subprocess {
+                        flow_def.subprocesses.remove(name);
+                    }
+                    for conn in &removed_connections {
+                        let from_str = conn.from().to_string();
+                        let to_strs: Vec<String> =
+                            conn.to().iter().map(ToString::to_string).collect();
+                        flow_def.connections.retain(|c| {
+                            c.from().to_string() != from_str
+                                || c.to().iter().map(ToString::to_string).collect::<Vec<_>>()
+                                    != to_strs
+                        });
+                    }
+                    self.status = String::from("Redo: delete node");
+                }
+                EditAction::CreateConnection { connection } => {
+                    flow_def.connections.push(connection);
+                    self.status = String::from("Redo: create connection");
+                }
+                EditAction::DeleteConnection { index, .. } => {
+                    if index < flow_def.connections.len() {
+                        flow_def.connections.remove(index);
+                    }
+                    self.status = String::from("Redo: delete connection");
+                }
+                EditAction::EditInitializer {
+                    node_index,
+                    ref port_name,
+                    ref new_init,
+                    ..
+                } => {
+                    self.apply_initializer_state(
+                        flow_def,
+                        node_index,
+                        port_name,
+                        new_init.as_ref(),
+                    );
+                    self.status = String::from("Redo: initializer");
+                }
+            }
+            self.canvas_state.request_redraw();
+            self.trigger_auto_fit_if_enabled();
+        }
+    }
+
+    pub(crate) fn handle_undo(&mut self, flow_def: &mut FlowDefinition) {
+        self.apply_undo(flow_def);
+    }
+
+    pub(crate) fn handle_redo(&mut self, flow_def: &mut FlowDefinition) {
+        self.apply_redo(flow_def);
+    }
+
+    // --- Initializer editing (from initializer.rs) ---
+
+    pub(crate) fn apply_initializer_edit(
+        &mut self,
+        flow_def: &mut FlowDefinition,
+        editor: &InitializerEditor,
+    ) {
+        let alias = flow_def
+            .process_refs
+            .get(editor.node_index)
+            .map(|pr| {
+                if pr.alias.is_empty() {
+                    derive_short_name(&pr.source)
+                } else {
+                    pr.alias.clone()
+                }
+            })
+            .unwrap_or_default();
+
+        let old_init = flow_def
+            .process_refs
+            .get(editor.node_index)
+            .and_then(|pr| pr.initializations.get(&editor.port_name).cloned());
+
+        let new_init = match editor.init_type.as_str() {
+            "none" => None,
+            "once" | "always" => {
+                let value = serde_json::from_str(&editor.value_text)
+                    .unwrap_or_else(|_| serde_json::Value::String(editor.value_text.clone()));
+                let init = if editor.init_type == "once" {
+                    InputInitializer::Once(value)
+                } else {
+                    InputInitializer::Always(value)
+                };
+                Some(init)
+            }
+            _ => return,
+        };
+
+        let Some(pref) = flow_def.process_refs.get_mut(editor.node_index) else {
+            return;
+        };
+        match &new_init {
+            Some(init) => {
+                pref.initializations
+                    .insert(editor.port_name.clone(), init.clone());
+            }
+            None => {
+                pref.initializations.remove(&editor.port_name);
+            }
+        }
+
+        self.history.record(EditAction::EditInitializer {
+            node_index: editor.node_index,
+            port_name: editor.port_name.clone(),
+            old_init,
+            new_init,
+        });
+        self.canvas_state.request_redraw();
+        self.status = format!("Initializer updated on {}/{}", alias, editor.port_name);
+    }
+
+    #[allow(clippy::unused_self)]
+    pub(crate) fn apply_initializer_state(
+        &mut self,
+        flow_def: &mut FlowDefinition,
+        node_index: usize,
+        port_name: &str,
+        init: Option<&InputInitializer>,
+    ) {
+        if let Some(pref) = flow_def.process_refs.get_mut(node_index) {
+            match init {
+                Some(i) => {
+                    pref.initializations
+                        .insert(port_name.to_string(), i.clone());
+                }
+                None => {
+                    pref.initializations.remove(port_name);
+                }
+            }
+        }
+    }
+
+    pub(crate) fn handle_initializer_type_changed(&mut self, new_type: String) {
+        if let Some(ref mut editor) = self.initializer_editor {
+            editor.init_type = new_type;
+        }
+    }
+
+    pub(crate) fn handle_initializer_value_changed(&mut self, new_value: String) {
+        if let Some(ref mut editor) = self.initializer_editor {
+            editor.value_text = new_value;
+        }
+    }
+
+    pub(crate) fn handle_initializer_apply(&mut self, flow_def: &mut FlowDefinition) {
+        if let Some(editor) = self.initializer_editor.take() {
+            self.apply_initializer_edit(flow_def, &editor);
+        }
+    }
+
+    pub(crate) fn handle_initializer_cancel(&mut self) {
+        self.initializer_editor = None;
+    }
+
+    // --- Library management (from library_mgmt.rs) ---
+
+    /// Add a library function as a new node on the canvas.
+    pub(crate) fn add_library_function(
+        &mut self,
+        flow_def: &mut FlowDefinition,
+        source: &str,
+        func_name: &str,
+    ) {
+        let alias = file_ops::generate_unique_alias(func_name, &flow_def.process_refs);
+        let (x, y) = file_ops::next_node_position(&flow_def.process_refs);
+
+        let resolved_process = match Url::parse(source) {
+            Ok(url) => {
+                let provider = file_ops::build_meta_provider();
+                match flowrclib::compiler::parser::parse(&url, &provider) {
+                    Ok(proc) => Some(proc),
+                    Err(e) => {
+                        info!("add_library_function: could not parse '{source}': {e}");
+                        None
+                    }
+                }
+            }
+            Err(e) => {
+                info!("add_library_function: could not parse URL '{source}': {e}");
+                None
+            }
+        };
+
+        let pref = ProcessReference {
+            alias: alias.clone(),
+            source: source.to_string(),
+            initializations: std::collections::BTreeMap::new(),
+            x: Some(x),
+            y: Some(y),
+            width: Some(180.0),
+            height: Some(120.0),
+        };
+
+        let index = flow_def.process_refs.len();
+        flow_def.process_refs.push(pref.clone());
+
+        if let Some(proc) = resolved_process {
+            flow_def.subprocesses.insert(alias.clone(), proc);
+        }
+
+        self.history.record(EditAction::CreateNode {
+            index,
+            process_ref: pref,
+            subprocess: flow_def
+                .subprocesses
+                .get(&alias)
+                .map(|p| (alias.clone(), p.clone())),
+        });
+
+        self.selected_node = Some(index);
+        self.canvas_state.request_redraw();
+        if self.auto_fit_enabled {
+            self.auto_fit_pending = true;
+        }
+        let nc = flow_def.process_refs.len();
+        self.status = format!("Added {alias} from library - {nc} nodes");
+    }
+
+    // --- Flow editing (from main.rs) ---
+
+    fn rename_flow_input(&mut self, flow_def: &mut FlowDefinition, idx: usize, name: &str) {
+        let duplicate = flow_def
+            .inputs
+            .iter()
+            .enumerate()
+            .any(|(i, io)| i != idx && io.name() == name);
+        if !duplicate {
+            if let Some(io) = flow_def.inputs.get_mut(idx) {
+                let old_name = io.name().clone();
+                io.set_name(name.into());
+                let old_route = format!("input/{old_name}");
+                let new_route = format!("input/{name}");
+                for conn in &mut flow_def.connections {
+                    if conn.from().to_string() == old_route {
+                        conn.set_from(Route::from(new_route.as_str()));
+                    }
+                }
+            }
+            self.history.mark_modified();
+            self.canvas_state.request_redraw();
+        }
+    }
+
+    fn rename_flow_output(&mut self, flow_def: &mut FlowDefinition, idx: usize, name: &str) {
+        let duplicate = flow_def
+            .outputs
+            .iter()
+            .enumerate()
+            .any(|(i, io)| i != idx && io.name() == name);
+        if !duplicate {
+            if let Some(io) = flow_def.outputs.get_mut(idx) {
+                let old_name = io.name().clone();
+                io.set_name(name.into());
+                let old_route_str = format!("output/{old_name}");
+                let new_route_str = format!("output/{name}");
+                for conn in &mut flow_def.connections {
+                    let new_to: Vec<Route> = conn
+                        .to()
+                        .iter()
+                        .map(|r| {
+                            if r.to_string() == old_route_str {
+                                Route::from(new_route_str.as_str())
+                            } else {
+                                r.clone()
+                            }
+                        })
+                        .collect();
+                    conn.set_to(new_to);
+                }
+            }
+            self.history.mark_modified();
+            self.canvas_state.request_redraw();
+        }
+    }
+
+    /// Handle flow metadata and I/O editing messages.
+    pub(crate) fn handle_flow_edit_message(
+        &mut self,
+        flow_def: &mut FlowDefinition,
+        msg: FlowEditMessage,
+    ) {
+        match msg {
+            FlowEditMessage::NameChanged(new_name) => {
+                flow_def.name = new_name;
+                self.history.mark_modified();
+            }
+            FlowEditMessage::VersionChanged(version) => {
+                flow_def.metadata.version = version;
+                self.history.mark_modified();
+            }
+            FlowEditMessage::DescriptionChanged(desc) => {
+                flow_def.metadata.description = desc;
+                self.history.mark_modified();
+            }
+            FlowEditMessage::AuthorsChanged(authors_str) => {
+                flow_def.metadata.authors = authors_str
+                    .split(',')
+                    .map(|s| s.trim().to_string())
+                    .filter(|s| !s.is_empty())
+                    .collect();
+                self.history.mark_modified();
+            }
+            FlowEditMessage::ToggleMetadata => {
+                self.show_metadata = !self.show_metadata;
+            }
+            FlowEditMessage::AddInput => {
+                let name = next_unique_io_name("input", &flow_def.inputs);
+                let mut io = IO::new_named(vec![DataType::from("string")], Route::default(), name);
+                io.set_io_type(IOType::FlowInput);
+                flow_def.inputs.push(io);
+                self.history.mark_modified();
+                self.canvas_state.request_redraw();
+                self.trigger_auto_fit_if_enabled();
+            }
+            FlowEditMessage::AddOutput => {
+                let name = next_unique_io_name("output", &flow_def.outputs);
+                let mut io = IO::new_named(vec![DataType::from("string")], Route::default(), name);
+                io.set_io_type(IOType::FlowOutput);
+                flow_def.outputs.push(io);
+                self.history.mark_modified();
+                self.canvas_state.request_redraw();
+                self.trigger_auto_fit_if_enabled();
+            }
+            FlowEditMessage::DeleteInput(idx) => {
+                if let Some(io) = flow_def.inputs.get(idx) {
+                    let name = io.name().clone();
+                    flow_def.inputs.remove(idx);
+                    flow_def.connections.retain(|c| {
+                        let (from_node, from_port) = split_route(c.from().as_ref());
+                        !(from_node == "input" && from_port == name)
+                    });
+                    self.history.mark_modified();
+                    self.canvas_state.request_redraw();
+                    self.trigger_auto_fit_if_enabled();
+                }
+            }
+            FlowEditMessage::DeleteOutput(idx) => {
+                if let Some(io) = flow_def.outputs.get(idx) {
+                    let name = io.name().clone();
+                    flow_def.outputs.remove(idx);
+                    for conn in &mut flow_def.connections {
+                        let new_to: Vec<Route> = conn
+                            .to()
+                            .iter()
+                            .filter(|to_route| {
+                                let (to_node, to_port) = split_route(to_route.as_ref());
+                                !(to_node == "output" && to_port == name)
+                            })
+                            .cloned()
+                            .collect();
+                        conn.set_to(new_to);
+                    }
+                    flow_def.connections.retain(|c| !c.to().is_empty());
+                    self.history.mark_modified();
+                    self.canvas_state.request_redraw();
+                    self.trigger_auto_fit_if_enabled();
+                }
+            }
+            FlowEditMessage::InputNameChanged(idx, name) => {
+                self.rename_flow_input(flow_def, idx, &name);
+            }
+            FlowEditMessage::InputTypeChanged(idx, dtype) => {
+                if let Some(io) = flow_def.inputs.get_mut(idx) {
+                    io.set_datatypes(&[DataType::from(dtype)]);
+                }
+                self.history.mark_modified();
+                self.canvas_state.request_redraw();
+                self.trigger_auto_fit_if_enabled();
+            }
+            FlowEditMessage::OutputNameChanged(idx, name) => {
+                self.rename_flow_output(flow_def, idx, &name);
+            }
+            FlowEditMessage::OutputTypeChanged(idx, dtype) => {
+                if let Some(io) = flow_def.outputs.get_mut(idx) {
+                    io.set_datatypes(&[DataType::from(dtype)]);
+                }
+                self.history.mark_modified();
+                self.canvas_state.request_redraw();
+                self.trigger_auto_fit_if_enabled();
+            }
+        }
+    }
+}
 
 #[cfg(test)]
 #[allow(clippy::indexing_slicing)]
@@ -922,13 +1658,13 @@ mod test {
     use flowcore::model::process_reference::ProcessReference;
     use flowcore::model::route::Route;
 
-    fn test_node(
+    fn test_node_data(
         alias: &str,
         source: &str,
         process: Option<flowcore::model::process::Process>,
-    ) -> NodeLayout {
-        NodeLayout {
-            process_ref: ProcessReference {
+    ) -> (ProcessReference, Option<flowcore::model::process::Process>) {
+        (
+            ProcessReference {
                 alias: alias.into(),
                 source: source.into(),
                 initializations: std::collections::BTreeMap::new(),
@@ -938,6 +1674,15 @@ mod test {
                 height: Some(120.0),
             },
             process,
+        )
+    }
+
+    fn as_layout(
+        data: &(ProcessReference, Option<flowcore::model::process::Process>),
+    ) -> NodeLayout<'_> {
+        NodeLayout {
+            process_ref: &data.0,
+            process: data.1.as_ref(),
         }
     }
 
@@ -952,7 +1697,8 @@ mod test {
     #[test]
     fn auto_fit_single_node() {
         let mut state = FlowCanvasState::default();
-        let node = test_node("n", "", None);
+        let d = test_node_data("n", "", None);
+        let node = as_layout(&d);
         state.auto_fit(&[node], &[], &[], false, Size::new(800.0, 600.0));
         assert!(state.zoom > 0.0);
         assert!(state.zoom <= MAX_ZOOM);
@@ -961,7 +1707,8 @@ mod test {
     #[test]
     fn auto_fit_with_flow_io() {
         let mut state = FlowCanvasState::default();
-        let node = test_node("n", "", None);
+        let d = test_node_data("n", "", None);
+        let node = as_layout(&d);
         let input = IO::new_named(vec![DataType::from("string")], Route::default(), "in0");
         let output = IO::new_named(vec![DataType::from("string")], Route::default(), "out0");
         state.auto_fit(&[node], &[input], &[output], true, Size::new(800.0, 600.0));
@@ -970,8 +1717,10 @@ mod test {
 
     #[test]
     fn content_extents_nodes_only() {
-        let node = test_node("n", "", None);
-        let (min_x, min_y, max_x, max_y) = content_extents(&[node], &[], &[], false);
+        let d = test_node_data("n", "", None);
+        let node = as_layout(&d);
+        let (min_x, min_y, max_x, max_y) =
+            FlowCanvasState::content_extents(&[node], &[], &[], false);
         assert!(min_x <= 100.0);
         assert!(min_y <= 100.0);
         assert!(max_x >= 280.0);
@@ -980,9 +1729,10 @@ mod test {
 
     #[test]
     fn content_extents_with_flow_io() {
-        let node = test_node("n", "", None);
+        let d = test_node_data("n", "", None);
+        let node = as_layout(&d);
         let input = IO::new_named(vec![DataType::from("string")], Route::default(), "input0");
-        let (min_x, _, max_x, _) = content_extents(&[node], &[input], &[], true);
+        let (min_x, _, max_x, _) = FlowCanvasState::content_extents(&[node], &[input], &[], true);
         assert!(max_x - min_x > 280.0);
     }
 

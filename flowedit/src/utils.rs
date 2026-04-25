@@ -4,10 +4,23 @@ use iced::widget::canvas;
 use iced::{Point, Size};
 
 use flowcore::model::connection::Connection;
+use flowcore::model::io::IO;
 use flowcore::model::name::HasName;
 use flowcore::model::route::Route;
 
 use crate::node_layout::NodeLayout;
+
+/// Generate a unique IO name with the given prefix that doesn't collide with existing names.
+pub(crate) fn next_unique_io_name(prefix: &str, existing: &[IO]) -> String {
+    let mut n = existing.len();
+    loop {
+        let candidate = format!("{prefix}{n}");
+        if !existing.iter().any(|io| io.name() == &candidate) {
+            return candidate;
+        }
+        n += 1;
+    }
+}
 
 /// Derive a short display name from a source URL.
 /// e.g., `"lib://flowstdlib/math/sequence"` → `"sequence"`
@@ -197,9 +210,13 @@ mod test {
     use flowcore::model::process_reference::ProcessReference;
     use flowcore::model::route::Route;
 
-    fn test_node(alias: &str, source: &str, process: Option<Process>) -> NodeLayout {
-        NodeLayout {
-            process_ref: ProcessReference {
+    fn test_node(
+        alias: &str,
+        source: &str,
+        process: Option<Process>,
+    ) -> (ProcessReference, Option<Process>) {
+        (
+            ProcessReference {
                 alias: alias.into(),
                 source: source.into(),
                 initializations: std::collections::BTreeMap::new(),
@@ -209,6 +226,13 @@ mod test {
                 height: Some(120.0),
             },
             process,
+        )
+    }
+
+    fn as_layout(data: &(ProcessReference, Option<Process>)) -> NodeLayout<'_> {
+        NodeLayout {
+            process_ref: &data.0,
+            process: data.1.as_ref(),
         }
     }
 
@@ -353,7 +377,7 @@ mod test {
 
     #[test]
     fn check_type_compat_same_type() {
-        let nodes = [
+        let data = [
             test_node(
                 "a",
                 "",
@@ -375,6 +399,7 @@ mod test {
                 ))),
             ),
         ];
+        let nodes: Vec<_> = data.iter().map(as_layout).collect();
         assert!(check_port_type_compatibility(
             Some(&nodes[0]),
             "out",
@@ -387,7 +412,7 @@ mod test {
 
     #[test]
     fn check_type_compat_different_type() {
-        let nodes = [
+        let data = [
             test_node(
                 "a",
                 "",
@@ -409,6 +434,7 @@ mod test {
                 ))),
             ),
         ];
+        let nodes: Vec<_> = data.iter().map(as_layout).collect();
         assert!(!check_port_type_compatibility(
             Some(&nodes[0]),
             "out",
@@ -421,7 +447,7 @@ mod test {
 
     #[test]
     fn check_type_compat_untyped_allows_any() {
-        let nodes = [
+        let data = [
             test_node(
                 "a",
                 "",
@@ -439,6 +465,7 @@ mod test {
                 ))),
             ),
         ];
+        let nodes: Vec<_> = data.iter().map(as_layout).collect();
         assert!(check_port_type_compatibility(
             Some(&nodes[0]),
             "out",

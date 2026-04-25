@@ -1,28 +1,18 @@
 //! File operations: loading, saving, compiling, and editor preferences.
 
-use std::collections::{BTreeMap, BTreeSet};
 use std::fmt::Write;
 use std::path::{Path, PathBuf};
 
 use simpath::Simpath;
 use url::Url;
 
-use crate::history::EditHistory;
 use crate::utils::derive_short_name;
-use crate::window_state::FlowCanvasState;
-use crate::{FunctionViewer, WindowState};
+use crate::FunctionViewer;
 use flowcore::meta_provider::MetaProvider;
 use flowcore::model::flow_definition::FlowDefinition;
 use flowcore::model::input::InputInitializer;
 use flowcore::model::name::HasName;
 use flowcore::model::process::Process;
-
-/// Result of loading a flow definition file.
-pub(crate) struct LoadedFlow {
-    pub(crate) flow_def: FlowDefinition,
-    pub(crate) lib_references: BTreeSet<Url>,
-    pub(crate) context_references: BTreeSet<Url>,
-}
 
 /// Editor window size and position preferences.
 pub(crate) struct EditorPrefs {
@@ -30,174 +20,6 @@ pub(crate) struct EditorPrefs {
     pub(crate) height: f32,
     pub(crate) x: Option<f32>,
     pub(crate) y: Option<f32>,
-}
-
-impl WindowState {
-    pub(crate) fn perform_save(&mut self, flow_def: &mut FlowDefinition, path: &PathBuf) {
-        match save_flow_toml(flow_def, path) {
-            Ok(()) => {
-                self.history.clear();
-                Self::set_file_path_on(flow_def, path);
-                save_editor_prefs(path, self.last_size, self.last_position);
-                if let Some(name) = path.file_name().and_then(|n| n.to_str()) {
-                    self.status = format!("Saved to {name}");
-                } else {
-                    self.status = String::from("Saved");
-                }
-            }
-            Err(e) => {
-                self.status = format!("Save failed: {e}");
-            }
-        }
-    }
-
-    /// Prompt the user with a save dialog and save to the chosen path.
-    pub(crate) fn perform_save_as(&mut self, flow_def: &mut FlowDefinition) {
-        let dialog = rfd::FileDialog::new()
-            .add_filter("Flow", &["toml"])
-            .set_file_name(format!("{}.toml", flow_def.name));
-        if let Some(path) = dialog.save_file() {
-            self.perform_save(flow_def, &path);
-        }
-    }
-
-    /// Handle save message -- saves to existing path or prompts with save dialog.
-    pub(crate) fn handle_save(&mut self, flow_def: &mut FlowDefinition) {
-        if let Some(path) = Self::file_path_of(flow_def) {
-            self.perform_save(flow_def, &path);
-        } else {
-            self.perform_save_as(flow_def);
-        }
-    }
-
-    /// Handle save-as message -- prompts with save dialog.
-    pub(crate) fn handle_save_as(&mut self, flow_def: &mut FlowDefinition) {
-        self.perform_save_as(flow_def);
-    }
-
-    /// Prompt the user with an open dialog and load the selected flow file.
-    /// Open a flow file and update the window state.
-    /// Returns the loaded flow definition and lib/context references if successful.
-    pub(crate) fn perform_open(
-        &mut self,
-        flow_def: &mut FlowDefinition,
-    ) -> Option<(BTreeSet<Url>, BTreeSet<Url>)> {
-        let dialog = rfd::FileDialog::new().add_filter("Flow", &["toml"]);
-        if let Some(path) = dialog.pick_file() {
-            match load_flow(&path) {
-                Ok(loaded) => {
-                    let nc = loaded.flow_def.process_refs.len();
-                    let ec = loaded.flow_def.connections.len();
-                    *flow_def = loaded.flow_def;
-                    Self::set_file_path_on(flow_def, &path);
-                    self.selected_node = None;
-                    self.selected_connection = None;
-                    self.tooltip = None;
-                    self.context_menu = None;
-                    self.initializer_editor = None;
-                    self.show_metadata = false;
-                    self.history = EditHistory::default();
-                    self.auto_fit_pending = true;
-                    self.auto_fit_enabled = true;
-                    self.canvas_state = FlowCanvasState::default();
-                    self.status = format!("Loaded - {nc} nodes, {ec} connections");
-                    return Some((loaded.lib_references, loaded.context_references));
-                }
-                Err(e) => {
-                    self.status = format!("Open failed: {e}");
-                }
-            }
-        }
-        None
-    }
-
-    /// Clear the canvas and reset to an empty flow state.
-    pub(crate) fn perform_new(&mut self, flow_def: &mut FlowDefinition) {
-        *flow_def = FlowDefinition::default();
-        flow_def.name = String::from("(new flow)");
-        Self::clear_file_path_on(flow_def);
-        self.selected_node = None;
-        self.selected_connection = None;
-        self.tooltip = None;
-        self.context_menu = None;
-        self.initializer_editor = None;
-        self.show_metadata = false;
-        self.history = EditHistory::default();
-        self.auto_fit_pending = false;
-        self.auto_fit_enabled = true;
-        self.canvas_state = FlowCanvasState::default();
-        self.status = String::from("New flow");
-    }
-
-    /// Compile the current flow to a manifest.
-    ///
-    /// Writes a temporary copy of the current editor state for the compiler
-    /// to parse -- the user's flow definition file is never modified.
-    ///
-    /// Returns the path to the generated manifest on success, or a human-readable
-    /// error message on failure.
-    pub(crate) fn perform_compile(
-        &mut self,
-        flow_def: &mut FlowDefinition,
-    ) -> Result<PathBuf, String> {
-        // New flows must be saved first so the compiler has a real file path
-        if Self::file_path_of(flow_def).is_none() {
-            self.perform_save_as(flow_def);
-        }
-        let Some(flow_path) = Self::file_path_of(flow_def) else {
-            return Err("Flow must be saved before compiling".to_string());
-        };
-
-        // Save any unsaved edits so the file on disk matches the editor state
-        if !self.history.is_empty() {
-            self.perform_save(flow_def, &flow_path);
-            if !self.history.is_empty() {
-                return Err("Save failed — cannot compile stale content".to_string());
-            }
-        }
-
-        let flow_path = &flow_path;
-        let abs_path = if flow_path.is_absolute() {
-            flow_path.clone()
-        } else {
-            std::env::current_dir()
-                .map_err(|e| format!("Could not get current directory: {e}"))?
-                .join(flow_path)
-        };
-
-        let provider = build_meta_provider();
-
-        let url = Url::from_file_path(&abs_path)
-            .map_err(|()| format!("Invalid file path: {}", abs_path.display()))?;
-        let process = flowrclib::compiler::parser::parse(&url, &provider)
-            .map_err(|e| format!("Parse error: {e}"))?;
-        let flow = match process {
-            Process::FlowProcess(f) => f,
-            Process::FunctionProcess(_) => return Err("Not a flow definition".to_string()),
-        };
-
-        let output_dir = abs_path.parent().unwrap_or(Path::new(".")).to_path_buf();
-        let mut source_urls = BTreeMap::<String, Url>::new();
-        let tables = flowrclib::compiler::compile::compile(
-            &flow,
-            &output_dir,
-            false,
-            false,
-            &mut source_urls,
-        )
-        .map_err(|e| e.to_string())?;
-
-        let manifest_path = flowrclib::generator::generate::write_flow_manifest(
-            &flow,
-            false,
-            &output_dir,
-            &tables,
-            source_urls,
-        )
-        .map_err(|e| format!("Manifest error: {e}"))?;
-
-        Ok(manifest_path)
-    }
 }
 
 /// Build a `MetaProvider` with `FLOW_LIB_PATH` (plus `~/.flow/lib` default)
@@ -248,9 +70,11 @@ pub(crate) fn resolve_lib_paths() -> Vec<String> {
     paths
 }
 
-/// Load a flow definition file and return the flow name, node layouts, edge layouts,
-/// the original `FlowDefinition`, and the library/context references for catalog loading.
-pub(crate) fn load_flow(path: &PathBuf) -> Result<LoadedFlow, String> {
+/// Load a flow definition file and return the parsed `FlowDefinition`.
+///
+/// The returned `FlowDefinition` has its `lib_references` and `context_references`
+/// fields populated by the parser (both are `#[serde(skip)]` fields set during parsing).
+pub(crate) fn load_flow(path: &PathBuf) -> Result<FlowDefinition, String> {
     let abs_path = if path.is_absolute() {
         path.clone()
     } else {
@@ -271,13 +95,7 @@ pub(crate) fn load_flow(path: &PathBuf) -> Result<LoadedFlow, String> {
             // Assign default positions to nodes that don't have saved x/y
             assign_default_positions(&mut flow);
 
-            let lib_references = flow.lib_references.clone();
-            let context_references = flow.context_references.clone();
-            Ok(LoadedFlow {
-                flow_def: flow,
-                lib_references,
-                context_references,
-            })
+            Ok(flow)
         }
         Process::FunctionProcess(_) => Err(
             "The specified file defines a Function, not a Flow. flowedit requires a flow definition."
@@ -506,7 +324,7 @@ pub(crate) fn next_node_position(
 ///
 /// Uses topological layout based on connections to determine column placement.
 fn assign_default_positions(flow: &mut FlowDefinition) {
-    use crate::node_layout::NodeLayout;
+    use crate::node_layout::compute_topological_layout;
 
     let needs_layout = flow
         .process_refs
@@ -516,14 +334,21 @@ fn assign_default_positions(flow: &mut FlowDefinition) {
         return;
     }
 
-    // Build render nodes (which computes topo positions) and copy back positions
-    let render_nodes = NodeLayout::build_from_flow(flow);
-    for (pref, node) in flow.process_refs.iter_mut().zip(render_nodes.iter()) {
-        if pref.x.is_none() {
-            pref.x = Some(node.x());
-        }
-        if pref.y.is_none() {
-            pref.y = Some(node.y());
+    // Compute topology-based default positions, then assign to nodes without saved positions.
+    let topo_positions = compute_topological_layout(&flow.process_refs, &flow.connections);
+    for pref in &mut flow.process_refs {
+        let alias = if pref.alias.is_empty() {
+            derive_short_name(&pref.source)
+        } else {
+            pref.alias.clone()
+        };
+        if let Some((tx, ty)) = topo_positions.get(&alias) {
+            if pref.x.is_none() {
+                pref.x = Some(*tx);
+            }
+            if pref.y.is_none() {
+                pref.y = Some(*ty);
+            }
         }
     }
 }
@@ -723,6 +548,7 @@ pub(crate) fn load_editor_prefs(flow_path: &Path) -> Option<EditorPrefs> {
 mod test {
     use super::*;
 
+    use crate::WindowState;
     use flowcore::model::datatype::DataType;
     use flowcore::model::function_definition::FunctionDefinition;
     use flowcore::model::io::IO;
@@ -917,10 +743,10 @@ mod test {
         assert!(contents.contains("lib://flowstdlib/math/add"));
 
         let loaded = load_flow(&path).expect("load failed");
-        assert_eq!(loaded.flow_def.name, "roundtrip_test");
-        assert_eq!(loaded.flow_def.process_refs.len(), 1);
-        assert_eq!(loaded.flow_def.connections.len(), 1);
-        assert_eq!(loaded.flow_def.metadata.version, "1.0.0");
+        assert_eq!(loaded.name, "roundtrip_test");
+        assert_eq!(loaded.process_refs.len(), 1);
+        assert_eq!(loaded.connections.len(), 1);
+        assert_eq!(loaded.metadata.version, "1.0.0");
 
         let _ = std::fs::remove_dir_all(&dir);
     }
