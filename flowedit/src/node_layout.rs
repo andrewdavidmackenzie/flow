@@ -228,6 +228,30 @@ impl NodeLayout {
         ]
     }
 
+    /// Check whether `screen_pos` is within the hit radius of any resize handle
+    /// on this node. Returns the handle variant and the given `node_index` if hit.
+    ///
+    /// The hit test is performed in screen space so the grab area is constant
+    /// regardless of zoom.
+    pub(crate) fn hit_test_resize_handle(
+        &self,
+        node_index: usize,
+        screen_pos: Point,
+        zoom: f32,
+        offset: Point,
+    ) -> Option<(usize, crate::flow_canvas::ResizeHandle)> {
+        use crate::flow_canvas::{transform_point, RESIZE_HANDLE_HIT};
+        for (handle, world_pt) in &self.resize_handle_positions() {
+            let screen_pt = transform_point(*world_pt, zoom, offset);
+            let dx = (screen_pos.x - screen_pt.x).abs();
+            let dy = (screen_pos.y - screen_pt.y).abs();
+            if dx <= RESIZE_HANDLE_HIT && dy <= RESIZE_HANDLE_HIT {
+                return Some((node_index, *handle));
+            }
+        }
+        None
+    }
+
     pub(crate) fn is_in_source_text_zone(&self, point: Point) -> bool {
         use crate::flow_canvas::SOURCE_FONT_SIZE;
         let text_center_x = self.x() + self.width() / 2.0;

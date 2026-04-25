@@ -115,14 +115,9 @@ impl FlowCanvasState {
     /// Builds render nodes from the flow definition's process references and
     /// subprocess definitions. The `FlowCanvas` owns these render nodes for the
     /// duration of the frame.
-    #[allow(clippy::too_many_arguments)]
     pub(crate) fn view<'a>(
         &'a self,
-        flow_def: &FlowDefinition,
-        connections: &'a [Connection],
-        flow_name: &'a str,
-        flow_inputs: &'a [IO],
-        flow_outputs: &'a [IO],
+        flow_def: &'a FlowDefinition,
         is_subflow: bool,
         auto_fit_pending: bool,
         auto_fit_enabled: bool,
@@ -130,11 +125,8 @@ impl FlowCanvasState {
         let nodes = NodeLayout::build_from_flow(flow_def);
         Canvas::new(FlowCanvas {
             state: self,
+            flow_def,
             nodes,
-            connections,
-            flow_name,
-            flow_inputs,
-            flow_outputs,
             is_subflow,
             auto_fit_pending,
             auto_fit_enabled,
@@ -717,10 +709,6 @@ impl WindowState {
             .canvas_state
             .view(
                 flow_def,
-                &flow_def.connections,
-                &flow_def.name,
-                &flow_def.inputs,
-                &flow_def.outputs,
                 !self.is_root,
                 self.auto_fit_pending,
                 self.auto_fit_enabled,
