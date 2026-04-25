@@ -213,52 +213,6 @@ const PORT_RADIUS: f32 = 5.0;
 /// Maximum characters for source label before truncation
 const MAX_SOURCE_CHARS: usize = 22;
 
-pub(crate) fn content_extents(
-    nodes: &[NodeLayout],
-    flow_inputs: &[IO],
-    flow_outputs: &[IO],
-    has_flow_io: bool,
-) -> (f32, f32, f32, f32) {
-    if has_flow_io {
-        let (box_x, box_y, box_w, box_h, _, _) =
-            flow_io_bounding_box(nodes, flow_inputs, flow_outputs);
-        let max_input_label = flow_inputs
-            .iter()
-            .map(|io| io.name().len())
-            .max()
-            .unwrap_or(0);
-        let max_output_label = flow_outputs
-            .iter()
-            .map(|io| io.name().len())
-            .max()
-            .unwrap_or(0);
-        let label_margin = max_input_label.max(max_output_label) as f32 * PORT_FONT_SIZE + 20.0;
-        (
-            box_x - label_margin,
-            box_y,
-            box_x + box_w + label_margin,
-            box_y + box_h,
-        )
-    } else {
-        let mut min_x = f32::MAX;
-        let mut min_y = f32::MAX;
-        let mut max_x = f32::MIN;
-        let mut max_y = f32::MIN;
-        for node in nodes {
-            let init_margin = if node.has_initializers() {
-                node.max_initializer_display_len() as f32 * 8.0
-            } else {
-                0.0
-            };
-            min_x = min_x.min(node.x() - init_margin);
-            min_y = min_y.min(node.y());
-            max_x = max_x.max(node.x() + node.width());
-            max_y = max_y.max(node.y() + node.height());
-        }
-        (min_x, min_y, max_x, max_y)
-    }
-}
-
 /// Transform a world-space point to screen-space using the given zoom and scroll offset.
 fn transform_point(p: Point, zoom: f32, offset: Point) -> Point {
     Point::new((p.x + offset.x) * zoom, (p.y + offset.y) * zoom)

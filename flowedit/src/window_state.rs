@@ -19,13 +19,15 @@ use flowcore::model::flow_definition::FlowDefinition;
 use flowcore::model::function_definition::FunctionDefinition;
 use flowcore::model::input::InputInitializer;
 use flowcore::model::io::IO;
+use flowcore::model::name::HasName;
 use flowcore::model::route::Route;
 
 use crate::file_ops;
-use crate::flow_canvas::{content_extents, CanvasAction, CanvasMessage, FlowCanvas};
+use crate::flow_canvas::{flow_io_bounding_box, CanvasAction, CanvasMessage, FlowCanvas};
 use crate::hierarchy_panel::FlowHierarchy;
 use crate::history::{EditAction, EditHistory};
 use crate::node_layout::NodeLayout;
+use crate::node_layout::PORT_FONT_SIZE;
 use crate::utils::{connection_references_node, derive_short_name, split_route};
 use crate::{Message, ViewMessage};
 
@@ -162,6 +164,52 @@ impl FlowCanvasState {
     /// Compute zoom and offset so that all nodes fit within the given viewport with padding.
     ///
     /// If `nodes` is empty, resets to default zoom and offset.
+    fn content_extents(
+        nodes: &[NodeLayout],
+        flow_inputs: &[IO],
+        flow_outputs: &[IO],
+        has_flow_io: bool,
+    ) -> (f32, f32, f32, f32) {
+        if has_flow_io {
+            let (box_x, box_y, box_w, box_h, _, _) =
+                flow_io_bounding_box(nodes, flow_inputs, flow_outputs);
+            let max_input_label = flow_inputs
+                .iter()
+                .map(|io| io.name().len())
+                .max()
+                .unwrap_or(0);
+            let max_output_label = flow_outputs
+                .iter()
+                .map(|io| io.name().len())
+                .max()
+                .unwrap_or(0);
+            let label_margin = max_input_label.max(max_output_label) as f32 * PORT_FONT_SIZE + 20.0;
+            (
+                box_x - label_margin,
+                box_y,
+                box_x + box_w + label_margin,
+                box_y + box_h,
+            )
+        } else {
+            let mut min_x = f32::MAX;
+            let mut min_y = f32::MAX;
+            let mut max_x = f32::MIN;
+            let mut max_y = f32::MIN;
+            for node in nodes {
+                let init_margin = if node.has_initializers() {
+                    node.max_initializer_display_len() as f32 * 8.0
+                } else {
+                    0.0
+                };
+                min_x = min_x.min(node.x() - init_margin);
+                min_y = min_y.min(node.y());
+                max_x = max_x.max(node.x() + node.width());
+                max_y = max_y.max(node.y() + node.height());
+            }
+            (min_x, min_y, max_x, max_y)
+        }
+    }
+
     pub(crate) fn auto_fit(
         &mut self,
         nodes: &[NodeLayout],
@@ -179,7 +227,7 @@ impl FlowCanvasState {
         }
 
         let (min_x, min_y, max_x, max_y) =
-            content_extents(nodes, flow_inputs, flow_outputs, has_flow_io);
+            Self::content_extents(nodes, flow_inputs, flow_outputs, has_flow_io);
 
         let content_width = max_x - min_x + CANVAS_PADDING * 2.0;
         let content_height = max_y - min_y + CANVAS_PADDING * 2.0;
@@ -962,7 +1010,8 @@ mod test {
     #[test]
     fn content_extents_nodes_only() {
         let node = test_node("n", "", None);
-        let (min_x, min_y, max_x, max_y) = content_extents(&[node], &[], &[], false);
+        let (min_x, min_y, max_x, max_y) =
+            FlowCanvasState::content_extents(&[node], &[], &[], false);
         assert!(min_x <= 100.0);
         assert!(min_y <= 100.0);
         assert!(max_x >= 280.0);
@@ -973,7 +1022,7 @@ mod test {
     fn content_extents_with_flow_io() {
         let node = test_node("n", "", None);
         let input = IO::new_named(vec![DataType::from("string")], Route::default(), "input0");
-        let (min_x, _, max_x, _) = content_extents(&[node], &[input], &[], true);
+        let (min_x, _, max_x, _) = FlowCanvasState::content_extents(&[node], &[input], &[], true);
         assert!(max_x - min_x > 280.0);
     }
 
