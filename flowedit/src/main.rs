@@ -634,27 +634,44 @@ impl FlowEdit {
             .windows
             .get_mut(&hier_win_id)
             .and_then(|win| win.flow_hierarchy.update(hier_msg));
-        let Some((_source, path)) = open_result else {
+        let Some(route) = open_result else {
             return Task::none();
         };
         // Check if already open
         for (&win_id, win) in &self.windows {
-            if self.window_has_path(win, &path) {
+            if win.route == route {
                 return window::gain_focus(win_id);
             }
         }
-        // Open the flow or function
-        if let Ok(loaded) = file_ops::load_flow(&path) {
+        // Extract info before releasing the borrow on self.root_flow.
+        // FunctionDefinition is cloned because open_function_viewer needs &mut self.
+        let process_info = match self.root_flow.process_from_route(&route) {
+            Some(Process::FlowProcess(f)) => Some((
+                true,
+                !f.process_refs.is_empty(),
+                f.process_refs.len(),
+                f.connections.len(),
+                None,
+            )),
+            Some(Process::FunctionProcess(f)) => Some((
+                false,
+                false,
+                0,
+                0,
+                Some((
+                    f.clone(),
+                    f.get_source_url().to_file_path().unwrap_or_default(),
+                )),
+            )),
+            None => None,
+        };
+        let Some((is_flow, has_nodes, nc, ec, func_info)) = process_info else {
+            return Task::none();
+        };
+        if is_flow {
             let (new_id, open_task) = window::open(self.child_window_settings(1024.0, 768.0));
-            let has_nodes = !loaded.flow_def.process_refs.is_empty();
-            let nc = loaded.flow_def.process_refs.len();
-            let ec = loaded.flow_def.connections.len();
-            let mut flow_def = loaded.flow_def;
-            if let Ok(url) = Url::from_file_path(&path) {
-                flow_def.source_url = url;
-            }
             let child = WindowState {
-                route: flow_def.route.clone(),
+                route,
                 kind: WindowKind::FlowEditor,
                 canvas_state: FlowCanvasState::default(),
                 status: format!("Ready - {nc} nodes, {ec} connections"),
@@ -663,7 +680,7 @@ impl FlowEdit {
                 history: EditHistory::default(),
                 auto_fit_pending: has_nodes,
                 auto_fit_enabled: true,
-                flow_hierarchy: FlowHierarchy::from_flow_definition(&flow_def),
+                flow_hierarchy: FlowHierarchy::from_flow_definition(&self.root_flow),
                 tooltip: None,
                 initializer_editor: None,
                 is_root: false,
@@ -673,27 +690,12 @@ impl FlowEdit {
                 last_position: None,
             };
             self.windows.insert(new_id, child);
-            return open_task.discard();
+            open_task.discard()
+        } else if let Some((func_def, source_path)) = func_info {
+            self.open_function_viewer(hier_win_id, &source_path, &func_def, route.as_ref())
+        } else {
+            Task::none()
         }
-        // Try as function definition
-        let abs = std::fs::canonicalize(&path).unwrap_or_else(|_| path.clone());
-        if let Ok(contents) = std::fs::read_to_string(&abs) {
-            if let Ok(url) = Url::from_file_path(&abs) {
-                if let Ok(deser) = get::<Process>(&url) {
-                    if let Ok(Process::FunctionProcess(ref func)) =
-                        deser.deserialize(&contents, Some(&url))
-                    {
-                        return self.open_function_viewer(
-                            hier_win_id,
-                            &path,
-                            func,
-                            &path.to_string_lossy(),
-                        );
-                    }
-                }
-            }
-        }
-        Task::none()
     }
 
     fn handle_close_requested(&mut self, target: Option<window::Id>) -> Task<Message> {
@@ -875,15 +877,14 @@ impl FlowEdit {
     }
 
     fn close_orphaned_windows(&mut self) -> Task<Message> {
-        let root_route = self.root_flow.route.clone();
         let orphans: Vec<window::Id> = self
             .windows
             .iter()
             .filter(|(_, win)| {
-                if win.is_root {
+                if win.is_root || win.route.is_empty() {
                     return false;
                 }
-                if win.route == root_route {
+                if matches!(win.kind, WindowKind::FunctionViewer(_)) {
                     return false;
                 }
                 self.root_flow.process_from_route(&win.route).is_none()
