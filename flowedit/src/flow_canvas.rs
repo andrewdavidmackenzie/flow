@@ -226,8 +226,8 @@ pub(crate) struct FlowCanvas<'a> {
     pub(crate) state: &'a FlowCanvasState,
     /// The flow definition being rendered
     pub(crate) flow_def: &'a FlowDefinition,
-    /// Render nodes built from `process_refs` (owned, rebuilt each frame)
-    pub(crate) nodes: Vec<NodeLayout>,
+    /// Render nodes built from `process_refs` (references, rebuilt each frame)
+    pub(crate) nodes: Vec<NodeLayout<'a>>,
     /// Whether this is a sub-flow (always draws bounding box)
     pub(crate) is_subflow: bool,
     /// Whether an auto-fit should be triggered on the next event
@@ -1993,7 +1993,7 @@ mod test {
     fn make_flow_canvas<'a>(
         state: &'a FlowCanvasState,
         flow_def: &'a FlowDefinition,
-        nodes: Vec<NodeLayout>,
+        nodes: Vec<NodeLayout<'a>>,
     ) -> FlowCanvas<'a> {
         FlowCanvas {
             state,
@@ -2005,9 +2005,13 @@ mod test {
         }
     }
 
-    fn test_node(alias: &str, source: &str, process: Option<Process>) -> NodeLayout {
-        NodeLayout {
-            process_ref: ProcessReference {
+    fn test_node(
+        alias: &str,
+        source: &str,
+        process: Option<Process>,
+    ) -> (ProcessReference, Option<Process>) {
+        (
+            ProcessReference {
                 alias: alias.into(),
                 source: source.into(),
                 initializations: std::collections::BTreeMap::new(),
@@ -2017,6 +2021,13 @@ mod test {
                 height: Some(120.0),
             },
             process,
+        )
+    }
+
+    fn as_layout(data: &(ProcessReference, Option<Process>)) -> NodeLayout<'_> {
+        NodeLayout {
+            process_ref: &data.0,
+            process: data.1.as_ref(),
         }
     }
 
@@ -2129,11 +2140,8 @@ mod test {
     fn hit_test_node_inside() {
         let state = FlowCanvasState::default();
         let flow_def = FlowDefinition::default();
-        let canvas = make_flow_canvas(
-            &state,
-            &flow_def,
-            vec![test_node("test", "lib://test", None)],
-        );
+        let d = test_node("test", "lib://test", None);
+        let canvas = make_flow_canvas(&state, &flow_def, vec![as_layout(&d)]);
         assert_eq!(canvas.hit_test_node(Point::new(150.0, 150.0)), Some(0));
     }
 
@@ -2141,11 +2149,8 @@ mod test {
     fn hit_test_node_outside() {
         let state = FlowCanvasState::default();
         let flow_def = FlowDefinition::default();
-        let canvas = make_flow_canvas(
-            &state,
-            &flow_def,
-            vec![test_node("test", "lib://test", None)],
-        );
+        let d = test_node("test", "lib://test", None);
+        let canvas = make_flow_canvas(&state, &flow_def, vec![as_layout(&d)]);
         assert_eq!(canvas.hit_test_node(Point::new(50.0, 50.0)), None);
     }
 
@@ -2153,10 +2158,10 @@ mod test {
     fn hit_test_node_miss() {
         let state = FlowCanvasState::default();
         let flow_def = FlowDefinition::default();
-        let node = test_node("n", "lib://test", None);
-        let canvas = make_flow_canvas(&state, &flow_def, vec![node.clone()]);
+        let d = test_node("n", "lib://test", None);
+        let canvas = make_flow_canvas(&state, &flow_def, vec![as_layout(&d)]);
         assert_eq!(canvas.hit_test_node(Point::new(150.0, 150.0)), Some(0));
-        let canvas2 = make_flow_canvas(&state, &flow_def, vec![node]);
+        let canvas2 = make_flow_canvas(&state, &flow_def, vec![as_layout(&d)]);
         assert_eq!(canvas2.hit_test_node(Point::new(50.0, 50.0)), None);
     }
 
@@ -2164,21 +2169,21 @@ mod test {
     fn hit_test_open_icon_only_openable() {
         let state = FlowCanvasState::default();
         let flow_def = FlowDefinition::default();
-        let lib_node = test_node(
+        let lib_data = test_node(
             "n",
             "lib://test",
             Some(Process::FunctionProcess(lib_function())),
         );
-        let local_node = test_node(
+        let local_data = test_node(
             "n",
             "subflow",
             Some(Process::FlowProcess(FlowDefinition::default())),
         );
         // Library nodes are not openable
-        let canvas = make_flow_canvas(&state, &flow_def, vec![lib_node]);
+        let canvas = make_flow_canvas(&state, &flow_def, vec![as_layout(&lib_data)]);
         assert_eq!(canvas.hit_test_open_icon(Point::new(278.0, 104.0)), None);
         // Flow nodes are openable
-        let canvas = make_flow_canvas(&state, &flow_def, vec![local_node]);
+        let canvas = make_flow_canvas(&state, &flow_def, vec![as_layout(&local_data)]);
         assert!(canvas
             .hit_test_open_icon(Point::new(278.0, 104.0))
             .is_some());
@@ -2186,7 +2191,8 @@ mod test {
 
     #[test]
     fn compute_flow_io_positions_with_nodes() {
-        let nodes = vec![test_node("n", "", None)];
+        let d = test_node("n", "", None);
+        let nodes = vec![as_layout(&d)];
         let inputs = vec![IO::new_named(vec![], Route::default(), "data")];
         let outputs = vec![IO::new_named(vec![], Route::default(), "result")];
         let (inp, outp) = compute_flow_io_positions(&nodes, &inputs, &outputs);

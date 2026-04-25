@@ -6,15 +6,11 @@ use std::sync::Arc;
 use log::{info, warn};
 use url::Url;
 
-use flowcore::model::flow_definition::FlowDefinition;
 use flowcore::model::lib_manifest::LibraryManifest;
 use flowcore::model::process::Process;
-use flowcore::model::process_reference::ProcessReference;
 use flowcore::provider::Provider;
 
 use crate::file_ops;
-use crate::history::EditAction;
-use crate::WindowState;
 
 /// Load full library catalogs and cache all definitions.
 ///
@@ -129,74 +125,4 @@ pub(crate) fn load_library_catalogs(
     }
 
     (library_cache, all_definitions)
-}
-
-impl WindowState {
-    /// Add a library function as a new node on the canvas.
-    pub(crate) fn add_library_function(
-        &mut self,
-        flow_def: &mut FlowDefinition,
-        source: &str,
-        func_name: &str,
-    ) {
-        // Generate a unique alias: if the name already exists, append a number
-        let alias = file_ops::generate_unique_alias(func_name, &flow_def.process_refs);
-
-        // Place the new node at a default position offset from existing nodes
-        let (x, y) = file_ops::next_node_position(&flow_def.process_refs);
-
-        // Resolve the subprocess definition by parsing the function/flow
-        let resolved_process = match Url::parse(source) {
-            Ok(url) => {
-                let provider = file_ops::build_meta_provider();
-                match flowrclib::compiler::parser::parse(&url, &provider) {
-                    Ok(proc) => Some(proc),
-                    Err(e) => {
-                        info!("add_library_function: could not parse '{source}': {e}");
-                        None
-                    }
-                }
-            }
-            Err(e) => {
-                info!("add_library_function: could not parse URL '{source}': {e}");
-                None
-            }
-        };
-
-        let pref = ProcessReference {
-            alias: alias.clone(),
-            source: source.to_string(),
-            initializations: std::collections::BTreeMap::new(),
-            x: Some(x),
-            y: Some(y),
-            width: Some(180.0),
-            height: Some(120.0),
-        };
-
-        let index = flow_def.process_refs.len();
-        flow_def.process_refs.push(pref.clone());
-
-        // Add the resolved subprocess definition if we have one
-        if let Some(proc) = resolved_process {
-            flow_def.subprocesses.insert(alias.clone(), proc);
-        }
-
-        self.history.record(EditAction::CreateNode {
-            index,
-            process_ref: pref,
-            subprocess: flow_def
-                .subprocesses
-                .get(&alias)
-                .map(|p| (alias.clone(), p.clone())),
-        });
-
-        self.selected_node = Some(index);
-        self.canvas_state.request_redraw();
-        // Trigger auto-fit if enabled so the new node is visible
-        if self.auto_fit_enabled {
-            self.auto_fit_pending = true;
-        }
-        let nc = flow_def.process_refs.len();
-        self.status = format!("Added {alias} from library - {nc} nodes");
-    }
 }

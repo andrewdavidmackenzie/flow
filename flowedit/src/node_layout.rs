@@ -27,8 +27,6 @@ pub(crate) const DEFAULT_HEIGHT: f32 = 120.0;
 const GRID_SPACING_X: f32 = 250.0;
 /// Vertical spacing between auto-laid-out nodes
 const GRID_SPACING_Y: f32 = 170.0;
-/// Number of columns in auto-layout grid
-const GRID_COLUMNS: usize = 3;
 /// Starting X offset for auto-layout
 const GRID_ORIGIN_X: f32 = 50.0;
 /// Starting Y offset for auto-layout
@@ -48,29 +46,12 @@ static EMPTY_IO: Vec<IO> = Vec::new();
 /// with its resolved `Process` (ports, description, type) for rendering.
 /// Rebuilt every frame from `FlowDefinition` — not persisted.
 #[derive(Debug, Clone)]
-pub(crate) struct NodeLayout {
-    pub(crate) process_ref: ProcessReference,
-    pub(crate) process: Option<Process>,
+pub(crate) struct NodeLayout<'a> {
+    pub(crate) process_ref: &'a ProcessReference,
+    pub(crate) process: Option<&'a Process>,
 }
 
-impl Default for NodeLayout {
-    fn default() -> Self {
-        Self {
-            process_ref: ProcessReference {
-                alias: String::new(),
-                source: String::new(),
-                initializations: std::collections::BTreeMap::new(),
-                x: Some(100.0),
-                y: Some(100.0),
-                width: Some(180.0),
-                height: Some(120.0),
-            },
-            process: None,
-        }
-    }
-}
-
-impl NodeLayout {
+impl<'a> NodeLayout<'a> {
     pub(crate) fn alias(&self) -> &str {
         if self.process_ref.alias.is_empty() {
             &self.process_ref.source
@@ -298,13 +279,10 @@ impl NodeLayout {
     /// This is the single entry point for converting process references and their
     /// resolved subprocess definitions into the rendering representation.
     /// The returned layouts are ephemeral and must not be stored in persistent state.
-    pub(crate) fn build_from_flow(flow_def: &FlowDefinition) -> Vec<NodeLayout> {
-        let topo_positions =
-            compute_topological_layout(&flow_def.process_refs, &flow_def.connections);
-
+    pub(crate) fn build_from_flow(flow_def: &'a FlowDefinition) -> Vec<NodeLayout<'a>> {
         let mut nodes = Vec::with_capacity(flow_def.process_refs.len());
 
-        for (i, pref) in flow_def.process_refs.iter().enumerate() {
+        for pref in &flow_def.process_refs {
             let alias = if pref.alias.is_empty() {
                 derive_short_name(&pref.source)
             } else {
@@ -313,40 +291,9 @@ impl NodeLayout {
 
             let resolved = flow_def.subprocesses.get(&alias);
 
-            let input_count = resolved.map_or(0, |p| match p {
-                Process::FunctionProcess(f) => f.inputs.len(),
-                Process::FlowProcess(f) => f.inputs.len(),
-            });
-            let output_count = resolved.map_or(0, |p| match p {
-                Process::FunctionProcess(f) => f.outputs.len(),
-                Process::FlowProcess(f) => f.outputs.len(),
-            });
-            let min_ports = input_count.max(output_count);
-            let min_height = PORT_START_Y + (min_ports as f32 + 1.0) * PORT_SPACING;
-
-            let (default_x, default_y) = if let Some((tx, ty)) = topo_positions.get(&alias) {
-                (*tx, *ty)
-            } else {
-                let col = i % GRID_COLUMNS;
-                let row = i / GRID_COLUMNS;
-                (
-                    GRID_ORIGIN_X + col as f32 * GRID_SPACING_X,
-                    GRID_ORIGIN_Y + row as f32 * GRID_SPACING_Y,
-                )
-            };
-
-            let mut process_ref = pref.clone();
-            if process_ref.alias.is_empty() {
-                process_ref.alias = alias;
-            }
-            process_ref.x = Some(pref.x.unwrap_or(default_x));
-            process_ref.y = Some(pref.y.unwrap_or(default_y));
-            process_ref.width = Some(pref.width.unwrap_or(DEFAULT_WIDTH));
-            process_ref.height = Some(pref.height.unwrap_or(DEFAULT_HEIGHT.max(min_height)));
-
             nodes.push(NodeLayout {
-                process_ref,
-                process: resolved.cloned(),
+                process_ref: pref,
+                process: resolved,
             });
         }
 
@@ -358,7 +305,7 @@ impl NodeLayout {
 ///
 /// Assigns each node a column based on its depth from source nodes (nodes with no
 /// incoming connections). Nodes are spread vertically within each column.
-fn compute_topological_layout(
+pub(crate) fn compute_topological_layout(
     process_refs: &[ProcessReference],
     connections: &[Connection],
 ) -> HashMap<String, (f32, f32)> {
@@ -468,18 +415,30 @@ mod test {
     use iced::Point;
     use url::Url;
 
-    fn test_node(alias: &str, source: &str, process: Option<Process>) -> NodeLayout {
+    fn test_pref(alias: &str, source: &str) -> ProcessReference {
+        ProcessReference {
+            alias: alias.into(),
+            source: source.into(),
+            initializations: std::collections::BTreeMap::new(),
+            x: Some(100.0),
+            y: Some(100.0),
+            width: Some(180.0),
+            height: Some(120.0),
+        }
+    }
+
+    fn test_node(
+        alias: &str,
+        source: &str,
+        process: Option<Process>,
+    ) -> (ProcessReference, Option<Process>) {
+        (test_pref(alias, source), process)
+    }
+
+    fn as_layout(data: &(ProcessReference, Option<Process>)) -> NodeLayout<'_> {
         NodeLayout {
-            process_ref: ProcessReference {
-                alias: alias.into(),
-                source: source.into(),
-                initializations: std::collections::BTreeMap::new(),
-                x: Some(100.0),
-                y: Some(100.0),
-                width: Some(180.0),
-                height: Some(120.0),
-            },
-            process,
+            process_ref: &data.0,
+            process: data.1.as_ref(),
         }
     }
 
@@ -504,50 +463,58 @@ mod test {
 
     #[test]
     fn is_openable_lib() {
-        let node = test_node("n", "", Some(Process::FunctionProcess(lib_function())));
+        let data = test_node("n", "", Some(Process::FunctionProcess(lib_function())));
+        let node = as_layout(&data);
         assert!(!node.is_openable());
     }
 
     #[test]
     fn is_openable_context() {
-        let node = test_node("n", "", Some(Process::FunctionProcess(context_function())));
+        let data = test_node("n", "", Some(Process::FunctionProcess(context_function())));
+        let node = as_layout(&data);
         assert!(!node.is_openable());
     }
 
     #[test]
     fn is_openable_local() {
-        let node = test_node(
+        let data = test_node(
             "n",
             "",
             Some(Process::FlowProcess(FlowDefinition::default())),
         );
+        let node = as_layout(&data);
         assert!(node.is_openable());
     }
 
     #[test]
     fn is_openable_provided_impl() {
-        let node = test_node(
+        let data = test_node(
             "n",
             "",
             Some(Process::FunctionProcess(FunctionDefinition::default())),
         );
+        let node = as_layout(&data);
         assert!(node.is_openable());
     }
 
     #[test]
     fn fill_color_by_process() {
-        let lib = test_node("n", "", Some(Process::FunctionProcess(lib_function())));
-        let ctx = test_node("n", "", Some(Process::FunctionProcess(context_function())));
-        let prov = test_node(
+        let lib_data = test_node("n", "", Some(Process::FunctionProcess(lib_function())));
+        let lib = as_layout(&lib_data);
+        let ctx_data = test_node("n", "", Some(Process::FunctionProcess(context_function())));
+        let ctx = as_layout(&ctx_data);
+        let prov_data = test_node(
             "n",
             "",
             Some(Process::FunctionProcess(FunctionDefinition::default())),
         );
-        let flow = test_node(
+        let prov = as_layout(&prov_data);
+        let flow_data = test_node(
             "n",
             "",
             Some(Process::FlowProcess(FlowDefinition::default())),
         );
+        let flow = as_layout(&flow_data);
         assert_ne!(lib.fill_color(), ctx.fill_color());
         assert_ne!(lib.fill_color(), prov.fill_color());
         assert_ne!(lib.fill_color(), flow.fill_color());
@@ -565,17 +532,14 @@ mod test {
             ],
             vec![IO::new_named(vec![], Route::default(), "out")],
         );
-        let node = test_node("test", "lib://test", Some(Process::FunctionProcess(f)));
+        let data = test_node("test", "lib://test", Some(Process::FunctionProcess(f)));
+        let node = as_layout(&data);
         let ip0 = node.input_port_position(0);
         let ip1 = node.input_port_position(1);
         let op0 = node.output_port_position(0);
-
-        // Input ports on left edge
         assert!((ip0.x - 100.0).abs() < 0.01);
         assert!((ip1.x - 100.0).abs() < 0.01);
-        // Output ports on right edge
         assert!((op0.x - 280.0).abs() < 0.01);
-        // Ports vertically spaced
         assert!(ip1.y > ip0.y);
     }
 
@@ -588,20 +552,19 @@ mod test {
                 IO::new_named(vec![], Route::default(), "json"),
             ],
         );
-        let node = test_node("get", "", Some(Process::FunctionProcess(f)));
+        let data = test_node("get", "", Some(Process::FunctionProcess(f)));
+        let node = as_layout(&data);
         let string_pos = node.find_output_pos_inline("string/1");
         let json_pos = node.find_output_pos_inline("json/2");
-        // string is output 0, json is output 1 — different y positions
         assert!((json_pos.y - string_pos.y).abs() > 1.0);
     }
 
     #[test]
     fn hit_test_source_text_zone() {
-        let node = test_node("test", "lib://flowstdlib/math/add", None);
-        // Source text is centered at (node.x() + width/2, node.y() + 34.0)
+        let data = test_node("test", "lib://flowstdlib/math/add", None);
+        let node = as_layout(&data);
         let source_center = Point::new(190.0, 134.0);
         assert!(node.is_in_source_text_zone(source_center));
-        // Point clearly outside source text zone but inside node
         let node_body = Point::new(110.0, 200.0);
         assert!(!node.is_in_source_text_zone(node_body));
     }
