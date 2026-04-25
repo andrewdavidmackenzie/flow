@@ -1938,92 +1938,90 @@ impl FlowEdit {
     /// Open a sub-flow in a new in-process window, or show a status message
     /// if the node resolves to a function rather than a flow.
     fn open_node(&mut self, parent_win_id: window::Id, idx: usize) -> Task<Message> {
-        // Extract source and resolved path from the parent window (immutable borrow)
-        let (source, resolved_path) = {
-            let Some(pref) = self.root_flow.process_refs.get(idx) else {
-                return Task::none();
-            };
-            let source = pref.source.clone();
-            let Some(win) = self.windows.get(&parent_win_id) else {
-                return Task::none();
-            };
-            let path = win.resolve_node_source(&self.root_flow, &source);
-            (source, path)
-        };
-
-        let Some(path) = resolved_path else {
-            if let Some(win) = self.windows.get_mut(&parent_win_id) {
-                win.status = format!("Could not resolve source: {source}");
-            }
+        let Some(win) = self.windows.get(&parent_win_id) else {
             return Task::none();
         };
+        let parent_route = win.route.clone();
 
-        // If a window already has this file open, focus it instead of opening a duplicate
+        // Build the child route from the parent's route + the alias
+        let Some(pref) = self.root_flow.process_refs.get(idx) else {
+            return Task::none();
+        };
+        let alias = if pref.alias.is_empty() {
+            crate::utils::derive_short_name(&pref.source)
+        } else {
+            pref.alias.clone()
+        };
+        let mut child_route = parent_route;
+        child_route.extend(&Route::from(alias.as_str()));
+
+        // Check if already open
         for (&win_id, win) in &self.windows {
-            if self.window_has_path(win, &path) && win_id != parent_win_id {
+            if win.route == child_route && win_id != parent_win_id {
                 return window::gain_focus(win_id);
             }
         }
 
-        // Check whether the resolved file is a flow or a function
-        let abs_path = match std::fs::canonicalize(&path) {
-            Ok(p) => p,
-            Err(_) => path.clone(),
+        // Look up the process in the hierarchy
+        let process_info = self
+            .root_flow
+            .process_from_route(&child_route)
+            .map(|p| match p {
+                Process::FlowProcess(f) => (
+                    true,
+                    !f.process_refs.is_empty(),
+                    f.process_refs.len(),
+                    f.connections.len(),
+                    None,
+                ),
+                Process::FunctionProcess(f) => (
+                    false,
+                    false,
+                    0,
+                    0,
+                    Some((
+                        f.clone(),
+                        f.get_source_url().to_file_path().unwrap_or_default(),
+                    )),
+                ),
+            });
+        let Some((is_flow, has_nodes, nc, ec, func_info)) = process_info else {
+            if let Some(win) = self.windows.get_mut(&parent_win_id) {
+                win.status = format!("Could not find process at {child_route}");
+            }
+            return Task::none();
         };
-        if let Ok(contents) = std::fs::read_to_string(&abs_path) {
-            if let Ok(url) = Url::from_file_path(&abs_path) {
-                if let Ok(deserializer) = get::<Process>(&url) {
-                    if let Ok(Process::FunctionProcess(ref func)) =
-                        deserializer.deserialize(&contents, Some(&url))
-                    {
-                        return self.open_function_viewer(parent_win_id, &path, func, &source);
-                    }
-                }
-            }
-        }
 
-        // Load the sub-flow and open it in a new window
-        match file_ops::load_flow(&path) {
-            Ok(loaded) => {
-                let has_nodes = !loaded.flow_def.process_refs.is_empty();
-                let (new_id, open_task) = window::open(self.child_window_settings(1024.0, 768.0));
-                let nc = loaded.flow_def.process_refs.len();
-                let ec = loaded.flow_def.connections.len();
-                let mut flow_def = loaded.flow_def;
-                if let Ok(url) = Url::from_file_path(&path) {
-                    flow_def.source_url = url;
-                }
-                let child = WindowState {
-                    route: flow_def.route.clone(),
-                    kind: WindowKind::FlowEditor,
-                    canvas_state: FlowCanvasState::default(),
-                    status: format!("Ready - {nc} nodes, {ec} connections"),
-                    selected_node: None,
-                    selected_connection: None,
-                    history: EditHistory::default(),
-                    auto_fit_pending: has_nodes,
-                    auto_fit_enabled: true,
-                    flow_hierarchy: FlowHierarchy::from_flow_definition(&flow_def),
-                    tooltip: None,
-                    initializer_editor: None,
-                    is_root: false,
-                    context_menu: None,
-                    show_metadata: false,
-                    last_size: None,
-                    last_position: None,
-                };
-                self.windows.insert(new_id, child);
-                if let Some(win) = self.windows.get_mut(&parent_win_id) {
-                    win.status = format!("Opened: {}", path.display());
-                }
-                open_task.discard()
+        if is_flow {
+            let (new_id, open_task) = window::open(self.child_window_settings(1024.0, 768.0));
+            let child = WindowState {
+                route: child_route,
+                kind: WindowKind::FlowEditor,
+                canvas_state: FlowCanvasState::default(),
+                status: format!("Ready - {nc} nodes, {ec} connections"),
+                selected_node: None,
+                selected_connection: None,
+                history: EditHistory::default(),
+                auto_fit_pending: has_nodes,
+                auto_fit_enabled: true,
+                flow_hierarchy: FlowHierarchy::from_flow_definition(&self.root_flow),
+                tooltip: None,
+                initializer_editor: None,
+                is_root: false,
+                context_menu: None,
+                show_metadata: false,
+                last_size: None,
+                last_position: None,
+            };
+            self.windows.insert(new_id, child);
+            if let Some(win) = self.windows.get_mut(&parent_win_id) {
+                win.status = format!("Opened: {alias}");
             }
-            Err(e) => {
-                if let Some(win) = self.windows.get_mut(&parent_win_id) {
-                    win.status = format!("Could not open '{source}': {e}");
-                }
-                Task::none()
-            }
+            open_task.discard()
+        } else if let Some((func_def, source_path)) = func_info {
+            self.open_function_viewer(parent_win_id, &source_path, &func_def, &alias)
+        } else {
+            Task::none()
         }
     }
 

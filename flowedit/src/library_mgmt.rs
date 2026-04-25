@@ -1,7 +1,6 @@
 //! Library catalog management: loading manifests, adding functions, resolving sources.
 
 use std::collections::{BTreeSet, HashMap};
-use std::path::PathBuf;
 use std::sync::Arc;
 
 use log::{info, warn};
@@ -199,104 +198,5 @@ impl WindowState {
         }
         let nc = flow_def.process_refs.len();
         self.status = format!("Added {alias} from library - {nc} nodes");
-    }
-
-    /// Resolve a node's source path relative to the current flow file.
-    #[allow(clippy::unused_self)]
-    pub(crate) fn resolve_node_source(
-        &self,
-        flow_def: &FlowDefinition,
-        source: &str,
-    ) -> Option<PathBuf> {
-        let base_dir = Self::file_path_of(flow_def)?.parent()?.to_path_buf();
-        let base_dir = &base_dir;
-        let canonicalize = |p: PathBuf| std::fs::canonicalize(&p).unwrap_or(p);
-        let candidate = base_dir.join(source);
-        if candidate.exists() {
-            return Some(canonicalize(candidate));
-        }
-        let with_ext = base_dir.join(format!("{source}.toml"));
-        if with_ext.exists() {
-            return Some(canonicalize(with_ext));
-        }
-        let dir_default = base_dir.join(source).join("default.toml");
-        if dir_default.exists() {
-            return Some(canonicalize(dir_default));
-        }
-        None
-    }
-}
-
-#[cfg(test)]
-#[allow(clippy::indexing_slicing)]
-mod test {
-    use std::path::Path;
-
-    use super::*;
-
-    fn test_flow_def() -> FlowDefinition {
-        use flowcore::model::process_reference::ProcessReference;
-        use std::collections::BTreeMap;
-
-        FlowDefinition {
-            name: String::from("test"),
-            process_refs: vec![
-                ProcessReference {
-                    alias: "add".into(),
-                    source: "lib://flowstdlib/math/add".into(),
-                    initializations: BTreeMap::new(),
-                    x: Some(100.0),
-                    y: Some(100.0),
-                    width: Some(180.0),
-                    height: Some(120.0),
-                },
-                ProcessReference {
-                    alias: "stdout".into(),
-                    source: "context://stdio/stdout".into(),
-                    initializations: BTreeMap::new(),
-                    x: Some(100.0),
-                    y: Some(100.0),
-                    width: Some(180.0),
-                    height: Some(120.0),
-                },
-            ],
-            ..FlowDefinition::default()
-        }
-    }
-
-    fn temp_dir(name: &str) -> PathBuf {
-        let dir = std::env::temp_dir().join("flowedit_tests").join(name);
-        let _ = std::fs::create_dir_all(&dir);
-        dir
-    }
-
-    #[test]
-    fn resolve_node_source_toml_extension() {
-        let dir = temp_dir("resolve_src");
-        let flow_path = dir.join("root.toml");
-        std::fs::write(&flow_path, "flow = \"root\"").expect("write");
-        let sub_path = dir.join("sub.toml");
-        std::fs::write(&sub_path, "flow = \"sub\"").expect("write");
-
-        let mut flow_def = test_flow_def();
-        let win = WindowState::default();
-        WindowState::set_file_path_on(&mut flow_def, &flow_path);
-
-        let resolved = win.resolve_node_source(&flow_def, "sub");
-        assert!(resolved.is_some());
-
-        let _ = std::fs::remove_dir_all(&dir);
-    }
-
-    #[test]
-    fn resolve_node_source_not_found() {
-        let mut flow_def = test_flow_def();
-        let win = WindowState::default();
-        WindowState::set_file_path_on(
-            &mut flow_def,
-            Path::new("/tmp/flowedit_tests/nonexistent/root.toml"),
-        );
-        let resolved = win.resolve_node_source(&flow_def, "missing");
-        assert!(resolved.is_none());
     }
 }
