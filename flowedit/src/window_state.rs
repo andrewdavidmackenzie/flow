@@ -786,6 +786,15 @@ impl WindowState {
 
         let mut canvas_stack: Vec<Element<'_, Message>> = vec![canvas, zoom_controls.into()];
 
+        // Inline I/O editing overlays for sub-flow windows
+        if !self.is_root && (!flow_def.inputs.is_empty() || !flow_def.outputs.is_empty()) {
+            canvas_stack.push(Self::build_flow_io_overlays(
+                flow_def,
+                &self.canvas_state,
+                window_id,
+            ));
+        }
+
         if let Some(ref tip) = self.tooltip {
             canvas_stack.push(Self::build_tooltip_overlay(tip));
         }
@@ -799,6 +808,232 @@ impl WindowState {
         }
 
         stack(canvas_stack).into()
+    }
+
+    fn build_flow_io_overlays<'a>(
+        flow_def: &'a FlowDefinition,
+        canvas_state: &FlowCanvasState,
+        window_id: window::Id,
+    ) -> Element<'a, Message> {
+        use crate::flow_canvas::flow_io_bounding_box;
+        use crate::node_layout::NodeLayout;
+
+        let nodes = NodeLayout::build_from_flow(flow_def);
+        let (box_x, _, box_w, _, center_y, spacing) =
+            flow_io_bounding_box(&nodes, &flow_def.inputs, &flow_def.outputs);
+        let zoom = canvas_state.zoom;
+        let offset = canvas_state.scroll_offset;
+        let route = flow_def.route.clone();
+
+        let input_color = Color::from_rgb(0.4, 0.8, 1.0);
+        let output_color = Color::from_rgb(1.0, 0.6, 0.3);
+        let port_font_size = 12.0;
+
+        let mut overlays: Vec<Element<'_, Message>> = Vec::new();
+
+        Self::build_input_overlays(
+            &mut overlays,
+            &flow_def.inputs,
+            box_x,
+            center_y,
+            spacing,
+            zoom,
+            offset,
+            &route,
+            window_id,
+            port_font_size,
+            input_color,
+        );
+
+        let right_x = box_x + box_w;
+        Self::build_output_overlays(
+            &mut overlays,
+            &flow_def.outputs,
+            right_x,
+            center_y,
+            spacing,
+            zoom,
+            offset,
+            &route,
+            window_id,
+            port_font_size,
+            output_color,
+        );
+
+        stack(overlays).into()
+    }
+
+    #[allow(clippy::too_many_arguments)]
+    fn build_input_overlays<'a>(
+        overlays: &mut Vec<Element<'a, Message>>,
+        inputs: &'a [IO],
+        left_x: f32,
+        center_y: f32,
+        spacing: f32,
+        zoom: f32,
+        offset: Point,
+        route: &Route,
+        window_id: window::Id,
+        port_font_size: f32,
+        input_color: Color,
+    ) {
+        use crate::flow_canvas::transform_point;
+
+        let input_start_y = center_y - (inputs.len() as f32 - 1.0) * spacing / 2.0;
+        for (i, input) in inputs.iter().enumerate() {
+            let world_y = input_start_y + i as f32 * spacing;
+            let screen_pos = transform_point(Point::new(left_x, world_y), zoom, offset);
+            let route_clone = route.clone();
+
+            let name_input = text_input("name", input.name())
+                .on_input(move |s| {
+                    Message::FlowEdit(
+                        window_id,
+                        route_clone.clone(),
+                        FlowEditMessage::InputNameChanged(i, s),
+                    )
+                })
+                .size(port_font_size)
+                .padding(2)
+                .width(80);
+
+            let route_del = route.clone();
+            let del_btn = button(Text::new("\u{2715}").size(9))
+                .on_press(Message::FlowEdit(
+                    window_id,
+                    route_del,
+                    FlowEditMessage::DeleteInput(i),
+                ))
+                .style(button::text)
+                .padding([1, 3]);
+
+            let row = Row::new()
+                .spacing(2)
+                .align_y(iced::Alignment::Center)
+                .push(del_btn)
+                .push(name_input)
+                .push(Text::new("\u{25D7}").size(14).color(input_color));
+
+            let positioned = container(row).padding(iced::Padding {
+                top: (screen_pos.y - 12.0).max(0.0),
+                left: (screen_pos.x - 110.0).max(0.0),
+                right: 0.0,
+                bottom: 0.0,
+            });
+            overlays.push(positioned.into());
+        }
+
+        // Add input "+" button
+        let input_bottom_y = input_start_y + inputs.len() as f32 * spacing;
+        let screen_pos = transform_point(Point::new(left_x, input_bottom_y), zoom, offset);
+        let route_add = route.clone();
+        overlays.push(
+            container(
+                button(Text::new("+ Input").size(10))
+                    .on_press(Message::FlowEdit(
+                        window_id,
+                        route_add,
+                        FlowEditMessage::AddInput,
+                    ))
+                    .style(button::text)
+                    .padding([2, 4]),
+            )
+            .padding(iced::Padding {
+                top: (screen_pos.y - 8.0).max(0.0),
+                left: (screen_pos.x - 80.0).max(0.0),
+                right: 0.0,
+                bottom: 0.0,
+            })
+            .into(),
+        );
+    }
+
+    #[allow(clippy::too_many_arguments)]
+    fn build_output_overlays<'a>(
+        overlays: &mut Vec<Element<'a, Message>>,
+        outputs: &'a [IO],
+        right_x: f32,
+        center_y: f32,
+        spacing: f32,
+        zoom: f32,
+        offset: Point,
+        route: &Route,
+        window_id: window::Id,
+        port_font_size: f32,
+        output_color: Color,
+    ) {
+        use crate::flow_canvas::transform_point;
+
+        let output_start_y = center_y - (outputs.len() as f32 - 1.0) * spacing / 2.0;
+        for (i, output) in outputs.iter().enumerate() {
+            let world_y = output_start_y + i as f32 * spacing;
+            let screen_pos = transform_point(Point::new(right_x, world_y), zoom, offset);
+            let route_clone = route.clone();
+
+            let name_input = text_input("name", output.name())
+                .on_input(move |s| {
+                    Message::FlowEdit(
+                        window_id,
+                        route_clone.clone(),
+                        FlowEditMessage::OutputNameChanged(i, s),
+                    )
+                })
+                .size(port_font_size)
+                .padding(2)
+                .width(80);
+
+            let route_del = route.clone();
+            let del_btn = button(Text::new("\u{2715}").size(9))
+                .on_press(Message::FlowEdit(
+                    window_id,
+                    route_del,
+                    FlowEditMessage::DeleteOutput(i),
+                ))
+                .style(button::text)
+                .padding([1, 3]);
+
+            let row = Row::new()
+                .spacing(2)
+                .align_y(iced::Alignment::Center)
+                .push(Text::new("\u{25D6}").size(14).color(output_color))
+                .push(name_input)
+                .push(del_btn);
+
+            overlays.push(
+                container(row)
+                    .padding(iced::Padding {
+                        top: (screen_pos.y - 12.0).max(0.0),
+                        left: screen_pos.x + 8.0,
+                        right: 0.0,
+                        bottom: 0.0,
+                    })
+                    .into(),
+            );
+        }
+
+        // Add output "+" button
+        let output_bottom_y = output_start_y + outputs.len() as f32 * spacing;
+        let screen_pos = transform_point(Point::new(right_x, output_bottom_y), zoom, offset);
+        let route_add = route.clone();
+        overlays.push(
+            container(
+                button(Text::new("+ Output").size(10))
+                    .on_press(Message::FlowEdit(
+                        window_id,
+                        route_add,
+                        FlowEditMessage::AddOutput,
+                    ))
+                    .style(button::text)
+                    .padding([2, 4]),
+            )
+            .padding(iced::Padding {
+                top: (screen_pos.y - 8.0).max(0.0),
+                left: screen_pos.x + 8.0,
+                right: 0.0,
+                bottom: 0.0,
+            })
+            .into(),
+        );
     }
 
     fn build_tooltip_overlay<'a>(tip: &crate::window_state::Tooltip) -> Element<'a, Message> {
