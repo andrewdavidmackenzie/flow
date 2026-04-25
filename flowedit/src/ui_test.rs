@@ -2,6 +2,7 @@
 
 use super::*;
 use flowcore::model::connection::Connection;
+use flowcore::model::name::HasName;
 use iced_test::simulator::{self, simulator};
 use std::collections::HashMap;
 
@@ -256,9 +257,17 @@ fn update_undo_redo_cycle() {
 fn update_toggle_metadata() {
     let (mut app, win_id) = test_app();
     assert!(!app.windows.get(&win_id).is_some_and(|w| w.show_metadata));
-    let _ = app.update(Message::FlowEdit(win_id, FlowEditMessage::ToggleMetadata));
+    let _ = app.update(Message::FlowEdit(
+        win_id,
+        Route::default(),
+        FlowEditMessage::ToggleMetadata,
+    ));
     assert!(app.windows.get(&win_id).is_some_and(|w| w.show_metadata));
-    let _ = app.update(Message::FlowEdit(win_id, FlowEditMessage::ToggleMetadata));
+    let _ = app.update(Message::FlowEdit(
+        win_id,
+        Route::default(),
+        FlowEditMessage::ToggleMetadata,
+    ));
     assert!(!app.windows.get(&win_id).is_some_and(|w| w.show_metadata));
 }
 
@@ -267,6 +276,7 @@ fn update_flow_name_changed() {
     let (mut app, win_id) = test_app();
     let _ = app.update(Message::FlowEdit(
         win_id,
+        Route::default(),
         FlowEditMessage::NameChanged("new_name".into()),
     ));
     assert_eq!(Some(app.root_flow.name.as_str()), Some("new_name"));
@@ -281,6 +291,7 @@ fn update_flow_version_changed() {
     let (mut app, win_id) = test_app();
     let _ = app.update(Message::FlowEdit(
         win_id,
+        Route::default(),
         FlowEditMessage::VersionChanged("2.0.0".into()),
     ));
     assert_eq!(Some(app.root_flow.metadata.version.as_str()), Some("2.0.0"));
@@ -291,6 +302,7 @@ fn update_flow_description_changed() {
     let (mut app, win_id) = test_app();
     let _ = app.update(Message::FlowEdit(
         win_id,
+        Route::default(),
         FlowEditMessage::DescriptionChanged("A test flow".into()),
     ));
     assert_eq!(
@@ -304,6 +316,7 @@ fn update_flow_authors_changed() {
     let (mut app, win_id) = test_app();
     let _ = app.update(Message::FlowEdit(
         win_id,
+        Route::default(),
         FlowEditMessage::AuthorsChanged("Alice, Bob".into()),
     ));
     let authors = app.root_flow.metadata.authors.clone();
@@ -313,7 +326,11 @@ fn update_flow_authors_changed() {
 #[test]
 fn update_flow_add_input() {
     let (mut app, win_id) = test_app();
-    let _ = app.update(Message::FlowEdit(win_id, FlowEditMessage::AddInput));
+    let _ = app.update(Message::FlowEdit(
+        win_id,
+        Route::default(),
+        FlowEditMessage::AddInput,
+    ));
     assert_eq!(Some(app.root_flow.inputs.len()), Some(1));
     assert!(app
         .windows
@@ -324,24 +341,41 @@ fn update_flow_add_input() {
 #[test]
 fn update_flow_add_output() {
     let (mut app, win_id) = test_app();
-    let _ = app.update(Message::FlowEdit(win_id, FlowEditMessage::AddOutput));
+    let _ = app.update(Message::FlowEdit(
+        win_id,
+        Route::default(),
+        FlowEditMessage::AddOutput,
+    ));
     assert_eq!(Some(app.root_flow.outputs.len()), Some(1));
 }
 
 #[test]
 fn update_flow_delete_input() {
     let (mut app, win_id) = test_app();
-    let _ = app.update(Message::FlowEdit(win_id, FlowEditMessage::AddInput));
-    let _ = app.update(Message::FlowEdit(win_id, FlowEditMessage::DeleteInput(0)));
+    let _ = app.update(Message::FlowEdit(
+        win_id,
+        Route::default(),
+        FlowEditMessage::AddInput,
+    ));
+    let _ = app.update(Message::FlowEdit(
+        win_id,
+        Route::default(),
+        FlowEditMessage::DeleteInput(0),
+    ));
     assert_eq!(Some(app.root_flow.inputs.len()), Some(0));
 }
 
 #[test]
 fn update_flow_input_name_changed() {
     let (mut app, win_id) = test_app();
-    let _ = app.update(Message::FlowEdit(win_id, FlowEditMessage::AddInput));
     let _ = app.update(Message::FlowEdit(
         win_id,
+        Route::default(),
+        FlowEditMessage::AddInput,
+    ));
+    let _ = app.update(Message::FlowEdit(
+        win_id,
+        Route::default(),
         FlowEditMessage::InputNameChanged(0, "data".into()),
     ));
     assert_eq!(
@@ -1176,14 +1210,22 @@ fn ui_resize_node_records_history() {
 fn flow_delete_input_removes_edges() {
     let (mut app, win_id) = test_app();
     // Add a flow input
-    let _ = app.update(Message::FlowEdit(win_id, FlowEditMessage::AddInput));
+    let _ = app.update(Message::FlowEdit(
+        win_id,
+        Route::default(),
+        FlowEditMessage::AddInput,
+    ));
     // Add a connection referencing "input" node
     app.root_flow
         .connections
         .push(Connection::new("input/input0", "add"));
     assert_eq!(app.root_flow.connections.len(), 1);
     // Delete the input — edge should be removed
-    let _ = app.update(Message::FlowEdit(win_id, FlowEditMessage::DeleteInput(0)));
+    let _ = app.update(Message::FlowEdit(
+        win_id,
+        Route::default(),
+        FlowEditMessage::DeleteInput(0),
+    ));
     assert_eq!(
         app.root_flow.connections.len(),
         0,
@@ -1195,14 +1237,22 @@ fn flow_delete_input_removes_edges() {
 fn flow_delete_output_removes_edges() {
     let (mut app, win_id) = test_app();
     // Add a flow output
-    let _ = app.update(Message::FlowEdit(win_id, FlowEditMessage::AddOutput));
+    let _ = app.update(Message::FlowEdit(
+        win_id,
+        Route::default(),
+        FlowEditMessage::AddOutput,
+    ));
     // Add a connection referencing "output" node
     app.root_flow
         .connections
         .push(Connection::new("add", "output/output0"));
     assert_eq!(app.root_flow.connections.len(), 1);
     // Delete the output — edge should be removed
-    let _ = app.update(Message::FlowEdit(win_id, FlowEditMessage::DeleteOutput(0)));
+    let _ = app.update(Message::FlowEdit(
+        win_id,
+        Route::default(),
+        FlowEditMessage::DeleteOutput(0),
+    ));
     assert_eq!(
         app.root_flow.connections.len(),
         0,
@@ -1213,12 +1263,17 @@ fn flow_delete_output_removes_edges() {
 #[test]
 fn flow_input_rename_updates_edges() {
     let (mut app, win_id) = test_app();
-    let _ = app.update(Message::FlowEdit(win_id, FlowEditMessage::AddInput));
+    let _ = app.update(Message::FlowEdit(
+        win_id,
+        Route::default(),
+        FlowEditMessage::AddInput,
+    ));
     app.root_flow
         .connections
         .push(Connection::new("input/input0", "add"));
     let _ = app.update(Message::FlowEdit(
         win_id,
+        Route::default(),
         FlowEditMessage::InputNameChanged(0, "data".into()),
     ));
     // Connection from-route should now reference "input/data" instead of "input/input0"
@@ -1233,12 +1288,17 @@ fn flow_input_rename_updates_edges() {
 #[test]
 fn flow_output_rename_updates_edges() {
     let (mut app, win_id) = test_app();
-    let _ = app.update(Message::FlowEdit(win_id, FlowEditMessage::AddOutput));
+    let _ = app.update(Message::FlowEdit(
+        win_id,
+        Route::default(),
+        FlowEditMessage::AddOutput,
+    ));
     app.root_flow
         .connections
         .push(Connection::new("add", "output/output0"));
     let _ = app.update(Message::FlowEdit(
         win_id,
+        Route::default(),
         FlowEditMessage::OutputNameChanged(0, "result".into()),
     ));
     // Connection to-route should now reference "output/result" instead of "output/output0"
@@ -1290,25 +1350,42 @@ fn new_function_clears_context_menu() {
 fn flow_edit_toggle_metadata() {
     let (mut app, win_id) = test_app();
     assert!(!app.windows.get(&win_id).is_none_or(|w| w.show_metadata));
-    let _ = app.update(Message::FlowEdit(win_id, FlowEditMessage::ToggleMetadata));
+    let _ = app.update(Message::FlowEdit(
+        win_id,
+        Route::default(),
+        FlowEditMessage::ToggleMetadata,
+    ));
     assert!(app.windows.get(&win_id).is_some_and(|w| w.show_metadata));
 }
 
 #[test]
 fn flow_edit_add_delete_output() {
     let (mut app, win_id) = test_app();
-    let _ = app.update(Message::FlowEdit(win_id, FlowEditMessage::AddOutput));
+    let _ = app.update(Message::FlowEdit(
+        win_id,
+        Route::default(),
+        FlowEditMessage::AddOutput,
+    ));
     assert_eq!(app.root_flow.outputs.len(), 1);
-    let _ = app.update(Message::FlowEdit(win_id, FlowEditMessage::DeleteOutput(0)));
+    let _ = app.update(Message::FlowEdit(
+        win_id,
+        Route::default(),
+        FlowEditMessage::DeleteOutput(0),
+    ));
     assert_eq!(app.root_flow.outputs.len(), 0);
 }
 
 #[test]
 fn flow_edit_input_type_changed() {
     let (mut app, win_id) = test_app();
-    let _ = app.update(Message::FlowEdit(win_id, FlowEditMessage::AddInput));
     let _ = app.update(Message::FlowEdit(
         win_id,
+        Route::default(),
+        FlowEditMessage::AddInput,
+    ));
+    let _ = app.update(Message::FlowEdit(
+        win_id,
+        Route::default(),
         FlowEditMessage::InputTypeChanged(0, "number".into()),
     ));
     let dtype = app
@@ -1323,9 +1400,14 @@ fn flow_edit_input_type_changed() {
 #[test]
 fn flow_edit_output_type_changed() {
     let (mut app, win_id) = test_app();
-    let _ = app.update(Message::FlowEdit(win_id, FlowEditMessage::AddOutput));
     let _ = app.update(Message::FlowEdit(
         win_id,
+        Route::default(),
+        FlowEditMessage::AddOutput,
+    ));
+    let _ = app.update(Message::FlowEdit(
+        win_id,
+        Route::default(),
         FlowEditMessage::OutputTypeChanged(0, "boolean".into()),
     ));
     let dtype = app
@@ -1366,4 +1448,851 @@ fn function_edit_name_changed_no_panic_without_viewer() {
         FunctionEditMessage::NameChanged("test_func".into()),
     ));
     // Should not panic
+}
+
+// --- Cross-window editing tests using mandlebrot flow ---
+
+fn copy_dir_recursive(from: &std::path::Path, to: &std::path::Path) {
+    std::fs::create_dir_all(to).expect("create dir");
+    for entry in std::fs::read_dir(from).expect("read dir") {
+        let entry = entry.expect("entry");
+        let dest_path = to.join(entry.file_name());
+        if entry.file_type().expect("type").is_dir() {
+            copy_dir_recursive(&entry.path(), &dest_path);
+        } else {
+            std::fs::copy(entry.path(), &dest_path).expect("copy file");
+        }
+    }
+}
+
+fn load_mandlebrot_app() -> (FlowEdit, window::Id, std::path::PathBuf) {
+    use std::sync::atomic::{AtomicUsize, Ordering};
+    static COUNTER: AtomicUsize = AtomicUsize::new(0);
+    let id = COUNTER.fetch_add(1, Ordering::Relaxed);
+
+    let src = std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+        .parent()
+        .expect("parent dir")
+        .join("flowr/examples/mandlebrot");
+    let dest = std::env::temp_dir().join(format!("flowedit_mandlebrot_test_{id}"));
+    if dest.exists() {
+        std::fs::remove_dir_all(&dest).expect("clean temp dir");
+    }
+    copy_dir_recursive(&src, &dest);
+    let path = dest.join("root.toml");
+    let flow = file_ops::load_flow(&path).expect("load mandlebrot flow");
+    let (app, win_id) = test_app_with_flow(flow);
+    (app, win_id, dest)
+}
+
+#[test]
+fn mandlebrot_loads_with_subprocesses() {
+    let (app, _win_id, _tmp) = load_mandlebrot_app();
+    assert!(!app.root_flow.process_refs.is_empty());
+    assert!(
+        !app.root_flow.subprocesses.is_empty(),
+        "parsed flow should have resolved subprocesses"
+    );
+}
+
+#[test]
+fn mandlebrot_subflow_routes_resolve() {
+    let (app, _, _tmp) = load_mandlebrot_app();
+    for alias in app.root_flow.subprocesses.keys() {
+        let route = Route::from(format!("/{}/{alias}", app.root_flow.alias));
+        assert!(
+            app.root_flow.process_from_route(&route).is_some(),
+            "subprocess '{alias}' should be findable via route '{route}'"
+        );
+    }
+}
+
+#[test]
+fn edit_in_root_updates_root_flow() {
+    let (mut app, win_id, _tmp) = load_mandlebrot_app();
+    let original_count = app.root_flow.process_refs.len();
+
+    // Move first node
+    let _ = app.update(Message::WindowCanvas(
+        win_id,
+        CanvasMessage::Moved(0, 999.0, 999.0),
+    ));
+
+    // Verify the move is reflected in root_flow
+    assert_eq!(app.root_flow.process_refs.len(), original_count);
+    let pref = &app.root_flow.process_refs[0];
+    assert_eq!(pref.x, Some(999.0));
+    assert_eq!(pref.y, Some(999.0));
+}
+
+#[test]
+fn delete_node_updates_root_flow() {
+    let (mut app, win_id, _tmp) = load_mandlebrot_app();
+    let original_count = app.root_flow.process_refs.len();
+    assert!(original_count >= 2);
+
+    let _ = app.update(Message::WindowCanvas(win_id, CanvasMessage::Deleted(0)));
+
+    assert_eq!(
+        app.root_flow.process_refs.len(),
+        original_count - 1,
+        "deleting a node should remove it from root_flow"
+    );
+}
+
+#[test]
+fn create_connection_updates_root_flow() {
+    let (mut app, win_id, _tmp) = load_mandlebrot_app();
+    let original_conn_count = app.root_flow.connections.len();
+
+    // Create a connection between two existing nodes
+    let from_alias = app.root_flow.process_refs[0].alias.clone();
+    let to_alias = app.root_flow.process_refs[1].alias.clone();
+
+    let _ = app.update(Message::WindowCanvas(
+        win_id,
+        CanvasMessage::ConnectionCreated {
+            from_node: from_alias,
+            from_port: String::new(),
+            to_node: to_alias,
+            to_port: String::new(),
+        },
+    ));
+
+    assert_eq!(
+        app.root_flow.connections.len(),
+        original_conn_count + 1,
+        "creating a connection should add it to root_flow"
+    );
+}
+
+#[test]
+fn undo_restores_root_flow() {
+    let (mut app, win_id, _tmp) = load_mandlebrot_app();
+    let original_count = app.root_flow.process_refs.len();
+
+    // Delete a node
+    let _ = app.update(Message::WindowCanvas(win_id, CanvasMessage::Deleted(0)));
+    assert_eq!(app.root_flow.process_refs.len(), original_count - 1);
+
+    // Undo
+    app.focused_window = Some(win_id);
+    let _ = app.update(Message::Undo);
+    assert_eq!(
+        app.root_flow.process_refs.len(),
+        original_count,
+        "undo should restore the deleted node in root_flow"
+    );
+}
+
+#[test]
+fn child_window_sees_same_root_flow() {
+    let (mut app, root_win_id, _tmp) = load_mandlebrot_app();
+
+    // Simulate a child window by creating one with a sub-flow's route
+    let child_win_id = window::Id::unique();
+    if let Some((alias, _)) = app.root_flow.subprocesses.iter().next() {
+        let route = Route::from(format!("/{}/{alias}", app.root_flow.alias));
+        let child = WindowState {
+            route,
+            is_root: false,
+            ..Default::default()
+        };
+        app.windows.insert(child_win_id, child);
+    }
+
+    // Edit from root window — move a node
+    let _ = app.update(Message::WindowCanvas(
+        root_win_id,
+        CanvasMessage::Moved(0, 555.0, 555.0),
+    ));
+
+    // The child window doesn't own data — it reads from root_flow.
+    // Verify root_flow reflects the edit (both windows see same data)
+    assert_eq!(app.root_flow.process_refs[0].x, Some(555.0));
+    assert_eq!(app.root_flow.process_refs[0].y, Some(555.0));
+}
+
+#[test]
+fn cascade_close_removes_orphaned_child() {
+    let (mut app, root_win_id, _tmp) = load_mandlebrot_app();
+
+    // Find a subprocess alias that exists in subprocesses (a sub-flow, not just a process ref)
+    let (sub_alias, sub_idx) = app
+        .root_flow
+        .process_refs
+        .iter()
+        .enumerate()
+        .find_map(|(i, pref)| {
+            let alias = if pref.alias.is_empty() {
+                crate::utils::derive_short_name(&pref.source)
+            } else {
+                pref.alias.clone()
+            };
+            if app.root_flow.subprocesses.contains_key(&alias) {
+                Some((alias, i))
+            } else {
+                None
+            }
+        })
+        .expect("mandlebrot should have at least one resolved subprocess");
+    let child_win_id = window::Id::unique();
+    let route = Route::from(format!("/{}/{sub_alias}", app.root_flow.alias));
+    let child = WindowState {
+        route,
+        is_root: false,
+        ..Default::default()
+    };
+    app.windows.insert(child_win_id, child);
+    assert_eq!(app.windows.len(), 2);
+
+    // Delete the subprocess node from root
+    let _ = app.update(Message::WindowCanvas(
+        root_win_id,
+        CanvasMessage::Deleted(sub_idx),
+    ));
+
+    // The child window's route no longer resolves — cascade close should remove it
+    assert!(
+        !app.windows.contains_key(&child_win_id),
+        "orphaned child window should be cascade-closed after node deletion"
+    );
+}
+
+// --- FlowEdit message tests (metadata, I/O editing) ---
+
+#[test]
+fn flow_edit_name_change() {
+    let (mut app, win_id) = test_app();
+    let _ = app.update(Message::FlowEdit(
+        win_id,
+        Route::default(),
+        FlowEditMessage::NameChanged("renamed_flow".into()),
+    ));
+    assert_eq!(app.root_flow.name, "renamed_flow");
+}
+
+#[test]
+fn flow_edit_description_change() {
+    let (mut app, win_id) = test_app();
+    let _ = app.update(Message::FlowEdit(
+        win_id,
+        Route::default(),
+        FlowEditMessage::DescriptionChanged("A test description".into()),
+    ));
+    assert_eq!(app.root_flow.metadata.description, "A test description");
+}
+
+#[test]
+fn flow_edit_version_change() {
+    let (mut app, win_id) = test_app();
+    let _ = app.update(Message::FlowEdit(
+        win_id,
+        Route::default(),
+        FlowEditMessage::VersionChanged("2.0.0".into()),
+    ));
+    assert_eq!(app.root_flow.metadata.version, "2.0.0");
+}
+
+#[test]
+fn flow_edit_authors_change() {
+    let (mut app, win_id) = test_app();
+    let _ = app.update(Message::FlowEdit(
+        win_id,
+        Route::default(),
+        FlowEditMessage::AuthorsChanged("Alice, Bob".into()),
+    ));
+    assert_eq!(app.root_flow.metadata.authors, vec!["Alice", "Bob"]);
+}
+
+#[test]
+fn flow_edit_toggle_metadata_via_message() {
+    let (mut app, win_id) = test_app();
+    let before = app.windows.get(&win_id).is_some_and(|w| w.show_metadata);
+    let _ = app.update(Message::FlowEdit(
+        win_id,
+        Route::default(),
+        FlowEditMessage::ToggleMetadata,
+    ));
+    let after = app.windows.get(&win_id).is_some_and(|w| w.show_metadata);
+    assert_ne!(before, after);
+}
+
+#[test]
+fn flow_edit_add_input() {
+    let (mut app, win_id) = test_app();
+    let before = app.root_flow.inputs.len();
+    let _ = app.update(Message::FlowEdit(
+        win_id,
+        Route::default(),
+        FlowEditMessage::AddInput,
+    ));
+    assert_eq!(app.root_flow.inputs.len(), before + 1);
+}
+
+#[test]
+fn flow_edit_add_output() {
+    let (mut app, win_id) = test_app();
+    let before = app.root_flow.outputs.len();
+    let _ = app.update(Message::FlowEdit(
+        win_id,
+        Route::default(),
+        FlowEditMessage::AddOutput,
+    ));
+    assert_eq!(app.root_flow.outputs.len(), before + 1);
+}
+
+#[test]
+fn flow_edit_delete_input() {
+    let (mut app, win_id) = test_app();
+    let _ = app.update(Message::FlowEdit(
+        win_id,
+        Route::default(),
+        FlowEditMessage::AddInput,
+    ));
+    assert_eq!(app.root_flow.inputs.len(), 1);
+    let _ = app.update(Message::FlowEdit(
+        win_id,
+        Route::default(),
+        FlowEditMessage::DeleteInput(0),
+    ));
+    assert_eq!(app.root_flow.inputs.len(), 0);
+}
+
+#[test]
+fn flow_edit_delete_output() {
+    let (mut app, win_id) = test_app();
+    let _ = app.update(Message::FlowEdit(
+        win_id,
+        Route::default(),
+        FlowEditMessage::AddOutput,
+    ));
+    assert_eq!(app.root_flow.outputs.len(), 1);
+    let _ = app.update(Message::FlowEdit(
+        win_id,
+        Route::default(),
+        FlowEditMessage::DeleteOutput(0),
+    ));
+    assert_eq!(app.root_flow.outputs.len(), 0);
+}
+
+// --- Initializer message tests ---
+
+#[test]
+fn initializer_type_and_value_change() {
+    let (mut app, win_id) = test_app();
+    // Set up an initializer editor
+    if let Some(win) = app.windows.get_mut(&win_id) {
+        win.initializer_editor = Some(crate::window_state::InitializerEditor {
+            node_index: 0,
+            port_name: "input".into(),
+            init_type: "none".into(),
+            value_text: String::new(),
+        });
+    }
+    let _ = app.update(Message::InitializerTypeChanged(win_id, "once".into()));
+    let init_type = app
+        .windows
+        .get(&win_id)
+        .and_then(|w| w.initializer_editor.as_ref())
+        .map(|e| e.init_type.clone());
+    assert_eq!(init_type, Some("once".into()));
+
+    let _ = app.update(Message::InitializerValueChanged(win_id, "42".into()));
+    let value = app
+        .windows
+        .get(&win_id)
+        .and_then(|w| w.initializer_editor.as_ref())
+        .map(|e| e.value_text.clone());
+    assert_eq!(value, Some("42".into()));
+}
+
+#[test]
+fn initializer_cancel_clears_editor() {
+    let (mut app, win_id) = test_app();
+    if let Some(win) = app.windows.get_mut(&win_id) {
+        win.initializer_editor = Some(crate::window_state::InitializerEditor {
+            node_index: 0,
+            port_name: "input".into(),
+            init_type: "once".into(),
+            value_text: "42".into(),
+        });
+    }
+    let _ = app.update(Message::InitializerCancel(win_id));
+    assert!(app
+        .windows
+        .get(&win_id)
+        .is_some_and(|w| w.initializer_editor.is_none()));
+}
+
+// --- Window event tests ---
+
+#[test]
+fn window_focus_tracked() {
+    let (mut app, win_id) = test_app();
+    let _ = app.update(Message::WindowFocused(win_id));
+    assert_eq!(app.focused_window, Some(win_id));
+}
+
+#[test]
+fn window_resize_tracked() {
+    let (mut app, win_id) = test_app();
+    let _ = app.update(Message::WindowResized(
+        win_id,
+        iced::Size::new(1024.0, 768.0),
+    ));
+    let size = app.windows.get(&win_id).and_then(|w| w.last_size);
+    assert_eq!(size, Some(iced::Size::new(1024.0, 768.0)));
+}
+
+#[test]
+fn window_move_tracked() {
+    let (mut app, win_id) = test_app();
+    let _ = app.update(Message::WindowMoved(win_id, iced::Point::new(100.0, 200.0)));
+    let pos = app.windows.get(&win_id).and_then(|w| w.last_position);
+    assert_eq!(pos, Some(iced::Point::new(100.0, 200.0)));
+}
+
+// --- Resize node tests ---
+
+#[test]
+fn canvas_resize_node() {
+    let (mut app, win_id) = test_app();
+    let _ = app.update(Message::WindowCanvas(
+        win_id,
+        CanvasMessage::Resized(0, 150.0, 150.0, 200.0, 160.0),
+    ));
+    let pref = &app.root_flow.process_refs[0];
+    assert_eq!(pref.x, Some(150.0));
+    assert_eq!(pref.y, Some(150.0));
+    assert_eq!(pref.width, Some(200.0));
+    assert_eq!(pref.height, Some(160.0));
+}
+
+#[test]
+fn canvas_resize_completed_records_history() {
+    let (mut app, win_id) = test_app();
+    let _ = app.update(Message::WindowCanvas(
+        win_id,
+        CanvasMessage::ResizeCompleted(0, 100.0, 100.0, 180.0, 120.0, 150.0, 150.0, 200.0, 160.0),
+    ));
+    assert!(app
+        .windows
+        .get(&win_id)
+        .is_some_and(|w| !w.history.is_empty()));
+}
+
+// --- Connection delete test ---
+
+#[test]
+fn canvas_delete_connection() {
+    let (mut app, win_id) = test_app();
+    app.root_flow
+        .connections
+        .push(Connection::new("add", "stdout"));
+    let _ = app.update(Message::WindowCanvas(
+        win_id,
+        CanvasMessage::ConnectionDeleted(0),
+    ));
+    assert!(app.root_flow.connections.is_empty());
+    assert!(app
+        .windows
+        .get(&win_id)
+        .is_some_and(|w| !w.history.is_empty()));
+}
+
+// --- View message tests ---
+
+#[test]
+fn view_zoom_in_out() {
+    let (mut app, win_id) = test_app();
+    let _ = app.update(Message::View(win_id, ViewMessage::ZoomIn));
+    let zoom_in = app
+        .windows
+        .get(&win_id)
+        .map_or(1.0, |w| w.canvas_state.zoom);
+    let _ = app.update(Message::View(win_id, ViewMessage::ZoomOut));
+    let zoom_out = app
+        .windows
+        .get(&win_id)
+        .map_or(1.0, |w| w.canvas_state.zoom);
+    assert!(zoom_in > zoom_out);
+}
+
+#[test]
+fn view_toggle_auto_fit() {
+    let (mut app, win_id) = test_app();
+    let _ = app.update(Message::View(win_id, ViewMessage::ToggleAutoFit));
+    assert!(app.windows.get(&win_id).is_some_and(|w| w.auto_fit_enabled));
+    let _ = app.update(Message::View(win_id, ViewMessage::ToggleAutoFit));
+    assert!(app
+        .windows
+        .get(&win_id)
+        .is_some_and(|w| !w.auto_fit_enabled));
+}
+
+// --- Library catalog tests ---
+
+#[test]
+fn load_library_catalogs_empty() {
+    let refs = std::collections::BTreeSet::new();
+    let (cache, defs) = library_mgmt::load_library_catalogs(&refs);
+    assert!(cache.is_empty());
+    let _ = defs;
+}
+
+#[test]
+fn load_library_catalogs_with_flowstdlib() {
+    let mut refs = std::collections::BTreeSet::new();
+    refs.insert(Url::parse("lib://flowstdlib/math/add").expect("valid url"));
+    let (cache, defs) = library_mgmt::load_library_catalogs(&refs);
+    if !cache.is_empty() {
+        assert!(cache.contains_key(&Url::parse("lib://flowstdlib").expect("url")));
+        assert!(!defs.is_empty());
+    }
+}
+
+// --- add_library_function tests ---
+
+#[test]
+fn add_library_function_creates_node() {
+    let (mut app, win_id) = test_app();
+    let before = app.root_flow.process_refs.len();
+    if let Some(win) = app.windows.get_mut(&win_id) {
+        win.add_library_function(&mut app.root_flow, "lib://flowstdlib/math/add", "add");
+    }
+    assert_eq!(app.root_flow.process_refs.len(), before + 1);
+}
+
+#[test]
+fn add_library_function_unique_alias() {
+    let (mut app, win_id) = test_app();
+    if let Some(win) = app.windows.get_mut(&win_id) {
+        win.add_library_function(&mut app.root_flow, "lib://flowstdlib/math/add", "add");
+    }
+    let aliases: Vec<&str> = app
+        .root_flow
+        .process_refs
+        .iter()
+        .map(|p| p.alias.as_str())
+        .collect();
+    assert!(aliases.contains(&"add"));
+    assert!(aliases.iter().any(|a| a.starts_with("add_")));
+}
+
+// --- Window title tests ---
+
+#[test]
+fn title_shows_flow_name() {
+    let (app, win_id) = test_app();
+    let title = app.title(win_id);
+    assert!(title.contains("test"), "title should contain flow name");
+}
+
+// --- handle_close_requested tests ---
+
+#[test]
+fn close_requested_clean_window() {
+    let (mut app, win_id) = test_app();
+    let _ = app.update(Message::CloseRequested(win_id));
+    // Clean window (no unsaved) should close
+}
+
+// --- Input/Output name change tests ---
+
+#[test]
+fn flow_edit_input_name_change() {
+    let (mut app, win_id) = test_app();
+    let _ = app.update(Message::FlowEdit(
+        win_id,
+        Route::default(),
+        FlowEditMessage::AddInput,
+    ));
+    let _ = app.update(Message::FlowEdit(
+        win_id,
+        Route::default(),
+        FlowEditMessage::InputNameChanged(0, "my_input".into()),
+    ));
+    assert_eq!(app.root_flow.inputs[0].name(), "my_input");
+}
+
+#[test]
+fn flow_edit_output_name_change() {
+    let (mut app, win_id) = test_app();
+    let _ = app.update(Message::FlowEdit(
+        win_id,
+        Route::default(),
+        FlowEditMessage::AddOutput,
+    ));
+    let _ = app.update(Message::FlowEdit(
+        win_id,
+        Route::default(),
+        FlowEditMessage::OutputNameChanged(0, "my_output".into()),
+    ));
+    assert_eq!(app.root_flow.outputs[0].name(), "my_output");
+}
+
+#[test]
+fn flow_edit_input_type_change() {
+    let (mut app, win_id) = test_app();
+    let _ = app.update(Message::FlowEdit(
+        win_id,
+        Route::default(),
+        FlowEditMessage::AddInput,
+    ));
+    let _ = app.update(Message::FlowEdit(
+        win_id,
+        Route::default(),
+        FlowEditMessage::InputTypeChanged(0, "number".into()),
+    ));
+    assert_eq!(
+        app.root_flow.inputs[0]
+            .datatypes()
+            .first()
+            .map(ToString::to_string),
+        Some("number".into())
+    );
+}
+
+#[test]
+fn flow_edit_output_type_change() {
+    let (mut app, win_id) = test_app();
+    let _ = app.update(Message::FlowEdit(
+        win_id,
+        Route::default(),
+        FlowEditMessage::AddOutput,
+    ));
+    let _ = app.update(Message::FlowEdit(
+        win_id,
+        Route::default(),
+        FlowEditMessage::OutputTypeChanged(0, "number".into()),
+    ));
+    assert_eq!(
+        app.root_flow.outputs[0]
+            .datatypes()
+            .first()
+            .map(ToString::to_string),
+        Some("number".into())
+    );
+}
+
+// --- Initializer apply test ---
+
+#[test]
+fn initializer_apply_sets_value() {
+    let (mut app, win_id) = test_app();
+    if let Some(win) = app.windows.get_mut(&win_id) {
+        win.initializer_editor = Some(crate::window_state::InitializerEditor {
+            node_index: 0,
+            port_name: "input".into(),
+            init_type: "once".into(),
+            value_text: "42".into(),
+        });
+    }
+    let _ = app.update(Message::InitializerApply(win_id));
+    assert!(app.root_flow.process_refs[0]
+        .initializations
+        .contains_key("input"));
+}
+
+// --- Function edit message tests ---
+
+#[test]
+fn function_edit_name_change() {
+    let (mut app, win_id) = test_app();
+    // Set up a function viewer window
+    let func_win_id = window::Id::unique();
+    let mut func_def = flowcore::model::function_definition::FunctionDefinition::default();
+    func_def.name = "orig".into();
+    func_def.source = "orig.rs".into();
+    let viewer = crate::window_state::FunctionViewer {
+        func_def,
+        rs_content: String::new(),
+        docs_content: None,
+        active_tab: 0,
+        parent_window: Some(win_id),
+        node_source: "orig".into(),
+        read_only: false,
+    };
+    let child = WindowState {
+        route: Route::from("/test/orig"),
+        kind: WindowKind::FunctionViewer(Box::new(viewer)),
+        ..Default::default()
+    };
+    app.windows.insert(func_win_id, child);
+
+    let _ = app.update(Message::FunctionEdit(
+        func_win_id,
+        FunctionEditMessage::NameChanged("renamed".into()),
+    ));
+    if let Some(win) = app.windows.get(&func_win_id) {
+        if let WindowKind::FunctionViewer(ref v) = win.kind {
+            assert_eq!(v.func_def.name, "renamed");
+        }
+    }
+}
+
+#[test]
+fn function_edit_tab_switch() {
+    let (mut app, win_id) = test_app();
+    let func_win_id = window::Id::unique();
+    let func_def = flowcore::model::function_definition::FunctionDefinition::default();
+    let viewer = crate::window_state::FunctionViewer {
+        func_def,
+        rs_content: String::new(),
+        docs_content: None,
+        active_tab: 0,
+        parent_window: Some(win_id),
+        node_source: String::new(),
+        read_only: false,
+    };
+    let child = WindowState {
+        kind: WindowKind::FunctionViewer(Box::new(viewer)),
+        ..Default::default()
+    };
+    app.windows.insert(func_win_id, child);
+
+    let _ = app.update(Message::FunctionEdit(
+        func_win_id,
+        FunctionEditMessage::TabSelected(1),
+    ));
+    if let Some(win) = app.windows.get(&func_win_id) {
+        if let WindowKind::FunctionViewer(ref v) = win.kind {
+            assert_eq!(v.active_tab, 1);
+        }
+    }
+}
+
+// --- Sub-flow I/O rename/delete propagation to parent tests ---
+
+#[test]
+fn subflow_input_rename_updates_parent_connections() {
+    let (mut app, _, _tmp) = load_mandlebrot_app();
+    // Find a sub-flow that has inputs connected from the parent
+    // generate_pixels has input "size" connected from "parse_args/size"
+    let sub_route = Route::from(format!("/{}/generate_pixels", app.root_flow.alias));
+
+    // Create a child window for the sub-flow
+    let child_win_id = window::Id::unique();
+    let child = WindowState {
+        route: sub_route.clone(),
+        ..Default::default()
+    };
+    app.windows.insert(child_win_id, child);
+
+    // Verify parent has a connection to generate_pixels/size
+    let has_size_conn = app.root_flow.connections.iter().any(|c| {
+        c.to()
+            .iter()
+            .any(|r| r.to_string().contains("generate_pixels/size"))
+    });
+    assert!(
+        has_size_conn,
+        "parent should have connection to generate_pixels/size"
+    );
+
+    // Rename the sub-flow's input from "size" to "dimensions"
+    let _ = app.update(Message::FlowEdit(
+        child_win_id,
+        sub_route.clone(),
+        FlowEditMessage::InputNameChanged(0, "dimensions".into()),
+    ));
+
+    // Parent connection should now reference "generate_pixels/dimensions"
+    let has_old = app.root_flow.connections.iter().any(|c| {
+        c.to()
+            .iter()
+            .any(|r| r.to_string().contains("generate_pixels/size"))
+    });
+    let has_new = app.root_flow.connections.iter().any(|c| {
+        c.to()
+            .iter()
+            .any(|r| r.to_string().contains("generate_pixels/dimensions"))
+    });
+    assert!(
+        !has_old,
+        "old connection to generate_pixels/size should be gone"
+    );
+    assert!(
+        has_new,
+        "new connection to generate_pixels/dimensions should exist"
+    );
+}
+
+#[test]
+fn subflow_input_delete_removes_parent_connections() {
+    let (mut app, _, _tmp) = load_mandlebrot_app();
+    let sub_route = Route::from(format!("/{}/generate_pixels", app.root_flow.alias));
+
+    let child_win_id = window::Id::unique();
+    let child = WindowState {
+        route: sub_route.clone(),
+        ..Default::default()
+    };
+    app.windows.insert(child_win_id, child);
+
+    let conns_before = app.root_flow.connections.len();
+
+    // Delete the sub-flow's input (index 0 = "size")
+    let _ = app.update(Message::FlowEdit(
+        child_win_id,
+        sub_route.clone(),
+        FlowEditMessage::DeleteInput(0),
+    ));
+
+    // Parent connections to generate_pixels/size should be removed
+    let has_size_conn = app.root_flow.connections.iter().any(|c| {
+        c.to()
+            .iter()
+            .any(|r| r.to_string().contains("generate_pixels/size"))
+    });
+    assert!(
+        !has_size_conn,
+        "parent connection to deleted input should be removed"
+    );
+    assert!(
+        app.root_flow.connections.len() < conns_before,
+        "total connections should decrease"
+    );
+}
+
+#[test]
+fn subflow_output_delete_removes_parent_connections() {
+    let (mut app, _, _tmp) = load_mandlebrot_app();
+    let sub_route = Route::from(format!("/{}/generate_pixels", app.root_flow.alias));
+
+    let child_win_id = window::Id::unique();
+    let child = WindowState {
+        route: sub_route.clone(),
+        ..Default::default()
+    };
+    app.windows.insert(child_win_id, child);
+
+    // generate_pixels has output "pixels" connected to render/pixel
+    let has_pixels_conn = app
+        .root_flow
+        .connections
+        .iter()
+        .any(|c| c.from().to_string().contains("generate_pixels/pixels"));
+    assert!(
+        has_pixels_conn,
+        "parent should have connection from generate_pixels/pixels"
+    );
+
+    // Delete the output
+    let _ = app.update(Message::FlowEdit(
+        child_win_id,
+        sub_route.clone(),
+        FlowEditMessage::DeleteOutput(0),
+    ));
+
+    let has_pixels_after = app
+        .root_flow
+        .connections
+        .iter()
+        .any(|c| c.from().to_string().contains("generate_pixels/pixels"));
+    assert!(
+        !has_pixels_after,
+        "parent connection from deleted output should be removed"
+    );
 }

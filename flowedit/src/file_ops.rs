@@ -323,7 +323,7 @@ pub(crate) fn next_node_position(
 /// Assign default positions to process references that don't have saved x/y coordinates.
 ///
 /// Uses topological layout based on connections to determine column placement.
-fn assign_default_positions(flow: &mut FlowDefinition) {
+pub(crate) fn assign_default_positions(flow: &mut FlowDefinition) {
     use crate::node_layout::compute_topological_layout;
 
     let needs_layout = flow

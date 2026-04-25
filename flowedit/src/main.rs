@@ -166,8 +166,8 @@ enum Message {
     InitializerApply(window::Id),
     /// Cancel the initializer edit, tagged with the originating window ID
     InitializerCancel(window::Id),
-    /// Flow metadata and I/O editing messages
-    FlowEdit(window::Id, FlowEditMessage),
+    /// Flow metadata and I/O editing messages (window ID, target route, message)
+    FlowEdit(window::Id, Route, FlowEditMessage),
     /// Function definition viewing/editing messages
     FunctionEdit(window::Id, FunctionEditMessage),
     /// Create a new sub-flow and add it to the current flow (window that initiated the action)
@@ -334,6 +334,36 @@ fn load_initial_flow(flow_file: Option<&str>) -> (String, FlowDefinition, BTreeS
     }
 }
 
+/// Resolve a mutable reference to the [`FlowDefinition`] targeted by `route`.
+///
+/// When the route is empty or matches the root flow, returns `root_flow` directly.
+/// Otherwise it walks the process hierarchy to find the matching sub-flow.
+/// This is a free function (not a method) so that Rust can see that only
+/// `root_flow` is borrowed mutably, leaving `windows` available for separate
+/// mutable access.
+fn resolve_flow_def_mut<'a>(
+    root_flow: &'a mut FlowDefinition,
+    route: &Route,
+) -> &'a mut FlowDefinition {
+    if route.is_empty() || *route == root_flow.route {
+        return root_flow;
+    }
+    // Check immutably first to decide whether to descend, then borrow mutably.
+    // This avoids moving `root_flow` after a mutable borrow in the `None` arm.
+    let has_sub_flow = matches!(
+        root_flow.process_from_route(route),
+        Some(Process::FlowProcess(_))
+    );
+    if has_sub_flow {
+        match root_flow.process_from_route_mut(route) {
+            Some(Process::FlowProcess(f)) => f,
+            _ => unreachable!(),
+        }
+    } else {
+        root_flow
+    }
+}
+
 impl FlowEdit {
     /// Create the application, parsing CLI args and optionally loading a flow file.
     fn new() -> (Self, Task<Message>) {
@@ -473,8 +503,12 @@ impl FlowEdit {
                 return window::gain_focus(win_id);
             }
         }
-        // Extract info before releasing the borrow on self.root_flow.
-        // FunctionDefinition is cloned because open_function_viewer needs &mut self.
+        // Assign default positions to sub-flow nodes that don't have saved x/y
+        if let Some(Process::FlowProcess(sub_flow)) = self.root_flow.process_from_route_mut(&route)
+        {
+            file_ops::assign_default_positions(sub_flow);
+        }
+
         let process_info = match self.root_flow.process_from_route(&route) {
             Some(Process::FlowProcess(f)) => Some((
                 true,
@@ -668,8 +702,14 @@ impl FlowEdit {
     ) -> Task<Message> {
         match self.library_tree.update(lib_msg) {
             LibraryAction::Add(source, func_name) => {
+                let route = self
+                    .windows
+                    .get(&win_id)
+                    .map(|w| w.route.clone())
+                    .unwrap_or_default();
+                let flow_def = resolve_flow_def_mut(&mut self.root_flow, &route);
                 if let Some(win) = self.windows.get_mut(&win_id) {
-                    win.add_library_function(&mut self.root_flow, &source, &func_name);
+                    win.add_library_function(flow_def, &source, &func_name);
                 }
             }
             LibraryAction::View(source, _name) => {
@@ -746,10 +786,16 @@ impl FlowEdit {
         win_id: window::Id,
         canvas_msg: CanvasMessage,
     ) -> Task<Message> {
+        let route = self
+            .windows
+            .get(&win_id)
+            .map(|w| w.route.clone())
+            .unwrap_or_default();
+        let flow_def = resolve_flow_def_mut(&mut self.root_flow, &route);
         let Some(win) = self.windows.get_mut(&win_id) else {
             return Task::none();
         };
-        let action = win.handle_canvas_message(&mut self.root_flow, canvas_msg);
+        let action = win.handle_canvas_message(flow_def, canvas_msg);
         let close_task = self.close_orphaned_windows();
         let action_task = match action {
             CanvasAction::OpenNode(idx) => self.open_node(win_id, idx),
@@ -771,8 +817,14 @@ impl FlowEdit {
                 }
             }
             Message::InitializerApply(win_id) => {
+                let route = self
+                    .windows
+                    .get(&win_id)
+                    .map(|w| w.route.clone())
+                    .unwrap_or_default();
+                let flow_def = resolve_flow_def_mut(&mut self.root_flow, &route);
                 if let Some(win) = self.windows.get_mut(&win_id) {
-                    win.handle_initializer_apply(&mut self.root_flow);
+                    win.handle_initializer_apply(flow_def);
                 }
             }
             Message::InitializerCancel(win_id) => {
@@ -781,6 +833,169 @@ impl FlowEdit {
                 }
             }
             _ => {}
+        }
+    }
+
+    fn handle_undo_redo(&mut self, is_redo: bool) -> Task<Message> {
+        let target = self.focused_window.or(self.root_window);
+        if let Some(target_id) = target {
+            let route = self
+                .windows
+                .get(&target_id)
+                .map(|w| w.route.clone())
+                .unwrap_or_default();
+            let flow_def = resolve_flow_def_mut(&mut self.root_flow, &route);
+            if let Some(win) = self.windows.get_mut(&target_id) {
+                if is_redo {
+                    win.handle_redo(flow_def);
+                } else {
+                    win.handle_undo(flow_def);
+                }
+            }
+        }
+        self.close_orphaned_windows()
+    }
+
+    fn handle_flow_edit(&mut self, win_id: window::Id, route: &Route, flow_msg: FlowEditMessage) {
+        let affects_parent = matches!(
+            flow_msg,
+            FlowEditMessage::NameChanged(_)
+                | FlowEditMessage::AddInput
+                | FlowEditMessage::AddOutput
+                | FlowEditMessage::DeleteInput(_)
+                | FlowEditMessage::DeleteOutput(_)
+                | FlowEditMessage::InputNameChanged(_, _)
+                | FlowEditMessage::OutputNameChanged(_, _)
+                | FlowEditMessage::InputTypeChanged(_, _)
+                | FlowEditMessage::OutputTypeChanged(_, _)
+        );
+
+        // Capture deleted I/O name before deletion for parent connection cleanup
+        let io_delete = match &flow_msg {
+            FlowEditMessage::DeleteInput(idx) => {
+                let flow_def = resolve_flow_def_mut(&mut self.root_flow, route);
+                flow_def
+                    .inputs
+                    .get(*idx)
+                    .map(|io| (true, io.name().clone()))
+            }
+            FlowEditMessage::DeleteOutput(idx) => {
+                let flow_def = resolve_flow_def_mut(&mut self.root_flow, route);
+                flow_def
+                    .outputs
+                    .get(*idx)
+                    .map(|io| (false, io.name().clone()))
+            }
+            _ => None,
+        };
+
+        // Capture old I/O name before rename for parent connection update
+        let io_rename = match &flow_msg {
+            FlowEditMessage::InputNameChanged(idx, new_name) => {
+                let flow_def = resolve_flow_def_mut(&mut self.root_flow, route);
+                flow_def
+                    .inputs
+                    .get(*idx)
+                    .map(|io| (true, io.name().clone(), new_name.clone()))
+            }
+            FlowEditMessage::OutputNameChanged(idx, new_name) => {
+                let flow_def = resolve_flow_def_mut(&mut self.root_flow, route);
+                flow_def
+                    .outputs
+                    .get(*idx)
+                    .map(|io| (false, io.name().clone(), new_name.clone()))
+            }
+            _ => None,
+        };
+
+        let flow_def = resolve_flow_def_mut(&mut self.root_flow, route);
+        if let Some(win) = self.windows.get_mut(&win_id) {
+            win.handle_flow_edit_message(flow_def, flow_msg);
+        }
+
+        if let Some((is_input, old_name, new_name)) = io_rename {
+            self.update_parent_io_rename(route, is_input, &old_name, &new_name);
+        }
+        if let Some((is_input, deleted_name)) = io_delete {
+            self.update_parent_io_delete(route, is_input, &deleted_name);
+        }
+
+        if affects_parent && !route.is_empty() && *route != self.root_flow.route {
+            for win in self.windows.values_mut() {
+                if win.route != *route && route.sub_route_of(&win.route).is_some() {
+                    win.canvas_state.request_redraw();
+                    win.trigger_auto_fit_if_enabled();
+                }
+            }
+        }
+    }
+
+    fn update_parent_io_rename(
+        &mut self,
+        route: &Route,
+        is_input: bool,
+        old_name: &str,
+        new_name: &str,
+    ) {
+        if route.is_empty() || *route == self.root_flow.route || old_name == new_name {
+            return;
+        }
+        let sub_alias = route.as_ref().rsplit('/').next().unwrap_or("");
+        if sub_alias.is_empty() {
+            return;
+        }
+        let parent_route_str = &route.as_ref()[..route.as_ref().rfind('/').unwrap_or(0)];
+        let parent_route = Route::from(parent_route_str);
+        let parent_flow = resolve_flow_def_mut(&mut self.root_flow, &parent_route);
+        let old_endpoint = format!("{sub_alias}/{old_name}");
+        let new_endpoint = format!("{sub_alias}/{new_name}");
+        for conn in &mut parent_flow.connections {
+            if is_input {
+                let new_to: Vec<Route> = conn
+                    .to()
+                    .iter()
+                    .map(|r| {
+                        if r.to_string() == old_endpoint {
+                            Route::from(new_endpoint.as_str())
+                        } else {
+                            r.clone()
+                        }
+                    })
+                    .collect();
+                conn.set_to(new_to);
+            } else if conn.from().to_string() == old_endpoint {
+                conn.set_from(Route::from(new_endpoint.as_str()));
+            }
+        }
+    }
+
+    fn update_parent_io_delete(&mut self, route: &Route, is_input: bool, deleted_name: &str) {
+        if route.is_empty() || *route == self.root_flow.route {
+            return;
+        }
+        let sub_alias = route.as_ref().rsplit('/').next().unwrap_or("");
+        if sub_alias.is_empty() {
+            return;
+        }
+        let parent_route_str = &route.as_ref()[..route.as_ref().rfind('/').unwrap_or(0)];
+        let parent_route = Route::from(parent_route_str);
+        let parent_flow = resolve_flow_def_mut(&mut self.root_flow, &parent_route);
+        let endpoint = format!("{sub_alias}/{deleted_name}");
+        if is_input {
+            for conn in &mut parent_flow.connections {
+                let new_to: Vec<Route> = conn
+                    .to()
+                    .iter()
+                    .filter(|r| r.to_string() != endpoint)
+                    .cloned()
+                    .collect();
+                conn.set_to(new_to);
+            }
+            parent_flow.connections.retain(|c| !c.to().is_empty());
+        } else {
+            parent_flow
+                .connections
+                .retain(|c| c.from().to_string() != endpoint);
         }
     }
 
@@ -801,27 +1016,13 @@ impl FlowEdit {
                     win.handle_view_message(&view_msg);
                 }
             }
-            Message::Undo => {
-                let target = self.focused_window.or(self.root_window);
-                if let Some(win) = target.and_then(|id| self.windows.get_mut(&id)) {
-                    win.handle_undo(&mut self.root_flow);
-                }
-                return self.close_orphaned_windows();
-            }
-            Message::Redo => {
-                let target = self.focused_window.or(self.root_window);
-                if let Some(win) = target.and_then(|id| self.windows.get_mut(&id)) {
-                    win.handle_redo(&mut self.root_flow);
-                }
-                return self.close_orphaned_windows();
-            }
+            Message::Undo => return self.handle_undo_redo(false),
+            Message::Redo => return self.handle_undo_redo(true),
             Message::Save | Message::SaveAs | Message::Open | Message::New | Message::Compile => {
                 self.handle_file_message(message);
             }
-            Message::FlowEdit(win_id, flow_msg) => {
-                if let Some(win) = self.windows.get_mut(&win_id) {
-                    win.handle_flow_edit_message(&mut self.root_flow, flow_msg);
-                }
+            Message::FlowEdit(win_id, ref route, flow_msg) => {
+                self.handle_flow_edit(win_id, route, flow_msg);
             }
             Message::NewSubFlow(target_win_id) => {
                 for win in self.windows.values_mut() {
@@ -894,11 +1095,22 @@ impl FlowEdit {
             return Self::view_function(window_id, viewer, &win.status, !win.history.is_empty());
         }
 
-        let canvas_with_controls = win.view_canvas_area(&self.root_flow, window_id);
+        // Resolve the FlowDefinition for this window: sub-flow windows use
+        // the sub-flow found via their route, root windows use root_flow directly.
+        let flow_def = if win.is_root || win.route.is_empty() || win.route == self.root_flow.route {
+            &self.root_flow
+        } else {
+            match self.root_flow.process_from_route(&win.route) {
+                Some(Process::FlowProcess(f)) => f,
+                _ => &self.root_flow,
+            }
+        };
+
+        let canvas_with_controls = win.view_canvas_area(flow_def, window_id);
 
         let hierarchy_panel = win
             .flow_hierarchy
-            .view(&self.root_flow)
+            .view(flow_def)
             .map(move |msg| Message::Hierarchy(window_id, msg));
 
         let library_panel = self
@@ -916,12 +1128,12 @@ impl FlowEdit {
 
         // Flow I/O editor panel for sub-flow windows
         if !win.is_root && matches!(win.kind, WindowKind::FlowEditor) {
-            right_col = right_col.push(Self::view_flow_io_panel(window_id, &self.root_flow));
+            right_col = right_col.push(Self::view_flow_io_panel(window_id, flow_def));
         }
 
         // Metadata editor panel (toggled by Info button)
         if win.show_metadata && matches!(win.kind, WindowKind::FlowEditor) {
-            right_col = right_col.push(Self::view_metadata_panel(&self.root_flow, window_id));
+            right_col = right_col.push(Self::view_metadata_panel(flow_def, window_id));
         }
 
         // Library paths panel (toggled by Libs button)
@@ -929,7 +1141,7 @@ impl FlowEdit {
             right_col = right_col.push(self.view_lib_paths_panel());
         }
 
-        right_col = right_col.push(self.view_toolbar(win, &self.root_flow, window_id));
+        right_col = right_col.push(self.view_toolbar(win, flow_def, window_id));
 
         let layout = Row::new().push(left_panel).push(right_col.width(Fill));
         layout.into()
@@ -1006,6 +1218,7 @@ impl FlowEdit {
             let info_btn = button(Text::new("\u{2139} Info").size(btn_size).center())
                 .on_press(Message::FlowEdit(
                     window_id,
+                    flow_def.route.clone(),
                     FlowEditMessage::ToggleMetadata,
                 ))
                 .style(if win.show_metadata {
@@ -1066,7 +1279,11 @@ impl FlowEdit {
                         .push(
                             text_input("Flow name", &flow_def.name)
                                 .on_input(move |s| {
-                                    Message::FlowEdit(window_id, FlowEditMessage::NameChanged(s))
+                                    Message::FlowEdit(
+                                        window_id,
+                                        flow_def.route.clone(),
+                                        FlowEditMessage::NameChanged(s),
+                                    )
                                 })
                                 .size(13)
                                 .padding(4)
@@ -1081,7 +1298,11 @@ impl FlowEdit {
                         .push(
                             text_input("0.1.0", &flow_def.metadata.version)
                                 .on_input(move |s| {
-                                    Message::FlowEdit(window_id, FlowEditMessage::VersionChanged(s))
+                                    Message::FlowEdit(
+                                        window_id,
+                                        flow_def.route.clone(),
+                                        FlowEditMessage::VersionChanged(s),
+                                    )
                                 })
                                 .size(13)
                                 .padding(4)
@@ -1098,6 +1319,7 @@ impl FlowEdit {
                                 .on_input(move |s| {
                                     Message::FlowEdit(
                                         window_id,
+                                        flow_def.route.clone(),
                                         FlowEditMessage::DescriptionChanged(s),
                                     )
                                 })
@@ -1114,7 +1336,11 @@ impl FlowEdit {
                         .push(
                             text_input("Name <email>, ...", &authors_str)
                                 .on_input(move |s| {
-                                    Message::FlowEdit(window_id, FlowEditMessage::AuthorsChanged(s))
+                                    Message::FlowEdit(
+                                        window_id,
+                                        flow_def.route.clone(),
+                                        FlowEditMessage::AuthorsChanged(s),
+                                    )
                                 })
                                 .size(13)
                                 .padding(4)
@@ -1177,7 +1403,11 @@ impl FlowEdit {
         lib_panel.into()
     }
 
-    fn view_flow_inputs_column(window_id: window::Id, inputs: &[IO]) -> Column<'_, Message> {
+    fn view_flow_inputs_column<'a>(
+        window_id: window::Id,
+        inputs: &'a [IO],
+        route: &'a Route,
+    ) -> Column<'a, Message> {
         let input_color = Color::from_rgb(0.4, 0.8, 1.0);
         let mut input_col = Column::new().spacing(4);
         for (i, port) in inputs.iter().enumerate() {
@@ -1187,6 +1417,9 @@ impl FlowEdit {
                 .first()
                 .map(ToString::to_string)
                 .unwrap_or_default();
+            let route_name = route.clone();
+            let route_type = route.clone();
+            let route_del = route.clone();
             let row = Row::new()
                 .spacing(4)
                 .align_y(iced::Alignment::Center)
@@ -1194,7 +1427,11 @@ impl FlowEdit {
                 .push(
                     text_input("name", &port_name)
                         .on_input(move |s| {
-                            Message::FlowEdit(window_id, FlowEditMessage::InputNameChanged(i, s))
+                            Message::FlowEdit(
+                                window_id,
+                                route_name.clone(),
+                                FlowEditMessage::InputNameChanged(i, s),
+                            )
                         })
                         .size(12)
                         .padding(3)
@@ -1203,7 +1440,11 @@ impl FlowEdit {
                 .push(
                     text_input("type", &dtype)
                         .on_input(move |s| {
-                            Message::FlowEdit(window_id, FlowEditMessage::InputTypeChanged(i, s))
+                            Message::FlowEdit(
+                                window_id,
+                                route_type.clone(),
+                                FlowEditMessage::InputTypeChanged(i, s),
+                            )
                         })
                         .size(11)
                         .padding(3)
@@ -1213,6 +1454,7 @@ impl FlowEdit {
                     button(Text::new("\u{2715}").size(10).center())
                         .on_press(Message::FlowEdit(
                             window_id,
+                            route_del,
                             FlowEditMessage::DeleteInput(i),
                         ))
                         .style(button::danger)
@@ -1222,22 +1464,34 @@ impl FlowEdit {
         }
         input_col.push(
             button(Text::new("+ Input").size(11).center())
-                .on_press(Message::FlowEdit(window_id, FlowEditMessage::AddInput))
+                .on_press(Message::FlowEdit(
+                    window_id,
+                    route.clone(),
+                    FlowEditMessage::AddInput,
+                ))
                 .style(button::secondary)
                 .padding([2, 8]),
         )
     }
 
-    fn view_flow_outputs_column(window_id: window::Id, outputs: &[IO]) -> Column<'_, Message> {
+    fn view_flow_outputs_column<'a>(
+        window_id: window::Id,
+        outputs: &'a [IO],
+        route: &'a Route,
+    ) -> Column<'a, Message> {
         let output_color = Color::from_rgb(1.0, 0.6, 0.3);
         let mut output_col = Column::new().spacing(4).align_x(iced::Alignment::End);
         for (i, port) in outputs.iter().enumerate() {
+            let route = route.clone();
             let port_name = port.name().clone();
             let dtype = port
                 .datatypes()
                 .first()
                 .map(ToString::to_string)
                 .unwrap_or_default();
+            let route_del = route.clone();
+            let route_type = route.clone();
+            let route_name = route.clone();
             let row = Row::new()
                 .spacing(4)
                 .align_y(iced::Alignment::Center)
@@ -1245,6 +1499,7 @@ impl FlowEdit {
                     button(Text::new("\u{2715}").size(10).center())
                         .on_press(Message::FlowEdit(
                             window_id,
+                            route_del,
                             FlowEditMessage::DeleteOutput(i),
                         ))
                         .style(button::danger)
@@ -1253,7 +1508,11 @@ impl FlowEdit {
                 .push(
                     text_input("type", &dtype)
                         .on_input(move |s| {
-                            Message::FlowEdit(window_id, FlowEditMessage::OutputTypeChanged(i, s))
+                            Message::FlowEdit(
+                                window_id,
+                                route_type.clone(),
+                                FlowEditMessage::OutputTypeChanged(i, s),
+                            )
                         })
                         .size(11)
                         .padding(3)
@@ -1262,7 +1521,11 @@ impl FlowEdit {
                 .push(
                     text_input("name", &port_name)
                         .on_input(move |s| {
-                            Message::FlowEdit(window_id, FlowEditMessage::OutputNameChanged(i, s))
+                            Message::FlowEdit(
+                                window_id,
+                                route_name.clone(),
+                                FlowEditMessage::OutputNameChanged(i, s),
+                            )
                         })
                         .size(12)
                         .padding(3)
@@ -1273,7 +1536,11 @@ impl FlowEdit {
         }
         output_col.push(
             button(Text::new("+ Output").size(11).center())
-                .on_press(Message::FlowEdit(window_id, FlowEditMessage::AddOutput))
+                .on_press(Message::FlowEdit(
+                    window_id,
+                    route.clone(),
+                    FlowEditMessage::AddOutput,
+                ))
                 .style(button::secondary)
                 .padding([2, 8]),
         )
@@ -1283,8 +1550,9 @@ impl FlowEdit {
         window_id: window::Id,
         flow_def: &FlowDefinition,
     ) -> Element<'_, Message> {
-        let input_col = Self::view_flow_inputs_column(window_id, &flow_def.inputs);
-        let output_col = Self::view_flow_outputs_column(window_id, &flow_def.outputs);
+        let input_col = Self::view_flow_inputs_column(window_id, &flow_def.inputs, &flow_def.route);
+        let output_col =
+            Self::view_flow_outputs_column(window_id, &flow_def.outputs, &flow_def.route);
 
         let io_box = container(
             Column::new()
@@ -1811,7 +2079,13 @@ impl FlowEdit {
             }
         }
 
-        // Look up the process in the hierarchy
+        // Assign default positions to sub-flow nodes
+        if let Some(Process::FlowProcess(sub_flow)) =
+            self.root_flow.process_from_route_mut(&child_route)
+        {
+            file_ops::assign_default_positions(sub_flow);
+        }
+
         let process_info = self
             .root_flow
             .process_from_route(&child_route)
