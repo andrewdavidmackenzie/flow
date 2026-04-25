@@ -1551,7 +1551,6 @@ fn child_window_sees_same_root_flow() {
         let route = Route::from(format!("/{}/{alias}", app.root_flow.alias));
         let child = WindowState {
             route,
-            is_root: false,
             ..Default::default()
         };
         app.windows.insert(child_win_id, child);
@@ -1596,7 +1595,6 @@ fn cascade_close_removes_orphaned_child() {
     let route = Route::from(format!("/{}/{sub_alias}", app.root_flow.alias));
     let child = WindowState {
         route,
-        is_root: false,
         ..Default::default()
     };
     app.windows.insert(child_win_id, child);

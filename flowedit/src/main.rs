@@ -41,9 +41,7 @@ use flowcore::provider::Provider;
 
 use flow_canvas::{CanvasAction, CanvasMessage};
 use hierarchy_panel::{FlowHierarchy, HierarchyMessage};
-use history::EditHistory;
 use library_panel::{LibraryAction, LibraryMessage, LibraryTree};
-use window_state::FlowCanvasState;
 
 mod file_ops;
 mod flow_canvas;
@@ -399,22 +397,12 @@ impl FlowEdit {
 
         let win_state = WindowState {
             route: flow_definition.route.clone(),
-            kind: WindowKind::FlowEditor,
-            canvas_state: FlowCanvasState::default(),
             status,
-            selected_node: None,
-            selected_connection: None,
             auto_fit_pending: has_nodes,
             auto_fit_enabled: true,
-            history: EditHistory::default(),
-            tooltip: None,
-            initializer_editor: None,
             is_root: true,
-            context_menu: None,
-            show_metadata: false,
             flow_hierarchy,
-            last_size: None,
-            last_position: None,
+            ..Default::default()
         };
 
         let mut windows = HashMap::new();
@@ -532,22 +520,11 @@ impl FlowEdit {
             let (new_id, open_task) = window::open(self.child_window_settings(1024.0, 768.0));
             let child = WindowState {
                 route,
-                kind: WindowKind::FlowEditor,
-                canvas_state: FlowCanvasState::default(),
                 status: format!("Ready - {nc} nodes, {ec} connections"),
-                selected_node: None,
-                selected_connection: None,
-                history: EditHistory::default(),
                 auto_fit_pending: has_nodes,
                 auto_fit_enabled: true,
                 flow_hierarchy: FlowHierarchy::from_flow_definition(&self.root_flow),
-                tooltip: None,
-                initializer_editor: None,
-                is_root: false,
-                context_menu: None,
-                show_metadata: false,
-                last_size: None,
-                last_position: None,
+                ..Default::default()
             };
             self.windows.insert(new_id, child);
             open_task.discard()
@@ -1799,22 +1776,11 @@ impl FlowEdit {
                     }
                     let child = WindowState {
                         route: flow_def.route.clone(),
-                        kind: WindowKind::FlowEditor,
-                        canvas_state: FlowCanvasState::default(),
                         status: format!("Library flow - {nc} nodes, {ec} connections"),
-                        selected_node: None,
-                        selected_connection: None,
-                        history: EditHistory::default(),
                         auto_fit_pending: has_nodes,
                         auto_fit_enabled: true,
                         flow_hierarchy: FlowHierarchy::from_flow_definition(&flow_def),
-                        tooltip: None,
-                        initializer_editor: None,
-                        is_root: false,
-                        context_menu: None,
-                        show_metadata: false,
-                        last_size: None,
-                        last_position: None,
+                        ..Default::default()
                     };
                     self.windows.insert(new_id, child);
                     open_task.discard()
@@ -1926,22 +1892,11 @@ impl FlowEdit {
             let (new_id, open_task) = window::open(self.child_window_settings(1024.0, 768.0));
             let child = WindowState {
                 route: child_route,
-                kind: WindowKind::FlowEditor,
-                canvas_state: FlowCanvasState::default(),
                 status: format!("Ready - {nc} nodes, {ec} connections"),
-                selected_node: None,
-                selected_connection: None,
-                history: EditHistory::default(),
                 auto_fit_pending: has_nodes,
                 auto_fit_enabled: true,
                 flow_hierarchy: FlowHierarchy::from_flow_definition(&self.root_flow),
-                tooltip: None,
-                initializer_editor: None,
-                is_root: false,
-                context_menu: None,
-                show_metadata: false,
-                last_size: None,
-                last_position: None,
+                ..Default::default()
             };
             self.windows.insert(new_id, child);
             if let Some(win) = self.windows.get_mut(&parent_win_id) {
@@ -1998,21 +1953,9 @@ impl FlowEdit {
         let child = WindowState {
             route,
             kind: WindowKind::FunctionViewer(Box::new(viewer)),
-            canvas_state: FlowCanvasState::default(),
             status: format!("Function: {func_name}"),
-            selected_node: None,
-            selected_connection: None,
-            history: EditHistory::default(),
-            auto_fit_pending: false,
-            auto_fit_enabled: false,
             flow_hierarchy: FlowHierarchy::from_flow_definition(&func_flow_def),
-            tooltip: None,
-            initializer_editor: None,
-            is_root: false,
-            context_menu: None,
-            show_metadata: false,
-            last_size: None,
-            last_position: None,
+            ..Default::default()
         };
 
         self.windows.insert(new_id, child);
@@ -2114,22 +2057,10 @@ impl FlowEdit {
 
         let child = WindowState {
             route: flow_def.route.clone(),
-            kind: WindowKind::FlowEditor,
-            canvas_state: FlowCanvasState::default(),
             status: format!("New sub-flow: {flow_name}"),
-            selected_node: None,
-            selected_connection: None,
-            history: EditHistory::default(),
-            auto_fit_pending: false,
             auto_fit_enabled: true,
             flow_hierarchy: FlowHierarchy::from_flow_definition(&flow_def),
-            tooltip: None,
-            initializer_editor: None,
-            is_root: false,
-            context_menu: None,
-            show_metadata: false,
-            last_size: None,
-            last_position: None,
+            ..Default::default()
         };
 
         self.windows.insert(new_id, child);
@@ -2218,21 +2149,9 @@ impl FlowEdit {
         let mut child = WindowState {
             route: func_flow_def.route.clone(),
             kind: WindowKind::FunctionViewer(Box::new(viewer)),
-            canvas_state: FlowCanvasState::default(),
             status: String::from("New function — add ports and Save"),
-            selected_node: None,
-            selected_connection: None,
-            history: EditHistory::default(),
-            auto_fit_pending: false,
-            auto_fit_enabled: false,
             flow_hierarchy: FlowHierarchy::from_flow_definition(&func_flow_def),
-            tooltip: None,
-            initializer_editor: None,
-            is_root: false,
-            context_menu: None,
-            show_metadata: false,
-            last_size: None,
-            last_position: None,
+            ..Default::default()
         };
         child.history.mark_modified(); // New function starts dirty
 
