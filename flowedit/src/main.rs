@@ -853,6 +853,19 @@ impl FlowEdit {
     }
 
     fn handle_flow_edit(&mut self, win_id: window::Id, flow_msg: FlowEditMessage) {
+        let affects_parent = matches!(
+            flow_msg,
+            FlowEditMessage::NameChanged(_)
+                | FlowEditMessage::AddInput
+                | FlowEditMessage::AddOutput
+                | FlowEditMessage::DeleteInput(_)
+                | FlowEditMessage::DeleteOutput(_)
+                | FlowEditMessage::InputNameChanged(_, _)
+                | FlowEditMessage::OutputNameChanged(_, _)
+                | FlowEditMessage::InputTypeChanged(_, _)
+                | FlowEditMessage::OutputTypeChanged(_, _)
+        );
+
         let route = self
             .windows
             .get(&win_id)
@@ -861,6 +874,15 @@ impl FlowEdit {
         let flow_def = resolve_flow_def_mut(&mut self.root_flow, &route);
         if let Some(win) = self.windows.get_mut(&win_id) {
             win.handle_flow_edit_message(flow_def, flow_msg);
+        }
+
+        if affects_parent && !route.is_empty() && route != self.root_flow.route {
+            for win in self.windows.values_mut() {
+                if win.route != route && route.sub_route_of(&win.route).is_some() {
+                    win.canvas_state.request_redraw();
+                    win.trigger_auto_fit_if_enabled();
+                }
+            }
         }
     }
 
