@@ -240,8 +240,6 @@ pub(crate) struct WindowState {
     pub(crate) auto_fit_pending: bool,
     /// Whether auto-fit mode is active (continuously fits to window)
     pub(crate) auto_fit_enabled: bool,
-    /// The original flow definition, used to preserve metadata when saving
-    pub(crate) flow_definition: FlowDefinition,
     /// Tooltip text and screen position to display (full source path on hover)
     pub(crate) tooltip: Option<Tooltip>,
     /// Active initializer editor dialog, if any
@@ -272,7 +270,6 @@ impl Default for WindowState {
             history: EditHistory::default(),
             auto_fit_pending: false,
             auto_fit_enabled: false,
-            flow_definition: FlowDefinition::default(),
             tooltip: None,
             initializer_editor: None,
             is_root: false,
@@ -286,12 +283,6 @@ impl Default for WindowState {
 }
 
 impl WindowState {
-    /// Get the file path from the flow definition's source URL.
-    /// Returns `None` if no file has been saved/loaded yet.
-    pub(crate) fn file_path(&self) -> Option<PathBuf> {
-        self.flow_definition.source_url.to_file_path().ok()
-    }
-
     /// Get the file path from a given flow definition's source URL.
     pub(crate) fn file_path_of(flow_def: &FlowDefinition) -> Option<PathBuf> {
         flow_def.source_url.to_file_path().ok()

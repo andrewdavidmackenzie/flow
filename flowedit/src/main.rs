@@ -551,7 +551,6 @@ impl FlowEdit {
             auto_fit_pending: has_nodes,
             auto_fit_enabled: true,
             history: EditHistory::default(),
-            flow_definition,
             tooltip: None,
             initializer_editor: None,
             is_root: true,
@@ -596,6 +595,36 @@ impl FlowEdit {
         }
     }
 
+    /// Check whether the window identified by `win` is editing the file at `path`.
+    ///
+    /// Uses the window's route to look up the corresponding process in the flow
+    /// hierarchy and compares its source URL against the given path.
+    fn window_has_path(&self, win: &WindowState, path: &Path) -> bool {
+        match &win.kind {
+            WindowKind::FunctionViewer(viewer) => {
+                viewer
+                    .func_def
+                    .get_source_url()
+                    .to_file_path()
+                    .ok()
+                    .as_deref()
+                    == Some(path)
+            }
+            WindowKind::FlowEditor => {
+                self.root_flow
+                    .process_from_route(&win.route)
+                    .is_some_and(|p| match p {
+                        Process::FlowProcess(f) => {
+                            f.source_url.to_file_path().ok().as_deref() == Some(path)
+                        }
+                        Process::FunctionProcess(f) => {
+                            f.get_source_url().to_file_path().ok().as_deref() == Some(path)
+                        }
+                    })
+            }
+        }
+    }
+
     fn handle_hierarchy_message(
         &mut self,
         hier_win_id: window::Id,
@@ -610,7 +639,7 @@ impl FlowEdit {
         };
         // Check if already open
         for (&win_id, win) in &self.windows {
-            if win.file_path().as_ref() == Some(&path) {
+            if self.window_has_path(win, &path) {
                 return window::gain_focus(win_id);
             }
         }
@@ -635,7 +664,6 @@ impl FlowEdit {
                 auto_fit_pending: has_nodes,
                 auto_fit_enabled: true,
                 flow_hierarchy: FlowHierarchy::from_flow_definition(&flow_def),
-                flow_definition: flow_def,
                 tooltip: None,
                 initializer_editor: None,
                 is_root: false,
@@ -1784,7 +1812,7 @@ impl FlowEdit {
 
         // Check if already open
         for (&win_id, win) in &self.windows {
-            if win.file_path().as_ref() == Some(&path) {
+            if self.window_has_path(win, &path) {
                 return window::gain_focus(win_id);
             }
         }
@@ -1821,7 +1849,6 @@ impl FlowEdit {
                     let child = WindowState {
                         route: flow_def.route.clone(),
                         kind: WindowKind::FlowEditor,
-
                         canvas_state: FlowCanvasState::default(),
                         status: format!("Library flow - {nc} nodes, {ec} connections"),
                         selected_node: None,
@@ -1830,7 +1857,6 @@ impl FlowEdit {
                         auto_fit_pending: has_nodes,
                         auto_fit_enabled: true,
                         flow_hierarchy: FlowHierarchy::from_flow_definition(&flow_def),
-                        flow_definition: flow_def,
                         tooltip: None,
                         initializer_editor: None,
                         is_root: false,
@@ -1899,7 +1925,7 @@ impl FlowEdit {
 
         // If a window already has this file open, focus it instead of opening a duplicate
         for (&win_id, win) in &self.windows {
-            if win.file_path().as_ref() == Some(&path) && win_id != parent_win_id {
+            if self.window_has_path(win, &path) && win_id != parent_win_id {
                 return window::gain_focus(win_id);
             }
         }
@@ -1935,7 +1961,6 @@ impl FlowEdit {
                 let child = WindowState {
                     route: flow_def.route.clone(),
                     kind: WindowKind::FlowEditor,
-
                     canvas_state: FlowCanvasState::default(),
                     status: format!("Ready - {nc} nodes, {ec} connections"),
                     selected_node: None,
@@ -1944,7 +1969,6 @@ impl FlowEdit {
                     auto_fit_pending: has_nodes,
                     auto_fit_enabled: true,
                     flow_hierarchy: FlowHierarchy::from_flow_definition(&flow_def),
-                    flow_definition: flow_def,
                     tooltip: None,
                     initializer_editor: None,
                     is_root: false,
@@ -2010,7 +2034,6 @@ impl FlowEdit {
         let child = WindowState {
             route: func_flow_def.route.clone(),
             kind: WindowKind::FunctionViewer(Box::new(viewer)),
-
             canvas_state: FlowCanvasState::default(),
             status: format!("Function: {func_name}"),
             selected_node: None,
@@ -2019,7 +2042,6 @@ impl FlowEdit {
             auto_fit_pending: false,
             auto_fit_enabled: false,
             flow_hierarchy: FlowHierarchy::from_flow_definition(&func_flow_def),
-            flow_definition: func_flow_def,
             tooltip: None,
             initializer_editor: None,
             is_root: false,
@@ -2129,7 +2151,6 @@ impl FlowEdit {
         let child = WindowState {
             route: flow_def.route.clone(),
             kind: WindowKind::FlowEditor,
-
             canvas_state: FlowCanvasState::default(),
             status: format!("New sub-flow: {flow_name}"),
             selected_node: None,
@@ -2138,7 +2159,6 @@ impl FlowEdit {
             auto_fit_pending: false,
             auto_fit_enabled: true,
             flow_hierarchy: FlowHierarchy::from_flow_definition(&flow_def),
-            flow_definition: flow_def,
             tooltip: None,
             initializer_editor: None,
             is_root: false,
@@ -2234,7 +2254,6 @@ impl FlowEdit {
         let mut child = WindowState {
             route: func_flow_def.route.clone(),
             kind: WindowKind::FunctionViewer(Box::new(viewer)),
-
             canvas_state: FlowCanvasState::default(),
             status: String::from("New function — add ports and Save"),
             selected_node: None,
@@ -2243,7 +2262,6 @@ impl FlowEdit {
             auto_fit_pending: false,
             auto_fit_enabled: false,
             flow_hierarchy: FlowHierarchy::from_flow_definition(&func_flow_def),
-            flow_definition: func_flow_def,
             tooltip: None,
             initializer_editor: None,
             is_root: false,
