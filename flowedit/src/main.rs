@@ -503,8 +503,12 @@ impl FlowEdit {
                 return window::gain_focus(win_id);
             }
         }
-        // Extract info before releasing the borrow on self.root_flow.
-        // FunctionDefinition is cloned because open_function_viewer needs &mut self.
+        // Assign default positions to sub-flow nodes that don't have saved x/y
+        if let Some(Process::FlowProcess(sub_flow)) = self.root_flow.process_from_route_mut(&route)
+        {
+            file_ops::assign_default_positions(sub_flow);
+        }
+
         let process_info = match self.root_flow.process_from_route(&route) {
             Some(Process::FlowProcess(f)) => Some((
                 true,
@@ -1968,7 +1972,13 @@ impl FlowEdit {
             }
         }
 
-        // Look up the process in the hierarchy
+        // Assign default positions to sub-flow nodes
+        if let Some(Process::FlowProcess(sub_flow)) =
+            self.root_flow.process_from_route_mut(&child_route)
+        {
+            file_ops::assign_default_positions(sub_flow);
+        }
+
         let process_info = self
             .root_flow
             .process_from_route(&child_route)
