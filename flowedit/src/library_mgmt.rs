@@ -7,6 +7,7 @@ use std::sync::Arc;
 use log::{info, warn};
 use url::Url;
 
+use flowcore::model::flow_definition::FlowDefinition;
 use flowcore::model::lib_manifest::LibraryManifest;
 use flowcore::model::process::Process;
 use flowcore::model::process_reference::ProcessReference;
@@ -133,12 +134,17 @@ pub(crate) fn load_library_catalogs(
 
 impl WindowState {
     /// Add a library function as a new node on the canvas.
-    pub(crate) fn add_library_function(&mut self, source: &str, func_name: &str) {
+    pub(crate) fn add_library_function(
+        &mut self,
+        flow_def: &mut FlowDefinition,
+        source: &str,
+        func_name: &str,
+    ) {
         // Generate a unique alias: if the name already exists, append a number
-        let alias = file_ops::generate_unique_alias(func_name, &self.flow_definition.process_refs);
+        let alias = file_ops::generate_unique_alias(func_name, &flow_def.process_refs);
 
         // Place the new node at a default position offset from existing nodes
-        let (x, y) = file_ops::next_node_position(&self.flow_definition.process_refs);
+        let (x, y) = file_ops::next_node_position(&flow_def.process_refs);
 
         // Resolve the subprocess definition by parsing the function/flow
         let resolved_process = match Url::parse(source) {
@@ -168,21 +174,18 @@ impl WindowState {
             height: Some(120.0),
         };
 
-        let index = self.flow_definition.process_refs.len();
-        self.flow_definition.process_refs.push(pref.clone());
+        let index = flow_def.process_refs.len();
+        flow_def.process_refs.push(pref.clone());
 
         // Add the resolved subprocess definition if we have one
         if let Some(proc) = resolved_process {
-            self.flow_definition
-                .subprocesses
-                .insert(alias.clone(), proc);
+            flow_def.subprocesses.insert(alias.clone(), proc);
         }
 
         self.history.record(EditAction::CreateNode {
             index,
             process_ref: pref,
-            subprocess: self
-                .flow_definition
+            subprocess: flow_def
                 .subprocesses
                 .get(&alias)
                 .map(|p| (alias.clone(), p.clone())),
@@ -194,13 +197,18 @@ impl WindowState {
         if self.auto_fit_enabled {
             self.auto_fit_pending = true;
         }
-        let nc = self.flow_definition.process_refs.len();
+        let nc = flow_def.process_refs.len();
         self.status = format!("Added {alias} from library - {nc} nodes");
     }
 
     /// Resolve a node's source path relative to the current flow file.
-    pub(crate) fn resolve_node_source(&self, source: &str) -> Option<PathBuf> {
-        let base_dir = self.file_path()?.parent()?.to_path_buf();
+    #[allow(clippy::unused_self)]
+    pub(crate) fn resolve_node_source(
+        &self,
+        flow_def: &FlowDefinition,
+        source: &str,
+    ) -> Option<PathBuf> {
+        let base_dir = Self::file_path_of(flow_def)?.parent()?.to_path_buf();
         let base_dir = &base_dir;
         let canonicalize = |p: PathBuf| std::fs::canonicalize(&p).unwrap_or(p);
         let candidate = base_dir.join(source);
@@ -225,16 +233,12 @@ mod test {
     use std::path::Path;
 
     use super::*;
-    use crate::hierarchy_panel::FlowHierarchy;
-    use crate::history::EditHistory;
-    use crate::window_state::FlowCanvasState;
-    use crate::WindowKind;
 
-    fn test_win_state() -> WindowState {
+    fn test_flow_def() -> FlowDefinition {
         use flowcore::model::process_reference::ProcessReference;
         use std::collections::BTreeMap;
 
-        let flow_def = flowcore::model::flow_definition::FlowDefinition {
+        FlowDefinition {
             name: String::from("test"),
             process_refs: vec![
                 ProcessReference {
@@ -256,26 +260,7 @@ mod test {
                     height: Some(120.0),
                 },
             ],
-            ..flowcore::model::flow_definition::FlowDefinition::default()
-        };
-        WindowState {
-            kind: WindowKind::FlowEditor,
-            canvas_state: FlowCanvasState::default(),
-            status: String::new(),
-            selected_node: None,
-            selected_connection: None,
-            history: EditHistory::default(),
-            auto_fit_pending: false,
-            auto_fit_enabled: false,
-            flow_definition: flow_def,
-            tooltip: None,
-            initializer_editor: None,
-            is_root: true,
-            context_menu: None,
-            show_metadata: false,
-            flow_hierarchy: FlowHierarchy::empty(),
-            last_size: None,
-            last_position: None,
+            ..FlowDefinition::default()
         }
     }
 
@@ -293,10 +278,11 @@ mod test {
         let sub_path = dir.join("sub.toml");
         std::fs::write(&sub_path, "flow = \"sub\"").expect("write");
 
-        let mut win = test_win_state();
-        win.set_file_path(&flow_path);
+        let mut flow_def = test_flow_def();
+        let win = WindowState::default();
+        WindowState::set_file_path_on(&mut flow_def, &flow_path);
 
-        let resolved = win.resolve_node_source("sub");
+        let resolved = win.resolve_node_source(&flow_def, "sub");
         assert!(resolved.is_some());
 
         let _ = std::fs::remove_dir_all(&dir);
@@ -304,9 +290,13 @@ mod test {
 
     #[test]
     fn resolve_node_source_not_found() {
-        let mut win = test_win_state();
-        win.set_file_path(Path::new("/tmp/flowedit_tests/nonexistent/root.toml"));
-        let resolved = win.resolve_node_source("missing");
+        let mut flow_def = test_flow_def();
+        let win = WindowState::default();
+        WindowState::set_file_path_on(
+            &mut flow_def,
+            Path::new("/tmp/flowedit_tests/nonexistent/root.toml"),
+        );
+        let resolved = win.resolve_node_source(&flow_def, "missing");
         assert!(resolved.is_none());
     }
 }

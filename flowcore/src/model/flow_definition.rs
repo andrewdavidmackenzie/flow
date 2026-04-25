@@ -274,6 +274,68 @@ impl FlowDefinition {
         self.inputs().is_empty() && self.outputs().is_empty()
     }
 
+    /// Find a `Process` in the flow hierarchy by its `Route`.
+    ///
+    /// The route is matched against this flow's own route first. If they match,
+    /// returns `None` (the caller already has the flow). Otherwise, walks the
+    /// `subprocesses` tree by stripping route segments to find the target process.
+    #[must_use]
+    pub fn process_from_route(&self, route: &Route) -> Option<&Process> {
+        let sub = route.sub_route_of(&self.route)?;
+        if sub.is_empty() {
+            return None;
+        }
+
+        let segments: Vec<&str> = sub.as_ref().split('/').collect();
+        let alias = *segments.first()?;
+        let process = self.subprocesses.get(alias)?;
+
+        let rest = segments.get(1..).unwrap_or_default();
+        if rest.is_empty() {
+            return Some(process);
+        }
+
+        match process {
+            Process::FlowProcess(sub_flow) => {
+                let remaining = Route::from(rest.join("/"));
+                let mut child_route = self.route.clone();
+                child_route.extend(&Route::from(alias));
+                child_route.extend(&remaining);
+                sub_flow.process_from_route(&child_route)
+            }
+            Process::FunctionProcess(_) => None,
+        }
+    }
+
+    /// Mutable version of [`process_from_route`](Self::process_from_route).
+    pub fn process_from_route_mut(&mut self, route: &Route) -> Option<&mut Process> {
+        let sub = route.sub_route_of(&self.route)?;
+        if sub.is_empty() {
+            return None;
+        }
+
+        let segments: Vec<&str> = sub.as_ref().split('/').collect();
+        let alias = *segments.first()?;
+
+        let Some(rest) = segments.get(1..) else {
+            return self.subprocesses.get_mut(alias);
+        };
+        if rest.is_empty() {
+            return self.subprocesses.get_mut(alias);
+        }
+
+        let process = self.subprocesses.get_mut(alias)?;
+        if let Process::FlowProcess(ref mut sub_flow) = process {
+            let remaining = Route::from(rest.join("/"));
+            let mut child_route = self.route.clone();
+            child_route.extend(&Route::from(alias));
+            child_route.extend(&remaining);
+            sub_flow.process_from_route_mut(&child_route)
+        } else {
+            Some(process)
+        }
+    }
+
     fn get_subprocess_io(
         &mut self,
         subprocess_alias: &Name,
@@ -810,5 +872,129 @@ mod test {
             .deserialize(toml_str, Some(&url))
             .expect("Could not deserialize FlowDefinition without description");
         assert_eq!(flow.description, "");
+    }
+
+    fn nested_test_flow() -> FlowDefinition {
+        let mut inner_func = FunctionDefinition {
+            name: "inner_func".into(),
+            ..Default::default()
+        };
+        inner_func.route = Route::from("/root/sub_flow/inner_func");
+
+        let mut sub_flow = FlowDefinition {
+            name: "sub_flow".into(),
+            alias: "sub_flow".into(),
+            route: Route::from("/root/sub_flow"),
+            ..Default::default()
+        };
+        sub_flow
+            .subprocesses
+            .insert("inner_func".into(), Process::FunctionProcess(inner_func));
+
+        let mut func = FunctionDefinition {
+            name: "top_func".into(),
+            ..Default::default()
+        };
+        func.route = Route::from("/root/top_func");
+
+        let mut root = FlowDefinition {
+            name: "root".into(),
+            alias: "root".into(),
+            route: Route::from("/root"),
+            ..Default::default()
+        };
+        root.subprocesses
+            .insert("sub_flow".into(), Process::FlowProcess(sub_flow));
+        root.subprocesses
+            .insert("top_func".into(), Process::FunctionProcess(func));
+        root
+    }
+
+    #[test]
+    fn process_from_route_finds_top_level_function() {
+        let root = nested_test_flow();
+        let process = root.process_from_route(&Route::from("/root/top_func"));
+        assert!(process.is_some());
+        assert!(matches!(
+            process.expect("process not found"),
+            Process::FunctionProcess(_)
+        ));
+    }
+
+    #[test]
+    fn process_from_route_finds_sub_flow() {
+        let root = nested_test_flow();
+        let process = root.process_from_route(&Route::from("/root/sub_flow"));
+        assert!(process.is_some());
+        assert!(matches!(
+            process.expect("process not found"),
+            Process::FlowProcess(_)
+        ));
+    }
+
+    #[test]
+    fn process_from_route_finds_nested_function() {
+        let root = nested_test_flow();
+        let process = root.process_from_route(&Route::from("/root/sub_flow/inner_func"));
+        assert!(process.is_some());
+        assert!(matches!(
+            process.expect("process not found"),
+            Process::FunctionProcess(_)
+        ));
+    }
+
+    #[test]
+    fn process_from_route_returns_none_for_root() {
+        let root = nested_test_flow();
+        let process = root.process_from_route(&Route::from("/root"));
+        assert!(process.is_none());
+    }
+
+    #[test]
+    fn process_from_route_returns_none_for_nonexistent() {
+        let root = nested_test_flow();
+        let process = root.process_from_route(&Route::from("/root/nonexistent"));
+        assert!(process.is_none());
+    }
+
+    #[test]
+    fn process_from_route_returns_none_for_unrelated_route() {
+        let root = nested_test_flow();
+        let process = root.process_from_route(&Route::from("/other/path"));
+        assert!(process.is_none());
+    }
+
+    #[test]
+    fn process_from_route_mut_modifies_function() {
+        let mut root = nested_test_flow();
+        if let Some(Process::FunctionProcess(ref mut f)) =
+            root.process_from_route_mut(&Route::from("/root/top_func"))
+        {
+            f.name = "renamed".into();
+        }
+        if let Some(Process::FunctionProcess(f)) =
+            root.process_from_route(&Route::from("/root/top_func"))
+        {
+            assert_eq!(f.name, "renamed");
+        } else {
+            panic!("Expected to find renamed function");
+        }
+    }
+
+    #[test]
+    fn process_from_route_mut_modifies_nested() {
+        let mut root = nested_test_flow();
+        if let Some(Process::FunctionProcess(ref mut f)) =
+            root.process_from_route_mut(&Route::from("/root/sub_flow/inner_func"))
+        {
+            f.name = "deep_rename".into();
+        }
+        if let Some(Process::FunctionProcess(f)) =
+            root.process_from_route(&Route::from("/root/sub_flow/inner_func"))
+        {
+            assert_eq!(f.name, "deep_rename");
+        } else {
+            panic!("Expected to find renamed nested function");
+        }
     }
 }

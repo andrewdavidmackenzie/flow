@@ -19,6 +19,7 @@ use flowcore::model::flow_definition::FlowDefinition;
 use flowcore::model::function_definition::FunctionDefinition;
 use flowcore::model::input::InputInitializer;
 use flowcore::model::io::IO;
+use flowcore::model::route::Route;
 
 use crate::file_ops;
 use crate::flow_canvas::{content_extents, CanvasAction, CanvasMessage, FlowCanvas};
@@ -220,6 +221,9 @@ pub(crate) enum WindowKind {
 /// Per-window state for the flow editor.
 #[allow(clippy::struct_excessive_bools)]
 pub(crate) struct WindowState {
+    /// Route in the flow hierarchy that this window is editing
+    #[allow(dead_code)]
+    pub(crate) route: Route,
     /// What this window displays
     pub(crate) kind: WindowKind,
     /// Canvas state for caching rendered geometry
@@ -259,6 +263,7 @@ pub(crate) struct WindowState {
 impl Default for WindowState {
     fn default() -> Self {
         Self {
+            route: Route::default(),
             kind: WindowKind::FlowEditor,
             canvas_state: FlowCanvasState::default(),
             status: String::new(),
@@ -287,8 +292,13 @@ impl WindowState {
         self.flow_definition.source_url.to_file_path().ok()
     }
 
-    /// Set the file path by updating the flow definition's source URL.
-    pub(crate) fn set_file_path(&mut self, path: &Path) {
+    /// Get the file path from a given flow definition's source URL.
+    pub(crate) fn file_path_of(flow_def: &FlowDefinition) -> Option<PathBuf> {
+        flow_def.source_url.to_file_path().ok()
+    }
+
+    /// Set the file path on a given flow definition.
+    pub(crate) fn set_file_path_on(flow_def: &mut FlowDefinition, path: &Path) {
         let abs = path.canonicalize().unwrap_or_else(|_| {
             if path.is_absolute() {
                 path.to_path_buf()
@@ -297,13 +307,13 @@ impl WindowState {
             }
         });
         if let Ok(url) = Url::from_file_path(&abs) {
-            self.flow_definition.source_url = url;
+            flow_def.source_url = url;
         }
     }
 
-    /// Clear the file path by resetting the source URL to the default.
-    pub(crate) fn clear_file_path(&mut self) {
-        self.flow_definition.source_url = FlowDefinition::default_url();
+    /// Clear the file path on a given flow definition.
+    pub(crate) fn clear_file_path_on(flow_def: &mut FlowDefinition) {
+        flow_def.source_url = FlowDefinition::default_url();
     }
 }
 impl WindowState {
@@ -311,18 +321,23 @@ impl WindowState {
     ///
     /// Returns a [`CanvasAction`] when the caller needs to perform cross-window
     /// operations (e.g. opening a sub-flow in a new editor window).
-    pub(crate) fn handle_canvas_message(&mut self, msg: CanvasMessage) -> CanvasAction {
+    #[allow(clippy::too_many_lines)]
+    pub(crate) fn handle_canvas_message(
+        &mut self,
+        flow_def: &mut FlowDefinition,
+        msg: CanvasMessage,
+    ) -> CanvasAction {
         match msg {
-            CanvasMessage::Selected(idx) => self.handle_selected(idx),
+            CanvasMessage::Selected(idx) => self.handle_selected(flow_def, idx),
             CanvasMessage::Moved(idx, x, y) => {
-                if let Some(pref) = self.flow_definition.process_refs.get_mut(idx) {
+                if let Some(pref) = flow_def.process_refs.get_mut(idx) {
                     pref.x = Some(x);
                     pref.y = Some(y);
                     self.canvas_state.request_redraw();
                 }
             }
             CanvasMessage::Resized(idx, x, y, w, h) => {
-                if let Some(pref) = self.flow_definition.process_refs.get_mut(idx) {
+                if let Some(pref) = flow_def.process_refs.get_mut(idx) {
                     pref.x = Some(x);
                     pref.y = Some(y);
                     pref.width = Some(w);
@@ -359,26 +374,34 @@ impl WindowState {
                     idx, old_x, old_y, old_w, old_h, new_x, new_y, new_w, new_h,
                 );
             }
-            CanvasMessage::Deleted(idx) => self.handle_deleted(idx),
+            CanvasMessage::Deleted(idx) => self.handle_deleted(flow_def, idx),
             CanvasMessage::ConnectionCreated {
                 from_node,
                 from_port,
                 to_node,
                 to_port,
-            } => self.handle_connection_created(&from_node, &from_port, &to_node, &to_port),
-            CanvasMessage::ConnectionSelected(idx) => self.handle_connection_selected(idx),
-            CanvasMessage::ConnectionDeleted(idx) => self.handle_connection_deleted(idx),
+            } => {
+                self.handle_connection_created(
+                    flow_def, &from_node, &from_port, &to_node, &to_port,
+                );
+            }
+            CanvasMessage::ConnectionSelected(idx) => {
+                self.handle_connection_selected(flow_def, idx);
+            }
+            CanvasMessage::ConnectionDeleted(idx) => {
+                self.handle_connection_deleted(flow_def, idx);
+            }
             CanvasMessage::HoverChanged(data) => {
                 self.tooltip = data;
             }
             CanvasMessage::AutoFitViewport(viewport) => {
                 if self.auto_fit_enabled || self.auto_fit_pending {
-                    let render_nodes = NodeLayout::build_from_flow(&self.flow_definition);
+                    let render_nodes = NodeLayout::build_from_flow(flow_def);
                     let is_subflow = !self.is_root;
                     self.canvas_state.auto_fit(
                         &render_nodes,
-                        &self.flow_definition.inputs,
-                        &self.flow_definition.outputs,
+                        &flow_def.inputs,
+                        &flow_def.outputs,
                         is_subflow,
                         viewport,
                     );
@@ -401,7 +424,7 @@ impl WindowState {
                 self.status = format!("Zoom: {pct}%");
             }
             CanvasMessage::InitializerEdit(node_idx, port_name) => {
-                self.handle_initializer_edit(node_idx, port_name);
+                self.handle_initializer_edit(flow_def, node_idx, port_name);
             }
             CanvasMessage::OpenNode(idx) => {
                 return CanvasAction::OpenNode(idx);
@@ -420,7 +443,7 @@ impl WindowState {
         }
     }
 
-    fn handle_selected(&mut self, idx: Option<usize>) {
+    fn handle_selected(&mut self, flow_def: &FlowDefinition, idx: Option<usize>) {
         self.selected_node = idx;
         self.context_menu = None;
         if self.selected_connection.is_some() {
@@ -428,7 +451,7 @@ impl WindowState {
             self.canvas_state.request_redraw();
         }
         if let Some(i) = idx {
-            if let Some(pref) = self.flow_definition.process_refs.get(i) {
+            if let Some(pref) = flow_def.process_refs.get(i) {
                 let alias = if pref.alias.is_empty() {
                     derive_short_name(&pref.source)
                 } else {
@@ -474,9 +497,9 @@ impl WindowState {
         }
     }
 
-    fn handle_deleted(&mut self, idx: usize) {
-        if idx < self.flow_definition.process_refs.len() {
-            let Some(pref) = self.flow_definition.process_refs.get(idx).cloned() else {
+    fn handle_deleted(&mut self, flow_def: &mut FlowDefinition, idx: usize) {
+        if idx < flow_def.process_refs.len() {
+            let Some(pref) = flow_def.process_refs.get(idx).cloned() else {
                 return;
             };
             let alias = if pref.alias.is_empty() {
@@ -484,16 +507,15 @@ impl WindowState {
             } else {
                 pref.alias.clone()
             };
-            let removed_connections: Vec<Connection> = self
-                .flow_definition
+            let removed_connections: Vec<Connection> = flow_def
                 .connections
                 .iter()
                 .filter(|c| connection_references_node(c, &alias))
                 .cloned()
                 .collect();
-            let removed_pref = self.flow_definition.process_refs.remove(idx);
-            let removed_subprocess = self.flow_definition.subprocesses.remove(&alias);
-            self.flow_definition
+            let removed_pref = flow_def.process_refs.remove(idx);
+            let removed_subprocess = flow_def.subprocesses.remove(&alias);
+            flow_def
                 .connections
                 .retain(|c| !connection_references_node(c, &alias));
             self.history.record(EditAction::DeleteNode {
@@ -505,8 +527,8 @@ impl WindowState {
             self.selected_node = None;
             self.selected_connection = None;
             self.canvas_state.request_redraw();
-            let nc = self.flow_definition.process_refs.len();
-            let ec = self.flow_definition.connections.len();
+            let nc = flow_def.process_refs.len();
+            let ec = flow_def.connections.len();
             self.status = format!("Node deleted - {nc} nodes, {ec} connections");
             self.trigger_auto_fit_if_enabled();
         }
@@ -514,6 +536,7 @@ impl WindowState {
 
     fn handle_connection_created(
         &mut self,
+        flow_def: &mut FlowDefinition,
         from_node: &str,
         from_port: &str,
         to_node: &str,
@@ -533,23 +556,23 @@ impl WindowState {
         self.history.record(EditAction::CreateConnection {
             connection: connection.clone(),
         });
-        self.flow_definition.connections.push(connection);
+        flow_def.connections.push(connection);
         self.canvas_state.request_redraw();
-        let nc = self.flow_definition.process_refs.len();
-        let ec = self.flow_definition.connections.len();
+        let nc = flow_def.process_refs.len();
+        let ec = flow_def.connections.len();
         self.status = format!(
             "Connection created: {from_node}/{from_port} -> {to_node}/{to_port} - {nc} nodes, {ec} connections"
         );
         self.trigger_auto_fit_if_enabled();
     }
 
-    fn handle_connection_selected(&mut self, idx: Option<usize>) {
+    fn handle_connection_selected(&mut self, flow_def: &FlowDefinition, idx: Option<usize>) {
         self.context_menu = None;
         self.selected_connection = idx;
         self.selected_node = None;
         self.canvas_state.request_redraw();
         if let Some(i) = idx {
-            if let Some(conn) = self.flow_definition.connections.get(i) {
+            if let Some(conn) = flow_def.connections.get(i) {
                 let (from_node, from_port) = split_route(conn.from().as_ref());
                 let to_str = conn
                     .to()
@@ -567,26 +590,30 @@ impl WindowState {
         }
     }
 
-    fn handle_connection_deleted(&mut self, idx: usize) {
-        if idx < self.flow_definition.connections.len() {
-            let connection = self.flow_definition.connections.remove(idx);
+    fn handle_connection_deleted(&mut self, flow_def: &mut FlowDefinition, idx: usize) {
+        if idx < flow_def.connections.len() {
+            let connection = flow_def.connections.remove(idx);
             self.history.record(EditAction::DeleteConnection {
                 index: idx,
                 connection,
             });
             self.selected_connection = None;
             self.canvas_state.request_redraw();
-            let nc = self.flow_definition.process_refs.len();
-            let ec = self.flow_definition.connections.len();
+            let nc = flow_def.process_refs.len();
+            let ec = flow_def.connections.len();
             self.status = format!("Connection deleted - {nc} nodes, {ec} connections");
             self.trigger_auto_fit_if_enabled();
         }
     }
 
-    fn handle_initializer_edit(&mut self, node_idx: usize, port_name: String) {
+    fn handle_initializer_edit(
+        &mut self,
+        flow_def: &FlowDefinition,
+        node_idx: usize,
+        port_name: String,
+    ) {
         self.context_menu = None;
-        let (init_type, value_text) = self
-            .flow_definition
+        let (init_type, value_text) = flow_def
             .process_refs
             .get(node_idx)
             .and_then(|pr| pr.initializations.get(&port_name))
@@ -642,15 +669,19 @@ impl WindowState {
     }
 }
 impl WindowState {
-    pub(crate) fn view_canvas_area(&self, window_id: window::Id) -> Element<'_, Message> {
+    pub(crate) fn view_canvas_area<'a>(
+        &'a self,
+        flow_def: &'a FlowDefinition,
+        window_id: window::Id,
+    ) -> Element<'a, Message> {
         let canvas = self
             .canvas_state
             .view(
-                &self.flow_definition,
-                &self.flow_definition.connections,
-                &self.flow_definition.name,
-                &self.flow_definition.inputs,
-                &self.flow_definition.outputs,
+                flow_def,
+                &flow_def.connections,
+                &flow_def.name,
+                &flow_def.inputs,
+                &flow_def.outputs,
                 !self.is_root,
                 self.auto_fit_pending,
                 self.auto_fit_enabled,
@@ -729,7 +760,7 @@ impl WindowState {
         }
 
         if let Some(ref editor) = self.initializer_editor {
-            canvas_stack.push(self.build_initializer_dialog(window_id, editor));
+            canvas_stack.push(self.build_initializer_dialog(flow_def, window_id, editor));
         }
 
         if let Some(menu_pos) = self.context_menu {
@@ -762,22 +793,23 @@ impl WindowState {
         .into()
     }
 
+    #[allow(clippy::unused_self)]
     fn build_initializer_dialog<'a>(
         &self,
+        flow_def: &FlowDefinition,
         window_id: window::Id,
         editor: &InitializerEditor,
     ) -> Element<'a, Message> {
-        let port_label =
-            if let Some(pref) = self.flow_definition.process_refs.get(editor.node_index) {
-                let alias = if pref.alias.is_empty() {
-                    derive_short_name(&pref.source)
-                } else {
-                    pref.alias.clone()
-                };
-                format!("{}/{}", alias, editor.port_name)
+        let port_label = if let Some(pref) = flow_def.process_refs.get(editor.node_index) {
+            let alias = if pref.alias.is_empty() {
+                derive_short_name(&pref.source)
             } else {
-                editor.port_name.clone()
+                pref.alias.clone()
             };
+            format!("{}/{}", alias, editor.port_name)
+        } else {
+            editor.port_name.clone()
+        };
 
         let init_types = vec!["none", "once", "always"];
         let selected: Option<&str> = init_types.iter().find(|&&t| t == editor.init_type).copied();
