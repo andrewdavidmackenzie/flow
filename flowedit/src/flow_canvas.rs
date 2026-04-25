@@ -21,6 +21,7 @@ use iced::{Color, Point, Rectangle, Renderer, Size, Theme};
 use flowcore::model::flow_definition::FlowDefinition;
 use flowcore::model::io::IO;
 use flowcore::model::name::HasName;
+use flowcore::model::route::Route;
 
 use crate::node_layout::{NodeLayout, PORT_FONT_SIZE};
 use crate::utils::{
@@ -190,12 +191,9 @@ struct PanState {
     last_screen_pos: Point,
 }
 
-// TODO: Replace from_node/from_port strings with a Route reference and derive
-// start_pos from the node layout, so renames don't cause stale data.
 #[derive(Debug, Clone)]
 struct ConnectingState {
-    from_node: String,
-    from_port: String,
+    from_route: Route,
     from_output: bool,
     start_pos: Point,
     current_screen_pos: Point,
@@ -911,9 +909,13 @@ impl FlowCanvas<'_> {
                 .unwrap_or(0);
             node.input_port_position(port_idx)
         };
+        let from_route = if port_name.is_empty() {
+            Route::from(node.alias())
+        } else {
+            Route::from(format!("{}/{}", node.alias(), port_name))
+        };
         state.connecting = Some(ConnectingState {
-            from_node: node.alias().to_string(),
-            from_port: port_name,
+            from_route,
             from_output: is_output,
             start_pos: port_world_pos,
             current_screen_pos: cursor_position,
@@ -1190,13 +1192,12 @@ impl FlowCanvas<'_> {
         {
             if connecting.from_output != target_is_output {
                 if let Some(target_node) = self.nodes.get(target_idx) {
-                    let source_node = self
-                        .nodes
-                        .iter()
-                        .find(|n| n.alias() == connecting.from_node);
+                    let (conn_from_node, conn_from_port) =
+                        split_route(connecting.from_route.as_ref());
+                    let source_node = self.nodes.iter().find(|n| n.alias() == conn_from_node);
                     let types_ok = check_port_type_compatibility(
                         source_node,
-                        &connecting.from_port,
+                        &conn_from_port,
                         connecting.from_output,
                         target_node,
                         &target_port,
@@ -1206,8 +1207,8 @@ impl FlowCanvas<'_> {
                     if types_ok {
                         let (from_node, from_port, to_node, to_port) = if connecting.from_output {
                             (
-                                connecting.from_node.clone(),
-                                connecting.from_port.clone(),
+                                conn_from_node,
+                                conn_from_port,
                                 target_node.alias().to_string(),
                                 target_port,
                             )
@@ -1215,8 +1216,8 @@ impl FlowCanvas<'_> {
                             (
                                 target_node.alias().to_string(),
                                 target_port,
-                                connecting.from_node.clone(),
-                                connecting.from_port.clone(),
+                                conn_from_node,
+                                conn_from_port,
                             )
                         };
                         return canvas::Action::publish(CanvasMessage::ConnectionCreated {
