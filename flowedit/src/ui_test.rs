@@ -1465,7 +1465,7 @@ fn copy_dir_recursive(from: &std::path::Path, to: &std::path::Path) {
     }
 }
 
-fn load_mandlebrot_app() -> (FlowEdit, window::Id) {
+fn load_mandlebrot_app() -> (FlowEdit, window::Id, std::path::PathBuf) {
     use std::sync::atomic::{AtomicUsize, Ordering};
     static COUNTER: AtomicUsize = AtomicUsize::new(0);
     let id = COUNTER.fetch_add(1, Ordering::Relaxed);
@@ -1481,12 +1481,13 @@ fn load_mandlebrot_app() -> (FlowEdit, window::Id) {
     copy_dir_recursive(&src, &dest);
     let path = dest.join("root.toml");
     let flow = file_ops::load_flow(&path).expect("load mandlebrot flow");
-    test_app_with_flow(flow)
+    let (app, win_id) = test_app_with_flow(flow);
+    (app, win_id, dest)
 }
 
 #[test]
 fn mandlebrot_loads_with_subprocesses() {
-    let (app, _win_id) = load_mandlebrot_app();
+    let (app, _win_id, _tmp) = load_mandlebrot_app();
     assert!(!app.root_flow.process_refs.is_empty());
     assert!(
         !app.root_flow.subprocesses.is_empty(),
@@ -1496,7 +1497,7 @@ fn mandlebrot_loads_with_subprocesses() {
 
 #[test]
 fn mandlebrot_subflow_routes_resolve() {
-    let (app, _) = load_mandlebrot_app();
+    let (app, _, _tmp) = load_mandlebrot_app();
     for alias in app.root_flow.subprocesses.keys() {
         let route = Route::from(format!("/{}/{alias}", app.root_flow.alias));
         assert!(
@@ -1507,8 +1508,8 @@ fn mandlebrot_subflow_routes_resolve() {
 }
 
 #[test]
-fn edit_in_root_visible_via_route() {
-    let (mut app, win_id) = load_mandlebrot_app();
+fn edit_in_root_updates_root_flow() {
+    let (mut app, win_id, _tmp) = load_mandlebrot_app();
     let original_count = app.root_flow.process_refs.len();
 
     // Move first node
@@ -1526,7 +1527,7 @@ fn edit_in_root_visible_via_route() {
 
 #[test]
 fn delete_node_updates_root_flow() {
-    let (mut app, win_id) = load_mandlebrot_app();
+    let (mut app, win_id, _tmp) = load_mandlebrot_app();
     let original_count = app.root_flow.process_refs.len();
     assert!(original_count >= 2);
 
@@ -1541,7 +1542,7 @@ fn delete_node_updates_root_flow() {
 
 #[test]
 fn create_connection_updates_root_flow() {
-    let (mut app, win_id) = load_mandlebrot_app();
+    let (mut app, win_id, _tmp) = load_mandlebrot_app();
     let original_conn_count = app.root_flow.connections.len();
 
     // Create a connection between two existing nodes
@@ -1567,7 +1568,7 @@ fn create_connection_updates_root_flow() {
 
 #[test]
 fn undo_restores_root_flow() {
-    let (mut app, win_id) = load_mandlebrot_app();
+    let (mut app, win_id, _tmp) = load_mandlebrot_app();
     let original_count = app.root_flow.process_refs.len();
 
     // Delete a node
@@ -1586,7 +1587,7 @@ fn undo_restores_root_flow() {
 
 #[test]
 fn child_window_sees_same_root_flow() {
-    let (mut app, root_win_id) = load_mandlebrot_app();
+    let (mut app, root_win_id, _tmp) = load_mandlebrot_app();
 
     // Simulate a child window by creating one with a sub-flow's route
     let child_win_id = window::Id::unique();
@@ -1614,12 +1615,29 @@ fn child_window_sees_same_root_flow() {
 
 #[test]
 fn cascade_close_removes_orphaned_child() {
-    let (mut app, root_win_id) = load_mandlebrot_app();
+    let (mut app, root_win_id, _tmp) = load_mandlebrot_app();
 
-    // Create a child window for the first subprocess
+    // Find a subprocess alias that exists in subprocesses (a sub-flow, not just a process ref)
+    let (sub_alias, sub_idx) = app
+        .root_flow
+        .process_refs
+        .iter()
+        .enumerate()
+        .find_map(|(i, pref)| {
+            let alias = if pref.alias.is_empty() {
+                crate::utils::derive_short_name(&pref.source)
+            } else {
+                pref.alias.clone()
+            };
+            if app.root_flow.subprocesses.contains_key(&alias) {
+                Some((alias, i))
+            } else {
+                None
+            }
+        })
+        .expect("mandlebrot should have at least one resolved subprocess");
     let child_win_id = window::Id::unique();
-    let first_alias = app.root_flow.process_refs[0].alias.clone();
-    let route = Route::from(format!("/{}/{first_alias}", app.root_flow.alias));
+    let route = Route::from(format!("/{}/{sub_alias}", app.root_flow.alias));
     let child = WindowState {
         route,
         is_root: false,
@@ -1628,10 +1646,10 @@ fn cascade_close_removes_orphaned_child() {
     app.windows.insert(child_win_id, child);
     assert_eq!(app.windows.len(), 2);
 
-    // Delete the first node from root
+    // Delete the subprocess node from root
     let _ = app.update(Message::WindowCanvas(
         root_win_id,
-        CanvasMessage::Deleted(0),
+        CanvasMessage::Deleted(sub_idx),
     ));
 
     // The child window's route no longer resolves — cascade close should remove it
@@ -2149,7 +2167,7 @@ fn function_edit_tab_switch() {
 
 #[test]
 fn subflow_input_rename_updates_parent_connections() {
-    let (mut app, _) = load_mandlebrot_app();
+    let (mut app, _, _tmp) = load_mandlebrot_app();
     // Find a sub-flow that has inputs connected from the parent
     // generate_pixels has input "size" connected from "parse_args/size"
     let sub_route = Route::from(format!("/{}/generate_pixels", app.root_flow.alias));
@@ -2203,7 +2221,7 @@ fn subflow_input_rename_updates_parent_connections() {
 
 #[test]
 fn subflow_input_delete_removes_parent_connections() {
-    let (mut app, _) = load_mandlebrot_app();
+    let (mut app, _, _tmp) = load_mandlebrot_app();
     let sub_route = Route::from(format!("/{}/generate_pixels", app.root_flow.alias));
 
     let child_win_id = window::Id::unique();
@@ -2240,7 +2258,7 @@ fn subflow_input_delete_removes_parent_connections() {
 
 #[test]
 fn subflow_output_delete_removes_parent_connections() {
-    let (mut app, _) = load_mandlebrot_app();
+    let (mut app, _, _tmp) = load_mandlebrot_app();
     let sub_route = Route::from(format!("/{}/generate_pixels", app.root_flow.alias));
 
     let child_win_id = window::Id::unique();
