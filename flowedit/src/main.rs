@@ -334,6 +334,36 @@ fn load_initial_flow(flow_file: Option<&str>) -> (String, FlowDefinition, BTreeS
     }
 }
 
+/// Resolve a mutable reference to the [`FlowDefinition`] targeted by `route`.
+///
+/// When the route is empty or matches the root flow, returns `root_flow` directly.
+/// Otherwise it walks the process hierarchy to find the matching sub-flow.
+/// This is a free function (not a method) so that Rust can see that only
+/// `root_flow` is borrowed mutably, leaving `windows` available for separate
+/// mutable access.
+fn resolve_flow_def_mut<'a>(
+    root_flow: &'a mut FlowDefinition,
+    route: &Route,
+) -> &'a mut FlowDefinition {
+    if route.is_empty() || *route == root_flow.route {
+        return root_flow;
+    }
+    // Check immutably first to decide whether to descend, then borrow mutably.
+    // This avoids moving `root_flow` after a mutable borrow in the `None` arm.
+    let has_sub_flow = matches!(
+        root_flow.process_from_route(route),
+        Some(Process::FlowProcess(_))
+    );
+    if has_sub_flow {
+        match root_flow.process_from_route_mut(route) {
+            Some(Process::FlowProcess(f)) => f,
+            _ => unreachable!(),
+        }
+    } else {
+        root_flow
+    }
+}
+
 impl FlowEdit {
     /// Create the application, parsing CLI args and optionally loading a flow file.
     fn new() -> (Self, Task<Message>) {
@@ -668,8 +698,14 @@ impl FlowEdit {
     ) -> Task<Message> {
         match self.library_tree.update(lib_msg) {
             LibraryAction::Add(source, func_name) => {
+                let route = self
+                    .windows
+                    .get(&win_id)
+                    .map(|w| w.route.clone())
+                    .unwrap_or_default();
+                let flow_def = resolve_flow_def_mut(&mut self.root_flow, &route);
                 if let Some(win) = self.windows.get_mut(&win_id) {
-                    win.add_library_function(&mut self.root_flow, &source, &func_name);
+                    win.add_library_function(flow_def, &source, &func_name);
                 }
             }
             LibraryAction::View(source, _name) => {
@@ -746,10 +782,16 @@ impl FlowEdit {
         win_id: window::Id,
         canvas_msg: CanvasMessage,
     ) -> Task<Message> {
+        let route = self
+            .windows
+            .get(&win_id)
+            .map(|w| w.route.clone())
+            .unwrap_or_default();
+        let flow_def = resolve_flow_def_mut(&mut self.root_flow, &route);
         let Some(win) = self.windows.get_mut(&win_id) else {
             return Task::none();
         };
-        let action = win.handle_canvas_message(&mut self.root_flow, canvas_msg);
+        let action = win.handle_canvas_message(flow_def, canvas_msg);
         let close_task = self.close_orphaned_windows();
         let action_task = match action {
             CanvasAction::OpenNode(idx) => self.open_node(win_id, idx),
@@ -771,8 +813,14 @@ impl FlowEdit {
                 }
             }
             Message::InitializerApply(win_id) => {
+                let route = self
+                    .windows
+                    .get(&win_id)
+                    .map(|w| w.route.clone())
+                    .unwrap_or_default();
+                let flow_def = resolve_flow_def_mut(&mut self.root_flow, &route);
                 if let Some(win) = self.windows.get_mut(&win_id) {
-                    win.handle_initializer_apply(&mut self.root_flow);
+                    win.handle_initializer_apply(flow_def);
                 }
             }
             Message::InitializerCancel(win_id) => {
@@ -781,6 +829,38 @@ impl FlowEdit {
                 }
             }
             _ => {}
+        }
+    }
+
+    fn handle_undo_redo(&mut self, is_redo: bool) -> Task<Message> {
+        let target = self.focused_window.or(self.root_window);
+        if let Some(target_id) = target {
+            let route = self
+                .windows
+                .get(&target_id)
+                .map(|w| w.route.clone())
+                .unwrap_or_default();
+            let flow_def = resolve_flow_def_mut(&mut self.root_flow, &route);
+            if let Some(win) = self.windows.get_mut(&target_id) {
+                if is_redo {
+                    win.handle_redo(flow_def);
+                } else {
+                    win.handle_undo(flow_def);
+                }
+            }
+        }
+        self.close_orphaned_windows()
+    }
+
+    fn handle_flow_edit(&mut self, win_id: window::Id, flow_msg: FlowEditMessage) {
+        let route = self
+            .windows
+            .get(&win_id)
+            .map(|w| w.route.clone())
+            .unwrap_or_default();
+        let flow_def = resolve_flow_def_mut(&mut self.root_flow, &route);
+        if let Some(win) = self.windows.get_mut(&win_id) {
+            win.handle_flow_edit_message(flow_def, flow_msg);
         }
     }
 
@@ -801,27 +881,13 @@ impl FlowEdit {
                     win.handle_view_message(&view_msg);
                 }
             }
-            Message::Undo => {
-                let target = self.focused_window.or(self.root_window);
-                if let Some(win) = target.and_then(|id| self.windows.get_mut(&id)) {
-                    win.handle_undo(&mut self.root_flow);
-                }
-                return self.close_orphaned_windows();
-            }
-            Message::Redo => {
-                let target = self.focused_window.or(self.root_window);
-                if let Some(win) = target.and_then(|id| self.windows.get_mut(&id)) {
-                    win.handle_redo(&mut self.root_flow);
-                }
-                return self.close_orphaned_windows();
-            }
+            Message::Undo => return self.handle_undo_redo(false),
+            Message::Redo => return self.handle_undo_redo(true),
             Message::Save | Message::SaveAs | Message::Open | Message::New | Message::Compile => {
                 self.handle_file_message(message);
             }
             Message::FlowEdit(win_id, flow_msg) => {
-                if let Some(win) = self.windows.get_mut(&win_id) {
-                    win.handle_flow_edit_message(&mut self.root_flow, flow_msg);
-                }
+                self.handle_flow_edit(win_id, flow_msg);
             }
             Message::NewSubFlow(target_win_id) => {
                 for win in self.windows.values_mut() {
@@ -894,11 +960,22 @@ impl FlowEdit {
             return Self::view_function(window_id, viewer, &win.status, !win.history.is_empty());
         }
 
-        let canvas_with_controls = win.view_canvas_area(&self.root_flow, window_id);
+        // Resolve the FlowDefinition for this window: sub-flow windows use
+        // the sub-flow found via their route, root windows use root_flow directly.
+        let flow_def = if win.is_root || win.route.is_empty() || win.route == self.root_flow.route {
+            &self.root_flow
+        } else {
+            match self.root_flow.process_from_route(&win.route) {
+                Some(Process::FlowProcess(f)) => f,
+                _ => &self.root_flow,
+            }
+        };
+
+        let canvas_with_controls = win.view_canvas_area(flow_def, window_id);
 
         let hierarchy_panel = win
             .flow_hierarchy
-            .view(&self.root_flow)
+            .view(flow_def)
             .map(move |msg| Message::Hierarchy(window_id, msg));
 
         let library_panel = self
@@ -916,12 +993,12 @@ impl FlowEdit {
 
         // Flow I/O editor panel for sub-flow windows
         if !win.is_root && matches!(win.kind, WindowKind::FlowEditor) {
-            right_col = right_col.push(Self::view_flow_io_panel(window_id, &self.root_flow));
+            right_col = right_col.push(Self::view_flow_io_panel(window_id, flow_def));
         }
 
         // Metadata editor panel (toggled by Info button)
         if win.show_metadata && matches!(win.kind, WindowKind::FlowEditor) {
-            right_col = right_col.push(Self::view_metadata_panel(&self.root_flow, window_id));
+            right_col = right_col.push(Self::view_metadata_panel(flow_def, window_id));
         }
 
         // Library paths panel (toggled by Libs button)
@@ -929,7 +1006,7 @@ impl FlowEdit {
             right_col = right_col.push(self.view_lib_paths_panel());
         }
 
-        right_col = right_col.push(self.view_toolbar(win, &self.root_flow, window_id));
+        right_col = right_col.push(self.view_toolbar(win, flow_def, window_id));
 
         let layout = Row::new().push(left_panel).push(right_col.width(Fill));
         layout.into()
