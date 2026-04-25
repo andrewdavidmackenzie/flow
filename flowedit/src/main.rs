@@ -86,12 +86,8 @@ pub(crate) enum FlowEditMessage {
     DeleteOutput(usize),
     /// Flow input port name changed
     InputNameChanged(usize, String),
-    /// Flow input port type changed
-    InputTypeChanged(usize, String),
     /// Flow output port name changed
     OutputNameChanged(usize, String),
-    /// Flow output port type changed
-    OutputTypeChanged(usize, String),
 }
 
 /// Messages for function definition viewing/editing, tagged by window
@@ -866,8 +862,6 @@ impl FlowEdit {
                 | FlowEditMessage::DeleteOutput(_)
                 | FlowEditMessage::InputNameChanged(_, _)
                 | FlowEditMessage::OutputNameChanged(_, _)
-                | FlowEditMessage::InputTypeChanged(_, _)
-                | FlowEditMessage::OutputTypeChanged(_, _)
         );
 
         // Capture deleted I/O name before deletion for parent connection cleanup
@@ -1125,11 +1119,6 @@ impl FlowEdit {
 
         let mut right_col: Column<'_, Message> =
             Column::new().push(container(canvas_with_controls).width(Fill).height(Fill));
-
-        // Flow I/O editor panel for sub-flow windows
-        if !win.is_root && matches!(win.kind, WindowKind::FlowEditor) {
-            right_col = right_col.push(Self::view_flow_io_panel(window_id, flow_def));
-        }
 
         // Metadata editor panel (toggled by Info button)
         if win.show_metadata && matches!(win.kind, WindowKind::FlowEditor) {
@@ -1401,188 +1390,6 @@ impl FlowEdit {
             .width(Fill);
 
         lib_panel.into()
-    }
-
-    fn view_flow_inputs_column<'a>(
-        window_id: window::Id,
-        inputs: &'a [IO],
-        route: &'a Route,
-    ) -> Column<'a, Message> {
-        let input_color = Color::from_rgb(0.4, 0.8, 1.0);
-        let mut input_col = Column::new().spacing(4);
-        for (i, port) in inputs.iter().enumerate() {
-            let port_name = port.name().clone();
-            let dtype = port
-                .datatypes()
-                .first()
-                .map(ToString::to_string)
-                .unwrap_or_default();
-            let route_name = route.clone();
-            let route_type = route.clone();
-            let route_del = route.clone();
-            let row = Row::new()
-                .spacing(4)
-                .align_y(iced::Alignment::Center)
-                .push(Text::new("\u{25D7}").size(18).color(input_color))
-                .push(
-                    text_input("name", &port_name)
-                        .on_input(move |s| {
-                            Message::FlowEdit(
-                                window_id,
-                                route_name.clone(),
-                                FlowEditMessage::InputNameChanged(i, s),
-                            )
-                        })
-                        .size(12)
-                        .padding(3)
-                        .width(80),
-                )
-                .push(
-                    text_input("type", &dtype)
-                        .on_input(move |s| {
-                            Message::FlowEdit(
-                                window_id,
-                                route_type.clone(),
-                                FlowEditMessage::InputTypeChanged(i, s),
-                            )
-                        })
-                        .size(11)
-                        .padding(3)
-                        .width(70),
-                )
-                .push(
-                    button(Text::new("\u{2715}").size(10).center())
-                        .on_press(Message::FlowEdit(
-                            window_id,
-                            route_del,
-                            FlowEditMessage::DeleteInput(i),
-                        ))
-                        .style(button::danger)
-                        .padding([2, 5]),
-                );
-            input_col = input_col.push(row);
-        }
-        input_col.push(
-            button(Text::new("+ Input").size(11).center())
-                .on_press(Message::FlowEdit(
-                    window_id,
-                    route.clone(),
-                    FlowEditMessage::AddInput,
-                ))
-                .style(button::secondary)
-                .padding([2, 8]),
-        )
-    }
-
-    fn view_flow_outputs_column<'a>(
-        window_id: window::Id,
-        outputs: &'a [IO],
-        route: &'a Route,
-    ) -> Column<'a, Message> {
-        let output_color = Color::from_rgb(1.0, 0.6, 0.3);
-        let mut output_col = Column::new().spacing(4).align_x(iced::Alignment::End);
-        for (i, port) in outputs.iter().enumerate() {
-            let route = route.clone();
-            let port_name = port.name().clone();
-            let dtype = port
-                .datatypes()
-                .first()
-                .map(ToString::to_string)
-                .unwrap_or_default();
-            let route_del = route.clone();
-            let route_type = route.clone();
-            let route_name = route.clone();
-            let row = Row::new()
-                .spacing(4)
-                .align_y(iced::Alignment::Center)
-                .push(
-                    button(Text::new("\u{2715}").size(10).center())
-                        .on_press(Message::FlowEdit(
-                            window_id,
-                            route_del,
-                            FlowEditMessage::DeleteOutput(i),
-                        ))
-                        .style(button::danger)
-                        .padding([2, 5]),
-                )
-                .push(
-                    text_input("type", &dtype)
-                        .on_input(move |s| {
-                            Message::FlowEdit(
-                                window_id,
-                                route_type.clone(),
-                                FlowEditMessage::OutputTypeChanged(i, s),
-                            )
-                        })
-                        .size(11)
-                        .padding(3)
-                        .width(70),
-                )
-                .push(
-                    text_input("name", &port_name)
-                        .on_input(move |s| {
-                            Message::FlowEdit(
-                                window_id,
-                                route_name.clone(),
-                                FlowEditMessage::OutputNameChanged(i, s),
-                            )
-                        })
-                        .size(12)
-                        .padding(3)
-                        .width(80),
-                )
-                .push(Text::new("\u{25D6}").size(18).color(output_color));
-            output_col = output_col.push(row);
-        }
-        output_col.push(
-            button(Text::new("+ Output").size(11).center())
-                .on_press(Message::FlowEdit(
-                    window_id,
-                    route.clone(),
-                    FlowEditMessage::AddOutput,
-                ))
-                .style(button::secondary)
-                .padding([2, 8]),
-        )
-    }
-
-    fn view_flow_io_panel(
-        window_id: window::Id,
-        flow_def: &FlowDefinition,
-    ) -> Element<'_, Message> {
-        let input_col = Self::view_flow_inputs_column(window_id, &flow_def.inputs, &flow_def.route);
-        let output_col =
-            Self::view_flow_outputs_column(window_id, &flow_def.outputs, &flow_def.route);
-
-        let io_box = container(
-            Column::new()
-                .spacing(12)
-                .padding(iced::Padding {
-                    top: 8.0,
-                    bottom: 8.0,
-                    left: 0.0,
-                    right: 0.0,
-                })
-                .push(
-                    Row::new()
-                        .push(input_col)
-                        .push(iced::widget::Space::new().width(Fill))
-                        .push(output_col),
-                ),
-        )
-        .style(|_theme: &Theme| container::Style {
-            background: Some(iced::Background::Color(Color::from_rgb(0.18, 0.18, 0.22))),
-            border: iced::Border {
-                color: Color::from_rgb(0.9, 0.6, 0.2),
-                width: 2.0,
-                radius: 12.0.into(),
-            },
-            ..Default::default()
-        })
-        .width(Fill)
-        .padding([0, 8]);
-
-        container(io_box).padding([6, 12]).width(Fill).into()
     }
 
     fn view_function_definition_tab(

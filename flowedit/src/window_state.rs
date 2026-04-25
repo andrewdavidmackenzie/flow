@@ -11,7 +11,7 @@ use std::path::{Path, PathBuf};
 
 use iced::widget::canvas::{self, Canvas};
 use iced::widget::{button, container, pick_list, stack, text_input, Column, Row, Text};
-use iced::{window, Color, Element, Fill, Point, Size, Theme};
+use iced::{window, Color, Element, Fill, Length, Point, Size, Theme};
 use log::info;
 use url::Url;
 
@@ -787,7 +787,7 @@ impl WindowState {
         let mut canvas_stack: Vec<Element<'_, Message>> = vec![canvas, zoom_controls.into()];
 
         // Inline I/O editing overlays for sub-flow windows
-        if !self.is_root && (!flow_def.inputs.is_empty() || !flow_def.outputs.is_empty()) {
+        if !self.is_root {
             canvas_stack.push(Self::build_flow_io_overlays(
                 flow_def,
                 &self.canvas_state,
@@ -816,6 +816,7 @@ impl WindowState {
         window_id: window::Id,
     ) -> Element<'a, Message> {
         use crate::flow_canvas::flow_io_bounding_box;
+        use crate::flow_canvas::transform_point;
         use crate::node_layout::NodeLayout;
 
         let nodes = NodeLayout::build_from_flow(flow_def);
@@ -825,14 +826,9 @@ impl WindowState {
         let offset = canvas_state.scroll_offset;
         let route = flow_def.route.clone();
 
-        let input_color = Color::from_rgb(0.4, 0.8, 1.0);
-        let output_color = Color::from_rgb(1.0, 0.6, 0.3);
         let port_font_size = 12.0;
 
-        let mut overlays: Vec<Element<'_, Message>> = Vec::new();
-
-        Self::build_input_overlays(
-            &mut overlays,
+        let input_col = Self::build_input_column(
             &flow_def.inputs,
             box_x,
             center_y,
@@ -842,30 +838,48 @@ impl WindowState {
             &route,
             window_id,
             port_font_size,
-            input_color,
         );
+
+        let output_col =
+            Self::build_output_column(&flow_def.outputs, &route, window_id, port_font_size);
 
         let right_x = box_x + box_w;
-        Self::build_output_overlays(
-            &mut overlays,
-            &flow_def.outputs,
-            right_x,
-            center_y,
-            spacing,
-            zoom,
-            offset,
-            &route,
-            window_id,
-            port_font_size,
-            output_color,
-        );
+        let input_screen = transform_point(Point::new(box_x, center_y), zoom, offset);
+        let output_screen = transform_point(Point::new(right_x, center_y), zoom, offset);
 
-        stack(overlays).into()
+        let input_positioned =
+            container(input_col)
+                .width(Fill)
+                .height(Fill)
+                .padding(iced::Padding {
+                    top: (input_screen.y
+                        - (flow_def.inputs.len().max(1) as f32 - 1.0) * spacing * zoom / 2.0
+                        - 12.0)
+                        .max(0.0),
+                    left: 0.0,
+                    right: 0.0,
+                    bottom: 0.0,
+                });
+
+        let output_positioned = container(output_col)
+            .width(Fill)
+            .height(Fill)
+            .align_right(Fill)
+            .padding(iced::Padding {
+                top: (output_screen.y
+                    - (flow_def.outputs.len().max(1) as f32 - 1.0) * spacing * zoom / 2.0
+                    - 12.0)
+                    .max(0.0),
+                left: 0.0,
+                right: 0.0,
+                bottom: 0.0,
+            });
+
+        stack(vec![input_positioned.into(), output_positioned.into()]).into()
     }
 
     #[allow(clippy::too_many_arguments)]
-    fn build_input_overlays<'a>(
-        overlays: &mut Vec<Element<'a, Message>>,
+    fn build_input_column<'a>(
         inputs: &'a [IO],
         left_x: f32,
         center_y: f32,
@@ -875,9 +889,10 @@ impl WindowState {
         route: &Route,
         window_id: window::Id,
         port_font_size: f32,
-        input_color: Color,
-    ) {
+    ) -> Column<'a, Message> {
         use crate::flow_canvas::transform_point;
+
+        let mut col = Column::new().spacing(4).width(Length::Shrink);
 
         let input_start_y = center_y - (inputs.len() as f32 - 1.0) * spacing / 2.0;
         for (i, input) in inputs.iter().enumerate() {
@@ -907,27 +922,27 @@ impl WindowState {
                 .style(button::text)
                 .padding([1, 3]);
 
-            let row = Row::new()
-                .spacing(2)
-                .align_y(iced::Alignment::Center)
-                .push(del_btn)
-                .push(name_input)
-                .push(Text::new("\u{25D7}").size(14).color(input_color));
-
-            let positioned = container(row).padding(iced::Padding {
-                top: (screen_pos.y - 12.0).max(0.0),
-                left: (screen_pos.x - 110.0).max(0.0),
+            let row = container(
+                Row::new()
+                    .spacing(2)
+                    .align_y(iced::Alignment::Center)
+                    .push(del_btn)
+                    .push(name_input),
+            )
+            .padding(iced::Padding {
+                top: 0.0,
+                left: (screen_pos.x - 100.0).max(0.0),
                 right: 0.0,
                 bottom: 0.0,
             });
-            overlays.push(positioned.into());
+
+            col = col.push(row);
         }
 
-        // Add input "+" button
         let input_bottom_y = input_start_y + inputs.len() as f32 * spacing;
         let screen_pos = transform_point(Point::new(left_x, input_bottom_y), zoom, offset);
         let route_add = route.clone();
-        overlays.push(
+        col = col.push(
             container(
                 button(Text::new("+ Input").size(10))
                     .on_press(Message::FlowEdit(
@@ -939,35 +954,28 @@ impl WindowState {
                     .padding([2, 4]),
             )
             .padding(iced::Padding {
-                top: (screen_pos.y - 8.0).max(0.0),
-                left: (screen_pos.x - 80.0).max(0.0),
+                top: 0.0,
+                left: (screen_pos.x - 60.0).max(0.0),
                 right: 0.0,
                 bottom: 0.0,
-            })
-            .into(),
+            }),
         );
+
+        col
     }
 
-    #[allow(clippy::too_many_arguments)]
-    fn build_output_overlays<'a>(
-        overlays: &mut Vec<Element<'a, Message>>,
+    fn build_output_column<'a>(
         outputs: &'a [IO],
-        right_x: f32,
-        center_y: f32,
-        spacing: f32,
-        zoom: f32,
-        offset: Point,
         route: &Route,
         window_id: window::Id,
         port_font_size: f32,
-        output_color: Color,
-    ) {
-        use crate::flow_canvas::transform_point;
+    ) -> Column<'a, Message> {
+        let mut col = Column::new()
+            .spacing(4)
+            .width(Length::Shrink)
+            .align_x(iced::Alignment::End);
 
-        let output_start_y = center_y - (outputs.len() as f32 - 1.0) * spacing / 2.0;
         for (i, output) in outputs.iter().enumerate() {
-            let world_y = output_start_y + i as f32 * spacing;
-            let screen_pos = transform_point(Point::new(right_x, world_y), zoom, offset);
             let route_clone = route.clone();
 
             let name_input = text_input("name", output.name())
@@ -995,45 +1003,25 @@ impl WindowState {
             let row = Row::new()
                 .spacing(2)
                 .align_y(iced::Alignment::Center)
-                .push(Text::new("\u{25D6}").size(14).color(output_color))
                 .push(name_input)
                 .push(del_btn);
 
-            overlays.push(
-                container(row)
-                    .padding(iced::Padding {
-                        top: (screen_pos.y - 12.0).max(0.0),
-                        left: screen_pos.x + 8.0,
-                        right: 0.0,
-                        bottom: 0.0,
-                    })
-                    .into(),
-            );
+            col = col.push(row);
         }
 
-        // Add output "+" button
-        let output_bottom_y = output_start_y + outputs.len() as f32 * spacing;
-        let screen_pos = transform_point(Point::new(right_x, output_bottom_y), zoom, offset);
         let route_add = route.clone();
-        overlays.push(
-            container(
-                button(Text::new("+ Output").size(10))
-                    .on_press(Message::FlowEdit(
-                        window_id,
-                        route_add,
-                        FlowEditMessage::AddOutput,
-                    ))
-                    .style(button::text)
-                    .padding([2, 4]),
-            )
-            .padding(iced::Padding {
-                top: (screen_pos.y - 8.0).max(0.0),
-                left: screen_pos.x + 8.0,
-                right: 0.0,
-                bottom: 0.0,
-            })
-            .into(),
+        col = col.push(
+            button(Text::new("+ Output").size(10))
+                .on_press(Message::FlowEdit(
+                    window_id,
+                    route_add,
+                    FlowEditMessage::AddOutput,
+                ))
+                .style(button::text)
+                .padding([2, 4]),
         );
+
+        col
     }
 
     fn build_tooltip_overlay<'a>(tip: &crate::window_state::Tooltip) -> Element<'a, Message> {
@@ -1861,24 +1849,8 @@ impl WindowState {
             FlowEditMessage::InputNameChanged(idx, name) => {
                 self.rename_flow_input(flow_def, idx, &name);
             }
-            FlowEditMessage::InputTypeChanged(idx, dtype) => {
-                if let Some(io) = flow_def.inputs.get_mut(idx) {
-                    io.set_datatypes(&[DataType::from(dtype)]);
-                }
-                self.history.mark_modified();
-                self.canvas_state.request_redraw();
-                self.trigger_auto_fit_if_enabled();
-            }
             FlowEditMessage::OutputNameChanged(idx, name) => {
                 self.rename_flow_output(flow_def, idx, &name);
-            }
-            FlowEditMessage::OutputTypeChanged(idx, dtype) => {
-                if let Some(io) = flow_def.outputs.get_mut(idx) {
-                    io.set_datatypes(&[DataType::from(dtype)]);
-                }
-                self.history.mark_modified();
-                self.canvas_state.request_redraw();
-                self.trigger_auto_fit_if_enabled();
             }
         }
     }

@@ -182,6 +182,8 @@ pub(crate) struct CanvasInteractionState {
     last_bounds: Option<Size>,
     /// Index of the node currently under the cursor (for hover tooltip)
     hover_node: Option<usize>,
+    /// Whether a port tooltip is currently being shown
+    hover_port: bool,
 }
 
 /// Tracks a middle-mouse-button pan in progress.
@@ -577,6 +579,7 @@ fn draw_flow_input_port_labels(
     font_size: f32,
     zoom: f32,
     offset: Point,
+    draw_labels: bool,
 ) -> HashMap<String, Point> {
     use std::f32::consts::PI;
 
@@ -600,16 +603,18 @@ fn draw_flow_input_port_labels(
         });
         frame.fill(&semi, input_color);
 
-        let label_pos = Point::new(screen_pos.x - scaled_r - 4.0, screen_pos.y);
-        frame.fill_text(CanvasText {
-            content: input.name().clone(),
-            position: label_pos,
-            color: input_color,
-            size: (font_size * zoom).into(),
-            align_x: iced::alignment::Horizontal::Right.into(),
-            align_y: iced::alignment::Vertical::Center,
-            ..CanvasText::default()
-        });
+        if draw_labels {
+            let label_pos = Point::new(screen_pos.x - scaled_r - 4.0, screen_pos.y);
+            frame.fill_text(CanvasText {
+                content: input.name().clone(),
+                position: label_pos,
+                color: input_color,
+                size: (font_size * zoom).into(),
+                align_x: iced::alignment::Horizontal::Right.into(),
+                align_y: iced::alignment::Vertical::Center,
+                ..CanvasText::default()
+            });
+        }
     }
     positions
 }
@@ -625,6 +630,7 @@ fn draw_flow_output_port_labels(
     font_size: f32,
     zoom: f32,
     offset: Point,
+    draw_labels: bool,
 ) -> HashMap<String, Point> {
     use std::f32::consts::PI;
 
@@ -648,15 +654,17 @@ fn draw_flow_output_port_labels(
         });
         frame.fill(&semi, output_color);
 
-        let label_pos = Point::new(screen_pos.x + scaled_r + 4.0, screen_pos.y);
-        frame.fill_text(CanvasText {
-            content: output.name().clone(),
-            position: label_pos,
-            color: output_color,
-            size: (font_size * zoom).into(),
-            align_y: iced::alignment::Vertical::Center,
-            ..CanvasText::default()
-        });
+        if draw_labels {
+            let label_pos = Point::new(screen_pos.x + scaled_r + 4.0, screen_pos.y);
+            frame.fill_text(CanvasText {
+                content: output.name().clone(),
+                position: label_pos,
+                color: output_color,
+                size: (font_size * zoom).into(),
+                align_y: iced::alignment::Vertical::Center,
+                ..CanvasText::default()
+            });
+        }
     }
     positions
 }
@@ -756,6 +764,41 @@ impl FlowCanvas<'_> {
                 }
             }
         }
+        None
+    }
+
+    fn hit_test_flow_io_port(
+        &self,
+        screen_pos: Point,
+        zoom: f32,
+        offset: Point,
+    ) -> Option<(Route, bool, Point)> {
+        if !self.is_subflow {
+            return None;
+        }
+        let (input_positions, output_positions) =
+            compute_flow_io_positions(&self.nodes, &self.flow_def.inputs, &self.flow_def.outputs);
+
+        for (name, &world_pos) in &input_positions {
+            let port_screen = transform_point(world_pos, zoom, offset);
+            let dx = screen_pos.x - port_screen.x;
+            let dy = screen_pos.y - port_screen.y;
+            if dx * dx + dy * dy <= PORT_HIT_RADIUS * PORT_HIT_RADIUS {
+                let route = Route::from(format!("input/{name}"));
+                return Some((route, true, world_pos));
+            }
+        }
+
+        for (name, &world_pos) in &output_positions {
+            let port_screen = transform_point(world_pos, zoom, offset);
+            let dx = screen_pos.x - port_screen.x;
+            let dy = screen_pos.y - port_screen.y;
+            if dx * dx + dy * dy <= PORT_HIT_RADIUS * PORT_HIT_RADIUS {
+                let route = Route::from(format!("output/{name}"));
+                return Some((route, false, world_pos));
+            }
+        }
+
         None
     }
 
@@ -892,35 +935,52 @@ impl FlowCanvas<'_> {
         zoom: f32,
         offset: Point,
     ) -> Option<canvas::Action<CanvasMessage>> {
-        let (node_idx, port_name, is_output) = self.hit_test_port(cursor_position, zoom, offset)?;
-        let node = self.nodes.get(node_idx)?;
-        let port_world_pos = if is_output {
-            let port_idx = node
-                .outputs()
-                .iter()
-                .position(|p| p.name() == &port_name)
-                .unwrap_or(0);
-            node.output_port_position(port_idx)
-        } else {
-            let port_idx = node
-                .inputs()
-                .iter()
-                .position(|p| p.name() == &port_name)
-                .unwrap_or(0);
-            node.input_port_position(port_idx)
-        };
-        let from_route = if port_name.is_empty() {
-            Route::from(node.alias())
-        } else {
-            Route::from(format!("{}/{}", node.alias(), port_name))
-        };
-        state.connecting = Some(ConnectingState {
-            from_route,
-            from_output: is_output,
-            start_pos: port_world_pos,
-            current_screen_pos: cursor_position,
-        });
-        Some(canvas::Action::request_redraw().and_capture())
+        if let Some((node_idx, port_name, is_output)) =
+            self.hit_test_port(cursor_position, zoom, offset)
+        {
+            let node = self.nodes.get(node_idx)?;
+            let port_world_pos = if is_output {
+                let port_idx = node
+                    .outputs()
+                    .iter()
+                    .position(|p| p.name() == &port_name)
+                    .unwrap_or(0);
+                node.output_port_position(port_idx)
+            } else {
+                let port_idx = node
+                    .inputs()
+                    .iter()
+                    .position(|p| p.name() == &port_name)
+                    .unwrap_or(0);
+                node.input_port_position(port_idx)
+            };
+            let from_route = if port_name.is_empty() {
+                Route::from(node.alias())
+            } else {
+                Route::from(format!("{}/{}", node.alias(), port_name))
+            };
+            state.connecting = Some(ConnectingState {
+                from_route,
+                from_output: is_output,
+                start_pos: port_world_pos,
+                current_screen_pos: cursor_position,
+            });
+            return Some(canvas::Action::request_redraw().and_capture());
+        }
+
+        if let Some((route, is_output, world_pos)) =
+            self.hit_test_flow_io_port(cursor_position, zoom, offset)
+        {
+            state.connecting = Some(ConnectingState {
+                from_route: route,
+                from_output: is_output,
+                start_pos: world_pos,
+                current_screen_pos: cursor_position,
+            });
+            return Some(canvas::Action::request_redraw().and_capture());
+        }
+
+        None
     }
 
     fn handle_left_press(
@@ -951,7 +1011,10 @@ impl FlowCanvas<'_> {
             }
         }
 
-        let on_a_port = self.hit_test_port(cursor_position, zoom, offset).is_some();
+        let on_a_port = self.hit_test_port(cursor_position, zoom, offset).is_some()
+            || self
+                .hit_test_flow_io_port(cursor_position, zoom, offset)
+                .is_some();
         if !on_a_port {
             if let Some(conn_idx) = self.hit_test_connection(cursor_position, zoom, offset) {
                 state.selected_connection = Some(conn_idx);
@@ -1091,6 +1154,7 @@ impl FlowCanvas<'_> {
                     },
                 );
                 state.hover_node = None;
+                state.hover_port = true;
                 return Some(canvas::Action::publish(CanvasMessage::HoverChanged(Some(
                     crate::window_state::Tooltip {
                         text: type_text,
@@ -1101,8 +1165,11 @@ impl FlowCanvas<'_> {
             }
         }
 
+        let was_on_port = state.hover_port;
+        state.hover_port = false;
+
         let new_hover = self.hit_test_node(world_pos);
-        if new_hover != state.hover_node || new_hover.is_some() {
+        if new_hover != state.hover_node || new_hover.is_some() || was_on_port {
             state.hover_node = new_hover;
             let tooltip_data = new_hover.and_then(|idx| self.nodes.get(idx)).and_then(|n| {
                 let bottom_center = transform_point(
@@ -1187,13 +1254,13 @@ impl FlowCanvas<'_> {
         zoom: f32,
         offset: Point,
     ) -> canvas::Action<CanvasMessage> {
+        let (conn_from_node, conn_from_port) = split_route(connecting.from_route.as_ref());
+
         if let Some((target_idx, target_port, target_is_output)) =
             self.hit_test_port(cursor_position, zoom, offset)
         {
             if connecting.from_output != target_is_output {
                 if let Some(target_node) = self.nodes.get(target_idx) {
-                    let (conn_from_node, conn_from_port) =
-                        split_route(connecting.from_route.as_ref());
                     let source_node = self.nodes.iter().find(|n| n.alias() == conn_from_node);
                     let types_ok = check_port_type_compatibility(
                         source_node,
@@ -1231,6 +1298,27 @@ impl FlowCanvas<'_> {
                 }
             }
         }
+
+        if let Some((target_route, target_is_output, _)) =
+            self.hit_test_flow_io_port(cursor_position, zoom, offset)
+        {
+            if connecting.from_output != target_is_output {
+                let (target_node, target_port) = split_route(target_route.as_ref());
+                let (from_node, from_port, to_node, to_port) = if connecting.from_output {
+                    (conn_from_node, conn_from_port, target_node, target_port)
+                } else {
+                    (target_node, target_port, conn_from_node, conn_from_port)
+                };
+                return canvas::Action::publish(CanvasMessage::ConnectionCreated {
+                    from_node,
+                    from_port,
+                    to_node,
+                    to_port,
+                })
+                .and_capture();
+            }
+        }
+
         canvas::Action::request_redraw().and_capture()
     }
 
@@ -1335,6 +1423,17 @@ impl FlowCanvas<'_> {
                         Stroke::default().with_width(2.0).with_color(preview_color),
                     );
                 }
+            }
+        } else if let Some((_, target_is_output, world_pos)) =
+            self.hit_test_flow_io_port(end_screen, zoom, offset)
+        {
+            if connecting.from_output != target_is_output {
+                let port_screen = transform_point(world_pos, zoom, offset);
+                let highlight_circle = Path::circle(port_screen, PORT_HIT_RADIUS);
+                overlay.stroke(
+                    &highlight_circle,
+                    Stroke::default().with_width(2.0).with_color(preview_color),
+                );
             }
         }
     }
@@ -1499,6 +1598,7 @@ impl FlowCanvas<'_> {
             font_size,
             zoom,
             offset,
+            false,
         );
         let output_positions = draw_flow_output_port_labels(
             frame,
@@ -1510,6 +1610,7 @@ impl FlowCanvas<'_> {
             font_size,
             zoom,
             offset,
+            false,
         );
 
         self.draw_flow_io_connections(
