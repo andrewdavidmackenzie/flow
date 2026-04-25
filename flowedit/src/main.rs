@@ -522,7 +522,13 @@ impl FlowEdit {
             self.windows.insert(new_id, child);
             open_task.discard()
         } else if let Some((func_def, source_path)) = func_info {
-            self.open_function_viewer(hier_win_id, &source_path, &func_def, route.as_ref())
+            self.open_function_viewer(
+                hier_win_id,
+                &source_path,
+                &func_def,
+                route.as_ref(),
+                route.clone(),
+            )
         } else {
             Task::none()
         }
@@ -1698,7 +1704,13 @@ impl FlowEdit {
                 let Some(parent) = self.root_window else {
                     return Task::none();
                 };
-                self.open_function_viewer(parent, &path, func, &path.to_string_lossy())
+                self.open_function_viewer(
+                    parent,
+                    &path,
+                    func,
+                    &path.to_string_lossy(),
+                    Route::default(),
+                )
             }
             Ok(Process::FlowProcess(_)) => match file_ops::load_flow(&path) {
                 Ok(mut flow_def) => {
@@ -1772,8 +1784,16 @@ impl FlowEdit {
         };
         let parent_route = win.route.clone();
 
-        // Build the child route from the parent's route + the alias
-        let Some(pref) = self.root_flow.process_refs.get(idx) else {
+        // Get the parent flow's process_refs (may be a sub-flow, not root)
+        let parent_flow = if parent_route == self.root_flow.route {
+            &self.root_flow
+        } else {
+            match self.root_flow.process_from_route(&parent_route) {
+                Some(Process::FlowProcess(f)) => f,
+                _ => return Task::none(),
+            }
+        };
+        let Some(pref) = parent_flow.process_refs.get(idx) else {
             return Task::none();
         };
         let alias = if pref.alias.is_empty() {
@@ -1848,7 +1868,7 @@ impl FlowEdit {
             }
             open_task.discard()
         } else if let Some((func_def, source_path)) = func_info {
-            self.open_function_viewer(parent_win_id, &source_path, &func_def, &alias)
+            self.open_function_viewer(parent_win_id, &source_path, &func_def, &alias, child_route)
         } else {
             Task::none()
         }
@@ -1860,6 +1880,7 @@ impl FlowEdit {
         toml_path: &Path,
         func: &FunctionDefinition,
         node_source: &str,
+        route: Route,
     ) -> Task<Message> {
         let dir = toml_path.parent().unwrap_or(Path::new("."));
         let func_name = &func.name;
@@ -1894,7 +1915,7 @@ impl FlowEdit {
             func_flow_def.source_url = url;
         }
         let child = WindowState {
-            route: func_flow_def.route.clone(),
+            route,
             kind: WindowKind::FunctionViewer(Box::new(viewer)),
             canvas_state: FlowCanvasState::default(),
             status: format!("Function: {func_name}"),
