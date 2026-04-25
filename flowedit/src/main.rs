@@ -874,6 +874,36 @@ impl FlowEdit {
         Task::none()
     }
 
+    fn close_orphaned_windows(&mut self) -> Task<Message> {
+        let root_route = self.root_flow.route.clone();
+        let orphans: Vec<window::Id> = self
+            .windows
+            .iter()
+            .filter(|(_, win)| {
+                if win.is_root {
+                    return false;
+                }
+                if win.route == root_route {
+                    return false;
+                }
+                self.root_flow.process_from_route(&win.route).is_none()
+            })
+            .map(|(&id, _)| id)
+            .collect();
+
+        let mut tasks = Vec::new();
+        for id in orphans {
+            self.windows.remove(&id);
+            tasks.push(window::close(id));
+        }
+
+        if tasks.is_empty() {
+            Task::none()
+        } else {
+            Task::batch(tasks)
+        }
+    }
+
     fn handle_canvas_update(
         &mut self,
         win_id: window::Id,
@@ -883,10 +913,12 @@ impl FlowEdit {
             return Task::none();
         };
         let action = win.handle_canvas_message(&mut self.root_flow, canvas_msg);
-        match action {
+        let close_task = self.close_orphaned_windows();
+        let action_task = match action {
             CanvasAction::OpenNode(idx) => self.open_node(win_id, idx),
             CanvasAction::None => Task::none(),
-        }
+        };
+        Task::batch([close_task, action_task])
     }
 
     fn handle_initializer_message(&mut self, message: &Message) {
@@ -937,12 +969,14 @@ impl FlowEdit {
                 if let Some(win) = target.and_then(|id| self.windows.get_mut(&id)) {
                     win.handle_undo(&mut self.root_flow);
                 }
+                return self.close_orphaned_windows();
             }
             Message::Redo => {
                 let target = self.focused_window.or(self.root_window);
                 if let Some(win) = target.and_then(|id| self.windows.get_mut(&id)) {
                     win.handle_redo(&mut self.root_flow);
                 }
+                return self.close_orphaned_windows();
             }
             Message::Save | Message::SaveAs | Message::Open | Message::New | Message::Compile => {
                 self.handle_file_message(message);
