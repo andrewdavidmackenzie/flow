@@ -257,9 +257,17 @@ fn update_undo_redo_cycle() {
 fn update_toggle_metadata() {
     let (mut app, win_id) = test_app();
     assert!(!app.windows.get(&win_id).is_some_and(|w| w.show_metadata));
-    let _ = app.update(Message::FlowEdit(win_id, FlowEditMessage::ToggleMetadata));
+    let _ = app.update(Message::FlowEdit(
+        win_id,
+        Route::default(),
+        FlowEditMessage::ToggleMetadata,
+    ));
     assert!(app.windows.get(&win_id).is_some_and(|w| w.show_metadata));
-    let _ = app.update(Message::FlowEdit(win_id, FlowEditMessage::ToggleMetadata));
+    let _ = app.update(Message::FlowEdit(
+        win_id,
+        Route::default(),
+        FlowEditMessage::ToggleMetadata,
+    ));
     assert!(!app.windows.get(&win_id).is_some_and(|w| w.show_metadata));
 }
 
@@ -268,6 +276,7 @@ fn update_flow_name_changed() {
     let (mut app, win_id) = test_app();
     let _ = app.update(Message::FlowEdit(
         win_id,
+        Route::default(),
         FlowEditMessage::NameChanged("new_name".into()),
     ));
     assert_eq!(Some(app.root_flow.name.as_str()), Some("new_name"));
@@ -282,6 +291,7 @@ fn update_flow_version_changed() {
     let (mut app, win_id) = test_app();
     let _ = app.update(Message::FlowEdit(
         win_id,
+        Route::default(),
         FlowEditMessage::VersionChanged("2.0.0".into()),
     ));
     assert_eq!(Some(app.root_flow.metadata.version.as_str()), Some("2.0.0"));
@@ -292,6 +302,7 @@ fn update_flow_description_changed() {
     let (mut app, win_id) = test_app();
     let _ = app.update(Message::FlowEdit(
         win_id,
+        Route::default(),
         FlowEditMessage::DescriptionChanged("A test flow".into()),
     ));
     assert_eq!(
@@ -305,6 +316,7 @@ fn update_flow_authors_changed() {
     let (mut app, win_id) = test_app();
     let _ = app.update(Message::FlowEdit(
         win_id,
+        Route::default(),
         FlowEditMessage::AuthorsChanged("Alice, Bob".into()),
     ));
     let authors = app.root_flow.metadata.authors.clone();
@@ -314,7 +326,11 @@ fn update_flow_authors_changed() {
 #[test]
 fn update_flow_add_input() {
     let (mut app, win_id) = test_app();
-    let _ = app.update(Message::FlowEdit(win_id, FlowEditMessage::AddInput));
+    let _ = app.update(Message::FlowEdit(
+        win_id,
+        Route::default(),
+        FlowEditMessage::AddInput,
+    ));
     assert_eq!(Some(app.root_flow.inputs.len()), Some(1));
     assert!(app
         .windows
@@ -325,24 +341,41 @@ fn update_flow_add_input() {
 #[test]
 fn update_flow_add_output() {
     let (mut app, win_id) = test_app();
-    let _ = app.update(Message::FlowEdit(win_id, FlowEditMessage::AddOutput));
+    let _ = app.update(Message::FlowEdit(
+        win_id,
+        Route::default(),
+        FlowEditMessage::AddOutput,
+    ));
     assert_eq!(Some(app.root_flow.outputs.len()), Some(1));
 }
 
 #[test]
 fn update_flow_delete_input() {
     let (mut app, win_id) = test_app();
-    let _ = app.update(Message::FlowEdit(win_id, FlowEditMessage::AddInput));
-    let _ = app.update(Message::FlowEdit(win_id, FlowEditMessage::DeleteInput(0)));
+    let _ = app.update(Message::FlowEdit(
+        win_id,
+        Route::default(),
+        FlowEditMessage::AddInput,
+    ));
+    let _ = app.update(Message::FlowEdit(
+        win_id,
+        Route::default(),
+        FlowEditMessage::DeleteInput(0),
+    ));
     assert_eq!(Some(app.root_flow.inputs.len()), Some(0));
 }
 
 #[test]
 fn update_flow_input_name_changed() {
     let (mut app, win_id) = test_app();
-    let _ = app.update(Message::FlowEdit(win_id, FlowEditMessage::AddInput));
     let _ = app.update(Message::FlowEdit(
         win_id,
+        Route::default(),
+        FlowEditMessage::AddInput,
+    ));
+    let _ = app.update(Message::FlowEdit(
+        win_id,
+        Route::default(),
         FlowEditMessage::InputNameChanged(0, "data".into()),
     ));
     assert_eq!(
@@ -1177,14 +1210,22 @@ fn ui_resize_node_records_history() {
 fn flow_delete_input_removes_edges() {
     let (mut app, win_id) = test_app();
     // Add a flow input
-    let _ = app.update(Message::FlowEdit(win_id, FlowEditMessage::AddInput));
+    let _ = app.update(Message::FlowEdit(
+        win_id,
+        Route::default(),
+        FlowEditMessage::AddInput,
+    ));
     // Add a connection referencing "input" node
     app.root_flow
         .connections
         .push(Connection::new("input/input0", "add"));
     assert_eq!(app.root_flow.connections.len(), 1);
     // Delete the input — edge should be removed
-    let _ = app.update(Message::FlowEdit(win_id, FlowEditMessage::DeleteInput(0)));
+    let _ = app.update(Message::FlowEdit(
+        win_id,
+        Route::default(),
+        FlowEditMessage::DeleteInput(0),
+    ));
     assert_eq!(
         app.root_flow.connections.len(),
         0,
@@ -1196,14 +1237,22 @@ fn flow_delete_input_removes_edges() {
 fn flow_delete_output_removes_edges() {
     let (mut app, win_id) = test_app();
     // Add a flow output
-    let _ = app.update(Message::FlowEdit(win_id, FlowEditMessage::AddOutput));
+    let _ = app.update(Message::FlowEdit(
+        win_id,
+        Route::default(),
+        FlowEditMessage::AddOutput,
+    ));
     // Add a connection referencing "output" node
     app.root_flow
         .connections
         .push(Connection::new("add", "output/output0"));
     assert_eq!(app.root_flow.connections.len(), 1);
     // Delete the output — edge should be removed
-    let _ = app.update(Message::FlowEdit(win_id, FlowEditMessage::DeleteOutput(0)));
+    let _ = app.update(Message::FlowEdit(
+        win_id,
+        Route::default(),
+        FlowEditMessage::DeleteOutput(0),
+    ));
     assert_eq!(
         app.root_flow.connections.len(),
         0,
@@ -1214,12 +1263,17 @@ fn flow_delete_output_removes_edges() {
 #[test]
 fn flow_input_rename_updates_edges() {
     let (mut app, win_id) = test_app();
-    let _ = app.update(Message::FlowEdit(win_id, FlowEditMessage::AddInput));
+    let _ = app.update(Message::FlowEdit(
+        win_id,
+        Route::default(),
+        FlowEditMessage::AddInput,
+    ));
     app.root_flow
         .connections
         .push(Connection::new("input/input0", "add"));
     let _ = app.update(Message::FlowEdit(
         win_id,
+        Route::default(),
         FlowEditMessage::InputNameChanged(0, "data".into()),
     ));
     // Connection from-route should now reference "input/data" instead of "input/input0"
@@ -1234,12 +1288,17 @@ fn flow_input_rename_updates_edges() {
 #[test]
 fn flow_output_rename_updates_edges() {
     let (mut app, win_id) = test_app();
-    let _ = app.update(Message::FlowEdit(win_id, FlowEditMessage::AddOutput));
+    let _ = app.update(Message::FlowEdit(
+        win_id,
+        Route::default(),
+        FlowEditMessage::AddOutput,
+    ));
     app.root_flow
         .connections
         .push(Connection::new("add", "output/output0"));
     let _ = app.update(Message::FlowEdit(
         win_id,
+        Route::default(),
         FlowEditMessage::OutputNameChanged(0, "result".into()),
     ));
     // Connection to-route should now reference "output/result" instead of "output/output0"
@@ -1291,25 +1350,42 @@ fn new_function_clears_context_menu() {
 fn flow_edit_toggle_metadata() {
     let (mut app, win_id) = test_app();
     assert!(!app.windows.get(&win_id).is_none_or(|w| w.show_metadata));
-    let _ = app.update(Message::FlowEdit(win_id, FlowEditMessage::ToggleMetadata));
+    let _ = app.update(Message::FlowEdit(
+        win_id,
+        Route::default(),
+        FlowEditMessage::ToggleMetadata,
+    ));
     assert!(app.windows.get(&win_id).is_some_and(|w| w.show_metadata));
 }
 
 #[test]
 fn flow_edit_add_delete_output() {
     let (mut app, win_id) = test_app();
-    let _ = app.update(Message::FlowEdit(win_id, FlowEditMessage::AddOutput));
+    let _ = app.update(Message::FlowEdit(
+        win_id,
+        Route::default(),
+        FlowEditMessage::AddOutput,
+    ));
     assert_eq!(app.root_flow.outputs.len(), 1);
-    let _ = app.update(Message::FlowEdit(win_id, FlowEditMessage::DeleteOutput(0)));
+    let _ = app.update(Message::FlowEdit(
+        win_id,
+        Route::default(),
+        FlowEditMessage::DeleteOutput(0),
+    ));
     assert_eq!(app.root_flow.outputs.len(), 0);
 }
 
 #[test]
 fn flow_edit_input_type_changed() {
     let (mut app, win_id) = test_app();
-    let _ = app.update(Message::FlowEdit(win_id, FlowEditMessage::AddInput));
     let _ = app.update(Message::FlowEdit(
         win_id,
+        Route::default(),
+        FlowEditMessage::AddInput,
+    ));
+    let _ = app.update(Message::FlowEdit(
+        win_id,
+        Route::default(),
         FlowEditMessage::InputTypeChanged(0, "number".into()),
     ));
     let dtype = app
@@ -1324,9 +1400,14 @@ fn flow_edit_input_type_changed() {
 #[test]
 fn flow_edit_output_type_changed() {
     let (mut app, win_id) = test_app();
-    let _ = app.update(Message::FlowEdit(win_id, FlowEditMessage::AddOutput));
     let _ = app.update(Message::FlowEdit(
         win_id,
+        Route::default(),
+        FlowEditMessage::AddOutput,
+    ));
+    let _ = app.update(Message::FlowEdit(
+        win_id,
+        Route::default(),
         FlowEditMessage::OutputTypeChanged(0, "boolean".into()),
     ));
     let dtype = app
@@ -1567,6 +1648,7 @@ fn flow_edit_name_change() {
     let (mut app, win_id) = test_app();
     let _ = app.update(Message::FlowEdit(
         win_id,
+        Route::default(),
         FlowEditMessage::NameChanged("renamed_flow".into()),
     ));
     assert_eq!(app.root_flow.name, "renamed_flow");
@@ -1577,6 +1659,7 @@ fn flow_edit_description_change() {
     let (mut app, win_id) = test_app();
     let _ = app.update(Message::FlowEdit(
         win_id,
+        Route::default(),
         FlowEditMessage::DescriptionChanged("A test description".into()),
     ));
     assert_eq!(app.root_flow.metadata.description, "A test description");
@@ -1587,6 +1670,7 @@ fn flow_edit_version_change() {
     let (mut app, win_id) = test_app();
     let _ = app.update(Message::FlowEdit(
         win_id,
+        Route::default(),
         FlowEditMessage::VersionChanged("2.0.0".into()),
     ));
     assert_eq!(app.root_flow.metadata.version, "2.0.0");
@@ -1597,6 +1681,7 @@ fn flow_edit_authors_change() {
     let (mut app, win_id) = test_app();
     let _ = app.update(Message::FlowEdit(
         win_id,
+        Route::default(),
         FlowEditMessage::AuthorsChanged("Alice, Bob".into()),
     ));
     assert_eq!(app.root_flow.metadata.authors, vec!["Alice", "Bob"]);
@@ -1606,7 +1691,11 @@ fn flow_edit_authors_change() {
 fn flow_edit_toggle_metadata_via_message() {
     let (mut app, win_id) = test_app();
     let before = app.windows.get(&win_id).is_some_and(|w| w.show_metadata);
-    let _ = app.update(Message::FlowEdit(win_id, FlowEditMessage::ToggleMetadata));
+    let _ = app.update(Message::FlowEdit(
+        win_id,
+        Route::default(),
+        FlowEditMessage::ToggleMetadata,
+    ));
     let after = app.windows.get(&win_id).is_some_and(|w| w.show_metadata);
     assert_ne!(before, after);
 }
@@ -1615,7 +1704,11 @@ fn flow_edit_toggle_metadata_via_message() {
 fn flow_edit_add_input() {
     let (mut app, win_id) = test_app();
     let before = app.root_flow.inputs.len();
-    let _ = app.update(Message::FlowEdit(win_id, FlowEditMessage::AddInput));
+    let _ = app.update(Message::FlowEdit(
+        win_id,
+        Route::default(),
+        FlowEditMessage::AddInput,
+    ));
     assert_eq!(app.root_flow.inputs.len(), before + 1);
 }
 
@@ -1623,25 +1716,45 @@ fn flow_edit_add_input() {
 fn flow_edit_add_output() {
     let (mut app, win_id) = test_app();
     let before = app.root_flow.outputs.len();
-    let _ = app.update(Message::FlowEdit(win_id, FlowEditMessage::AddOutput));
+    let _ = app.update(Message::FlowEdit(
+        win_id,
+        Route::default(),
+        FlowEditMessage::AddOutput,
+    ));
     assert_eq!(app.root_flow.outputs.len(), before + 1);
 }
 
 #[test]
 fn flow_edit_delete_input() {
     let (mut app, win_id) = test_app();
-    let _ = app.update(Message::FlowEdit(win_id, FlowEditMessage::AddInput));
+    let _ = app.update(Message::FlowEdit(
+        win_id,
+        Route::default(),
+        FlowEditMessage::AddInput,
+    ));
     assert_eq!(app.root_flow.inputs.len(), 1);
-    let _ = app.update(Message::FlowEdit(win_id, FlowEditMessage::DeleteInput(0)));
+    let _ = app.update(Message::FlowEdit(
+        win_id,
+        Route::default(),
+        FlowEditMessage::DeleteInput(0),
+    ));
     assert_eq!(app.root_flow.inputs.len(), 0);
 }
 
 #[test]
 fn flow_edit_delete_output() {
     let (mut app, win_id) = test_app();
-    let _ = app.update(Message::FlowEdit(win_id, FlowEditMessage::AddOutput));
+    let _ = app.update(Message::FlowEdit(
+        win_id,
+        Route::default(),
+        FlowEditMessage::AddOutput,
+    ));
     assert_eq!(app.root_flow.outputs.len(), 1);
-    let _ = app.update(Message::FlowEdit(win_id, FlowEditMessage::DeleteOutput(0)));
+    let _ = app.update(Message::FlowEdit(
+        win_id,
+        Route::default(),
+        FlowEditMessage::DeleteOutput(0),
+    ));
     assert_eq!(app.root_flow.outputs.len(), 0);
 }
 
@@ -1872,9 +1985,14 @@ fn close_requested_clean_window() {
 #[test]
 fn flow_edit_input_name_change() {
     let (mut app, win_id) = test_app();
-    let _ = app.update(Message::FlowEdit(win_id, FlowEditMessage::AddInput));
     let _ = app.update(Message::FlowEdit(
         win_id,
+        Route::default(),
+        FlowEditMessage::AddInput,
+    ));
+    let _ = app.update(Message::FlowEdit(
+        win_id,
+        Route::default(),
         FlowEditMessage::InputNameChanged(0, "my_input".into()),
     ));
     assert_eq!(app.root_flow.inputs[0].name(), "my_input");
@@ -1883,9 +2001,14 @@ fn flow_edit_input_name_change() {
 #[test]
 fn flow_edit_output_name_change() {
     let (mut app, win_id) = test_app();
-    let _ = app.update(Message::FlowEdit(win_id, FlowEditMessage::AddOutput));
     let _ = app.update(Message::FlowEdit(
         win_id,
+        Route::default(),
+        FlowEditMessage::AddOutput,
+    ));
+    let _ = app.update(Message::FlowEdit(
+        win_id,
+        Route::default(),
         FlowEditMessage::OutputNameChanged(0, "my_output".into()),
     ));
     assert_eq!(app.root_flow.outputs[0].name(), "my_output");
@@ -1894,9 +2017,14 @@ fn flow_edit_output_name_change() {
 #[test]
 fn flow_edit_input_type_change() {
     let (mut app, win_id) = test_app();
-    let _ = app.update(Message::FlowEdit(win_id, FlowEditMessage::AddInput));
     let _ = app.update(Message::FlowEdit(
         win_id,
+        Route::default(),
+        FlowEditMessage::AddInput,
+    ));
+    let _ = app.update(Message::FlowEdit(
+        win_id,
+        Route::default(),
         FlowEditMessage::InputTypeChanged(0, "number".into()),
     ));
     assert_eq!(
@@ -1911,9 +2039,14 @@ fn flow_edit_input_type_change() {
 #[test]
 fn flow_edit_output_type_change() {
     let (mut app, win_id) = test_app();
-    let _ = app.update(Message::FlowEdit(win_id, FlowEditMessage::AddOutput));
     let _ = app.update(Message::FlowEdit(
         win_id,
+        Route::default(),
+        FlowEditMessage::AddOutput,
+    ));
+    let _ = app.update(Message::FlowEdit(
+        win_id,
+        Route::default(),
         FlowEditMessage::OutputTypeChanged(0, "number".into()),
     ));
     assert_eq!(
@@ -2043,6 +2176,7 @@ fn subflow_input_rename_updates_parent_connections() {
     // Rename the sub-flow's input from "size" to "dimensions"
     let _ = app.update(Message::FlowEdit(
         child_win_id,
+        sub_route.clone(),
         FlowEditMessage::InputNameChanged(0, "dimensions".into()),
     ));
 
@@ -2084,6 +2218,7 @@ fn subflow_input_delete_removes_parent_connections() {
     // Delete the sub-flow's input (index 0 = "size")
     let _ = app.update(Message::FlowEdit(
         child_win_id,
+        sub_route.clone(),
         FlowEditMessage::DeleteInput(0),
     ));
 
@@ -2129,6 +2264,7 @@ fn subflow_output_delete_removes_parent_connections() {
     // Delete the output
     let _ = app.update(Message::FlowEdit(
         child_win_id,
+        sub_route.clone(),
         FlowEditMessage::DeleteOutput(0),
     ));
 
