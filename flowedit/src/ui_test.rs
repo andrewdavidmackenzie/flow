@@ -2011,3 +2011,134 @@ fn function_edit_tab_switch() {
         }
     }
 }
+
+// --- Sub-flow I/O rename/delete propagation to parent tests ---
+
+#[test]
+fn subflow_input_rename_updates_parent_connections() {
+    let (mut app, _) = load_mandlebrot_app();
+    // Find a sub-flow that has inputs connected from the parent
+    // generate_pixels has input "size" connected from "parse_args/size"
+    let sub_route = Route::from(format!("/{}/generate_pixels", app.root_flow.alias));
+
+    // Create a child window for the sub-flow
+    let child_win_id = window::Id::unique();
+    let child = WindowState {
+        route: sub_route.clone(),
+        ..Default::default()
+    };
+    app.windows.insert(child_win_id, child);
+
+    // Verify parent has a connection to generate_pixels/size
+    let has_size_conn = app.root_flow.connections.iter().any(|c| {
+        c.to()
+            .iter()
+            .any(|r| r.to_string().contains("generate_pixels/size"))
+    });
+    assert!(
+        has_size_conn,
+        "parent should have connection to generate_pixels/size"
+    );
+
+    // Rename the sub-flow's input from "size" to "dimensions"
+    let _ = app.update(Message::FlowEdit(
+        child_win_id,
+        FlowEditMessage::InputNameChanged(0, "dimensions".into()),
+    ));
+
+    // Parent connection should now reference "generate_pixels/dimensions"
+    let has_old = app.root_flow.connections.iter().any(|c| {
+        c.to()
+            .iter()
+            .any(|r| r.to_string().contains("generate_pixels/size"))
+    });
+    let has_new = app.root_flow.connections.iter().any(|c| {
+        c.to()
+            .iter()
+            .any(|r| r.to_string().contains("generate_pixels/dimensions"))
+    });
+    assert!(
+        !has_old,
+        "old connection to generate_pixels/size should be gone"
+    );
+    assert!(
+        has_new,
+        "new connection to generate_pixels/dimensions should exist"
+    );
+}
+
+#[test]
+fn subflow_input_delete_removes_parent_connections() {
+    let (mut app, _) = load_mandlebrot_app();
+    let sub_route = Route::from(format!("/{}/generate_pixels", app.root_flow.alias));
+
+    let child_win_id = window::Id::unique();
+    let child = WindowState {
+        route: sub_route.clone(),
+        ..Default::default()
+    };
+    app.windows.insert(child_win_id, child);
+
+    let conns_before = app.root_flow.connections.len();
+
+    // Delete the sub-flow's input (index 0 = "size")
+    let _ = app.update(Message::FlowEdit(
+        child_win_id,
+        FlowEditMessage::DeleteInput(0),
+    ));
+
+    // Parent connections to generate_pixels/size should be removed
+    let has_size_conn = app.root_flow.connections.iter().any(|c| {
+        c.to()
+            .iter()
+            .any(|r| r.to_string().contains("generate_pixels/size"))
+    });
+    assert!(
+        !has_size_conn,
+        "parent connection to deleted input should be removed"
+    );
+    assert!(
+        app.root_flow.connections.len() < conns_before,
+        "total connections should decrease"
+    );
+}
+
+#[test]
+fn subflow_output_delete_removes_parent_connections() {
+    let (mut app, _) = load_mandlebrot_app();
+    let sub_route = Route::from(format!("/{}/generate_pixels", app.root_flow.alias));
+
+    let child_win_id = window::Id::unique();
+    let child = WindowState {
+        route: sub_route.clone(),
+        ..Default::default()
+    };
+    app.windows.insert(child_win_id, child);
+
+    // generate_pixels has output "pixels" connected to render/pixel
+    let has_pixels_conn = app
+        .root_flow
+        .connections
+        .iter()
+        .any(|c| c.from().to_string().contains("generate_pixels/pixels"));
+    assert!(
+        has_pixels_conn,
+        "parent should have connection from generate_pixels/pixels"
+    );
+
+    // Delete the output
+    let _ = app.update(Message::FlowEdit(
+        child_win_id,
+        FlowEditMessage::DeleteOutput(0),
+    ));
+
+    let has_pixels_after = app
+        .root_flow
+        .connections
+        .iter()
+        .any(|c| c.from().to_string().contains("generate_pixels/pixels"));
+    assert!(
+        !has_pixels_after,
+        "parent connection from deleted output should be removed"
+    );
+}

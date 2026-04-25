@@ -876,6 +876,25 @@ impl FlowEdit {
             .map(|w| w.route.clone())
             .unwrap_or_default();
 
+        // Capture deleted I/O name before deletion for parent connection cleanup
+        let io_delete = match &flow_msg {
+            FlowEditMessage::DeleteInput(idx) => {
+                let flow_def = resolve_flow_def_mut(&mut self.root_flow, &route);
+                flow_def
+                    .inputs
+                    .get(*idx)
+                    .map(|io| (true, io.name().clone()))
+            }
+            FlowEditMessage::DeleteOutput(idx) => {
+                let flow_def = resolve_flow_def_mut(&mut self.root_flow, &route);
+                flow_def
+                    .outputs
+                    .get(*idx)
+                    .map(|io| (false, io.name().clone()))
+            }
+            _ => None,
+        };
+
         // Capture old I/O name before rename for parent connection update
         let io_rename = match &flow_msg {
             FlowEditMessage::InputNameChanged(idx, new_name) => {
@@ -900,42 +919,11 @@ impl FlowEdit {
             win.handle_flow_edit_message(flow_def, flow_msg);
         }
 
-        // Update parent flow connections when a sub-flow I/O is renamed
         if let Some((is_input, old_name, new_name)) = io_rename {
-            if !route.is_empty() && route != self.root_flow.route && old_name != new_name {
-                let sub_alias = route.as_ref().rsplit('/').next().unwrap_or("");
-                if !sub_alias.is_empty() {
-                    // Find parent by stripping last segment from route
-                    let parent_route_str =
-                        &route.as_ref()[..route.as_ref().rfind('/').unwrap_or(0)];
-                    let parent_route = Route::from(parent_route_str);
-                    let parent_flow = resolve_flow_def_mut(&mut self.root_flow, &parent_route);
-                    let old_endpoint = format!("{sub_alias}/{old_name}");
-                    let new_endpoint = format!("{sub_alias}/{new_name}");
-                    for conn in &mut parent_flow.connections {
-                        if is_input {
-                            // Sub-flow inputs appear as "to" in parent connections
-                            let new_to: Vec<Route> = conn
-                                .to()
-                                .iter()
-                                .map(|r| {
-                                    if r.to_string() == old_endpoint {
-                                        Route::from(new_endpoint.as_str())
-                                    } else {
-                                        r.clone()
-                                    }
-                                })
-                                .collect();
-                            conn.set_to(new_to);
-                        } else {
-                            // Sub-flow outputs appear as "from" in parent connections
-                            if conn.from().to_string() == old_endpoint {
-                                conn.set_from(Route::from(new_endpoint.as_str()));
-                            }
-                        }
-                    }
-                }
-            }
+            self.update_parent_io_rename(&route, is_input, &old_name, &new_name);
+        }
+        if let Some((is_input, deleted_name)) = io_delete {
+            self.update_parent_io_delete(&route, is_input, &deleted_name);
         }
 
         if affects_parent && !route.is_empty() && route != self.root_flow.route {
@@ -945,6 +933,75 @@ impl FlowEdit {
                     win.trigger_auto_fit_if_enabled();
                 }
             }
+        }
+    }
+
+    fn update_parent_io_rename(
+        &mut self,
+        route: &Route,
+        is_input: bool,
+        old_name: &str,
+        new_name: &str,
+    ) {
+        if route.is_empty() || *route == self.root_flow.route || old_name == new_name {
+            return;
+        }
+        let sub_alias = route.as_ref().rsplit('/').next().unwrap_or("");
+        if sub_alias.is_empty() {
+            return;
+        }
+        let parent_route_str = &route.as_ref()[..route.as_ref().rfind('/').unwrap_or(0)];
+        let parent_route = Route::from(parent_route_str);
+        let parent_flow = resolve_flow_def_mut(&mut self.root_flow, &parent_route);
+        let old_endpoint = format!("{sub_alias}/{old_name}");
+        let new_endpoint = format!("{sub_alias}/{new_name}");
+        for conn in &mut parent_flow.connections {
+            if is_input {
+                let new_to: Vec<Route> = conn
+                    .to()
+                    .iter()
+                    .map(|r| {
+                        if r.to_string() == old_endpoint {
+                            Route::from(new_endpoint.as_str())
+                        } else {
+                            r.clone()
+                        }
+                    })
+                    .collect();
+                conn.set_to(new_to);
+            } else if conn.from().to_string() == old_endpoint {
+                conn.set_from(Route::from(new_endpoint.as_str()));
+            }
+        }
+    }
+
+    fn update_parent_io_delete(&mut self, route: &Route, is_input: bool, deleted_name: &str) {
+        if route.is_empty() || *route == self.root_flow.route {
+            return;
+        }
+        let sub_alias = route.as_ref().rsplit('/').next().unwrap_or("");
+        if sub_alias.is_empty() {
+            return;
+        }
+        let parent_route_str = &route.as_ref()[..route.as_ref().rfind('/').unwrap_or(0)];
+        let parent_route = Route::from(parent_route_str);
+        let parent_flow = resolve_flow_def_mut(&mut self.root_flow, &parent_route);
+        let endpoint = format!("{sub_alias}/{deleted_name}");
+        if is_input {
+            for conn in &mut parent_flow.connections {
+                let new_to: Vec<Route> = conn
+                    .to()
+                    .iter()
+                    .filter(|r| r.to_string() != endpoint)
+                    .cloned()
+                    .collect();
+                conn.set_to(new_to);
+            }
+            parent_flow.connections.retain(|c| !c.to().is_empty());
+        } else {
+            parent_flow
+                .connections
+                .retain(|c| c.from().to_string() != endpoint);
         }
     }
 
