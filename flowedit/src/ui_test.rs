@@ -688,9 +688,9 @@ fn click_info_toggles_metadata() {
 fn click_libs_toggles_panel() {
     let (mut app, win_id) = test_app();
     assert!(!app.show_lib_paths);
-    click_and_update(&mut app, win_id, "\u{1F4C1} Libs");
+    click_and_update(&mut app, win_id, "LibPath");
     assert!(app.show_lib_paths);
-    click_and_update(&mut app, win_id, "\u{1F4C1} Libs");
+    let _ = app.update(Message::ToggleLibPaths);
     assert!(!app.show_lib_paths);
 }
 

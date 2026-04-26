@@ -1219,27 +1219,23 @@ impl FlowEdit {
             .view(&self.all_definitions)
             .map(move |msg| Message::Library(window_id, msg));
 
-        let mut left_panel = Column::new().push(hierarchy_panel).push(library_panel);
-
-        if self.show_lib_paths {
-            left_panel = left_panel.push(self.view_lib_paths_panel());
-        }
-
-        left_panel = left_panel.push(
-            container(
-                button(Text::new("LibPath").size(12).center())
-                    .on_press(Message::ToggleLibPaths)
-                    .style(if self.show_lib_paths {
-                        toolbar_btn_active
-                    } else {
-                        toolbar_btn
-                    })
+        let left_panel = if self.show_lib_paths {
+            Column::new().push(self.view_lib_paths_panel()).height(Fill)
+        } else {
+            Column::new()
+                .push(hierarchy_panel)
+                .push(library_panel)
+                .push(
+                    container(
+                        button(Text::new("LibPath").size(12).center())
+                            .on_press(Message::ToggleLibPaths)
+                            .style(toolbar_btn)
+                            .padding([4, 8]),
+                    )
                     .padding([4, 8]),
-            )
-            .padding([4, 8]),
-        );
-
-        let left_panel = left_panel.height(Fill);
+                )
+                .height(Fill)
+        };
 
         let mut right_col: Column<'_, Message> =
             Column::new().push(container(canvas_with_controls).width(Fill).height(Fill));
@@ -1447,8 +1443,25 @@ impl FlowEdit {
 
     /// Build the library paths panel.
     fn view_lib_paths_panel(&self) -> Element<'_, Message> {
-        let mut paths_col = Column::new().spacing(4).padding(12);
-        paths_col = paths_col.push(Text::new("Library Search Paths").size(14));
+        let header = Row::new()
+            .spacing(6)
+            .align_y(iced::Alignment::Center)
+            .push(Text::new("Library Search Paths").size(14))
+            .push(iced::widget::Space::new().width(Fill))
+            .push(
+                button(Text::new("+ Add").size(11).center())
+                    .on_press(Message::AddLibraryPath)
+                    .style(toolbar_btn)
+                    .padding([3, 8]),
+            )
+            .push(
+                button(Text::new("\u{2715}").size(11).center())
+                    .on_press(Message::ToggleLibPaths)
+                    .style(toolbar_btn)
+                    .padding([3, 6]),
+            );
+
+        let mut paths_col = Column::new().spacing(4).padding(8).push(header);
 
         for (i, p) in self.lib_paths.iter().enumerate() {
             let row = Row::new()
@@ -1464,14 +1477,8 @@ impl FlowEdit {
                 );
             paths_col = paths_col.push(row);
         }
-        paths_col = paths_col.push(
-            button(Text::new("+ Add Path...").size(12).center())
-                .on_press(Message::AddLibraryPath)
-                .style(button::secondary)
-                .padding([4, 10]),
-        );
 
-        let lib_panel = container(paths_col)
+        container(paths_col)
             .style(|_theme: &Theme| container::Style {
                 background: Some(iced::Background::Color(Color::from_rgb(0.14, 0.14, 0.18))),
                 border: iced::Border {
@@ -1481,9 +1488,8 @@ impl FlowEdit {
                 },
                 ..Default::default()
             })
-            .width(Fill);
-
-        lib_panel.into()
+            .width(Fill)
+            .into()
     }
 
     fn view_function_definition_tab(
