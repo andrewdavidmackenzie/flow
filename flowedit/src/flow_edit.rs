@@ -2189,7 +2189,7 @@ impl FlowEdit {
         open_task.discard()
     }
 
-    fn flush_pending_edits(&mut self) {
+    pub(crate) fn flush_pending_edits(&mut self) {
         let win_ids: Vec<window::Id> = self.windows.keys().copied().collect();
         let mut io_renames = Vec::new();
         for win_id in win_ids {
