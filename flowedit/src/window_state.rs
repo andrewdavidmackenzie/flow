@@ -1103,10 +1103,13 @@ impl WindowState {
     }
     // --- File operations (from file_ops.rs) ---
 
-    pub(crate) fn perform_save(&mut self, flow_def: &mut FlowDefinition, path: &PathBuf) {
+    fn flow_directory(flow_def: &FlowDefinition) -> Option<PathBuf> {
+        Self::file_path_of(flow_def).and_then(|p| p.parent().map(Path::to_path_buf))
+    }
+
+    pub(crate) fn perform_save(&mut self, flow_def: &mut FlowDefinition, path: &PathBuf) -> bool {
         match file_ops::save_flow_toml(flow_def, path) {
             Ok(()) => {
-                self.history.clear();
                 Self::set_file_path_on(flow_def, path);
                 file_ops::save_editor_prefs(path, self.last_size, self.last_position);
                 if let Some(name) = path.file_name().and_then(|n| n.to_str()) {
@@ -1114,45 +1117,48 @@ impl WindowState {
                 } else {
                     self.status = String::from("Saved");
                 }
+                true
             }
             Err(e) => {
                 self.status = format!("Save failed: {e}");
+                false
             }
         }
     }
 
-    /// Prompt the user with a save dialog and save to the chosen path.
-    pub(crate) fn perform_save_as(&mut self, flow_def: &mut FlowDefinition) {
-        let dialog = rfd::FileDialog::new()
+    pub(crate) fn perform_save_as(&mut self, flow_def: &mut FlowDefinition) -> bool {
+        let mut dialog = rfd::FileDialog::new()
             .add_filter("Flow", &["toml"])
             .set_file_name(format!("{}.toml", flow_def.name));
+        if let Some(dir) = Self::flow_directory(flow_def) {
+            dialog = dialog.set_directory(dir);
+        }
         if let Some(path) = dialog.save_file() {
-            self.perform_save(flow_def, &path);
+            return self.perform_save(flow_def, &path);
         }
+        false
     }
 
-    /// Handle save message -- saves to existing path or prompts with save dialog.
-    pub(crate) fn handle_save(&mut self, flow_def: &mut FlowDefinition) {
+    pub(crate) fn handle_save(&mut self, flow_def: &mut FlowDefinition) -> bool {
         if let Some(path) = Self::file_path_of(flow_def) {
-            self.perform_save(flow_def, &path);
+            self.perform_save(flow_def, &path)
         } else {
-            self.perform_save_as(flow_def);
+            self.perform_save_as(flow_def)
         }
     }
 
-    /// Handle save-as message -- prompts with save dialog.
-    pub(crate) fn handle_save_as(&mut self, flow_def: &mut FlowDefinition) {
-        self.perform_save_as(flow_def);
+    pub(crate) fn handle_save_as(&mut self, flow_def: &mut FlowDefinition) -> bool {
+        self.perform_save_as(flow_def)
     }
 
-    /// Prompt the user with an open dialog and load the selected flow file.
-    /// Open a flow file and update the window state.
-    /// Returns the loaded flow definition and lib/context references if successful.
     pub(crate) fn perform_open(
         &mut self,
         flow_def: &mut FlowDefinition,
     ) -> Option<(BTreeSet<Url>, BTreeSet<Url>)> {
-        let dialog = rfd::FileDialog::new().add_filter("Flow", &["toml"]);
+        let mut dialog = rfd::FileDialog::new().add_filter("Flow", &["toml"]);
+        if let Some(dir) = Self::flow_directory(flow_def) {
+            dialog = dialog.set_directory(dir);
+        }
         if let Some(path) = dialog.pick_file() {
             match file_ops::load_flow(&path) {
                 Ok(loaded_flow) => {
