@@ -2910,3 +2910,96 @@ fn unsaved_edit_count_multiple_windows() {
     ));
     assert!(app.unsaved_edit_count() >= 2);
 }
+
+// ---- Group: iced_test view coverage for flow_edit ----
+
+#[test]
+fn view_toolbar_has_save_open_buttons() {
+    let (app, win_id) = test_app();
+    let view = app.view(win_id);
+    let mut sim = simulator(view);
+    assert!(sim.find("\u{1F4BE} Save").is_ok(), "Save button present");
+    assert!(sim.find("\u{1F4C2} Open").is_ok(), "Open button present");
+    assert!(
+        sim.find("Save As\u{2026}").is_ok(),
+        "Save As button present"
+    );
+}
+
+#[test]
+fn view_toolbar_has_build_button() {
+    let (app, win_id) = test_app();
+    let view = app.view(win_id);
+    let mut sim = simulator(view);
+    assert!(
+        sim.find("\u{1F528} Build").is_ok(),
+        "Build button present on root"
+    );
+}
+
+#[test]
+fn view_toolbar_has_info_button() {
+    let (app, win_id) = test_app();
+    let view = app.view(win_id);
+    let mut sim = simulator(view);
+    assert!(sim.find("\u{2139} Info").is_ok(), "Info button present");
+}
+
+#[test]
+fn view_toolbar_has_subflow_function_buttons() {
+    let (app, win_id) = test_app();
+    let view = app.view(win_id);
+    let mut sim = simulator(view);
+    assert!(sim.find("+ Sub-flow").is_ok(), "Sub-flow button present");
+    assert!(sim.find("+ Function").is_ok(), "Function button present");
+}
+
+#[test]
+fn view_toolbar_child_window_has_save_only() {
+    let (mut app, _root_id) = test_app();
+    let child_id = window::Id::unique();
+    app.windows.insert(
+        child_id,
+        WindowState {
+            ..Default::default()
+        },
+    );
+    let view = app.view(child_id);
+    let mut sim = simulator(view);
+    assert!(sim.find("\u{1F4BE} Save").is_ok(), "Save on child window");
+    assert!(
+        sim.find("\u{1F4C2} Open").is_err(),
+        "Open not on child window"
+    );
+    assert!(
+        sim.find("+ Sub-flow").is_err(),
+        "Sub-flow not on child window"
+    );
+}
+
+#[test]
+fn view_metadata_panel_visible_after_toggle() {
+    let (mut app, win_id) = test_app();
+    let _ = app.update(Message::FlowEdit(
+        win_id,
+        Route::default(),
+        FlowEditMessage::ToggleMetadata,
+    ));
+    let view = app.view(win_id);
+    let mut sim = simulator(view);
+    assert!(sim.find("Name:").is_ok(), "Metadata panel shows Name");
+    assert!(sim.find("Version:").is_ok(), "Metadata panel shows Version");
+}
+
+#[test]
+fn view_lib_paths_panel_toggle() {
+    let (mut app, win_id) = test_app();
+    let _ = app.update(Message::ToggleLibPaths);
+    let view = app.view(win_id);
+    let mut sim = simulator(view);
+    assert!(
+        sim.find("Library Search Paths").is_ok(),
+        "LibPath panel visible"
+    );
+    assert!(sim.find("+ Add").is_ok(), "Add button in panel");
+}
