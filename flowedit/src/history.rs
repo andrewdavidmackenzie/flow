@@ -139,6 +139,10 @@ impl EditHistory {
         self.undo_stack.len()
     }
 
+    pub(crate) fn edit_count(&self) -> usize {
+        self.undo_stack.len() + usize::from(self.dirty)
+    }
+
     /// Returns `true` if there are no unsaved changes -- neither undoable
     /// actions on the stack nor a non-undoable `dirty` flag.
     pub(crate) fn is_empty(&self) -> bool {

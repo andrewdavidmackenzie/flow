@@ -2333,11 +2333,7 @@ impl FlowEdit {
     }
 
     fn unsaved_edit_count(&self) -> usize {
-        self.windows
-            .values()
-            .filter(|w| !w.history.is_empty())
-            .map(|w| w.history.len())
-            .sum()
+        self.windows.values().map(|w| w.history.edit_count()).sum()
     }
 
     fn save_root_flow(&mut self, save_as: bool) {

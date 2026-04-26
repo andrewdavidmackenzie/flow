@@ -2620,3 +2620,79 @@ fn unsaved_edit_count_nonzero_after_edit() {
     ));
     assert!(app.unsaved_edit_count() > 0);
 }
+
+// ---- Group: Save button shows edit count ----
+
+#[test]
+fn save_button_shows_count_after_edit() {
+    let (mut app, win_id) = test_app();
+    let _ = app.update(Message::WindowCanvas(
+        win_id,
+        CanvasMessage::Moved(0, 200.0, 200.0),
+    ));
+    let _ = app.update(Message::WindowCanvas(
+        win_id,
+        CanvasMessage::MoveCompleted(0, 100.0, 100.0, 200.0, 200.0),
+    ));
+    let count = app.unsaved_edit_count();
+    assert!(count > 0);
+    let expected = format!("\u{1F4BE} Save ({count})");
+    let view = app.view(win_id);
+    let mut sim = simulator(view);
+    assert!(
+        sim.find(expected.as_str()).is_ok(),
+        "Save button should show edit count"
+    );
+}
+
+#[test]
+fn save_button_no_count_when_clean() {
+    let (app, win_id) = test_app();
+    assert_eq!(app.unsaved_edit_count(), 0);
+    let view = app.view(win_id);
+    let mut sim = simulator(view);
+    assert!(
+        sim.find("\u{1F4BE} Save").is_ok(),
+        "Save button should show without count"
+    );
+}
+
+#[test]
+fn save_button_count_increases_with_edits() {
+    let (mut app, win_id) = test_app();
+    let _ = app.update(Message::WindowCanvas(
+        win_id,
+        CanvasMessage::Moved(0, 200.0, 200.0),
+    ));
+    let _ = app.update(Message::WindowCanvas(
+        win_id,
+        CanvasMessage::MoveCompleted(0, 100.0, 100.0, 200.0, 200.0),
+    ));
+    let count1 = app.unsaved_edit_count();
+    let _ = app.update(Message::FlowEdit(
+        win_id,
+        Route::default(),
+        FlowEditMessage::AddInput,
+    ));
+    let count2 = app.unsaved_edit_count();
+    assert!(count2 > count1, "count should increase with more edits");
+}
+
+#[test]
+fn status_text_no_saved_indicator() {
+    let (mut app, win_id) = test_app();
+    let _ = app.update(Message::WindowCanvas(
+        win_id,
+        CanvasMessage::Moved(0, 200.0, 200.0),
+    ));
+    let _ = app.update(Message::WindowCanvas(
+        win_id,
+        CanvasMessage::MoveCompleted(0, 100.0, 100.0, 200.0, 200.0),
+    ));
+    let view = app.view(win_id);
+    let mut sim = simulator(view);
+    assert!(
+        sim.find("unsaved").is_err(),
+        "status text should not contain 'unsaved'"
+    );
+}
