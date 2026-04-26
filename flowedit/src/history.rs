@@ -104,8 +104,8 @@ pub(crate) struct EditHistory {
     undo_stack: Vec<EditAction>,
     /// Stack of actions that can be redone (most recent last)
     redo_stack: Vec<EditAction>,
-    /// Whether non-undoable edits have been made since the last save/clear
-    dirty: bool,
+    /// Count of non-undoable edits since the last save/clear
+    dirty_count: usize,
     /// Path to the last compiled manifest (invalidated on any edit)
     compiled_manifest: Option<PathBuf>,
 }
@@ -139,17 +139,20 @@ impl EditHistory {
         self.undo_stack.len()
     }
 
-    /// Returns `true` if there are no unsaved changes -- neither undoable
-    /// actions on the stack nor a non-undoable `dirty` flag.
-    pub(crate) fn is_empty(&self) -> bool {
-        self.undo_stack.is_empty() && !self.dirty
+    pub(crate) fn edit_count(&self) -> usize {
+        self.undo_stack.len() + self.dirty_count
     }
 
-    /// Clear both stacks and the dirty flag. Called after a successful save.
+    /// Returns `true` if there are no unsaved changes.
+    pub(crate) fn is_empty(&self) -> bool {
+        self.undo_stack.is_empty() && self.dirty_count == 0
+    }
+
+    /// Clear both stacks and the dirty counter. Called after a successful save.
     pub(crate) fn clear(&mut self) {
         self.undo_stack.clear();
         self.redo_stack.clear();
-        self.dirty = false;
+        self.dirty_count = 0;
     }
 
     /// Returns true if there are actions that can be redone.
@@ -161,7 +164,7 @@ impl EditHistory {
     /// Mark the history as having non-undoable modifications (e.g. metadata
     /// edits). Invalidates the compiled manifest.
     pub(crate) fn mark_modified(&mut self) {
-        self.dirty = true;
+        self.dirty_count += 1;
         self.compiled_manifest = None;
     }
 

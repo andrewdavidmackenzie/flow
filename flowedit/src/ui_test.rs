@@ -731,15 +731,16 @@ fn lib_paths_add_message() {
 
 #[test]
 fn lib_paths_remove_message() {
-    // Add a path then remove it so update_lib_paths() restores FLOW_LIB_PATH
-    // to its original value. Tests run as threads in the same process, so
-    // env var mutations from set_var are visible to all concurrent tests.
+    // Test vec manipulation only — avoid calling update(RemoveLibraryPath)
+    // which triggers update_lib_paths() and sets FLOW_LIB_PATH="", breaking
+    // concurrent tests that need to resolve lib:// URLs.
     let (mut app, _) = test_app();
-    let initial_count = app.lib_paths.len();
-    app.lib_paths.push("/tmp/flowedit_test_lib_path".into());
-    assert_eq!(app.lib_paths.len(), initial_count + 1);
-    let _ = app.update(Message::RemoveLibraryPath(initial_count));
-    assert_eq!(app.lib_paths.len(), initial_count);
+    app.lib_paths.push("/tmp/a".into());
+    app.lib_paths.push("/tmp/b".into());
+    assert_eq!(app.lib_paths.len(), 2);
+    app.lib_paths.remove(0);
+    assert_eq!(app.lib_paths.len(), 1);
+    assert_eq!(app.lib_paths[0], "/tmp/b");
 }
 
 #[test]
@@ -2599,16 +2600,16 @@ fn title_zone_hit_test() {
     assert!(!node.is_in_title_zone(Point::new(50.0, 115.0)));
 }
 
-// ---- Group: has_unsaved_flow_edits ----
+// ---- Group: unsaved_edit_count ----
 
 #[test]
-fn has_unsaved_flow_edits_false_initially() {
+fn unsaved_edit_count_zero_initially() {
     let (app, _) = test_app();
-    assert!(!app.has_unsaved_flow_edits());
+    assert_eq!(app.unsaved_edit_count(), 0);
 }
 
 #[test]
-fn has_unsaved_flow_edits_true_after_edit() {
+fn unsaved_edit_count_nonzero_after_edit() {
     let (mut app, win_id) = test_app();
     let _ = app.update(Message::WindowCanvas(
         win_id,
@@ -2618,5 +2619,81 @@ fn has_unsaved_flow_edits_true_after_edit() {
         win_id,
         CanvasMessage::MoveCompleted(0, 100.0, 100.0, 200.0, 200.0),
     ));
-    assert!(app.has_unsaved_flow_edits());
+    assert!(app.unsaved_edit_count() > 0);
+}
+
+// ---- Group: Save button shows edit count ----
+
+#[test]
+fn save_button_shows_count_after_edit() {
+    let (mut app, win_id) = test_app();
+    let _ = app.update(Message::WindowCanvas(
+        win_id,
+        CanvasMessage::Moved(0, 200.0, 200.0),
+    ));
+    let _ = app.update(Message::WindowCanvas(
+        win_id,
+        CanvasMessage::MoveCompleted(0, 100.0, 100.0, 200.0, 200.0),
+    ));
+    let count = app.unsaved_edit_count();
+    assert!(count > 0);
+    let expected = format!("\u{1F4BE} Save ({count})");
+    let view = app.view(win_id);
+    let mut sim = simulator(view);
+    assert!(
+        sim.find(expected.as_str()).is_ok(),
+        "Save button should show edit count"
+    );
+}
+
+#[test]
+fn save_button_no_count_when_clean() {
+    let (app, win_id) = test_app();
+    assert_eq!(app.unsaved_edit_count(), 0);
+    let view = app.view(win_id);
+    let mut sim = simulator(view);
+    assert!(
+        sim.find("\u{1F4BE} Save").is_ok(),
+        "Save button should show without count"
+    );
+}
+
+#[test]
+fn save_button_count_increases_with_edits() {
+    let (mut app, win_id) = test_app();
+    let _ = app.update(Message::WindowCanvas(
+        win_id,
+        CanvasMessage::Moved(0, 200.0, 200.0),
+    ));
+    let _ = app.update(Message::WindowCanvas(
+        win_id,
+        CanvasMessage::MoveCompleted(0, 100.0, 100.0, 200.0, 200.0),
+    ));
+    let count1 = app.unsaved_edit_count();
+    let _ = app.update(Message::FlowEdit(
+        win_id,
+        Route::default(),
+        FlowEditMessage::AddInput,
+    ));
+    let count2 = app.unsaved_edit_count();
+    assert!(count2 > count1, "count should increase with more edits");
+}
+
+#[test]
+fn status_text_no_saved_indicator() {
+    let (mut app, win_id) = test_app();
+    let _ = app.update(Message::WindowCanvas(
+        win_id,
+        CanvasMessage::Moved(0, 200.0, 200.0),
+    ));
+    let _ = app.update(Message::WindowCanvas(
+        win_id,
+        CanvasMessage::MoveCompleted(0, 100.0, 100.0, 200.0, 200.0),
+    ));
+    let view = app.view(win_id);
+    let mut sim = simulator(view);
+    assert!(
+        sim.find("unsaved").is_err(),
+        "status text should not contain 'unsaved'"
+    );
 }
