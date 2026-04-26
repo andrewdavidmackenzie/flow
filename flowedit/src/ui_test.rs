@@ -695,6 +695,50 @@ fn click_libs_toggles_panel() {
 }
 
 #[test]
+fn lib_paths_panel_replaces_hierarchy() {
+    let (mut app, win_id) = test_app();
+    let _ = app.update(Message::ToggleLibPaths);
+    assert!(app.show_lib_paths);
+    let view = app.view(win_id);
+    let mut sim = simulator(view);
+    assert!(
+        sim.find("Library Search Paths").is_ok(),
+        "LibPath panel should be visible"
+    );
+    assert!(
+        sim.find("+ Add").is_ok(),
+        "Add button should be in LibPath header"
+    );
+}
+
+#[test]
+fn lib_paths_close_button_hides_panel() {
+    let (mut app, _win_id) = test_app();
+    let _ = app.update(Message::ToggleLibPaths);
+    assert!(app.show_lib_paths);
+    let _ = app.update(Message::ToggleLibPaths);
+    assert!(!app.show_lib_paths);
+}
+
+#[test]
+fn lib_paths_add_message() {
+    let (mut app, _) = test_app();
+    let initial_count = app.lib_paths.len();
+    let _ = app.update(Message::ToggleLibPaths);
+    assert!(app.show_lib_paths);
+    assert_eq!(app.lib_paths.len(), initial_count);
+}
+
+#[test]
+fn lib_paths_remove_message() {
+    let (mut app, _) = test_app();
+    app.lib_paths.push("/tmp/test_lib".into());
+    let count_before = app.lib_paths.len();
+    let _ = app.update(Message::RemoveLibraryPath(count_before - 1));
+    assert_eq!(app.lib_paths.len(), count_before - 1);
+}
+
+#[test]
 fn metadata_panel_shows_fields() {
     let (mut app, win_id) = test_app();
     click_and_update(&mut app, win_id, "\u{2139} Info");
