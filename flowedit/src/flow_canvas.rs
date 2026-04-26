@@ -100,6 +100,10 @@ pub(crate) enum CanvasMessage {
     HoverChanged(Option<crate::window_state::Tooltip>),
     /// Right-click on empty canvas — show context menu at screen position
     ContextMenu(f32, f32),
+    /// User clicked on a node's title text — start inline name editing
+    EditNodeName(usize),
+    /// User clicked on a flow I/O port label — start inline editing
+    EditIOName { is_input: bool, index: usize },
 }
 
 /// Tracks the drag-in-progress state: which node and the cursor offset from its origin.
@@ -204,7 +208,7 @@ struct ConnectingState {
 /// Corner radius for rounded rectangles
 pub(crate) const CORNER_RADIUS: f32 = 10.0;
 /// Title font size (minimum readable)
-const TITLE_FONT_SIZE: f32 = 16.0;
+pub(crate) const TITLE_FONT_SIZE: f32 = 16.0;
 /// Source label font size (minimum readable)
 pub(crate) const SOURCE_FONT_SIZE: f32 = 12.0;
 /// Port circle radius
@@ -802,6 +806,47 @@ impl FlowCanvas<'_> {
         None
     }
 
+    fn hit_test_flow_io_label(&self, world_pos: Point) -> Option<(bool, usize)> {
+        if !self.is_subflow {
+            return None;
+        }
+        let (box_x, _, box_w, _, center_y, spacing) =
+            flow_io_bounding_box(&self.nodes, &self.flow_def.inputs, &self.flow_def.outputs);
+        let font_size = 13.0;
+        let label_half_height = font_size / 2.0 + 4.0;
+
+        let input_start_y = center_y - (self.flow_def.inputs.len() as f32 - 1.0) * spacing / 2.0;
+        for (i, input) in self.flow_def.inputs.iter().enumerate() {
+            let port_y = input_start_y + i as f32 * spacing;
+            let label_right = box_x - 10.0;
+            let label_left = label_right - input.name().len() as f32 * font_size * 0.6;
+            if world_pos.x >= label_left
+                && world_pos.x <= label_right
+                && world_pos.y >= port_y - label_half_height
+                && world_pos.y <= port_y + label_half_height
+            {
+                return Some((true, i));
+            }
+        }
+
+        let right_x = box_x + box_w;
+        let output_start_y = center_y - (self.flow_def.outputs.len() as f32 - 1.0) * spacing / 2.0;
+        for (i, output) in self.flow_def.outputs.iter().enumerate() {
+            let port_y = output_start_y + i as f32 * spacing;
+            let label_left = right_x + 10.0;
+            let label_right = label_left + output.name().len() as f32 * font_size * 0.6;
+            if world_pos.x >= label_left
+                && world_pos.x <= label_right
+                && world_pos.y >= port_y - label_half_height
+                && world_pos.y <= port_y + label_half_height
+            {
+                return Some((false, i));
+            }
+        }
+
+        None
+    }
+
     /// Check type compatibility when one endpoint is a flow I/O port and the other is a node port.
     ///
     /// Looks up the flow IO's datatypes from `self.flow_def.inputs`/`outputs` and the
@@ -1107,6 +1152,22 @@ impl FlowCanvas<'_> {
 
         if let Some(idx) = self.hit_test_open_icon(world_pos) {
             return Some(canvas::Action::publish(CanvasMessage::OpenNode(idx)).and_capture());
+        }
+
+        if let Some((is_input, index)) = self.hit_test_flow_io_label(world_pos) {
+            return Some(
+                canvas::Action::publish(CanvasMessage::EditIOName { is_input, index })
+                    .and_capture(),
+            );
+        }
+
+        if let Some((idx, _)) = self
+            .nodes
+            .iter()
+            .enumerate()
+            .find(|(_, n)| n.is_in_title_zone(world_pos))
+        {
+            return Some(canvas::Action::publish(CanvasMessage::EditNodeName(idx)).and_capture());
         }
 
         if let Some(idx) = self.hit_test_node(world_pos) {
@@ -1685,7 +1746,7 @@ impl FlowCanvas<'_> {
             font_size,
             zoom,
             offset,
-            false,
+            true,
         );
         let output_positions = draw_flow_output_port_labels(
             frame,
@@ -1697,7 +1758,7 @@ impl FlowCanvas<'_> {
             font_size,
             zoom,
             offset,
-            false,
+            true,
         );
 
         self.draw_flow_io_connections(
@@ -1952,6 +2013,14 @@ impl canvas::Program<CanvasMessage> for FlowCanvas<'_> {
 
             if self.hit_test_open_icon(world_pos).is_some() {
                 return mouse::Interaction::Pointer;
+            }
+
+            if self.hit_test_flow_io_label(world_pos).is_some() {
+                return mouse::Interaction::Text;
+            }
+
+            if self.nodes.iter().any(|n| n.is_in_title_zone(world_pos)) {
+                return mouse::Interaction::Text;
             }
 
             if self.hit_test_node(world_pos).is_some() {

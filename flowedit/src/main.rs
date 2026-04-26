@@ -86,6 +86,14 @@ pub(crate) enum FlowEditMessage {
     InputNameChanged(usize, String),
     /// Flow output port name changed
     OutputNameChanged(usize, String),
+    /// Update the text while editing a node name
+    NodeNameEditing(String),
+    /// Commit the node name edit
+    NodeNameCommit,
+    /// Update the text while editing an I/O port name
+    IONameEditing(String),
+    /// Commit the I/O port name edit
+    IONameCommit,
 }
 
 /// Messages for function definition viewing/editing, tagged by window
@@ -176,6 +184,8 @@ enum Message {
     CloseActiveWindow,
     /// Quit the entire application (Cmd+Q)
     QuitAll,
+    /// Escape key pressed — cancel active inline edit
+    EscapePressed,
     /// A window received focus
     WindowFocused(window::Id),
     /// Window was resized — track the new size
@@ -815,6 +825,18 @@ impl FlowEdit {
         let Some(win) = self.windows.get_mut(&win_id) else {
             return Task::none();
         };
+        let io_renamed = if matches!(canvas_msg, CanvasMessage::HoverChanged(_)) {
+            None
+        } else {
+            win.commit_io_name_edit(flow_def)
+        };
+        if let Some((is_input, old_name, new_name)) = io_renamed {
+            self.update_parent_io_rename(&route, is_input, &old_name, &new_name);
+        }
+        let flow_def = resolve_flow_def_mut(&mut self.root_flow, &route);
+        let Some(win) = self.windows.get_mut(&win_id) else {
+            return Task::none();
+        };
         let action = win.handle_canvas_message(flow_def, canvas_msg);
         let close_task = self.close_orphaned_windows();
         let action_task = match action {
@@ -876,7 +898,28 @@ impl FlowEdit {
         self.close_orphaned_windows()
     }
 
+    #[allow(clippy::too_many_lines)]
     fn handle_flow_edit(&mut self, win_id: window::Id, route: &Route, flow_msg: FlowEditMessage) {
+        // Redirect IONameCommit through InputNameChanged/OutputNameChanged so
+        // update_parent_io_rename runs for sub-flow parent connection propagation.
+        if matches!(flow_msg, FlowEditMessage::IONameCommit) {
+            let editor = self
+                .windows
+                .get_mut(&win_id)
+                .and_then(|w| w.io_name_editor.take());
+            if let Some(editor) = editor {
+                let new_name = editor.text.trim().to_string();
+                if !new_name.is_empty() && new_name != editor.original {
+                    let redirected = if editor.is_input {
+                        FlowEditMessage::InputNameChanged(editor.index, new_name)
+                    } else {
+                        FlowEditMessage::OutputNameChanged(editor.index, new_name)
+                    };
+                    return self.handle_flow_edit(win_id, route, redirected);
+                }
+            }
+            return;
+        }
         let affects_parent = matches!(
             flow_msg,
             FlowEditMessage::NameChanged(_)
@@ -887,6 +930,16 @@ impl FlowEdit {
                 | FlowEditMessage::InputNameChanged(_, _)
                 | FlowEditMessage::OutputNameChanged(_, _)
         );
+
+        // Clear io_name_editor before deletion to avoid stale auto-commit
+        if matches!(
+            flow_msg,
+            FlowEditMessage::DeleteInput(_) | FlowEditMessage::DeleteOutput(_)
+        ) {
+            if let Some(win) = self.windows.get_mut(&win_id) {
+                win.io_name_editor = None;
+            }
+        }
 
         // Capture deleted I/O name before deletion for parent connection cleanup
         let io_delete = match &flow_msg {
@@ -926,13 +979,52 @@ impl FlowEdit {
             _ => None,
         };
 
+        let node_rename = match &flow_msg {
+            FlowEditMessage::NodeNameCommit => self
+                .windows
+                .get(&win_id)
+                .and_then(|w| w.name_editor.as_ref())
+                .map(|e| (e.original.clone(), e.text.trim().to_string())),
+            _ => None,
+        };
+
         let flow_def = resolve_flow_def_mut(&mut self.root_flow, route);
         if let Some(win) = self.windows.get_mut(&win_id) {
             win.handle_flow_edit_message(flow_def, flow_msg);
         }
 
+        if let Some((old_alias, new_alias)) = node_rename {
+            if !new_alias.is_empty() && new_alias != old_alias {
+                let flow_def = resolve_flow_def_mut(&mut self.root_flow, route);
+                let renamed = flow_def.process_refs.iter().any(|p| p.alias == new_alias);
+                if renamed {
+                    let parent_route = route.to_string();
+                    let old_prefix = format!("{parent_route}/{old_alias}");
+                    let new_prefix = format!("{parent_route}/{new_alias}");
+                    for win in self.windows.values_mut() {
+                        let route_str = win.route.to_string();
+                        if route_str == old_prefix
+                            || route_str.starts_with(&format!("{old_prefix}/"))
+                        {
+                            let updated = route_str.replacen(&old_prefix, &new_prefix, 1);
+                            win.route = Route::from(updated.as_str());
+                        }
+                    }
+                }
+            }
+        }
+
         if let Some((is_input, old_name, new_name)) = io_rename {
-            self.update_parent_io_rename(route, is_input, &old_name, &new_name);
+            let flow_def = resolve_flow_def_mut(&mut self.root_flow, route);
+            let ports = if is_input {
+                &flow_def.inputs
+            } else {
+                &flow_def.outputs
+            };
+            let renamed = ports.iter().any(|io| io.name() == &new_name);
+            if renamed {
+                self.update_parent_io_rename(route, is_input, &old_name, &new_name);
+            }
         }
         if let Some((is_input, deleted_name)) = io_delete {
             self.update_parent_io_delete(route, is_input, &deleted_name);
@@ -1036,7 +1128,16 @@ impl FlowEdit {
             }
             Message::Undo => return self.handle_undo_redo(false),
             Message::Redo => return self.handle_undo_redo(true),
+            Message::EscapePressed => {
+                if let Some(win) = self.focused_window.and_then(|id| self.windows.get_mut(&id)) {
+                    win.name_editor = None;
+                    win.io_name_editor = None;
+                    win.initializer_editor = None;
+                    win.context_menu = None;
+                }
+            }
             Message::Save | Message::SaveAs | Message::Open | Message::New | Message::Compile => {
+                self.flush_pending_edits();
                 self.handle_file_message(message);
             }
             Message::FlowEdit(win_id, ref route, flow_msg) => {
@@ -1136,10 +1237,23 @@ impl FlowEdit {
             .view(&self.all_definitions)
             .map(move |msg| Message::Library(window_id, msg));
 
-        let left_panel = Column::new()
-            .push(hierarchy_panel)
-            .push(library_panel)
-            .height(Fill);
+        let left_panel = if self.show_lib_paths {
+            Column::new().push(self.view_lib_paths_panel()).height(Fill)
+        } else {
+            Column::new()
+                .push(hierarchy_panel)
+                .push(library_panel)
+                .push(
+                    container(
+                        button(Text::new("LibPath").size(12).center())
+                            .on_press(Message::ToggleLibPaths)
+                            .style(toolbar_btn)
+                            .padding([4, 8]),
+                    )
+                    .padding([4, 8]),
+                )
+                .height(Fill)
+        };
 
         let mut right_col: Column<'_, Message> =
             Column::new().push(container(canvas_with_controls).width(Fill).height(Fill));
@@ -1149,15 +1263,11 @@ impl FlowEdit {
             right_col = right_col.push(Self::view_metadata_panel(flow_def, window_id));
         }
 
-        // Library paths panel (toggled by Libs button)
-        if self.show_lib_paths {
-            right_col = right_col.push(self.view_lib_paths_panel());
-        }
-
-        right_col = right_col.push(self.view_toolbar(win, flow_def, window_id));
-
-        let layout = Row::new().push(left_panel).push(right_col.width(Fill));
-        layout.into()
+        let top_row = Row::new().push(left_panel).push(right_col.width(Fill));
+        Column::new()
+            .push(container(top_row).height(Fill))
+            .push(self.view_toolbar(win, flow_def, window_id))
+            .into()
     }
 
     /// Build the toolbar/status bar with action buttons and status text.
@@ -1187,6 +1297,7 @@ impl FlowEdit {
         let mut status_row = Row::new()
             .spacing(8)
             .padding([4, 8])
+            .align_y(iced::Alignment::Center)
             .push(
                 container(Text::new(format!("{}{}", win.status, edit_indicator)).size(14))
                     .width(Fill)
@@ -1223,16 +1334,6 @@ impl FlowEdit {
                             FlowEditMessage::ToggleMetadata,
                         ))
                         .style(if win.show_metadata {
-                            toolbar_btn_active
-                        } else {
-                            toolbar_btn
-                        })
-                        .padding(btn_pad),
-                )
-                .push(
-                    button(Text::new("\u{1F4C1} Libs").size(btn_size).center())
-                        .on_press(Message::ToggleLibPaths)
-                        .style(if self.show_lib_paths {
                             toolbar_btn_active
                         } else {
                             toolbar_btn
@@ -1360,8 +1461,25 @@ impl FlowEdit {
 
     /// Build the library paths panel.
     fn view_lib_paths_panel(&self) -> Element<'_, Message> {
-        let mut paths_col = Column::new().spacing(4).padding(12);
-        paths_col = paths_col.push(Text::new("Library Search Paths").size(14));
+        let header = Row::new()
+            .spacing(6)
+            .align_y(iced::Alignment::Center)
+            .push(Text::new("Library Search Paths").size(14))
+            .push(iced::widget::Space::new().width(Fill))
+            .push(
+                button(Text::new("+ Add").size(11).center())
+                    .on_press(Message::AddLibraryPath)
+                    .style(toolbar_btn)
+                    .padding([3, 8]),
+            )
+            .push(
+                button(Text::new("\u{2715}").size(11).center())
+                    .on_press(Message::ToggleLibPaths)
+                    .style(toolbar_btn)
+                    .padding([3, 6]),
+            );
+
+        let mut paths_col = Column::new().spacing(4).padding(8).push(header);
 
         for (i, p) in self.lib_paths.iter().enumerate() {
             let row = Row::new()
@@ -1377,14 +1495,8 @@ impl FlowEdit {
                 );
             paths_col = paths_col.push(row);
         }
-        paths_col = paths_col.push(
-            button(Text::new("+ Add Path...").size(12).center())
-                .on_press(Message::AddLibraryPath)
-                .style(button::secondary)
-                .padding([4, 10]),
-        );
 
-        let lib_panel = container(paths_col)
+        container(paths_col)
             .style(|_theme: &Theme| container::Style {
                 background: Some(iced::Background::Color(Color::from_rgb(0.14, 0.14, 0.18))),
                 border: iced::Border {
@@ -1394,9 +1506,8 @@ impl FlowEdit {
                 },
                 ..Default::default()
             })
-            .width(Fill);
-
-        lib_panel.into()
+            .width(Fill)
+            .into()
     }
 
     fn view_function_definition_tab(
@@ -1728,6 +1839,10 @@ impl FlowEdit {
                 "q" => Some(Message::QuitAll),
                 _ => None,
             },
+            keyboard::Event::KeyPressed {
+                key: keyboard::Key::Named(keyboard::key::Named::Escape),
+                ..
+            } => Some(Message::EscapePressed),
             _ => None,
         });
 
@@ -2187,6 +2302,28 @@ impl FlowEdit {
 
         self.windows.insert(new_id, child);
         open_task.discard()
+    }
+
+    fn flush_pending_edits(&mut self) {
+        let win_ids: Vec<window::Id> = self.windows.keys().copied().collect();
+        let mut io_renames = Vec::new();
+        for win_id in win_ids {
+            let route = self
+                .windows
+                .get(&win_id)
+                .map(|w| w.route.clone())
+                .unwrap_or_default();
+            let flow_def = resolve_flow_def_mut(&mut self.root_flow, &route);
+            if let Some(win) = self.windows.get_mut(&win_id) {
+                win.commit_name_edit(flow_def);
+                if let Some(rename_info) = win.commit_io_name_edit(flow_def) {
+                    io_renames.push((route, rename_info));
+                }
+            }
+        }
+        for (route, (is_input, old_name, new_name)) in io_renames {
+            self.update_parent_io_rename(&route, is_input, &old_name, &new_name);
+        }
     }
 
     fn has_unsaved_flow_edits(&self) -> bool {

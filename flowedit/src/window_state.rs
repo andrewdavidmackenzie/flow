@@ -28,7 +28,7 @@ use flowcore::model::route::Route;
 
 use crate::file_ops;
 use crate::flow_canvas::{
-    flow_io_bounding_box, transform_point, CanvasAction, CanvasMessage, FlowCanvas,
+    flow_io_bounding_box, transform_point, CanvasAction, CanvasMessage, FlowCanvas, TITLE_FONT_SIZE,
 };
 use crate::hierarchy_panel::FlowHierarchy;
 use crate::history::{EditAction, EditHistory};
@@ -64,6 +64,21 @@ pub(crate) struct InitializerEditor {
     pub(crate) init_type: String,
     /// The value as a string (JSON)
     pub(crate) value_text: String,
+}
+
+/// State for inline node name editing on the canvas.
+pub(crate) struct NameEditor {
+    pub(crate) node_index: usize,
+    pub(crate) text: String,
+    pub(crate) original: String,
+}
+
+/// State for inline I/O port name editing on the canvas.
+pub(crate) struct IONameEditor {
+    pub(crate) is_input: bool,
+    pub(crate) index: usize,
+    pub(crate) text: String,
+    pub(crate) original: String,
 }
 
 /// State for a function definition viewer/editor window.
@@ -292,6 +307,10 @@ pub(crate) struct WindowState {
     pub(crate) tooltip: Option<Tooltip>,
     /// Active initializer editor dialog, if any
     pub(crate) initializer_editor: Option<InitializerEditor>,
+    /// Active inline node name editor, if any
+    pub(crate) name_editor: Option<NameEditor>,
+    /// Active inline I/O port name editor, if any
+    pub(crate) io_name_editor: Option<IONameEditor>,
     /// Whether this is the root (main) window
     pub(crate) is_root: bool,
     /// Context menu position (screen coords), if showing
@@ -320,6 +339,8 @@ impl Default for WindowState {
             auto_fit_enabled: false,
             tooltip: None,
             initializer_editor: None,
+            name_editor: None,
+            io_name_editor: None,
             is_root: false,
             context_menu: None,
             show_metadata: false,
@@ -365,6 +386,9 @@ impl WindowState {
         flow_def: &mut FlowDefinition,
         msg: CanvasMessage,
     ) -> CanvasAction {
+        if !matches!(msg, CanvasMessage::HoverChanged(_)) {
+            self.commit_name_edit(flow_def);
+        }
         match msg {
             CanvasMessage::Selected(idx) => self.handle_selected(flow_def, idx),
             CanvasMessage::Moved(idx, x, y) => {
@@ -466,6 +490,36 @@ impl WindowState {
             }
             CanvasMessage::OpenNode(idx) => {
                 return CanvasAction::OpenNode(idx);
+            }
+            CanvasMessage::EditIOName { is_input, index } => {
+                let ports = if is_input {
+                    &flow_def.inputs
+                } else {
+                    &flow_def.outputs
+                };
+                if let Some(port) = ports.get(index) {
+                    let name = port.name().clone();
+                    self.io_name_editor = Some(IONameEditor {
+                        is_input,
+                        index,
+                        text: name.clone(),
+                        original: name,
+                    });
+                }
+            }
+            CanvasMessage::EditNodeName(idx) => {
+                if let Some(pref) = flow_def.process_refs.get(idx) {
+                    let alias = if pref.alias.is_empty() {
+                        derive_short_name(&pref.source)
+                    } else {
+                        pref.alias.clone()
+                    };
+                    self.name_editor = Some(NameEditor {
+                        node_index: idx,
+                        text: alias.clone(),
+                        original: alias,
+                    });
+                }
             }
             CanvasMessage::ContextMenu(x, y) => {
                 self.context_menu = Some(crate::window_state::MenuPosition { x, y });
@@ -706,6 +760,7 @@ impl WindowState {
         }
     }
 
+    #[allow(clippy::too_many_lines)]
     pub(crate) fn view_canvas_area<'a>(
         &'a self,
         flow_def: &'a FlowDefinition,
@@ -801,6 +856,24 @@ impl WindowState {
             canvas_stack.push(Self::build_tooltip_overlay(tip));
         }
 
+        if let Some(ref editor) = self.name_editor {
+            canvas_stack.push(Self::build_name_editor_overlay(
+                editor,
+                flow_def,
+                &self.canvas_state,
+                window_id,
+            ));
+        }
+
+        if let Some(ref editor) = self.io_name_editor {
+            canvas_stack.push(Self::build_io_name_editor_overlay(
+                editor,
+                flow_def,
+                &self.canvas_state,
+                window_id,
+            ));
+        }
+
         if let Some(ref editor) = self.initializer_editor {
             canvas_stack.push(self.build_initializer_dialog(flow_def, window_id, editor));
         }
@@ -812,7 +885,62 @@ impl WindowState {
         stack(canvas_stack).into()
     }
 
-    fn build_flow_io_overlays<'a>(
+    fn build_name_editor_overlay<'a>(
+        editor: &'a NameEditor,
+        flow_def: &'a FlowDefinition,
+        canvas_state: &FlowCanvasState,
+        window_id: window::Id,
+    ) -> Element<'a, Message> {
+        let route = flow_def.route.clone();
+        let zoom = canvas_state.zoom;
+        let offset = canvas_state.scroll_offset;
+
+        if let Some(pref) = flow_def.process_refs.get(editor.node_index) {
+            let node_x = pref.x.unwrap_or(100.0);
+            let node_y = pref.y.unwrap_or(100.0);
+            let node_w = pref.width.unwrap_or(180.0);
+            let screen_pos = transform_point(
+                Point::new(node_x + node_w / 2.0, node_y + 8.0),
+                zoom,
+                offset,
+            );
+            let input_width = (node_w * zoom).max(100.0);
+
+            let route_edit = route.clone();
+            let name_input = text_input("name", &editor.text)
+                .on_input(move |s| {
+                    Message::FlowEdit(
+                        window_id,
+                        route_edit.clone(),
+                        FlowEditMessage::NodeNameEditing(s),
+                    )
+                })
+                .on_submit(Message::FlowEdit(
+                    window_id,
+                    route.clone(),
+                    FlowEditMessage::NodeNameCommit,
+                ))
+                .size(TITLE_FONT_SIZE * zoom)
+                .padding(2)
+                .width(input_width);
+
+            return container(name_input)
+                .width(Fill)
+                .height(Fill)
+                .padding(iced::Padding {
+                    top: (screen_pos.y - 4.0).max(0.0),
+                    left: (screen_pos.x - input_width / 2.0).max(0.0),
+                    right: 0.0,
+                    bottom: 0.0,
+                })
+                .into();
+        }
+
+        container(Text::new("")).into()
+    }
+
+    fn build_io_name_editor_overlay<'a>(
+        editor: &'a IONameEditor,
         flow_def: &'a FlowDefinition,
         canvas_state: &FlowCanvasState,
         window_id: window::Id,
@@ -823,136 +951,154 @@ impl WindowState {
         let zoom = canvas_state.zoom;
         let offset = canvas_state.scroll_offset;
         let route = flow_def.route.clone();
-        let right_x = box_x + box_w;
 
+        let ports = if editor.is_input {
+            &flow_def.inputs
+        } else {
+            &flow_def.outputs
+        };
+        let port_count = ports.len();
+        let start_y = center_y - (port_count as f32 - 1.0) * spacing / 2.0;
+        let port_y = start_y + editor.index as f32 * spacing;
+        let port_x = if editor.is_input {
+            box_x
+        } else {
+            box_x + box_w
+        };
+        let screen_pos = transform_point(Point::new(port_x, port_y), zoom, offset);
+
+        let route_edit = route.clone();
+        let name_input = text_input("name", &editor.text)
+            .on_input(move |s| {
+                Message::FlowEdit(
+                    window_id,
+                    route_edit.clone(),
+                    FlowEditMessage::IONameEditing(s),
+                )
+            })
+            .on_submit(Message::FlowEdit(
+                window_id,
+                route.clone(),
+                FlowEditMessage::IONameCommit,
+            ))
+            .size(PORT_FONT_SIZE)
+            .padding(2)
+            .width(80);
+
+        let route_del = route;
+        let del_msg = if editor.is_input {
+            FlowEditMessage::DeleteInput(editor.index)
+        } else {
+            FlowEditMessage::DeleteOutput(editor.index)
+        };
+        let del_btn = button(Text::new("\u{2715}").size(9))
+            .on_press(Message::FlowEdit(window_id, route_del, del_msg))
+            .style(button::text)
+            .padding([1, 3]);
+
+        let row = if editor.is_input {
+            Row::new()
+                .spacing(2)
+                .align_y(iced::Alignment::Center)
+                .push(del_btn)
+                .push(name_input)
+        } else {
+            Row::new()
+                .spacing(2)
+                .align_y(iced::Alignment::Center)
+                .push(name_input)
+                .push(del_btn)
+        };
+
+        let left = if editor.is_input {
+            (screen_pos.x - 100.0).max(0.0)
+        } else {
+            screen_pos.x + 8.0
+        };
+
+        container(row)
+            .width(Fill)
+            .height(Fill)
+            .padding(iced::Padding {
+                top: (screen_pos.y - 12.0).max(0.0),
+                left,
+                right: 0.0,
+                bottom: 0.0,
+            })
+            .into()
+    }
+
+    fn build_flow_io_overlays<'a>(
+        flow_def: &'a FlowDefinition,
+        canvas_state: &FlowCanvasState,
+        window_id: window::Id,
+    ) -> Element<'a, Message> {
         let mut layers: Vec<Element<'_, Message>> = Vec::new();
-
-        Self::build_io_layers(
-            &mut layers,
-            &flow_def.inputs,
-            box_x,
-            center_y,
-            spacing,
-            zoom,
-            offset,
-            &route,
-            window_id,
-            true,
-        );
-        Self::build_io_layers(
-            &mut layers,
-            &flow_def.outputs,
-            right_x,
-            center_y,
-            spacing,
-            zoom,
-            offset,
-            &route,
-            window_id,
-            false,
-        );
-
+        Self::build_io_add_buttons(&mut layers, flow_def, canvas_state, window_id);
         stack(layers).into()
     }
 
-    #[allow(clippy::too_many_arguments)]
-    fn build_io_layers<'a>(
+    fn build_io_add_buttons<'a>(
         layers: &mut Vec<Element<'a, Message>>,
-        ports: &'a [IO],
-        port_x: f32,
-        center_y: f32,
-        spacing: f32,
-        zoom: f32,
-        offset: Point,
-        route: &Route,
+        flow_def: &'a FlowDefinition,
+        canvas_state: &FlowCanvasState,
         window_id: window::Id,
-        is_input: bool,
     ) {
+        let nodes = NodeLayout::build_from_flow(flow_def);
+        let (box_x, _, box_w, _, center_y, spacing) =
+            flow_io_bounding_box(&nodes, &flow_def.inputs, &flow_def.outputs);
+        let zoom = canvas_state.zoom;
+        let offset = canvas_state.scroll_offset;
+        let route = flow_def.route.clone();
+        let right_x = box_x + box_w;
         let row_height = 24.0;
-        let (row_x_offset, add_x_offset) = if is_input {
-            (-100.0, -60.0)
-        } else {
-            (8.0, 8.0)
-        };
-        let start_y = center_y - (ports.len() as f32 - 1.0) * spacing / 2.0;
 
-        for (i, port) in ports.iter().enumerate() {
-            let world_y = start_y + i as f32 * spacing;
-            let screen_pos = transform_point(Point::new(port_x, world_y), zoom, offset);
-            let route_clone = route.clone();
-
-            let name_input = text_input("name", port.name())
-                .on_input(move |s| {
-                    let msg = if is_input {
-                        FlowEditMessage::InputNameChanged(i, s)
-                    } else {
-                        FlowEditMessage::OutputNameChanged(i, s)
-                    };
-                    Message::FlowEdit(window_id, route_clone.clone(), msg)
-                })
-                .size(PORT_FONT_SIZE)
-                .padding(2)
-                .width(80);
-
-            let route_del = route.clone();
-            let del_msg = if is_input {
-                FlowEditMessage::DeleteInput(i)
-            } else {
-                FlowEditMessage::DeleteOutput(i)
-            };
-            let del_btn = button(Text::new("\u{2715}").size(9))
-                .on_press(Message::FlowEdit(window_id, route_del, del_msg))
-                .style(button::text)
-                .padding([1, 3]);
-
-            let row = if is_input {
-                Row::new()
-                    .spacing(2)
-                    .align_y(iced::Alignment::Center)
-                    .push(del_btn)
-                    .push(name_input)
-            } else {
-                Row::new()
-                    .spacing(2)
-                    .align_y(iced::Alignment::Center)
-                    .push(name_input)
-                    .push(del_btn)
-            };
-
-            layers.push(
-                container(row)
-                    .width(Fill)
-                    .height(Fill)
-                    .padding(iced::Padding {
-                        top: (screen_pos.y - row_height / 2.0).max(0.0),
-                        left: (screen_pos.x + row_x_offset).max(0.0),
-                        right: 0.0,
-                        bottom: 0.0,
-                    })
-                    .into(),
-            );
-        }
-
-        let add_y = start_y + ports.len() as f32 * spacing;
-        let add_screen = transform_point(Point::new(port_x, add_y), zoom, offset);
-        let route_add = route.clone();
-        let (add_label, add_msg) = if is_input {
-            ("+ Input", FlowEditMessage::AddInput)
-        } else {
-            ("+ Output", FlowEditMessage::AddOutput)
-        };
+        let input_start_y = center_y - (flow_def.inputs.len() as f32 - 1.0) * spacing / 2.0;
+        let input_add_y = input_start_y + flow_def.inputs.len() as f32 * spacing;
+        let input_screen = transform_point(Point::new(box_x, input_add_y), zoom, offset);
+        let route_add_in = route.clone();
         layers.push(
             container(
-                button(Text::new(add_label).size(10))
-                    .on_press(Message::FlowEdit(window_id, route_add, add_msg))
-                    .style(button::text)
-                    .padding([2, 4]),
+                button(Text::new("+ Input").size(10).center())
+                    .on_press(Message::FlowEdit(
+                        window_id,
+                        route_add_in,
+                        FlowEditMessage::AddInput,
+                    ))
+                    .style(crate::toolbar_btn)
+                    .padding([4, 8]),
             )
             .width(Fill)
             .height(Fill)
             .padding(iced::Padding {
-                top: (add_screen.y - row_height / 2.0).max(0.0),
-                left: (add_screen.x + add_x_offset).max(0.0),
+                top: (input_screen.y - row_height / 2.0).max(0.0),
+                left: (input_screen.x - 70.0).max(0.0),
+                right: 0.0,
+                bottom: 0.0,
+            })
+            .into(),
+        );
+
+        let output_start_y = center_y - (flow_def.outputs.len() as f32 - 1.0) * spacing / 2.0;
+        let output_add_y = output_start_y + flow_def.outputs.len() as f32 * spacing;
+        let output_screen = transform_point(Point::new(right_x, output_add_y), zoom, offset);
+        let route_add_out = route;
+        layers.push(
+            container(
+                button(Text::new("+ Output").size(10).center())
+                    .on_press(Message::FlowEdit(
+                        window_id,
+                        route_add_out,
+                        FlowEditMessage::AddOutput,
+                    ))
+                    .style(crate::toolbar_btn)
+                    .padding([4, 8]),
+            )
+            .width(Fill)
+            .height(Fill)
+            .padding(iced::Padding {
+                top: (output_screen.y - row_height / 2.0).max(0.0),
+                left: (output_screen.x + 8.0).max(0.0),
                 right: 0.0,
                 bottom: 0.0,
             })
@@ -1173,6 +1319,8 @@ impl WindowState {
                     self.tooltip = None;
                     self.context_menu = None;
                     self.initializer_editor = None;
+                    self.name_editor = None;
+                    self.io_name_editor = None;
                     self.show_metadata = false;
                     self.history = EditHistory::default();
                     self.auto_fit_pending = true;
@@ -1199,6 +1347,8 @@ impl WindowState {
         self.tooltip = None;
         self.context_menu = None;
         self.initializer_editor = None;
+        self.name_editor = None;
+        self.io_name_editor = None;
         self.show_metadata = false;
         self.history = EditHistory::default();
         self.auto_fit_pending = false;
@@ -1650,7 +1800,7 @@ impl WindowState {
 
     // --- Flow editing (from main.rs) ---
 
-    fn rename_flow_input(&mut self, flow_def: &mut FlowDefinition, idx: usize, name: &str) {
+    fn rename_flow_input(&mut self, flow_def: &mut FlowDefinition, idx: usize, name: &str) -> bool {
         let duplicate = flow_def
             .inputs
             .iter()
@@ -1658,7 +1808,7 @@ impl WindowState {
             .any(|(i, io)| i != idx && io.name() == name);
         if duplicate {
             self.status = format!("Input name \"{name}\" already in use");
-            return;
+            return false;
         }
         if let Some(io) = flow_def.inputs.get_mut(idx) {
             let old_name = io.name().clone();
@@ -1674,9 +1824,15 @@ impl WindowState {
         self.status = String::new();
         self.history.mark_modified();
         self.canvas_state.request_redraw();
+        true
     }
 
-    fn rename_flow_output(&mut self, flow_def: &mut FlowDefinition, idx: usize, name: &str) {
+    fn rename_flow_output(
+        &mut self,
+        flow_def: &mut FlowDefinition,
+        idx: usize,
+        name: &str,
+    ) -> bool {
         let duplicate = flow_def
             .outputs
             .iter()
@@ -1684,7 +1840,7 @@ impl WindowState {
             .any(|(i, io)| i != idx && io.name() == name);
         if duplicate {
             self.status = format!("Output name \"{name}\" already in use");
-            return;
+            return false;
         }
         if let Some(io) = flow_def.outputs.get_mut(idx) {
             let old_name = io.name().clone();
@@ -1709,9 +1865,11 @@ impl WindowState {
         self.status = String::new();
         self.history.mark_modified();
         self.canvas_state.request_redraw();
+        true
     }
 
     /// Handle flow metadata and I/O editing messages.
+    #[allow(clippy::too_many_lines)]
     pub(crate) fn handle_flow_edit_message(
         &mut self,
         flow_def: &mut FlowDefinition,
@@ -1800,7 +1958,112 @@ impl WindowState {
             FlowEditMessage::OutputNameChanged(idx, name) => {
                 self.rename_flow_output(flow_def, idx, &name);
             }
+            FlowEditMessage::NodeNameEditing(text) => {
+                if let Some(ref mut editor) = self.name_editor {
+                    editor.text = text;
+                }
+            }
+            FlowEditMessage::NodeNameCommit => {
+                self.commit_name_edit(flow_def);
+            }
+            FlowEditMessage::IONameEditing(text) => {
+                if let Some(ref mut editor) = self.io_name_editor {
+                    editor.text = text;
+                }
+            }
+            FlowEditMessage::IONameCommit => {}
         }
+    }
+
+    pub(crate) fn commit_io_name_edit(
+        &mut self,
+        flow_def: &mut FlowDefinition,
+    ) -> Option<(bool, String, String)> {
+        let editor = self.io_name_editor.take()?;
+        let new_name = editor.text.trim().to_string();
+        if !new_name.is_empty() && new_name != editor.original {
+            let old_name = editor.original.clone();
+            let success = if editor.is_input {
+                self.rename_flow_input(flow_def, editor.index, &new_name)
+            } else {
+                self.rename_flow_output(flow_def, editor.index, &new_name)
+            };
+            if success {
+                return Some((editor.is_input, old_name, new_name));
+            }
+        }
+        None
+    }
+
+    pub(crate) fn commit_name_edit(&mut self, flow_def: &mut FlowDefinition) {
+        if let Some(editor) = self.name_editor.take() {
+            let new_name = editor.text.trim().to_string();
+            if !new_name.is_empty() && new_name != editor.original {
+                self.rename_process(flow_def, editor.node_index, &editor.original, &new_name);
+            }
+        }
+    }
+
+    fn rename_process(
+        &mut self,
+        flow_def: &mut FlowDefinition,
+        idx: usize,
+        old_alias: &str,
+        new_alias: &str,
+    ) {
+        let duplicate = flow_def.process_refs.iter().enumerate().any(|(i, p)| {
+            if i == idx {
+                return false;
+            }
+            let effective = if p.alias.is_empty() {
+                derive_short_name(&p.source)
+            } else {
+                p.alias.clone()
+            };
+            effective == new_alias
+        });
+        if duplicate {
+            self.status = format!("Name \"{new_alias}\" already in use");
+            return;
+        }
+        if let Some(pref) = flow_def.process_refs.get_mut(idx) {
+            pref.alias = new_alias.into();
+        }
+        if let Some(proc) = flow_def.subprocesses.remove(old_alias) {
+            flow_def.subprocesses.insert(new_alias.into(), proc);
+        }
+        for conn in &mut flow_def.connections {
+            let (from_node, from_port) = split_route(conn.from().as_ref());
+            if from_node == old_alias {
+                let new_from = if from_port.is_empty() {
+                    new_alias.to_string()
+                } else {
+                    format!("{new_alias}/{from_port}")
+                };
+                conn.set_from(Route::from(new_from.as_str()));
+            }
+            let new_to: Vec<Route> = conn
+                .to()
+                .iter()
+                .map(|r| {
+                    let (to_node, to_port) = split_route(r.as_ref());
+                    if to_node == old_alias {
+                        let new_r = if to_port.is_empty() {
+                            new_alias.to_string()
+                        } else {
+                            format!("{new_alias}/{to_port}")
+                        };
+                        Route::from(new_r.as_str())
+                    } else {
+                        r.clone()
+                    }
+                })
+                .collect();
+            conn.set_to(new_to);
+        }
+        self.status = String::new();
+        self.history.mark_modified();
+        self.canvas_state.request_redraw();
     }
 }
 

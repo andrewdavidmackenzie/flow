@@ -17,6 +17,7 @@ use flowcore::model::name::HasName;
 use flowcore::model::process::Process;
 use flowcore::model::process_reference::ProcessReference;
 
+use crate::flow_canvas::TITLE_FONT_SIZE;
 use crate::utils::{base_port_name, derive_short_name, format_value, split_route};
 
 /// Default node width when no layout width is specified
@@ -231,6 +232,18 @@ impl<'a> NodeLayout<'a> {
             }
         }
         None
+    }
+
+    pub(crate) fn is_in_title_zone(&self, point: Point) -> bool {
+        let text_center_x = self.x() + self.width() / 2.0;
+        let text_top_y = self.y() + 6.0;
+        let text_height = TITLE_FONT_SIZE + 8.0;
+        let text_half_width = self.width() * 0.45;
+
+        point.x >= text_center_x - text_half_width
+            && point.x <= text_center_x + text_half_width
+            && point.y >= text_top_y
+            && point.y <= text_top_y + text_height
     }
 
     pub(crate) fn is_in_source_text_zone(&self, point: Point) -> bool {
