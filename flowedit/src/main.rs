@@ -1167,16 +1167,34 @@ impl FlowEdit {
         flow_def: &'a FlowDefinition,
         window_id: window::Id,
     ) -> Element<'a, Message> {
-        let edit_indicator = if win.history.is_empty() {
-            "  |  saved"
-        } else {
+        let has_unsaved = self.has_unsaved_flow_edits();
+        let edit_indicator = if has_unsaved {
             "  |  unsaved edit(s)"
+        } else {
+            "  |  saved"
         };
 
         let btn_pad = [6, 14];
         let btn_size = 13;
 
-        let status_bar: Row<'_, Message> = if win.is_root {
+        let mut save_btn = button(Text::new("\u{1F4BE} Save").size(btn_size).center())
+            .style(toolbar_btn)
+            .padding(btn_pad);
+        if has_unsaved {
+            save_btn = save_btn.on_press(Message::Save);
+        }
+
+        let mut status_row = Row::new()
+            .spacing(8)
+            .padding([4, 8])
+            .push(
+                container(Text::new(format!("{}{}", win.status, edit_indicator)).size(14))
+                    .width(Fill)
+                    .clip(true),
+            )
+            .push(save_btn);
+
+        if win.is_root {
             let mut compile_btn = button(Text::new("\u{1F528} Build").size(btn_size).center())
                 .padding(btn_pad)
                 .style(toolbar_btn);
@@ -1184,34 +1202,19 @@ impl FlowEdit {
                 compile_btn = compile_btn.on_press(Message::Compile);
             }
 
-            let open_btn = button(Text::new("\u{1F4C2} Open").size(btn_size).center())
-                .on_press(Message::Open)
-                .style(toolbar_btn)
-                .padding(btn_pad);
-
-            let mut save_btn = button(Text::new("\u{1F4BE} Save").size(btn_size).center())
-                .style(toolbar_btn)
-                .padding(btn_pad);
-            if !win.history.is_empty() {
-                save_btn = save_btn.on_press(Message::Save);
-            }
-
-            let save_as_btn = button(Text::new("Save As\u{2026}").size(btn_size).center())
-                .on_press(Message::SaveAs)
-                .style(toolbar_btn)
-                .padding(btn_pad);
-
-            Row::new()
-                .spacing(8)
-                .padding([4, 8])
+            status_row = status_row
                 .push(
-                    container(Text::new(format!("{}{}", win.status, edit_indicator)).size(14))
-                        .width(Fill)
-                        .clip(true),
+                    button(Text::new("\u{1F4C2} Open").size(btn_size).center())
+                        .on_press(Message::Open)
+                        .style(toolbar_btn)
+                        .padding(btn_pad),
                 )
-                .push(open_btn)
-                .push(save_btn)
-                .push(save_as_btn)
+                .push(
+                    button(Text::new("Save As\u{2026}").size(btn_size).center())
+                        .on_press(Message::SaveAs)
+                        .style(toolbar_btn)
+                        .padding(btn_pad),
+                )
                 .push(
                     button(Text::new("\u{2139} Info").size(btn_size).center())
                         .on_press(Message::FlowEdit(
@@ -1248,16 +1251,10 @@ impl FlowEdit {
                         .style(toolbar_btn)
                         .padding(btn_pad),
                 )
-                .push(compile_btn)
-        } else {
-            Row::new().spacing(8).padding([4, 8]).push(
-                container(Text::new(format!("{}{}", win.status, edit_indicator)).size(14))
-                    .width(Fill)
-                    .clip(true),
-            )
-        };
+                .push(compile_btn);
+        }
 
-        container(status_bar).width(Fill).padding(5).into()
+        container(status_row).width(Fill).padding(5).into()
     }
 
     /// Build the metadata editor panel.
@@ -2192,46 +2189,69 @@ impl FlowEdit {
         open_task.discard()
     }
 
+    fn has_unsaved_flow_edits(&self) -> bool {
+        self.windows
+            .values()
+            .any(|w| matches!(w.kind, WindowKind::FlowEditor) && !w.history.is_empty())
+    }
+
+    fn save_root_flow(&mut self, save_as: bool) {
+        let root_win = self
+            .root_window
+            .and_then(|id| self.windows.get_mut(&id))
+            .filter(|w| matches!(w.kind, WindowKind::FlowEditor));
+        let Some(win) = root_win else {
+            return;
+        };
+        if save_as {
+            win.handle_save_as(&mut self.root_flow);
+        } else {
+            win.handle_save(&mut self.root_flow);
+        }
+        let saved = win.history.is_empty();
+        if saved {
+            for w in self.windows.values_mut() {
+                if matches!(w.kind, WindowKind::FlowEditor) {
+                    w.history.clear();
+                }
+            }
+        }
+    }
+
     #[allow(clippy::needless_pass_by_value)]
     fn handle_file_message(&mut self, message: Message) {
         match message {
             Message::Save => {
                 let target = self.focused_window.or(self.root_window);
                 if let Some(win) = target.and_then(|id| self.windows.get_mut(&id)) {
-                    match &win.kind {
-                        WindowKind::FunctionViewer(_) => {
-                            if let WindowKind::FunctionViewer(ref v) = win.kind {
-                                match file_ops::save_function_definition(v) {
-                                    Ok(()) => {
-                                        win.history.clear();
-                                        win.status = String::from("Function saved");
-                                    }
-                                    Err(e) => win.status = format!("Save failed: {e}"),
-                                }
+                    if let WindowKind::FunctionViewer(ref v) = win.kind {
+                        match file_ops::save_function_definition(v) {
+                            Ok(()) => {
+                                win.history.clear();
+                                win.status = String::from("Function saved");
                             }
+                            Err(e) => win.status = format!("Save failed: {e}"),
                         }
-                        WindowKind::FlowEditor => win.handle_save(&mut self.root_flow),
+                        return;
                     }
                 }
+                self.save_root_flow(false);
             }
             Message::SaveAs => {
                 let target = self.focused_window.or(self.root_window);
                 if let Some(win) = target.and_then(|id| self.windows.get_mut(&id)) {
-                    match &win.kind {
-                        WindowKind::FunctionViewer(_) => {
-                            if let WindowKind::FunctionViewer(ref v) = win.kind {
-                                match file_ops::save_function_definition(v) {
-                                    Ok(()) => {
-                                        win.history.clear();
-                                        win.status = String::from("Function saved");
-                                    }
-                                    Err(e) => win.status = format!("Save failed: {e}"),
-                                }
+                    if let WindowKind::FunctionViewer(ref v) = win.kind {
+                        match file_ops::save_function_definition(v) {
+                            Ok(()) => {
+                                win.history.clear();
+                                win.status = String::from("Function saved");
                             }
+                            Err(e) => win.status = format!("Save failed: {e}"),
                         }
-                        WindowKind::FlowEditor => win.handle_save_as(&mut self.root_flow),
+                        return;
                     }
                 }
+                self.save_root_flow(true);
             }
             Message::Open => {
                 if let Some(root_id) = self.root_window {
