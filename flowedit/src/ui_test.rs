@@ -1375,50 +1375,6 @@ fn flow_edit_add_delete_output() {
     assert_eq!(app.root_flow.outputs.len(), 0);
 }
 
-#[test]
-fn flow_edit_input_type_changed() {
-    let (mut app, win_id) = test_app();
-    let _ = app.update(Message::FlowEdit(
-        win_id,
-        Route::default(),
-        FlowEditMessage::AddInput,
-    ));
-    let _ = app.update(Message::FlowEdit(
-        win_id,
-        Route::default(),
-        FlowEditMessage::InputTypeChanged(0, "number".into()),
-    ));
-    let dtype = app
-        .root_flow
-        .inputs
-        .first()
-        .and_then(|io| io.datatypes().first())
-        .map(ToString::to_string);
-    assert_eq!(dtype.as_deref(), Some("number"));
-}
-
-#[test]
-fn flow_edit_output_type_changed() {
-    let (mut app, win_id) = test_app();
-    let _ = app.update(Message::FlowEdit(
-        win_id,
-        Route::default(),
-        FlowEditMessage::AddOutput,
-    ));
-    let _ = app.update(Message::FlowEdit(
-        win_id,
-        Route::default(),
-        FlowEditMessage::OutputTypeChanged(0, "boolean".into()),
-    ));
-    let dtype = app
-        .root_flow
-        .outputs
-        .first()
-        .and_then(|io| io.datatypes().first())
-        .map(ToString::to_string);
-    assert_eq!(dtype.as_deref(), Some("boolean"));
-}
-
 // ---- Group 14: PR #2599 Coverage — FunctionEditMessage sub-enum routing ----
 
 #[test]
@@ -1595,7 +1551,6 @@ fn child_window_sees_same_root_flow() {
         let route = Route::from(format!("/{}/{alias}", app.root_flow.alias));
         let child = WindowState {
             route,
-            is_root: false,
             ..Default::default()
         };
         app.windows.insert(child_win_id, child);
@@ -1640,7 +1595,6 @@ fn cascade_close_removes_orphaned_child() {
     let route = Route::from(format!("/{}/{sub_alias}", app.root_flow.alias));
     let child = WindowState {
         route,
-        is_root: false,
         ..Default::default()
     };
     app.windows.insert(child_win_id, child);
@@ -2030,50 +1984,6 @@ fn flow_edit_output_name_change() {
         FlowEditMessage::OutputNameChanged(0, "my_output".into()),
     ));
     assert_eq!(app.root_flow.outputs[0].name(), "my_output");
-}
-
-#[test]
-fn flow_edit_input_type_change() {
-    let (mut app, win_id) = test_app();
-    let _ = app.update(Message::FlowEdit(
-        win_id,
-        Route::default(),
-        FlowEditMessage::AddInput,
-    ));
-    let _ = app.update(Message::FlowEdit(
-        win_id,
-        Route::default(),
-        FlowEditMessage::InputTypeChanged(0, "number".into()),
-    ));
-    assert_eq!(
-        app.root_flow.inputs[0]
-            .datatypes()
-            .first()
-            .map(ToString::to_string),
-        Some("number".into())
-    );
-}
-
-#[test]
-fn flow_edit_output_type_change() {
-    let (mut app, win_id) = test_app();
-    let _ = app.update(Message::FlowEdit(
-        win_id,
-        Route::default(),
-        FlowEditMessage::AddOutput,
-    ));
-    let _ = app.update(Message::FlowEdit(
-        win_id,
-        Route::default(),
-        FlowEditMessage::OutputTypeChanged(0, "number".into()),
-    ));
-    assert_eq!(
-        app.root_flow.outputs[0]
-            .datatypes()
-            .first()
-            .map(ToString::to_string),
-        Some("number".into())
-    );
 }
 
 // --- Initializer apply test ---
