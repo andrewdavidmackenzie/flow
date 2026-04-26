@@ -1293,6 +1293,16 @@ impl FlowEdit {
         if edit_count > 0 {
             save_btn = save_btn.on_press(Message::Save);
         }
+        let save_tooltip_text = if edit_count > 0 {
+            format!("There are {edit_count} edits that have not been saved")
+        } else {
+            String::from("All changes saved")
+        };
+        let save_with_tooltip = iced::widget::tooltip(
+            save_btn,
+            Text::new(save_tooltip_text).size(12),
+            iced::widget::tooltip::Position::Top,
+        );
 
         let mut status_row = Row::new()
             .spacing(8)
@@ -1303,7 +1313,7 @@ impl FlowEdit {
                     .width(Fill)
                     .clip(true),
             )
-            .push(save_btn);
+            .push(save_with_tooltip);
 
         if win.is_root {
             let mut compile_btn = button(Text::new("\u{1F528} Build").size(btn_size).center())
@@ -1814,11 +1824,22 @@ impl FlowEdit {
                 save_btn.on_press(Message::FunctionEdit(window_id, FunctionEditMessage::Save));
         }
 
+        let func_tooltip_text = if has_unsaved {
+            format!("There are {edit_count} edits that have not been saved")
+        } else {
+            String::from("All changes saved")
+        };
+        let save_with_tooltip = iced::widget::tooltip(
+            save_btn,
+            Text::new(func_tooltip_text).size(12),
+            iced::widget::tooltip::Position::Top,
+        );
+
         let status_bar = Row::new()
             .spacing(8)
             .push(Text::new(status).size(14))
             .push(iced::widget::Space::new().width(Fill))
-            .push(save_btn);
+            .push(save_with_tooltip);
 
         Column::new()
             .push(container(content).width(Fill).height(Fill))
@@ -2333,7 +2354,11 @@ impl FlowEdit {
     }
 
     fn unsaved_edit_count(&self) -> usize {
-        self.windows.values().map(|w| w.history.edit_count()).sum()
+        self.windows
+            .values()
+            .filter(|w| matches!(w.kind, WindowKind::FlowEditor))
+            .map(|w| w.history.edit_count())
+            .sum()
     }
 
     fn save_root_flow(&mut self, save_as: bool) {
