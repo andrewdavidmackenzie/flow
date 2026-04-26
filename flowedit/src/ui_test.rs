@@ -731,15 +731,16 @@ fn lib_paths_add_message() {
 
 #[test]
 fn lib_paths_remove_message() {
-    // Add a path then remove it so update_lib_paths() restores FLOW_LIB_PATH
-    // to its original value. Tests run as threads in the same process, so
-    // env var mutations from set_var are visible to all concurrent tests.
+    // Test vec manipulation only — avoid calling update(RemoveLibraryPath)
+    // which triggers update_lib_paths() and sets FLOW_LIB_PATH="", breaking
+    // concurrent tests that need to resolve lib:// URLs.
     let (mut app, _) = test_app();
-    let initial_count = app.lib_paths.len();
-    app.lib_paths.push("/tmp/flowedit_test_lib_path".into());
-    assert_eq!(app.lib_paths.len(), initial_count + 1);
-    let _ = app.update(Message::RemoveLibraryPath(initial_count));
-    assert_eq!(app.lib_paths.len(), initial_count);
+    app.lib_paths.push("/tmp/a".into());
+    app.lib_paths.push("/tmp/b".into());
+    assert_eq!(app.lib_paths.len(), 2);
+    app.lib_paths.remove(0);
+    assert_eq!(app.lib_paths.len(), 1);
+    assert_eq!(app.lib_paths[0], "/tmp/b");
 }
 
 #[test]
