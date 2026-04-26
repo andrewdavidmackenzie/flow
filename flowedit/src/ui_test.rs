@@ -731,11 +731,17 @@ fn lib_paths_add_message() {
 
 #[test]
 fn lib_paths_remove_message() {
+    let saved = std::env::var("FLOW_LIB_PATH").ok();
     let (mut app, _) = test_app();
     app.lib_paths.push("/tmp/test_lib".into());
     let count_before = app.lib_paths.len();
     let _ = app.update(Message::RemoveLibraryPath(count_before - 1));
     assert_eq!(app.lib_paths.len(), count_before - 1);
+    if let Some(val) = saved {
+        std::env::set_var("FLOW_LIB_PATH", val);
+    } else {
+        std::env::remove_var("FLOW_LIB_PATH");
+    }
 }
 
 #[test]
@@ -1469,6 +1475,22 @@ fn load_mandlebrot_app() -> (FlowEdit, window::Id, std::path::PathBuf) {
     use std::sync::atomic::{AtomicUsize, Ordering};
     static COUNTER: AtomicUsize = AtomicUsize::new(0);
     let id = COUNTER.fetch_add(1, Ordering::Relaxed);
+
+    if let Ok(home) = std::env::var("HOME") {
+        let default_lib = std::path::PathBuf::from(&home).join(".flow").join("lib");
+        if default_lib.exists() {
+            let current = std::env::var("FLOW_LIB_PATH").unwrap_or_default();
+            let default_str = default_lib.to_string_lossy();
+            if !current.contains(default_str.as_ref()) {
+                let new_val = if current.is_empty() {
+                    default_str.to_string()
+                } else {
+                    format!("{current},{default_str}")
+                };
+                std::env::set_var("FLOW_LIB_PATH", new_val);
+            }
+        }
+    }
 
     let src = std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR"))
         .parent()
