@@ -1,10 +1,15 @@
 #![allow(clippy::indexing_slicing, clippy::unwrap_used)]
 
 use super::*;
+use crate::flow_canvas::CanvasMessage;
+use crate::library_panel::{self, LibraryTree};
 use flowcore::model::connection::Connection;
 use flowcore::model::name::HasName;
+use flowcore::model::route::Route;
+use iced::window;
 use iced_test::simulator::{self, simulator};
 use std::collections::HashMap;
+use url::Url;
 
 fn test_win_state() -> WindowState {
     WindowState {
@@ -2696,4 +2701,305 @@ fn status_text_no_saved_indicator() {
         sim.find("unsaved").is_err(),
         "status text should not contain 'unsaved'"
     );
+}
+
+// ---- Group: flow_edit coverage ----
+
+#[test]
+fn title_unknown_window() {
+    let (app, _) = test_app();
+    let title = app.title(window::Id::unique());
+    assert!(title.contains("flowedit"));
+}
+
+#[test]
+fn flush_pending_edits_commits_name() {
+    let (mut app, win_id) = test_app();
+    let _ = app.update(Message::WindowCanvas(
+        win_id,
+        CanvasMessage::EditNodeName(0),
+    ));
+    let _ = app.update(Message::FlowEdit(
+        win_id,
+        Route::default(),
+        FlowEditMessage::NodeNameEditing("renamed_node".into()),
+    ));
+    assert!(app.windows.get(&win_id).unwrap().name_editor.is_some());
+    app.flush_pending_edits();
+    assert!(app.windows.get(&win_id).unwrap().name_editor.is_none());
+    assert_eq!(app.root_flow.process_refs[0].alias, "renamed_node");
+}
+
+#[test]
+fn window_focused_updates_focused_id() {
+    let (mut app, win_id) = test_app();
+    let _ = app.update(Message::WindowFocused(win_id));
+    assert_eq!(app.focused_window, Some(win_id));
+}
+
+#[test]
+fn window_resized_records_size() {
+    let (mut app, win_id) = test_app();
+    let size = iced::Size::new(800.0, 600.0);
+    let _ = app.update(Message::WindowResized(win_id, size));
+    assert_eq!(app.windows.get(&win_id).unwrap().last_size, Some(size));
+}
+
+#[test]
+fn window_moved_records_position() {
+    let (mut app, win_id) = test_app();
+    let pos = iced::Point::new(100.0, 200.0);
+    let _ = app.update(Message::WindowMoved(win_id, pos));
+    assert_eq!(app.windows.get(&win_id).unwrap().last_position, Some(pos));
+}
+
+#[test]
+fn canvas_pan_updates_offset() {
+    let (mut app, win_id) = test_app();
+    let _ = app.update(Message::WindowCanvas(
+        win_id,
+        CanvasMessage::Pan(10.0, 20.0),
+    ));
+    let offset = app.windows.get(&win_id).unwrap().canvas_state.scroll_offset;
+    assert!((offset.x - 10.0).abs() < 0.01);
+    assert!((offset.y - 20.0).abs() < 0.01);
+}
+
+#[test]
+fn canvas_zoom_by() {
+    let (mut app, win_id) = test_app();
+    let old_zoom = app.windows.get(&win_id).unwrap().canvas_state.zoom;
+    let _ = app.update(Message::WindowCanvas(win_id, CanvasMessage::ZoomBy(1.5)));
+    let new_zoom = app.windows.get(&win_id).unwrap().canvas_state.zoom;
+    assert!((new_zoom - old_zoom * 1.5).abs() < 0.01);
+}
+
+#[test]
+fn resize_node() {
+    let (mut app, win_id) = test_app();
+    let _ = app.update(Message::WindowCanvas(
+        win_id,
+        CanvasMessage::Resized(0, 100.0, 100.0, 250.0, 150.0),
+    ));
+    assert_eq!(app.root_flow.process_refs[0].width, Some(250.0));
+    assert_eq!(app.root_flow.process_refs[0].height, Some(150.0));
+}
+
+#[test]
+fn resize_completed_records_history() {
+    let (mut app, win_id) = test_app();
+    let _ = app.update(Message::WindowCanvas(
+        win_id,
+        CanvasMessage::ResizeCompleted(0, 100.0, 100.0, 180.0, 120.0, 100.0, 100.0, 250.0, 150.0),
+    ));
+    assert!(!app.windows.get(&win_id).unwrap().history.is_empty());
+}
+
+#[test]
+fn toggle_metadata_panel() {
+    let (mut app, win_id) = test_app();
+    assert!(!app.windows.get(&win_id).unwrap().show_metadata);
+    let _ = app.update(Message::FlowEdit(
+        win_id,
+        Route::default(),
+        FlowEditMessage::ToggleMetadata,
+    ));
+    assert!(app.windows.get(&win_id).unwrap().show_metadata);
+}
+
+#[test]
+fn version_changed() {
+    let (mut app, win_id) = test_app();
+    let _ = app.update(Message::FlowEdit(
+        win_id,
+        Route::default(),
+        FlowEditMessage::VersionChanged("2.0".into()),
+    ));
+    assert_eq!(app.root_flow.metadata.version, "2.0");
+}
+
+#[test]
+fn description_changed() {
+    let (mut app, win_id) = test_app();
+    let _ = app.update(Message::FlowEdit(
+        win_id,
+        Route::default(),
+        FlowEditMessage::DescriptionChanged("A test flow".into()),
+    ));
+    assert_eq!(app.root_flow.metadata.description, "A test flow");
+}
+
+#[test]
+fn authors_changed() {
+    let (mut app, win_id) = test_app();
+    let _ = app.update(Message::FlowEdit(
+        win_id,
+        Route::default(),
+        FlowEditMessage::AuthorsChanged("Alice, Bob".into()),
+    ));
+    assert_eq!(app.root_flow.metadata.authors, vec!["Alice", "Bob"]);
+}
+
+#[test]
+fn close_active_window_removes_non_root() {
+    let (mut app, win_id) = test_app();
+    let child_id = window::Id::unique();
+    app.windows.insert(
+        child_id,
+        WindowState {
+            ..Default::default()
+        },
+    );
+    app.focused_window = Some(child_id);
+    let _ = app.update(Message::CloseActiveWindow);
+    assert!(!app.windows.contains_key(&child_id));
+    assert!(app.windows.contains_key(&win_id));
+}
+
+#[test]
+fn escape_clears_context_menu() {
+    let (mut app, win_id) = test_app();
+    let _ = app.update(Message::WindowCanvas(
+        win_id,
+        CanvasMessage::ContextMenu(100.0, 200.0),
+    ));
+    assert!(app.windows.get(&win_id).unwrap().context_menu.is_some());
+    let _ = app.update(Message::EscapePressed);
+    assert!(app.windows.get(&win_id).unwrap().context_menu.is_none());
+}
+
+#[test]
+fn view_renders_without_panic() {
+    let (app, win_id) = test_app();
+    let _view = app.view(win_id);
+}
+
+#[test]
+fn view_subflow_window() {
+    let (mut app, win_id) = test_app();
+    let child_id = window::Id::unique();
+    app.windows.insert(
+        child_id,
+        WindowState {
+            route: Route::from("/test/add"),
+            ..Default::default()
+        },
+    );
+    let _view = app.view(child_id);
+    let _ = app.view(win_id);
+}
+
+#[test]
+fn unsaved_edit_count_multiple_windows() {
+    let (mut app, win_id) = test_app();
+    let child_id = window::Id::unique();
+    app.windows.insert(
+        child_id,
+        WindowState {
+            ..Default::default()
+        },
+    );
+    let _ = app.update(Message::WindowCanvas(
+        win_id,
+        CanvasMessage::MoveCompleted(0, 100.0, 100.0, 200.0, 200.0),
+    ));
+    let _ = app.update(Message::FlowEdit(
+        win_id,
+        Route::default(),
+        FlowEditMessage::AddInput,
+    ));
+    assert!(app.unsaved_edit_count() >= 2);
+}
+
+// ---- Group: iced_test view coverage for flow_edit ----
+
+#[test]
+fn view_toolbar_has_save_open_buttons() {
+    let (app, win_id) = test_app();
+    let view = app.view(win_id);
+    let mut sim = simulator(view);
+    assert!(sim.find("\u{1F4BE} Save").is_ok(), "Save button present");
+    assert!(sim.find("\u{1F4C2} Open").is_ok(), "Open button present");
+    assert!(
+        sim.find("Save As\u{2026}").is_ok(),
+        "Save As button present"
+    );
+}
+
+#[test]
+fn view_toolbar_has_build_button() {
+    let (app, win_id) = test_app();
+    let view = app.view(win_id);
+    let mut sim = simulator(view);
+    assert!(
+        sim.find("\u{1F528} Build").is_ok(),
+        "Build button present on root"
+    );
+}
+
+#[test]
+fn view_toolbar_has_info_button() {
+    let (app, win_id) = test_app();
+    let view = app.view(win_id);
+    let mut sim = simulator(view);
+    assert!(sim.find("\u{2139} Info").is_ok(), "Info button present");
+}
+
+#[test]
+fn view_toolbar_has_subflow_function_buttons() {
+    let (app, win_id) = test_app();
+    let view = app.view(win_id);
+    let mut sim = simulator(view);
+    assert!(sim.find("+ Sub-flow").is_ok(), "Sub-flow button present");
+    assert!(sim.find("+ Function").is_ok(), "Function button present");
+}
+
+#[test]
+fn view_toolbar_child_window_has_save_only() {
+    let (mut app, _root_id) = test_app();
+    let child_id = window::Id::unique();
+    app.windows.insert(
+        child_id,
+        WindowState {
+            ..Default::default()
+        },
+    );
+    let view = app.view(child_id);
+    let mut sim = simulator(view);
+    assert!(sim.find("\u{1F4BE} Save").is_ok(), "Save on child window");
+    assert!(
+        sim.find("\u{1F4C2} Open").is_err(),
+        "Open not on child window"
+    );
+    assert!(
+        sim.find("+ Sub-flow").is_err(),
+        "Sub-flow not on child window"
+    );
+}
+
+#[test]
+fn view_metadata_panel_visible_after_toggle() {
+    let (mut app, win_id) = test_app();
+    let _ = app.update(Message::FlowEdit(
+        win_id,
+        Route::default(),
+        FlowEditMessage::ToggleMetadata,
+    ));
+    let view = app.view(win_id);
+    let mut sim = simulator(view);
+    assert!(sim.find("Name:").is_ok(), "Metadata panel shows Name");
+    assert!(sim.find("Version:").is_ok(), "Metadata panel shows Version");
+}
+
+#[test]
+fn view_lib_paths_panel_toggle() {
+    let (mut app, win_id) = test_app();
+    let _ = app.update(Message::ToggleLibPaths);
+    let view = app.view(win_id);
+    let mut sim = simulator(view);
+    assert!(
+        sim.find("Library Search Paths").is_ok(),
+        "LibPath panel visible"
+    );
+    assert!(sim.find("+ Add").is_ok(), "Add button in panel");
 }
