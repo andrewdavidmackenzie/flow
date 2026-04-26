@@ -86,6 +86,14 @@ pub(crate) enum FlowEditMessage {
     InputNameChanged(usize, String),
     /// Flow output port name changed
     OutputNameChanged(usize, String),
+    /// Update the text while editing a node name
+    NodeNameEditing(String),
+    /// Commit the node name edit
+    NodeNameCommit,
+    /// Update the text while editing an I/O port name
+    IONameEditing(String),
+    /// Commit the I/O port name edit
+    IONameCommit,
 }
 
 /// Messages for function definition viewing/editing, tagged by window
@@ -176,6 +184,8 @@ enum Message {
     CloseActiveWindow,
     /// Quit the entire application (Cmd+Q)
     QuitAll,
+    /// Escape key pressed — cancel active inline edit
+    EscapePressed,
     /// A window received focus
     WindowFocused(window::Id),
     /// Window was resized — track the new size
@@ -877,6 +887,28 @@ impl FlowEdit {
     }
 
     fn handle_flow_edit(&mut self, win_id: window::Id, route: &Route, flow_msg: FlowEditMessage) {
+        if matches!(flow_msg, FlowEditMessage::IONameCommit) {
+            if let Some(win) = self.windows.get(&win_id) {
+                if let Some(ref editor) = win.io_name_editor {
+                    let new_name = editor.text.trim().to_string();
+                    if !new_name.is_empty() && new_name != editor.original {
+                        let redirected = if editor.is_input {
+                            FlowEditMessage::InputNameChanged(editor.index, new_name)
+                        } else {
+                            FlowEditMessage::OutputNameChanged(editor.index, new_name)
+                        };
+                        if let Some(win) = self.windows.get_mut(&win_id) {
+                            win.io_name_editor = None;
+                        }
+                        return self.handle_flow_edit(win_id, route, redirected);
+                    }
+                }
+            }
+            if let Some(win) = self.windows.get_mut(&win_id) {
+                win.io_name_editor = None;
+            }
+            return;
+        }
         let affects_parent = matches!(
             flow_msg,
             FlowEditMessage::NameChanged(_)
@@ -1036,6 +1068,14 @@ impl FlowEdit {
             }
             Message::Undo => return self.handle_undo_redo(false),
             Message::Redo => return self.handle_undo_redo(true),
+            Message::EscapePressed => {
+                if let Some(win) = self.focused_window.and_then(|id| self.windows.get_mut(&id)) {
+                    win.name_editor = None;
+                    win.io_name_editor = None;
+                    win.initializer_editor = None;
+                    win.context_menu = None;
+                }
+            }
             Message::Save | Message::SaveAs | Message::Open | Message::New | Message::Compile => {
                 self.handle_file_message(message);
             }
@@ -1154,10 +1194,11 @@ impl FlowEdit {
             right_col = right_col.push(self.view_lib_paths_panel());
         }
 
-        right_col = right_col.push(self.view_toolbar(win, flow_def, window_id));
-
-        let layout = Row::new().push(left_panel).push(right_col.width(Fill));
-        layout.into()
+        let top_row = Row::new().push(left_panel).push(right_col.width(Fill));
+        Column::new()
+            .push(container(top_row).height(Fill))
+            .push(self.view_toolbar(win, flow_def, window_id))
+            .into()
     }
 
     /// Build the toolbar/status bar with action buttons and status text.
@@ -1728,6 +1769,10 @@ impl FlowEdit {
                 "q" => Some(Message::QuitAll),
                 _ => None,
             },
+            keyboard::Event::KeyPressed {
+                key: keyboard::Key::Named(keyboard::key::Named::Escape),
+                ..
+            } => Some(Message::EscapePressed),
             _ => None,
         });
 
