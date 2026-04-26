@@ -1123,9 +1123,14 @@ impl WindowState {
 
     /// Prompt the user with a save dialog and save to the chosen path.
     pub(crate) fn perform_save_as(&mut self, flow_def: &mut FlowDefinition) {
-        let dialog = rfd::FileDialog::new()
+        let mut dialog = rfd::FileDialog::new()
             .add_filter("Flow", &["toml"])
             .set_file_name(format!("{}.toml", flow_def.name));
+        if let Some(dir) =
+            Self::file_path_of(flow_def).and_then(|p| p.parent().map(Path::to_path_buf))
+        {
+            dialog = dialog.set_directory(dir);
+        }
         if let Some(path) = dialog.save_file() {
             self.perform_save(flow_def, &path);
         }
@@ -1152,7 +1157,12 @@ impl WindowState {
         &mut self,
         flow_def: &mut FlowDefinition,
     ) -> Option<(BTreeSet<Url>, BTreeSet<Url>)> {
-        let dialog = rfd::FileDialog::new().add_filter("Flow", &["toml"]);
+        let mut dialog = rfd::FileDialog::new().add_filter("Flow", &["toml"]);
+        if let Some(dir) =
+            Self::file_path_of(flow_def).and_then(|p| p.parent().map(Path::to_path_buf))
+        {
+            dialog = dialog.set_directory(dir);
+        }
         if let Some(path) = dialog.pick_file() {
             match file_ops::load_flow(&path) {
                 Ok(loaded_flow) => {
