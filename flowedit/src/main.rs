@@ -1219,10 +1219,27 @@ impl FlowEdit {
             .view(&self.all_definitions)
             .map(move |msg| Message::Library(window_id, msg));
 
-        let left_panel = Column::new()
-            .push(hierarchy_panel)
-            .push(library_panel)
-            .height(Fill);
+        let mut left_panel = Column::new().push(hierarchy_panel).push(library_panel);
+
+        if self.show_lib_paths {
+            left_panel = left_panel.push(self.view_lib_paths_panel());
+        }
+
+        left_panel = left_panel.push(
+            container(
+                button(Text::new("LibPath").size(12).center())
+                    .on_press(Message::ToggleLibPaths)
+                    .style(if self.show_lib_paths {
+                        toolbar_btn_active
+                    } else {
+                        toolbar_btn
+                    })
+                    .padding([4, 8]),
+            )
+            .padding([4, 8]),
+        );
+
+        let left_panel = left_panel.height(Fill);
 
         let mut right_col: Column<'_, Message> =
             Column::new().push(container(canvas_with_controls).width(Fill).height(Fill));
@@ -1230,11 +1247,6 @@ impl FlowEdit {
         // Metadata editor panel (toggled by Info button)
         if win.show_metadata && matches!(win.kind, WindowKind::FlowEditor) {
             right_col = right_col.push(Self::view_metadata_panel(flow_def, window_id));
-        }
-
-        // Library paths panel (toggled by Libs button)
-        if self.show_lib_paths {
-            right_col = right_col.push(self.view_lib_paths_panel());
         }
 
         let top_row = Row::new().push(left_panel).push(right_col.width(Fill));
@@ -1308,16 +1320,6 @@ impl FlowEdit {
                             FlowEditMessage::ToggleMetadata,
                         ))
                         .style(if win.show_metadata {
-                            toolbar_btn_active
-                        } else {
-                            toolbar_btn
-                        })
-                        .padding(btn_pad),
-                )
-                .push(
-                    button(Text::new("\u{1F4C1} Libs").size(btn_size).center())
-                        .on_press(Message::ToggleLibPaths)
-                        .style(if self.show_lib_paths {
                             toolbar_btn_active
                         } else {
                             toolbar_btn
