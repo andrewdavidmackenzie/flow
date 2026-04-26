@@ -1211,7 +1211,7 @@ impl FlowEdit {
         };
 
         if let WindowKind::FunctionViewer(ref viewer) = win.kind {
-            return Self::view_function(window_id, viewer, &win.status, !win.history.is_empty());
+            return Self::view_function(window_id, viewer, &win.status, self.unsaved_edit_count());
         }
 
         // Resolve the FlowDefinition for this window: sub-flow windows use
@@ -1277,20 +1277,20 @@ impl FlowEdit {
         flow_def: &'a FlowDefinition,
         window_id: window::Id,
     ) -> Element<'a, Message> {
-        let has_unsaved = self.has_unsaved_flow_edits();
-        let edit_indicator = if has_unsaved {
-            "  |  unsaved edit(s)"
-        } else {
-            "  |  saved"
-        };
+        let edit_count = self.unsaved_edit_count();
 
         let btn_pad = [6, 14];
         let btn_size = 13;
 
-        let mut save_btn = button(Text::new("\u{1F4BE} Save").size(btn_size).center())
+        let save_label = if edit_count > 0 {
+            format!("\u{1F4BE} Save ({edit_count})")
+        } else {
+            String::from("\u{1F4BE} Save")
+        };
+        let mut save_btn = button(Text::new(save_label).size(btn_size).center())
             .style(toolbar_btn)
             .padding(btn_pad);
-        if has_unsaved {
+        if edit_count > 0 {
             save_btn = save_btn.on_press(Message::Save);
         }
 
@@ -1299,7 +1299,7 @@ impl FlowEdit {
             .padding([4, 8])
             .align_y(iced::Alignment::Center)
             .push(
-                container(Text::new(format!("{}{}", win.status, edit_indicator)).size(14))
+                container(Text::new(&win.status).size(14))
                     .width(Fill)
                     .clip(true),
             )
@@ -1788,7 +1788,7 @@ impl FlowEdit {
         window_id: window::Id,
         viewer: &'a FunctionViewer,
         status: &'a str,
-        has_unsaved: bool,
+        edit_count: usize,
     ) -> Element<'a, Message> {
         let content: Element<'_, Message> = match viewer.active_tab {
             0 => Self::view_function_definition_tab(window_id, viewer),
@@ -1796,7 +1796,13 @@ impl FlowEdit {
             _ => Self::view_function_docs_tab(window_id, viewer.docs_content.as_deref()),
         };
 
-        let mut save_btn = button(Text::new("\u{1F4BE} Save").size(14).center())
+        let save_label = if edit_count > 0 {
+            format!("\u{1F4BE} Save ({edit_count})")
+        } else {
+            String::from("\u{1F4BE} Save")
+        };
+        let has_unsaved = edit_count > 0;
+        let mut save_btn = button(Text::new(save_label).size(14).center())
             .style(if has_unsaved && !viewer.read_only {
                 button::primary
             } else {
@@ -2326,10 +2332,12 @@ impl FlowEdit {
         }
     }
 
-    fn has_unsaved_flow_edits(&self) -> bool {
+    fn unsaved_edit_count(&self) -> usize {
         self.windows
             .values()
-            .any(|w| matches!(w.kind, WindowKind::FlowEditor) && !w.history.is_empty())
+            .filter(|w| !w.history.is_empty())
+            .map(|w| w.history.len())
+            .sum()
     }
 
     fn save_root_flow(&mut self, save_as: bool) {

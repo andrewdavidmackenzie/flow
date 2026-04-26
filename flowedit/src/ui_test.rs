@@ -2599,16 +2599,16 @@ fn title_zone_hit_test() {
     assert!(!node.is_in_title_zone(Point::new(50.0, 115.0)));
 }
 
-// ---- Group: has_unsaved_flow_edits ----
+// ---- Group: unsaved_edit_count ----
 
 #[test]
-fn has_unsaved_flow_edits_false_initially() {
+fn unsaved_edit_count_zero_initially() {
     let (app, _) = test_app();
-    assert!(!app.has_unsaved_flow_edits());
+    assert_eq!(app.unsaved_edit_count(), 0);
 }
 
 #[test]
-fn has_unsaved_flow_edits_true_after_edit() {
+fn unsaved_edit_count_nonzero_after_edit() {
     let (mut app, win_id) = test_app();
     let _ = app.update(Message::WindowCanvas(
         win_id,
@@ -2618,5 +2618,5 @@ fn has_unsaved_flow_edits_true_after_edit() {
         win_id,
         CanvasMessage::MoveCompleted(0, 100.0, 100.0, 200.0, 200.0),
     ));
-    assert!(app.has_unsaved_flow_edits());
+    assert!(app.unsaved_edit_count() > 0);
 }
