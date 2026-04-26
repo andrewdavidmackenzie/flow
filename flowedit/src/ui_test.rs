@@ -731,17 +731,15 @@ fn lib_paths_add_message() {
 
 #[test]
 fn lib_paths_remove_message() {
-    let saved = std::env::var("FLOW_LIB_PATH").ok();
+    // Add a path then remove it so update_lib_paths() restores FLOW_LIB_PATH
+    // to its original value. Tests run as threads in the same process, so
+    // env var mutations from set_var are visible to all concurrent tests.
     let (mut app, _) = test_app();
-    app.lib_paths.push("/tmp/test_lib".into());
-    let count_before = app.lib_paths.len();
-    let _ = app.update(Message::RemoveLibraryPath(count_before - 1));
-    assert_eq!(app.lib_paths.len(), count_before - 1);
-    if let Some(val) = saved {
-        std::env::set_var("FLOW_LIB_PATH", val);
-    } else {
-        std::env::remove_var("FLOW_LIB_PATH");
-    }
+    let initial_count = app.lib_paths.len();
+    app.lib_paths.push("/tmp/flowedit_test_lib_path".into());
+    assert_eq!(app.lib_paths.len(), initial_count + 1);
+    let _ = app.update(Message::RemoveLibraryPath(initial_count));
+    assert_eq!(app.lib_paths.len(), initial_count);
 }
 
 #[test]
