@@ -1,4 +1,4 @@
-#![allow(clippy::indexing_slicing)]
+#![allow(clippy::indexing_slicing, clippy::unwrap_used)]
 
 use super::*;
 use flowcore::model::connection::Connection;
@@ -2205,4 +2205,352 @@ fn subflow_output_delete_removes_parent_connections() {
         !has_pixels_after,
         "parent connection from deleted output should be removed"
     );
+}
+
+// ---- Group: Inline node name editing ----
+
+#[test]
+fn edit_node_name_opens_editor() {
+    let (mut app, win_id) = test_app();
+    let _ = app.update(Message::WindowCanvas(
+        win_id,
+        CanvasMessage::EditNodeName(0),
+    ));
+    let win = app.windows.get(&win_id).unwrap();
+    assert!(win.name_editor.is_some());
+    let editor = win.name_editor.as_ref().unwrap();
+    assert_eq!(editor.node_index, 0);
+    assert_eq!(editor.text, "add");
+    assert_eq!(editor.original, "add");
+}
+
+#[test]
+fn node_name_editing_updates_text() {
+    let (mut app, win_id) = test_app();
+    let _ = app.update(Message::WindowCanvas(
+        win_id,
+        CanvasMessage::EditNodeName(0),
+    ));
+    let _ = app.update(Message::FlowEdit(
+        win_id,
+        Route::default(),
+        FlowEditMessage::NodeNameEditing("adder".into()),
+    ));
+    let editor = app
+        .windows
+        .get(&win_id)
+        .unwrap()
+        .name_editor
+        .as_ref()
+        .unwrap();
+    assert_eq!(editor.text, "adder");
+}
+
+#[test]
+fn node_name_commit_renames_alias() {
+    let (mut app, win_id) = test_app();
+    app.root_flow
+        .connections
+        .push(Connection::new("add", "stdout"));
+    let _ = app.update(Message::WindowCanvas(
+        win_id,
+        CanvasMessage::EditNodeName(0),
+    ));
+    let _ = app.update(Message::FlowEdit(
+        win_id,
+        Route::default(),
+        FlowEditMessage::NodeNameEditing("adder".into()),
+    ));
+    let _ = app.update(Message::FlowEdit(
+        win_id,
+        Route::default(),
+        FlowEditMessage::NodeNameCommit,
+    ));
+    assert_eq!(app.root_flow.process_refs[0].alias, "adder");
+    assert!(app.windows.get(&win_id).unwrap().name_editor.is_none());
+    assert_eq!(app.root_flow.connections[0].from().to_string(), "adder");
+}
+
+#[test]
+fn node_name_commit_noop_when_unchanged() {
+    let (mut app, win_id) = test_app();
+    let _ = app.update(Message::WindowCanvas(
+        win_id,
+        CanvasMessage::EditNodeName(0),
+    ));
+    let _ = app.update(Message::FlowEdit(
+        win_id,
+        Route::default(),
+        FlowEditMessage::NodeNameCommit,
+    ));
+    assert_eq!(app.root_flow.process_refs[0].alias, "add");
+    assert!(app.windows.get(&win_id).unwrap().name_editor.is_none());
+}
+
+#[test]
+fn node_name_commit_rejects_duplicate() {
+    let (mut app, win_id) = test_app();
+    let _ = app.update(Message::WindowCanvas(
+        win_id,
+        CanvasMessage::EditNodeName(0),
+    ));
+    let _ = app.update(Message::FlowEdit(
+        win_id,
+        Route::default(),
+        FlowEditMessage::NodeNameEditing("stdout".into()),
+    ));
+    let _ = app.update(Message::FlowEdit(
+        win_id,
+        Route::default(),
+        FlowEditMessage::NodeNameCommit,
+    ));
+    assert_eq!(app.root_flow.process_refs[0].alias, "add");
+    assert!(app
+        .windows
+        .get(&win_id)
+        .unwrap()
+        .status
+        .contains("already in use"));
+}
+
+#[test]
+fn escape_cancels_name_editor() {
+    let (mut app, win_id) = test_app();
+    let _ = app.update(Message::WindowCanvas(
+        win_id,
+        CanvasMessage::EditNodeName(0),
+    ));
+    let _ = app.update(Message::FlowEdit(
+        win_id,
+        Route::default(),
+        FlowEditMessage::NodeNameEditing("renamed".into()),
+    ));
+    let _ = app.update(Message::EscapePressed);
+    assert!(app.windows.get(&win_id).unwrap().name_editor.is_none());
+    assert_eq!(app.root_flow.process_refs[0].alias, "add");
+}
+
+#[test]
+fn clicking_elsewhere_commits_name_edit() {
+    let (mut app, win_id) = test_app();
+    let _ = app.update(Message::WindowCanvas(
+        win_id,
+        CanvasMessage::EditNodeName(0),
+    ));
+    let _ = app.update(Message::FlowEdit(
+        win_id,
+        Route::default(),
+        FlowEditMessage::NodeNameEditing("adder".into()),
+    ));
+    let _ = app.update(Message::WindowCanvas(win_id, CanvasMessage::Selected(None)));
+    assert_eq!(app.root_flow.process_refs[0].alias, "adder");
+    assert!(app.windows.get(&win_id).unwrap().name_editor.is_none());
+}
+
+#[test]
+fn node_rename_updates_connection_to() {
+    let (mut app, win_id) = test_app();
+    app.root_flow
+        .connections
+        .push(Connection::new("add", "stdout"));
+    let _ = app.update(Message::WindowCanvas(
+        win_id,
+        CanvasMessage::EditNodeName(1),
+    ));
+    let _ = app.update(Message::FlowEdit(
+        win_id,
+        Route::default(),
+        FlowEditMessage::NodeNameEditing("output".into()),
+    ));
+    let _ = app.update(Message::FlowEdit(
+        win_id,
+        Route::default(),
+        FlowEditMessage::NodeNameCommit,
+    ));
+    assert_eq!(app.root_flow.process_refs[1].alias, "output");
+    let to_routes: Vec<String> = app.root_flow.connections[0]
+        .to()
+        .iter()
+        .map(ToString::to_string)
+        .collect();
+    assert!(to_routes.iter().any(|r| r.contains("output")));
+}
+
+// ---- Group: Inline I/O name editing ----
+
+#[test]
+fn edit_io_name_opens_editor() {
+    let (mut app, win_id) = test_app();
+    let _ = app.update(Message::FlowEdit(
+        win_id,
+        Route::default(),
+        FlowEditMessage::AddInput,
+    ));
+    let _ = app.update(Message::WindowCanvas(
+        win_id,
+        CanvasMessage::EditIOName {
+            is_input: true,
+            index: 0,
+        },
+    ));
+    let win = app.windows.get(&win_id).unwrap();
+    assert!(win.io_name_editor.is_some());
+    let editor = win.io_name_editor.as_ref().unwrap();
+    assert!(editor.is_input);
+    assert_eq!(editor.index, 0);
+}
+
+#[test]
+fn io_name_editing_updates_text() {
+    let (mut app, win_id) = test_app();
+    let _ = app.update(Message::FlowEdit(
+        win_id,
+        Route::default(),
+        FlowEditMessage::AddInput,
+    ));
+    let _ = app.update(Message::WindowCanvas(
+        win_id,
+        CanvasMessage::EditIOName {
+            is_input: true,
+            index: 0,
+        },
+    ));
+    let _ = app.update(Message::FlowEdit(
+        win_id,
+        Route::default(),
+        FlowEditMessage::IONameEditing("data_in".into()),
+    ));
+    let editor = app
+        .windows
+        .get(&win_id)
+        .unwrap()
+        .io_name_editor
+        .as_ref()
+        .unwrap();
+    assert_eq!(editor.text, "data_in");
+}
+
+#[test]
+fn io_name_commit_renames_input() {
+    let (mut app, win_id) = test_app();
+    let _ = app.update(Message::FlowEdit(
+        win_id,
+        Route::default(),
+        FlowEditMessage::AddInput,
+    ));
+    let _ = app.update(Message::WindowCanvas(
+        win_id,
+        CanvasMessage::EditIOName {
+            is_input: true,
+            index: 0,
+        },
+    ));
+    let _ = app.update(Message::FlowEdit(
+        win_id,
+        Route::default(),
+        FlowEditMessage::IONameEditing("data_in".into()),
+    ));
+    let _ = app.update(Message::FlowEdit(
+        win_id,
+        Route::default(),
+        FlowEditMessage::IONameCommit,
+    ));
+    assert_eq!(app.root_flow.inputs[0].name(), "data_in");
+    assert!(app.windows.get(&win_id).unwrap().io_name_editor.is_none());
+}
+
+#[test]
+fn escape_cancels_io_name_editor() {
+    let (mut app, win_id) = test_app();
+    let _ = app.update(Message::FlowEdit(
+        win_id,
+        Route::default(),
+        FlowEditMessage::AddOutput,
+    ));
+    let _ = app.update(Message::WindowCanvas(
+        win_id,
+        CanvasMessage::EditIOName {
+            is_input: false,
+            index: 0,
+        },
+    ));
+    let _ = app.update(Message::FlowEdit(
+        win_id,
+        Route::default(),
+        FlowEditMessage::IONameEditing("renamed".into()),
+    ));
+    let _ = app.update(Message::EscapePressed);
+    assert!(app.windows.get(&win_id).unwrap().io_name_editor.is_none());
+    assert_eq!(app.root_flow.outputs[0].name(), "output0");
+}
+
+#[test]
+fn switching_edit_commits_previous() {
+    let (mut app, win_id) = test_app();
+    let _ = app.update(Message::WindowCanvas(
+        win_id,
+        CanvasMessage::EditNodeName(0),
+    ));
+    let _ = app.update(Message::FlowEdit(
+        win_id,
+        Route::default(),
+        FlowEditMessage::NodeNameEditing("adder".into()),
+    ));
+    let _ = app.update(Message::WindowCanvas(
+        win_id,
+        CanvasMessage::EditNodeName(1),
+    ));
+    assert_eq!(app.root_flow.process_refs[0].alias, "adder");
+    let win = app.windows.get(&win_id).unwrap();
+    assert_eq!(win.name_editor.as_ref().unwrap().node_index, 1);
+}
+
+// ---- Group: is_in_title_zone ----
+
+#[test]
+fn title_zone_hit_test() {
+    use crate::node_layout::NodeLayout;
+    use flowcore::model::process_reference::ProcessReference;
+    use iced::Point;
+    use std::collections::BTreeMap;
+
+    let pref = ProcessReference {
+        alias: "test".into(),
+        source: "lib://test".into(),
+        initializations: BTreeMap::new(),
+        x: Some(100.0),
+        y: Some(100.0),
+        width: Some(180.0),
+        height: Some(120.0),
+    };
+    let node = NodeLayout {
+        process_ref: &pref,
+        process: None,
+    };
+    assert!(node.is_in_title_zone(Point::new(190.0, 115.0)));
+    assert!(!node.is_in_title_zone(Point::new(190.0, 80.0)));
+    assert!(!node.is_in_title_zone(Point::new(190.0, 200.0)));
+    assert!(!node.is_in_title_zone(Point::new(50.0, 115.0)));
+}
+
+// ---- Group: has_unsaved_flow_edits ----
+
+#[test]
+fn has_unsaved_flow_edits_false_initially() {
+    let (app, _) = test_app();
+    assert!(!app.has_unsaved_flow_edits());
+}
+
+#[test]
+fn has_unsaved_flow_edits_true_after_edit() {
+    let (mut app, win_id) = test_app();
+    let _ = app.update(Message::WindowCanvas(
+        win_id,
+        CanvasMessage::Moved(0, 200.0, 200.0),
+    ));
+    let _ = app.update(Message::WindowCanvas(
+        win_id,
+        CanvasMessage::MoveCompleted(0, 100.0, 100.0, 200.0, 200.0),
+    ));
+    assert!(app.has_unsaved_flow_edits());
 }

@@ -1226,6 +1226,7 @@ impl FlowEdit {
         let mut status_row = Row::new()
             .spacing(8)
             .padding([4, 8])
+            .align_y(iced::Alignment::Center)
             .push(
                 container(Text::new(format!("{}{}", win.status, edit_indicator)).size(14))
                     .width(Fill)
