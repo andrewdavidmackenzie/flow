@@ -359,12 +359,23 @@ fn resolve_flow_def_mut<'a>(
 }
 
 fn toolbar_btn(_theme: &Theme, status: button::Status) -> button::Style {
+    let is_disabled = matches!(status, button::Status::Disabled);
     let is_hovered = matches!(status, button::Status::Hovered);
     button::Style {
-        background: Some(iced::Background::Color(Color::from_rgb(0.25, 0.25, 0.30))),
-        text_color: Color::WHITE,
+        background: Some(iced::Background::Color(if is_disabled {
+            Color::from_rgb(0.20, 0.20, 0.22)
+        } else {
+            Color::from_rgb(0.25, 0.25, 0.30)
+        })),
+        text_color: if is_disabled {
+            Color::from_rgb(0.5, 0.5, 0.55)
+        } else {
+            Color::WHITE
+        },
         border: iced::Border {
-            color: if is_hovered {
+            color: if is_disabled {
+                Color::from_rgb(0.3, 0.3, 0.32)
+            } else if is_hovered {
                 Color::WHITE
             } else {
                 Color::from_rgb(0.4, 0.4, 0.45)
