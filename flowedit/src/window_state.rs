@@ -27,7 +27,9 @@ use flowcore::model::process_reference::ProcessReference;
 use flowcore::model::route::Route;
 
 use crate::file_ops;
-use crate::flow_canvas::{flow_io_bounding_box, CanvasAction, CanvasMessage, FlowCanvas};
+use crate::flow_canvas::{
+    flow_io_bounding_box, transform_point, CanvasAction, CanvasMessage, FlowCanvas,
+};
 use crate::hierarchy_panel::FlowHierarchy;
 use crate::history::{EditAction, EditHistory};
 use crate::node_layout::NodeLayout;
@@ -815,9 +817,6 @@ impl WindowState {
         canvas_state: &FlowCanvasState,
         window_id: window::Id,
     ) -> Element<'a, Message> {
-        use crate::flow_canvas::flow_io_bounding_box;
-        use crate::node_layout::NodeLayout;
-
         let nodes = NodeLayout::build_from_flow(flow_def);
         let (box_x, _, box_w, _, center_y, spacing) =
             flow_io_bounding_box(&nodes, &flow_def.inputs, &flow_def.outputs);
@@ -828,7 +827,7 @@ impl WindowState {
 
         let mut layers: Vec<Element<'_, Message>> = Vec::new();
 
-        Self::build_input_layers(
+        Self::build_io_layers(
             &mut layers,
             &flow_def.inputs,
             box_x,
@@ -838,8 +837,9 @@ impl WindowState {
             offset,
             &route,
             window_id,
+            true,
         );
-        Self::build_output_layers(
+        Self::build_io_layers(
             &mut layers,
             &flow_def.outputs,
             right_x,
@@ -849,61 +849,75 @@ impl WindowState {
             offset,
             &route,
             window_id,
+            false,
         );
 
         stack(layers).into()
     }
 
     #[allow(clippy::too_many_arguments)]
-    fn build_input_layers<'a>(
+    fn build_io_layers<'a>(
         layers: &mut Vec<Element<'a, Message>>,
-        inputs: &'a [IO],
-        left_x: f32,
+        ports: &'a [IO],
+        port_x: f32,
         center_y: f32,
         spacing: f32,
         zoom: f32,
         offset: Point,
         route: &Route,
         window_id: window::Id,
+        is_input: bool,
     ) {
-        use crate::flow_canvas::transform_point;
-
-        let port_font_size = 12.0;
         let row_height = 24.0;
-        let input_start_y = center_y - (inputs.len() as f32 - 1.0) * spacing / 2.0;
+        let (row_x_offset, add_x_offset) = if is_input {
+            (-100.0, -60.0)
+        } else {
+            (8.0, 8.0)
+        };
+        let start_y = center_y - (ports.len() as f32 - 1.0) * spacing / 2.0;
 
-        for (i, input) in inputs.iter().enumerate() {
-            let world_y = input_start_y + i as f32 * spacing;
-            let screen_pos = transform_point(Point::new(left_x, world_y), zoom, offset);
+        for (i, port) in ports.iter().enumerate() {
+            let world_y = start_y + i as f32 * spacing;
+            let screen_pos = transform_point(Point::new(port_x, world_y), zoom, offset);
             let route_clone = route.clone();
 
-            let name_input = text_input("name", input.name())
+            let name_input = text_input("name", port.name())
                 .on_input(move |s| {
-                    Message::FlowEdit(
-                        window_id,
-                        route_clone.clone(),
-                        FlowEditMessage::InputNameChanged(i, s),
-                    )
+                    let msg = if is_input {
+                        FlowEditMessage::InputNameChanged(i, s)
+                    } else {
+                        FlowEditMessage::OutputNameChanged(i, s)
+                    };
+                    Message::FlowEdit(window_id, route_clone.clone(), msg)
                 })
-                .size(port_font_size)
+                .size(PORT_FONT_SIZE)
                 .padding(2)
                 .width(80);
 
             let route_del = route.clone();
+            let del_msg = if is_input {
+                FlowEditMessage::DeleteInput(i)
+            } else {
+                FlowEditMessage::DeleteOutput(i)
+            };
             let del_btn = button(Text::new("\u{2715}").size(9))
-                .on_press(Message::FlowEdit(
-                    window_id,
-                    route_del,
-                    FlowEditMessage::DeleteInput(i),
-                ))
+                .on_press(Message::FlowEdit(window_id, route_del, del_msg))
                 .style(button::text)
                 .padding([1, 3]);
 
-            let row = Row::new()
-                .spacing(2)
-                .align_y(iced::Alignment::Center)
-                .push(del_btn)
-                .push(name_input);
+            let row = if is_input {
+                Row::new()
+                    .spacing(2)
+                    .align_y(iced::Alignment::Center)
+                    .push(del_btn)
+                    .push(name_input)
+            } else {
+                Row::new()
+                    .spacing(2)
+                    .align_y(iced::Alignment::Center)
+                    .push(name_input)
+                    .push(del_btn)
+            };
 
             layers.push(
                 container(row)
@@ -911,7 +925,7 @@ impl WindowState {
                     .height(Fill)
                     .padding(iced::Padding {
                         top: (screen_pos.y - row_height / 2.0).max(0.0),
-                        left: (screen_pos.x - 100.0).max(0.0),
+                        left: (screen_pos.x + row_x_offset).max(0.0),
                         right: 0.0,
                         bottom: 0.0,
                     })
@@ -919,18 +933,18 @@ impl WindowState {
             );
         }
 
-        // "+ Input" button layer
-        let input_bottom_y = input_start_y + inputs.len() as f32 * spacing;
-        let add_screen = transform_point(Point::new(left_x, input_bottom_y), zoom, offset);
+        let add_y = start_y + ports.len() as f32 * spacing;
+        let add_screen = transform_point(Point::new(port_x, add_y), zoom, offset);
         let route_add = route.clone();
+        let (add_label, add_msg) = if is_input {
+            ("+ Input", FlowEditMessage::AddInput)
+        } else {
+            ("+ Output", FlowEditMessage::AddOutput)
+        };
         layers.push(
             container(
-                button(Text::new("+ Input").size(10))
-                    .on_press(Message::FlowEdit(
-                        window_id,
-                        route_add,
-                        FlowEditMessage::AddInput,
-                    ))
+                button(Text::new(add_label).size(10))
+                    .on_press(Message::FlowEdit(window_id, route_add, add_msg))
                     .style(button::text)
                     .padding([2, 4]),
             )
@@ -938,99 +952,7 @@ impl WindowState {
             .height(Fill)
             .padding(iced::Padding {
                 top: (add_screen.y - row_height / 2.0).max(0.0),
-                left: (add_screen.x - 60.0).max(0.0),
-                right: 0.0,
-                bottom: 0.0,
-            })
-            .into(),
-        );
-    }
-
-    #[allow(clippy::too_many_arguments)]
-    fn build_output_layers<'a>(
-        layers: &mut Vec<Element<'a, Message>>,
-        outputs: &'a [IO],
-        right_x: f32,
-        center_y: f32,
-        spacing: f32,
-        zoom: f32,
-        offset: Point,
-        route: &Route,
-        window_id: window::Id,
-    ) {
-        use crate::flow_canvas::transform_point;
-
-        let port_font_size = 12.0;
-        let row_height = 24.0;
-        let output_start_y = center_y - (outputs.len() as f32 - 1.0) * spacing / 2.0;
-
-        for (i, output) in outputs.iter().enumerate() {
-            let world_y = output_start_y + i as f32 * spacing;
-            let screen_pos = transform_point(Point::new(right_x, world_y), zoom, offset);
-            let route_clone = route.clone();
-
-            let name_input = text_input("name", output.name())
-                .on_input(move |s| {
-                    Message::FlowEdit(
-                        window_id,
-                        route_clone.clone(),
-                        FlowEditMessage::OutputNameChanged(i, s),
-                    )
-                })
-                .size(port_font_size)
-                .padding(2)
-                .width(80);
-
-            let route_del = route.clone();
-            let del_btn = button(Text::new("\u{2715}").size(9))
-                .on_press(Message::FlowEdit(
-                    window_id,
-                    route_del,
-                    FlowEditMessage::DeleteOutput(i),
-                ))
-                .style(button::text)
-                .padding([1, 3]);
-
-            let row = Row::new()
-                .spacing(2)
-                .align_y(iced::Alignment::Center)
-                .push(name_input)
-                .push(del_btn);
-
-            layers.push(
-                container(row)
-                    .width(Fill)
-                    .height(Fill)
-                    .padding(iced::Padding {
-                        top: (screen_pos.y - row_height / 2.0).max(0.0),
-                        left: (screen_pos.x + 8.0).max(0.0),
-                        right: 0.0,
-                        bottom: 0.0,
-                    })
-                    .into(),
-            );
-        }
-
-        // "+ Output" button layer
-        let output_bottom_y = output_start_y + outputs.len() as f32 * spacing;
-        let add_screen = transform_point(Point::new(right_x, output_bottom_y), zoom, offset);
-        let route_add = route.clone();
-        layers.push(
-            container(
-                button(Text::new("+ Output").size(10))
-                    .on_press(Message::FlowEdit(
-                        window_id,
-                        route_add,
-                        FlowEditMessage::AddOutput,
-                    ))
-                    .style(button::text)
-                    .padding([2, 4]),
-            )
-            .width(Fill)
-            .height(Fill)
-            .padding(iced::Padding {
-                top: (add_screen.y - row_height / 2.0).max(0.0),
-                left: (add_screen.x + 8.0).max(0.0),
+                left: (add_screen.x + add_x_offset).max(0.0),
                 right: 0.0,
                 bottom: 0.0,
             })
@@ -1728,21 +1650,24 @@ impl WindowState {
             .iter()
             .enumerate()
             .any(|(i, io)| i != idx && io.name() == name);
-        if !duplicate {
-            if let Some(io) = flow_def.inputs.get_mut(idx) {
-                let old_name = io.name().clone();
-                io.set_name(name.into());
-                let old_route = format!("input/{old_name}");
-                let new_route = format!("input/{name}");
-                for conn in &mut flow_def.connections {
-                    if conn.from().to_string() == old_route {
-                        conn.set_from(Route::from(new_route.as_str()));
-                    }
+        if duplicate {
+            self.status = format!("Input name \"{name}\" already in use");
+            return;
+        }
+        if let Some(io) = flow_def.inputs.get_mut(idx) {
+            let old_name = io.name().clone();
+            io.set_name(name.into());
+            let old_route = format!("input/{old_name}");
+            let new_route = format!("input/{name}");
+            for conn in &mut flow_def.connections {
+                if conn.from().to_string() == old_route {
+                    conn.set_from(Route::from(new_route.as_str()));
                 }
             }
-            self.history.mark_modified();
-            self.canvas_state.request_redraw();
         }
+        self.status = String::new();
+        self.history.mark_modified();
+        self.canvas_state.request_redraw();
     }
 
     fn rename_flow_output(&mut self, flow_def: &mut FlowDefinition, idx: usize, name: &str) {
@@ -1751,30 +1676,33 @@ impl WindowState {
             .iter()
             .enumerate()
             .any(|(i, io)| i != idx && io.name() == name);
-        if !duplicate {
-            if let Some(io) = flow_def.outputs.get_mut(idx) {
-                let old_name = io.name().clone();
-                io.set_name(name.into());
-                let old_route_str = format!("output/{old_name}");
-                let new_route_str = format!("output/{name}");
-                for conn in &mut flow_def.connections {
-                    let new_to: Vec<Route> = conn
-                        .to()
-                        .iter()
-                        .map(|r| {
-                            if r.to_string() == old_route_str {
-                                Route::from(new_route_str.as_str())
-                            } else {
-                                r.clone()
-                            }
-                        })
-                        .collect();
-                    conn.set_to(new_to);
-                }
-            }
-            self.history.mark_modified();
-            self.canvas_state.request_redraw();
+        if duplicate {
+            self.status = format!("Output name \"{name}\" already in use");
+            return;
         }
+        if let Some(io) = flow_def.outputs.get_mut(idx) {
+            let old_name = io.name().clone();
+            io.set_name(name.into());
+            let old_route_str = format!("output/{old_name}");
+            let new_route_str = format!("output/{name}");
+            for conn in &mut flow_def.connections {
+                let new_to: Vec<Route> = conn
+                    .to()
+                    .iter()
+                    .map(|r| {
+                        if r.to_string() == old_route_str {
+                            Route::from(new_route_str.as_str())
+                        } else {
+                            r.clone()
+                        }
+                    })
+                    .collect();
+                conn.set_to(new_to);
+            }
+        }
+        self.status = String::new();
+        self.history.mark_modified();
+        self.canvas_state.request_redraw();
     }
 
     /// Handle flow metadata and I/O editing messages.
