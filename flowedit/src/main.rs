@@ -825,6 +825,18 @@ impl FlowEdit {
         let Some(win) = self.windows.get_mut(&win_id) else {
             return Task::none();
         };
+        let io_renamed = if matches!(canvas_msg, CanvasMessage::HoverChanged(_)) {
+            None
+        } else {
+            win.commit_io_name_edit(flow_def)
+        };
+        if let Some((is_input, old_name, new_name)) = io_renamed {
+            self.update_parent_io_rename(&route, is_input, &old_name, &new_name);
+        }
+        let flow_def = resolve_flow_def_mut(&mut self.root_flow, &route);
+        let Some(win) = self.windows.get_mut(&win_id) else {
+            return Task::none();
+        };
         let action = win.handle_canvas_message(flow_def, canvas_msg);
         let close_task = self.close_orphaned_windows();
         let action_task = match action {
@@ -886,6 +898,7 @@ impl FlowEdit {
         self.close_orphaned_windows()
     }
 
+    #[allow(clippy::too_many_lines)]
     fn handle_flow_edit(&mut self, win_id: window::Id, route: &Route, flow_msg: FlowEditMessage) {
         // Redirect IONameCommit through InputNameChanged/OutputNameChanged so
         // update_parent_io_rename runs for sub-flow parent connection propagation.
@@ -956,13 +969,45 @@ impl FlowEdit {
             _ => None,
         };
 
+        let node_rename = match &flow_msg {
+            FlowEditMessage::NodeNameCommit => self
+                .windows
+                .get(&win_id)
+                .and_then(|w| w.name_editor.as_ref())
+                .map(|e| (e.original.clone(), e.text.trim().to_string())),
+            _ => None,
+        };
+
         let flow_def = resolve_flow_def_mut(&mut self.root_flow, route);
         if let Some(win) = self.windows.get_mut(&win_id) {
             win.handle_flow_edit_message(flow_def, flow_msg);
         }
 
+        if let Some((old_alias, new_alias)) = node_rename {
+            if !new_alias.is_empty() && new_alias != old_alias {
+                let old_segment = format!("/{old_alias}");
+                let new_segment = format!("/{new_alias}");
+                for win in self.windows.values_mut() {
+                    let route_str = win.route.to_string();
+                    if route_str.contains(&old_segment) {
+                        let updated = route_str.replace(&old_segment, &new_segment);
+                        win.route = Route::from(updated.as_str());
+                    }
+                }
+            }
+        }
+
         if let Some((is_input, old_name, new_name)) = io_rename {
-            self.update_parent_io_rename(route, is_input, &old_name, &new_name);
+            let flow_def = resolve_flow_def_mut(&mut self.root_flow, route);
+            let ports = if is_input {
+                &flow_def.inputs
+            } else {
+                &flow_def.outputs
+            };
+            let renamed = ports.iter().any(|io| io.name() == &new_name);
+            if renamed {
+                self.update_parent_io_rename(route, is_input, &old_name, &new_name);
+            }
         }
         if let Some((is_input, deleted_name)) = io_delete {
             self.update_parent_io_delete(route, is_input, &deleted_name);

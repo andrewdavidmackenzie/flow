@@ -388,7 +388,6 @@ impl WindowState {
     ) -> CanvasAction {
         if !matches!(msg, CanvasMessage::HoverChanged(_)) {
             self.commit_name_edit(flow_def);
-            self.commit_io_name_edit(flow_def);
         }
         match msg {
             CanvasMessage::Selected(idx) => self.handle_selected(flow_def, idx),
@@ -1320,6 +1319,8 @@ impl WindowState {
                     self.tooltip = None;
                     self.context_menu = None;
                     self.initializer_editor = None;
+                    self.name_editor = None;
+                    self.io_name_editor = None;
                     self.show_metadata = false;
                     self.history = EditHistory::default();
                     self.auto_fit_pending = true;
@@ -1346,6 +1347,8 @@ impl WindowState {
         self.tooltip = None;
         self.context_menu = None;
         self.initializer_editor = None;
+        self.name_editor = None;
+        self.io_name_editor = None;
         self.show_metadata = false;
         self.history = EditHistory::default();
         self.auto_fit_pending = false;
@@ -1797,7 +1800,7 @@ impl WindowState {
 
     // --- Flow editing (from main.rs) ---
 
-    fn rename_flow_input(&mut self, flow_def: &mut FlowDefinition, idx: usize, name: &str) {
+    fn rename_flow_input(&mut self, flow_def: &mut FlowDefinition, idx: usize, name: &str) -> bool {
         let duplicate = flow_def
             .inputs
             .iter()
@@ -1805,7 +1808,7 @@ impl WindowState {
             .any(|(i, io)| i != idx && io.name() == name);
         if duplicate {
             self.status = format!("Input name \"{name}\" already in use");
-            return;
+            return false;
         }
         if let Some(io) = flow_def.inputs.get_mut(idx) {
             let old_name = io.name().clone();
@@ -1821,9 +1824,15 @@ impl WindowState {
         self.status = String::new();
         self.history.mark_modified();
         self.canvas_state.request_redraw();
+        true
     }
 
-    fn rename_flow_output(&mut self, flow_def: &mut FlowDefinition, idx: usize, name: &str) {
+    fn rename_flow_output(
+        &mut self,
+        flow_def: &mut FlowDefinition,
+        idx: usize,
+        name: &str,
+    ) -> bool {
         let duplicate = flow_def
             .outputs
             .iter()
@@ -1831,7 +1840,7 @@ impl WindowState {
             .any(|(i, io)| i != idx && io.name() == name);
         if duplicate {
             self.status = format!("Output name \"{name}\" already in use");
-            return;
+            return false;
         }
         if let Some(io) = flow_def.outputs.get_mut(idx) {
             let old_name = io.name().clone();
@@ -1856,6 +1865,7 @@ impl WindowState {
         self.status = String::new();
         self.history.mark_modified();
         self.canvas_state.request_redraw();
+        true
     }
 
     /// Handle flow metadata and I/O editing messages.
@@ -1965,17 +1975,24 @@ impl WindowState {
         }
     }
 
-    fn commit_io_name_edit(&mut self, flow_def: &mut FlowDefinition) {
-        if let Some(editor) = self.io_name_editor.take() {
-            let new_name = editor.text.trim().to_string();
-            if !new_name.is_empty() && new_name != editor.original {
-                if editor.is_input {
-                    self.rename_flow_input(flow_def, editor.index, &new_name);
-                } else {
-                    self.rename_flow_output(flow_def, editor.index, &new_name);
-                }
+    pub(crate) fn commit_io_name_edit(
+        &mut self,
+        flow_def: &mut FlowDefinition,
+    ) -> Option<(bool, String, String)> {
+        let editor = self.io_name_editor.take()?;
+        let new_name = editor.text.trim().to_string();
+        if !new_name.is_empty() && new_name != editor.original {
+            let old_name = editor.original.clone();
+            let success = if editor.is_input {
+                self.rename_flow_input(flow_def, editor.index, &new_name)
+            } else {
+                self.rename_flow_output(flow_def, editor.index, &new_name)
+            };
+            if success {
+                return Some((editor.is_input, old_name, new_name));
             }
         }
+        None
     }
 
     fn commit_name_edit(&mut self, flow_def: &mut FlowDefinition) {
@@ -2011,6 +2028,9 @@ impl WindowState {
         }
         if let Some(pref) = flow_def.process_refs.get_mut(idx) {
             pref.alias = new_alias.into();
+        }
+        if let Some(proc) = flow_def.subprocesses.remove(old_alias) {
+            flow_def.subprocesses.insert(new_alias.into(), proc);
         }
         for conn in &mut flow_def.connections {
             let (from_node, from_port) = split_route(conn.from().as_ref());
