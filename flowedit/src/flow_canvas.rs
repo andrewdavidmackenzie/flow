@@ -802,6 +802,80 @@ impl FlowCanvas<'_> {
         None
     }
 
+    /// Check type compatibility when one endpoint is a flow I/O port and the other is a node port.
+    ///
+    /// Looks up the flow IO's datatypes from `self.flow_def.inputs`/`outputs` and the
+    /// node port's datatypes from its `NodeLayout`, then rejects if both have non-empty
+    /// datatypes that don't overlap.
+    fn check_flow_io_type_compatibility(
+        &self,
+        from_node: &str,
+        from_port: &str,
+        from_is_output: bool,
+        to_node: &str,
+        to_port: &str,
+        to_is_output: bool,
+    ) -> bool {
+        // Determine which side is the flow I/O and which is the node port
+        let (io_datatypes, node_alias, node_port, node_is_output) =
+            if from_node == "input" || from_node == "output" {
+                // from side is flow I/O
+                let io_list = if from_node == "input" {
+                    &self.flow_def.inputs
+                } else {
+                    &self.flow_def.outputs
+                };
+                let io_types = io_list
+                    .iter()
+                    .find(|io| io.name() == from_port)
+                    .map(IO::datatypes);
+                (io_types, to_node, to_port, to_is_output)
+            } else {
+                // to side is flow I/O
+                let io_list = if to_node == "input" {
+                    &self.flow_def.inputs
+                } else {
+                    &self.flow_def.outputs
+                };
+                let io_types = io_list
+                    .iter()
+                    .find(|io| io.name() == to_port)
+                    .map(IO::datatypes);
+                (io_types, from_node, from_port, from_is_output)
+            };
+
+        // Look up the node port's datatypes
+        let node_layout = self.nodes.iter().find(|n| n.alias() == node_alias);
+        let node_port_types = node_layout.and_then(|n| {
+            let ports = if node_is_output {
+                n.outputs()
+            } else {
+                n.inputs()
+            };
+            ports
+                .iter()
+                .find(|p| p.name() == node_port)
+                .map(IO::datatypes)
+        });
+
+        match (io_datatypes, node_port_types) {
+            (Some(io_types), Some(node_types)) => {
+                let io_untyped =
+                    io_types.is_empty() || io_types.iter().all(|d| d.to_string().is_empty());
+                let node_untyped =
+                    node_types.is_empty() || node_types.iter().all(|d| d.to_string().is_empty());
+                if io_untyped || node_untyped {
+                    return true;
+                }
+                io_types
+                    .iter()
+                    .any(|it| node_types.iter().any(|nt| it == nt))
+            }
+            // Unknown port or no type info -- allow
+            _ => true,
+        }
+    }
+
     /// Hit test connections by sampling points along each connection's bezier curve.
     ///
     /// Returns the connection index if the cursor is within [`CONNECTION_HIT_DISTANCE`]
@@ -1304,18 +1378,31 @@ impl FlowCanvas<'_> {
         {
             if connecting.from_output != target_is_output {
                 let (target_node, target_port) = split_route(target_route.as_ref());
-                let (from_node, from_port, to_node, to_port) = if connecting.from_output {
-                    (conn_from_node, conn_from_port, target_node, target_port)
-                } else {
-                    (target_node, target_port, conn_from_node, conn_from_port)
-                };
-                return canvas::Action::publish(CanvasMessage::ConnectionCreated {
-                    from_node,
-                    from_port,
-                    to_node,
-                    to_port,
-                })
-                .and_capture();
+
+                // Type-check: one side is a flow I/O port, the other is a node port.
+                let types_ok = self.check_flow_io_type_compatibility(
+                    &conn_from_node,
+                    &conn_from_port,
+                    connecting.from_output,
+                    &target_node,
+                    &target_port,
+                    target_is_output,
+                );
+
+                if types_ok {
+                    let (from_node, from_port, to_node, to_port) = if connecting.from_output {
+                        (conn_from_node, conn_from_port, target_node, target_port)
+                    } else {
+                        (target_node, target_port, conn_from_node, conn_from_port)
+                    };
+                    return canvas::Action::publish(CanvasMessage::ConnectionCreated {
+                        from_node,
+                        from_port,
+                        to_node,
+                        to_port,
+                    })
+                    .and_capture();
+                }
             }
         }
 

@@ -11,7 +11,7 @@ use std::path::{Path, PathBuf};
 
 use iced::widget::canvas::{self, Canvas};
 use iced::widget::{button, container, pick_list, stack, text_input, Column, Row, Text};
-use iced::{window, Color, Element, Fill, Length, Point, Size, Theme};
+use iced::{window, Color, Element, Fill, Point, Size, Theme};
 use log::info;
 use url::Url;
 
@@ -816,7 +816,6 @@ impl WindowState {
         window_id: window::Id,
     ) -> Element<'a, Message> {
         use crate::flow_canvas::flow_io_bounding_box;
-        use crate::flow_canvas::transform_point;
         use crate::node_layout::NodeLayout;
 
         let nodes = NodeLayout::build_from_flow(flow_def);
@@ -825,10 +824,12 @@ impl WindowState {
         let zoom = canvas_state.zoom;
         let offset = canvas_state.scroll_offset;
         let route = flow_def.route.clone();
+        let right_x = box_x + box_w;
 
-        let port_font_size = 12.0;
+        let mut layers: Vec<Element<'_, Message>> = Vec::new();
 
-        let input_col = Self::build_input_column(
+        Self::build_input_layers(
+            &mut layers,
             &flow_def.inputs,
             box_x,
             center_y,
@@ -837,49 +838,25 @@ impl WindowState {
             offset,
             &route,
             window_id,
-            port_font_size,
+        );
+        Self::build_output_layers(
+            &mut layers,
+            &flow_def.outputs,
+            right_x,
+            center_y,
+            spacing,
+            zoom,
+            offset,
+            &route,
+            window_id,
         );
 
-        let output_col =
-            Self::build_output_column(&flow_def.outputs, &route, window_id, port_font_size);
-
-        let right_x = box_x + box_w;
-        let input_screen = transform_point(Point::new(box_x, center_y), zoom, offset);
-        let output_screen = transform_point(Point::new(right_x, center_y), zoom, offset);
-
-        let input_positioned =
-            container(input_col)
-                .width(Fill)
-                .height(Fill)
-                .padding(iced::Padding {
-                    top: (input_screen.y
-                        - (flow_def.inputs.len().max(1) as f32 - 1.0) * spacing * zoom / 2.0
-                        - 12.0)
-                        .max(0.0),
-                    left: 0.0,
-                    right: 0.0,
-                    bottom: 0.0,
-                });
-
-        let output_positioned = container(output_col)
-            .width(Fill)
-            .height(Fill)
-            .align_right(Fill)
-            .padding(iced::Padding {
-                top: (output_screen.y
-                    - (flow_def.outputs.len().max(1) as f32 - 1.0) * spacing * zoom / 2.0
-                    - 12.0)
-                    .max(0.0),
-                left: 0.0,
-                right: 0.0,
-                bottom: 0.0,
-            });
-
-        stack(vec![input_positioned.into(), output_positioned.into()]).into()
+        stack(layers).into()
     }
 
     #[allow(clippy::too_many_arguments)]
-    fn build_input_column<'a>(
+    fn build_input_layers<'a>(
+        layers: &mut Vec<Element<'a, Message>>,
         inputs: &'a [IO],
         left_x: f32,
         center_y: f32,
@@ -888,13 +865,13 @@ impl WindowState {
         offset: Point,
         route: &Route,
         window_id: window::Id,
-        port_font_size: f32,
-    ) -> Column<'a, Message> {
+    ) {
         use crate::flow_canvas::transform_point;
 
-        let mut col = Column::new().spacing(4).width(Length::Shrink);
-
+        let port_font_size = 12.0;
+        let row_height = 24.0;
         let input_start_y = center_y - (inputs.len() as f32 - 1.0) * spacing / 2.0;
+
         for (i, input) in inputs.iter().enumerate() {
             let world_y = input_start_y + i as f32 * spacing;
             let screen_pos = transform_point(Point::new(left_x, world_y), zoom, offset);
@@ -922,27 +899,31 @@ impl WindowState {
                 .style(button::text)
                 .padding([1, 3]);
 
-            let row = container(
-                Row::new()
-                    .spacing(2)
-                    .align_y(iced::Alignment::Center)
-                    .push(del_btn)
-                    .push(name_input),
-            )
-            .padding(iced::Padding {
-                top: 0.0,
-                left: (screen_pos.x - 100.0).max(0.0),
-                right: 0.0,
-                bottom: 0.0,
-            });
+            let row = Row::new()
+                .spacing(2)
+                .align_y(iced::Alignment::Center)
+                .push(del_btn)
+                .push(name_input);
 
-            col = col.push(row);
+            layers.push(
+                container(row)
+                    .width(Fill)
+                    .height(Fill)
+                    .padding(iced::Padding {
+                        top: (screen_pos.y - row_height / 2.0).max(0.0),
+                        left: (screen_pos.x - 100.0).max(0.0),
+                        right: 0.0,
+                        bottom: 0.0,
+                    })
+                    .into(),
+            );
         }
 
+        // "+ Input" button layer
         let input_bottom_y = input_start_y + inputs.len() as f32 * spacing;
-        let screen_pos = transform_point(Point::new(left_x, input_bottom_y), zoom, offset);
+        let add_screen = transform_point(Point::new(left_x, input_bottom_y), zoom, offset);
         let route_add = route.clone();
-        col = col.push(
+        layers.push(
             container(
                 button(Text::new("+ Input").size(10))
                     .on_press(Message::FlowEdit(
@@ -953,29 +934,39 @@ impl WindowState {
                     .style(button::text)
                     .padding([2, 4]),
             )
+            .width(Fill)
+            .height(Fill)
             .padding(iced::Padding {
-                top: 0.0,
-                left: (screen_pos.x - 60.0).max(0.0),
+                top: (add_screen.y - row_height / 2.0).max(0.0),
+                left: (add_screen.x - 60.0).max(0.0),
                 right: 0.0,
                 bottom: 0.0,
-            }),
+            })
+            .into(),
         );
-
-        col
     }
 
-    fn build_output_column<'a>(
+    #[allow(clippy::too_many_arguments)]
+    fn build_output_layers<'a>(
+        layers: &mut Vec<Element<'a, Message>>,
         outputs: &'a [IO],
+        right_x: f32,
+        center_y: f32,
+        spacing: f32,
+        zoom: f32,
+        offset: Point,
         route: &Route,
         window_id: window::Id,
-        port_font_size: f32,
-    ) -> Column<'a, Message> {
-        let mut col = Column::new()
-            .spacing(4)
-            .width(Length::Shrink)
-            .align_x(iced::Alignment::End);
+    ) {
+        use crate::flow_canvas::transform_point;
+
+        let port_font_size = 12.0;
+        let row_height = 24.0;
+        let output_start_y = center_y - (outputs.len() as f32 - 1.0) * spacing / 2.0;
 
         for (i, output) in outputs.iter().enumerate() {
+            let world_y = output_start_y + i as f32 * spacing;
+            let screen_pos = transform_point(Point::new(right_x, world_y), zoom, offset);
             let route_clone = route.clone();
 
             let name_input = text_input("name", output.name())
@@ -1006,22 +997,45 @@ impl WindowState {
                 .push(name_input)
                 .push(del_btn);
 
-            col = col.push(row);
+            layers.push(
+                container(row)
+                    .width(Fill)
+                    .height(Fill)
+                    .padding(iced::Padding {
+                        top: (screen_pos.y - row_height / 2.0).max(0.0),
+                        left: (screen_pos.x + 8.0).max(0.0),
+                        right: 0.0,
+                        bottom: 0.0,
+                    })
+                    .into(),
+            );
         }
 
+        // "+ Output" button layer
+        let output_bottom_y = output_start_y + outputs.len() as f32 * spacing;
+        let add_screen = transform_point(Point::new(right_x, output_bottom_y), zoom, offset);
         let route_add = route.clone();
-        col = col.push(
-            button(Text::new("+ Output").size(10))
-                .on_press(Message::FlowEdit(
-                    window_id,
-                    route_add,
-                    FlowEditMessage::AddOutput,
-                ))
-                .style(button::text)
-                .padding([2, 4]),
+        layers.push(
+            container(
+                button(Text::new("+ Output").size(10))
+                    .on_press(Message::FlowEdit(
+                        window_id,
+                        route_add,
+                        FlowEditMessage::AddOutput,
+                    ))
+                    .style(button::text)
+                    .padding([2, 4]),
+            )
+            .width(Fill)
+            .height(Fill)
+            .padding(iced::Padding {
+                top: (add_screen.y - row_height / 2.0).max(0.0),
+                left: (add_screen.x + 8.0).max(0.0),
+                right: 0.0,
+                bottom: 0.0,
+            })
+            .into(),
         );
-
-        col
     }
 
     fn build_tooltip_overlay<'a>(tip: &crate::window_state::Tooltip) -> Element<'a, Message> {
