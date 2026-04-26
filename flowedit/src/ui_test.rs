@@ -1474,6 +1474,8 @@ fn load_mandlebrot_app() -> (FlowEdit, window::Id, std::path::PathBuf) {
     static COUNTER: AtomicUsize = AtomicUsize::new(0);
     let id = COUNTER.fetch_add(1, Ordering::Relaxed);
 
+    // Ensure ~/.flow/lib is on FLOW_LIB_PATH so lib:// URLs resolve.
+    // Only adds if not already present — idempotent across concurrent calls.
     if let Ok(home) = std::env::var("HOME") {
         let default_lib = std::path::PathBuf::from(&home).join(".flow").join("lib");
         if default_lib.exists() {

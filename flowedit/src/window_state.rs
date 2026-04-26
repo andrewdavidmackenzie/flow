@@ -1995,7 +1995,7 @@ impl WindowState {
         None
     }
 
-    fn commit_name_edit(&mut self, flow_def: &mut FlowDefinition) {
+    pub(crate) fn commit_name_edit(&mut self, flow_def: &mut FlowDefinition) {
         if let Some(editor) = self.name_editor.take() {
             let new_name = editor.text.trim().to_string();
             if !new_name.is_empty() && new_name != editor.original {

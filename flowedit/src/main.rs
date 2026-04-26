@@ -931,6 +931,16 @@ impl FlowEdit {
                 | FlowEditMessage::OutputNameChanged(_, _)
         );
 
+        // Clear io_name_editor before deletion to avoid stale auto-commit
+        if matches!(
+            flow_msg,
+            FlowEditMessage::DeleteInput(_) | FlowEditMessage::DeleteOutput(_)
+        ) {
+            if let Some(win) = self.windows.get_mut(&win_id) {
+                win.io_name_editor = None;
+            }
+        }
+
         // Capture deleted I/O name before deletion for parent connection cleanup
         let io_delete = match &flow_msg {
             FlowEditMessage::DeleteInput(idx) => {
@@ -985,13 +995,20 @@ impl FlowEdit {
 
         if let Some((old_alias, new_alias)) = node_rename {
             if !new_alias.is_empty() && new_alias != old_alias {
-                let old_segment = format!("/{old_alias}");
-                let new_segment = format!("/{new_alias}");
-                for win in self.windows.values_mut() {
-                    let route_str = win.route.to_string();
-                    if route_str.contains(&old_segment) {
-                        let updated = route_str.replace(&old_segment, &new_segment);
-                        win.route = Route::from(updated.as_str());
+                let flow_def = resolve_flow_def_mut(&mut self.root_flow, route);
+                let renamed = flow_def.process_refs.iter().any(|p| p.alias == new_alias);
+                if renamed {
+                    let parent_route = route.to_string();
+                    let old_prefix = format!("{parent_route}/{old_alias}");
+                    let new_prefix = format!("{parent_route}/{new_alias}");
+                    for win in self.windows.values_mut() {
+                        let route_str = win.route.to_string();
+                        if route_str == old_prefix
+                            || route_str.starts_with(&format!("{old_prefix}/"))
+                        {
+                            let updated = route_str.replacen(&old_prefix, &new_prefix, 1);
+                            win.route = Route::from(updated.as_str());
+                        }
                     }
                 }
             }
@@ -1120,6 +1137,7 @@ impl FlowEdit {
                 }
             }
             Message::Save | Message::SaveAs | Message::Open | Message::New | Message::Compile => {
+                self.flush_pending_edits();
                 self.handle_file_message(message);
             }
             Message::FlowEdit(win_id, ref route, flow_msg) => {
@@ -2284,6 +2302,28 @@ impl FlowEdit {
 
         self.windows.insert(new_id, child);
         open_task.discard()
+    }
+
+    fn flush_pending_edits(&mut self) {
+        let win_ids: Vec<window::Id> = self.windows.keys().copied().collect();
+        let mut io_renames = Vec::new();
+        for win_id in win_ids {
+            let route = self
+                .windows
+                .get(&win_id)
+                .map(|w| w.route.clone())
+                .unwrap_or_default();
+            let flow_def = resolve_flow_def_mut(&mut self.root_flow, &route);
+            if let Some(win) = self.windows.get_mut(&win_id) {
+                win.commit_name_edit(flow_def);
+                if let Some(rename_info) = win.commit_io_name_edit(flow_def) {
+                    io_renames.push((route, rename_info));
+                }
+            }
+        }
+        for (route, (is_input, old_name, new_name)) in io_renames {
+            self.update_parent_io_rename(&route, is_input, &old_name, &new_name);
+        }
     }
 
     fn has_unsaved_flow_edits(&self) -> bool {
