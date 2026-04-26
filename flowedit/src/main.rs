@@ -887,25 +887,23 @@ impl FlowEdit {
     }
 
     fn handle_flow_edit(&mut self, win_id: window::Id, route: &Route, flow_msg: FlowEditMessage) {
+        // Redirect IONameCommit through InputNameChanged/OutputNameChanged so
+        // update_parent_io_rename runs for sub-flow parent connection propagation.
         if matches!(flow_msg, FlowEditMessage::IONameCommit) {
-            if let Some(win) = self.windows.get(&win_id) {
-                if let Some(ref editor) = win.io_name_editor {
-                    let new_name = editor.text.trim().to_string();
-                    if !new_name.is_empty() && new_name != editor.original {
-                        let redirected = if editor.is_input {
-                            FlowEditMessage::InputNameChanged(editor.index, new_name)
-                        } else {
-                            FlowEditMessage::OutputNameChanged(editor.index, new_name)
-                        };
-                        if let Some(win) = self.windows.get_mut(&win_id) {
-                            win.io_name_editor = None;
-                        }
-                        return self.handle_flow_edit(win_id, route, redirected);
-                    }
+            let editor = self
+                .windows
+                .get_mut(&win_id)
+                .and_then(|w| w.io_name_editor.take());
+            if let Some(editor) = editor {
+                let new_name = editor.text.trim().to_string();
+                if !new_name.is_empty() && new_name != editor.original {
+                    let redirected = if editor.is_input {
+                        FlowEditMessage::InputNameChanged(editor.index, new_name)
+                    } else {
+                        FlowEditMessage::OutputNameChanged(editor.index, new_name)
+                    };
+                    return self.handle_flow_edit(win_id, route, redirected);
                 }
-            }
-            if let Some(win) = self.windows.get_mut(&win_id) {
-                win.io_name_editor = None;
             }
             return;
         }

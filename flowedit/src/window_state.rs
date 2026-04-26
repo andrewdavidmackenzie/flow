@@ -386,12 +386,7 @@ impl WindowState {
         flow_def: &mut FlowDefinition,
         msg: CanvasMessage,
     ) -> CanvasAction {
-        if !matches!(
-            msg,
-            CanvasMessage::EditNodeName(_)
-                | CanvasMessage::EditIOName { .. }
-                | CanvasMessage::HoverChanged(_)
-        ) {
+        if !matches!(msg, CanvasMessage::HoverChanged(_)) {
             self.commit_name_edit(flow_def);
             self.commit_io_name_edit(flow_def);
         }
@@ -1999,11 +1994,17 @@ impl WindowState {
         old_alias: &str,
         new_alias: &str,
     ) {
-        let duplicate = flow_def
-            .process_refs
-            .iter()
-            .enumerate()
-            .any(|(i, p)| i != idx && p.alias == new_alias);
+        let duplicate = flow_def.process_refs.iter().enumerate().any(|(i, p)| {
+            if i == idx {
+                return false;
+            }
+            let effective = if p.alias.is_empty() {
+                derive_short_name(&p.source)
+            } else {
+                p.alias.clone()
+            };
+            effective == new_alias
+        });
         if duplicate {
             self.status = format!("Name \"{new_alias}\" already in use");
             return;
