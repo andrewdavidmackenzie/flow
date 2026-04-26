@@ -992,8 +992,8 @@ mod test {
         win.history.mark_modified();
         flow_def.name = "saved_flow".into();
 
-        win.perform_save(&mut flow_def, &path);
-        assert!(win.history.is_empty());
+        let saved = win.perform_save(&mut flow_def, &path);
+        assert!(saved);
         let canonical = path.canonicalize().unwrap_or_else(|_| path.clone());
         assert_eq!(WindowState::file_path_of(&flow_def), Some(canonical));
 

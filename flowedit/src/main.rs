@@ -2203,12 +2203,11 @@ impl FlowEdit {
         let Some(win) = root_win else {
             return;
         };
-        if save_as {
-            win.handle_save_as(&mut self.root_flow);
+        let saved = if save_as {
+            win.handle_save_as(&mut self.root_flow)
         } else {
-            win.handle_save(&mut self.root_flow);
-        }
-        let saved = win.history.is_empty();
+            win.handle_save(&mut self.root_flow)
+        };
         if saved {
             for w in self.windows.values_mut() {
                 if matches!(w.kind, WindowKind::FlowEditor) {
