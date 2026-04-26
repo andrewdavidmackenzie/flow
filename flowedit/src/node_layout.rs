@@ -36,8 +36,6 @@ const GRID_ORIGIN_Y: f32 = 50.0;
 pub(crate) const PORT_FONT_SIZE: f32 = 11.0;
 /// Vertical spacing between ports
 pub(crate) const PORT_SPACING: f32 = 20.0;
-/// Vertical offset from top of node to first port
-pub(crate) const PORT_START_Y: f32 = 55.0;
 
 static EMPTY_IO: Vec<IO> = Vec::new();
 
@@ -86,7 +84,12 @@ impl<'a> NodeLayout<'a> {
     }
 
     pub(crate) fn height(&self) -> f32 {
-        self.process_ref.height.unwrap_or(DEFAULT_HEIGHT)
+        let stored = self.process_ref.height.unwrap_or(DEFAULT_HEIGHT);
+        let header = 50.0;
+        let bottom_pad = 25.0;
+        let max_ports = self.inputs().len().max(self.outputs().len());
+        let min_for_ports = header + max_ports.saturating_sub(1) as f32 * PORT_SPACING + bottom_pad;
+        stored.max(min_for_ports)
     }
 
     pub(crate) fn inputs(&self) -> &[IO] {
@@ -178,17 +181,27 @@ impl<'a> NodeLayout<'a> {
         }
     }
 
+    fn port_start_y(&self, port_count: usize) -> f32 {
+        let header_height = 50.0;
+        let available = self.height() - header_height;
+        let ports_height = (port_count.saturating_sub(1)) as f32 * PORT_SPACING;
+        let padding = ((available - ports_height) / 2.0).max(0.0);
+        self.y() + header_height + padding
+    }
+
     pub(crate) fn output_port_position(&self, port_index: usize) -> Point {
+        let count = self.outputs().len().max(1);
         Point::new(
             self.x() + self.width(),
-            self.y() + PORT_START_Y + port_index as f32 * PORT_SPACING,
+            self.port_start_y(count) + port_index as f32 * PORT_SPACING,
         )
     }
 
     pub(crate) fn input_port_position(&self, port_index: usize) -> Point {
+        let count = self.inputs().len().max(1);
         Point::new(
             self.x(),
-            self.y() + PORT_START_Y + port_index as f32 * PORT_SPACING,
+            self.port_start_y(count) + port_index as f32 * PORT_SPACING,
         )
     }
 
