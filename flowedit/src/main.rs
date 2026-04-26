@@ -358,6 +358,42 @@ fn resolve_flow_def_mut<'a>(
     }
 }
 
+fn toolbar_btn(_theme: &Theme, status: button::Status) -> button::Style {
+    let is_hovered = matches!(status, button::Status::Hovered);
+    button::Style {
+        background: Some(iced::Background::Color(Color::from_rgb(0.25, 0.25, 0.30))),
+        text_color: Color::WHITE,
+        border: iced::Border {
+            color: if is_hovered {
+                Color::WHITE
+            } else {
+                Color::from_rgb(0.4, 0.4, 0.45)
+            },
+            width: 2.0,
+            radius: 8.0.into(),
+        },
+        ..Default::default()
+    }
+}
+
+fn toolbar_btn_active(_theme: &Theme, status: button::Status) -> button::Style {
+    let is_hovered = matches!(status, button::Status::Hovered);
+    button::Style {
+        background: Some(iced::Background::Color(Color::from_rgb(0.3, 0.35, 0.5))),
+        text_color: Color::WHITE,
+        border: iced::Border {
+            color: if is_hovered {
+                Color::WHITE
+            } else {
+                Color::from_rgb(0.4, 0.5, 0.7)
+            },
+            width: 2.0,
+            radius: 8.0.into(),
+        },
+        ..Default::default()
+    }
+}
+
 impl FlowEdit {
     /// Create the application, parsing CLI args and optionally loading a flow file.
     fn new() -> (Self, Task<Message>) {
@@ -1121,47 +1157,13 @@ impl FlowEdit {
         window_id: window::Id,
     ) -> Element<'a, Message> {
         let edit_indicator = if win.history.is_empty() {
-            String::from("  |  saved")
+            "  |  saved"
         } else {
-            String::from("  |  unsaved edit(s)")
+            "  |  unsaved edit(s)"
         };
 
         let btn_pad = [6, 14];
         let btn_size = 13;
-        let toolbar_btn = |_theme: &Theme, status: button::Status| -> button::Style {
-            let is_hovered = matches!(status, button::Status::Hovered);
-            button::Style {
-                background: Some(iced::Background::Color(Color::from_rgb(0.25, 0.25, 0.30))),
-                text_color: Color::WHITE,
-                border: iced::Border {
-                    color: if is_hovered {
-                        Color::WHITE
-                    } else {
-                        Color::from_rgb(0.4, 0.4, 0.45)
-                    },
-                    width: 2.0,
-                    radius: 8.0.into(),
-                },
-                ..Default::default()
-            }
-        };
-        let toolbar_btn_active = |_theme: &Theme, status: button::Status| -> button::Style {
-            let is_hovered = matches!(status, button::Status::Hovered);
-            button::Style {
-                background: Some(iced::Background::Color(Color::from_rgb(0.3, 0.35, 0.5))),
-                text_color: Color::WHITE,
-                border: iced::Border {
-                    color: if is_hovered {
-                        Color::WHITE
-                    } else {
-                        Color::from_rgb(0.4, 0.5, 0.7)
-                    },
-                    width: 2.0,
-                    radius: 8.0.into(),
-                },
-                ..Default::default()
-            }
-        };
 
         let status_bar: Row<'_, Message> = if win.is_root {
             let mut compile_btn = button(Text::new("\u{1F528} Build").size(btn_size).center())
@@ -1171,27 +1173,21 @@ impl FlowEdit {
                 compile_btn = compile_btn.on_press(Message::Compile);
             }
 
-            let new_subflow_btn = button(Text::new("+ Sub-flow").size(btn_size).center())
-                .on_press(Message::NewSubFlow(window_id))
+            let open_btn = button(Text::new("\u{1F4C2} Open").size(btn_size).center())
+                .on_press(Message::Open)
                 .style(toolbar_btn)
                 .padding(btn_pad);
 
-            let new_func_btn = button(Text::new("+ Function").size(btn_size).center())
-                .on_press(Message::NewFunction(window_id))
+            let mut save_btn = button(Text::new("\u{1F4BE} Save").size(btn_size).center())
                 .style(toolbar_btn)
                 .padding(btn_pad);
+            if !win.history.is_empty() {
+                save_btn = save_btn.on_press(Message::Save);
+            }
 
-            let info_btn = button(Text::new("\u{2139} Info").size(btn_size).center())
-                .on_press(Message::FlowEdit(
-                    window_id,
-                    flow_def.route.clone(),
-                    FlowEditMessage::ToggleMetadata,
-                ))
-                .style(if win.show_metadata {
-                    toolbar_btn_active
-                } else {
-                    toolbar_btn
-                })
+            let save_as_btn = button(Text::new("Save As\u{2026}").size(btn_size).center())
+                .on_press(Message::SaveAs)
+                .style(toolbar_btn)
                 .padding(btn_pad);
 
             Row::new()
@@ -1202,7 +1198,23 @@ impl FlowEdit {
                         .width(Fill)
                         .clip(true),
                 )
-                .push(info_btn)
+                .push(open_btn)
+                .push(save_btn)
+                .push(save_as_btn)
+                .push(
+                    button(Text::new("\u{2139} Info").size(btn_size).center())
+                        .on_press(Message::FlowEdit(
+                            window_id,
+                            flow_def.route.clone(),
+                            FlowEditMessage::ToggleMetadata,
+                        ))
+                        .style(if win.show_metadata {
+                            toolbar_btn_active
+                        } else {
+                            toolbar_btn
+                        })
+                        .padding(btn_pad),
+                )
                 .push(
                     button(Text::new("\u{1F4C1} Libs").size(btn_size).center())
                         .on_press(Message::ToggleLibPaths)
@@ -1213,8 +1225,18 @@ impl FlowEdit {
                         })
                         .padding(btn_pad),
                 )
-                .push(new_subflow_btn)
-                .push(new_func_btn)
+                .push(
+                    button(Text::new("+ Sub-flow").size(btn_size).center())
+                        .on_press(Message::NewSubFlow(window_id))
+                        .style(toolbar_btn)
+                        .padding(btn_pad),
+                )
+                .push(
+                    button(Text::new("+ Function").size(btn_size).center())
+                        .on_press(Message::NewFunction(window_id))
+                        .style(toolbar_btn)
+                        .padding(btn_pad),
+                )
                 .push(compile_btn)
         } else {
             Row::new().spacing(8).padding([4, 8]).push(
