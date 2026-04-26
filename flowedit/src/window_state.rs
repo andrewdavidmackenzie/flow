@@ -198,12 +198,16 @@ impl FlowCanvasState {
                 .map(|io| io.name().len())
                 .max()
                 .unwrap_or(0);
-            let label_margin = max_input_label.max(max_output_label) as f32 * PORT_FONT_SIZE + 20.0;
+            let button_width = 120.0;
+            let label_margin = (max_input_label.max(max_output_label) as f32 * PORT_FONT_SIZE
+                + 20.0)
+                .max(button_width);
+            let button_height = 40.0;
             (
                 box_x - label_margin,
                 box_y,
                 box_x + box_w + label_margin,
-                box_y + box_h,
+                box_y + box_h + button_height,
             )
         } else {
             let mut min_x = f32::MAX;
@@ -1051,11 +1055,14 @@ impl WindowState {
         let offset = canvas_state.scroll_offset;
         let route = flow_def.route.clone();
         let right_x = box_x + box_w;
-        let row_height = 24.0;
+
+        let scaled_r = 6.0 * zoom;
+        let btn_width = 70.0;
 
         let input_start_y = center_y - (flow_def.inputs.len() as f32 - 1.0) * spacing / 2.0;
         let input_add_y = input_start_y + flow_def.inputs.len() as f32 * spacing;
-        let input_screen = transform_point(Point::new(box_x, input_add_y), zoom, offset);
+        let input_port_screen = transform_point(Point::new(box_x, input_add_y), zoom, offset);
+        let input_label_right = input_port_screen.x - scaled_r - 4.0;
         let route_add_in = route.clone();
         layers.push(
             container(
@@ -1071,8 +1078,8 @@ impl WindowState {
             .width(Fill)
             .height(Fill)
             .padding(iced::Padding {
-                top: (input_screen.y - row_height / 2.0).max(0.0),
-                left: (input_screen.x - 70.0).max(0.0),
+                top: (input_port_screen.y).max(0.0),
+                left: (input_label_right - btn_width).max(0.0),
                 right: 0.0,
                 bottom: 0.0,
             })
@@ -1081,7 +1088,8 @@ impl WindowState {
 
         let output_start_y = center_y - (flow_def.outputs.len() as f32 - 1.0) * spacing / 2.0;
         let output_add_y = output_start_y + flow_def.outputs.len() as f32 * spacing;
-        let output_screen = transform_point(Point::new(right_x, output_add_y), zoom, offset);
+        let output_port_screen = transform_point(Point::new(right_x, output_add_y), zoom, offset);
+        let output_label_left = output_port_screen.x + scaled_r + 4.0;
         let route_add_out = route;
         layers.push(
             container(
@@ -1097,8 +1105,8 @@ impl WindowState {
             .width(Fill)
             .height(Fill)
             .padding(iced::Padding {
-                top: (output_screen.y - row_height / 2.0).max(0.0),
-                left: (output_screen.x + 8.0).max(0.0),
+                top: (output_port_screen.y).max(0.0),
+                left: output_label_left.max(0.0),
                 right: 0.0,
                 bottom: 0.0,
             })
