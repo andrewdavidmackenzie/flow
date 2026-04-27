@@ -33,7 +33,7 @@ use iced::widget::{center, mouse_area, opaque, stack, text_input, Button, Column
 use iced::{Center, Element, Fill, Subscription, Task};
 use iced_aw::Card;
 use image::{ImageBuffer, Rgba, RgbaImage};
-use log::{debug, info, LevelFilter};
+use log::{debug, info, trace, LevelFilter};
 use simpath::Simpath;
 use url::Url;
 
@@ -236,11 +236,14 @@ impl FlowrGui {
             }
             Message::NewStdin(text) => self.tab_set.stdin_tab.text_entered(text),
             Message::LineOfStdin(line) => {
-                debug!("LineOfStdin: user entered line: '{line}'");
+                debug!("LineOfStdin: user entered line ({} chars)", line.len());
                 self.tab_set.stdin_tab.new_line(line);
                 if self.pending_getline {
                     if let Some(line) = self.tab_set.stdin_tab.get_line() {
-                        debug!("LineOfStdin: responding to pending GetLine with '{line}'");
+                        debug!(
+                            "LineOfStdin: responding to pending GetLine ({} chars)",
+                            line.len()
+                        );
                         self.send(ClientMessage::Line(line));
                     }
                     self.pending_getline = false;
@@ -708,8 +711,8 @@ impl FlowrGui {
                     debug!("GetStdin: returning buffered content ({} bytes)", buf.len());
                     ClientMessage::Stdin(buf)
                 } else {
-                    debug!("GetStdin: buffer empty, sending GetLineEof immediately");
-                    ClientMessage::GetLineEof
+                    debug!("GetStdin: buffer empty, sending GetStdinEof");
+                    ClientMessage::GetStdinEof
                 };
                 self.send(msg);
             }
@@ -732,7 +735,8 @@ impl FlowrGui {
                     }
                 }
                 if let Some(line) = self.tab_set.stdin_tab.get_line() {
-                    debug!("GetLine: returning buffered line: '{line}'");
+                    trace!("GetLine: returning buffered line: '{line}'");
+                    debug!("GetLine: returning buffered line ({} chars)", line.len());
                     self.send(ClientMessage::Line(line));
                 } else if self.ui_settings.auto || self.tab_set.stdin_tab.eof_signaled {
                     debug!("GetLine: EOF (auto mode or user signaled)");
