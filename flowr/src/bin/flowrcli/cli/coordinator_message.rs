@@ -110,6 +110,9 @@ pub enum ClientMessage {
     /// Contents read from a file
     FileContents(String, Vec<u8>),
 
+    /// Client requests that the Coordinator stop the currently executing flow
+    StopFlow,
+
     /// ** This message is just internal to the client and not sent to the Coordinator
     /// Client is exiting Event loop
     ClientExiting(Result<()>),
@@ -132,6 +135,7 @@ impl fmt::Display for ClientMessage {
                     format!("ClientExiting with server result: {result:?}"),
                 ClientMessage::ClientSubmission(_) => "ClientSubmission".into(),
                 ClientMessage::EnterDebugger => "EnterDebugger".into(),
+                ClientMessage::StopFlow => "StopFlow".into(),
                 ClientMessage::Invalid => "Invalid".into(),
                 ClientMessage::FileContents(_, _) => "FileContents".into(),
             }

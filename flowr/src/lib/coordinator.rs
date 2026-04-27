@@ -122,6 +122,12 @@ impl<'a> Coordinator<'a> {
 
             'jobs: loop {
                 trace!("{state}");
+
+                #[cfg(feature = "submission")]
+                if self.submission_handler.should_stop()? {
+                    break 'jobs;
+                }
+
                 #[cfg(feature = "debugger")]
                 if state.submission.debug_enabled
                     && self.submission_handler.should_enter_debugger()?
@@ -467,6 +473,10 @@ mod test {
             #[cfg(feature = "metrics")] _metrics: Metrics,
         ) -> flowcore::errors::Result<()> {
             Ok(())
+        }
+
+        fn should_stop(&mut self) -> flowcore::errors::Result<bool> {
+            Ok(false)
         }
 
         fn wait_for_submission(&mut self) -> flowcore::errors::Result<Option<Submission>> {

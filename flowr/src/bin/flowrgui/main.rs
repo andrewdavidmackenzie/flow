@@ -97,6 +97,8 @@ pub enum Message {
     LineOfStdin(String),
     /// User clicked the EOF button to signal end of stdin
     SendEof,
+    /// User clicked the Stop button to stop the running flow
+    StopFlow,
     /// toggle to auto-scroll to bottom of STDIO has changed
     StdioAutoScrollTogglerChanged(Id, bool),
     /// closing of the Modal was requested
@@ -259,6 +261,14 @@ impl FlowrGui {
                     self.tab_set.stdin_tab.eof_signaled = true;
                 }
             }
+            Message::StopFlow => {
+                debug!("StopFlow: user clicked Stop button");
+                if self.pending_getline {
+                    self.send(ClientMessage::GetLineEof);
+                    self.pending_getline = false;
+                }
+                self.send(ClientMessage::StopFlow);
+            }
         }
 
         Task::none()
@@ -378,20 +388,22 @@ impl FlowrGui {
         .on_input(Message::FlowArgsChanged)
         .on_paste(Message::FlowArgsChanged);
 
-        let mut play = Button::new("Play");
-        if matches!(self.coordinator_state, CoordinatorState::Connected(_))
-            && !self.running
-            && !self.submitted
-        {
-            play = play.on_press(Message::SubmitFlow);
-        }
+        let play_stop = if self.running {
+            Button::new("Stop").on_press(Message::StopFlow)
+        } else {
+            let mut play = Button::new("Play");
+            if matches!(self.coordinator_state, CoordinatorState::Connected(_)) && !self.submitted {
+                play = play.on_press(Message::SubmitFlow);
+            }
+            play
+        };
 
         Row::new()
             .spacing(10)
             .align_y(iced::alignment::Vertical::Bottom)
             .push(url)
             .push(args)
-            .push(play)
+            .push(play_stop)
     }
 
     fn status_row(&self) -> Row<'_, Message> {

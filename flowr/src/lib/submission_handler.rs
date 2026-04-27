@@ -46,6 +46,14 @@ pub trait SubmissionHandler {
     ///
     fn wait_for_submission(&mut self) -> Result<Option<Submission>>;
 
+    /// The [Coordinator][crate::coordinator::Coordinator] periodically checks if the client
+    /// has requested that flow execution be stopped.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the check fails
+    fn should_stop(&mut self) -> Result<bool>;
+
     /// The [Coordinator][crate::coordinator::Coordinator] is about to exit
     ///
     /// # Errors
