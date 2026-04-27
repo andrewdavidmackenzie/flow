@@ -4,7 +4,7 @@ use iced::widget::image::{Handle, Viewer};
 use iced::widget::operation::{self, RelativeOffset};
 use iced::widget::scrollable::Scrollable;
 use iced::widget::TextInput;
-use iced::widget::{text, toggler, Column, Id};
+use iced::widget::{text, toggler, Button, Column, Id, Row, Text};
 use iced::{Element, Length, Task};
 use iced_aw::{TabLabel, Tabs};
 use once_cell::sync::Lazy;
@@ -181,6 +181,7 @@ pub(crate) struct StdInTab {
     pub content: Vec<String>,
     pub cursor: usize,
     pub text: String,
+    pub eof_signaled: bool,
 }
 
 impl StdInTab {
@@ -191,6 +192,7 @@ impl StdInTab {
             content: vec![],
             cursor: 0,
             text: String::new(),
+            eof_signaled: false,
         }
     }
 
@@ -252,11 +254,13 @@ impl Tab for StdInTab {
             .on_submit(Message::LineOfStdin(self.text.clone()))
             .width(Length::Fill)
             .padding(10);
+        let eof_button = Button::new(Text::new("EOF")).on_press(Message::SendEof);
+        let input_row = Row::new().push(text_input).push(eof_button).spacing(5);
         let scrollable = Scrollable::new(text_column)
             .height(Length::Fill)
             .id(self.id.clone());
 
-        Column::new().push(scrollable).push(text_input).into()
+        Column::new().push(scrollable).push(input_row).into()
     }
 
     // Avoid clearing standard input - to allow the user to type in input ahead of the
@@ -275,6 +279,7 @@ mod test {
         assert!(tab.content.is_empty());
         assert_eq!(tab.cursor, 0);
         assert!(tab.text.is_empty());
+        assert!(!tab.eof_signaled);
     }
 
     #[test]

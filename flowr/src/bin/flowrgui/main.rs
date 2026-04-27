@@ -95,6 +95,8 @@ pub enum Message {
     NewStdin(String),
     /// A new line entered for STDIN
     LineOfStdin(String),
+    /// User clicked the EOF button to signal end of stdin
+    SendEof,
     /// toggle to auto-scroll to bottom of STDIO has changed
     StdioAutoScrollTogglerChanged(Id, bool),
     /// closing of the Modal was requested
@@ -158,6 +160,7 @@ struct ImageReference {
     pub data: ImageBuffer<Rgba<u8>, Vec<u8>>,
 }
 
+#[allow(clippy::struct_excessive_bools)]
 struct FlowrGui {
     submission_settings: SubmissionSettings,
     coordinator_settings: CoordinatorSettings,
@@ -168,6 +171,7 @@ struct FlowrGui {
     submitted: bool,
     show_modal: bool,
     modal_content: (String, String),
+    pending_getline: bool,
 }
 
 impl FlowrGui {
@@ -187,6 +191,7 @@ impl FlowrGui {
             running: false,
             show_modal: false,
             modal_content: (String::new(), String::new()),
+            pending_getline: false,
         };
 
         (flowrgui, Task::none())
@@ -233,6 +238,23 @@ impl FlowrGui {
             Message::LineOfStdin(line) => {
                 debug!("LineOfStdin: user entered line: '{line}'");
                 self.tab_set.stdin_tab.new_line(line);
+                if self.pending_getline {
+                    if let Some(line) = self.tab_set.stdin_tab.get_line() {
+                        debug!("LineOfStdin: responding to pending GetLine with '{line}'");
+                        self.send(ClientMessage::Line(line));
+                    }
+                    self.pending_getline = false;
+                }
+            }
+            Message::SendEof => {
+                debug!("SendEof: user clicked EOF button");
+                if self.pending_getline {
+                    debug!("SendEof: responding to pending GetLine with EOF");
+                    self.send(ClientMessage::GetLineEof);
+                    self.pending_getline = false;
+                } else {
+                    self.tab_set.stdin_tab.eof_signaled = true;
+                }
             }
         }
 
@@ -626,6 +648,7 @@ impl FlowrGui {
             CoordinatorMessage::FlowEnd(metrics) => {
                 debug!("FlowEnd received");
                 self.running = false;
+                self.pending_getline = false;
                 if self.submission_settings.display_metrics {
                     self.show_modal = true;
                     self.modal_content = ("Flow Ended - Metrics".into(), format!("{metrics}"));
@@ -690,10 +713,9 @@ impl FlowrGui {
                 };
                 self.send(msg);
             }
-            CoordinatorMessage::GetLine(prompt) => {
-                debug!("GetLine received with prompt: '{prompt}'");
+            CoordinatorMessage::GetLine(_prompt) => {
                 debug!(
-                    "stdin_tab buffer has {} lines, cursor at {}",
+                    "GetLine received, buffer has {} lines, cursor at {}",
                     self.tab_set.stdin_tab.content.len(),
                     self.tab_set.stdin_tab.cursor
                 );
@@ -709,14 +731,18 @@ impl FlowrGui {
                         _ => {} // EOF or error — buffer stays empty, will send GetLineEof
                     }
                 }
-                let msg = if let Some(line) = self.tab_set.stdin_tab.get_line() {
+                if let Some(line) = self.tab_set.stdin_tab.get_line() {
                     debug!("GetLine: returning buffered line: '{line}'");
-                    ClientMessage::Line(line)
+                    self.send(ClientMessage::Line(line));
+                } else if self.ui_settings.auto || self.tab_set.stdin_tab.eof_signaled {
+                    debug!("GetLine: EOF (auto mode or user signaled)");
+                    self.send(ClientMessage::GetLineEof);
+                    self.tab_set.stdin_tab.eof_signaled = false;
                 } else {
-                    debug!("GetLine: buffer empty, sending GetLineEof immediately");
-                    ClientMessage::GetLineEof
-                };
-                self.send(msg);
+                    debug!("GetLine: buffer empty, waiting for user input");
+                    self.pending_getline = true;
+                    self.tab_set.active_tab = 2; // Switch to Stdin tab
+                }
             }
             CoordinatorMessage::GetArgs => {
                 let args = self.flow_arg_vec();
