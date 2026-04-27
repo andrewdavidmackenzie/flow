@@ -175,12 +175,14 @@ impl FlowrGui {
     fn new() -> (Self, Task<Message>) {
         let settings = FlowrGui::initial_settings();
 
+        let tab_set = TabSet::new();
+
         let flowrgui = FlowrGui {
             submission_settings: settings.0,
             coordinator_settings: settings.1,
             ui_settings: settings.2,
             coordinator_state: CoordinatorState::Disconnected("Starting".into()),
-            tab_set: TabSet::new(),
+            tab_set,
             submitted: false,
             running: false,
             show_modal: false,
@@ -452,6 +454,8 @@ impl FlowrGui {
             CoordinatorSettings::Server(server_settings)
         };
 
+        let auto = matches.get_flag("auto");
+
         (
             SubmissionSettings {
                 flow_manifest_url,
@@ -461,9 +465,7 @@ impl FlowrGui {
                 parallel_jobs_limit,
             },
             coordinator_settings,
-            UiSettings {
-                auto: matches.get_flag("auto"),
-            },
+            UiSettings { auto },
         )
     }
 
@@ -639,6 +641,9 @@ impl FlowrGui {
                 self.send(ClientMessage::Ack);
             }
             CoordinatorMessage::Stdout(string) => {
+                if self.ui_settings.auto {
+                    println!("{string}");
+                }
                 self.tab_set.stdout_tab.content.push(string);
                 self.send(ClientMessage::Ack);
                 if self.tab_set.stdout_tab.auto_scroll {
@@ -649,6 +654,9 @@ impl FlowrGui {
                 }
             }
             CoordinatorMessage::Stderr(string) => {
+                if self.ui_settings.auto {
+                    eprintln!("{string}");
+                }
                 self.tab_set.stderr_tab.content.push(string);
                 self.send(ClientMessage::Ack);
                 if self.tab_set.stderr_tab.auto_scroll {
@@ -664,6 +672,15 @@ impl FlowrGui {
                     self.tab_set.stdin_tab.content.len(),
                     self.tab_set.stdin_tab.cursor
                 );
+                // In auto mode, read all remaining process stdin when buffer is empty
+                if self.ui_settings.auto
+                    && self.tab_set.stdin_tab.cursor >= self.tab_set.stdin_tab.content.len()
+                {
+                    let stdin = std::io::stdin();
+                    for line in stdin.lock().lines().map_while(Result::ok) {
+                        self.tab_set.stdin_tab.new_line(line);
+                    }
+                }
                 let msg = if let Some(buf) = self.tab_set.stdin_tab.get_all() {
                     debug!("GetStdin: returning buffered content ({} bytes)", buf.len());
                     ClientMessage::Stdin(buf)
@@ -680,6 +697,18 @@ impl FlowrGui {
                     self.tab_set.stdin_tab.content.len(),
                     self.tab_set.stdin_tab.cursor
                 );
+                // In auto mode, read a line from process stdin when buffer is empty
+                if self.ui_settings.auto
+                    && self.tab_set.stdin_tab.cursor >= self.tab_set.stdin_tab.content.len()
+                {
+                    let mut input = String::new();
+                    match std::io::stdin().lock().read_line(&mut input) {
+                        Ok(n) if n > 0 => {
+                            self.tab_set.stdin_tab.new_line(input.trim().to_string());
+                        }
+                        _ => {} // EOF or error — buffer stays empty, will send GetLineEof
+                    }
+                }
                 let msg = if let Some(line) = self.tab_set.stdin_tab.get_line(&prompt) {
                     debug!("GetLine: returning buffered line: '{line}'");
                     ClientMessage::Line(line)
