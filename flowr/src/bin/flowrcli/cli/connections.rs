@@ -16,6 +16,7 @@ pub use flowrlib::services::DEBUG_SERVICE_NAME;
 pub const WAIT: i32 = 0;
 
 /// Do NOT WAIT for a message to arrive when performing a `receive()`
+#[allow(dead_code)]
 pub static DONT_WAIT: i32 = zmq::DONTWAIT;
 
 /// `ClientConnection` stores information related to the connection from a client

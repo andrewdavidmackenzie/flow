@@ -11,7 +11,7 @@ use flowrlib::run_state::RunState;
 use flowrlib::submission_handler::SubmissionHandler;
 
 #[cfg(feature = "debugger")]
-use crate::cli::connections::{DONT_WAIT, WAIT};
+use crate::cli::connections::WAIT;
 use crate::cli::coordinator_message::ClientMessage;
 use crate::cli::coordinator_message::CoordinatorMessage;
 use crate::CoordinatorConnection;
@@ -41,29 +41,6 @@ impl SubmissionHandler for CLISubmissionHandler {
             )?;
 
         Ok(())
-    }
-
-    // See if the runtime client has sent a message to request us to enter the debugger,
-    // if so, return Ok(true).
-    // A different message or Absence of a message returns Ok(false)
-    #[cfg(feature = "debugger")]
-    fn should_enter_debugger(&mut self) -> Result<bool> {
-        let msg = self
-            .coordinator_connection
-            .lock()
-            .map_err(|_| "Could not lock coordinator connection")?
-            .receive(DONT_WAIT);
-        match msg {
-            Ok(ClientMessage::EnterDebugger) => {
-                debug!("Got EnterDebugger message");
-                Ok(true)
-            }
-            Ok(m) => {
-                debug!("Got {m:?} message");
-                Ok(false)
-            }
-            _ => Ok(false),
-        }
     }
 
     #[cfg(feature = "metrics")]

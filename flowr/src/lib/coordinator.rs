@@ -128,16 +128,6 @@ impl<'a> Coordinator<'a> {
                     break 'jobs;
                 }
 
-                #[cfg(feature = "debugger")]
-                if state.submission.debug_enabled
-                    && self.submission_handler.should_enter_debugger()?
-                {
-                    (display_next_output, restart) = self.debugger.wait_for_command(&mut state)?;
-                    if restart {
-                        break 'jobs;
-                    }
-                }
-
                 (display_next_output, restart) = self.dispatch_jobs(
                     &mut state,
                     #[cfg(feature = "metrics")]
@@ -460,11 +450,6 @@ mod test {
     impl SubmissionHandler for DummySubmissionHandler {
         fn flow_execution_starting(&mut self) -> flowcore::errors::Result<()> {
             Ok(())
-        }
-
-        #[cfg(feature = "debugger")]
-        fn should_enter_debugger(&mut self) -> flowcore::errors::Result<bool> {
-            Ok(false)
         }
 
         fn flow_execution_ended(

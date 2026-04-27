@@ -11,9 +11,6 @@ pub enum ClientMessage {
     /// and the client
     /// A submission from the client for execution
     ClientSubmission(Submission),
-    /// Client requests that server enters the ddebugger at the next opportunity
-    EnterDebugger,
-
     /// ** These messages are used to implement the context functions between the `cli_runtime_client`
     /// and the `cli_runtime_server` that runs as part of the `Coordinator`
     /// Simple acknowledgement from Client to a `ServerMessage`
@@ -58,7 +55,6 @@ impl fmt::Display for ClientMessage {
                 ClientMessage::GetLineEof => "GetLineEof",
                 ClientMessage::ClientExiting(_) => "ClientExiting",
                 ClientMessage::ClientSubmission(_) => "ClientSubmission",
-                ClientMessage::EnterDebugger => "EnterDebugger",
                 ClientMessage::StopFlow => "StopFlow",
                 ClientMessage::Invalid => "Invalid",
                 ClientMessage::FileContents(_, _) => "FileContents",

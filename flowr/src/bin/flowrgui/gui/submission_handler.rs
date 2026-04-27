@@ -38,28 +38,6 @@ impl SubmissionHandler for CLISubmissionHandler {
             .map(|_| ())
     }
 
-    // See if the runtime client has sent a message to request us to enter the debugger,
-    // if so, return Ok(true).
-    // A different message or Absence of a message returns Ok(false)
-    fn should_enter_debugger(&mut self) -> Result<bool> {
-        let msg = self
-            .coordinator_connection
-            .lock()
-            .map_err(|_| "Could not lock coordinator connection")?
-            .receive(DONT_WAIT);
-        match msg {
-            Ok(ClientMessage::EnterDebugger) => {
-                debug!("Got EnterDebugger message");
-                Ok(true)
-            }
-            Ok(m) => {
-                debug!("Got {m:?} message");
-                Ok(false)
-            }
-            _ => Ok(false),
-        }
-    }
-
     fn should_stop(&mut self) -> Result<bool> {
         let msg = self
             .coordinator_connection

@@ -16,15 +16,6 @@ pub trait SubmissionHandler {
     /// Returns an error if the message corresponding to the flow is starting cannot be sent
     fn flow_execution_starting(&mut self) -> Result<()>;
 
-    /// The [Coordinator][crate::coordinator::Coordinator] executing the flow periodically
-    /// will check if there has been a request to enter the debugger.
-    ///
-    /// # Errors
-    ///
-    /// Returns an error if the request to check if debugger entry is required fails
-    #[cfg(feature = "debugger")]
-    fn should_enter_debugger(&mut self) -> Result<bool>;
-
     /// The [Coordinator][crate::coordinator::Coordinator] informs the submitter that the execution
     /// of the flow has ended
     ///
