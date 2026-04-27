@@ -14,6 +14,7 @@ use zmq::Socket;
 pub const WAIT: i32 = 0;
 
 /// Do NOT WAIT for a message to arrive when performing a `receive()`
+#[allow(dead_code)]
 pub static DONT_WAIT: i32 = zmq::DONTWAIT;
 
 /// [`CoordinatorConnection`] store information about the [Coordinator][flowrlib::coordinator::Coordinator]

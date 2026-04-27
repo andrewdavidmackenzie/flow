@@ -93,10 +93,6 @@ impl SubmissionHandler for CLISubmissionHandler {
         }
     }
 
-    fn should_stop(&mut self) -> Result<bool> {
-        Ok(false)
-    }
-
     fn coordinator_is_exiting(&mut self, result: Result<()>) -> Result<()> {
         debug!("Coordinator exiting");
         let mut connection = self

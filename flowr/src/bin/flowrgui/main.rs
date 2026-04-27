@@ -263,12 +263,7 @@ impl FlowrGui {
             }
             Message::StopFlow => {
                 debug!("StopFlow: user clicked Stop button");
-                if self.pending_getline {
-                    self.send(ClientMessage::GetLineEof);
-                    self.pending_getline = false;
-                } else {
-                    self.tab_set.stdin_tab.eof_signaled = true;
-                }
+                // TODO: send stop command on the debug/control channel
             }
         }
 
