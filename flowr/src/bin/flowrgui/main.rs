@@ -266,8 +266,9 @@ impl FlowrGui {
                 if self.pending_getline {
                     self.send(ClientMessage::GetLineEof);
                     self.pending_getline = false;
+                } else {
+                    self.tab_set.stdin_tab.eof_signaled = true;
                 }
-                self.send(ClientMessage::StopFlow);
             }
         }
 

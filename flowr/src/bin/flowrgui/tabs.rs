@@ -263,9 +263,11 @@ impl Tab for StdInTab {
         Column::new().push(scrollable).push(input_row).into()
     }
 
-    // Avoid clearing standard input - to allow the user to type in input ahead of the
-    // flow being run
-    fn clear(&mut self) {}
+    fn clear(&mut self) {
+        self.content.clear();
+        self.cursor = 0;
+        self.eof_signaled = false;
+    }
 }
 
 #[cfg(test)]
@@ -353,11 +355,14 @@ mod test {
     }
 
     #[test]
-    fn stdin_clear_does_not_clear() {
+    fn stdin_clear_resets_state() {
         let mut tab = StdInTab::new("test");
-        tab.new_line("preserved".into());
+        tab.new_line("line".into());
+        tab.eof_signaled = true;
         Tab::clear(&mut tab);
-        assert_eq!(tab.content, vec!["preserved"]); // stdin clear is intentionally a no-op
+        assert!(tab.content.is_empty());
+        assert_eq!(tab.cursor, 0);
+        assert!(!tab.eof_signaled);
     }
 
     #[test]
