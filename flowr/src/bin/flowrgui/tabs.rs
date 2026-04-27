@@ -4,7 +4,7 @@ use iced::widget::image::{Handle, Viewer};
 use iced::widget::operation::{self, RelativeOffset};
 use iced::widget::scrollable::Scrollable;
 use iced::widget::TextInput;
-use iced::widget::{text, toggler, Column, Id};
+use iced::widget::{text, toggler, Button, Column, Id, Row, Text};
 use iced::{Element, Length, Task};
 use iced_aw::{TabLabel, Tabs};
 use once_cell::sync::Lazy;
@@ -181,6 +181,7 @@ pub(crate) struct StdInTab {
     pub content: Vec<String>,
     pub cursor: usize,
     pub text: String,
+    pub eof_signaled: bool,
 }
 
 impl StdInTab {
@@ -191,6 +192,7 @@ impl StdInTab {
             content: vec![],
             cursor: 0,
             text: String::new(),
+            eof_signaled: false,
         }
     }
 
@@ -206,15 +208,11 @@ impl StdInTab {
     }
 
     /// return the next available line of standard input, or EOF
-    pub fn get_line(&mut self, prompt: &str) -> Option<String> {
-        if let Some(line) = self.content.get_mut(self.cursor) {
-            if !prompt.is_empty() {
-                line.insert_str(0, prompt);
-            }
+    pub fn get_line(&mut self) -> Option<String> {
+        if let Some(line) = self.content.get(self.cursor) {
             self.cursor += 1;
-            Some((*line).clone())
+            Some(line.clone())
         } else {
-            // advanced beyond the available text!
             None
         }
     }
@@ -256,11 +254,13 @@ impl Tab for StdInTab {
             .on_submit(Message::LineOfStdin(self.text.clone()))
             .width(Length::Fill)
             .padding(10);
+        let eof_button = Button::new(Text::new("EOF")).on_press(Message::SendEof);
+        let input_row = Row::new().push(text_input).push(eof_button).spacing(5);
         let scrollable = Scrollable::new(text_column)
             .height(Length::Fill)
             .id(self.id.clone());
 
-        Column::new().push(scrollable).push(text_input).into()
+        Column::new().push(scrollable).push(input_row).into()
     }
 
     // Avoid clearing standard input - to allow the user to type in input ahead of the
@@ -279,6 +279,7 @@ mod test {
         assert!(tab.content.is_empty());
         assert_eq!(tab.cursor, 0);
         assert!(tab.text.is_empty());
+        assert!(!tab.eof_signaled);
     }
 
     #[test]
@@ -303,31 +304,23 @@ mod test {
         tab.new_line("line1".into());
         tab.new_line("line2".into());
 
-        assert_eq!(tab.get_line(""), Some("line1".into()));
-        assert_eq!(tab.get_line(""), Some("line2".into()));
-        assert_eq!(tab.get_line(""), None); // EOF
+        assert_eq!(tab.get_line(), Some("line1".into()));
+        assert_eq!(tab.get_line(), Some("line2".into()));
+        assert_eq!(tab.get_line(), None); // EOF
     }
 
     #[test]
-    fn stdin_get_line_with_prompt() {
+    fn stdin_get_line_returns_raw_input() {
         let mut tab = StdInTab::new("test");
         tab.new_line("world".into());
 
-        assert_eq!(tab.get_line("hello "), Some("hello world".into()));
-    }
-
-    #[test]
-    fn stdin_get_line_empty_prompt() {
-        let mut tab = StdInTab::new("test");
-        tab.new_line("line".into());
-
-        assert_eq!(tab.get_line(""), Some("line".into()));
+        assert_eq!(tab.get_line(), Some("world".into()));
     }
 
     #[test]
     fn stdin_get_line_eof_when_empty() {
         let mut tab = StdInTab::new("test");
-        assert_eq!(tab.get_line(""), None);
+        assert_eq!(tab.get_line(), None);
     }
 
     #[test]
@@ -348,7 +341,7 @@ mod test {
         tab.new_line("b".into());
         tab.new_line("c".into());
 
-        assert_eq!(tab.get_line(""), Some("a".into())); // cursor at 1
+        assert_eq!(tab.get_line(), Some("a".into())); // cursor at 1
         assert_eq!(tab.get_all(), Some("bc".into())); // gets remaining
         assert_eq!(tab.get_all(), None); // EOF
     }

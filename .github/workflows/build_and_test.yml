@@ -92,7 +92,7 @@ jobs:
       - name: InstallLinuxDependencies
         if: runner.os == 'Linux'
         run: |
-          sudo apt-get update && sudo apt-get -y install libzmq3-dev binaryen lcov libgtk-3-dev
+          sudo apt-get update && sudo apt-get -y install libzmq3-dev binaryen lcov libgtk-3-dev weston
           ARCH=$(uname -m)
           BINARYEN_VERSION="version_129"
           wget https://github.com/WebAssembly/binaryen/releases/download/${BINARYEN_VERSION}/binaryen-${BINARYEN_VERSION}-${ARCH}-linux.tar.gz
@@ -132,6 +132,16 @@ jobs:
 
       - name: compile flowrgui
         run: target/debug/flowc flowr/src/bin/flowrgui
+
+      - name: StartHeadlessWayland
+        if: runner.os == 'Linux'
+        run: |
+          weston -Bheadless -Sweston &
+          echo "WAYLAND_DISPLAY=weston" >> "$GITHUB_ENV"
+          echo "LIBGL_ALWAYS_SOFTWARE=1" >> "$GITHUB_ENV"
+          echo "MESA_LOG_LEVEL=0" >> "$GITHUB_ENV"
+          echo "EGL_LOG_LEVEL=fatal" >> "$GITHUB_ENV"
+          echo "XDG_RUNTIME_DIR=/tmp" >> "$GITHUB_ENV"
 
       - name: test
         timeout-minutes: 15
