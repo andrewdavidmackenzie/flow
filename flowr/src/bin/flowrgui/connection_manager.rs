@@ -4,7 +4,7 @@ use std::thread;
 
 use iced::futures::SinkExt;
 use iced::Subscription;
-use log::{error, info, trace};
+use log::{debug, error, info, trace};
 use portpicker::pick_unused_port;
 use tokio::sync::mpsc::Receiver;
 use url::Url;
@@ -94,6 +94,8 @@ fn coordinator_stream() -> impl iced::futures::Stream<Item = CoordinatorMessage>
                             let coordinator_message: CoordinatorMessage =
                                 connection.lock().unwrap().receive().unwrap(); // TODO
 
+                            debug!("connection_manager: received from coordinator: {coordinator_message}");
+
                             // Forward the message to the app
                             let _ = app_sender.send(coordinator_message.clone()).await;
 
@@ -102,9 +104,11 @@ fn coordinator_stream() -> impl iced::futures::Stream<Item = CoordinatorMessage>
                                 running = false;
                             } else {
                                 // read the message back from the app and send it to the Coordinator
+                                debug!("connection_manager: waiting for app response...");
                                 #[allow(clippy::single_match_else)]
                                 match app_receiver.recv().await {
                                     Some(client_message) => {
+                                        debug!("connection_manager: got app response: {client_message}");
                                         connection.lock().unwrap().send(client_message).unwrap();
                                     }
                                     None => error!("Error receiving from app"), // TODO

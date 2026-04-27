@@ -33,7 +33,7 @@ use iced::widget::{center, mouse_area, opaque, stack, text_input, Button, Column
 use iced::{Center, Element, Fill, Subscription, Task};
 use iced_aw::Card;
 use image::{ImageBuffer, Rgba, RgbaImage};
-use log::{info, LevelFilter};
+use log::{debug, info, LevelFilter};
 use simpath::Simpath;
 use url::Url;
 
@@ -228,7 +228,10 @@ impl FlowrGui {
                 self.coordinator_state = CoordinatorState::Disconnected(reason);
             }
             Message::NewStdin(text) => self.tab_set.stdin_tab.text_entered(text),
-            Message::LineOfStdin(line) => self.tab_set.stdin_tab.new_line(line),
+            Message::LineOfStdin(line) => {
+                debug!("LineOfStdin: user entered line: '{line}'");
+                self.tab_set.stdin_tab.new_line(line);
+            }
         }
 
         Task::none()
@@ -613,11 +616,13 @@ impl FlowrGui {
                 self.error("Coordinator is already connected");
             }
             CoordinatorMessage::FlowStart => {
+                debug!("FlowStart received");
                 self.running = true;
                 self.submitted = false;
                 self.send(ClientMessage::Ack);
             }
             CoordinatorMessage::FlowEnd(metrics) => {
+                debug!("FlowEnd received");
                 self.running = false;
                 if self.submission_settings.display_metrics {
                     self.show_modal = true;
@@ -654,16 +659,33 @@ impl FlowrGui {
                 }
             }
             CoordinatorMessage::GetStdin => {
-                let msg = match self.tab_set.stdin_tab.get_all() {
-                    Some(buf) => ClientMessage::Stdin(buf),
-                    None => ClientMessage::GetLineEof,
+                debug!(
+                    "GetStdin received, buffer has {} lines, cursor at {}",
+                    self.tab_set.stdin_tab.content.len(),
+                    self.tab_set.stdin_tab.cursor
+                );
+                let msg = if let Some(buf) = self.tab_set.stdin_tab.get_all() {
+                    debug!("GetStdin: returning buffered content ({} bytes)", buf.len());
+                    ClientMessage::Stdin(buf)
+                } else {
+                    debug!("GetStdin: buffer empty, sending GetLineEof immediately");
+                    ClientMessage::GetLineEof
                 };
                 self.send(msg);
             }
             CoordinatorMessage::GetLine(prompt) => {
-                let msg = match self.tab_set.stdin_tab.get_line(&prompt) {
-                    Some(line) => ClientMessage::Line(line),
-                    None => ClientMessage::GetLineEof,
+                debug!("GetLine received with prompt: '{prompt}'");
+                debug!(
+                    "stdin_tab buffer has {} lines, cursor at {}",
+                    self.tab_set.stdin_tab.content.len(),
+                    self.tab_set.stdin_tab.cursor
+                );
+                let msg = if let Some(line) = self.tab_set.stdin_tab.get_line(&prompt) {
+                    debug!("GetLine: returning buffered line: '{line}'");
+                    ClientMessage::Line(line)
+                } else {
+                    debug!("GetLine: buffer empty, sending GetLineEof immediately");
+                    ClientMessage::GetLineEof
                 };
                 self.send(msg);
             }
@@ -773,6 +795,14 @@ impl FlowrGui {
                 {
                     data.put_pixel(x_coord, y_coord, Rgba([red, green, blue, 255]));
                 }
+                self.send(ClientMessage::Ack);
+            }
+            CoordinatorMessage::StdoutEof => {
+                debug!("StdoutEof received");
+                self.send(ClientMessage::Ack);
+            }
+            CoordinatorMessage::StderrEof => {
+                debug!("StderrEof received");
                 self.send(ClientMessage::Ack);
             }
             _ => {}
