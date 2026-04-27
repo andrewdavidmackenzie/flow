@@ -857,11 +857,11 @@ impl FlowrGui {
                 self.send(ClientMessage::Ack);
             }
             CoordinatorMessage::StdoutEof => {
-                debug!("StdoutEof received");
+                trace!("StdoutEof received");
                 self.send(ClientMessage::Ack);
             }
             CoordinatorMessage::StderrEof => {
-                debug!("StderrEof received");
+                trace!("StderrEof received");
                 self.send(ClientMessage::Ack);
             }
             _ => {}
