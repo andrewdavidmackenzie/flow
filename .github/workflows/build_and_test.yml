@@ -138,6 +138,10 @@ jobs:
         run: |
           weston -Bheadless -Sweston &
           echo "WAYLAND_DISPLAY=weston" >> "$GITHUB_ENV"
+          echo "LIBGL_ALWAYS_SOFTWARE=1" >> "$GITHUB_ENV"
+          echo "MESA_LOG_LEVEL=0" >> "$GITHUB_ENV"
+          echo "EGL_LOG_LEVEL=fatal" >> "$GITHUB_ENV"
+          echo "XDG_RUNTIME_DIR=/tmp" >> "$GITHUB_ENV"
 
       - name: test
         timeout-minutes: 15
