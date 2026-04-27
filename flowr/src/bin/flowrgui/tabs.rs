@@ -206,15 +206,11 @@ impl StdInTab {
     }
 
     /// return the next available line of standard input, or EOF
-    pub fn get_line(&mut self, prompt: &str) -> Option<String> {
-        if let Some(line) = self.content.get_mut(self.cursor) {
-            if !prompt.is_empty() {
-                line.insert_str(0, prompt);
-            }
+    pub fn get_line(&mut self) -> Option<String> {
+        if let Some(line) = self.content.get(self.cursor) {
             self.cursor += 1;
-            Some((*line).clone())
+            Some(line.clone())
         } else {
-            // advanced beyond the available text!
             None
         }
     }
@@ -303,31 +299,23 @@ mod test {
         tab.new_line("line1".into());
         tab.new_line("line2".into());
 
-        assert_eq!(tab.get_line(""), Some("line1".into()));
-        assert_eq!(tab.get_line(""), Some("line2".into()));
-        assert_eq!(tab.get_line(""), None); // EOF
+        assert_eq!(tab.get_line(), Some("line1".into()));
+        assert_eq!(tab.get_line(), Some("line2".into()));
+        assert_eq!(tab.get_line(), None); // EOF
     }
 
     #[test]
-    fn stdin_get_line_with_prompt() {
+    fn stdin_get_line_returns_raw_input() {
         let mut tab = StdInTab::new("test");
         tab.new_line("world".into());
 
-        assert_eq!(tab.get_line("hello "), Some("hello world".into()));
-    }
-
-    #[test]
-    fn stdin_get_line_empty_prompt() {
-        let mut tab = StdInTab::new("test");
-        tab.new_line("line".into());
-
-        assert_eq!(tab.get_line(""), Some("line".into()));
+        assert_eq!(tab.get_line(), Some("world".into()));
     }
 
     #[test]
     fn stdin_get_line_eof_when_empty() {
         let mut tab = StdInTab::new("test");
-        assert_eq!(tab.get_line(""), None);
+        assert_eq!(tab.get_line(), None);
     }
 
     #[test]
@@ -348,7 +336,7 @@ mod test {
         tab.new_line("b".into());
         tab.new_line("c".into());
 
-        assert_eq!(tab.get_line(""), Some("a".into())); // cursor at 1
+        assert_eq!(tab.get_line(), Some("a".into())); // cursor at 1
         assert_eq!(tab.get_all(), Some("bc".into())); // gets remaining
         assert_eq!(tab.get_all(), None); // EOF
     }

@@ -709,7 +709,7 @@ impl FlowrGui {
                         _ => {} // EOF or error — buffer stays empty, will send GetLineEof
                     }
                 }
-                let msg = if let Some(line) = self.tab_set.stdin_tab.get_line(&prompt) {
+                let msg = if let Some(line) = self.tab_set.stdin_tab.get_line() {
                     debug!("GetLine: returning buffered line: '{line}'");
                     ClientMessage::Line(line)
                 } else {
