@@ -266,6 +266,7 @@ impl Tab for StdInTab {
     fn clear(&mut self) {
         self.content.clear();
         self.cursor = 0;
+        self.text = String::new();
         self.eof_signaled = false;
     }
 }
