@@ -93,6 +93,10 @@ impl SubmissionHandler for CLISubmissionHandler {
         }
     }
 
+    fn flow_was_stopped(&mut self) -> Result<()> {
+        Ok(())
+    }
+
     fn coordinator_is_exiting(&mut self, result: Result<()>) -> Result<()> {
         debug!("Coordinator exiting");
         let mut connection = self

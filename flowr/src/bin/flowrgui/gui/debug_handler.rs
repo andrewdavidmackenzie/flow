@@ -8,7 +8,7 @@ use flowrlib::job::Job;
 use flowrlib::run_state::{RunState, State};
 use serde_json::Value;
 
-use crate::gui::coordinator_connection::WAIT;
+use crate::gui::coordinator_connection::{DONT_WAIT, WAIT};
 use crate::DebugServerMessage::{
     BlockState, Error, FlowUnblockBreakpoint, FunctionStates, Functions, InputState, Message,
     OutputState, OverallState,
@@ -26,7 +26,6 @@ pub(crate) struct CliDebugHandler {
 
 /// Implement a CLI debug server that implements the trait required by the runtime
 impl DebuggerHandler for CliDebugHandler {
-    // Start the debugger - which swallows the first message to initialize the connection
     fn start(&mut self) {
         let _ = self.debug_server_connection.receive::<DebugCommand>(WAIT);
     }
@@ -191,5 +190,18 @@ impl DebuggerHandler for CliDebugHandler {
     fn get_command(&mut self, state: &RunState) -> flowcore::errors::Result<DebugCommand> {
         self.debug_server_connection
             .send_and_receive_response(WaitingForCommand(state.get_number_of_jobs_created()))
+    }
+
+    fn poll_command(&mut self) -> flowcore::errors::Result<Option<DebugCommand>> {
+        match self
+            .debug_server_connection
+            .receive::<DebugCommand>(DONT_WAIT)
+        {
+            Ok(command) => {
+                self.debug_server_connection.send(DebugCommand::Ack)?;
+                Ok(Some(command))
+            }
+            Err(_) => Ok(None),
+        }
     }
 }

@@ -50,9 +50,12 @@ use gui::debug_message::DebugServerMessage::{
     JobCompleted, JobError, Panic, PriorToSendingJob, Resetting, WaitingForCommand,
 };
 
+use crate::gui::client_connection::{discover_service, ClientConnection};
 use crate::gui::client_message::ClientMessage;
 use crate::gui::coordinator_message::CoordinatorMessage;
 use crate::tabs::TabSet;
+use flowrlib::debug_command::DebugCommand;
+use gui::coordinator_connection::DEBUG_SERVICE_NAME;
 
 /// Include the module that implements the context functions
 mod context;
@@ -168,6 +171,7 @@ struct FlowrGui {
     coordinator_settings: CoordinatorSettings,
     ui_settings: UiSettings,
     coordinator_state: CoordinatorState,
+    debug_connection: Option<ClientConnection>,
     tab_set: TabSet,
     running: bool,
     submitted: bool,
@@ -188,6 +192,7 @@ impl FlowrGui {
             coordinator_settings: settings.1,
             ui_settings: settings.2,
             coordinator_state: CoordinatorState::Disconnected("Starting".into()),
+            debug_connection: None,
             tab_set,
             submitted: false,
             running: false,
@@ -208,6 +213,11 @@ impl FlowrGui {
         match message {
             Message::CoordinatorSent(CoordinatorMessage::Connected(sender)) => {
                 self.coordinator_state = CoordinatorState::Connected(sender);
+                if let Ok(address) = discover_service(DEBUG_SERVICE_NAME) {
+                    if let Ok(conn) = ClientConnection::new(&address) {
+                        self.debug_connection = Some(conn);
+                    }
+                }
                 if self.ui_settings.auto {
                     return Task::perform(Self::auto_submit(), |()| Message::SubmitFlow);
                 }
@@ -263,7 +273,9 @@ impl FlowrGui {
             }
             Message::StopFlow => {
                 debug!("StopFlow: user clicked Stop button");
-                // TODO: send stop command on the debug/control channel
+                if let Some(ref debug_conn) = self.debug_connection {
+                    let _ = debug_conn.send(DebugCommand::ExitDebugger);
+                }
             }
         }
 
@@ -456,7 +468,6 @@ impl FlowrGui {
             .get_one::<usize>("jobs")
             .map(std::borrow::ToOwned::to_owned);
 
-        // TODO make a UI setting
         let debug_this_flow = matches.get_flag("debugger");
 
         let coordinator_settings = if let Some(port) = matches.get_one::<u16>("client") {
@@ -669,6 +680,11 @@ impl FlowrGui {
                     self.info("Auto exiting on flow completion");
                     process::exit(0);
                 }
+            }
+            CoordinatorMessage::FlowStopped => {
+                debug!("FlowStopped received");
+                self.running = false;
+                self.pending_getline = false;
             }
             CoordinatorMessage::CoordinatorExiting(_) => {
                 self.coordinator_state = CoordinatorState::Disconnected("Exited".into());

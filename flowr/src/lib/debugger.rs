@@ -85,6 +85,18 @@ impl<'a> Debugger<'a> {
         self.debug_server.start();
     }
 
+    /// Poll for a stop command without blocking.
+    /// Returns true if `ExitDebugger` was received.
+    pub fn should_stop(&mut self) -> Result<bool> {
+        match self.debug_server.poll_command()? {
+            Some(ExitDebugger) => {
+                self.debug_server.debugger_exiting();
+                Ok(true)
+            }
+            _ => Ok(false),
+        }
+    }
+
     /// Check if there is a breakpoint at this job prior to starting executing it.
     /// Return values are (display next output, reset execution)
     pub fn check_prior_to_job(&mut self, state: &mut RunState, job: &Job) -> Result<(bool, bool)> {
@@ -371,7 +383,7 @@ impl<'a> Debugger<'a> {
                 }
                 Ok(ExitDebugger) => {
                     self.debug_server.debugger_exiting();
-                    bail!("Debugger Exit");
+                    return Ok((false, true));
                 }
             }
         }
@@ -874,6 +886,9 @@ mod test {
         fn execution_ended(&mut self) {}
         fn get_command(&mut self, _state: &RunState) -> Result<DebugCommand> {
             Ok(DebugCommand::Step(None))
+        }
+        fn poll_command(&mut self) -> Result<Option<DebugCommand>> {
+            Ok(None)
         }
     }
 

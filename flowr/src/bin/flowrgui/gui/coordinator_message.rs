@@ -20,8 +20,10 @@ pub enum CoordinatorMessage {
     /// and the `cli_client`
     /// A flow has started executing
     FlowStart,
-    /// A flow has stopped executing
+    /// A flow has completed executing
     FlowEnd(Metrics),
+    /// A flow was stopped by the user before completing
+    FlowStopped,
     /// Coordinator is exiting, with a result (OK, or Err)
     CoordinatorExiting(Result<()>),
 
@@ -61,6 +63,7 @@ impl fmt::Display for CoordinatorMessage {
                 CoordinatorMessage::Connected(_) => "Connected",
                 CoordinatorMessage::Disconnected(_) => "Disconnected",
                 CoordinatorMessage::FlowEnd(_) => "FlowEnd",
+                CoordinatorMessage::FlowStopped => "FlowStopped",
                 CoordinatorMessage::FlowStart => "FlowStart",
                 CoordinatorMessage::CoordinatorExiting(_) => "CoordinatorExiting",
                 CoordinatorMessage::Stdout(_) => "Stdout",

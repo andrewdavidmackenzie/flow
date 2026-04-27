@@ -68,10 +68,17 @@ pub trait DebuggerHandler {
     fn execution_starting(&mut self);
     /// Execution of the flow fn `execution_ended`
     fn execution_ended(&mut self);
-    /// Get a command for the debugger to perform
+    /// Get a command for the debugger to perform (blocking)
     ///
     /// # Errors
     ///
     /// Returns an error if the next command cannot be fetched, usually related to networking
     fn get_command(&mut self, state: &RunState) -> Result<DebugCommand>;
+
+    /// Poll for a command without blocking. Returns `None` if no command is available.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if polling fails
+    fn poll_command(&mut self) -> Result<Option<DebugCommand>>;
 }

@@ -38,6 +38,13 @@ impl SubmissionHandler for CLISubmissionHandler {
             .map(|_| ())
     }
 
+    fn flow_was_stopped(&mut self) -> Result<()> {
+        self.coordinator_connection
+            .lock()
+            .map_err(|_| "Could not lock coordinator connection")?
+            .send(CoordinatorMessage::FlowStopped)
+    }
+
     fn flow_execution_ended(&mut self, state: &RunState, metrics: Metrics) -> Result<()> {
         self.coordinator_connection
             .lock()

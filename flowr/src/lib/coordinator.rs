@@ -1,6 +1,7 @@
 #[cfg(all(not(feature = "debugger"), not(feature = "submission")))]
 use std::marker::PhantomData;
 
+use error_chain::bail;
 use log::{debug, error, info, trace};
 use serde_json::Value;
 
@@ -97,11 +98,6 @@ impl<'a> Coordinator<'a> {
         #[cfg(feature = "metrics")]
         let mut metrics = Metrics::new(state.num_functions());
 
-        #[cfg(feature = "debugger")]
-        if state.submission.debug_enabled {
-            self.debugger.start();
-        }
-
         let mut restart = false;
         let mut display_next_output = false;
 
@@ -111,17 +107,24 @@ impl<'a> Coordinator<'a> {
             #[cfg(feature = "metrics")]
             metrics.reset();
 
-            // If debugging - then prior to starting execution - enter the debugger
-            #[cfg(feature = "debugger")]
-            if state.submission.debug_enabled {
-                (display_next_output, restart) = self.debugger.wait_for_command(&mut state)?;
-            }
-
             #[cfg(feature = "submission")]
             self.submission_handler.flow_execution_starting()?;
 
+            #[cfg(feature = "debugger")]
+            if state.submission.debug_enabled {
+                self.debugger.start();
+                (display_next_output, restart) = self.debugger.wait_for_command(&mut state)?;
+            }
+
             'jobs: loop {
                 trace!("{state}");
+
+                #[cfg(feature = "debugger")]
+                if self.debugger.should_stop()? {
+                    #[cfg(feature = "submission")]
+                    self.submission_handler.flow_was_stopped()?;
+                    bail!("Flow stopped");
+                }
 
                 (display_next_output, restart) = self.dispatch_jobs(
                     &mut state,
@@ -436,6 +439,9 @@ mod test {
         fn get_command(&mut self, _state: &RunState) -> flowcore::errors::Result<DebugCommand> {
             Ok(DebugCommand::Continue)
         }
+        fn poll_command(&mut self) -> flowcore::errors::Result<Option<DebugCommand>> {
+            Ok(None)
+        }
     }
 
     #[cfg(feature = "submission")]
@@ -457,6 +463,10 @@ mod test {
 
         fn wait_for_submission(&mut self) -> flowcore::errors::Result<Option<Submission>> {
             Ok(None)
+        }
+
+        fn flow_was_stopped(&mut self) -> flowcore::errors::Result<()> {
+            Ok(())
         }
 
         fn coordinator_is_exiting(

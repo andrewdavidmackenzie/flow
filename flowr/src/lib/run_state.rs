@@ -1144,6 +1144,9 @@ mod test {
         fn get_command(&mut self, _state: &RunState) -> Result<DebugCommand> {
             unimplemented!();
         }
+        fn poll_command(&mut self) -> Result<Option<DebugCommand>> {
+            Ok(None)
+        }
     }
 
     #[cfg(feature = "debugger")]

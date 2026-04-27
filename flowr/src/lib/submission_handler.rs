@@ -37,6 +37,14 @@ pub trait SubmissionHandler {
     ///
     fn wait_for_submission(&mut self) -> Result<Option<Submission>>;
 
+    /// The [Coordinator][crate::coordinator::Coordinator] informs the submitter that the flow
+    /// was stopped by the user before completing
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the stop message cannot be sent
+    fn flow_was_stopped(&mut self) -> Result<()>;
+
     /// The [Coordinator][crate::coordinator::Coordinator] is about to exit
     ///
     /// # Errors

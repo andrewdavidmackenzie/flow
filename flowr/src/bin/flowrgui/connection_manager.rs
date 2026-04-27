@@ -97,8 +97,11 @@ fn coordinator_stream() -> impl iced::futures::Stream<Item = CoordinatorMessage>
                             // Forward the message to the app
                             let _ = app_sender.send(coordinator_message.clone()).await;
 
-                            // If that was end of flow, there will be no response from app
-                            if matches!(&coordinator_message, &CoordinatorMessage::FlowEnd(_)) {
+                            // If that was end of flow (or stopped), there will be no response from app
+                            if matches!(
+                                &coordinator_message,
+                                &CoordinatorMessage::FlowEnd(_) | &CoordinatorMessage::FlowStopped
+                            ) {
                                 running = false;
                             } else {
                                 // read the message back from the app and send it to the Coordinator

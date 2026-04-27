@@ -20,6 +20,8 @@ pub enum CoordinatorMessage {
     /// A flow has stopped executing
     #[cfg(not(feature = "metrics"))]
     FlowEnd,
+    /// A flow was stopped by the user before completing
+    FlowStopped,
     /// Coordinator is exiting, with a result (OK, or Err)
     CoordinatorExiting(Result<()>),
 
@@ -60,6 +62,7 @@ impl fmt::Display for CoordinatorMessage {
                 CoordinatorMessage::FlowEnd(_) => "FlowEnd".into(),
                 #[cfg(not(feature = "metrics"))]
                 CoordinatorMessage::FlowEnd => "FlowEnd".into(),
+                CoordinatorMessage::FlowStopped => "FlowStopped".into(),
                 CoordinatorMessage::FlowStart => "FlowStart".into(),
                 CoordinatorMessage::CoordinatorExiting(result) =>
                     format!("CoordinatorExiting with result: {result:?}"),

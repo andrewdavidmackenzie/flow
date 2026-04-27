@@ -92,6 +92,10 @@ impl CliRuntimeClient {
                 debug!("===========================    Starting flow execution =============================");
                 ClientMessage::Ack
             }
+            CoordinatorMessage::FlowStopped => {
+                debug!("=========================== Flow execution stopped ======================================");
+                ClientMessage::ClientExiting(Ok(()))
+            }
             CoordinatorMessage::CoordinatorExiting(result) => {
                 debug!("Coordinator is exiting");
                 ClientMessage::ClientExiting(result)

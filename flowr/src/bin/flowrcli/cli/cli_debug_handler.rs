@@ -9,7 +9,7 @@ use flowrlib::debugger_handler::DebuggerHandler;
 use flowrlib::job::Job;
 use flowrlib::run_state::{RunState, State};
 
-use crate::cli::connections::WAIT;
+use crate::cli::connections::{DONT_WAIT, WAIT};
 use crate::DebugServerMessage::{
     BlockState, Error, FlowUnblockBreakpoint, FunctionStates, Functions, InputState, Message,
     OutputState, OverallState,
@@ -192,5 +192,18 @@ impl DebuggerHandler for CliDebugHandler {
     fn get_command(&mut self, state: &RunState) -> flowcore::errors::Result<DebugCommand> {
         self.debug_server_connection
             .send_and_receive_response(WaitingForCommand(state.get_number_of_jobs_created()))
+    }
+
+    fn poll_command(&mut self) -> flowcore::errors::Result<Option<DebugCommand>> {
+        match self
+            .debug_server_connection
+            .receive::<DebugCommand>(DONT_WAIT)
+        {
+            Ok(command) => {
+                self.debug_server_connection.send(DebugCommand::Ack)?;
+                Ok(Some(command))
+            }
+            Err(_) => Ok(None),
+        }
     }
 }
