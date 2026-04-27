@@ -200,7 +200,7 @@ pub fn check_test_output(source_file: &str) {
     );
 }
 
-fn compare_and_fail(expected_path: PathBuf, actual_path: PathBuf) {
+pub fn compare_and_fail(expected_path: PathBuf, actual_path: PathBuf) {
     if expected_path.exists() {
         let diff = Command::new("diff")
             .args(vec![&expected_path, &actual_path])
