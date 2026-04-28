@@ -2345,7 +2345,11 @@ impl FlowEdit {
                 let target = self.focused_window.or(self.root_window);
                 if let Some(win) = target.and_then(|id| self.windows.get_mut(&id)) {
                     if let Some(manifest) = win.history.compiled_manifest() {
-                        match Command::new("flowrgui").arg("--auto").arg(manifest).spawn() {
+                        let flowrgui = std::env::current_exe()
+                            .ok()
+                            .and_then(|p| p.parent().map(|d| d.join("flowrgui")))
+                            .unwrap_or_else(|| PathBuf::from("flowrgui"));
+                        match Command::new(&flowrgui).arg("--auto").arg(manifest).spawn() {
                             Ok(child) => {
                                 win.status = "Running flow in flowrgui".into();
                                 self.running_process = Some(child);
