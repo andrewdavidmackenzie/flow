@@ -203,16 +203,6 @@ impl FlowrGui {
     }
 
     fn update(&mut self, message: Message) -> Task<Message> {
-        if self.ui_settings.auto {
-            use std::io::Write;
-            if let Ok(mut f) = std::fs::OpenOptions::new()
-                .create(true)
-                .append(true)
-                .open("/tmp/flowrgui-debug.log")
-            {
-                let _ = writeln!(f, "update() called with: {message:?}");
-            }
-        }
         match message {
             Message::CoordinatorSent(CoordinatorMessage::Connected(sender)) => {
                 self.coordinator_state = CoordinatorState::Connected(sender);

@@ -76,9 +76,15 @@ pub fn run_example(source_file: &str, runner: &str, flowrex: bool, native: bool)
     let output = File::create(sample_dir.join(TEST_STDOUT_FILENAME))
         .expect("Could not create Test StdOutput File");
 
-    let error = File::create(sample_dir.join(TEST_STDERR_FILENAME))
-        .expect("Could not create Test StdError File ");
-    let stderr_target = Stdio::from(error);
+    // GUI runners produce GPU driver noise on stderr (libEGL, Mesa, sctk)
+    // that is not from the flow. Redirect stderr to null for GUI runners.
+    let stderr_target = if runner == "flowrgui" {
+        Stdio::null()
+    } else {
+        let error = File::create(sample_dir.join(TEST_STDERR_FILENAME))
+            .expect("Could not create Test StdError File ");
+        Stdio::from(error)
+    };
 
     println!("\tCommand line: '{} {}'", runner, runner_args.join(" "));
     let mut runner_child = Command::new(runner)
@@ -182,22 +188,14 @@ pub fn check_test_output(source_file: &str) {
             fs::read_to_string(&error_output).expect("Could not read from {STDERR_FILENAME} file");
 
         if !contents.is_empty() {
-            println!(
-                "\tSample {:?} STDERR from '{}':\n{contents}",
+            panic!(
+                "Sample {:?} produced output to STDERR written to '{}'\n{contents}",
                 sample_dir
                     .file_name()
                     .expect("Could not get directory file name"),
                 error_output.display()
             );
         }
-    }
-
-    // Dump flowrgui debug log if it exists (temporary debugging)
-    let debug_log = std::path::Path::new("/tmp/flowrgui-debug.log");
-    if debug_log.exists() {
-        let contents = fs::read_to_string(debug_log).unwrap_or_default();
-        println!("\t--- /tmp/flowrgui-debug.log ---\n{contents}\t--- end debug log ---");
-        let _ = fs::remove_file(debug_log);
     }
 
     compare_and_fail(
