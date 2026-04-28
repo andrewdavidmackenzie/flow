@@ -144,6 +144,7 @@ jobs:
           echo "MESA_LOG_LEVEL=0" >> "$GITHUB_ENV"
           echo "EGL_LOG_LEVEL=fatal" >> "$GITHUB_ENV"
           echo "ICED_BACKEND=tiny-skia" >> "$GITHUB_ENV"
+          echo "RUST_LOG=error,sctk_adwaita=off" >> "$GITHUB_ENV"
           echo "XDG_RUNTIME_DIR=$XDG_RUNTIME_DIR" >> "$GITHUB_ENV"
 
       - name: test
