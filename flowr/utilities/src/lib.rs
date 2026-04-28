@@ -198,6 +198,14 @@ pub fn check_test_output(source_file: &str) {
         }
     }
 
+    // Dump flowrgui debug log if it exists (temporary debugging)
+    let debug_log = std::path::Path::new("/tmp/flowrgui-debug.log");
+    if debug_log.exists() {
+        let contents = fs::read_to_string(debug_log).unwrap_or_default();
+        println!("\t--- /tmp/flowrgui-debug.log ---\n{contents}\t--- end debug log ---");
+        let _ = fs::remove_file(debug_log);
+    }
+
     compare_and_fail(
         sample_dir.join(EXPECTED_STDOUT_FILENAME),
         sample_dir.join(TEST_STDOUT_FILENAME),
