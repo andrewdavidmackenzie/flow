@@ -1,5 +1,6 @@
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
+use std::process::{Child, Command};
 use std::sync::Arc;
 
 use iced::keyboard;
@@ -132,6 +133,8 @@ pub(crate) enum Message {
     New,
     /// Compile the current flow
     Compile,
+    /// Run the compiled flow in flowrgui
+    Run,
     /// Initializer type changed in the editor dialog, tagged with the originating window ID
     InitializerTypeChanged(window::Id, String),
     /// Initializer value changed in the editor dialog, tagged with the originating window ID
@@ -183,6 +186,7 @@ pub(crate) struct FlowEdit {
     pub(crate) lib_paths: Vec<String>,
     pub(crate) library_cache: HashMap<Url, LibraryManifest>,
     pub(crate) all_definitions: HashMap<Url, Process>,
+    pub(crate) running_process: Option<Child>,
 }
 
 impl Default for FlowEdit {
@@ -197,6 +201,7 @@ impl Default for FlowEdit {
             lib_paths: Vec::new(),
             library_cache: HashMap::new(),
             all_definitions: HashMap::new(),
+            running_process: None,
         }
     }
 }
@@ -334,6 +339,7 @@ impl FlowEdit {
             lib_paths,
             library_cache,
             all_definitions,
+            running_process: None,
         };
 
         (app, open_task.discard())
@@ -969,6 +975,7 @@ impl FlowEdit {
 
     /// Handle messages from canvas interactions.
     pub(crate) fn update(&mut self, message: Message) -> Task<Message> {
+        self.check_running_process();
         match message {
             Message::WindowCanvas(win_id, canvas_msg) => {
                 return self.handle_canvas_update(win_id, canvas_msg);
@@ -997,6 +1004,9 @@ impl FlowEdit {
             Message::Save | Message::SaveAs | Message::Open | Message::New | Message::Compile => {
                 self.flush_pending_edits();
                 self.handle_file_message(message);
+            }
+            Message::Run => {
+                self.launch_flowrgui();
             }
             Message::FlowEdit(win_id, ref route, flow_msg) => {
                 self.handle_flow_edit(win_id, route, flow_msg);
@@ -1221,6 +1231,18 @@ impl FlowEdit {
                         .padding(btn_pad),
                 )
                 .push(compile_btn);
+
+            let is_running = self.running_process.is_some();
+            let mut run_btn =
+                button(Text::new("\u{25B6} Run").size(btn_size).center()).padding(btn_pad);
+            if win.history.compiled_manifest().is_some() && !is_running {
+                run_btn = run_btn.on_press(Message::Run).style(toolbar_btn);
+            } else if is_running {
+                run_btn = run_btn.style(toolbar_btn_active);
+            } else {
+                run_btn = run_btn.style(toolbar_btn);
+            }
+            status_row = status_row.push(run_btn);
         }
 
         container(status_row).width(Fill).padding(5).into()
@@ -1720,6 +1742,7 @@ impl FlowEdit {
                 "o" => Some(Message::Open),
                 "n" => Some(Message::New),
                 "b" => Some(Message::Compile),
+                "r" => Some(Message::Run),
                 "w" => Some(Message::CloseActiveWindow),
                 "q" => Some(Message::QuitAll),
                 _ => None,
@@ -2319,6 +2342,67 @@ impl FlowEdit {
                 }
             }
             _ => {}
+        }
+    }
+
+    fn launch_flowrgui(&mut self) {
+        let manifest = self
+            .root_window
+            .and_then(|id| self.windows.get(&id))
+            .and_then(|win| win.history.compiled_manifest())
+            .map(Path::to_path_buf);
+        let target = self.focused_window.or(self.root_window);
+        if let Some(win) = target.and_then(|id| self.windows.get_mut(&id)) {
+            if let Some(manifest) = manifest {
+                let flowrgui = std::env::current_exe()
+                    .ok()
+                    .and_then(|p| p.parent().map(|d| d.join("flowrgui")))
+                    .unwrap_or_else(|| PathBuf::from("flowrgui"));
+                match Command::new(&flowrgui).arg("--auto").arg(&manifest).spawn() {
+                    Ok(child) => {
+                        win.status = "Running flow in flowrgui".into();
+                        self.running_process = Some(child);
+                    }
+                    Err(e) => {
+                        win.status = format!("Failed to launch flowrgui: {e}");
+                    }
+                }
+            } else {
+                win.status = "Build the flow first".into();
+            }
+        }
+    }
+
+    pub(crate) fn check_running_process(&mut self) {
+        if let Some(ref mut child) = self.running_process {
+            match child.try_wait() {
+                Ok(Some(status)) => {
+                    let msg = if status.success() {
+                        "flowrgui exited successfully".into()
+                    } else {
+                        format!("flowrgui exited with {status}")
+                    };
+                    self.running_process = None;
+                    if let Some(win) = self
+                        .focused_window
+                        .or(self.root_window)
+                        .and_then(|id| self.windows.get_mut(&id))
+                    {
+                        win.status = msg;
+                    }
+                }
+                Ok(None) => {} // still running
+                Err(e) => {
+                    self.running_process = None;
+                    if let Some(win) = self
+                        .focused_window
+                        .or(self.root_window)
+                        .and_then(|id| self.windows.get_mut(&id))
+                    {
+                        win.status = format!("Error checking flowrgui: {e}");
+                    }
+                }
+            }
         }
     }
 
