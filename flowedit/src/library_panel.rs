@@ -16,7 +16,7 @@ use flowcore::model::lib_manifest::LibraryManifest;
 use flowcore::model::process::Process;
 
 /// Width of the library side panel in pixels.
-const PANEL_WIDTH: f32 = 280.0;
+const PANEL_WIDTH: f32 = 220.0;
 
 /// Messages produced by the library panel.
 #[derive(Debug, Clone)]
@@ -171,13 +171,9 @@ impl LibraryTree {
             .style(crate::flow_edit::toolbar_btn)
             .padding([2, 6]);
 
-        content = content.push(
-            Row::new()
-                .spacing(8)
-                .push(header)
-                .push(add_lib_btn)
-                .push(lib_paths_btn),
-        );
+        content = content
+            .push(header)
+            .push(Row::new().spacing(6).push(add_lib_btn).push(lib_paths_btn));
 
         if self.libraries.is_empty() {
             content = content.push(

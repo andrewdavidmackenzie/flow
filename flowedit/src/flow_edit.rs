@@ -1390,7 +1390,7 @@ impl FlowEdit {
                 },
                 ..Default::default()
             })
-            .width(Fill)
+            .width(220)
             .into()
     }
 
