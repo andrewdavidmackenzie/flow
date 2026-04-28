@@ -1006,7 +1006,7 @@ impl FlowEdit {
                 self.handle_file_message(message);
             }
             Message::Run => {
-                self.handle_file_message(message);
+                self.launch_flowrgui();
             }
             Message::FlowEdit(win_id, ref route, flow_msg) => {
                 self.handle_flow_edit(win_id, route, flow_msg);
@@ -2341,33 +2341,39 @@ impl FlowEdit {
                     }
                 }
             }
-            Message::Run => {
-                let target = self.focused_window.or(self.root_window);
-                if let Some(win) = target.and_then(|id| self.windows.get_mut(&id)) {
-                    if let Some(manifest) = win.history.compiled_manifest() {
-                        let flowrgui = std::env::current_exe()
-                            .ok()
-                            .and_then(|p| p.parent().map(|d| d.join("flowrgui")))
-                            .unwrap_or_else(|| PathBuf::from("flowrgui"));
-                        match Command::new(&flowrgui).arg("--auto").arg(manifest).spawn() {
-                            Ok(child) => {
-                                win.status = "Running flow in flowrgui".into();
-                                self.running_process = Some(child);
-                            }
-                            Err(e) => {
-                                win.status = format!("Failed to launch flowrgui: {e}");
-                            }
-                        }
-                    } else {
-                        win.status = "Build the flow first".into();
-                    }
-                }
-            }
             _ => {}
         }
     }
 
-    fn check_running_process(&mut self) {
+    fn launch_flowrgui(&mut self) {
+        let manifest = self
+            .root_window
+            .and_then(|id| self.windows.get(&id))
+            .and_then(|win| win.history.compiled_manifest())
+            .map(Path::to_path_buf);
+        let target = self.focused_window.or(self.root_window);
+        if let Some(win) = target.and_then(|id| self.windows.get_mut(&id)) {
+            if let Some(manifest) = manifest {
+                let flowrgui = std::env::current_exe()
+                    .ok()
+                    .and_then(|p| p.parent().map(|d| d.join("flowrgui")))
+                    .unwrap_or_else(|| PathBuf::from("flowrgui"));
+                match Command::new(&flowrgui).arg("--auto").arg(&manifest).spawn() {
+                    Ok(child) => {
+                        win.status = "Running flow in flowrgui".into();
+                        self.running_process = Some(child);
+                    }
+                    Err(e) => {
+                        win.status = format!("Failed to launch flowrgui: {e}");
+                    }
+                }
+            } else {
+                win.status = "Build the flow first".into();
+            }
+        }
+    }
+
+    pub(crate) fn check_running_process(&mut self) {
         if let Some(ref mut child) = self.running_process {
             match child.try_wait() {
                 Ok(Some(status)) => {

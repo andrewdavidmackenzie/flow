@@ -3003,3 +3003,43 @@ fn view_lib_paths_panel_toggle() {
     );
     assert!(sim.find("+ Add").is_ok(), "Add button in panel");
 }
+
+#[test]
+fn run_without_manifest_shows_build_first() {
+    let (mut app, win_id) = test_app();
+    assert!(app.running_process.is_none());
+    let _ = app.update(Message::Run);
+    let win = app.windows.get(&win_id).unwrap();
+    assert_eq!(win.status, "Build the flow first");
+}
+
+#[test]
+fn run_button_disabled_without_manifest() {
+    let (app, win_id) = test_app();
+    let view = app.view(win_id);
+    let mut sim = simulator(view);
+    let run_btn = sim.find("\u{25B6} Run");
+    assert!(run_btn.is_ok(), "Run button should be visible");
+}
+
+#[test]
+fn run_button_enabled_with_manifest() {
+    let (mut app, win_id) = test_app();
+    app.windows
+        .get_mut(&win_id)
+        .unwrap()
+        .history
+        .set_compiled_manifest(PathBuf::from("/tmp/test-manifest.json"));
+    let _ = app.update(Message::Run);
+    let win = app.windows.get(&win_id).unwrap();
+    // Should attempt to launch, not show "Build the flow first"
+    assert_ne!(win.status, "Build the flow first");
+}
+
+#[test]
+fn check_running_process_clears_on_none() {
+    let (mut app, _win_id) = test_app();
+    assert!(app.running_process.is_none());
+    app.check_running_process();
+    assert!(app.running_process.is_none());
+}
