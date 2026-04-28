@@ -612,6 +612,9 @@ impl FlowEdit {
             LibraryAction::AddLibrary => {
                 self.handle_add_library(win_id);
             }
+            LibraryAction::ToggleLibPaths => {
+                self.show_lib_paths = !self.show_lib_paths;
+            }
             LibraryAction::None => {}
         }
         Task::none()
@@ -1111,15 +1114,6 @@ impl FlowEdit {
             Column::new()
                 .push(hierarchy_panel)
                 .push(library_panel)
-                .push(
-                    container(
-                        button(Text::new("LibPath").size(12).center())
-                            .on_press(Message::ToggleLibPaths)
-                            .style(toolbar_btn)
-                            .padding([4, 8]),
-                    )
-                    .padding([4, 8]),
-                )
                 .height(Fill)
         };
 
@@ -1354,7 +1348,7 @@ impl FlowEdit {
         let header = Row::new()
             .spacing(6)
             .align_y(iced::Alignment::Center)
-            .push(Text::new("Library Search Paths").size(14))
+            .push(Text::new("Library Search Path").size(14))
             .push(iced::widget::Space::new().width(Fill))
             .push(
                 button(Text::new("+ Add").size(11).center())

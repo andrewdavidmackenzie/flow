@@ -707,7 +707,7 @@ fn lib_paths_panel_replaces_hierarchy() {
     let view = app.view(win_id);
     let mut sim = simulator(view);
     assert!(
-        sim.find("Library Search Paths").is_ok(),
+        sim.find("Library Search Path").is_ok(),
         "LibPath panel should be visible"
     );
     assert!(
@@ -761,8 +761,8 @@ fn metadata_panel_shows_fields() {
 #[test]
 fn canvas_click_selects_node() {
     let (mut app, win_id) = test_app();
-    // Node at world (100, 100), canvas offset after left panel ~220px
-    canvas_click_and_update(&mut app, win_id, 320.0, 160.0);
+    // Node at world (100, 100), canvas offset after left panel ~280px
+    canvas_click_and_update(&mut app, win_id, 380.0, 160.0);
     let selected = app.windows.get(&win_id).and_then(|w| w.selected_node);
     assert_eq!(selected, Some(0), "First node should be selected");
 }
@@ -829,8 +829,8 @@ fn helper_send_key_delete() {
     {
         let view = app.view(win_id);
         let mut ui = simulator(view);
-        // Click on the first node (at world 100,100 -> screen ~320,160)
-        ui.point_at(iced::Point::new(320.0, 160.0));
+        // Click on the first node (at world 100,100 -> screen ~380,160)
+        ui.point_at(iced::Point::new(380.0, 160.0));
         ui.simulate(simulator::click());
         // Now press Delete in the same simulator cycle
         ui.tap_key(iced::keyboard::Key::Named(
@@ -2998,7 +2998,7 @@ fn view_lib_paths_panel_toggle() {
     let view = app.view(win_id);
     let mut sim = simulator(view);
     assert!(
-        sim.find("Library Search Paths").is_ok(),
+        sim.find("Library Search Path").is_ok(),
         "LibPath panel visible"
     );
     assert!(sim.find("+ Add").is_ok(), "Add button in panel");
