@@ -76,15 +76,9 @@ pub fn run_example(source_file: &str, runner: &str, flowrex: bool, native: bool)
     let output = File::create(sample_dir.join(TEST_STDOUT_FILENAME))
         .expect("Could not create Test StdOutput File");
 
-    // GUI runners produce GPU driver noise on stderr (libEGL, Mesa, sctk)
-    // that is not from the flow. Redirect stderr to null for GUI runners.
-    let stderr_target = if runner == "flowrgui" {
-        Stdio::null()
-    } else {
-        let error = File::create(sample_dir.join(TEST_STDERR_FILENAME))
-            .expect("Could not create Test StdError File ");
-        Stdio::from(error)
-    };
+    let error = File::create(sample_dir.join(TEST_STDERR_FILENAME))
+        .expect("Could not create Test StdError File ");
+    let stderr_target = Stdio::from(error);
 
     println!("\tCommand line: '{} {}'", runner, runner_args.join(" "));
     let mut runner_child = Command::new(runner)
