@@ -659,6 +659,7 @@ impl FlowrGui {
                 // NO response - so we can use next request sent to submit another flow
                 if self.ui_settings.auto {
                     self.info("Auto exiting on flow completion");
+                    let _ = std::io::stdout().flush();
                     process::exit(0);
                 }
             }
