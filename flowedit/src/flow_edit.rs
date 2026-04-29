@@ -2351,7 +2351,7 @@ impl FlowEdit {
         }
     }
 
-    fn launch_flowrgui(&mut self) {
+    pub(crate) fn launch_flowrgui(&mut self) {
         let manifest = self
             .root_window
             .and_then(|id| self.windows.get(&id))

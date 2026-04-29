@@ -3052,3 +3052,44 @@ fn compile_message_updates_status() {
     // Compile will fail (no flowc available in test) but status should change from default
     assert!(!win.status.starts_with("Ready"));
 }
+
+#[test]
+fn toggle_lib_paths_toggles_state() {
+    let (mut app, _win_id) = test_app();
+    assert!(!app.show_lib_paths);
+    let _ = app.update(Message::ToggleLibPaths);
+    assert!(app.show_lib_paths);
+    let _ = app.update(Message::ToggleLibPaths);
+    assert!(!app.show_lib_paths);
+}
+
+#[test]
+fn toggle_lib_paths_via_library_panel() {
+    use crate::library_panel::LibraryMessage;
+    let (mut app, win_id) = test_app();
+    assert!(!app.show_lib_paths);
+    let _ = app.update(Message::Library(win_id, LibraryMessage::ToggleLibPaths));
+    assert!(app.show_lib_paths);
+}
+
+#[test]
+fn launch_flowrgui_without_manifest() {
+    let (mut app, win_id) = test_app();
+    app.launch_flowrgui();
+    let win = app.windows.get(&win_id).unwrap();
+    assert_eq!(win.status, "Build the flow first");
+    assert!(app.running_process.is_none());
+}
+
+#[test]
+fn launch_flowrgui_with_manifest() {
+    let (mut app, win_id) = test_app();
+    app.windows
+        .get_mut(&win_id)
+        .unwrap()
+        .history
+        .set_compiled_manifest(PathBuf::from("/tmp/test-manifest.json"));
+    app.launch_flowrgui();
+    let win = app.windows.get(&win_id).unwrap();
+    assert_ne!(win.status, "Build the flow first");
+}
