@@ -2332,7 +2332,13 @@ impl FlowEdit {
                         match win.perform_compile(&mut self.root_flow) {
                             Ok(path) => {
                                 win.history.set_compiled_manifest(path.clone());
-                                win.status = format!("Compiled: {}", path.display());
+                                let display_path = std::env::current_dir()
+                                    .ok()
+                                    .and_then(|cwd| {
+                                        path.strip_prefix(&cwd).ok().map(Path::to_path_buf)
+                                    })
+                                    .unwrap_or(path);
+                                win.status = format!("Compiled: {}", display_path.display());
                             }
                             Err(e) => {
                                 win.status = e;
