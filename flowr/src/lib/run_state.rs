@@ -530,6 +530,27 @@ impl RunState {
         #[cfg(debug_assertions)]
         checks::check_invariants(self, job.payload.job_id)?;
 
+        debug!(
+            "Job #{}:\tbusy_flows={:?} blocked={:?}",
+            job.payload.job_id, self.busy_flows, self.blocked
+        );
+        for function in self.submission.manifest.functions() {
+            if function.get_flow_id() == job.flow_id {
+                let depths: Vec<usize> = (0..function.num_inputs())
+                    .map(|i| function.input_queue_depth(i))
+                    .collect();
+                if depths.iter().any(|&d| d > 0) {
+                    debug!(
+                        "Job #{}:\tF#{}({}) input queues: {:?}",
+                        job.payload.job_id,
+                        function.id(),
+                        function.get_flow_id(),
+                        depths
+                    );
+                }
+            }
+        }
+
         trace!(
             "Job #{}: Completed-----------------------",
             job.payload.job_id
@@ -589,6 +610,12 @@ impl RunState {
             .ok_or("Could not get function")?;
         let job_count_before = function.input_sets_available();
         function.send(connection.destination_io_number, output_value)?;
+        debug!(
+            "\t\t\tF#{}:{} queue depth: {}",
+            connection.destination_id,
+            connection.destination_io_number,
+            function.input_queue_depth(connection.destination_io_number)
+        );
 
         #[cfg(feature = "metrics")]
         metrics.increment_outputs_sent(); // not distinguishing array serialization / wrapping etc.
