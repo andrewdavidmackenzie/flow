@@ -16,7 +16,7 @@ use flowcore::model::lib_manifest::LibraryManifest;
 use flowcore::model::process::Process;
 
 /// Width of the library side panel in pixels.
-const PANEL_WIDTH: f32 = 220.0;
+pub(crate) const PANEL_WIDTH: f32 = 220.0;
 
 /// Messages produced by the library panel.
 #[derive(Debug, Clone)]

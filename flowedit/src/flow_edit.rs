@@ -1390,7 +1390,7 @@ impl FlowEdit {
                 },
                 ..Default::default()
             })
-            .width(220)
+            .width(crate::library_panel::PANEL_WIDTH)
             .into()
     }
 
