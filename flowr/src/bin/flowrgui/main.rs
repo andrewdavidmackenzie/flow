@@ -151,7 +151,8 @@ pub enum CoordinatorSettings {
 }
 
 struct UiSettings {
-    auto: bool,
+    auto_start: bool,
+    auto_exit: bool,
 }
 
 struct ImageReference {
@@ -206,7 +207,7 @@ impl FlowrGui {
         match message {
             Message::CoordinatorSent(CoordinatorMessage::Connected(sender)) => {
                 self.coordinator_state = CoordinatorState::Connected(sender);
-                if self.ui_settings.auto {
+                if self.ui_settings.auto_start {
                     return Task::perform(Self::auto_submit(), |()| Message::SubmitFlow);
                 }
             }
@@ -480,6 +481,7 @@ impl FlowrGui {
         };
 
         let auto = matches.get_flag("auto");
+        let auto_start = auto || matches.get_flag("auto-start");
 
         (
             SubmissionSettings {
@@ -490,7 +492,10 @@ impl FlowrGui {
                 parallel_jobs_limit,
             },
             coordinator_settings,
-            UiSettings { auto },
+            UiSettings {
+                auto_start,
+                auto_exit: auto,
+            },
         )
     }
 
@@ -538,6 +543,13 @@ impl FlowrGui {
                 .long("auto")
                 .action(clap::ArgAction::SetTrue)
                 .help("Run any flow specified automatically on start-up. Exit automatically."),
+        );
+
+        let app = app.arg(
+            Arg::new("auto-start")
+                .long("auto-start")
+                .action(clap::ArgAction::SetTrue)
+                .help("Run the flow automatically on start-up, but stay open for interaction."),
         );
 
         let app = app
@@ -657,7 +669,7 @@ impl FlowrGui {
                     self.modal_content = ("Flow Ended - Metrics".into(), format!("{metrics}"));
                 }
                 // NO response - so we can use next request sent to submit another flow
-                if self.ui_settings.auto {
+                if self.ui_settings.auto_exit {
                     self.info("Auto exiting on flow completion");
                     let _ = std::io::stdout().flush();
                     process::exit(0);
@@ -668,7 +680,7 @@ impl FlowrGui {
                 self.send(ClientMessage::Ack);
             }
             CoordinatorMessage::Stdout(string) => {
-                if self.ui_settings.auto {
+                if self.ui_settings.auto_exit {
                     println!("{string}");
                 }
                 self.tab_set.stdout_tab.content.push(string);
@@ -681,7 +693,7 @@ impl FlowrGui {
                 }
             }
             CoordinatorMessage::Stderr(string) => {
-                if self.ui_settings.auto {
+                if self.ui_settings.auto_exit {
                     eprintln!("{string}");
                 }
                 self.tab_set.stderr_tab.content.push(string);
@@ -700,7 +712,7 @@ impl FlowrGui {
                     self.tab_set.stdin_tab.cursor
                 );
                 // In auto mode, read all remaining process stdin when buffer is empty
-                if self.ui_settings.auto
+                if self.ui_settings.auto_exit
                     && self.tab_set.stdin_tab.cursor >= self.tab_set.stdin_tab.content.len()
                 {
                     let stdin = std::io::stdin();
@@ -724,7 +736,7 @@ impl FlowrGui {
                     self.tab_set.stdin_tab.cursor
                 );
                 // In auto mode, read a line from process stdin when buffer is empty
-                if self.ui_settings.auto
+                if self.ui_settings.auto_exit
                     && self.tab_set.stdin_tab.cursor >= self.tab_set.stdin_tab.content.len()
                 {
                     let mut input = String::new();
@@ -739,7 +751,7 @@ impl FlowrGui {
                     trace!("GetLine: returning buffered line: '{line}'");
                     debug!("GetLine: returning buffered line ({} chars)", line.len());
                     self.send(ClientMessage::Line(line));
-                } else if self.ui_settings.auto || self.tab_set.stdin_tab.eof_signaled {
+                } else if self.ui_settings.auto_exit || self.tab_set.stdin_tab.eof_signaled {
                     debug!("GetLine: EOF (auto mode or user signaled)");
                     self.send(ClientMessage::GetLineEof);
                     self.tab_set.stdin_tab.eof_signaled = false;

@@ -2352,7 +2352,7 @@ impl FlowEdit {
                     .ok()
                     .and_then(|p| p.parent().map(|d| d.join("flowrgui")))
                     .unwrap_or_else(|| PathBuf::from("flowrgui"));
-                match Command::new(&flowrgui).arg("--auto").arg(&manifest).spawn() {
+                match Command::new(&flowrgui).arg("--auto-start").arg(&manifest).spawn() {
                     Ok(child) => {
                         win.status = "Running flow in flowrgui".into();
                         self.running_process = Some(child);
