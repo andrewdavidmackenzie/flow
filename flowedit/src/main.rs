@@ -58,7 +58,14 @@ fn main() -> iced::Result {
         .run()
 }
 
-pub(crate) fn parse_cli_args() -> (Vec<String>, Option<String>) {
+pub(crate) struct CliArgs {
+    pub(crate) lib_dirs: Vec<String>,
+    pub(crate) flow_file: Option<String>,
+    pub(crate) auto_build: bool,
+    pub(crate) auto_run: bool,
+}
+
+pub(crate) fn parse_cli_args() -> CliArgs {
     let matches = ClapCommand::new("flowedit")
         .version(env!("CARGO_PKG_VERSION"))
         .about("Visual editor for flow definition files")
@@ -76,6 +83,18 @@ pub(crate) fn parse_cli_args() -> (Vec<String>, Option<String>) {
                 .value_name("LIB_DIR")
                 .help("Add a directory to the Library Search path"),
         )
+        .arg(
+            Arg::new("auto-build")
+                .long("auto-build")
+                .action(ArgAction::SetTrue)
+                .help("Automatically build the flow on startup"),
+        )
+        .arg(
+            Arg::new("auto-run")
+                .long("auto-run")
+                .action(ArgAction::SetTrue)
+                .help("Automatically build and run the flow on startup"),
+        )
         .get_matches();
 
     let lib_dirs: Vec<String> = if matches.contains_id("lib_dir") {
@@ -88,7 +107,14 @@ pub(crate) fn parse_cli_args() -> (Vec<String>, Option<String>) {
     };
 
     let flow_file = matches.get_one::<String>("flow-file").cloned();
-    (lib_dirs, flow_file)
+    let auto_run = matches.get_flag("auto-run");
+    let auto_build = auto_run || matches.get_flag("auto-build");
+    CliArgs {
+        lib_dirs,
+        flow_file,
+        auto_build,
+        auto_run,
+    }
 }
 
 pub(crate) fn setup_lib_search_path(lib_dirs: &[String]) {

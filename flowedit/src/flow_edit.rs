@@ -187,6 +187,7 @@ pub(crate) struct FlowEdit {
     pub(crate) library_cache: HashMap<Url, LibraryManifest>,
     pub(crate) all_definitions: HashMap<Url, Process>,
     pub(crate) running_process: Option<Child>,
+    pub(crate) auto_run: bool,
 }
 
 impl Default for FlowEdit {
@@ -202,6 +203,7 @@ impl Default for FlowEdit {
             library_cache: HashMap::new(),
             all_definitions: HashMap::new(),
             running_process: None,
+            auto_run: false,
         }
     }
 }
@@ -281,10 +283,10 @@ pub(crate) fn toolbar_btn_active(_theme: &Theme, status: button::Status) -> butt
 impl FlowEdit {
     /// Create the application, parsing CLI args and optionally loading a flow file.
     pub(crate) fn new() -> (Self, Task<Message>) {
-        let (lib_dirs, flow_file) = parse_cli_args();
-        setup_lib_search_path(&lib_dirs);
+        let cli_args = parse_cli_args();
+        setup_lib_search_path(&cli_args.lib_dirs);
 
-        let (status, flow_definition, lib_refs) = load_initial_flow(flow_file.as_deref());
+        let (status, flow_definition, lib_refs) = load_initial_flow(cli_args.flow_file.as_deref());
 
         let has_nodes = !flow_definition.process_refs.is_empty();
 
@@ -340,9 +342,16 @@ impl FlowEdit {
             library_cache,
             all_definitions,
             running_process: None,
+            auto_run: cli_args.auto_run,
         };
 
-        (app, open_task.discard())
+        let startup_task = if cli_args.auto_build && has_nodes {
+            Task::batch(vec![open_task.discard(), Task::done(Message::Compile)])
+        } else {
+            open_task.discard()
+        };
+
+        (app, startup_task)
     }
 
     /// Return the window title, showing the flow name, file name, and unsaved indicator.
@@ -2326,7 +2335,17 @@ impl FlowEdit {
                         match win.perform_compile(&mut self.root_flow) {
                             Ok(path) => {
                                 win.history.set_compiled_manifest(path.clone());
-                                win.status = format!("Compiled: {}", path.display());
+                                let display_path = std::env::current_dir()
+                                    .ok()
+                                    .and_then(|cwd| {
+                                        path.strip_prefix(&cwd).ok().map(Path::to_path_buf)
+                                    })
+                                    .unwrap_or(path);
+                                win.status = format!("Compiled: {}", display_path.display());
+                                if self.auto_run {
+                                    self.auto_run = false;
+                                    self.launch_flowrgui();
+                                }
                             }
                             Err(e) => {
                                 win.status = e;
@@ -2339,7 +2358,7 @@ impl FlowEdit {
         }
     }
 
-    fn launch_flowrgui(&mut self) {
+    pub(crate) fn launch_flowrgui(&mut self) {
         let manifest = self
             .root_window
             .and_then(|id| self.windows.get(&id))
@@ -2352,7 +2371,11 @@ impl FlowEdit {
                     .ok()
                     .and_then(|p| p.parent().map(|d| d.join("flowrgui")))
                     .unwrap_or_else(|| PathBuf::from("flowrgui"));
-                match Command::new(&flowrgui).arg("--auto").arg(&manifest).spawn() {
+                match Command::new(&flowrgui)
+                    .arg("--auto-start")
+                    .arg(&manifest)
+                    .spawn()
+                {
                     Ok(child) => {
                         win.status = "Running flow in flowrgui".into();
                         self.running_process = Some(child);
