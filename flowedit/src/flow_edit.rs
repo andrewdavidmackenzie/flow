@@ -187,6 +187,7 @@ pub(crate) struct FlowEdit {
     pub(crate) library_cache: HashMap<Url, LibraryManifest>,
     pub(crate) all_definitions: HashMap<Url, Process>,
     pub(crate) running_process: Option<Child>,
+    pub(crate) auto_run: bool,
 }
 
 impl Default for FlowEdit {
@@ -202,6 +203,7 @@ impl Default for FlowEdit {
             library_cache: HashMap::new(),
             all_definitions: HashMap::new(),
             running_process: None,
+            auto_run: false,
         }
     }
 }
@@ -340,6 +342,7 @@ impl FlowEdit {
             library_cache,
             all_definitions,
             running_process: None,
+            auto_run: cli_args.auto_run,
         };
 
         let startup_task = if cli_args.auto_build && has_nodes {
@@ -2339,6 +2342,10 @@ impl FlowEdit {
                                     })
                                     .unwrap_or(path);
                                 win.status = format!("Compiled: {}", display_path.display());
+                                if self.auto_run {
+                                    self.auto_run = false;
+                                    self.launch_flowrgui();
+                                }
                             }
                             Err(e) => {
                                 win.status = e;

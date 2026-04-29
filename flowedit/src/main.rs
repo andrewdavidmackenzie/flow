@@ -62,6 +62,7 @@ pub(crate) struct CliArgs {
     pub(crate) lib_dirs: Vec<String>,
     pub(crate) flow_file: Option<String>,
     pub(crate) auto_build: bool,
+    pub(crate) auto_run: bool,
 }
 
 pub(crate) fn parse_cli_args() -> CliArgs {
@@ -88,6 +89,12 @@ pub(crate) fn parse_cli_args() -> CliArgs {
                 .action(ArgAction::SetTrue)
                 .help("Automatically build the flow on startup"),
         )
+        .arg(
+            Arg::new("auto-run")
+                .long("auto-run")
+                .action(ArgAction::SetTrue)
+                .help("Automatically build and run the flow on startup"),
+        )
         .get_matches();
 
     let lib_dirs: Vec<String> = if matches.contains_id("lib_dir") {
@@ -100,11 +107,13 @@ pub(crate) fn parse_cli_args() -> CliArgs {
     };
 
     let flow_file = matches.get_one::<String>("flow-file").cloned();
-    let auto_build = matches.get_flag("auto-build");
+    let auto_run = matches.get_flag("auto-run");
+    let auto_build = auto_run || matches.get_flag("auto-build");
     CliArgs {
         lib_dirs,
         flow_file,
         auto_build,
+        auto_run,
     }
 }
 
