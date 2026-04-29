@@ -612,6 +612,9 @@ impl FlowEdit {
             LibraryAction::AddLibrary => {
                 self.handle_add_library(win_id);
             }
+            LibraryAction::ToggleLibPaths => {
+                self.toggle_lib_paths();
+            }
             LibraryAction::None => {}
         }
         Task::none()
@@ -1046,7 +1049,7 @@ impl FlowEdit {
                 }
             }
             Message::ToggleLibPaths => {
-                self.show_lib_paths = !self.show_lib_paths;
+                self.toggle_lib_paths();
             }
             Message::FunctionEdit(win_id, func_msg) => {
                 self.handle_function_edit_message(win_id, func_msg);
@@ -1111,15 +1114,6 @@ impl FlowEdit {
             Column::new()
                 .push(hierarchy_panel)
                 .push(library_panel)
-                .push(
-                    container(
-                        button(Text::new("LibPath").size(12).center())
-                            .on_press(Message::ToggleLibPaths)
-                            .style(toolbar_btn)
-                            .padding([4, 8]),
-                    )
-                    .padding([4, 8]),
-                )
                 .height(Fill)
         };
 
@@ -1354,7 +1348,7 @@ impl FlowEdit {
         let header = Row::new()
             .spacing(6)
             .align_y(iced::Alignment::Center)
-            .push(Text::new("Library Search Paths").size(14))
+            .push(Text::new("Library Search Path").size(14))
             .push(iced::widget::Space::new().width(Fill))
             .push(
                 button(Text::new("+ Add").size(11).center())
@@ -1396,7 +1390,7 @@ impl FlowEdit {
                 },
                 ..Default::default()
             })
-            .width(Fill)
+            .width(crate::library_panel::PANEL_WIDTH)
             .into()
     }
 
@@ -2371,6 +2365,10 @@ impl FlowEdit {
                 win.status = "Build the flow first".into();
             }
         }
+    }
+
+    fn toggle_lib_paths(&mut self) {
+        self.show_lib_paths = !self.show_lib_paths;
     }
 
     pub(crate) fn check_running_process(&mut self) {

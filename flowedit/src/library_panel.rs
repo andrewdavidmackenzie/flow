@@ -16,7 +16,7 @@ use flowcore::model::lib_manifest::LibraryManifest;
 use flowcore::model::process::Process;
 
 /// Width of the library side panel in pixels.
-const PANEL_WIDTH: f32 = 220.0;
+pub(crate) const PANEL_WIDTH: f32 = 220.0;
 
 /// Messages produced by the library panel.
 #[derive(Debug, Clone)]
@@ -31,6 +31,8 @@ pub(crate) enum LibraryMessage {
     ViewFunction(String, String),
     /// Add a library manually via file dialog.
     AddLibrary,
+    /// Toggle the library search paths editor panel.
+    ToggleLibPaths,
 }
 
 /// Result of a library panel interaction.
@@ -40,6 +42,7 @@ pub(crate) enum LibraryAction {
     Add(String, String),
     View(String, String),
     AddLibrary,
+    ToggleLibPaths,
 }
 
 /// A category grouping functions within a library.
@@ -144,6 +147,7 @@ impl LibraryTree {
                 LibraryAction::View(source.clone(), name.clone())
             }
             LibraryMessage::AddLibrary => LibraryAction::AddLibrary,
+            LibraryMessage::ToggleLibPaths => LibraryAction::ToggleLibPaths,
         }
     }
 
@@ -160,10 +164,16 @@ impl LibraryTree {
         let header = text("Process Library").size(14);
         let add_lib_btn = button(text("+ Library").size(11))
             .on_press(LibraryMessage::AddLibrary)
-            .style(button::secondary)
+            .style(crate::flow_edit::toolbar_btn)
+            .padding([2, 6]);
+        let lib_paths_btn = button(text("LibPath").size(11))
+            .on_press(LibraryMessage::ToggleLibPaths)
+            .style(crate::flow_edit::toolbar_btn)
             .padding([2, 6]);
 
-        content = content.push(Row::new().spacing(8).push(header).push(add_lib_btn));
+        content = content
+            .push(header)
+            .push(Row::new().spacing(6).push(add_lib_btn).push(lib_paths_btn));
 
         if self.libraries.is_empty() {
             content = content.push(

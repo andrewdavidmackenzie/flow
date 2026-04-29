@@ -707,7 +707,7 @@ fn lib_paths_panel_replaces_hierarchy() {
     let view = app.view(win_id);
     let mut sim = simulator(view);
     assert!(
-        sim.find("Library Search Paths").is_ok(),
+        sim.find("Library Search Path").is_ok(),
         "LibPath panel should be visible"
     );
     assert!(
@@ -2998,7 +2998,7 @@ fn view_lib_paths_panel_toggle() {
     let view = app.view(win_id);
     let mut sim = simulator(view);
     assert!(
-        sim.find("Library Search Paths").is_ok(),
+        sim.find("Library Search Path").is_ok(),
         "LibPath panel visible"
     );
     assert!(sim.find("+ Add").is_ok(), "Add button in panel");
