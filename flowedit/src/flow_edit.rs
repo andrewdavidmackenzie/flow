@@ -613,7 +613,7 @@ impl FlowEdit {
                 self.handle_add_library(win_id);
             }
             LibraryAction::ToggleLibPaths => {
-                self.show_lib_paths = !self.show_lib_paths;
+                self.toggle_lib_paths();
             }
             LibraryAction::None => {}
         }
@@ -1049,7 +1049,7 @@ impl FlowEdit {
                 }
             }
             Message::ToggleLibPaths => {
-                self.show_lib_paths = !self.show_lib_paths;
+                self.toggle_lib_paths();
             }
             Message::FunctionEdit(win_id, func_msg) => {
                 self.handle_function_edit_message(win_id, func_msg);
@@ -2365,6 +2365,10 @@ impl FlowEdit {
                 win.status = "Build the flow first".into();
             }
         }
+    }
+
+    fn toggle_lib_paths(&mut self) {
+        self.show_lib_paths = !self.show_lib_paths;
     }
 
     pub(crate) fn check_running_process(&mut self) {
