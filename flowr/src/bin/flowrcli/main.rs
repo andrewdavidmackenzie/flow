@@ -20,6 +20,7 @@
 //! [`Executors`][flowrlib::executor::Executor]
 
 use core::str::FromStr;
+use std::io::Write;
 use std::path::PathBuf;
 use std::process::exit;
 use std::sync::{Arc, Mutex};
@@ -82,21 +83,21 @@ mod errors;
 
 /// Main for flowr binary - call `run()` and print any error that results or exit silently if OK
 fn main() {
-    match run() {
-        Err(ref e) => {
-            error!("{e}");
-            for e in e.iter().skip(1) {
-                error!("caused by: {e}");
-            }
+    let result = run();
+    let _ = std::io::stdout().flush();
 
-            // The backtrace is generated if env var `RUST_BACKTRACE` is set to `1` or `full`
-            if let Some(backtrace) = e.backtrace() {
-                error!("backtrace: {backtrace:?}");
-            }
-
-            exit(1);
+    if let Err(ref e) = result {
+        error!("{e}");
+        for e in e.iter().skip(1) {
+            error!("caused by: {e}");
         }
-        Ok(()) => exit(0),
+
+        // The backtrace is generated if env var `RUST_BACKTRACE` is set to `1` or `full`
+        if let Some(backtrace) = e.backtrace() {
+            error!("backtrace: {backtrace:?}");
+        }
+
+        exit(1);
     }
 }
 

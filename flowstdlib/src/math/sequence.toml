@@ -49,7 +49,7 @@ to = "output/number"
 # while the sequence is running - loopback the limit value to compare against next time
 [[connection]]
 from = "compare_switch/left-gt"
-to = "compare_switch/left"
+to = ["compare_switch/left", "compare/left"]
 name = "feedback-limit"
 
 # An add process to add "step"" to the last output of the sequence each time, up to the penultimate one
@@ -67,9 +67,41 @@ from = "compare_switch/right-lte"
 to = "add/i1"
 name = "previous"
 
-# feedback the step
+# Compare produces boolean outputs for controlling the step feedback tap.
+# Fed the same inputs as compare_switch.
+[[process]]
+source = "lib://flowstdlib/math/compare"
+
+[[connection]]
+from = "input/limit"
+to = "compare/left"
+
+[[connection]]
+from = "input/start"
+to = "compare/right"
+name = "first"
+
+# Feedback the current value to compare, same as compare_switch
+[[connection]]
+from = "add"
+to = "compare/right"
+
+# Tap gates the step feedback: passes step through when gt (keep going),
+# discards step when not gt (equal = last iteration).
+[[process]]
+source = "lib://flowstdlib/control/tap"
+alias = "step-tap"
+
 [[connection]]
 from = "add/i2"
+to = "step-tap/data"
+
+[[connection]]
+from = "compare/gt"
+to = "step-tap/control"
+
+[[connection]]
+from = "step-tap"
 to = "add/i2"
 name = "feedback-step"
 
