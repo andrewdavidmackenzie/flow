@@ -3043,3 +3043,12 @@ fn check_running_process_clears_on_none() {
     app.check_running_process();
     assert!(app.running_process.is_none());
 }
+
+#[test]
+fn compile_message_updates_status() {
+    let (mut app, win_id) = test_app();
+    let _ = app.update(Message::Compile);
+    let win = app.windows.get(&win_id).unwrap();
+    // Compile will fail (no flowc available in test) but status should change from default
+    assert!(!win.status.starts_with("Ready"));
+}

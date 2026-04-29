@@ -281,10 +281,10 @@ pub(crate) fn toolbar_btn_active(_theme: &Theme, status: button::Status) -> butt
 impl FlowEdit {
     /// Create the application, parsing CLI args and optionally loading a flow file.
     pub(crate) fn new() -> (Self, Task<Message>) {
-        let (lib_dirs, flow_file) = parse_cli_args();
-        setup_lib_search_path(&lib_dirs);
+        let cli_args = parse_cli_args();
+        setup_lib_search_path(&cli_args.lib_dirs);
 
-        let (status, flow_definition, lib_refs) = load_initial_flow(flow_file.as_deref());
+        let (status, flow_definition, lib_refs) = load_initial_flow(cli_args.flow_file.as_deref());
 
         let has_nodes = !flow_definition.process_refs.is_empty();
 
@@ -342,7 +342,13 @@ impl FlowEdit {
             running_process: None,
         };
 
-        (app, open_task.discard())
+        let startup_task = if cli_args.auto_build && has_nodes {
+            Task::batch(vec![open_task.discard(), Task::done(Message::Compile)])
+        } else {
+            open_task.discard()
+        };
+
+        (app, startup_task)
     }
 
     /// Return the window title, showing the flow name, file name, and unsaved indicator.
@@ -2352,7 +2358,11 @@ impl FlowEdit {
                     .ok()
                     .and_then(|p| p.parent().map(|d| d.join("flowrgui")))
                     .unwrap_or_else(|| PathBuf::from("flowrgui"));
-                match Command::new(&flowrgui).arg("--auto-start").arg(&manifest).spawn() {
+                match Command::new(&flowrgui)
+                    .arg("--auto-start")
+                    .arg(&manifest)
+                    .spawn()
+                {
                     Ok(child) => {
                         win.status = "Running flow in flowrgui".into();
                         self.running_process = Some(child);
