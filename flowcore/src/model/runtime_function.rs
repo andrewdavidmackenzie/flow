@@ -173,8 +173,10 @@ impl RuntimeFunction {
         for (io_number, input) in &mut self.inputs.iter_mut().enumerate() {
             if input.init(first_time, flow_gone_idle) {
                 debug!(
-                    "\tInitialized Input #{}:{io_number} in Flow #{}",
-                    self.function_id, self.flow_id
+                    "\tInitialized Input #{}:{io_number} in Flow #{} (queue depth: {})",
+                    self.function_id,
+                    self.flow_id,
+                    input.values_available()
                 );
             }
         }
@@ -243,6 +245,19 @@ impl RuntimeFunction {
             .get(input_number)
             .ok_or("Could not get that input")?
             .is_empty())
+    }
+
+    /// Returns the number of inputs this function has
+    #[must_use]
+    pub fn num_inputs(&self) -> usize {
+        self.inputs.len()
+    }
+
+    /// Returns the number of values queued on a specific input
+    pub fn input_queue_depth(&self, input_number: usize) -> usize {
+        self.inputs
+            .get(input_number)
+            .map_or(0, Input::values_available)
     }
 
     /// Returns how many jobs can be created for this function with the available inputs
