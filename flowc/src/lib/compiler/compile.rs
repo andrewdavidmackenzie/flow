@@ -242,7 +242,7 @@ fn configure_output_connections(tables: &mut CompilerTables) -> Result<()> {
         debug!(
             "Connection: from '{}' to '{}'",
             connection.from_io().route(),
-            &connection.to_io().route()
+            connection.to_io().route()
         );
         debug!("  Source output route = '{source}' --> function #{destination_function_id}:{destination_input_index}");
 
