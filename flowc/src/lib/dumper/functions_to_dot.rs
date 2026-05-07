@@ -110,7 +110,7 @@ fn process_refs_to_dot(flow: &FlowDefinition, tables: &CompilerTables) -> Result
                 );
                 let _ = write!(output, "label = \"{}\";", subflow.route());
 
-                let _ = write!(output, "{}", &process_refs_to_dot(subflow, tables)?); // recurse
+                let _ = write!(output, "{}", process_refs_to_dot(subflow, tables)?); // recurse
 
                 // close cluster
                 let _ = writeln!(output, "}}");
