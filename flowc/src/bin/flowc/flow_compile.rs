@@ -152,7 +152,7 @@ fn execute_flow(filepath: &Path, options: &Options, runner_name: &str) -> Result
     // any arguments for the flow itself (not runner) go at the end
     runner_args.append(&mut options.flow_args.clone());
 
-    info!("Running flow using '{} {:?}'", runner_name, runner_args);
+    info!("Running flow using '{runner_name} {runner_args:?}'");
     let mut runner = Command::new(runner_name);
     runner
         .args(runner_args)
