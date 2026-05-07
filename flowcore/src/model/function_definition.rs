@@ -384,7 +384,7 @@ impl FunctionDefinition {
                 format!(
                     "{}{}",
                     (w.get(..1).unwrap_or("").to_string()).to_uppercase(),
-                    &w.get(1..).unwrap_or("")
+                    w.get(1..).unwrap_or("")
                 )
             })
             .collect();
