@@ -202,9 +202,7 @@ fn execute_flow(filepath: &Path, options: &Options, runner_name: &str) -> Result
                 String::from_utf8_lossy(&runner_output.stderr)
             );
             bail!(
-                "Execution of '{}' failed. Exited with status code: {}",
-                runner_name,
-                code
+                "Execution of '{runner_name}' failed. Exited with status code: {code}"
             )
         }
     }
