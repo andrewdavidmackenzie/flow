@@ -493,7 +493,7 @@ impl RunState {
                         trace!(
                             "Job #{}:\t\tNo value found at '{}'",
                             job.payload.job_id,
-                            &connection.source
+                            connection.source
                         );
                     }
                 }
