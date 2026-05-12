@@ -152,7 +152,7 @@ fn execute_flow(filepath: &Path, options: &Options, runner_name: &str) -> Result
     // any arguments for the flow itself (not runner) go at the end
     runner_args.append(&mut options.flow_args.clone());
 
-    info!("Running flow using '{} {:?}'", runner_name, &runner_args);
+    info!("Running flow using '{runner_name} {runner_args:?}'");
     let mut runner = Command::new(runner_name);
     runner
         .args(runner_args)
@@ -189,7 +189,7 @@ fn execute_flow(filepath: &Path, options: &Options, runner_name: &str) -> Result
 
     match runner_output.status.code() {
         Some(0) | None => Ok(()),
-        Some(code) => {
+        Some(_) => {
             error!("Execution of '{runner_name}' failed");
             error!(
                 "'{}' STDOUT:\n{}",
@@ -202,9 +202,7 @@ fn execute_flow(filepath: &Path, options: &Options, runner_name: &str) -> Result
                 String::from_utf8_lossy(&runner_output.stderr)
             );
             bail!(
-                "Execution of '{}' failed. Exited with status code: {}",
-                runner_name,
-                code
+                "Execution of '{runner_name}' failed. Exited with status code: {code}"
             )
         }
     }

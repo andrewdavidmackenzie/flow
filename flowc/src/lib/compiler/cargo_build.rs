@@ -125,8 +125,8 @@ fn cargo_build(
     // move compiled wasm output into destination location
     debug!(
         "\tMoving built wasm file from '{}' to '{}'",
-        &cargo_target_dir.display(),
-        &wasm_destination.display()
+        cargo_target_dir.display(),
+        wasm_destination.display()
     );
     // avoid rename across possibly different file systems
     fs::copy(&cargo_target_dir, wasm_destination).chain_err(|| {

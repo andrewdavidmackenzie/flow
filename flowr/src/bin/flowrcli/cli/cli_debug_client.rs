@@ -282,7 +282,7 @@ impl CliDebugClient {
             JobCompleted(job) => {
                 println!("Job #{} completed by Function #{}", job.payload.job_id, job.function_id);
                 if let Ok((Some(output), _)) = job.result {
-                    println!("\tOutput value: '{}'", &output);
+                    println!("\tOutput value: '{output}'");
                 }
             }
             PriorToSendingJob(job) => {
