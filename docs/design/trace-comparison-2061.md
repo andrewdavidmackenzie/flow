@@ -4,7 +4,7 @@ With right-lt fix + step-gate. Runtime unchanged from master.
 Run with `--jobs 1 -v debug`. Vocabulary from flow-vocabulary.md.
 
 ## Functions (with step-gate)
-```
+```text
 F#0: add           flow=1 (outer)  i1, i2(flow_init once:1)
 F#1: compare_switch flow=1 (outer)  left(flow_init once:9), right(flow_init once:1)
 F#2: step-gate     flow=1 (outer)  data, control
@@ -25,7 +25,7 @@ for full details.
 Execution is the same (equal case, right-lte=1 to stdout, no right-lt).
 Flow 2 goes Idle. Flow initializer fires on F#4:1 (always:0, depth: 1).
 
-```
+```text
                            EXPECTED                    ACTUAL
 Job #8: busy_flows         {1: [1], 0: [6]}            {1: [1], 0: [6]}        SAME
 Job #8: blocked            {}                          {}                      SAME

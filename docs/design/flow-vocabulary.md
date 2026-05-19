@@ -83,7 +83,7 @@ flow arriving while the sub-flow is busy processing.
 
 A function can be in one of five states: **Waiting**, **Ready**, **Blocked**, **Running**, **Completed**.
 
-```
+```text
 From      To         Trigger and conditions
 --------  ---------  --------------------------------------------------------
 Init      Ready      All inputs initialized AND no destination input full
@@ -114,7 +114,7 @@ Notes:
 
 A flow can be in one of two states: **Busy** or **Idle**.
 
-```
+```text
 From   To     Trigger and conditions
 -----  -----  --------------------------------------------------------
 Init   Idle   No functions are ready after initialization
