@@ -21,7 +21,7 @@ path = "src/main.rs"
 flowcore = { path = "../flowcore", version = "0.142.0", features = ["meta_provider", "context", "file_provider"] }
 flowrclib = { package = "flowc", path = "../flowc", version = "0.142.0" }
 clap = "~4"
-iced = { version = "0.14.0", default-features = false, features = ["canvas", "tokio", "wgpu"] }
+iced = { version = "0.14.0", default-features = false, features = ["canvas", "tokio", "wgpu", "wayland", "x11"] }
 simpath = { version = "~2.5", features = ["urls"] }
 url = { version = "2.2", features = ["serde"] }
 serde_json = { version = "1.0", default-features = false }
