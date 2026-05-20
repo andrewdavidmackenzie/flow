@@ -1,5 +1,3 @@
-#![feature(test)]
-
 use std::fs::File;
 use std::io::Write;
 use std::path::PathBuf;
@@ -92,31 +90,3 @@ fn write_bitmap(filename: &PathBuf, pixels: &[u8], bounds: [usize; 2]) {
     encoder.encode(&pixels, bounds[0] as u32, bounds[1] as u32, ColorType::Rgb8).expect("Could not encode bytes as PNG");
 }
 
-#[cfg(test)]
-mod test {
-    extern crate test;
-
-    use test::Bencher;
-
-    use super::*;
-
-    #[bench]
-    fn bench_render_100_by_100(b: &mut Bencher) {
-        let bounds = [100, 100];
-        let upper_left = [-1.20, 0.35 ];
-        let lower_right = [-1.0, 0.20 ];
-        let mut pixels = vec![0; bounds[0] * bounds[1] * 3];
-
-        b.iter(|| render(&mut pixels, bounds, upper_left, lower_right));
-    }
-
-    #[bench]
-    fn bench_render_threaded_1000_by_1000(b: &mut Bencher) {
-        let bounds = [1000, 1000];
-        let upper_left = [-1.20, 0.35 ];
-        let lower_right = [-1.0, 0.20 ];
-        let mut pixels = vec![0; bounds[0] * bounds[1] * 3];
-
-        b.iter(|| render(&mut pixels, bounds, upper_left, lower_right));
-    }
-}
