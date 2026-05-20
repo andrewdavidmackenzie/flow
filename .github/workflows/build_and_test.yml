@@ -39,7 +39,7 @@ jobs:
         uses: actions-rs/toolchain@v1
         with:
           profile: minimal
-          toolchain: stable
+          toolchain: 1.95.0
           override: true
           components: clippy
       - name: Checkout
@@ -59,7 +59,7 @@ jobs:
     strategy:
       matrix:
         os: [ macos-14, ubuntu-24.04, ubuntu-24.04-arm ]
-        rust: [ stable ]
+        rust: [ 1.95.0 ]
 
     steps:
       - name: Checkout
@@ -74,7 +74,7 @@ jobs:
         uses: actions-rs/toolchain@v1
         with:
           profile: minimal
-          toolchain: stable
+          toolchain: 1.95.0
           override: true
           target: wasm32-unknown-unknown
 
