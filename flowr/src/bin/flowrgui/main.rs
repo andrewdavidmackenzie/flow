@@ -103,6 +103,8 @@ pub enum Message {
     SendEof,
     /// toggle to auto-scroll to bottom of STDIO has changed
     StdioAutoScrollTogglerChanged(Id, bool),
+    /// Clear the content of an output tab
+    ClearTab(String),
     /// closing of the Modal was requested
     CloseModal,
 }
@@ -243,7 +245,9 @@ impl FlowrGui {
                 }
             }
             Message::UrlChanged(value) => self.submission_settings.flow_manifest_url = value,
-            Message::TabSelected(_) | Message::StdioAutoScrollTogglerChanged(_, _) => {
+            Message::TabSelected(_)
+            | Message::StdioAutoScrollTogglerChanged(_, _)
+            | Message::ClearTab(_) => {
                 return self.tab_set.update(message);
             }
             Message::CoordinatorSent(coord_msg) => {
@@ -266,6 +270,7 @@ impl FlowrGui {
                         self.send(ClientMessage::Line(line));
                     }
                     self.pending_getline = false;
+                    self.tab_set.stdin_tab.waiting_for_input = false;
                 }
             }
             Message::SendEof => {
@@ -274,6 +279,7 @@ impl FlowrGui {
                     debug!("SendEof: responding to pending GetLine with EOF");
                     self.send(ClientMessage::GetLineEof);
                     self.pending_getline = false;
+                    self.tab_set.stdin_tab.waiting_for_input = false;
                 } else {
                     self.tab_set.stdin_tab.eof_signaled = true;
                 }
@@ -387,7 +393,8 @@ impl FlowrGui {
             "Flow location (relative, or absolute)",
             &self.submission_settings.flow_manifest_url,
         )
-        .on_input(Message::UrlChanged);
+        .on_input(Message::UrlChanged)
+        .on_submit(Message::SubmitFlow);
 
         let args = text_input(
             "Space separated flow arguments",
@@ -715,6 +722,9 @@ impl FlowrGui {
                     println!("{string}");
                 }
                 self.tab_set.stdout_tab.content.push(string);
+                if self.tab_set.active_tab != 0 {
+                    self.tab_set.stdout_tab.unread_count += 1;
+                }
                 self.send(ClientMessage::Ack);
                 if self.tab_set.stdout_tab.auto_scroll {
                     return operation::snap_to(
@@ -728,6 +738,9 @@ impl FlowrGui {
                     eprintln!("{string}");
                 }
                 self.tab_set.stderr_tab.content.push(string);
+                if self.tab_set.active_tab != 1 {
+                    self.tab_set.stderr_tab.unread_count += 1;
+                }
                 self.send(ClientMessage::Ack);
                 if self.tab_set.stderr_tab.auto_scroll {
                     return operation::snap_to(
@@ -789,6 +802,7 @@ impl FlowrGui {
                 } else {
                     debug!("GetLine: buffer empty, waiting for user input");
                     self.pending_getline = true;
+                    self.tab_set.stdin_tab.waiting_for_input = true;
                     self.tab_set.active_tab = 2; // Switch to Stdin tab
                 }
             }
@@ -824,6 +838,9 @@ impl FlowrGui {
                                     .fileio_tab
                                     .content
                                     .push(format!("READ <-- {file_path}"));
+                                if self.tab_set.active_tab != 4 {
+                                    self.tab_set.fileio_tab.unread_count += 1;
+                                }
                                 /*
                                                                if self.tab_set.stdout_tab.auto_scroll {
                                                                    return scrollable::snap_to(
@@ -849,6 +866,9 @@ impl FlowrGui {
                                 .fileio_tab
                                 .content
                                 .push(format!("WRITE --> {filename}"));
+                            if self.tab_set.active_tab != 4 {
+                                self.tab_set.fileio_tab.unread_count += 1;
+                            }
                             /*
                                                            if self.tab_set.stdout_tab.auto_scroll {
                                                                return scrollable::snap_to(
@@ -888,7 +908,9 @@ impl FlowrGui {
                             data,
                         },
                     );
-                    // TODO switch to the images tab when image first written to
+                    if self.tab_set.active_tab != 3 {
+                        self.tab_set.images_tab.new_activity = true;
+                    }
                 }
                 if let Some(ImageReference {
                     width: _,

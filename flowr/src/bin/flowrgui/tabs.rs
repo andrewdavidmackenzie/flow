@@ -30,12 +30,14 @@ impl TabSet {
                 id: Lazy::new(Id::unique).clone(),
                 content: vec![],
                 auto_scroll: true,
+                unread_count: 0,
             },
             stderr_tab: StdOutTab {
                 name: "Stderr".to_owned(),
                 id: Lazy::new(Id::unique).clone(),
                 content: vec![],
                 auto_scroll: true,
+                unread_count: 0,
             },
             stdin_tab: StdInTab::new("Stdin"),
             images_tab: ImageTab::new("Images"),
@@ -44,13 +46,32 @@ impl TabSet {
                 id: Lazy::new(Id::unique).clone(),
                 content: vec![],
                 auto_scroll: true,
+                unread_count: 0,
             },
         }
     }
 
     pub(crate) fn update(&mut self, message: Message) -> Task<Message> {
         match message {
-            Message::TabSelected(tab_index) => self.active_tab = tab_index,
+            Message::TabSelected(tab_index) => {
+                self.active_tab = tab_index;
+                match tab_index {
+                    0 if self.stdout_tab.auto_scroll => self.stdout_tab.unread_count = 0,
+                    1 if self.stderr_tab.auto_scroll => self.stderr_tab.unread_count = 0,
+                    3 => self.images_tab.new_activity = false,
+                    4 if self.fileio_tab.auto_scroll => self.fileio_tab.unread_count = 0,
+                    _ => {}
+                }
+            }
+            Message::ClearTab(ref name) => {
+                if name == &self.stdout_tab.name {
+                    self.stdout_tab.clear();
+                } else if name == &self.stderr_tab.name {
+                    self.stderr_tab.clear();
+                } else if name == &self.fileio_tab.name {
+                    self.fileio_tab.clear();
+                }
+            }
             Message::StdioAutoScrollTogglerChanged(id, value) => {
                 if id == self.stdout_tab.id {
                     self.stdout_tab.auto_scroll = value;
@@ -103,13 +124,18 @@ pub(crate) struct StdOutTab {
     pub id: Id,
     pub content: Vec<String>,
     pub auto_scroll: bool,
+    pub unread_count: usize,
 }
 
 impl Tab for StdOutTab {
     type Message = Message;
 
     fn tab_label(&self) -> TabLabel {
-        TabLabel::Text(self.name.clone())
+        if self.unread_count > 0 {
+            TabLabel::Text(format!("{} ({})", self.name, self.unread_count))
+        } else {
+            TabLabel::Text(self.name.clone())
+        }
     }
 
     fn view(&self) -> Element<'_, Message> {
@@ -127,17 +153,24 @@ impl Tab for StdOutTab {
             .on_toggle(|v| Message::StdioAutoScrollTogglerChanged(self.id.clone(), v))
             .width(Length::Shrink);
 
-        Column::new().push(toggler).push(scrollable).into()
+        let clear_button =
+            Button::new(Text::new("Clear")).on_press(Message::ClearTab(self.name.clone()));
+
+        let toolbar = Row::new().push(toggler).push(clear_button).spacing(10);
+
+        Column::new().push(toolbar).push(scrollable).into()
     }
 
     fn clear(&mut self) {
         self.content.clear();
+        self.unread_count = 0;
     }
 }
 
 pub(crate) struct ImageTab {
     name: String,
     pub images: HashMap<String, ImageReference>,
+    pub new_activity: bool,
 }
 
 impl ImageTab {
@@ -145,6 +178,7 @@ impl ImageTab {
         Self {
             name: name.to_owned(),
             images: HashMap::default(),
+            new_activity: false,
         }
     }
 }
@@ -153,7 +187,11 @@ impl Tab for ImageTab {
     type Message = Message;
 
     fn tab_label(&self) -> TabLabel {
-        TabLabel::Text(self.name.clone())
+        if self.new_activity {
+            TabLabel::Text(format!("{} *", self.name))
+        } else {
+            TabLabel::Text(self.name.clone())
+        }
     }
 
     fn view(&self) -> Element<'_, Self::Message> {
@@ -182,6 +220,7 @@ pub(crate) struct StdInTab {
     pub cursor: usize,
     pub text: String,
     pub eof_signaled: bool,
+    pub waiting_for_input: bool,
 }
 
 impl StdInTab {
@@ -193,6 +232,7 @@ impl StdInTab {
             cursor: 0,
             text: String::new(),
             eof_signaled: false,
+            waiting_for_input: false,
         }
     }
 
@@ -239,7 +279,11 @@ impl Tab for StdInTab {
     type Message = Message;
 
     fn tab_label(&self) -> TabLabel {
-        TabLabel::Text(self.name.clone())
+        if self.waiting_for_input {
+            TabLabel::Text(format!("{} (waiting)", self.name))
+        } else {
+            TabLabel::Text(self.name.clone())
+        }
     }
 
     fn view(&self) -> Element<'_, Self::Message> {
@@ -367,8 +411,90 @@ mod test {
             id: Id::unique(),
             content: vec!["line1".into(), "line2".into()],
             auto_scroll: true,
+            unread_count: 0,
         };
         Tab::clear(&mut tab);
         assert!(tab.content.is_empty());
+    }
+
+    fn tab_label_text(label: TabLabel) -> String {
+        match label {
+            TabLabel::Text(s) => s,
+            _ => panic!("Expected TabLabel::Text"),
+        }
+    }
+
+    #[test]
+    fn stdout_tab_label_no_unread() {
+        let tab = StdOutTab {
+            name: "Stdout".into(),
+            id: Id::unique(),
+            content: vec![],
+            auto_scroll: true,
+            unread_count: 0,
+        };
+        assert_eq!(tab_label_text(tab.tab_label()), "Stdout");
+    }
+
+    #[test]
+    fn stdout_tab_label_with_unread() {
+        let tab = StdOutTab {
+            name: "Stdout".into(),
+            id: Id::unique(),
+            content: vec!["line".into()],
+            auto_scroll: true,
+            unread_count: 3,
+        };
+        assert_eq!(tab_label_text(tab.tab_label()), "Stdout (3)");
+    }
+
+    #[test]
+    fn stdout_clear_resets_unread() {
+        let mut tab = StdOutTab {
+            name: "test".into(),
+            id: Id::unique(),
+            content: vec!["line".into()],
+            auto_scroll: true,
+            unread_count: 5,
+        };
+        Tab::clear(&mut tab);
+        assert!(tab.content.is_empty());
+        assert_eq!(tab.unread_count, 0);
+    }
+
+    #[test]
+    fn image_tab_label_no_activity() {
+        let tab = ImageTab::new("Images");
+        assert_eq!(tab_label_text(tab.tab_label()), "Images");
+    }
+
+    #[test]
+    fn image_tab_label_with_activity() {
+        let mut tab = ImageTab::new("Images");
+        tab.new_activity = true;
+        assert_eq!(tab_label_text(tab.tab_label()), "Images *");
+    }
+
+    #[test]
+    fn stdin_tab_label_not_waiting() {
+        let tab = StdInTab::new("Stdin");
+        assert_eq!(tab_label_text(tab.tab_label()), "Stdin");
+    }
+
+    #[test]
+    fn stdin_tab_label_waiting() {
+        let mut tab = StdInTab::new("Stdin");
+        tab.waiting_for_input = true;
+        assert_eq!(tab_label_text(tab.tab_label()), "Stdin (waiting)");
+    }
+
+    #[test]
+    fn tab_select_resets_unread() {
+        let mut tabs = TabSet::new();
+        tabs.stdout_tab.unread_count = 5;
+        tabs.stderr_tab.unread_count = 3;
+        drop(tabs.update(Message::TabSelected(0)));
+        assert_eq!(tabs.stdout_tab.unread_count, 0);
+        assert_eq!(tabs.stderr_tab.unread_count, 3);
     }
 }
