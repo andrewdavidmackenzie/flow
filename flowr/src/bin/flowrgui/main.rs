@@ -89,6 +89,10 @@ pub enum Message {
     UrlChanged(String),
     /// The arguments to send to the flow when executed have been edited by the UI
     FlowArgsChanged(String),
+    /// The max parallel jobs setting has been edited by the UI
+    MaxJobsChanged(String),
+    /// The UI has requested to submit the flow in debug mode
+    DebugSubmitFlow,
     /// A different tab of stdio has been selected
     TabSelected(usize),
     /// Text has been entered into STDIN text box
@@ -125,9 +129,10 @@ struct SubmissionSettings {
     // TODO make lib search path a UI setting
     flow_manifest_url: String,
     flow_args: String,
+    max_jobs_text: String,
     debug_this_flow: bool,
     display_metrics: bool,
-    parallel_jobs_limit: Option<usize>, // TODO read from settings or UI
+    parallel_jobs_limit: Option<usize>,
 }
 
 /// Settings to use when starting a coordinator server
@@ -224,6 +229,19 @@ impl FlowrGui {
                 self.submitted = true;
             }
             Message::FlowArgsChanged(value) => self.submission_settings.flow_args = value,
+            Message::MaxJobsChanged(value) => {
+                self.submission_settings.parallel_jobs_limit = value.trim().parse::<usize>().ok();
+                self.submission_settings.max_jobs_text = value;
+            }
+            Message::DebugSubmitFlow => {
+                if let CoordinatorState::Connected(sender) = &self.coordinator_state {
+                    let mut settings = self.submission_settings.clone();
+                    settings.debug_this_flow = true;
+                    return Task::perform(Self::submit(sender.clone(), settings), |()| {
+                        Message::Submitted
+                    });
+                }
+            }
             Message::UrlChanged(value) => self.submission_settings.flow_manifest_url = value,
             Message::TabSelected(_) | Message::StdioAutoScrollTogglerChanged(_, _) => {
                 return self.tab_set.update(message);
@@ -379,12 +397,22 @@ impl FlowrGui {
         .on_input(Message::FlowArgsChanged)
         .on_paste(Message::FlowArgsChanged);
 
-        let mut play = Button::new("Play");
-        if matches!(self.coordinator_state, CoordinatorState::Connected(_))
+        let max_jobs = text_input("Max jobs", &self.submission_settings.max_jobs_text)
+            .on_input(Message::MaxJobsChanged)
+            .width(80);
+
+        let can_run = matches!(self.coordinator_state, CoordinatorState::Connected(_))
             && !self.running
-            && !self.submitted
-        {
+            && !self.submitted;
+
+        let mut play = Button::new("Play");
+        if can_run {
             play = play.on_press(Message::SubmitFlow);
+        }
+
+        let mut debug_play = Button::new("Debug");
+        if can_run {
+            debug_play = debug_play.on_press(Message::DebugSubmitFlow);
         }
 
         Row::new()
@@ -392,7 +420,9 @@ impl FlowrGui {
             .align_y(iced::alignment::Vertical::Bottom)
             .push(url)
             .push(args)
+            .push(max_jobs)
             .push(play)
+            .push(debug_play)
     }
 
     fn status_row(&self) -> Row<'_, Message> {
@@ -487,6 +517,7 @@ impl FlowrGui {
             SubmissionSettings {
                 flow_manifest_url,
                 flow_args,
+                max_jobs_text: parallel_jobs_limit.map_or(String::new(), |n| n.to_string()),
                 debug_this_flow,
                 display_metrics: matches.get_flag("metrics"),
                 parallel_jobs_limit,
@@ -899,5 +930,63 @@ mod test {
         let url = FlowrGui::flow_url("test.toml").expect("Could not create url");
         assert_eq!(url.scheme(), "file");
         assert!(url.path().ends_with("/test.toml"));
+    }
+
+    fn test_gui() -> FlowrGui {
+        FlowrGui {
+            submission_settings: SubmissionSettings {
+                flow_manifest_url: String::new(),
+                flow_args: String::new(),
+                max_jobs_text: String::new(),
+                debug_this_flow: false,
+                display_metrics: false,
+                parallel_jobs_limit: None,
+            },
+            coordinator_settings: CoordinatorSettings::ClientOnly(0),
+            ui_settings: UiSettings {
+                auto_start: false,
+                auto_exit: false,
+            },
+            coordinator_state: CoordinatorState::Disconnected("test".into()),
+            tab_set: TabSet::new(),
+            submitted: false,
+            running: false,
+            show_modal: false,
+            modal_content: (String::new(), String::new()),
+            pending_getline: false,
+        }
+    }
+
+    #[test]
+    fn max_jobs_valid_number() {
+        let mut gui = test_gui();
+        drop(gui.update(Message::MaxJobsChanged("4".into())));
+        assert_eq!(gui.submission_settings.parallel_jobs_limit, Some(4));
+        assert_eq!(gui.submission_settings.max_jobs_text, "4");
+    }
+
+    #[test]
+    fn max_jobs_empty_clears() {
+        let mut gui = test_gui();
+        drop(gui.update(Message::MaxJobsChanged("4".into())));
+        drop(gui.update(Message::MaxJobsChanged(String::new())));
+        assert_eq!(gui.submission_settings.parallel_jobs_limit, None);
+        assert_eq!(gui.submission_settings.max_jobs_text, "");
+    }
+
+    #[test]
+    fn max_jobs_invalid_sets_none() {
+        let mut gui = test_gui();
+        drop(gui.update(Message::MaxJobsChanged("abc".into())));
+        assert_eq!(gui.submission_settings.parallel_jobs_limit, None);
+        assert_eq!(gui.submission_settings.max_jobs_text, "abc");
+    }
+
+    #[test]
+    fn debug_submit_without_coordinator_is_noop() {
+        let mut gui = test_gui();
+        assert!(!gui.submission_settings.debug_this_flow);
+        drop(gui.update(Message::DebugSubmitFlow));
+        assert!(!gui.submitted);
     }
 }
