@@ -56,10 +56,10 @@ impl TabSet {
             Message::TabSelected(tab_index) => {
                 self.active_tab = tab_index;
                 match tab_index {
-                    0 => self.stdout_tab.unread_count = 0,
-                    1 => self.stderr_tab.unread_count = 0,
+                    0 if self.stdout_tab.auto_scroll => self.stdout_tab.unread_count = 0,
+                    1 if self.stderr_tab.auto_scroll => self.stderr_tab.unread_count = 0,
                     3 => self.images_tab.new_activity = false,
-                    4 => self.fileio_tab.unread_count = 0,
+                    4 if self.fileio_tab.auto_scroll => self.fileio_tab.unread_count = 0,
                     _ => {}
                 }
             }
