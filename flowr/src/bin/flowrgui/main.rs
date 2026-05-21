@@ -1011,4 +1011,44 @@ mod test {
         drop(gui.update(Message::DebugSubmitFlow));
         assert!(!gui.submitted);
     }
+
+    #[test]
+    fn submit_error_shows_modal() {
+        let mut gui = test_gui();
+        assert!(!gui.show_modal);
+        drop(gui.update(Message::SubmitError("test error".into())));
+        assert!(gui.show_modal);
+        assert_eq!(gui.modal_content.0, "Error");
+        assert_eq!(gui.modal_content.1, "test error");
+    }
+
+    #[test]
+    fn close_modal_hides_it() {
+        let mut gui = test_gui();
+        drop(gui.update(Message::SubmitError("test error".into())));
+        assert!(gui.show_modal);
+        drop(gui.update(Message::CloseModal));
+        assert!(!gui.show_modal);
+    }
+
+    #[test]
+    fn error_method_shows_modal() {
+        let mut gui = test_gui();
+        gui.error("something went wrong");
+        assert!(gui.show_modal);
+        assert_eq!(gui.modal_content.0, "Error");
+        assert_eq!(gui.modal_content.1, "something went wrong");
+    }
+
+    #[test]
+    fn error_modal_renders_with_ok_button() {
+        use iced_test::simulator::simulator;
+
+        let mut gui = test_gui();
+        drop(gui.update(Message::SubmitError("bad flow path".into())));
+        let view = gui.view();
+        let mut ui = simulator(view);
+        let found = ui.find("OK");
+        assert!(found.is_ok(), "OK button should be present in error modal");
+    }
 }

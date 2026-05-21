@@ -1406,6 +1406,7 @@ dependencies = [
  "flowstdlib",
  "iced",
  "iced_aw",
+ "iced_test",
  "image",
  "log",
  "mdns-sd",
