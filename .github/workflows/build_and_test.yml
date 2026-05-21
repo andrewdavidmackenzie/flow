@@ -35,24 +35,19 @@ jobs:
   clippy:
     runs-on: ubuntu-latest
     steps:
-      - name: Install stable toolchain
-        uses: actions-rs/toolchain@v1
-        with:
-          profile: minimal
-          toolchain: 1.95.0
-          override: true
-          components: clippy
       - name: Checkout
         uses: actions/checkout@v4
+      - name: Install stable toolchain
+        uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: 1.95.0
+          components: clippy
       - name: Install system dependencies
         run: sudo apt-get update && sudo apt-get -y install libzmq3-dev libgtk-3-dev
       - name: Cache cargo registry and build
         uses: Swatinem/rust-cache@v2
       - name: run clippy
-        uses: actions-rs/cargo@v1
-        with:
-          command: clippy
-          args: --tests --no-deps --all-features --all-targets -- --warn clippy::pedantic --deny warnings
+        run: cargo clippy --tests --no-deps --all-features --all-targets -- --warn clippy::pedantic --deny warnings
 
   build-and-test:
     runs-on: ${{ matrix.os }}
@@ -72,12 +67,10 @@ jobs:
           echo "CARGO_REGISTRIES_CRATES_IO_PROTOCOL=sparse" >> "$GITHUB_ENV"
 
       - name: Install stable toolchain
-        uses: actions-rs/toolchain@v1
+        uses: dtolnay/rust-toolchain@master
         with:
-          profile: minimal
           toolchain: 1.95.0
-          override: true
-          target: wasm32-unknown-unknown
+          targets: wasm32-unknown-unknown
 
       - name: Cache cargo registry and build
         uses: Swatinem/rust-cache@v2
@@ -121,9 +114,7 @@ jobs:
           echo LLVM_PROFILE_FILE="flow-%p-%m.profraw" >> "$GITHUB_ENV"
 
       - name: build
-        uses: actions-rs/cargo@v1
-        with:
-          command: build
+        run: cargo build
 
       - name: compile flowstdlib to WASM
         run: target/debug/flowc -d -g -O flowstdlib
