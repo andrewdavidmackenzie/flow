@@ -931,4 +931,62 @@ mod test {
         assert_eq!(url.scheme(), "file");
         assert!(url.path().ends_with("/test.toml"));
     }
+
+    fn test_gui() -> FlowrGui {
+        FlowrGui {
+            submission_settings: SubmissionSettings {
+                flow_manifest_url: String::new(),
+                flow_args: String::new(),
+                max_jobs_text: String::new(),
+                debug_this_flow: false,
+                display_metrics: false,
+                parallel_jobs_limit: None,
+            },
+            coordinator_settings: CoordinatorSettings::ClientOnly(0),
+            ui_settings: UiSettings {
+                auto_start: false,
+                auto_exit: false,
+            },
+            coordinator_state: CoordinatorState::Disconnected("test".into()),
+            tab_set: TabSet::new(),
+            submitted: false,
+            running: false,
+            show_modal: false,
+            modal_content: (String::new(), String::new()),
+            pending_getline: false,
+        }
+    }
+
+    #[test]
+    fn max_jobs_valid_number() {
+        let mut gui = test_gui();
+        drop(gui.update(Message::MaxJobsChanged("4".into())));
+        assert_eq!(gui.submission_settings.parallel_jobs_limit, Some(4));
+        assert_eq!(gui.submission_settings.max_jobs_text, "4");
+    }
+
+    #[test]
+    fn max_jobs_empty_clears() {
+        let mut gui = test_gui();
+        drop(gui.update(Message::MaxJobsChanged("4".into())));
+        drop(gui.update(Message::MaxJobsChanged(String::new())));
+        assert_eq!(gui.submission_settings.parallel_jobs_limit, None);
+        assert_eq!(gui.submission_settings.max_jobs_text, "");
+    }
+
+    #[test]
+    fn max_jobs_invalid_sets_none() {
+        let mut gui = test_gui();
+        drop(gui.update(Message::MaxJobsChanged("abc".into())));
+        assert_eq!(gui.submission_settings.parallel_jobs_limit, None);
+        assert_eq!(gui.submission_settings.max_jobs_text, "abc");
+    }
+
+    #[test]
+    fn debug_submit_without_coordinator_is_noop() {
+        let mut gui = test_gui();
+        assert!(!gui.submission_settings.debug_this_flow);
+        drop(gui.update(Message::DebugSubmitFlow));
+        assert!(!gui.submitted);
+    }
 }
