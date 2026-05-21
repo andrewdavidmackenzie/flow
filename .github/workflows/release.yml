@@ -74,17 +74,16 @@ jobs:
     env:
       GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     steps:
-      - uses: actions-rs/toolchain@v1
+      - uses: dtolnay/rust-toolchain@master
         with:
           toolchain: 1.95.0
+          targets: wasm32-unknown-unknown
       - name: InstallLinuxDependencies
         if: matrix.os == 'ubuntu-latest'
         run: sudo apt-get update && sudo apt-get -y install libzmq3-dev binaryen
       - name: InstallMacDependencies
         if: matrix.os == 'macos-latest'
         run: brew install zmq binaryen
-      - name: AddWasmTarget
-        run: rustup target add wasm32-unknown-unknown
       - name: InstallWasmTools
         run: cargo install wasm-gc wasm-snip
       - uses: actions/checkout@v3
