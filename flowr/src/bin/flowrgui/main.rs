@@ -83,8 +83,10 @@ pub enum Message {
     CoordinatorSent(CoordinatorMessage),
     /// The UI has requested to submit the flow to the Coordinator for execution
     SubmitFlow, // TODO put SubmissionSettings into this variant?
-    /// ddd
+    /// The flow was successfully submitted to the Coordinator
     Submitted,
+    /// An error occurred during flow submission
+    SubmitError(String),
     /// The Url of the flow to run has been edited by the UI
     UrlChanged(String),
     /// The arguments to send to the flow when executed have been edited by the UI
@@ -222,13 +224,20 @@ impl FlowrGui {
                 if let CoordinatorState::Connected(sender) = &self.coordinator_state {
                     return Task::perform(
                         Self::submit(sender.clone(), self.submission_settings.clone()),
-                        |()| Message::Submitted,
+                        |result| match result {
+                            Ok(()) => Message::Submitted,
+                            Err(msg) => Message::SubmitError(msg),
+                        },
                     );
                 }
             }
             Message::Submitted => {
                 self.tab_set.clear();
                 self.submitted = true;
+            }
+            Message::SubmitError(msg) => {
+                self.show_modal = true;
+                self.modal_content = ("Error".into(), msg);
             }
             Message::FlowArgsChanged(value) => self.submission_settings.flow_args = value,
             Message::MaxJobsChanged(value) => {
@@ -239,8 +248,11 @@ impl FlowrGui {
                 if let CoordinatorState::Connected(sender) = &self.coordinator_state {
                     let mut settings = self.submission_settings.clone();
                     settings.debug_this_flow = true;
-                    return Task::perform(Self::submit(sender.clone(), settings), |()| {
-                        Message::Submitted
+                    return Task::perform(Self::submit(sender.clone(), settings), |result| {
+                        match result {
+                            Ok(()) => Message::Submitted,
+                            Err(msg) => Message::SubmitError(msg),
+                        }
                     });
                 }
             }
@@ -337,56 +349,38 @@ impl FlowrGui {
     async fn submit(
         sender: tokio::sync::mpsc::Sender<ClientMessage>,
         settings: SubmissionSettings,
-    ) {
-        match Self::flow_url(&settings.flow_manifest_url) {
-            Ok(url) => {
-                let provider =
-                    &MetaProvider::new(Simpath::new(""), PathBuf::default()) as &dyn Provider;
+    ) -> Result<(), String> {
+        let url = Self::flow_url(&settings.flow_manifest_url)
+            .map_err(|e| format!("Invalid flow URL '{}': {e}", settings.flow_manifest_url))?;
 
-                match FlowManifest::load(provider, &url) {
-                    Ok((flow_manifest, _)) => {
-                        let submission = Submission::new(
-                            flow_manifest,
-                            settings.parallel_jobs_limit,
-                            None, // No timeout waiting for job results
-                            settings.debug_this_flow,
-                        );
+        let provider = &MetaProvider::new(Simpath::new(""), PathBuf::default()) as &dyn Provider;
 
-                        info!("Sending submission to Coordinator");
-                        #[allow(clippy::single_match_else)]
-                        #[allow(clippy::match_same_arms)]
-                        match sender
-                            .send(ClientMessage::ClientSubmission(submission))
-                            .await
-                        {
-                            Ok(()) => {
-                                // TODO report info that submitted
-                            }
-                            Err(_) => {
-                                // TODO report submit error
-                            }
-                        }
-                    }
-                    Err(_e) => {
-                        // TODO report manifest loading error
-                    }
-                }
-            }
-            Err(_e) => {
-                // TODO report Invalid Url error
-            }
-        }
+        let (flow_manifest, _) = FlowManifest::load(provider, &url)
+            .map_err(|e| format!("Could not load flow manifest: {e}"))?;
+
+        let submission = Submission::new(
+            flow_manifest,
+            settings.parallel_jobs_limit,
+            None,
+            settings.debug_this_flow,
+        );
+
+        info!("Sending submission to Coordinator");
+        sender
+            .send(ClientMessage::ClientSubmission(submission))
+            .await
+            .map_err(|e| format!("Could not submit flow to coordinator: {e}"))
     }
 
-    // report a new error
-    #[allow(clippy::unused_self)]
-    // TODO implement some display of this info on the UI
-    fn error(&mut self, _msg: &str) {}
+    fn error(&mut self, msg: &str) {
+        self.show_modal = true;
+        self.modal_content = ("Error".into(), msg.to_string());
+    }
 
-    // report a new info message
-    // TODO implement some display of this info on the UI
-    #[allow(clippy::unused_self)]
-    fn info(&mut self, _msg: &str) {}
+    fn info(&mut self, msg: &str) {
+        self.show_modal = true;
+        self.modal_content = ("Info".into(), msg.to_string());
+    }
 
     fn command_row(&self) -> Row<'_, Message> {
         let url = text_input(
@@ -849,12 +843,18 @@ impl FlowrGui {
                                 */
                                 ClientMessage::FileContents(file_path, buffer)
                             }
-                            Err(_) => ClientMessage::Error(format!(
-                                "Could not read content from '{file_path:?}'"
-                            )),
+                            Err(e) => {
+                                let msg = format!("Could not read content from '{file_path}': {e}");
+                                self.error(&msg);
+                                ClientMessage::Error(msg)
+                            }
                         }
                     }
-                    Err(_) => ClientMessage::Error(format!("Could not open file '{file_path:?}'")),
+                    Err(e) => {
+                        let msg = format!("Could not open file '{file_path}': {e}");
+                        self.error(&msg);
+                        ClientMessage::Error(msg)
+                    }
                 };
                 self.send(msg);
             }
@@ -880,13 +880,13 @@ impl FlowrGui {
                         }
                         Err(e) => {
                             let msg = format!("Error writing to file: '{filename}': '{e}'");
-                            self.error("{msg}");
+                            self.error(&msg);
                             ClientMessage::Error(msg)
                         }
                     },
                     Err(e) => {
                         let msg = format!("Error creating file: '{filename}': '{e}'");
-                        self.error("{msg}");
+                        self.error(&msg);
                         ClientMessage::Error(msg)
                     }
                 };
@@ -1010,5 +1010,45 @@ mod test {
         assert!(!gui.submission_settings.debug_this_flow);
         drop(gui.update(Message::DebugSubmitFlow));
         assert!(!gui.submitted);
+    }
+
+    #[test]
+    fn submit_error_shows_modal() {
+        let mut gui = test_gui();
+        assert!(!gui.show_modal);
+        drop(gui.update(Message::SubmitError("test error".into())));
+        assert!(gui.show_modal);
+        assert_eq!(gui.modal_content.0, "Error");
+        assert_eq!(gui.modal_content.1, "test error");
+    }
+
+    #[test]
+    fn close_modal_hides_it() {
+        let mut gui = test_gui();
+        drop(gui.update(Message::SubmitError("test error".into())));
+        assert!(gui.show_modal);
+        drop(gui.update(Message::CloseModal));
+        assert!(!gui.show_modal);
+    }
+
+    #[test]
+    fn error_method_shows_modal() {
+        let mut gui = test_gui();
+        gui.error("something went wrong");
+        assert!(gui.show_modal);
+        assert_eq!(gui.modal_content.0, "Error");
+        assert_eq!(gui.modal_content.1, "something went wrong");
+    }
+
+    #[test]
+    fn error_modal_renders_with_ok_button() {
+        use iced_test::simulator::simulator;
+
+        let mut gui = test_gui();
+        drop(gui.update(Message::SubmitError("bad flow path".into())));
+        let view = gui.view();
+        let mut ui = simulator(view);
+        let found = ui.find("OK");
+        assert!(found.is_ok(), "OK button should be present in error modal");
     }
 }
