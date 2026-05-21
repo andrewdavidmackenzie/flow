@@ -6,11 +6,10 @@ use std::ops::Add;
 use std::path::Path;
 use std::process::Command;
 
+use globwalk::GlobWalkerBuilder;
 use log::{debug, info};
 use serde_json::Value;
 use simpath::{FileType, FoundType, Simpath};
-use wax::walk::Entry;
-use wax::Glob;
 
 use flowcore::model::connection::Connection;
 use flowcore::model::flow_definition::FlowDefinition;
@@ -81,8 +80,10 @@ pub fn dump_flow(flow: &FlowDefinition, output_dir: &Path, provider: &dyn Provid
 pub fn generate_svgs(root_dir: &Path, delete_dots: bool) -> Result<()> {
     if let Ok(FoundType::File(dot)) = Simpath::new("PATH").find_type("dot", FileType::File) {
         info!("\n=== Dumper: Generating .dot.svg files from .dot files, using 'dot' command from $PATH");
-        let glob = Glob::new("**/*.dot").map_err(|_| "Globbing error")?;
-        for entry in glob.walk(root_dir).flatten() {
+        let walker = GlobWalkerBuilder::from_patterns(root_dir, &["**/*.dot"])
+            .build()
+            .map_err(|_| "Globbing error")?;
+        for entry in walker.flatten() {
             let path = entry.path();
             let path_name = path.to_string_lossy();
             let mut output_file = path.to_path_buf();

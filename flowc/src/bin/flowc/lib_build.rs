@@ -5,11 +5,10 @@ use std::path::PathBuf;
 use std::sync::Arc;
 
 use colored::Colorize;
+use globwalk::GlobWalkerBuilder;
 use log::{debug, info};
 use simpath::Simpath;
 use url::Url;
-use wax::walk::Entry;
-use wax::Glob;
 
 use flowcore::meta_provider::MetaProvider;
 use flowcore::model::lib_manifest::LibraryManifest;
@@ -138,8 +137,10 @@ fn prepare_lib_workspace(lib_root_path: &Path) -> Result<()> {
     // copy all function.toml files to Cargo.toml files in the same directory so the
     // workspace members references from lib.toml can be found
 
-    let glob = Glob::new("**/function.toml").map_err(|_| "Globbing error")?;
-    for entry in glob.walk(lib_src_path).flatten() {
+    let walker = GlobWalkerBuilder::from_patterns(lib_src_path, &["**/function.toml"])
+        .build()
+        .map_err(|_| "Globbing error")?;
+    for entry in walker.flatten() {
         let mut cargo_toml = entry.path().to_path_buf();
         cargo_toml.set_file_name("Cargo.toml");
         fs::copy(entry.path(), cargo_toml)?;
@@ -152,8 +153,10 @@ fn prepare_lib_workspace(lib_root_path: &Path) -> Result<()> {
 // as these will prevent the directory containing them from being included in the crate when
 // we attempt to publish it
 fn teardown_lib_workspace(lib_root_path: &PathBuf) -> Result<()> {
-    let glob = Glob::new("src/**/Cargo.toml").map_err(|_| "Globbing error")?;
-    for entry in glob.walk(lib_root_path).flatten() {
+    let walker = GlobWalkerBuilder::from_patterns(lib_root_path, &["src/**/Cargo.toml"])
+        .build()
+        .map_err(|_| "Globbing error")?;
+    for entry in walker.flatten() {
         fs::remove_file(entry.path())?;
     }
 
@@ -251,8 +254,10 @@ fn compile_functions(
         lib_root_path.display(),
     );
 
-    let glob = Glob::new("**/*.toml").map_err(|_| "Globbing error")?;
-    for entry in glob.walk(lib_root_path) {
+    let walker = GlobWalkerBuilder::from_patterns(lib_root_path, &["**/*.toml"])
+        .build()
+        .map_err(|_| "Globbing error")?;
+    for entry in walker {
         match &entry {
             Ok(walk_entry) => {
                 let toml_path = walk_entry.path();
@@ -360,8 +365,10 @@ fn copy_definitions(root_path: &PathBuf, output_dir: &Path) -> Result<()> {
         root_path.display(),
     );
 
-    let glob = Glob::new("**/*.toml").map_err(|_| "Globbing error")?;
-    for entry in glob.walk(root_path) {
+    let walker = GlobWalkerBuilder::from_patterns(root_path, &["**/*.toml"])
+        .build()
+        .map_err(|_| "Globbing error")?;
+    for entry in walker {
         match &entry {
             Ok(walk_entry) => {
                 let toml_path = walk_entry.path();
@@ -407,8 +414,10 @@ fn compile_flows(
         lib_root_path.display(),
     );
 
-    let glob = Glob::new("**/*.toml").map_err(|_| "Globbing error")?;
-    for entry in glob.walk(lib_root_path) {
+    let walker = GlobWalkerBuilder::from_patterns(lib_root_path, &["**/*.toml"])
+        .build()
+        .map_err(|_| "Globbing error")?;
+    for entry in walker {
         match &entry {
             Ok(walk_entry) => {
                 if walk_entry.path().file_name() == Some(OsStr::new("function.toml"))
@@ -493,8 +502,10 @@ fn copy_docs(lib_root_path: &PathBuf, output_dir: &Path) -> Result<i32> {
         lib_root_path.display(),
     );
 
-    let glob = Glob::new("**/*.md").map_err(|_| "Globbing error")?;
-    for entry in glob.walk(lib_root_path) {
+    let walker = GlobWalkerBuilder::from_patterns(lib_root_path, &["**/*.md"])
+        .build()
+        .map_err(|_| "Globbing error")?;
+    for entry in walker {
         match &entry {
             Ok(walk_entry) => {
                 let md_path = walk_entry.path();

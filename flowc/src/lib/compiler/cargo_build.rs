@@ -38,7 +38,7 @@ fn cargo_test(manifest_path: &Path) -> Result<()> {
     let command = "cargo";
 
     let manifest_arg = format!("--manifest-path={}", manifest_path.display());
-    let test_args = vec!["+nightly", "test", &manifest_arg];
+    let test_args = vec!["test", &manifest_arg];
 
     println!(
         "   {} {} WASM Project",
@@ -84,7 +84,7 @@ fn cargo_build(
         implementation_source_path.display()
     );
 
-    let mut command_args = vec!["+nightly", "build"];
+    let mut command_args = vec!["build"];
 
     if release_build {
         command_args.push("--release");
