@@ -230,7 +230,7 @@ impl FlowrGui {
             }
             Message::FlowArgsChanged(value) => self.submission_settings.flow_args = value,
             Message::MaxJobsChanged(value) => {
-                self.submission_settings.parallel_jobs_limit = value.parse::<usize>().ok();
+                self.submission_settings.parallel_jobs_limit = value.trim().parse::<usize>().ok();
                 self.submission_settings.max_jobs_text = value;
             }
             Message::DebugSubmitFlow => {
