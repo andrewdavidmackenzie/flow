@@ -122,6 +122,12 @@ impl<'a> Coordinator<'a> {
 
             'jobs: loop {
                 trace!("{state}");
+
+                #[cfg(feature = "submission")]
+                if self.submission_handler.should_stop()? {
+                    break 'flow_execution;
+                }
+
                 #[cfg(feature = "debugger")]
                 if state.submission.debug_enabled
                     && self.submission_handler.should_enter_debugger()?

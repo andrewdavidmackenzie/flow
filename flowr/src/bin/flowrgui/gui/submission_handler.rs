@@ -60,6 +60,21 @@ impl SubmissionHandler for CLISubmissionHandler {
         }
     }
 
+    fn should_stop(&mut self) -> Result<bool> {
+        let msg = self
+            .coordinator_connection
+            .lock()
+            .map_err(|_| "Could not lock coordinator connection")?
+            .receive(DONT_WAIT);
+        match msg {
+            Ok(ClientMessage::StopFlow) => {
+                debug!("Got StopFlow message");
+                Ok(true)
+            }
+            _ => Ok(false),
+        }
+    }
+
     fn flow_execution_ended(&mut self, state: &RunState, metrics: Metrics) -> Result<()> {
         self.coordinator_connection
             .lock()
