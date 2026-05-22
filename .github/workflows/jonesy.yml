@@ -29,5 +29,5 @@ jobs:
         with:
           working-directory: flowr
           binary: flowrgui
-          extra-args: '--config ../jonesy.toml'
+          extra-args: '--config ${{ github.workspace }}/jonesy.toml'
           fail-on-panic: 'true'
