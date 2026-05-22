@@ -1,3 +1,5 @@
+#![deny(clippy::unwrap_used, clippy::expect_used)]
+
 //! `flowrgui` is a GUI flow runner for running `flow` programs.
 //!
 //! It reads a compiled [`FlowManifest`][flowcore::model::flow_manifest::FlowManifest] produced by a

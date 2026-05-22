@@ -62,6 +62,7 @@ impl DebugClient {
         DebugClient {
             connection,
             override_args,
+            #[allow(clippy::expect_used)]
             editor: DefaultEditor::new().expect("Could not create Editor"),
             last_command: String::new(),
         }
