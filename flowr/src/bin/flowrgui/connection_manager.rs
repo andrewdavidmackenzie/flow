@@ -219,8 +219,11 @@ async fn handle_idle(
             )));
         })?;
         *running = true;
+        Ok(())
+    } else {
+        error!("App channel closed");
+        Err(())
     }
-    Ok(())
 }
 
 // Start a coordinator server in a background thread, then discover it and return the address
