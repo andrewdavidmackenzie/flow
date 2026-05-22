@@ -943,7 +943,12 @@ impl FlowrGui {
                 trace!("StderrEof received");
                 self.send(ClientMessage::Ack);
             }
-            _ => {}
+            CoordinatorMessage::Disconnected(reason) => {
+                self.coordinator_state = crate::CoordinatorState::Disconnected(reason.clone());
+                self.running = false;
+                self.error(&reason);
+            }
+            CoordinatorMessage::Invalid => {}
         }
         Task::none()
     }
