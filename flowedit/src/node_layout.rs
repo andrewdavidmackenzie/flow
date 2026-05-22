@@ -26,8 +26,8 @@ pub(crate) const DEFAULT_WIDTH: f32 = 180.0;
 pub(crate) const DEFAULT_HEIGHT: f32 = 120.0;
 /// Horizontal spacing between auto-laid-out nodes
 const GRID_SPACING_X: f32 = 250.0;
-/// Vertical spacing between auto-laid-out nodes
-const GRID_SPACING_Y: f32 = 170.0;
+/// Minimum vertical gap between auto-laid-out nodes
+const NODE_GAP_Y: f32 = 30.0;
 /// Starting X offset for auto-layout
 const GRID_ORIGIN_X: f32 = 50.0;
 /// Starting Y offset for auto-layout
@@ -334,6 +334,7 @@ impl<'a> NodeLayout<'a> {
 pub(crate) fn compute_topological_layout(
     process_refs: &[ProcessReference],
     connections: &[Connection],
+    node_heights: &HashMap<String, f32>,
 ) -> HashMap<String, (f32, f32)> {
     // Build alias list
     let aliases: Vec<String> = process_refs
@@ -415,16 +416,16 @@ pub(crate) fn compute_topological_layout(
         columns.entry(col).or_default().push(alias.clone());
     }
 
-    // Compute positions: spread columns horizontally, nodes vertically within each column
+    // Compute positions: spread columns horizontally, stack nodes vertically
+    // using actual heights plus a gap
     let mut positions = HashMap::new();
     for (col, col_nodes) in &columns {
         let x = GRID_ORIGIN_X + *col as f32 * GRID_SPACING_X;
-        let total_height = col_nodes.len() as f32 * GRID_SPACING_Y;
-        let start_y = GRID_ORIGIN_Y + (GRID_SPACING_Y - total_height) / 2.0;
-
-        for (row, alias) in col_nodes.iter().enumerate() {
-            let y = start_y.max(GRID_ORIGIN_Y) + row as f32 * GRID_SPACING_Y;
+        let mut y = GRID_ORIGIN_Y;
+        for alias in col_nodes {
             positions.insert(alias.clone(), (x, y));
+            let h = node_heights.get(alias).copied().unwrap_or(DEFAULT_HEIGHT);
+            y += h + NODE_GAP_Y;
         }
     }
 

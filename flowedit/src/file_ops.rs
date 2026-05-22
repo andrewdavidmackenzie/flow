@@ -325,6 +325,7 @@ pub(crate) fn next_node_position(
 /// Uses topological layout based on connections to determine column placement.
 pub(crate) fn assign_default_positions(flow: &mut FlowDefinition) {
     use crate::node_layout::compute_topological_layout;
+    use crate::node_layout::NodeLayout;
 
     let needs_layout = flow
         .process_refs
@@ -334,8 +335,25 @@ pub(crate) fn assign_default_positions(flow: &mut FlowDefinition) {
         return;
     }
 
+    // Build a height map from resolved processes so layout can avoid overlaps
+    let mut node_heights = std::collections::HashMap::new();
+    for pref in &flow.process_refs {
+        let alias = if pref.alias.is_empty() {
+            derive_short_name(&pref.source)
+        } else {
+            pref.alias.clone()
+        };
+        let process = flow.subprocesses.get(&alias);
+        let node = NodeLayout {
+            process_ref: pref,
+            process,
+        };
+        node_heights.insert(alias, node.height());
+    }
+
     // Compute topology-based default positions, then assign to nodes without saved positions.
-    let topo_positions = compute_topological_layout(&flow.process_refs, &flow.connections);
+    let topo_positions =
+        compute_topological_layout(&flow.process_refs, &flow.connections, &node_heights);
     for pref in &mut flow.process_refs {
         let alias = if pref.alias.is_empty() {
             derive_short_name(&pref.source)
