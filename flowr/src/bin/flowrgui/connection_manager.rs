@@ -55,15 +55,16 @@ pub fn take_stop_request() -> bool {
 
 // Creates an asynchronous worker that sends messages back and forth between the App and
 // the Coordinator
-#[allow(clippy::unwrap_used)]
 pub fn subscribe(coordinator_settings: CoordinatorSettings) -> Subscription<CoordinatorMessage> {
     COORDINATOR_SETTINGS.get_or_init(|| coordinator_settings);
     Subscription::run(coordinator_stream)
 }
 
-#[allow(clippy::unwrap_used)]
 fn coordinator_stream() -> impl iced::futures::Stream<Item = CoordinatorMessage> {
-    let settings = COORDINATOR_SETTINGS.get().unwrap().clone();
+    let settings = COORDINATOR_SETTINGS
+        .get()
+        .expect("Coordinator settings must be initialized before subscribing")
+        .clone();
     iced::stream::channel(
         100,
         move |mut app_sender: iced::futures::channel::mpsc::Sender<CoordinatorMessage>| async move {
@@ -75,69 +76,151 @@ fn coordinator_stream() -> impl iced::futures::Stream<Item = CoordinatorMessage>
             let mut running = false;
             loop {
                 match state {
-                    CoordinatorState::Init(settings) => {
-                        start_server(settings).unwrap(); // TODO
-                        state = CoordinatorState::Discovery;
-                    }
+                    CoordinatorState::Init(settings) => match start_server(settings) {
+                        Ok(()) => state = CoordinatorState::Discovery,
+                        Err(e) => {
+                            let _ = app_sender
+                                .send(CoordinatorMessage::Disconnected(format!(
+                                    "Could not start coordinator server: {e}"
+                                )))
+                                .await;
+                            break;
+                        }
+                    },
 
                     CoordinatorState::Discovery => {
-                        let address = discover_service(COORDINATOR_SERVICE_NAME).unwrap(); // TODO
-                        state = CoordinatorState::Discovered(address);
+                        match discover_service(COORDINATOR_SERVICE_NAME) {
+                            Ok(address) => state = CoordinatorState::Discovered(address),
+                            Err(e) => {
+                                let _ = app_sender
+                                    .send(CoordinatorMessage::Disconnected(format!(
+                                        "Could not discover coordinator: {e}"
+                                    )))
+                                    .await;
+                                break;
+                            }
+                        }
                     }
 
                     CoordinatorState::Discovered(address) => {
-                        let connection = ClientConnection::new(&address).unwrap(); // TODO
+                        match ClientConnection::new(&address) {
+                            Ok(connection) => {
+                                let (app_side_sender, app_receiver) =
+                                    tokio::sync::mpsc::channel(100);
 
-                        // Create channel to get messages from the app
-                        let (app_side_sender, app_receiver) = tokio::sync::mpsc::channel(100);
+                                if app_sender
+                                    .send(CoordinatorMessage::Connected(app_side_sender))
+                                    .await
+                                    .is_err()
+                                {
+                                    error!("Could not send Connected message to app");
+                                    break;
+                                }
 
-                        // Send the Sender to the App in a Message, for App to use to send us messages
-                        let _ = app_sender
-                            .send(CoordinatorMessage::Connected(app_side_sender))
-                            .await;
-
-                        state = CoordinatorState::Connected(
-                            app_receiver,
-                            Arc::new(Mutex::new(connection)),
-                        );
+                                state = CoordinatorState::Connected(
+                                    app_receiver,
+                                    Arc::new(Mutex::new(connection)),
+                                );
+                            }
+                            Err(e) => {
+                                let _ = app_sender
+                                    .send(CoordinatorMessage::Disconnected(format!(
+                                        "Could not connect to coordinator: {e}"
+                                    )))
+                                    .await;
+                                break;
+                            }
+                        }
                     }
 
                     CoordinatorState::Connected(ref mut app_receiver, ref connection) => {
-                        if running {
-                            // read the message back from the Coordinator
-                            let coordinator_message: CoordinatorMessage =
-                                connection.lock().unwrap().receive().unwrap(); // TODO
-
-                            // Forward the message to the app
-                            let _ = app_sender.send(coordinator_message.clone()).await;
-
-                            // If that was end of flow, there will be no response from app
-                            if matches!(&coordinator_message, &CoordinatorMessage::FlowEnd(_)) {
-                                running = false;
-                            } else {
-                                // read the message back from the app and send it to the Coordinator
-                                #[allow(clippy::single_match_else)]
-                                match app_receiver.recv().await {
-                                    Some(client_message) => {
-                                        connection.lock().unwrap().send(client_message).unwrap();
-                                    }
-                                    None => error!("Error receiving from app"), // TODO
-                                }
-                            }
-
-                            // TODO handle coordinator exit, disconnection or error
+                        let result = if running {
+                            handle_running(connection, &mut app_sender, app_receiver, &mut running)
+                                .await
                         } else {
-                            // read the Submit message from the app and send it to the coordinator
-                            if let Some(client_message) = app_receiver.recv().await {
-                                connection.lock().unwrap().send(client_message).unwrap();
-                                running = true;
-                            }
+                            handle_idle(connection, &mut app_sender, app_receiver, &mut running)
+                                .await
+                        };
+                        if result.is_err() {
+                            break;
                         }
                     }
                 }
             }
         },
     )
+}
+
+fn lock_and_receive(
+    connection: &Arc<Mutex<ClientConnection>>,
+) -> std::result::Result<CoordinatorMessage, String> {
+    connection
+        .lock()
+        .map_err(|e| format!("Lock error: {e}"))
+        .and_then(|conn| conn.receive().map_err(|e| format!("{e}")))
+}
+
+fn lock_and_send(
+    connection: &Arc<Mutex<ClientConnection>>,
+    msg: ClientMessage,
+) -> std::result::Result<(), String> {
+    connection
+        .lock()
+        .map_err(|e| format!("Lock error: {e}"))
+        .and_then(|conn| conn.send(msg).map_err(|e| format!("{e}")))
+}
+
+async fn handle_running(
+    connection: &Arc<Mutex<ClientConnection>>,
+    app_sender: &mut iced::futures::channel::mpsc::Sender<CoordinatorMessage>,
+    app_receiver: &mut Receiver<ClientMessage>,
+    running: &mut bool,
+) -> std::result::Result<(), ()> {
+    let coordinator_message = lock_and_receive(connection).map_err(|e| {
+        let _ = app_sender.try_send(CoordinatorMessage::Disconnected(format!(
+            "Lost connection to coordinator: {e}"
+        )));
+    })?;
+
+    let is_flow_end = matches!(&coordinator_message, &CoordinatorMessage::FlowEnd(_));
+
+    if app_sender.send(coordinator_message).await.is_err() {
+        error!("Could not forward coordinator message to app");
+        return Err(());
+    }
+
+    if is_flow_end {
+        *running = false;
+        return Ok(());
+    }
+
+    if let Some(client_message) = app_receiver.recv().await {
+        lock_and_send(connection, client_message).map_err(|e| {
+            let _ = app_sender.try_send(CoordinatorMessage::Disconnected(format!(
+                "Lost connection to coordinator: {e}"
+            )));
+        })
+    } else {
+        error!("App channel closed while running");
+        Err(())
+    }
+}
+
+async fn handle_idle(
+    connection: &Arc<Mutex<ClientConnection>>,
+    app_sender: &mut iced::futures::channel::mpsc::Sender<CoordinatorMessage>,
+    app_receiver: &mut Receiver<ClientMessage>,
+    running: &mut bool,
+) -> std::result::Result<(), ()> {
+    if let Some(client_message) = app_receiver.recv().await {
+        lock_and_send(connection, client_message).map_err(|e| {
+            let _ = app_sender.try_send(CoordinatorMessage::Disconnected(format!(
+                "Could not submit flow: {e}"
+            )));
+        })?;
+        *running = true;
+    }
+    Ok(())
 }
 
 // Start a coordinator server in a background thread, then discover it and return the address
@@ -154,12 +237,14 @@ fn start_server(coordinator_settings: ServerSettings) -> Result<()> {
 
     info!("Starting coordinator in background thread");
     thread::spawn(move || {
-        let _ = coordinator(
+        if let Err(e) = coordinator(
             coordinator_settings,
             coordinator_connection,
             debug_connection,
             true,
-        );
+        ) {
+            error!("Coordinator thread exited with error: {e}");
+        }
     });
 
     Ok(())
