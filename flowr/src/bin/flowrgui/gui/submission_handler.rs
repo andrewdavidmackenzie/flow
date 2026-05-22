@@ -8,6 +8,7 @@ use flowrlib::run_state::RunState;
 use flowrlib::submission_handler::SubmissionHandler;
 use log::{debug, error, info, trace};
 
+use crate::connection_manager;
 use crate::gui::client_message::ClientMessage;
 use crate::gui::coordinator_connection::{DONT_WAIT, WAIT};
 use crate::gui::coordinator_message::CoordinatorMessage;
@@ -61,17 +62,11 @@ impl SubmissionHandler for CLISubmissionHandler {
     }
 
     fn should_stop(&mut self) -> Result<bool> {
-        let msg = self
-            .coordinator_connection
-            .lock()
-            .map_err(|_| "Could not lock coordinator connection")?
-            .receive(DONT_WAIT);
-        match msg {
-            Ok(ClientMessage::StopFlow) => {
-                debug!("Got StopFlow message");
-                Ok(true)
-            }
-            _ => Ok(false),
+        if connection_manager::take_stop_request() {
+            debug!("Stop requested by user");
+            Ok(true)
+        } else {
+            Ok(false)
         }
     }
 

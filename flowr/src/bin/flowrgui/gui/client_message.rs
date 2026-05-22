@@ -30,8 +30,6 @@ pub enum ClientMessage {
     GetStdinEof,
     /// EOF was detected on input reading Stdin using Readline
     GetLineEof,
-    /// Request to stop the currently running flow
-    StopFlow,
     /// Invalid - used when deserialization goes wrong
     Invalid,
     /// Contents read from a file
@@ -58,7 +56,6 @@ impl fmt::Display for ClientMessage {
                 ClientMessage::ClientExiting(_) => "ClientExiting",
                 ClientMessage::ClientSubmission(_) => "ClientSubmission",
                 ClientMessage::EnterDebugger => "EnterDebugger",
-                ClientMessage::StopFlow => "StopFlow",
                 ClientMessage::Invalid => "Invalid",
                 ClientMessage::FileContents(_, _) => "FileContents",
             }

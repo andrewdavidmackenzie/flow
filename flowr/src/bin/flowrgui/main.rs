@@ -242,15 +242,7 @@ impl FlowrGui {
                 self.modal_content = ("Error".into(), msg);
             }
             Message::StopFlow => {
-                if let CoordinatorState::Connected(sender) = &self.coordinator_state {
-                    let sender = sender.clone();
-                    return Task::perform(
-                        async move {
-                            let _ = sender.send(ClientMessage::StopFlow).await;
-                        },
-                        |()| Message::Submitted, // reuse Submitted to reset UI state
-                    );
-                }
+                connection_manager::request_stop();
             }
             Message::FlowArgsChanged(value) => self.submission_settings.flow_args = value,
             Message::MaxJobsChanged(value) => {
