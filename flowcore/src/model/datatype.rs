@@ -368,6 +368,7 @@ impl DataType {
 }
 
 #[cfg(test)]
+#[allow(clippy::unwrap_used, clippy::expect_used)]
 mod test {
     use crate::model::datatype::{ARRAY_TYPE, GENERIC_TYPE, NUMBER_TYPE, OBJECT_TYPE, STRING_TYPE};
     use crate::model::route::Route;

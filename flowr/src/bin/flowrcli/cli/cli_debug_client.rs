@@ -253,9 +253,7 @@ impl CliDebugClient {
             "h" | "?" | "help" => {
                 // only command that doesn't send a message to debugger
                 Self::help();
-                self.editor
-                    .add_history_entry(command)
-                    .expect("Could not add history line");
+                let _ = self.editor.add_history_entry(command);
                 None
             }
             "i" | "inspect" => Self::parse_inspect_spec(params),
@@ -415,6 +413,7 @@ impl CliDebugClient {
 }
 
 #[cfg(test)]
+#[allow(clippy::unwrap_used, clippy::expect_used)]
 mod test {
     use serde_json::json;
 

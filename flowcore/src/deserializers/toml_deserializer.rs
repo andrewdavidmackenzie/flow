@@ -46,6 +46,7 @@ where
 }
 
 #[cfg(test)]
+#[allow(clippy::unwrap_used, clippy::expect_used)]
 mod test {
     use serde_derive::{Deserialize, Serialize};
     use toml::de::Error;

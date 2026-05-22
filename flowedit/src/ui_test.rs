@@ -1,4 +1,4 @@
-#![allow(clippy::indexing_slicing, clippy::unwrap_used)]
+#![allow(clippy::indexing_slicing, clippy::unwrap_used, clippy::expect_used)]
 
 use super::*;
 use crate::flow_canvas::CanvasMessage;

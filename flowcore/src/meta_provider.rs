@@ -191,6 +191,7 @@ impl Provider for MetaProvider {
 }
 
 #[cfg(test)]
+#[allow(clippy::unwrap_used, clippy::expect_used)]
 mod test {
     #[cfg(feature = "file_provider")]
     use std::path::Path;

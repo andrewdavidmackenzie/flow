@@ -536,6 +536,7 @@ fn copy_docs(lib_root_path: &PathBuf, output_dir: &Path) -> Result<i32> {
 }
 
 #[cfg(test)]
+#[allow(clippy::unwrap_used, clippy::expect_used)]
 mod test {
     use std::io::prelude::*;
 

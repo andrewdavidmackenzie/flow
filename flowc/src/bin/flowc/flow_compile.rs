@@ -207,6 +207,7 @@ fn execute_flow(filepath: &Path, options: &Options, runner_name: &str) -> Result
 }
 
 #[cfg(test)]
+#[allow(clippy::unwrap_used, clippy::expect_used)]
 mod test {
     use std::fs;
 

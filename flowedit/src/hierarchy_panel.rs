@@ -233,6 +233,7 @@ fn collect_flow_paths(
 }
 
 #[cfg(test)]
+#[allow(clippy::unwrap_used, clippy::expect_used)]
 mod test {
     use super::*;
     use flowcore::model::function_definition::FunctionDefinition;

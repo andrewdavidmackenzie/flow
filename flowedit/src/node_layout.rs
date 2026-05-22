@@ -433,6 +433,7 @@ pub(crate) fn compute_topological_layout(
 }
 
 #[cfg(test)]
+#[allow(clippy::unwrap_used, clippy::expect_used)]
 #[allow(clippy::indexing_slicing)]
 mod test {
     use super::*;

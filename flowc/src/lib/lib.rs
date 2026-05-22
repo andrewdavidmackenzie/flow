@@ -1,3 +1,4 @@
+#![deny(clippy::unwrap_used, clippy::expect_used)]
 #![deny(missing_docs)]
 #![warn(clippy::unwrap_used)]
 

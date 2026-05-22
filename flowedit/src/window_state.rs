@@ -2076,6 +2076,7 @@ impl WindowState {
 }
 
 #[cfg(test)]
+#[allow(clippy::unwrap_used, clippy::expect_used)]
 #[allow(clippy::indexing_slicing)]
 mod test {
     use super::*;

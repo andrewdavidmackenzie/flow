@@ -1,3 +1,5 @@
+#![deny(clippy::unwrap_used, clippy::expect_used)]
+
 //! `flowedit` is a visual editor for flow definition files.
 //!
 //! Phase 1 provides a read-only viewer that renders the process nodes and connections

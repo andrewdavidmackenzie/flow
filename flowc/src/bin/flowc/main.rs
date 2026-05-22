@@ -1,3 +1,4 @@
+#![deny(clippy::unwrap_used, clippy::expect_used)]
 //! `flowc` is a "flow compiler" that takes a hierarchical description of a flow
 //! using [flow definitions][flowcore::model::flow_definition::FlowDefinition],
 //! [function definitions][flowcore::model::function_definition::FunctionDefinition] and
@@ -179,7 +180,7 @@ fn run() -> Result<()> {
                 .runner_name
                 .as_ref()
                 .ok_or("Runner name was not specified")?;
-            let runner_dir = default_runner_dir(&runner_name.clone());
+            let runner_dir = default_runner_dir(&runner_name.clone())?;
             let provider = &MetaProvider::new(lib_search_path, runner_dir);
             compile_and_execute_flow(&options, provider, runner_name, &output_dir)
         }

@@ -103,6 +103,7 @@ impl fmt::Display for OutputConnection {
 }
 
 #[cfg(test)]
+#[allow(clippy::unwrap_used, clippy::expect_used)]
 mod test {
     #[test]
     fn display_with_route_test() {

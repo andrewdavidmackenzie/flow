@@ -1,6 +1,7 @@
 //! Initializer editor tests.
 
 #[cfg(test)]
+#[allow(clippy::unwrap_used, clippy::expect_used)]
 mod test {
     use crate::{InitializerEditor, WindowState};
     use flowcore::model::flow_definition::FlowDefinition;

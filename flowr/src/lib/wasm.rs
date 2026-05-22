@@ -155,6 +155,7 @@ pub fn load(provider: &Arc<dyn Provider>, source_url: &Url) -> Result<Executor> 
 }
 
 #[cfg(test)]
+#[allow(clippy::unwrap_used, clippy::expect_used)]
 mod test {
     use std::path::Path;
     use std::sync::Arc;

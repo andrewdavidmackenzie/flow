@@ -53,6 +53,7 @@ fn is_default_url(url: &Url) -> bool {
     url == &default_url()
 }
 
+#[allow(clippy::expect_used)]
 fn default_url() -> Url {
     Url::parse("file:///").expect("Could not create default_url")
 }
@@ -321,6 +322,7 @@ impl RuntimeFunction {
 }
 
 #[cfg(test)]
+#[allow(clippy::unwrap_used, clippy::expect_used)]
 mod test {
     use serde_json::json;
     use serde_json::value::Value;

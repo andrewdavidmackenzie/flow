@@ -49,6 +49,7 @@ fn get_file_extension(url: &Url) -> Option<&str> {
 }
 
 #[cfg(test)]
+#[allow(clippy::unwrap_used, clippy::expect_used)]
 mod test {
     use serde_derive::{Deserialize, Serialize};
     use url::Url;

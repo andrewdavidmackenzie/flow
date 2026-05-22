@@ -21,6 +21,7 @@ fn inner_enumerate(inputs: &[Value]) -> Result<(Option<Value>, RunAgain)> {
 }
 
 #[cfg(test)]
+#[allow(clippy::unwrap_used, clippy::expect_used)]
 mod test {
     use serde_json::json;
     use serde_json::{Number, Value};

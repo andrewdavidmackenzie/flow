@@ -143,6 +143,7 @@ impl Default for FlowDefinition {
             description: String::new(),
             alias: String::default(),
             id: 0,
+            #[allow(clippy::expect_used)]
             source_url: Url::parse("file://").expect("Could not create Url"),
             route: Route::default(),
             subprocesses: BTreeMap::default(),
@@ -192,6 +193,7 @@ impl FlowDefinition {
     ///
     /// This function would panic if "file://" ceased to be a valid Url, so it should never occur.
     #[must_use]
+    #[allow(clippy::expect_used)]
     pub fn default_url() -> Url {
         Url::parse("file://").expect("Could not create default_url")
     }
@@ -505,6 +507,7 @@ impl FlowDefinition {
 }
 
 #[cfg(test)]
+#[allow(clippy::unwrap_used, clippy::expect_used)]
 mod test {
     use std::collections::BTreeMap;
 

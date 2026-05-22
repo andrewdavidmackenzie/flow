@@ -88,6 +88,7 @@ impl From<String> for DebugCommand {
 }
 
 #[cfg(test)]
+#[allow(clippy::unwrap_used, clippy::expect_used)]
 mod test {
     use crate::debug_command::DebugCommand;
 

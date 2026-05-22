@@ -365,6 +365,7 @@ fn get_lib_manifest_tuple(
 }
 
 #[cfg(test)]
+#[allow(clippy::unwrap_used, clippy::expect_used)]
 mod test {
     use std::collections::HashMap;
     use std::sync::{Arc, RwLock};

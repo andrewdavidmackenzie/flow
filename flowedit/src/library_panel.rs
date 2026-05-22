@@ -420,6 +420,7 @@ fn build_context_entry(context_urls: &[&Url]) -> LibraryEntry {
 }
 
 #[cfg(test)]
+#[allow(clippy::unwrap_used, clippy::expect_used)]
 #[allow(clippy::indexing_slicing)]
 mod test {
     use super::*;

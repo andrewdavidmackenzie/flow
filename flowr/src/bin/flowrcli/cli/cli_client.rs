@@ -194,6 +194,7 @@ impl CliRuntimeClient {
 }
 
 #[cfg(test)]
+#[allow(clippy::unwrap_used, clippy::expect_used)]
 mod test {
     use std::fs;
     use std::fs::File;

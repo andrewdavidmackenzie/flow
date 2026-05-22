@@ -947,6 +947,7 @@ impl fmt::Display for RunState {
 }
 
 #[cfg(test)]
+#[allow(clippy::unwrap_used, clippy::expect_used)]
 mod test {
     use serde_json::{json, Value};
     use url::Url;

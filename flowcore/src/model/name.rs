@@ -29,6 +29,7 @@ impl Validate for Name {
 }
 
 #[cfg(test)]
+#[allow(clippy::unwrap_used, clippy::expect_used)]
 mod test {
     use crate::model::validation::Validate;
 

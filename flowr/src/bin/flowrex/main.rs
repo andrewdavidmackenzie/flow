@@ -1,3 +1,5 @@
+#![deny(clippy::unwrap_used, clippy::expect_used)]
+
 //! `flowrex` is the minimal executor of flow jobs. It loads a native version of 'flowstdlib'
 //! flow library to allow execution of jobs using functions provided by 'flowstdlib', but it does
 //! *not* load 'context' and hence will not execute any jobs interacting with the context.

@@ -114,6 +114,7 @@ impl HttpProvider {
 }
 
 #[cfg(test)]
+#[allow(clippy::unwrap_used, clippy::expect_used)]
 #[cfg(feature = "online_tests")]
 mod test {
     use url::Url;

@@ -66,7 +66,7 @@ fn split(input: &str, separator: &str) -> Result<(Option<Vec<String>>, Option<St
     // try and find a separator from middle towards the end
     for point in middle..end {
         // cannot have separator at end
-        if text.get(point..=point).expect("Could not get text") == separator {
+        if text.get(point..=point).ok_or("Could not get text")? == separator {
             return Ok((
                 Some(vec![
                     text.get(0..point)
@@ -83,7 +83,7 @@ fn split(input: &str, separator: &str) -> Result<(Option<Vec<String>>, Option<St
 
     // try and find a separator from middle backwards towards the start
     for point in (start..middle).rev() {
-        if text.get(point..=point).expect("Could not get text") == separator {
+        if text.get(point..=point).ok_or("Could not get text")? == separator {
             // If we find one return the string upto that  point for further splitting, plus the string from
             // there to the end as a token
             return Ok((
@@ -105,6 +105,7 @@ fn split(input: &str, separator: &str) -> Result<(Option<Vec<String>>, Option<St
 }
 
 #[cfg(test)]
+#[allow(clippy::unwrap_used, clippy::expect_used)]
 mod test {
     use serde_json::json;
 
