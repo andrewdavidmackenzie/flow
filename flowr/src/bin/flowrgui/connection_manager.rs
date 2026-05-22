@@ -61,10 +61,10 @@ pub fn subscribe(coordinator_settings: CoordinatorSettings) -> Subscription<Coor
 }
 
 fn coordinator_stream() -> impl iced::futures::Stream<Item = CoordinatorMessage> {
-    let settings = COORDINATOR_SETTINGS
-        .get()
-        .expect("Coordinator settings must be initialized before subscribing")
-        .clone();
+    let Some(settings) = COORDINATOR_SETTINGS.get().cloned() else {
+        eprintln!("Error: Coordinator settings were not initialized before subscribing. This is a programming error.");
+        std::process::exit(1);
+    };
     iced::stream::channel(
         100,
         move |mut app_sender: iced::futures::channel::mpsc::Sender<CoordinatorMessage>| async move {

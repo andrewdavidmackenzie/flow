@@ -245,9 +245,7 @@ impl DebugClient {
             "h" | "?" | "help" => {
                 // only command that doesn't send a message to debugger
                 Self::help();
-                self.editor
-                    .add_history_entry(command)
-                    .expect("Could not add history line");
+                let _ = self.editor.add_history_entry(command);
                 None
             }
             "i" | "inspect" => Self::parse_inspect_spec(params),
