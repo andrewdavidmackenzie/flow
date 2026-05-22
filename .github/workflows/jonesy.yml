@@ -29,4 +29,5 @@ jobs:
         with:
           working-directory: flowr
           binary: flowrgui
+          extra-args: '--config ../jonesy.toml'
           fail-on-panic: 'true'
