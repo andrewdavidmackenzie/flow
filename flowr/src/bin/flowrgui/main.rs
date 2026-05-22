@@ -714,6 +714,7 @@ impl FlowrGui {
                 debug!("FlowEnd received");
                 self.running = false;
                 self.pending_getline = false;
+                self.tab_set.stdin_tab.waiting_for_input = false;
                 if self.submission_settings.display_metrics {
                     self.show_modal = true;
                     self.modal_content = ("Flow Ended - Metrics".into(), format!("{metrics}"));
