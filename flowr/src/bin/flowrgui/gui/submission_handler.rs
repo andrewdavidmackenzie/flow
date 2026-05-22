@@ -8,6 +8,7 @@ use flowrlib::run_state::RunState;
 use flowrlib::submission_handler::SubmissionHandler;
 use log::{debug, error, info, trace};
 
+use crate::connection_manager;
 use crate::gui::client_message::ClientMessage;
 use crate::gui::coordinator_connection::{DONT_WAIT, WAIT};
 use crate::gui::coordinator_message::CoordinatorMessage;
@@ -57,6 +58,15 @@ impl SubmissionHandler for CLISubmissionHandler {
                 Ok(false)
             }
             _ => Ok(false),
+        }
+    }
+
+    fn should_stop(&mut self) -> Result<bool> {
+        if connection_manager::take_stop_request() {
+            debug!("Stop requested by user");
+            Ok(true)
+        } else {
+            Ok(false)
         }
     }
 

@@ -105,6 +105,8 @@ pub enum Message {
     SendEof,
     /// toggle to auto-scroll to bottom of STDIO has changed
     StdioAutoScrollTogglerChanged(Id, bool),
+    /// Request to stop the currently running flow
+    StopFlow,
     /// Clear the content of an output tab
     ClearTab(String),
     /// closing of the Modal was requested
@@ -238,6 +240,9 @@ impl FlowrGui {
             Message::SubmitError(msg) => {
                 self.show_modal = true;
                 self.modal_content = ("Error".into(), msg);
+            }
+            Message::StopFlow => {
+                connection_manager::request_stop();
             }
             Message::FlowArgsChanged(value) => self.submission_settings.flow_args = value,
             Message::MaxJobsChanged(value) => {
@@ -406,10 +411,15 @@ impl FlowrGui {
             && !self.running
             && !self.submitted;
 
-        let mut play = Button::new("Play");
-        if can_run {
-            play = play.on_press(Message::SubmitFlow);
-        }
+        let play = if self.running {
+            Button::new("Stop").on_press(Message::StopFlow)
+        } else {
+            let mut btn = Button::new("Play");
+            if can_run {
+                btn = btn.on_press(Message::SubmitFlow);
+            }
+            btn
+        };
 
         let mut debug_play = Button::new("Debug");
         if can_run {
@@ -696,6 +706,7 @@ impl FlowrGui {
                 debug!("FlowEnd received");
                 self.running = false;
                 self.pending_getline = false;
+                self.tab_set.stdin_tab.waiting_for_input = false;
                 if self.submission_settings.display_metrics {
                     self.show_modal = true;
                     self.modal_content = ("Flow Ended - Metrics".into(), format!("{metrics}"));

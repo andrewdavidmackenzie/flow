@@ -1,4 +1,5 @@
 use std::path::PathBuf;
+use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex, OnceLock};
 use std::thread;
 
@@ -38,6 +39,19 @@ pub enum CoordinatorState {
 
 /// Global storage for coordinator settings, initialized once and read by the subscription
 static COORDINATOR_SETTINGS: OnceLock<CoordinatorSettings> = OnceLock::new();
+
+/// Global flag for requesting flow stop from the GUI
+static STOP_REQUESTED: AtomicBool = AtomicBool::new(false);
+
+/// Request the currently running flow to stop
+pub fn request_stop() {
+    STOP_REQUESTED.store(true, Ordering::Relaxed);
+}
+
+/// Check and clear the stop request flag
+pub fn take_stop_request() -> bool {
+    STOP_REQUESTED.swap(false, Ordering::Relaxed)
+}
 
 // Creates an asynchronous worker that sends messages back and forth between the App and
 // the Coordinator
