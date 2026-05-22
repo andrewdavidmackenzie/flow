@@ -1651,9 +1651,8 @@ impl FlowCanvas<'_> {
                         is_selected,
                     );
 
-                    // Draw connection name along the path if present
-                    let conn_name = conn.name();
-                    if !conn_name.is_empty() {
+                    let label = connection_label(&from_port_str, conn.name());
+                    if !label.is_empty() {
                         let from_s = transform_point(from_point, zoom, offset);
                         let to_s = transform_point(to_point, zoom, offset);
                         let mid = if is_self_connection {
@@ -1671,7 +1670,7 @@ impl FlowCanvas<'_> {
                             Point::new(from_s.x.midpoint(to_s.x), from_s.y.midpoint(to_s.y))
                         };
                         let name_label = CanvasText {
-                            content: conn_name.clone(),
+                            content: label.clone(),
                             position: mid,
                             color: Color::from_rgb(0.7, 0.7, 0.7),
                             size: (PORT_FONT_SIZE * zoom).into(),
@@ -2033,6 +2032,15 @@ impl canvas::Program<CanvasMessage> for FlowCanvas<'_> {
 }
 
 /// Draw a single node as a rounded rectangle with title, source, and ports.
+fn connection_label(from_port: &str, conn_name: &str) -> String {
+    match (from_port, conn_name) {
+        ("", "") => String::new(),
+        ("", name) => name.to_string(),
+        (port, "") => format!("/{port}"),
+        (port, name) => format!("{name} /{port}"),
+    }
+}
+
 fn draw_node(frame: &mut Frame, node: &NodeLayout, zoom: f32, offset: Point) {
     let top_left = transform_point(Point::new(node.x(), node.y()), zoom, offset);
     let size = Size::new(node.width() * zoom, node.height() * zoom);
@@ -2475,5 +2483,25 @@ mod test {
         let (inp, outp) = compute_flow_io_positions(&[], &[], &[]);
         assert!(inp.is_empty());
         assert!(outp.is_empty());
+    }
+
+    #[test]
+    fn connection_label_empty() {
+        assert_eq!(connection_label("", ""), "");
+    }
+
+    #[test]
+    fn connection_label_name_only() {
+        assert_eq!(connection_label("", "feedback-step"), "feedback-step");
+    }
+
+    #[test]
+    fn connection_label_subpath_only() {
+        assert_eq!(connection_label("right-lte", ""), "/right-lte");
+    }
+
+    #[test]
+    fn connection_label_both() {
+        assert_eq!(connection_label("i2", "feedback-step"), "feedback-step /i2");
     }
 }
