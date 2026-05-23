@@ -97,11 +97,13 @@ impl SubmissionHandler for CLISubmissionHandler {
                             return Ok(Some(submission));
                         }
                         Ok(ClientMessage::ClientExiting(_)) => return Ok(None),
+                        // Unexpected message — log and continue waiting for a valid submission
                         Ok(r) => error!("Coordinator did not expect message from client: '{r:?}'"),
                         Err(e) => bail!("Coordinator error while waiting for submission: '{}'", e),
                     }
                 }
                 _ => {
+                    // Lock failure — log and exit submission loop gracefully
                     error!("Coordinator could not lock connection");
                     return Ok(None);
                 }
