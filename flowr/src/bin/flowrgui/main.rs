@@ -111,6 +111,12 @@ pub enum Message {
     StopFlow,
     /// Clear the content of an output tab
     ClearTab(String),
+    /// Save the text content of a tab to a file
+    SaveTabContent(String),
+    /// Save an image to a file by its name key
+    SaveImage(String),
+    /// An error occurred while saving content to a file
+    SaveError(String),
     /// closing of the Modal was requested
     CloseModal,
 }
@@ -237,9 +243,16 @@ impl FlowrGui {
             }
             Message::Submitted => {
                 self.tab_set.clear();
+                self.tab_set.flow_name =
+                    std::path::Path::new(&self.submission_settings.flow_manifest_url)
+                        .parent()
+                        .and_then(|p| p.file_name())
+                        .and_then(|n| n.to_str())
+                        .unwrap_or("")
+                        .to_string();
                 self.submitted = true;
             }
-            Message::SubmitError(msg) => {
+            Message::SubmitError(msg) | Message::SaveError(msg) => {
                 self.show_modal = true;
                 self.modal_content = ("Error".into(), msg);
             }
@@ -266,7 +279,9 @@ impl FlowrGui {
             Message::UrlChanged(value) => self.submission_settings.flow_manifest_url = value,
             Message::TabSelected(_)
             | Message::StdioAutoScrollTogglerChanged(_, _)
-            | Message::ClearTab(_) => {
+            | Message::ClearTab(_)
+            | Message::SaveTabContent(_)
+            | Message::SaveImage(_) => {
                 return self.tab_set.update(message);
             }
             Message::CoordinatorSent(coord_msg) => {
@@ -1069,5 +1084,33 @@ mod test {
         let mut ui = simulator(view);
         let found = ui.find("OK");
         assert!(found.is_ok(), "OK button should be present in error modal");
+    }
+
+    #[test]
+    fn save_error_shows_modal() {
+        let mut gui = test_gui();
+        assert!(!gui.show_modal);
+        drop(gui.update(Message::SaveError("write failed".into())));
+        assert!(gui.show_modal);
+        assert_eq!(gui.modal_content.0, "Error");
+        assert_eq!(gui.modal_content.1, "write failed");
+    }
+
+    #[test]
+    fn submitted_sets_flow_name_from_url() {
+        let mut gui = test_gui();
+        gui.submission_settings.flow_manifest_url =
+            "flowr/examples/mandlebrot/manifest.json".into();
+        drop(gui.update(Message::Submitted));
+        assert_eq!(gui.tab_set.flow_name, "mandlebrot");
+        assert!(gui.submitted);
+    }
+
+    #[test]
+    fn submitted_sets_empty_flow_name_when_no_parent() {
+        let mut gui = test_gui();
+        gui.submission_settings.flow_manifest_url = "manifest.json".into();
+        drop(gui.update(Message::Submitted));
+        assert!(gui.tab_set.flow_name.is_empty());
     }
 }

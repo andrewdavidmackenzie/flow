@@ -1,4 +1,5 @@
 use std::collections::HashMap;
+use std::fs;
 
 use iced::widget::image::{Handle, Viewer};
 use iced::widget::operation::{self, RelativeOffset};
@@ -7,6 +8,7 @@ use iced::widget::TextInput;
 use iced::widget::{text, toggler, Button, Column, Id, Row, Text};
 use iced::{Element, Length, Task};
 use iced_aw::{TabLabel, Tabs};
+use log::error;
 use once_cell::sync::Lazy;
 
 use crate::{ImageReference, Message};
@@ -19,6 +21,7 @@ pub(crate) struct TabSet {
     pub stdin_tab: StdInTab,
     pub images_tab: ImageTab,
     pub fileio_tab: StdOutTab,
+    pub flow_name: String,
 }
 
 impl TabSet {
@@ -48,6 +51,7 @@ impl TabSet {
                 auto_scroll: true,
                 unread_count: 0,
             },
+            flow_name: String::new(),
         }
     }
 
@@ -81,6 +85,67 @@ impl TabSet {
 
                 if value {
                     return operation::snap_to(id, RelativeOffset::END);
+                }
+            }
+            Message::SaveTabContent(ref name) => {
+                let content = if name == &self.stdout_tab.name {
+                    Some(&self.stdout_tab.content)
+                } else if name == &self.stderr_tab.name {
+                    Some(&self.stderr_tab.content)
+                } else if name == &self.stdin_tab.name {
+                    Some(&self.stdin_tab.content)
+                } else if name == &self.fileio_tab.name {
+                    Some(&self.fileio_tab.content)
+                } else {
+                    None
+                };
+
+                if let Some(lines) = content {
+                    let prefix = if self.flow_name.is_empty() {
+                        String::new()
+                    } else {
+                        format!("{}_", self.flow_name)
+                    };
+                    let dialog = rfd::FileDialog::new()
+                        .add_filter("Text", &["txt"])
+                        .set_file_name(format!("{prefix}{name}.txt"));
+                    if let Some(path) = dialog.save_file() {
+                        if let Err(e) = fs::write(&path, lines.join("\n")) {
+                            let msg = format!("Failed to save {name}: {e}");
+                            error!("{msg}");
+                            return Task::done(Message::SaveError(msg));
+                        }
+                    }
+                }
+            }
+            Message::SaveImage(ref name) => {
+                if let Some(image_ref) = self.images_tab.images.get(name) {
+                    let image_number = self
+                        .images_tab
+                        .images
+                        .keys()
+                        .position(|k| k == name)
+                        .unwrap_or(0)
+                        + 1;
+                    let prefix = if self.flow_name.is_empty() {
+                        String::new()
+                    } else {
+                        format!("{}_", self.flow_name)
+                    };
+                    let file_name = format!("{prefix}image_{image_number}.png");
+                    let dialog = rfd::FileDialog::new()
+                        .add_filter("PNG", &["png"])
+                        .set_file_name(file_name);
+                    if let Some(path) = dialog.save_file() {
+                        if let Err(e) = image_ref
+                            .data
+                            .save_with_format(&path, image::ImageFormat::Png)
+                        {
+                            let msg = format!("Failed to save image {name}: {e}");
+                            error!("{msg}");
+                            return Task::done(Message::SaveError(msg));
+                        }
+                    }
                 }
             }
             _ => {}
@@ -153,10 +218,16 @@ impl Tab for StdOutTab {
             .on_toggle(|v| Message::StdioAutoScrollTogglerChanged(self.id.clone(), v))
             .width(Length::Shrink);
 
+        let save_button =
+            Button::new(Text::new("Save")).on_press(Message::SaveTabContent(self.name.clone()));
         let clear_button =
             Button::new(Text::new("Clear")).on_press(Message::ClearTab(self.name.clone()));
 
-        let toolbar = Row::new().push(toggler).push(clear_button).spacing(10);
+        let toolbar = Row::new()
+            .push(toggler)
+            .push(save_button)
+            .push(clear_button)
+            .spacing(10);
 
         Column::new().push(toolbar).push(scrollable).into()
     }
@@ -195,14 +266,21 @@ impl Tab for ImageTab {
     }
 
     fn view(&self) -> Element<'_, Self::Message> {
-        let mut col = Column::new();
+        let mut col = Column::new().spacing(10);
 
-        for image_ref in self.images.values() {
-            col = col.push(Viewer::new(Handle::from_rgba(
+        for (name, image_ref) in &self.images {
+            let viewer = Viewer::new(Handle::from_rgba(
                 image_ref.width,
                 image_ref.height,
                 image_ref.data.as_raw().clone(),
-            )));
+            ));
+            let save_button =
+                Button::new(Text::new("Save")).on_press(Message::SaveImage(name.clone()));
+            let header = Row::new()
+                .push(Text::new(name.as_str()))
+                .push(save_button)
+                .spacing(10);
+            col = col.push(header).push(viewer);
         }
 
         col.into()
@@ -292,6 +370,10 @@ impl Tab for StdInTab {
                 .width(Length::Fill)
                 .padding(1);
 
+        let save_button =
+            Button::new(Text::new("Save")).on_press(Message::SaveTabContent(self.name.clone()));
+        let toolbar = Row::new().push(save_button).spacing(10);
+
         let text_input = TextInput::new("Enter new line of Standard input", &self.text)
             .on_input(Message::NewStdin)
             .on_paste(Message::NewStdin)
@@ -304,7 +386,11 @@ impl Tab for StdInTab {
             .height(Length::Fill)
             .id(self.id.clone());
 
-        Column::new().push(scrollable).push(input_row).into()
+        Column::new()
+            .push(toolbar)
+            .push(scrollable)
+            .push(input_row)
+            .into()
     }
 
     // Avoid clearing standard input - to allow the user to type in input ahead of the
@@ -497,5 +583,79 @@ mod test {
         drop(tabs.update(Message::TabSelected(0)));
         assert_eq!(tabs.stdout_tab.unread_count, 0);
         assert_eq!(tabs.stderr_tab.unread_count, 3);
+    }
+
+    #[test]
+    fn tabset_flow_name_default_empty() {
+        let tabs = TabSet::new();
+        assert!(tabs.flow_name.is_empty());
+    }
+
+    #[test]
+    fn tabset_clear_resets_all_tabs() {
+        let mut tabs = TabSet::new();
+        tabs.stdout_tab.content.push("hello".into());
+        tabs.stderr_tab.content.push("error".into());
+        tabs.fileio_tab.content.push("file".into());
+        tabs.flow_name = "myflow".into();
+        tabs.clear();
+        assert!(tabs.stdout_tab.content.is_empty());
+        assert!(tabs.stderr_tab.content.is_empty());
+        assert!(tabs.fileio_tab.content.is_empty());
+    }
+
+    #[test]
+    fn clear_tab_stdout() {
+        let mut tabs = TabSet::new();
+        tabs.stdout_tab.content.push("line1".into());
+        tabs.stdout_tab.content.push("line2".into());
+        drop(tabs.update(Message::ClearTab("Stdout".into())));
+        assert!(tabs.stdout_tab.content.is_empty());
+    }
+
+    #[test]
+    fn clear_tab_stderr() {
+        let mut tabs = TabSet::new();
+        tabs.stderr_tab.content.push("err".into());
+        drop(tabs.update(Message::ClearTab("Stderr".into())));
+        assert!(tabs.stderr_tab.content.is_empty());
+    }
+
+    #[test]
+    fn clear_tab_unknown_is_noop() {
+        let mut tabs = TabSet::new();
+        tabs.stdout_tab.content.push("keep".into());
+        drop(tabs.update(Message::ClearTab("Unknown".into())));
+        assert_eq!(tabs.stdout_tab.content, vec!["keep"]);
+    }
+
+    #[test]
+    fn save_image_unknown_name_is_noop() {
+        let mut tabs = TabSet::new();
+        drop(tabs.update(Message::SaveImage("nonexistent".into())));
+    }
+
+    #[test]
+    fn save_tab_content_unknown_name_is_noop() {
+        let mut tabs = TabSet::new();
+        tabs.stdout_tab.content.push("data".into());
+        drop(tabs.update(Message::SaveTabContent("Unknown".into())));
+        assert_eq!(tabs.stdout_tab.content, vec!["data"]);
+    }
+
+    #[test]
+    fn image_tab_clear_removes_images() {
+        let mut tab = ImageTab::new("Images");
+        tab.images.insert(
+            "test".into(),
+            ImageReference {
+                width: 1,
+                height: 1,
+                data: image::RgbaImage::new(1, 1),
+            },
+        );
+        tab.new_activity = true;
+        Tab::clear(&mut tab);
+        assert!(tab.images.is_empty());
     }
 }
