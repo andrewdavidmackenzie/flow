@@ -104,7 +104,9 @@ impl TabSet {
                         .set_file_name(format!("{name}.txt"));
                     if let Some(path) = dialog.save_file() {
                         if let Err(e) = fs::write(&path, lines.join("\n")) {
-                            error!("Failed to save {name}: {e}");
+                            let msg = format!("Failed to save {name}: {e}");
+                            error!("{msg}");
+                            return Task::done(Message::SaveError(msg));
                         }
                     }
                 }
@@ -123,8 +125,13 @@ impl TabSet {
                         .add_filter("PNG", &["png"])
                         .set_file_name(file_name);
                     if let Some(path) = dialog.save_file() {
-                        if let Err(e) = image_ref.data.save(&path) {
-                            error!("Failed to save image {name}: {e}");
+                        if let Err(e) = image_ref
+                            .data
+                            .save_with_format(&path, image::ImageFormat::Png)
+                        {
+                            let msg = format!("Failed to save image {name}: {e}");
+                            error!("{msg}");
+                            return Task::done(Message::SaveError(msg));
                         }
                     }
                 }

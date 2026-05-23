@@ -115,6 +115,8 @@ pub enum Message {
     SaveTabContent(String),
     /// Save an image to a file by its name key
     SaveImage(String),
+    /// An error occurred while saving content to a file
+    SaveError(String),
     /// closing of the Modal was requested
     CloseModal,
 }
@@ -243,7 +245,7 @@ impl FlowrGui {
                 self.tab_set.clear();
                 self.submitted = true;
             }
-            Message::SubmitError(msg) => {
+            Message::SubmitError(msg) | Message::SaveError(msg) => {
                 self.show_modal = true;
                 self.modal_content = ("Error".into(), msg);
             }
