@@ -187,9 +187,9 @@ fn generate_code(
                                       input_data_length as usize)
             };
 
-            let inputs: Vec<Value> = serde_json::from_slice(&input_data).unwrap();
+            let inputs: Vec<serde_json::Value> = serde_json::from_slice(&input_data).unwrap();
             let object = #struct_name {};
-            let result = object.run(&inputs);
+            let result = flowcore::Implementation::run(&object, &inputs);
 
             let return_data = serde_json::to_vec(&result).unwrap();
 
@@ -208,9 +208,8 @@ fn generate_code(
             #docs_comment
             #[derive(Debug)]
             pub struct #struct_name;
-            use flowcore::Implementation;
-            impl Implementation for #struct_name {
-                fn run(&self, inputs: &[Value]) -> flowcore::errors::Result<(Option<Value>, flowcore::RunAgain)> {
+            impl flowcore::Implementation for #struct_name {
+                fn run(&self, inputs: &[serde_json::Value]) -> flowcore::errors::Result<(Option<serde_json::Value>, flowcore::RunAgain)> {
     //                #input_conversion
                     #input_number_check
 
