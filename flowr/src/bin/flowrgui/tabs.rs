@@ -1,4 +1,5 @@
 use std::collections::HashMap;
+use std::fs;
 
 use iced::widget::image::{Handle, Viewer};
 use iced::widget::operation::{self, RelativeOffset};
@@ -7,6 +8,7 @@ use iced::widget::TextInput;
 use iced::widget::{text, toggler, Button, Column, Id, Row, Text};
 use iced::{Element, Length, Task};
 use iced_aw::{TabLabel, Tabs};
+use log::error;
 use once_cell::sync::Lazy;
 
 use crate::{ImageReference, Message};
@@ -83,6 +85,50 @@ impl TabSet {
                     return operation::snap_to(id, RelativeOffset::END);
                 }
             }
+            Message::SaveTabContent(ref name) => {
+                let content = if name == &self.stdout_tab.name {
+                    Some(&self.stdout_tab.content)
+                } else if name == &self.stderr_tab.name {
+                    Some(&self.stderr_tab.content)
+                } else if name == &self.stdin_tab.name {
+                    Some(&self.stdin_tab.content)
+                } else if name == &self.fileio_tab.name {
+                    Some(&self.fileio_tab.content)
+                } else {
+                    None
+                };
+
+                if let Some(lines) = content {
+                    let dialog = rfd::FileDialog::new()
+                        .add_filter("Text", &["txt"])
+                        .set_file_name(format!("{name}.txt"));
+                    if let Some(path) = dialog.save_file() {
+                        if let Err(e) = fs::write(&path, lines.join("\n")) {
+                            error!("Failed to save {name}: {e}");
+                        }
+                    }
+                }
+            }
+            Message::SaveImage(ref name) => {
+                if let Some(image_ref) = self.images_tab.images.get(name) {
+                    let has_png_ext = std::path::Path::new(name)
+                        .extension()
+                        .is_some_and(|ext| ext.eq_ignore_ascii_case("png"));
+                    let file_name = if has_png_ext {
+                        name.clone()
+                    } else {
+                        format!("{name}.png")
+                    };
+                    let dialog = rfd::FileDialog::new()
+                        .add_filter("PNG", &["png"])
+                        .set_file_name(file_name);
+                    if let Some(path) = dialog.save_file() {
+                        if let Err(e) = image_ref.data.save(&path) {
+                            error!("Failed to save image {name}: {e}");
+                        }
+                    }
+                }
+            }
             _ => {}
         }
 
@@ -153,10 +199,16 @@ impl Tab for StdOutTab {
             .on_toggle(|v| Message::StdioAutoScrollTogglerChanged(self.id.clone(), v))
             .width(Length::Shrink);
 
+        let save_button =
+            Button::new(Text::new("Save")).on_press(Message::SaveTabContent(self.name.clone()));
         let clear_button =
             Button::new(Text::new("Clear")).on_press(Message::ClearTab(self.name.clone()));
 
-        let toolbar = Row::new().push(toggler).push(clear_button).spacing(10);
+        let toolbar = Row::new()
+            .push(toggler)
+            .push(save_button)
+            .push(clear_button)
+            .spacing(10);
 
         Column::new().push(toolbar).push(scrollable).into()
     }
@@ -195,14 +247,21 @@ impl Tab for ImageTab {
     }
 
     fn view(&self) -> Element<'_, Self::Message> {
-        let mut col = Column::new();
+        let mut col = Column::new().spacing(10);
 
-        for image_ref in self.images.values() {
-            col = col.push(Viewer::new(Handle::from_rgba(
+        for (name, image_ref) in &self.images {
+            let viewer = Viewer::new(Handle::from_rgba(
                 image_ref.width,
                 image_ref.height,
                 image_ref.data.as_raw().clone(),
-            )));
+            ));
+            let save_button =
+                Button::new(Text::new("Save")).on_press(Message::SaveImage(name.clone()));
+            let header = Row::new()
+                .push(Text::new(name.as_str()))
+                .push(save_button)
+                .spacing(10);
+            col = col.push(header).push(viewer);
         }
 
         col.into()
@@ -292,6 +351,10 @@ impl Tab for StdInTab {
                 .width(Length::Fill)
                 .padding(1);
 
+        let save_button =
+            Button::new(Text::new("Save")).on_press(Message::SaveTabContent(self.name.clone()));
+        let toolbar = Row::new().push(save_button).spacing(10);
+
         let text_input = TextInput::new("Enter new line of Standard input", &self.text)
             .on_input(Message::NewStdin)
             .on_paste(Message::NewStdin)
@@ -304,7 +367,11 @@ impl Tab for StdInTab {
             .height(Length::Fill)
             .id(self.id.clone());
 
-        Column::new().push(scrollable).push(input_row).into()
+        Column::new()
+            .push(toolbar)
+            .push(scrollable)
+            .push(input_row)
+            .into()
     }
 
     // Avoid clearing standard input - to allow the user to type in input ahead of the

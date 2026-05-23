@@ -111,6 +111,10 @@ pub enum Message {
     StopFlow,
     /// Clear the content of an output tab
     ClearTab(String),
+    /// Save the text content of a tab to a file
+    SaveTabContent(String),
+    /// Save an image to a file by its name key
+    SaveImage(String),
     /// closing of the Modal was requested
     CloseModal,
 }
@@ -266,7 +270,9 @@ impl FlowrGui {
             Message::UrlChanged(value) => self.submission_settings.flow_manifest_url = value,
             Message::TabSelected(_)
             | Message::StdioAutoScrollTogglerChanged(_, _)
-            | Message::ClearTab(_) => {
+            | Message::ClearTab(_)
+            | Message::SaveTabContent(_)
+            | Message::SaveImage(_) => {
                 return self.tab_set.update(message);
             }
             Message::CoordinatorSent(coord_msg) => {
