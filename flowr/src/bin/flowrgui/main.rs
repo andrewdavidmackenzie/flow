@@ -243,6 +243,13 @@ impl FlowrGui {
             }
             Message::Submitted => {
                 self.tab_set.clear();
+                self.tab_set.flow_name =
+                    std::path::Path::new(&self.submission_settings.flow_manifest_url)
+                        .parent()
+                        .and_then(|p| p.file_name())
+                        .and_then(|n| n.to_str())
+                        .unwrap_or("")
+                        .to_string();
                 self.submitted = true;
             }
             Message::SubmitError(msg) | Message::SaveError(msg) => {

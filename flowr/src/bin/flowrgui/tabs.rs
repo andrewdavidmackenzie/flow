@@ -21,6 +21,7 @@ pub(crate) struct TabSet {
     pub stdin_tab: StdInTab,
     pub images_tab: ImageTab,
     pub fileio_tab: StdOutTab,
+    pub flow_name: String,
 }
 
 impl TabSet {
@@ -50,6 +51,7 @@ impl TabSet {
                 auto_scroll: true,
                 unread_count: 0,
             },
+            flow_name: String::new(),
         }
     }
 
@@ -99,9 +101,14 @@ impl TabSet {
                 };
 
                 if let Some(lines) = content {
+                    let prefix = if self.flow_name.is_empty() {
+                        String::new()
+                    } else {
+                        format!("{}_", self.flow_name)
+                    };
                     let dialog = rfd::FileDialog::new()
                         .add_filter("Text", &["txt"])
-                        .set_file_name(format!("{name}.txt"));
+                        .set_file_name(format!("{prefix}{name}.txt"));
                     if let Some(path) = dialog.save_file() {
                         if let Err(e) = fs::write(&path, lines.join("\n")) {
                             let msg = format!("Failed to save {name}: {e}");
@@ -113,14 +120,19 @@ impl TabSet {
             }
             Message::SaveImage(ref name) => {
                 if let Some(image_ref) = self.images_tab.images.get(name) {
-                    let has_png_ext = std::path::Path::new(name)
-                        .extension()
-                        .is_some_and(|ext| ext.eq_ignore_ascii_case("png"));
-                    let file_name = if has_png_ext {
-                        name.clone()
+                    let image_number = self
+                        .images_tab
+                        .images
+                        .keys()
+                        .position(|k| k == name)
+                        .unwrap_or(0)
+                        + 1;
+                    let prefix = if self.flow_name.is_empty() {
+                        String::new()
                     } else {
-                        format!("{name}.png")
+                        format!("{}_", self.flow_name)
                     };
+                    let file_name = format!("{prefix}image_{image_number}.png");
                     let dialog = rfd::FileDialog::new()
                         .add_filter("PNG", &["png"])
                         .set_file_name(file_name);
