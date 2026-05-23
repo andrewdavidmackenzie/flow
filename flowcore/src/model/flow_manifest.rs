@@ -31,6 +31,17 @@ pub struct Cargo {
 }
 
 #[derive(Deserialize, Serialize, Clone, PartialEq, Eq, Debug)]
+/// Describes a flow's contents: which functions and sub-flows it directly contains
+pub struct FlowInfo {
+    /// The unique flow ID
+    pub flow_id: usize,
+    /// IDs of functions directly in this flow
+    pub function_ids: Vec<usize>,
+    /// IDs of direct child sub-flows
+    pub sub_flow_ids: Vec<usize>,
+}
+
+#[derive(Deserialize, Serialize, Clone, PartialEq, Eq, Debug)]
 /// A `flows` `Manifest` describes it and describes all the `Functions` it uses as well as
 /// a list of references to libraries.
 pub struct FlowManifest {
@@ -42,6 +53,9 @@ pub struct FlowManifest {
     context_references: BTreeSet<Url>,
     /// A list of `RuntimeFunctions` in this flow
     functions: Vec<RuntimeFunction>,
+    /// Flow hierarchy: which functions and sub-flows each flow contains
+    #[serde(default)]
+    flows: Vec<FlowInfo>,
     #[cfg(feature = "debugger")]
     /// A list of the source files used to build this `flow`
     source_urls: BTreeMap<String, Url>,
@@ -69,6 +83,7 @@ impl FlowManifest {
             lib_references: BTreeSet::<Url>::new(),
             context_references: BTreeSet::<Url>::new(),
             functions: Vec::<RuntimeFunction>::new(),
+            flows: Vec::<FlowInfo>::new(),
             #[cfg(feature = "debugger")]
             source_urls: BTreeMap::<String, Url>::new(),
         }
@@ -77,6 +92,64 @@ impl FlowManifest {
     /// Add a run-time Function to the manifest for use in serialization
     pub fn add_function(&mut self, function: RuntimeFunction) {
         self.functions.push(function);
+    }
+
+    /// Add flow hierarchy info to the manifest
+    pub fn add_flow_info(&mut self, flow_info: FlowInfo) {
+        self.flows.push(flow_info);
+    }
+
+    /// Get the flow hierarchy info
+    #[must_use]
+    pub fn flows(&self) -> &Vec<FlowInfo> {
+        &self.flows
+    }
+
+    /// Build flow hierarchy from function data if not already populated
+    pub fn build_flow_hierarchy(&mut self) {
+        if !self.flows.is_empty() {
+            return;
+        }
+
+        // Group functions by flow_id
+        let mut flow_functions: std::collections::HashMap<usize, Vec<usize>> =
+            std::collections::HashMap::new();
+        for function in &self.functions {
+            flow_functions
+                .entry(function.get_flow_id())
+                .or_default()
+                .push(function.id());
+        }
+
+        // Determine sub-flow relationships from cross-flow connections
+        let mut sub_flows: std::collections::HashMap<usize, Vec<usize>> =
+            std::collections::HashMap::new();
+        for function in &self.functions {
+            let src_flow = function.get_flow_id();
+            for conn in function.get_output_connections() {
+                let dst_flow = conn.destination_flow_id;
+                if src_flow != dst_flow {
+                    let (parent, child) = if src_flow < dst_flow {
+                        (src_flow, dst_flow)
+                    } else {
+                        (dst_flow, src_flow)
+                    };
+                    let children = sub_flows.entry(parent).or_default();
+                    if !children.contains(&child) {
+                        children.push(child);
+                    }
+                }
+            }
+        }
+
+        // Build FlowInfo for each flow
+        for (&flow_id, function_ids) in &flow_functions {
+            self.flows.push(FlowInfo {
+                flow_id,
+                function_ids: function_ids.clone(),
+                sub_flow_ids: sub_flows.remove(&flow_id).unwrap_or_default(),
+            });
+        }
     }
 
     /// Get the list of functions in this manifest

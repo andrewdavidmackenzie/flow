@@ -41,7 +41,7 @@ from = "input/limit"
 to = "compare_switch/left"
 name = "limit"
 
-# connect the right-lte output of compare_switch to the output of this flow - the sequence of numbers being generated
+# connect the right-lte output of compare_switch to the output of this flow
 [[connection]]
 from = "compare_switch/right-lte"
 to = "output/number"
@@ -49,7 +49,7 @@ to = "output/number"
 # while the sequence is running - loopback the limit value to compare against next time
 [[connection]]
 from = "compare_switch/left-gt"
-to = ["compare_switch/left", "compare/left"]
+to = "compare_switch/left"
 name = "feedback-limit"
 
 # An add process to add "step" to the last output of the sequence each time
@@ -61,64 +61,25 @@ from = "input/step"
 to = "add/i2"
 name = "step"
 
-# Take generated number of the sequence and pass it to 'add' to add one to it for the next number in the sequence
+# Take generated number of the sequence and pass it to 'add' to add one to it
 [[connection]]
 from = "compare_switch/right-lte"
 to = "add/i1"
 name = "previous"
 
-# Compare produces boolean outputs for controlling gated feedback.
-# Fed the same inputs as compare_switch.
-[[process]]
-source = "lib://flowstdlib/math/compare"
-
+# Feedback: add output goes back to compare_switch for the next comparison
 [[connection]]
-from = "input/limit"
-to = "compare/left"
+from = "add"
+to = "compare_switch/right"
+name = "feedback-value"
 
-[[connection]]
-from = "input/start"
-to = "compare/right"
-name = "first"
-
-# compare/gt gates both the step feedback and the add output feedback
-[[connection]]
-from = "compare/gt"
-to = ["step-tap/control", "output-tap/control"]
-
-# step-tap gates the step feedback: passes step through when gt=true (keep going),
-# discards step when gt=false (sequence done)
-[[process]]
-source = "lib://flowstdlib/control/tap"
-alias = "step-tap"
-
+# Feedback: step value loopback so add has the step available each iteration
 [[connection]]
 from = "add/i2"
-to = "step-tap/data"
-
-[[connection]]
-from = "step-tap"
 to = "add/i2"
 name = "feedback-step"
 
-# output-tap gates add's output: passes it through when gt=true (keep going),
-# discards it when gt=false (prevents stale value on compare_switch/right)
-[[process]]
-source = "lib://flowstdlib/control/tap"
-alias = "output-tap"
-
-[[connection]]
-from = "add"
-to = "output-tap/data"
-
-# gated add output feeds back to compare_switch and compare for the next cycle
-[[connection]]
-from = "output-tap"
-to = ["compare_switch/right", "compare/right"]
-name = "feedback-value"
-
-# When compare_switch determines the next value is the last (greater-than-or-equal to the limit) then
-# output that value - whose presence indicates it's the end of the sequence
+# When compare_switch determines the next value exceeds the limit, output that as "last"
 [[connection]]
 from = "compare_switch/right-gte"
 to = "output/last"

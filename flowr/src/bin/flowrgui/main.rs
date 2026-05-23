@@ -389,7 +389,7 @@ impl FlowrGui {
 
         info!("Sending submission to Coordinator");
         sender
-            .send(ClientMessage::ClientSubmission(submission))
+            .send(ClientMessage::ClientSubmission(Box::new(submission)))
             .await
             .map_err(|e| format!("Could not submit flow to coordinator: {e}"))
     }

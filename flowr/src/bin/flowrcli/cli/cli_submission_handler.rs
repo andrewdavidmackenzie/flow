@@ -101,7 +101,7 @@ impl SubmissionHandler for CLISubmissionHandler {
                         Ok(ClientMessage::ClientSubmission(submission)) => {
                             info!("Coordinator received a submission for execution");
                             trace!("\n{submission}");
-                            return Ok(Some(submission));
+                            return Ok(Some(*submission));
                         }
                         Ok(ClientMessage::ClientExiting(_)) => return Ok(None),
                         Ok(r) => error!("Coordinator did not expect response from client: '{r:?}'"),

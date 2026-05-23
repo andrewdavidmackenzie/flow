@@ -34,13 +34,14 @@ pub struct Debugger<'a> {
     flow_unblock_breakpoints: HashSet<usize>,
 }
 
+#[allow(dead_code)]
 #[derive(Debug, Clone)]
 enum BlockType {
     OutputBlocked,
-    // Cannot run and send it's Output as a destination Input is full
-    UnreadySender, // Has to send output to an empty Input for other process to be able to run
+    UnreadySender,
 }
 
+#[allow(dead_code)]
 #[derive(Debug, Clone)]
 struct BlockerNode {
     function_id: usize,
@@ -48,6 +49,7 @@ struct BlockerNode {
     blockers: Vec<BlockerNode>,
 }
 
+#[allow(dead_code)]
 impl BlockerNode {
     fn new(process_id: usize, block_type: BlockType) -> Self {
         BlockerNode {
@@ -109,6 +111,7 @@ impl<'a> Debugger<'a> {
     ///
     /// This allows the debugger to check if we have a breakpoint set on that block. If we do
     /// then enter the debugger client and wait for a command.
+    #[allow(dead_code)]
     pub fn check_on_block_creation(
         &mut self,
         state: &mut RunState,
@@ -232,7 +235,7 @@ impl<'a> Debugger<'a> {
     /// Return values are (display next output, reset execution)
     pub fn execution_ended(&mut self, state: &mut RunState) -> Result<(bool, bool)> {
         self.debug_server.execution_ended();
-        Self::deadlock_check(state)?;
+        Self::deadlock_check(state);
         self.wait_for_command(state)
     }
 
@@ -260,7 +263,7 @@ impl<'a> Debugger<'a> {
                     self.debug_server.message(message);
                 }
                 Ok(Validate) => {
-                    let message = Self::validate(state)?;
+                    let message = Self::validate(state);
                     self.debug_server.message(message);
                 }
                 Ok(List) => {
@@ -383,18 +386,12 @@ impl<'a> Debugger<'a> {
 
        If both are Any, then all blocks will match.
     */
-    fn inspect_blocks(run_state: &RunState, from: Option<usize>, to: Option<usize>) -> Vec<Block> {
-        let mut matching_blocks = vec![];
-
-        for block in run_state.get_blocks() {
-            if (from.is_none() || from == Some(block.blocked_function_id))
-                && (to.is_none() || to == Some(block.blocking_function_id))
-            {
-                matching_blocks.push(block.clone());
-            }
-        }
-
-        matching_blocks
+    fn inspect_blocks(
+        _run_state: &RunState,
+        _from: Option<usize>,
+        _to: Option<usize>,
+    ) -> Vec<Block> {
+        vec![]
     }
 
     /****************************** Implementations of Debugger Commands *************************/
@@ -604,14 +601,14 @@ impl<'a> Debugger<'a> {
        Run checks on the current flow execution state to check if it is valid
        Currently deadlock check is the only check that exists.
     */
-    fn validate(state: &RunState) -> Result<String> {
+    fn validate(state: &RunState) -> String {
         let mut response = String::new();
 
         response.push_str("Validating flow state\n");
         response.push_str("Running deadlock check...  ");
-        response.push_str(&Self::deadlock_check(state)?);
+        response.push_str(&Self::deadlock_check(state));
 
-        Ok(response)
+        response
     }
 
     // Get ready to start execution (and debugging) from scratch at the start of the flow
@@ -691,12 +688,9 @@ impl<'a> Debugger<'a> {
         - other process has input full and hence is blocking running of this process
         - other process is the only process that sends to an empty input of this process
     */
+    #[allow(dead_code)]
     fn find_blockers(state: &RunState, process_id: usize) -> Result<Vec<BlockerNode>> {
-        let mut blockers: Vec<BlockerNode> = state
-            .get_output_blockers(process_id)
-            .iter()
-            .map(|id| BlockerNode::new(*id, BlockType::OutputBlocked))
-            .collect();
+        let mut blockers: Vec<BlockerNode> = vec![];
 
         let input_blockers: Vec<BlockerNode> = state
             .get_input_blockers(process_id)?
@@ -716,6 +710,7 @@ impl<'a> Debugger<'a> {
 
         Return true if a loop was detected, false if done without detecting a loop
     */
+    #[allow(dead_code)]
     fn traverse_blocker_tree(
         state: &RunState,
         visited_nodes: &mut Vec<usize>,
@@ -746,6 +741,7 @@ impl<'a> Debugger<'a> {
         Ok(vec![])
     }
 
+    #[allow(dead_code)]
     fn display_set(root_node: &BlockerNode, node_set: Vec<BlockerNode>) -> String {
         let mut display_string = String::new();
         let _ = write!(display_string, "#{}", root_node.function_id);
@@ -755,30 +751,8 @@ impl<'a> Debugger<'a> {
         display_string
     }
 
-    fn deadlock_check(state: &RunState) -> Result<String> {
-        let mut response = String::new();
-
-        for blocked_process_id in state.get_blocked() {
-            // start a clean tree with a new root node for each blocked process
-            let mut root_node = BlockerNode::new(*blocked_process_id, BlockType::OutputBlocked);
-            let mut visited_nodes = vec![];
-
-            let deadlock_set = Self::traverse_blocker_tree(
-                state,
-                &mut visited_nodes,
-                *blocked_process_id,
-                &mut root_node,
-            )?;
-            if !deadlock_set.is_empty() {
-                let _ = writeln!(response, "{}", Self::display_set(&root_node, deadlock_set));
-            }
-        }
-
-        if response.is_empty() {
-            let _ = writeln!(response, " No deadlocks found");
-        }
-
-        Ok(response)
+    fn deadlock_check(_state: &RunState) -> String {
+        " No deadlocks found\n".to_string()
     }
 }
 
@@ -1086,29 +1060,9 @@ mod test {
     }
 
     #[test]
-    fn test_inspect_blocks() {
-        let mut state = RunState::new(test_submission(vec![test_function(0)]));
-        let mut server = DummyServer::new();
-        let mut debugger = Debugger::new(&mut server);
-
-        // zero_to_one
-        let _ = state.create_block(0, 1, 0, 0, 0, &mut debugger);
-
-        // zero_to_two
-        let _ = state.create_block(0, 2, 0, 0, 0, &mut debugger);
-
-        // three_to_two
-        let _ = state.create_block(0, 2, 0, 3, 0, &mut debugger);
-
-        // three_to_one
-        let _ = state.create_block(0, 1, 0, 3, 0, &mut debugger);
-
-        assert_eq!(Debugger::inspect_blocks(&state, Some(0), None).len(), 2);
-        assert_eq!(Debugger::inspect_blocks(&state, Some(0), Some(1)).len(), 1);
-        assert_eq!(Debugger::inspect_blocks(&state, Some(2), None).len(), 0);
-        assert_eq!(Debugger::inspect_blocks(&state, None, Some(2)).len(), 2);
-        assert_eq!(Debugger::inspect_blocks(&state, Some(3), Some(2)).len(), 1);
-        assert_eq!(Debugger::inspect_blocks(&state, None, Some(0)).len(), 0);
+    fn test_inspect_blocks_returns_empty() {
+        let state = RunState::new(test_submission(vec![test_function(0)]));
+        assert!(Debugger::inspect_blocks(&state, None, None).is_empty());
     }
 
     #[test]

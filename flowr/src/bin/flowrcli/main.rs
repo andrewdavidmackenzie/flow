@@ -407,7 +407,7 @@ fn client(
     }
 
     info!("Client sending submission to coordinator");
-    client_connection.send(ClientMessage::ClientSubmission(submission))?;
+    client_connection.send(ClientMessage::ClientSubmission(Box::new(submission)))?;
 
     trace!("Entering client event loop");
     client.event_loop(client_connection)
