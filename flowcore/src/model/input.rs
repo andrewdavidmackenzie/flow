@@ -60,10 +60,11 @@ pub struct Input {
     // An optional `InputInitializer` propagated from a flow input's initializer
     flow_initializer: Option<InputInitializer>,
 
-    // The queue of values received so far as an ordered vector of entries,
-    // with first will be at the head and last at the tail
+    // The queue of values received so far as an ordered vector of (value, is_internal) entries,
+    // with first will be at the head and last at the tail.
+    // is_internal = true means the value originated from within the same flow.
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
-    received: Vec<Value>,
+    received: Vec<(Value, bool)>,
 }
 
 #[allow(clippy::trivially_copy_pass_by_ref)] // As this is imposed on us by serde
@@ -100,7 +101,8 @@ impl fmt::Display for Input {
             write!(f, "({}) ", self.name)?;
         }
         if !self.received.is_empty() {
-            write!(f, "{:?}", self.received)?;
+            let values: Vec<&Value> = self.received.iter().map(|(v, _)| v).collect();
+            write!(f, "{values:?}")?;
         }
         Ok(())
     }
@@ -178,31 +180,32 @@ impl Input {
     /// When called after start-up it will initialize only if it's a           `Always` initializer
     #[allow(clippy::match_same_arms)]
     pub fn init(&mut self, first_time: bool, flow_gone_idle: bool) -> bool {
+        // Function-level initializers are internal (defined on the function itself)
         match (first_time, flow_gone_idle, &self.initializer) {
             (true, false, Some(Once(one_time))) => {
-                self.send(one_time.clone());
+                self.send(one_time.clone(), true);
                 return true;
             }
             (_, false, Some(Always(constant))) => {
-                self.send(constant.clone());
+                self.send(constant.clone(), true);
                 return true;
             }
             (_, _, _) => {}
         }
 
-        // Flow initializers will only be applied if a function initializer has not already been
-        // applied
+        // Flow initializers are external (propagated from outside the flow)
+        // Only applied if a function initializer has not already been applied
         match (first_time, flow_gone_idle, &self.flow_initializer) {
             (true, _, Some(Once(one_time))) => {
-                self.send(one_time.clone());
+                self.send(one_time.clone(), false);
                 return true;
             }
             (true, _, Some(Always(constant))) => {
-                self.send(constant.clone());
+                self.send(constant.clone(), false);
                 return true;
             }
             (_, true, Some(Always(constant))) => {
-                self.send(constant.clone());
+                self.send(constant.clone(), false);
                 return true;
             }
             (_, _, _) => {}
@@ -216,21 +219,21 @@ impl Input {
         self.array_order
     }
 
-    /// Send a Value or array of Values to this input
-    pub(crate) fn send(&mut self, value: Value) -> bool {
+    /// Send a Value or array of Values to this input, tagged as internal or external
+    pub(crate) fn send(&mut self, value: Value, is_internal: bool) -> bool {
         if self.generic {
-            self.received.push(value);
+            self.received.push((value, is_internal));
         } else {
             match (
                 DataType::value_array_order(&value) - self.array_order(),
                 &value,
             ) {
-                (0, _) => self.received.push(value),
-                (1, Value::Array(array)) => self.send_array_elements(array.clone()),
+                (0, _) => self.received.push((value, is_internal)),
+                (1, Value::Array(array)) => self.send_array_elements(array.clone(), is_internal),
                 (2, Value::Array(array_2)) => {
                     for array in array_2 {
                         if let Value::Array(sub_array) = array {
-                            self.send_array_elements(sub_array.clone());
+                            self.send_array_elements(sub_array.clone(), is_internal);
                         }
                     }
                 }
@@ -239,14 +242,14 @@ impl Input {
                         "\t\tSending value '{value}' wrapped in an Array: '{}'",
                         json!([value])
                     );
-                    self.received.push(json!([value]));
+                    self.received.push((json!([value]), is_internal));
                 }
                 (-2, _) => {
                     debug!(
                         "\t\tSending value '{value}' wrapped in an Array of Array: '{}'",
                         json!([[value]])
                     );
-                    self.received.push(json!([[value]]));
+                    self.received.push((json!([[value]]), is_internal));
                 }
                 _ => return false,
             }
@@ -254,23 +257,23 @@ impl Input {
         true // a value was sent!
     }
 
-    // Send an array of values to this `Input`, by sending them one element at a time
-    fn send_array_elements(&mut self, array: Vec<Value>) {
+    fn send_array_elements(&mut self, array: Vec<Value>, is_internal: bool) {
         debug!("\t\tSending Array as a series of Values");
         for value in array {
             debug!("\t\t\tSending array element as Value; '{value}'");
-            self.received.push(value);
+            self.received.push((value, is_internal));
         }
     }
 
-    /// Take the first element from the Input and return it. Could panic!
+    /// Take the first element from the Input and return it
     #[must_use]
     pub fn take(&mut self) -> Option<Value> {
         if self.received.is_empty() {
             return None;
         }
 
-        Some(self.received.remove(0))
+        let (value, _is_internal) = self.received.remove(0);
+        Some(value)
     }
 
     /// Return the total number of values queued up in this input
@@ -283,6 +286,20 @@ impl Input {
     #[must_use]
     pub fn is_empty(&self) -> bool {
         self.values_available() == 0
+    }
+
+    /// Return the number of internally-sourced values queued in this input
+    #[must_use]
+    pub fn internal_values_available(&self) -> usize {
+        self.received
+            .iter()
+            .filter(|(_, is_internal)| *is_internal)
+            .count()
+    }
+
+    /// Remove all internally-tagged values from the queue, preserving external values
+    pub fn clear_internal_values(&mut self) {
+        self.received.retain(|(_, is_internal)| !is_internal);
     }
 }
 
@@ -331,7 +348,7 @@ mod test {
             None,
             None,
         );
-        input.send(Value::Null);
+        input.send(Value::Null, false);
         assert!(!input.is_empty());
     }
 
@@ -345,7 +362,7 @@ mod test {
             None,
             None,
         );
-        input.send_array_elements(vec![json!(5), json!(10), json!(15)]);
+        input.send_array_elements(vec![json!(5), json!(10), json!(15)], false);
         assert!(!input.is_empty());
     }
 
@@ -359,7 +376,7 @@ mod test {
             None,
             None,
         );
-        input.send(json!(10));
+        input.send(json!(10), false);
         assert!(!input.is_empty());
         let _value = input
             .take()
@@ -378,7 +395,7 @@ mod test {
             None,
             None,
         );
-        input.send(json!(10));
+        input.send(json!(10), false);
         assert!(!input.is_empty());
         input.reset();
         assert!(input.is_empty());
@@ -459,5 +476,70 @@ mod test {
 
         assert_eq!(input.take(), Some(json!(1)));
         assert!(input.is_empty());
+    }
+
+    #[test]
+    fn internal_values_available_counts_only_internal() {
+        let mut input = Input::new(
+            #[cfg(feature = "debugger")]
+            "",
+            0,
+            false,
+            None,
+            None,
+        );
+        input.send(json!(1), true);
+        input.send(json!(2), false);
+        input.send(json!(3), true);
+        assert_eq!(input.values_available(), 3);
+        assert_eq!(input.internal_values_available(), 2);
+    }
+
+    #[test]
+    fn clear_internal_values_preserves_external() {
+        let mut input = Input::new(
+            #[cfg(feature = "debugger")]
+            "",
+            0,
+            false,
+            None,
+            None,
+        );
+        input.send(json!(1), true);
+        input.send(json!(2), false);
+        input.send(json!(3), true);
+        input.clear_internal_values();
+        assert_eq!(input.values_available(), 1);
+        assert_eq!(input.take(), Some(json!(2)));
+    }
+
+    #[test]
+    fn function_initializer_tagged_internal() {
+        let mut input = Input::new(
+            #[cfg(feature = "debugger")]
+            "",
+            0,
+            false,
+            Some(Always(json!(42))),
+            None,
+        );
+        input.init(true, false);
+        assert_eq!(input.internal_values_available(), 1);
+        assert_eq!(input.values_available(), 1);
+    }
+
+    #[test]
+    fn flow_initializer_tagged_external() {
+        let mut input = Input::new(
+            #[cfg(feature = "debugger")]
+            "",
+            0,
+            false,
+            None,
+            Some(Always(json!(99))),
+        );
+        input.init(true, false);
+        assert_eq!(input.internal_values_available(), 0);
+        assert_eq!(input.values_available(), 1);
     }
 }

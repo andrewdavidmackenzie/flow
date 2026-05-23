@@ -208,6 +208,8 @@ pub struct RunState {
     /// Track which functions have finished and can be unblocked when the flow goes not "busy"
     /// `HashMap`< <`flow_id`>, (`function_id`, set of refilled io numbers of that function)>
     flow_blocks: HashMap<usize, HashSet<usize>>,
+    /// Sub-flows that went idle but had blocked functions — clearing is deferred
+    flows_pending_clear: HashSet<usize>,
 }
 
 impl RunState {
@@ -225,6 +227,7 @@ impl RunState {
             number_of_jobs_created: 0,
             busy_flows: MultiMap::<usize, usize>::new(),
             flow_blocks: HashMap::<usize, HashSet<usize>>::new(),
+            flows_pending_clear: HashSet::<usize>::new(),
         }
     }
 
@@ -584,11 +587,26 @@ impl RunState {
             )?;
         }
 
+        // Check if the destination flow is already running before borrowing the function
+        let dest_flow_is_running = self
+            .busy_flows
+            .contains_key(&connection.destination_flow_id);
+
+        // When an external value arrives at a sub-flow that went idle, clear stale
+        // internal values before accepting the new value for the next iteration
+        if !same_flow
+            && self
+                .flows_pending_clear
+                .remove(&connection.destination_flow_id)
+        {
+            self.clear_idle_flow(connection.destination_flow_id)?;
+        }
+
         let function = self
             .get_mut(connection.destination_id)
             .ok_or("Could not get function")?;
         let job_count_before = function.input_sets_available();
-        function.send(connection.destination_io_number, output_value)?;
+        function.send(connection.destination_io_number, output_value, same_flow)?;
 
         #[cfg(feature = "metrics")]
         metrics.increment_outputs_sent(); // not distinguishing array serialization / wrapping etc.
@@ -612,10 +630,15 @@ impl RunState {
             )?;
         }
 
+        // During a flow's running phase, external values queue up but don't trigger new jobs.
+        // Only internal values (same_flow) can trigger new jobs while the flow is active.
+        // External values will be consumed when the flow goes idle and restarts.
+        let suppress_job = !same_flow && dest_flow_is_running;
+
         // postpone the decision about making the sending function Ready when we have a loopback
         // connection that sends a value to itself, as it may also send to other functions and need
         // to be blocked. But for all other receivers of values, make them Ready or Blocked
-        if new_job_available && !loopback {
+        if new_job_available && !loopback && !suppress_job {
             self.create_jobs_or_block(connection.destination_id, connection.destination_flow_id)?;
         }
 
@@ -800,14 +823,19 @@ impl RunState {
                     debugger.check_prior_to_flow_unblock(self, job.flow_id)?;
             }
 
+            // Mark sub-flows as needing clearing when they next restart.
+            // Don't clear now — the flow may have blocked functions with valid
+            // in-progress values that need to complete first.
+            if job.flow_id != 0 {
+                self.flows_pending_clear.insert(job.flow_id);
+            }
+
+            // Release blocks on external senders so new values can flow in
             if let Some(blocker_functions) = self.flow_blocks.remove(&job.flow_id) {
                 for blocker_function_id in blocker_functions {
                     self.remove_blocks(blocker_function_id)?;
                 }
             }
-
-            // run flow initializers on functions in the flow that has just gone idle
-            self.run_flow_initializers(job.flow_id)?;
         }
 
         Ok((display_next_output, restart))
@@ -860,6 +888,58 @@ impl RunState {
                 if function.can_run() {
                     self.create_jobs_or_block(block.blocked_function_id, block.blocked_flow_id)?;
                 }
+            }
+        }
+
+        Ok(())
+    }
+
+    fn clear_idle_flow(&mut self, flow_id: usize) -> Result<()> {
+        for function in &mut self.submission.manifest.get_functions().iter_mut() {
+            if function.get_flow_id() == flow_id
+                && !self.completed.contains(&function.id())
+                && !self.blocked.contains(&function.id())
+            {
+                function.clear_internal_values();
+            }
+        }
+
+        self.remove_stale_blocks(flow_id)?;
+        self.run_flow_initializers(flow_id)?;
+        self.flows_pending_clear.remove(&flow_id);
+        Ok(())
+    }
+
+    fn remove_stale_blocks(&mut self, flow_id: usize) -> Result<()> {
+        let stale_blocks: Vec<_> = self
+            .blocks
+            .iter()
+            .filter(|b| b.blocking_flow_id == flow_id)
+            .filter(|b| {
+                self.get_function(b.blocking_function_id).map_or(true, |f| {
+                    !f.values_available(b.blocking_io_number).unwrap_or(false)
+                })
+            })
+            .cloned()
+            .collect();
+
+        let mut unblocked_functions = vec![];
+        for block in stale_blocks {
+            let blocked_id = block.blocked_function_id;
+            let blocked_flow = block.blocked_flow_id;
+            self.blocks.remove(&block);
+            if self.blocked.contains(&blocked_id) && !self.block_exists(blocked_id) {
+                self.blocked.remove(&blocked_id);
+                unblocked_functions.push((blocked_id, blocked_flow));
+            }
+        }
+
+        for (function_id, function_flow_id) in unblocked_functions {
+            let can_run = self
+                .get_function(function_id)
+                .map_or(false, |f| f.can_run());
+            if can_run {
+                self.create_jobs_or_block(function_id, function_flow_id)?;
             }
         }
 
