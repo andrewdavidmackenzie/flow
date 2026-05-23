@@ -24,10 +24,9 @@ jobs:
       - name: Build flowrgui
         run: cargo build -p flowr --bin flowrgui
 
+      - name: Install jonesy
+        run: cargo install jonesy
+
       - name: Run jonesy analysis
-        uses: andrewdavidmackenzie/jonesy@v1
-        with:
-          working-directory: flowr
-          binary: flowrgui
-          extra-args: '--config ${{ github.workspace }}/jonesy.toml'
-          fail-on-panic: 'true'
+        working-directory: flowr
+        run: jonesy --bin flowrgui --config "${{ github.workspace }}/jonesy.toml" --no-hyperlinks
