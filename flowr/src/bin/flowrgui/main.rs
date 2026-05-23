@@ -1085,4 +1085,32 @@ mod test {
         let found = ui.find("OK");
         assert!(found.is_ok(), "OK button should be present in error modal");
     }
+
+    #[test]
+    fn save_error_shows_modal() {
+        let mut gui = test_gui();
+        assert!(!gui.show_modal);
+        drop(gui.update(Message::SaveError("write failed".into())));
+        assert!(gui.show_modal);
+        assert_eq!(gui.modal_content.0, "Error");
+        assert_eq!(gui.modal_content.1, "write failed");
+    }
+
+    #[test]
+    fn submitted_sets_flow_name_from_url() {
+        let mut gui = test_gui();
+        gui.submission_settings.flow_manifest_url =
+            "flowr/examples/mandlebrot/manifest.json".into();
+        drop(gui.update(Message::Submitted));
+        assert_eq!(gui.tab_set.flow_name, "mandlebrot");
+        assert!(gui.submitted);
+    }
+
+    #[test]
+    fn submitted_sets_empty_flow_name_when_no_parent() {
+        let mut gui = test_gui();
+        gui.submission_settings.flow_manifest_url = "manifest.json".into();
+        drop(gui.update(Message::Submitted));
+        assert!(gui.tab_set.flow_name.is_empty());
+    }
 }

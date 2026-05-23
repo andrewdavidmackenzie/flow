@@ -584,4 +584,78 @@ mod test {
         assert_eq!(tabs.stdout_tab.unread_count, 0);
         assert_eq!(tabs.stderr_tab.unread_count, 3);
     }
+
+    #[test]
+    fn tabset_flow_name_default_empty() {
+        let tabs = TabSet::new();
+        assert!(tabs.flow_name.is_empty());
+    }
+
+    #[test]
+    fn tabset_clear_resets_all_tabs() {
+        let mut tabs = TabSet::new();
+        tabs.stdout_tab.content.push("hello".into());
+        tabs.stderr_tab.content.push("error".into());
+        tabs.fileio_tab.content.push("file".into());
+        tabs.flow_name = "myflow".into();
+        tabs.clear();
+        assert!(tabs.stdout_tab.content.is_empty());
+        assert!(tabs.stderr_tab.content.is_empty());
+        assert!(tabs.fileio_tab.content.is_empty());
+    }
+
+    #[test]
+    fn clear_tab_stdout() {
+        let mut tabs = TabSet::new();
+        tabs.stdout_tab.content.push("line1".into());
+        tabs.stdout_tab.content.push("line2".into());
+        drop(tabs.update(Message::ClearTab("Stdout".into())));
+        assert!(tabs.stdout_tab.content.is_empty());
+    }
+
+    #[test]
+    fn clear_tab_stderr() {
+        let mut tabs = TabSet::new();
+        tabs.stderr_tab.content.push("err".into());
+        drop(tabs.update(Message::ClearTab("Stderr".into())));
+        assert!(tabs.stderr_tab.content.is_empty());
+    }
+
+    #[test]
+    fn clear_tab_unknown_is_noop() {
+        let mut tabs = TabSet::new();
+        tabs.stdout_tab.content.push("keep".into());
+        drop(tabs.update(Message::ClearTab("Unknown".into())));
+        assert_eq!(tabs.stdout_tab.content, vec!["keep"]);
+    }
+
+    #[test]
+    fn save_image_unknown_name_is_noop() {
+        let mut tabs = TabSet::new();
+        drop(tabs.update(Message::SaveImage("nonexistent".into())));
+    }
+
+    #[test]
+    fn save_tab_content_unknown_name_is_noop() {
+        let mut tabs = TabSet::new();
+        tabs.stdout_tab.content.push("data".into());
+        drop(tabs.update(Message::SaveTabContent("Unknown".into())));
+        assert_eq!(tabs.stdout_tab.content, vec!["data"]);
+    }
+
+    #[test]
+    fn image_tab_clear_removes_images() {
+        let mut tab = ImageTab::new("Images");
+        tab.images.insert(
+            "test".into(),
+            ImageReference {
+                width: 1,
+                height: 1,
+                data: image::RgbaImage::new(1, 1),
+            },
+        );
+        tab.new_activity = true;
+        Tab::clear(&mut tab);
+        assert!(tab.images.is_empty());
+    }
 }
