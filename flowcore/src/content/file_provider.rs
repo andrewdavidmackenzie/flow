@@ -127,6 +127,7 @@ impl FileProvider {
 }
 
 #[cfg(test)]
+#[allow(clippy::unwrap_used, clippy::expect_used)]
 mod test {
     mod file_provider {
         use std::ffi::OsStr;

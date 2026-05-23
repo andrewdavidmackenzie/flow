@@ -1,3 +1,5 @@
+#![deny(clippy::unwrap_used, clippy::expect_used)]
+
 //! `flowrgui` is a GUI flow runner for running `flow` programs.
 //!
 //! It reads a compiled [`FlowManifest`][flowcore::model::flow_manifest::FlowManifest] produced by a
@@ -941,13 +943,19 @@ impl FlowrGui {
                 trace!("StderrEof received");
                 self.send(ClientMessage::Ack);
             }
-            _ => {}
+            CoordinatorMessage::Disconnected(reason) => {
+                self.coordinator_state = crate::CoordinatorState::Disconnected(reason.clone());
+                self.running = false;
+                self.error(&reason);
+            }
+            CoordinatorMessage::Invalid => {}
         }
         Task::none()
     }
 }
 
 #[cfg(test)]
+#[allow(clippy::unwrap_used, clippy::expect_used)]
 mod test {
     use super::*;
 

@@ -163,7 +163,7 @@ fn function_to_dot(
         let destination_name = destination_function
             .get_inputs()
             .get(destination.destination_io_number)
-            .expect("Could not get input")
+            .ok_or("Could not get input")?
             .name()
             .clone();
         let _ = write!(

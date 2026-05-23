@@ -188,6 +188,7 @@ fn out_of_date(source: &Path, derived: &Path) -> Result<(bool, bool)> {
 }
 
 #[cfg(test)]
+#[allow(clippy::unwrap_used, clippy::expect_used)]
 mod test {
     use std::collections::BTreeMap;
     use std::env;

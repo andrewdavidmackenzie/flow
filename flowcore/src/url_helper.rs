@@ -34,6 +34,7 @@ pub fn url_from_string(base_url: &Url, string: Option<&str>) -> Result<Url> {
 }
 
 #[cfg(test)]
+#[allow(clippy::unwrap_used, clippy::expect_used)]
 mod test {
     use std::env;
     use std::path::PathBuf;

@@ -51,6 +51,7 @@ impl Implementation for Get {
 }
 
 #[cfg(test)]
+#[allow(clippy::unwrap_used, clippy::expect_used)]
 mod test {
     use std::sync::{Arc, Mutex};
 

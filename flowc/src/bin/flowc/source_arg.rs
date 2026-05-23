@@ -20,14 +20,16 @@ fn default_lib_compile_dir(source_url: &Url) -> Result<PathBuf> {
         .next_back()
         .ok_or("Could not get last path segment of source_url")?;
 
-    let home_dir = env::var("HOME").expect("Could not get $HOME");
+    let home_dir = env::var("HOME").map_err(|_| "Could not get $HOME")?;
 
     Ok(PathBuf::from(format!("{home_dir}/.flow/lib/{lib_name}")))
 }
 
-pub(crate) fn default_runner_dir(runner_name: &str) -> PathBuf {
-    let home_dir = env::var("HOME").expect("Could not get $HOME");
-    PathBuf::from(format!("{home_dir}/.flow/runner/{runner_name}"))
+pub(crate) fn default_runner_dir(runner_name: &str) -> Result<PathBuf> {
+    let home_dir = env::var("HOME").map_err(|_| "Could not get $HOME")?;
+    Ok(PathBuf::from(format!(
+        "{home_dir}/.flow/runner/{runner_name}"
+    )))
 }
 
 // Load a `RunnerSpec` from the context at `context_root`
@@ -85,7 +87,7 @@ pub(crate) fn get_output_dir(
         match compile_type {
             CompileType::Library => output_dir = default_lib_compile_dir(source_url)?,
             CompileType::Flow => output_dir = default_flow_compile_dir(source_url)?,
-            CompileType::Runner(name) => output_dir = default_runner_dir(&name),
+            CompileType::Runner(name) => output_dir = default_runner_dir(&name)?,
         }
     }
 
@@ -93,6 +95,7 @@ pub(crate) fn get_output_dir(
 }
 
 #[cfg(test)]
+#[allow(clippy::unwrap_used, clippy::expect_used)]
 mod test {
     use std::fs;
     use std::io::Write;

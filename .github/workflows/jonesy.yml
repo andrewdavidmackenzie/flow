@@ -1,0 +1,32 @@
+name: Jonesy Panic Analysis
+
+on:
+  pull_request:
+  push:
+    branches: [ master ]
+
+jobs:
+  analyze:
+    runs-on: macos-26
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install rust
+        uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: 1.95.0
+
+      - name: Install system dependencies
+        run: brew install zmq binaryen
+
+      - uses: Swatinem/rust-cache@v2
+
+      - name: Build flowrgui
+        run: cargo build -p flowr --bin flowrgui
+
+      - name: Install jonesy
+        run: cargo install jonesy
+
+      - name: Run jonesy analysis
+        working-directory: flowr
+        run: jonesy --bin flowrgui --config "${{ github.workspace }}/jonesy.toml" --no-hyperlinks

@@ -357,6 +357,7 @@ fn find_connection_destinations(
 }
 
 #[cfg(test)]
+#[allow(clippy::unwrap_used, clippy::expect_used)]
 mod test {
     use flowcore::model::connection::Connection;
     use flowcore::model::datatype::STRING_TYPE;

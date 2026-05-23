@@ -31,15 +31,18 @@ impl Implementation for FileWrite {
             .iter()
             .map(|byte_value| byte_value.as_u64().unwrap_or(0) as u8)
             .collect();
-        let _ = server.send_and_receive_response::<CoordinatorMessage, ClientMessage>(
+        match server.send_and_receive_response::<CoordinatorMessage, ClientMessage>(
             CoordinatorMessage::Write(filename.as_str().unwrap_or("").to_string(), bytes),
-        );
-
-        Ok((None, RUN_AGAIN))
+        ) {
+            Ok(ClientMessage::Error(msg)) => Err(msg.into()),
+            Ok(_) => Ok((None, RUN_AGAIN)),
+            Err(e) => Err(e),
+        }
     }
 }
 
 #[cfg(test)]
+#[allow(clippy::unwrap_used, clippy::expect_used)]
 mod test {
     use flowcore::{Implementation, RUN_AGAIN};
     use serde_json::json;

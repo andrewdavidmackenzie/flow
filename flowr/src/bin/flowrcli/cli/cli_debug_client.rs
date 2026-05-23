@@ -60,13 +60,20 @@ pub struct CliDebugClient {
 
 impl CliDebugClient {
     /// Create a new debug client accepting the debug connection
-    pub fn new(connection: ClientConnection, override_args: Arc<Mutex<Vec<String>>>) -> Self {
-        CliDebugClient {
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the terminal editor cannot be created
+    pub fn new(
+        connection: ClientConnection,
+        override_args: Arc<Mutex<Vec<String>>>,
+    ) -> Result<Self> {
+        Ok(CliDebugClient {
             connection,
             override_args,
-            editor: DefaultEditor::new().expect("Could not create Editor"),
+            editor: DefaultEditor::new().map_err(|e| format!("Could not create Editor: {e}"))?,
             last_command: String::new(),
-        }
+        })
     }
 
     /// Main debug client loop where events are received, processed and responses sent
@@ -246,9 +253,7 @@ impl CliDebugClient {
             "h" | "?" | "help" => {
                 // only command that doesn't send a message to debugger
                 Self::help();
-                self.editor
-                    .add_history_entry(command)
-                    .expect("Could not add history line");
+                let _ = self.editor.add_history_entry(command);
                 None
             }
             "i" | "inspect" => Self::parse_inspect_spec(params),
@@ -408,6 +413,7 @@ impl CliDebugClient {
 }
 
 #[cfg(test)]
+#[allow(clippy::unwrap_used, clippy::expect_used)]
 mod test {
     use serde_json::json;
 

@@ -287,6 +287,7 @@ impl Input {
 }
 
 #[cfg(test)]
+#[allow(clippy::unwrap_used, clippy::expect_used)]
 mod test {
     use crate::model::input::InputInitializer::{Always, Once};
     use serde_json::json;

@@ -469,6 +469,7 @@ fn absolute_to_relative(target: &Path, source: &Path) -> Result<String> {
 }
 
 #[cfg(test)]
+#[allow(clippy::unwrap_used, clippy::expect_used)]
 mod test {
     use std::path::Path;
 

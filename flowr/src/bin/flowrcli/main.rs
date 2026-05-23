@@ -1,3 +1,5 @@
+#![deny(clippy::unwrap_used, clippy::expect_used)]
+
 //! `flowr` is a command line flow runner for running `flow` programs.
 //!
 //! It reads a compiled [`FlowManifest`][flowcore::model::flow_manifest::FlowManifest] produced by a
@@ -398,7 +400,7 @@ fn client(
     if debug_this_flow {
         let debug_server_address = discover_service(DEBUG_SERVICE_NAME)?;
         let debug_client_connection = ClientConnection::new(&debug_server_address)?;
-        let debug_client = CliDebugClient::new(debug_client_connection, override_args);
+        let debug_client = CliDebugClient::new(debug_client_connection, override_args)?;
         let _ = thread::spawn(move || {
             debug_client.debug_client_loop();
         });

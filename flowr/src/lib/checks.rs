@@ -244,6 +244,7 @@ pub(crate) fn check_invariants(state: &RunState, job_id: usize) -> Result<()> {
 }
 
 #[cfg(test)]
+#[allow(clippy::unwrap_used, clippy::expect_used)]
 mod test {
     #[cfg(feature = "debugger")]
     use serde_json::Value;

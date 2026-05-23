@@ -118,6 +118,7 @@ impl HasRoute for FunctionDefinition {
 }
 
 impl FunctionDefinition {
+    #[allow(clippy::expect_used)]
     fn default_url() -> Url {
         Url::parse("file://").expect("Could not create default_url")
     }
@@ -450,6 +451,7 @@ impl SetRoute for FunctionDefinition {
 }
 
 #[cfg(test)]
+#[allow(clippy::unwrap_used, clippy::expect_used)]
 mod test {
     use url::Url;
 

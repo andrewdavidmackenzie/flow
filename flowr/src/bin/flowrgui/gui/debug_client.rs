@@ -58,13 +58,20 @@ pub struct DebugClient {
 
 impl DebugClient {
     /// Create a new debug client accepting the debug connection
-    pub fn new(connection: ClientConnection, override_args: Arc<Mutex<Vec<String>>>) -> Self {
-        DebugClient {
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the terminal editor cannot be created
+    pub fn new(
+        connection: ClientConnection,
+        override_args: Arc<Mutex<Vec<String>>>,
+    ) -> Result<Self> {
+        Ok(DebugClient {
             connection,
             override_args,
-            editor: DefaultEditor::new().expect("Could not create Editor"),
+            editor: DefaultEditor::new().map_err(|e| format!("Could not create Editor: {e}"))?,
             last_command: String::new(),
-        }
+        })
     }
 
     /// Main debug client loop where events are received, processed and responses sent
@@ -245,9 +252,7 @@ impl DebugClient {
             "h" | "?" | "help" => {
                 // only command that doesn't send a message to debugger
                 Self::help();
-                self.editor
-                    .add_history_entry(command)
-                    .expect("Could not add history line");
+                let _ = self.editor.add_history_entry(command);
                 None
             }
             "i" | "inspect" => Self::parse_inspect_spec(params),

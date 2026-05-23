@@ -315,6 +315,7 @@ fn get_source(
 }
 
 #[cfg(test)]
+#[allow(clippy::unwrap_used, clippy::expect_used)]
 mod test {
     #[cfg(feature = "debugger")]
     use std::collections::BTreeMap;

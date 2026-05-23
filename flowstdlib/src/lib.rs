@@ -1,3 +1,4 @@
+#![deny(clippy::unwrap_used, clippy::expect_used)]
 //! `flowstdlib` is a library of flows and functions that can be used from flows.
 //!
 //! The flow and function definition are used at compile time when compile flows that reference
@@ -41,6 +42,7 @@ pub mod manifest;
 pub mod errors;
 
 #[cfg(test)]
+#[allow(clippy::unwrap_used, clippy::expect_used)]
 #[allow(clippy::missing_panics_doc)]
 #[allow(missing_docs)]
 pub mod test {

@@ -43,6 +43,7 @@ impl Implementation for Stdin {
 }
 
 #[cfg(test)]
+#[allow(clippy::unwrap_used, clippy::expect_used)]
 mod test {
     use flowcore::{Implementation, DONT_RUN_AGAIN, RUN_AGAIN};
     use serde_json::json;
