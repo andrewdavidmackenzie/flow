@@ -1414,6 +1414,7 @@ dependencies = [
  "once_cell",
  "portpicker",
  "rand 0.10.1",
+ "rfd",
  "rustyline",
  "serde",
  "serde_derive",

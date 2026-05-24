@@ -14,7 +14,7 @@ use flowrlib::debug_command::DebugCommand::{
     InspectBlock, InspectFunction, InspectInput, InspectOutput, List, Modify, RunReset, Step,
     Validate,
 };
-use flowrlib::run_state::{RunState, State};
+use flowrlib::run_state::RunState;
 
 use crate::cli::connections::ClientConnection;
 use crate::cli::debug_message::DebugServerMessage;
@@ -387,26 +387,6 @@ impl CliDebugClient {
                 print!("{function}");
                 let function_states = run_state.get_function_states(id);
                 println!("\tStates: {function_states:?}");
-
-                if function_states.contains(&State::Blocked) {
-                    for block in run_state.get_blocks() {
-                        if block.blocked_function_id == id {
-                            println!("\t\t{block:?}");
-                        }
-                    }
-                }
-
-                // print any blocked or blocking function information
-                for block in run_state.get_blocks() {
-                    if block.blocking_function_id == id {
-                        println!(
-                            "\tBlocking #{}:{} <- Blocked #{}",
-                            block.blocking_function_id,
-                            block.blocking_io_number,
-                            block.blocked_function_id
-                        );
-                    }
-                }
             }
         }
     }
