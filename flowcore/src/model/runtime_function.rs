@@ -292,6 +292,20 @@ impl RuntimeFunction {
         self.internal_input_sets_available() > 0
     }
 
+    /// Take an input set using only internal values, for sub-flows in their running phase
+    pub fn take_internal_input_set(&mut self) -> Option<Vec<Value>> {
+        if !self.can_run_on_internal() {
+            return None;
+        }
+
+        let mut input_set: Vec<Value> = Vec::with_capacity(self.inputs.len());
+        for input in &mut self.inputs {
+            input_set.push(input.take_internal()?);
+        }
+
+        Some(input_set)
+    }
+
     /// Clear all internally-tagged values from all inputs
     pub fn clear_internal_values(&mut self) {
         for input in &mut self.inputs {

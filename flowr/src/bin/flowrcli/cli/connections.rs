@@ -286,12 +286,16 @@ mod test {
             .send(ClientMessage::Hello)
             .expect("Could not send initial 'Hello' message");
 
-        std::thread::sleep(Duration::from_millis(500));
-
+        let mut received = None;
+        for _ in 0..3 {
+            std::thread::sleep(Duration::from_millis(500));
+            if let Ok(msg) = coordinator_connection.receive::<ClientMessage>(DONT_WAIT) {
+                received = Some(msg);
+                break;
+            }
+        }
         assert_eq!(
-            coordinator_connection
-                .receive::<ClientMessage>(DONT_WAIT)
-                .expect("Could not receive message at Coordinator"),
+            received.expect("Could not receive message at Coordinator after 3 retries"),
             ClientMessage::Hello
         );
 

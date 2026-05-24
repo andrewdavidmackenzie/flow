@@ -395,15 +395,21 @@ impl RunState {
                     }
                 }
 
+                // After outputs are sent, mark sub-flow as in-progress so subsequent
+                // jobs only consume internal values
+                if job.flow_id != 0 {
+                    self.flows_in_progress.insert(job.flow_id);
+                }
+
                 if *function_can_run_again {
                     let function = self.get_mut(job.function_id).ok_or("No such function")?;
 
                     // Refill any inputs with function initializers
                     function.init_inputs(false, false);
 
-                    // NOTE: The function we are retiring may have new input sets due to sending
-                    // to itself via a loopback
-                    if function.can_run() {
+                    if function.can_run_on_internal() {
+                        self.create_jobs_internal_only(job.function_id, job.flow_id)?;
+                    } else if function.can_run() {
                         self.create_jobs(job.function_id, job.flow_id)?;
                     }
                 } else {
@@ -481,8 +487,11 @@ impl RunState {
             )?;
         }
 
-        // Check if the destination flow is already running (recursively)
-        let _dest_flow_is_running = !self.is_flow_idle(connection.destination_flow_id);
+        // External value arriving at a busy sub-flow: suppress job creation
+        // UNLESS the source is a descendant of the destination (child→parent allowed)
+        let dest_flow_busy = !same_flow
+            && !self.is_flow_idle(connection.destination_flow_id)
+            && !self.is_ancestor_of(connection.destination_flow_id, source_flow_id);
 
         let function = self
             .get_mut(connection.destination_id)
@@ -495,18 +504,11 @@ impl RunState {
 
         let new_job_available = function.input_sets_available() > job_count_before;
 
-        // Suppress job creation when an external value arrives at a sub-flow that
-        // is currently running an iteration or has completed one. Values queue up
-        // and will be consumed when the flow completes and restarts.
-        let dest_flow = connection.destination_flow_id;
-        let suppress_job = !same_flow
-            && (self.flows_in_progress.contains(&dest_flow)
-                || self.flows_needing_init.contains(&dest_flow));
-
-        // postpone the decision about making the sending function Ready when we have a loopback
-        // connection that sends a value to itself, as it may also send to other functions.
-        // But for all other receivers of values, make them Ready
-        if new_job_available && !loopback && !suppress_job {
+        // External values arriving at a busy sub-flow queue up but don't trigger
+        // new jobs. The sub-flow will complete its iteration, go idle, clear internal
+        // values, run initializers, and then consume the queued external values.
+        // Also postpone loopback decisions as the function may send to other functions.
+        if new_job_available && !loopback && !dest_flow_busy {
             self.create_jobs(connection.destination_id, connection.destination_flow_id)?;
         }
 
@@ -574,6 +576,19 @@ impl RunState {
 
     // Create one or more new jobs for the function and mark the flow containing it as busy
     pub(crate) fn create_jobs(&mut self, function_id: usize, flow_id: usize) -> Result<()> {
+        self.create_jobs_impl(function_id, flow_id, false)
+    }
+
+    fn create_jobs_internal_only(&mut self, function_id: usize, flow_id: usize) -> Result<()> {
+        self.create_jobs_impl(function_id, flow_id, true)
+    }
+
+    fn create_jobs_impl(
+        &mut self,
+        function_id: usize,
+        flow_id: usize,
+        internal_only: bool,
+    ) -> Result<()> {
         // If this flow was idle and needs initializers, run them before creating jobs
         self.run_flow_initializers(flow_id)?;
 
@@ -584,7 +599,12 @@ impl RunState {
                 .ok_or("Ran out of job IDs")?;
             let job_id = self.number_of_jobs_created;
             let function = self.get_mut(function_id).ok_or("Could not get function")?;
-            if let Some(input_set) = function.take_input_set() {
+            let input_set = if internal_only || function.can_run_on_internal() {
+                function.take_internal_input_set()
+            } else {
+                function.take_input_set()
+            };
+            if let Some(input_set) = input_set {
                 let implementation_url = function.get_implementation_url().clone();
                 debug!(
                     "Job #{job_id} created for Function #{function_id}({flow_id}) with inputs: {input_set:?}"
@@ -605,9 +625,6 @@ impl RunState {
                 let always_ready = function.is_always_ready();
                 self.ready_jobs.push_back(job);
                 self.busy_flows.insert(flow_id, function_id);
-                if flow_id != 0 {
-                    self.flows_in_progress.insert(flow_id);
-                }
                 if always_ready {
                     return Ok(());
                 }
@@ -666,7 +683,9 @@ impl RunState {
             }
 
             self.flows_in_progress.remove(&job.flow_id);
-            self.flows_needing_init.insert(job.flow_id);
+            // Run flow initializers immediately so the flow can restart
+            // when external values arrive
+            self.run_flow_initializers(job.flow_id)?;
         }
 
         Ok((display_next_output, restart))
@@ -686,6 +705,21 @@ impl RunState {
         trace!("\t\t\tUpdated busy_flows list to: {:?}", self.busy_flows);
     }
 
+    #[allow(dead_code)]
+    fn is_ancestor_of(&self, ancestor_flow: usize, descendant_flow: usize) -> bool {
+        for flow_info in self.submission.manifest.flows() {
+            if flow_info.flow_id == ancestor_flow {
+                for &child in &flow_info.sub_flow_ids {
+                    if child == descendant_flow || self.is_ancestor_of(child, descendant_flow) {
+                        return true;
+                    }
+                }
+                return false;
+            }
+        }
+        false
+    }
+
     fn is_flow_idle(&self, flow_id: usize) -> bool {
         if self.busy_flows.contains_key(&flow_id) {
             return false;
@@ -703,10 +737,6 @@ impl RunState {
     }
 
     fn run_flow_initializers(&mut self, flow_id: usize) -> Result<()> {
-        if !self.flows_needing_init.remove(&flow_id) {
-            return Ok(());
-        }
-
         let mut initialized_functions = Vec::<usize>::new();
         for function in &mut self.submission.manifest.get_functions().iter_mut() {
             if function.get_flow_id() == flow_id && !self.completed.contains(&function.id()) {

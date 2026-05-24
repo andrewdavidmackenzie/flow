@@ -276,6 +276,17 @@ impl Input {
         Some(value)
     }
 
+    /// Take the first internal value from the Input, skipping external values
+    #[must_use]
+    pub fn take_internal(&mut self) -> Option<Value> {
+        let pos = self
+            .received
+            .iter()
+            .position(|(_, is_internal)| *is_internal)?;
+        let (value, _) = self.received.remove(pos);
+        Some(value)
+    }
+
     /// Return the total number of values queued up in this input
     #[must_use]
     pub fn values_available(&self) -> usize {
