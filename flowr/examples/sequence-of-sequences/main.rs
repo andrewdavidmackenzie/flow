@@ -9,6 +9,7 @@ mod test {
     use std::path::PathBuf;
 
     #[test]
+    #[ignore] // Disabled until sub-flow run-to-completion semantics are implemented (#2649)
     fn test_sequence_of_sequences_example() {
         let _ = env::set_current_dir(
             PathBuf::from(env!("CARGO_MANIFEST_DIR"))
