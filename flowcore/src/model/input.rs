@@ -61,9 +61,15 @@ pub struct Input {
     flow_initializer: Option<InputInitializer>,
 
     // The queue of values received so far as an ordered vector of entries,
-    // with first will be at the head and last at the tail
+    // with first will be at the head and last at the tail.
+    // Each entry is (Value, is_internal) where is_internal indicates the value
+    // was produced within the same flow (for sub-flow run-to-completion semantics).
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
-    received: Vec<Value>,
+    received: Vec<(Value, bool)>,
+
+    // When true, only internal values (from the same flow) are visible to take/values_available
+    #[serde(default, skip)]
+    internal_only: bool,
 }
 
 #[allow(clippy::trivially_copy_pass_by_ref)] // As this is imposed on us by serde
@@ -100,7 +106,8 @@ impl fmt::Display for Input {
             write!(f, "({}) ", self.name)?;
         }
         if !self.received.is_empty() {
-            write!(f, "{:?}", self.received)?;
+            let values: Vec<&Value> = self.received.iter().map(|(v, _)| v).collect();
+            write!(f, "{values:?}")?;
         }
         Ok(())
     }
@@ -126,6 +133,7 @@ impl Input {
             initializer,
             flow_initializer,
             received: Vec::new(),
+            internal_only: false,
         }
     }
 
@@ -144,6 +152,7 @@ impl Input {
             initializer,
             flow_initializer,
             received: Vec::new(),
+            internal_only: false,
         }
     }
 
@@ -180,11 +189,11 @@ impl Input {
     pub fn init(&mut self, first_time: bool, flow_gone_idle: bool) -> bool {
         match (first_time, flow_gone_idle, &self.initializer) {
             (true, false, Some(Once(one_time))) => {
-                self.send(one_time.clone());
+                self.send(one_time.clone(), true);
                 return true;
             }
             (_, false, Some(Always(constant))) => {
-                self.send(constant.clone());
+                self.send(constant.clone(), true);
                 return true;
             }
             (_, _, _) => {}
@@ -194,15 +203,15 @@ impl Input {
         // applied
         match (first_time, flow_gone_idle, &self.flow_initializer) {
             (true, _, Some(Once(one_time))) => {
-                self.send(one_time.clone());
+                self.send(one_time.clone(), true);
                 return true;
             }
             (true, _, Some(Always(constant))) => {
-                self.send(constant.clone());
+                self.send(constant.clone(), true);
                 return true;
             }
             (_, true, Some(Always(constant))) => {
-                self.send(constant.clone());
+                self.send(constant.clone(), true);
                 return true;
             }
             (_, _, _) => {}
@@ -216,21 +225,22 @@ impl Input {
         self.array_order
     }
 
-    /// Send a Value or array of Values to this input
-    pub(crate) fn send(&mut self, value: Value) -> bool {
+    /// Send a Value or array of Values to this input.
+    /// `is_internal` indicates whether the value originated from within the same flow.
+    pub(crate) fn send(&mut self, value: Value, is_internal: bool) -> bool {
         if self.generic {
-            self.received.push(value);
+            self.received.push((value, is_internal));
         } else {
             match (
                 DataType::value_array_order(&value) - self.array_order(),
                 &value,
             ) {
-                (0, _) => self.received.push(value),
-                (1, Value::Array(array)) => self.send_array_elements(array.clone()),
+                (0, _) => self.received.push((value, is_internal)),
+                (1, Value::Array(array)) => self.send_array_elements(array.clone(), is_internal),
                 (2, Value::Array(array_2)) => {
                     for array in array_2 {
                         if let Value::Array(sub_array) = array {
-                            self.send_array_elements(sub_array.clone());
+                            self.send_array_elements(sub_array.clone(), is_internal);
                         }
                     }
                 }
@@ -239,14 +249,14 @@ impl Input {
                         "\t\tSending value '{value}' wrapped in an Array: '{}'",
                         json!([value])
                     );
-                    self.received.push(json!([value]));
+                    self.received.push((json!([value]), is_internal));
                 }
                 (-2, _) => {
                     debug!(
                         "\t\tSending value '{value}' wrapped in an Array of Array: '{}'",
                         json!([[value]])
                     );
-                    self.received.push(json!([[value]]));
+                    self.received.push((json!([[value]]), is_internal));
                 }
                 _ => return false,
             }
@@ -255,34 +265,62 @@ impl Input {
     }
 
     // Send an array of values to this `Input`, by sending them one element at a time
-    fn send_array_elements(&mut self, array: Vec<Value>) {
+    fn send_array_elements(&mut self, array: Vec<Value>, is_internal: bool) {
         debug!("\t\tSending Array as a series of Values");
         for value in array {
             debug!("\t\t\tSending array element as Value; '{value}'");
-            self.received.push(value);
+            self.received.push((value, is_internal));
         }
     }
 
-    /// Take the first element from the Input and return it. Could panic!
+    /// Take the first eligible element from the Input and return it.
+    /// When `internal_only` is true, only internal values are taken.
     #[must_use]
     pub fn take(&mut self) -> Option<Value> {
-        if self.received.is_empty() {
-            return None;
+        if self.internal_only {
+            // Find the first internal value
+            if let Some(pos) = self.received.iter().position(|(_, internal)| *internal) {
+                let (value, _) = self.received.remove(pos);
+                return Some(value);
+            }
+            None
+        } else {
+            if self.received.is_empty() {
+                return None;
+            }
+            let (value, _) = self.received.remove(0);
+            Some(value)
         }
-
-        Some(self.received.remove(0))
     }
 
-    /// Return the total number of values queued up in this input
+    /// Return the total number of eligible values queued up in this input.
+    /// When `internal_only` is true, only internal values are counted.
     #[must_use]
     pub fn values_available(&self) -> usize {
-        self.received.len()
+        if self.internal_only {
+            self.received
+                .iter()
+                .filter(|(_, internal)| *internal)
+                .count()
+        } else {
+            self.received.len()
+        }
     }
 
-    /// Return true if there are no more values available from this input
+    /// Return true if there are no more eligible values available from this input
     #[must_use]
     pub fn is_empty(&self) -> bool {
         self.values_available() == 0
+    }
+
+    /// Set `internal_only` mode on this input
+    pub fn set_internal_only(&mut self, mode: bool) {
+        self.internal_only = mode;
+    }
+
+    /// Remove all internal values from this input's queue
+    pub fn clear_internal_values(&mut self) {
+        self.received.retain(|(_, internal)| !internal);
     }
 }
 
@@ -331,7 +369,7 @@ mod test {
             None,
             None,
         );
-        input.send(Value::Null);
+        input.send(Value::Null, false);
         assert!(!input.is_empty());
     }
 
@@ -345,7 +383,7 @@ mod test {
             None,
             None,
         );
-        input.send_array_elements(vec![json!(5), json!(10), json!(15)]);
+        input.send_array_elements(vec![json!(5), json!(10), json!(15)], false);
         assert!(!input.is_empty());
     }
 
@@ -359,7 +397,7 @@ mod test {
             None,
             None,
         );
-        input.send(json!(10));
+        input.send(json!(10), false);
         assert!(!input.is_empty());
         let _value = input
             .take()
@@ -378,7 +416,7 @@ mod test {
             None,
             None,
         );
-        input.send(json!(10));
+        input.send(json!(10), false);
         assert!(!input.is_empty());
         input.reset();
         assert!(input.is_empty());

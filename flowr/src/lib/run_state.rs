@@ -386,6 +386,14 @@ impl RunState {
                     }
                 }
 
+                // After a function runs in a sub-flow, set it to internal_only
+                // so it skips external values on subsequent runs in this iteration
+                if job.flow_id != 0 {
+                    if let Some(f) = self.get_mut(job.function_id) {
+                        f.set_internal_only(true);
+                    }
+                }
+
                 if *function_can_run_again {
                     let function = self.get_mut(job.function_id).ok_or("No such function")?;
 
@@ -432,7 +440,7 @@ impl RunState {
     fn send_a_value(
         &mut self,
         source_id: usize,
-        _source_flow_id: usize,
+        source_flow_id: usize,
         connection: &OutputConnection,
         output_value: Value,
         #[cfg(feature = "metrics")] metrics: &mut Metrics,
@@ -471,11 +479,19 @@ impl RunState {
             )?;
         }
 
+        let is_internal = self.is_internal_to_dest(source_flow_id, connection.destination_flow_id);
+        // Don't create jobs from external values sent to a busy sub-flow,
+        // unless the source is a parent/ancestor of the destination (parent drives child)
+        let source_is_ancestor =
+            self.is_descendant_flow(source_flow_id, connection.destination_flow_id);
+        let suppress_job = !is_internal
+            && !source_is_ancestor
+            && !self.is_flow_idle(connection.destination_flow_id);
         let function = self
             .get_mut(connection.destination_id)
             .ok_or("Could not get function")?;
         let job_count_before = function.input_sets_available();
-        function.send(connection.destination_io_number, output_value)?;
+        function.send(connection.destination_io_number, output_value, is_internal)?;
 
         #[cfg(feature = "metrics")]
         metrics.increment_outputs_sent(); // not distinguishing array serialization / wrapping etc.
@@ -485,7 +501,7 @@ impl RunState {
         // postpone the decision about making the sending function Ready when we have a loopback
         // connection that sends a value to itself, as it may also send to other functions.
         // But for all other receivers of values, make them Ready
-        if new_job_available && !loopback {
+        if new_job_available && !loopback && !suppress_job {
             self.create_jobs(connection.destination_id, connection.destination_flow_id)?;
         }
 
@@ -552,6 +568,7 @@ impl RunState {
 
     // Create one or more new jobs for the function and mark the flow containing it as busy
     pub(crate) fn create_jobs(&mut self, function_id: usize, flow_id: usize) -> Result<()> {
+        let flow_was_idle = flow_id != 0 && self.is_flow_idle(flow_id);
         loop {
             self.number_of_jobs_created = self
                 .number_of_jobs_created
@@ -559,6 +576,10 @@ impl RunState {
                 .ok_or("Ran out of job IDs")?;
             let job_id = self.number_of_jobs_created;
             let function = self.get_mut(function_id).ok_or("Could not get function")?;
+            debug!(
+                "create_jobs: Function #{function_id}({flow_id}) values_available: {}",
+                function.input_sets_available()
+            );
             if let Some(input_set) = function.take_input_set() {
                 let implementation_url = function.get_implementation_url().clone();
                 debug!(
@@ -580,6 +601,16 @@ impl RunState {
                 let always_ready = function.is_always_ready();
                 self.ready_jobs.push_back(job);
                 self.busy_flows.insert(flow_id, function_id);
+
+                // TODO: internal_only disabled while debugging
+                // if flow_was_idle {
+                //     for f in &mut self.submission.manifest.get_functions().iter_mut() {
+                //         if f.get_flow_id() == flow_id {
+                //             f.set_internal_only(true);
+                //         }
+                //     }
+                // }
+
                 if always_ready {
                     return Ok(());
                 }
@@ -600,6 +631,46 @@ impl RunState {
         self.submission.manifest.functions().len()
     }
 
+    // Check if `descendant` is a sub-flow (direct or transitive) of `ancestor`
+    fn is_descendant_flow(&self, ancestor: usize, descendant: usize) -> bool {
+        for flow_info in self.submission.manifest.flows() {
+            if flow_info.flow_id == ancestor {
+                if flow_info.sub_flow_ids.contains(&descendant) {
+                    return true;
+                }
+                return flow_info
+                    .sub_flow_ids
+                    .iter()
+                    .any(|&sub_id| self.is_descendant_flow(sub_id, descendant));
+            }
+        }
+        false
+    }
+
+    // Check if a value sent from source_flow to dest_flow should be considered internal.
+    // True if same flow or child→parent (sub-flow output to parent is internal).
+    // Parent→child and sibling→sibling are external.
+    fn is_internal_to_dest(&self, source_flow_id: usize, dest_flow_id: usize) -> bool {
+        source_flow_id == dest_flow_id || self.is_descendant_flow(dest_flow_id, source_flow_id)
+    }
+
+    // Check if a flow and all its sub-flows are idle (no busy functions)
+    #[allow(dead_code)] // Infrastructure for sub-flow run-to-completion (#2649)
+    fn is_flow_idle(&self, flow_id: usize) -> bool {
+        if self.busy_flows.contains_key(&flow_id) {
+            return false;
+        }
+        for flow_info in self.submission.manifest.flows() {
+            if flow_info.flow_id == flow_id {
+                return flow_info
+                    .sub_flow_ids
+                    .iter()
+                    .all(|&sub_id| self.is_flow_idle(sub_id));
+            }
+        }
+        true
+    }
+
     // Check if a flow has gone idle and run flow initializers if so
     #[allow(unused_variables, unused_assignments, unused_mut)]
     fn unblock_flows(
@@ -612,8 +683,8 @@ impl RunState {
 
         self.remove_from_busy(job.function_id);
 
-        // if the flow is now idle, run flow initializers
-        if self.busy_flows.get(&job.flow_id).is_none() {
+        // Check if the flow is truly idle (no busy functions, no busy sub-flows)
+        if self.is_flow_idle(job.flow_id) {
             debug!(
                 "Job #{}:\tFlow #{} is now idle",
                 job.payload.job_id, job.flow_id
@@ -625,8 +696,36 @@ impl RunState {
                     debugger.check_prior_to_flow_unblock(self, job.flow_id)?;
             }
 
-            // run flow initializers on functions in the flow that has just gone idle
+            // When a sub-flow goes idle, clear internal values and exit internal_only
+            if job.flow_id != 0 {
+                for function in &mut self.submission.manifest.get_functions().iter_mut() {
+                    if function.get_flow_id() == job.flow_id
+                        && !self.completed.contains(&function.id())
+                    {
+                        function.clear_internal_values();
+                        function.set_internal_only(false);
+                    }
+                }
+            }
+
+            // Run flow initializers to re-seed the flow for the next iteration
             self.run_flow_initializers(job.flow_id)?;
+
+            // Check if any functions can now run with the queued external values
+            if job.flow_id != 0 {
+                let mut runnable = vec![];
+                for function in self.submission.manifest.functions() {
+                    if function.get_flow_id() == job.flow_id
+                        && !self.completed.contains(&function.id())
+                        && function.can_run()
+                    {
+                        runnable.push(function.id());
+                    }
+                }
+                for fid in runnable {
+                    self.create_jobs(fid, job.flow_id)?;
+                }
+            }
         }
 
         Ok((display_next_output, restart))

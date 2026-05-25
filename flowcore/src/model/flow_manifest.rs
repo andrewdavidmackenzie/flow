@@ -1,4 +1,3 @@
-#[cfg(feature = "debugger")]
 use std::collections::BTreeMap;
 use std::collections::BTreeSet;
 use std::fmt;
@@ -31,6 +30,18 @@ pub struct Cargo {
 }
 
 #[derive(Deserialize, Serialize, Clone, PartialEq, Eq, Debug)]
+/// Information about a flow in the hierarchy, including which functions belong to it
+/// and which sub-flows it contains
+pub struct FlowInfo {
+    /// The unique id of this flow
+    pub flow_id: usize,
+    /// The function ids that belong to this flow
+    pub function_ids: Vec<usize>,
+    /// The sub-flow ids that are children of this flow
+    pub sub_flow_ids: Vec<usize>,
+}
+
+#[derive(Deserialize, Serialize, Clone, PartialEq, Eq, Debug)]
 /// A `flows` `Manifest` describes it and describes all the `Functions` it uses as well as
 /// a list of references to libraries.
 pub struct FlowManifest {
@@ -42,6 +53,9 @@ pub struct FlowManifest {
     context_references: BTreeSet<Url>,
     /// A list of `RuntimeFunctions` in this flow
     functions: Vec<RuntimeFunction>,
+    /// The flow hierarchy information, built at runtime
+    #[serde(default)]
+    flows: Vec<FlowInfo>,
     #[cfg(feature = "debugger")]
     /// A list of the source files used to build this `flow`
     source_urls: BTreeMap<String, Url>,
@@ -69,6 +83,7 @@ impl FlowManifest {
             lib_references: BTreeSet::<Url>::new(),
             context_references: BTreeSet::<Url>::new(),
             functions: Vec::<RuntimeFunction>::new(),
+            flows: Vec::new(),
             #[cfg(feature = "debugger")]
             source_urls: BTreeMap::<String, Url>::new(),
         }
@@ -94,6 +109,73 @@ impl FlowManifest {
     #[must_use]
     pub fn take_functions(self) -> Vec<RuntimeFunction> {
         self.functions
+    }
+
+    /// Get the flow hierarchy information
+    #[must_use]
+    pub fn flows(&self) -> &Vec<FlowInfo> {
+        &self.flows
+    }
+
+    /// Add flow hierarchy info
+    pub fn add_flow_info(&mut self, flow_info: FlowInfo) {
+        self.flows.push(flow_info);
+    }
+
+    /// Build the flow hierarchy by grouping functions by `flow_id` and deriving
+    /// sub-flow relationships from cross-flow connections.
+    pub fn build_flow_hierarchy(&mut self) {
+        if !self.flows.is_empty() {
+            return;
+        }
+
+        // Collect all unique flow_ids and group functions by flow_id
+        let mut flow_map: BTreeMap<usize, Vec<usize>> = BTreeMap::new();
+        for function in &self.functions {
+            flow_map
+                .entry(function.get_flow_id())
+                .or_default()
+                .push(function.id());
+        }
+
+        // Derive sub-flow relationships from cross-flow connections.
+        // Each child flow has exactly one parent — the lowest flow_id that
+        // connects to it, which is the flow that contains it as a sub-process.
+        let mut child_to_parent: BTreeMap<usize, usize> = BTreeMap::new();
+        for function in &self.functions {
+            let src_flow = function.get_flow_id();
+            for conn in function.get_output_connections() {
+                let dst_flow = conn.destination_flow_id;
+                if src_flow != dst_flow {
+                    let (parent, child) = if src_flow < dst_flow {
+                        (src_flow, dst_flow)
+                    } else {
+                        (dst_flow, src_flow)
+                    };
+                    child_to_parent
+                        .entry(child)
+                        .and_modify(|p| *p = (*p).min(parent))
+                        .or_insert(parent);
+                }
+            }
+        }
+        // Invert to parent → children
+        let mut sub_flow_map: BTreeMap<usize, BTreeSet<usize>> = BTreeMap::new();
+        for (child, parent) in &child_to_parent {
+            sub_flow_map.entry(*parent).or_default().insert(*child);
+        }
+
+        // Build FlowInfo entries
+        for (flow_id, function_ids) in &flow_map {
+            self.flows.push(FlowInfo {
+                flow_id: *flow_id,
+                function_ids: function_ids.clone(),
+                sub_flow_ids: sub_flow_map
+                    .get(flow_id)
+                    .map(|s| s.iter().copied().collect())
+                    .unwrap_or_default(),
+            });
+        }
     }
 
     /// Get the metadata structure for this manifest
