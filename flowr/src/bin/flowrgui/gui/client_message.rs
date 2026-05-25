@@ -10,7 +10,7 @@ pub enum ClientMessage {
     /// ** These messages are used to implement the `SubmissionProtocol` between the Coordinator
     /// and the client
     /// A submission from the client for execution
-    ClientSubmission(Submission),
+    ClientSubmission(Box<Submission>),
     /// Client requests that server enters the ddebugger at the next opportunity
     EnterDebugger,
 

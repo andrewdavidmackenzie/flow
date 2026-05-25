@@ -31,6 +31,15 @@ pub struct Cargo {
 }
 
 #[derive(Deserialize, Serialize, Clone, PartialEq, Eq, Debug)]
+/// Describes a flow's direct children: which sub-flow IDs it contains
+pub struct FlowInfo {
+    /// The unique flow ID
+    pub flow_id: usize,
+    /// IDs of direct child sub-flows
+    pub sub_flow_ids: Vec<usize>,
+}
+
+#[derive(Deserialize, Serialize, Clone, PartialEq, Eq, Debug)]
 /// A `flows` `Manifest` describes it and describes all the `Functions` it uses as well as
 /// a list of references to libraries.
 pub struct FlowManifest {
@@ -42,6 +51,9 @@ pub struct FlowManifest {
     context_references: BTreeSet<Url>,
     /// A list of `RuntimeFunctions` in this flow
     functions: Vec<RuntimeFunction>,
+    /// Flow hierarchy: which sub-flows each flow contains
+    #[serde(default)]
+    flows: Vec<FlowInfo>,
     #[cfg(feature = "debugger")]
     /// A list of the source files used to build this `flow`
     source_urls: BTreeMap<String, Url>,
@@ -69,6 +81,7 @@ impl FlowManifest {
             lib_references: BTreeSet::<Url>::new(),
             context_references: BTreeSet::<Url>::new(),
             functions: Vec::<RuntimeFunction>::new(),
+            flows: Vec::<FlowInfo>::new(),
             #[cfg(feature = "debugger")]
             source_urls: BTreeMap::<String, Url>::new(),
         }
@@ -77,6 +90,17 @@ impl FlowManifest {
     /// Add a run-time Function to the manifest for use in serialization
     pub fn add_function(&mut self, function: RuntimeFunction) {
         self.functions.push(function);
+    }
+
+    /// Add flow hierarchy info to the manifest
+    pub fn add_flow_info(&mut self, flow_info: FlowInfo) {
+        self.flows.push(flow_info);
+    }
+
+    /// Get the flow hierarchy
+    #[must_use]
+    pub fn flows(&self) -> &[FlowInfo] {
+        &self.flows
     }
 
     /// Get the list of functions in this manifest

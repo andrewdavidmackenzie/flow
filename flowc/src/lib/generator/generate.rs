@@ -8,12 +8,13 @@ use log::info;
 use url::Url;
 
 use flowcore::model::flow_definition::FlowDefinition;
-use flowcore::model::flow_manifest::{FlowManifest, DEFAULT_MANIFEST_FILENAME};
+use flowcore::model::flow_manifest::{FlowInfo, FlowManifest, DEFAULT_MANIFEST_FILENAME};
 use flowcore::model::function_definition::FunctionDefinition;
 use flowcore::model::input::Input;
 use flowcore::model::metadata::MetaData;
 #[cfg(feature = "debugger")]
 use flowcore::model::name::HasName;
+use flowcore::model::process::Process;
 #[cfg(feature = "debugger")]
 use flowcore::model::route::HasRoute;
 use flowcore::model::runtime_function::RuntimeFunction;
@@ -51,12 +52,30 @@ pub fn create_manifest(
         );
     }
 
+    emit_flow_hierarchy(flow, &mut manifest);
+
     manifest.set_lib_references(&tables.libs);
     manifest.set_context_references(&tables.context_functions);
     #[cfg(feature = "debugger")]
     manifest.set_source_urls(source_urls);
 
     Ok(manifest)
+}
+
+fn emit_flow_hierarchy(flow: &FlowDefinition, manifest: &mut FlowManifest) {
+    let mut sub_flow_ids = Vec::new();
+
+    for subprocess in flow.subprocesses.values() {
+        if let Process::FlowProcess(ref sub_flow) = subprocess {
+            sub_flow_ids.push(sub_flow.id);
+            emit_flow_hierarchy(sub_flow, manifest);
+        }
+    }
+
+    manifest.add_flow_info(FlowInfo {
+        flow_id: flow.id,
+        sub_flow_ids,
+    });
 }
 
 /// Generate a manifest for the flow in JSON that can be used to execute it
