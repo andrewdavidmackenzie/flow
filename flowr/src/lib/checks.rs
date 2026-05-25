@@ -4,7 +4,6 @@ use log::error;
 use flowcore::errors::Result;
 use flowcore::model::runtime_function::RuntimeFunction;
 
-use crate::block::Block;
 use crate::run_state::{RunState, State};
 
 fn runtime_error(
@@ -79,23 +78,6 @@ fn running_check(state: &RunState, job_id: usize, function: &RuntimeFunction) ->
     Ok(())
 }
 
-fn blocked_check(state: &RunState, job_id: usize, function: &RuntimeFunction) -> Result<()> {
-    if state.get_output_blockers(function.id()).is_empty() {
-        return runtime_error(
-            state,
-            job_id,
-            &format!(
-                "Function #{} is in Blocked state, but no block for it exists",
-                function.id()
-            ),
-            file!(),
-            line!(),
-        );
-    }
-
-    Ok(())
-}
-
 // Empty test for waiting state to have checks for all state
 #[allow(clippy::unnecessary_wraps)]
 fn waiting_check(_state: &RunState, _job_id: usize, _function: &RuntimeFunction) -> Result<()> {
@@ -119,21 +101,6 @@ fn completed_check(
                 function.id(),
                 function_states
             ),
-            file!(),
-            line!(),
-        );
-    }
-
-    Ok(())
-}
-
-// function should not be blocked on itself
-fn self_block_check(state: &RunState, job_id: usize, block: &Block) -> Result<()> {
-    if block.blocked_function_id == block.blocking_function_id {
-        return runtime_error(
-            state,
-            job_id,
-            &format!("Block {block} has same Function id as blocked and blocking"),
             file!(),
             line!(),
         );
@@ -166,36 +133,6 @@ fn destination_block_state_check(state: &RunState, job_id: usize, block: &Block,
 }
  */
 
-// Check pending unblock invariants
-fn pending_unblock_checks(state: &RunState, job_id: usize) -> Result<()> {
-    for pending_unblock_flow_id in state.get_flow_blocks().keys() {
-        // flow it's in must be busy
-        if !state.get_busy_flows().contains_key(pending_unblock_flow_id) {
-            return runtime_error(
-                state,
-                job_id,
-                &format!(
-                    "Pending Unblock exists for Flow #{pending_unblock_flow_id}, but it is not busy"),
-                file!(),
-                line!(),
-            );
-        }
-    }
-
-    Ok(())
-}
-
-// Check block invariants
-fn block_checks(state: &RunState, job_id: usize) -> Result<()> {
-    //    let functions = state.get_functions();
-    for block in state.get_blocks() {
-        self_block_check(state, job_id, block)?;
-        //destination_block_state_check(state, job_id, block, functions)?;
-    }
-
-    Ok(())
-}
-
 fn function_state_checks(state: &RunState, job_id: usize) -> Result<()> {
     for function in state.get_functions() {
         running_check(state, job_id, function)?;
@@ -204,7 +141,6 @@ fn function_state_checks(state: &RunState, job_id: usize) -> Result<()> {
         for function_state in function_states {
             match function_state {
                 State::Ready => ready_check(state, job_id, function)?,
-                State::Blocked => blocked_check(state, job_id, function)?,
                 State::Waiting => waiting_check(state, job_id, function)?,
                 State::Completed => completed_check(state, job_id, function, function_states)?,
                 State::Running => {}
@@ -237,43 +173,21 @@ fn flow_checks(state: &RunState, job_id: usize) -> Result<()> {
 /// If one is found to be broken, report a runtime error explaining it, which may
 /// trigger entry into the debugger.
 pub(crate) fn check_invariants(state: &RunState, job_id: usize) -> Result<()> {
-    function_state_checks(state, job_id)?;
-    block_checks(state, job_id)?;
-    pending_unblock_checks(state, job_id)
+    function_state_checks(state, job_id)
     //flow_checks(state, job_id)
 }
 
 #[cfg(test)]
 #[allow(clippy::unwrap_used, clippy::expect_used)]
 mod test {
-    #[cfg(feature = "debugger")]
-    use serde_json::Value;
-
-    #[cfg(feature = "debugger")]
-    use flowcore::errors::Result;
     use flowcore::model::flow_manifest::FlowManifest;
-    #[cfg(feature = "debugger")]
-    use flowcore::model::input::Input;
     use flowcore::model::metadata::MetaData;
-    #[cfg(feature = "debugger")]
-    use flowcore::model::output_connection::OutputConnection;
     use flowcore::model::runtime_function::RuntimeFunction;
     use flowcore::model::submission::Submission;
 
-    #[cfg(feature = "debugger")]
-    use crate::block::Block;
     use crate::checks::completed_check;
-    #[cfg(feature = "debugger")]
-    use crate::debug_command::DebugCommand;
-    #[cfg(feature = "debugger")]
-    use crate::debugger::Debugger;
-    #[cfg(feature = "debugger")]
-    use crate::debugger_handler::DebuggerHandler;
-    #[cfg(feature = "debugger")]
-    use crate::job::Job;
     use crate::run_state::{RunState, State};
 
-    use super::blocked_check;
     use super::ready_check;
     use super::running_check;
 
@@ -329,9 +243,7 @@ mod test {
         let mut state = test_state(vec![function]);
 
         // Mark the flow the function is in as busy via ready
-        state
-            .create_jobs_or_block(0, 0)
-            .expect("Couldn't get next job");
+        state.create_jobs(0, 0).expect("Couldn't create jobs");
 
         // this ready_check() should pass
         ready_check(
@@ -371,11 +283,9 @@ mod test {
 
         // mark flow_id as busy - to pass the running check a running function's flow_id
         // should be in the list of busy flows
-        state
-            .create_jobs_or_block(0, 0)
-            .expect("Couldn't get next job");
+        state.create_jobs(0, 0).expect("Couldn't create jobs");
 
-        // this running check should fail
+        // this running check should pass
         running_check(
             &state,
             0,
@@ -385,106 +295,6 @@ mod test {
                 .expect("No function"),
         )
         .expect("Should pass");
-    }
-
-    #[cfg(feature = "debugger")]
-    struct DummyServer;
-
-    #[cfg(feature = "debugger")]
-    impl DebuggerHandler for DummyServer {
-        fn start(&mut self) {}
-        fn job_breakpoint(&mut self, _job: &Job, _function: &RuntimeFunction, _states: Vec<State>) {
-        }
-        fn block_breakpoint(&mut self, _block: &Block) {}
-        fn flow_unblock_breakpoint(&mut self, _flow_id: usize) {}
-        fn send_breakpoint(
-            &mut self,
-            _: &str,
-            _source_process_id: usize,
-            _output_route: &str,
-            _value: &Value,
-            _destination_id: usize,
-            _destination_name: &str,
-            _input_name: &str,
-            _input_number: usize,
-        ) {
-        }
-        fn job_error(&mut self, _job: &Job) {}
-        fn job_completed(&mut self, _job: &Job) {}
-        fn blocks(&mut self, _blocks: Vec<Block>) {}
-        fn outputs(&mut self, _output: Vec<OutputConnection>) {}
-        fn input(&mut self, _input: Input) {}
-        fn function_list(&mut self, _functions: &[RuntimeFunction]) {}
-        fn function_states(&mut self, _function: RuntimeFunction, _function_states: Vec<State>) {}
-        fn run_state(&mut self, _run_state: &RunState) {}
-        fn message(&mut self, _message: String) {}
-        fn panic(&mut self, _state: &RunState, _error_message: String) {}
-        fn debugger_exiting(&mut self) {}
-        fn debugger_resetting(&mut self) {}
-        fn debugger_error(&mut self, _error: String) {}
-        fn execution_starting(&mut self) {}
-        fn execution_ended(&mut self) {}
-        fn get_command(&mut self, _state: &RunState) -> Result<DebugCommand> {
-            unimplemented!();
-        }
-    }
-
-    #[cfg(feature = "debugger")]
-    fn dummy_debugger(server: &mut dyn DebuggerHandler) -> Debugger<'_> {
-        Debugger::new(server)
-    }
-
-    #[test]
-    fn test_blocked_passes() {
-        let function = test_function(0, 0);
-        let mut state = test_state(vec![function]);
-
-        #[cfg(feature = "debugger")]
-        let mut server = DummyServer {};
-
-        #[cfg(feature = "debugger")]
-        let mut debugger = dummy_debugger(&mut server);
-
-        // mark function #0 as blocked on an imaginary function #1
-        let _ = state.create_block(
-            1,
-            1,
-            0,
-            0, // <-- here
-            0,
-            #[cfg(feature = "debugger")]
-            &mut debugger,
-        );
-
-        // this blocked check should pass
-        blocked_check(
-            &state,
-            0,
-            state
-                .get_function(0)
-                .ok_or("No function")
-                .expect("No function"),
-        )
-        .expect("Should pass");
-    }
-
-    #[test]
-    fn test_blocked_fails() {
-        let function = test_function(0, 0);
-        let state = test_state(vec![function]);
-
-        // Do NOT mark function #0 as blocked
-
-        // this blocked check should fail
-        assert!(blocked_check(
-            &state,
-            0,
-            state
-                .get_function(0)
-                .ok_or("No function")
-                .expect("No function")
-        )
-        .is_err());
     }
 
     #[test]
