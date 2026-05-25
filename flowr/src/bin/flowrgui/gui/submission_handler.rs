@@ -94,7 +94,7 @@ impl SubmissionHandler for CLISubmissionHandler {
                         Ok(ClientMessage::ClientSubmission(submission)) => {
                             info!("Coordinator received a submission for execution");
                             trace!("\n{submission}");
-                            return Ok(Some(submission));
+                            return Ok(Some(*submission));
                         }
                         Ok(ClientMessage::ClientExiting(_)) => return Ok(None),
                         // Unexpected message — log and continue waiting for a valid submission

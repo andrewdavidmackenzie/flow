@@ -600,6 +600,22 @@ impl RunState {
         self.submission.manifest.functions().len()
     }
 
+    /// Check if a flow and all its sub-flows are idle (no busy functions, recursively)
+    fn is_flow_idle(&self, flow_id: usize) -> bool {
+        if self.busy_flows.contains_key(&flow_id) {
+            return false;
+        }
+        for flow_info in self.submission.manifest.flows() {
+            if flow_info.flow_id == flow_id {
+                return flow_info
+                    .sub_flow_ids
+                    .iter()
+                    .all(|&sub_id| self.is_flow_idle(sub_id));
+            }
+        }
+        true
+    }
+
     // Check if a flow has gone idle and run flow initializers if so
     #[allow(unused_variables, unused_assignments, unused_mut)]
     fn unblock_flows(
@@ -612,8 +628,8 @@ impl RunState {
 
         self.remove_from_busy(job.function_id);
 
-        // if the flow is now idle, run flow initializers
-        if self.busy_flows.get(&job.flow_id).is_none() {
+        // if the flow and all its sub-flows are idle, run flow initializers
+        if self.is_flow_idle(job.flow_id) {
             debug!(
                 "Job #{}:\tFlow #{} is now idle",
                 job.payload.job_id, job.flow_id
