@@ -60,7 +60,7 @@ multimap = "~0.10"
 portpicker = "0.1.1"
 zmq = "0.10.0"
 image = { version = "0.25.10", default-features = false, features = ["png"] }
-mdns-sd = { version = "0.19", default-features = false }
+mdns-sd = { version = "0.20", default-features = false }
 
 # for flowrlib
 rand = "0.10"
