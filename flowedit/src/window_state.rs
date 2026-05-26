@@ -1397,7 +1397,7 @@ impl WindowState {
 
         let url = Url::from_file_path(&abs_path)
             .map_err(|()| format!("Invalid file path: {}", abs_path.display()))?;
-        let (process, _process_count) = flowrclib::compiler::parser::parse(&url, &provider)
+        let (process, mut process_count) = flowrclib::compiler::parser::parse(&url, &provider)
             .map_err(|e| format!("Parse error: {e}"))?;
         let flow = match process {
             Process::FlowProcess(f) => f,
@@ -1405,7 +1405,6 @@ impl WindowState {
         };
 
         let output_dir = abs_path.parent().unwrap_or(Path::new(".")).to_path_buf();
-        let mut process_count: usize = 0;
         let mut source_urls = BTreeMap::<String, Url>::new();
         let tables = flowrclib::compiler::compile::compile(
             &flow,

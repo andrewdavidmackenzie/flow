@@ -1,4 +1,4 @@
-use std::collections::{BTreeMap, BTreeSet, HashMap};
+use std::collections::{BTreeMap, BTreeSet};
 use std::path::{Path, PathBuf};
 
 use log::{debug, info};
@@ -33,7 +33,7 @@ pub struct CompilerTables {
     /// `HashMap` from "route of the input of a function" --> (`destination_process_id`, `input_number`, `parent_id`)
     pub collapsed_connections: Vec<Connection>,
     /// The set of functions left in a flow after it has been flattened, connected and optimized
-    pub functions: HashMap<usize, FunctionDefinition>,
+    pub functions: BTreeMap<usize, FunctionDefinition>,
     /// The set of libraries used by a flow, from their Urls
     pub libs: BTreeSet<Url>,
     /// The set of context functions used by a flow, from their Urls
@@ -51,7 +51,7 @@ impl CompilerTables {
             sources: BTreeMap::<Route, (Source, usize)>::new(),
             destination_routes: BTreeMap::<Route, (usize, usize, usize)>::new(),
             collapsed_connections: Vec::new(),
-            functions: HashMap::new(),
+            functions: BTreeMap::new(),
             libs: BTreeSet::new(),
             context_functions: BTreeSet::new(),
             source_files: Vec::new(),
@@ -72,9 +72,9 @@ impl CompilerTables {
     }
 
     /// consistently order the functions so each compile produces the same numbering
-    /// With `HashMap` keyed by `process_id`, ordering is inherent — this is now a no-op
+    /// With `BTreeMap` keyed by `process_id`, ordering is inherent — this is now a no-op
     pub fn sort_functions(&mut self) {
-        // HashMap is keyed by process_id; no sorting needed
+        // BTreeMap is keyed by process_id; already sorted
     }
 
     /// Construct two look-up tables that can be used to find the index of a function in the functions table,

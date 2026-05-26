@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::collections::BTreeMap;
 use std::fmt::Write as _;
 use std::io::Write;
 use std::path::Path;
@@ -128,7 +128,7 @@ fn process_refs_to_dot(flow: &FlowDefinition, tables: &CompilerTables) -> Result
 // Given a Function as used in the code generation - generate a "dot" format string to draw it
 fn function_to_dot(
     function: &FunctionDefinition,
-    functions: &HashMap<usize, FunctionDefinition>,
+    functions: &BTreeMap<usize, FunctionDefinition>,
 ) -> Result<String> {
     let mut function_string = String::new();
 

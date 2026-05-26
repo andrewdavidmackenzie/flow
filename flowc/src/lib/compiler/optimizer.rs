@@ -116,7 +116,7 @@ fn connection_from_function(connections: &[Connection], function: &FunctionDefin
 #[cfg(test)]
 #[allow(clippy::unwrap_used, clippy::expect_used)]
 mod test {
-    use std::collections::HashMap;
+    use std::collections::BTreeMap;
 
     use url::Url;
 
@@ -163,7 +163,7 @@ mod test {
         )
     }
 
-    fn make_functions_map(fns: Vec<FunctionDefinition>) -> HashMap<usize, FunctionDefinition> {
+    fn make_functions_map(fns: Vec<FunctionDefinition>) -> BTreeMap<usize, FunctionDefinition> {
         fns.into_iter().map(|f| (f.get_id(), f)).collect()
     }
 
