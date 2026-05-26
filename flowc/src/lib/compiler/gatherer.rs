@@ -124,6 +124,7 @@ pub fn collapse_connections(tables: &mut CompilerTables) -> Result<()> {
                         &tables.connections,
                     )? {
                         let mut collapsed_connection = connection.clone();
+                        collapsed_connection.set_crossed_boundary();
                         // append the subroute from the origin function IO - to select from with in that IO
                         // as prescribed by the connections along the way
                         let from_route = connection

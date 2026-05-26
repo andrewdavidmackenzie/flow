@@ -316,7 +316,8 @@ impl Input {
     /// Clear all internal values from this input, preserving external values
     pub fn clear_internal(&mut self) {
         if self.internal_count > 0 {
-            self.received.drain(..self.internal_count);
+            let cleared: Vec<_> = self.received.drain(..self.internal_count).collect();
+            debug!("\t\tCleared {} internal values: {cleared:?}", cleared.len());
             self.internal_count = 0;
         }
     }
@@ -344,6 +345,12 @@ impl Input {
     #[must_use]
     pub fn is_empty(&self) -> bool {
         self.values_available() == 0
+    }
+
+    /// Return true if this input has pending internal values
+    #[must_use]
+    pub fn has_internal(&self) -> bool {
+        self.internal_count > 0
     }
 }
 
