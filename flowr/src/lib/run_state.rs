@@ -474,7 +474,11 @@ impl RunState {
             .get_mut(connection.destination_id)
             .ok_or("Could not get function")?;
         let job_count_before = function.input_sets_available();
-        function.send(connection.destination_io_number, output_value)?;
+        if connection.internal {
+            function.send_internal(connection.destination_io_number, output_value)?;
+        } else {
+            function.send(connection.destination_io_number, output_value)?;
+        }
 
         #[cfg(feature = "metrics")]
         metrics.increment_outputs_sent(); // not distinguishing array serialization / wrapping etc.
@@ -648,6 +652,8 @@ impl RunState {
                         debugger.check_prior_to_flow_unblock(self, ancestor_id)?;
                 }
 
+                // clear internal values from functions in the idle flow
+                self.clear_flow_internal_inputs(ancestor_id);
                 // run flow initializers on functions in the flow that has just gone idle
                 self.run_flow_initializers(ancestor_id)?;
             }
@@ -677,22 +683,30 @@ impl RunState {
         trace!("\t\t\tUpdated busy_count to: {:?}", self.busy_count);
     }
 
-    // Do not run initializers on functions that have completed
-    fn run_flow_initializers(&mut self, flow_id: usize) -> Result<()> {
-        let mut initialized_functions = Vec::<usize>::new();
+    // Clear internal values from all functions in a flow that just went idle
+    fn clear_flow_internal_inputs(&mut self, flow_id: usize) {
         for function in self.submission.manifest.get_functions().values_mut() {
             if function.get_parent_id() == flow_id && !self.completed.contains(&function.id()) {
-                let could_run_before = function.can_run();
-                function.init_inputs(false, true);
-                let can_run_now = function.can_run();
+                function.clear_internal_inputs();
+            }
+        }
+    }
 
-                if can_run_now && !could_run_before {
-                    initialized_functions.push(function.id());
+    // Run flow initializers and create jobs for any functions that can now run
+    // (either from initializers or from external values that were queued while the flow was busy)
+    fn run_flow_initializers(&mut self, flow_id: usize) -> Result<()> {
+        let mut runnable_functions = Vec::<usize>::new();
+        for function in self.submission.manifest.get_functions().values_mut() {
+            if function.get_parent_id() == flow_id && !self.completed.contains(&function.id()) {
+                function.init_inputs(false, true);
+
+                if function.can_run() {
+                    runnable_functions.push(function.id());
                 }
             }
         }
 
-        for function_id in initialized_functions {
+        for function_id in runnable_functions {
             self.create_jobs(function_id, flow_id)?;
         }
 
@@ -760,7 +774,7 @@ mod test {
             1,
             0,
             0,
-            false,
+            true,
             "/fB".to_string(),
             #[cfg(feature = "debugger")]
             String::default(),
@@ -793,7 +807,7 @@ mod test {
             1,
             0,
             0,
-            false,
+            true,
             "/fB".to_string(),
             #[cfg(feature = "debugger")]
             String::default(),
@@ -869,7 +883,7 @@ mod test {
             destination_process_id,
             0,
             0,
-            false,
+            true,
             String::default(),
             #[cfg(feature = "debugger")]
             String::default(),
@@ -1319,7 +1333,7 @@ mod test {
                 0,
                 0,
                 0,
-                false,
+                true,
                 String::default(),
                 #[cfg(feature = "debugger")]
                 String::default(),
@@ -1391,7 +1405,7 @@ mod test {
                 0,
                 0,
                 0,
-                false,
+                true,
                 String::default(),
                 #[cfg(feature = "debugger")]
                 String::default(),
@@ -1476,7 +1490,7 @@ mod test {
                 1,
                 0,
                 0,
-                false,
+                true,
                 String::default(),
                 #[cfg(feature = "debugger")]
                 String::default(),
@@ -1486,7 +1500,7 @@ mod test {
                 2,
                 0,
                 0,
-                false,
+                true,
                 String::default(),
                 #[cfg(feature = "debugger")]
                 String::default(),

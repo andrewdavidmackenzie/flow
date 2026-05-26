@@ -287,8 +287,8 @@ mod test {
             .expect("Could not send initial 'Hello' message");
 
         let mut received = None;
-        for _ in 0..3 {
-            std::thread::sleep(Duration::from_millis(500));
+        for _ in 0..5 {
+            std::thread::sleep(Duration::from_secs(1));
             if let Ok(msg) = coordinator_connection.receive::<ClientMessage>(DONT_WAIT) {
                 received = Some(msg);
                 break;

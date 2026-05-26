@@ -64,6 +64,10 @@ pub struct Input {
     // with first will be at the head and last at the tail
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     received: Vec<Value>,
+
+    // How many values at the front of `received` are from internal connections
+    #[serde(skip)]
+    internal_count: usize,
 }
 
 #[allow(clippy::trivially_copy_pass_by_ref)] // As this is imposed on us by serde
@@ -126,6 +130,7 @@ impl Input {
             initializer,
             flow_initializer,
             received: Vec::new(),
+            internal_count: 0,
         }
     }
 
@@ -144,6 +149,7 @@ impl Input {
             initializer,
             flow_initializer,
             received: Vec::new(),
+            internal_count: 0,
         }
     }
 
@@ -263,6 +269,58 @@ impl Input {
         }
     }
 
+    /// Send a value from an internal connection — inserted before external values
+    pub(crate) fn send_internal(&mut self, value: Value) -> bool {
+        if self.generic {
+            self.received.insert(self.internal_count, value);
+            self.internal_count += 1;
+        } else {
+            match (
+                DataType::value_array_order(&value) - self.array_order(),
+                &value,
+            ) {
+                (0, _) => {
+                    self.received.insert(self.internal_count, value);
+                    self.internal_count += 1;
+                }
+                (1, Value::Array(array)) => {
+                    for v in array {
+                        self.received.insert(self.internal_count, v.clone());
+                        self.internal_count += 1;
+                    }
+                }
+                (2, Value::Array(array_2)) => {
+                    for array in array_2 {
+                        if let Value::Array(sub_array) = array {
+                            for v in sub_array {
+                                self.received.insert(self.internal_count, v.clone());
+                                self.internal_count += 1;
+                            }
+                        }
+                    }
+                }
+                (-1, _) => {
+                    self.received.insert(self.internal_count, json!([value]));
+                    self.internal_count += 1;
+                }
+                (-2, _) => {
+                    self.received.insert(self.internal_count, json!([[value]]));
+                    self.internal_count += 1;
+                }
+                _ => return false,
+            }
+        }
+        true
+    }
+
+    /// Clear all internal values from this input, preserving external values
+    pub fn clear_internal(&mut self) {
+        if self.internal_count > 0 {
+            self.received.drain(..self.internal_count);
+            self.internal_count = 0;
+        }
+    }
+
     /// Take the first element from the Input and return it. Could panic!
     #[must_use]
     pub fn take(&mut self) -> Option<Value> {
@@ -270,6 +328,9 @@ impl Input {
             return None;
         }
 
+        if self.internal_count > 0 {
+            self.internal_count -= 1;
+        }
         Some(self.received.remove(0))
     }
 

@@ -200,6 +200,26 @@ impl RuntimeFunction {
         Ok(())
     }
 
+    /// Send a value from an internal connection to the specified input
+    /// # Errors
+    ///
+    /// Will return `Err` if the IO numbered `io_number` does not exist
+    pub fn send_internal(&mut self, io_number: usize, value: Value) -> Result<()> {
+        let _ = self
+            .inputs
+            .get_mut(io_number)
+            .ok_or("Could not get that input")?
+            .send_internal(value);
+        Ok(())
+    }
+
+    /// Clear all internal values from all inputs of this function
+    pub fn clear_internal_inputs(&mut self) {
+        for input in &mut self.inputs {
+            input.clear_internal();
+        }
+    }
+
     /// Accessor for a `RuntimeFunction` `output_connections` field
     #[must_use]
     pub fn get_output_connections(&self) -> &Vec<OutputConnection> {
