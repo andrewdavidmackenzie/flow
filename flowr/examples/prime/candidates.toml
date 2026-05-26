@@ -8,28 +8,37 @@ type = "number"
 name = "candidates"
 type = "array/number"
 
-####### All numbers - Sequence
-# Generate the sequence of numbers from 1..limit of possible primes
+####### Generate sequence of candidate numbers from 2..limit
 [[process]]
 source = "lib://flowstdlib/math/sequence"
-input.start = {once =  1}
-input.step = {once =  1}
+input.start = {once = 2}
+input.step = {once = 1}
 
 [[connection]]
 from = "input/limit"
 to = "sequence/limit"
 
-######### All numbers - gather into an array
+####### Compute chunk_size = limit - 1 (since we start at 2, not 1)
+[[process]]
+alias = "chunk-size"
+source = "lib://flowstdlib/math/subtract"
+input.i2 = {once = 1}
+
+[[connection]]
+from = "input/limit"
+to = "chunk-size/i1"
+
+####### Accumulate numbers into an array
 [[process]]
 source = "lib://flowstdlib/data/accumulate"
-input.partial = {once =  []}
+input.partial = {once = []}
 
 [[connection]]
 from = "sequence/number"
 to = "accumulate/values"
 
 [[connection]]
-from = "input/limit"
+from = "chunk-size"
 to = "accumulate/chunk_size"
 
 [[connection]] # loop-back
@@ -40,7 +49,7 @@ to = "accumulate/chunk_size"
 from = "accumulate/partial"
 to = "accumulate/partial"
 
-# Output the gathered array on the "candidates" output
+# Output the gathered array
 [[connection]]
 from = "accumulate/chunk"
 to = "output/candidates"
