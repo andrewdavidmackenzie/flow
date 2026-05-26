@@ -8,25 +8,15 @@ type = "number"
 name = "candidates"
 type = "array/number"
 
-####### Generate sequence of candidate numbers from 2..limit
+####### Generate sequence of candidate numbers from 1..limit
 [[process]]
 source = "lib://flowstdlib/math/sequence"
-input.start = {once = 2}
+input.start = {once = 1}
 input.step = {once = 1}
 
 [[connection]]
 from = "input/limit"
 to = "sequence/limit"
-
-####### Compute chunk_size = limit - 1 (since we start at 2, not 1)
-[[process]]
-alias = "chunk-size"
-source = "lib://flowstdlib/math/subtract"
-input.i2 = {once = 1}
-
-[[connection]]
-from = "input/limit"
-to = "chunk-size/i1"
 
 ####### Accumulate numbers into an array
 [[process]]
@@ -38,7 +28,7 @@ from = "sequence/number"
 to = "accumulate/values"
 
 [[connection]]
-from = "chunk-size"
+from = "input/limit"
 to = "accumulate/chunk_size"
 
 [[connection]] # loop-back
