@@ -8,6 +8,7 @@ use serde_json::Value;
 
 use flowcore::errors::Result;
 use flowcore::model::output_connection::Source::{Input, Output};
+use flowcore::model::runtime_function::RuntimeFunction;
 
 use crate::block::Block;
 use crate::debug_command::BreakpointSpec;
@@ -92,14 +93,14 @@ impl<'a> Debugger<'a> {
     /// Return values are (display next output, reset execution)
     pub fn check_prior_to_job(&mut self, state: &mut RunState, job: &Job) -> Result<(bool, bool)> {
         if self.break_at_job == job.payload.job_id
-            || self.function_breakpoints.contains(&job.function_id)
+            || self.function_breakpoints.contains(&job.process_id)
         {
             self.debug_server.job_breakpoint(
                 job,
                 state
-                    .get_function(job.function_id)
+                    .get_function(job.process_id)
                     .ok_or("Could not get function")?,
-                state.get_function_states(job.function_id),
+                state.get_function_states(job.process_id),
             );
             return self.wait_for_command(state);
         }
@@ -271,7 +272,9 @@ impl<'a> Debugger<'a> {
                     self.debug_server.message(message);
                 }
                 Ok(DebugCommand::FunctionList) => {
-                    self.debug_server.function_list(state.get_functions());
+                    let functions: Vec<RuntimeFunction> =
+                        state.get_functions().values().cloned().collect();
+                    self.debug_server.function_list(&functions);
                 }
                 Ok(Inspect) => self.debug_server.run_state(state),
                 Ok(InspectFunction(function_id)) => {
@@ -898,8 +901,8 @@ mod test {
 
     fn test_job() -> Job {
         Job {
-            function_id: 0,
-            flow_id: 0,
+            process_id: 0,
+            parent_id: 0,
             connections: vec![],
             payload: Payload {
                 job_id: 0,

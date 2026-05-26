@@ -1,3 +1,4 @@
+use std::collections::HashMap;
 use std::fmt::Write as _;
 use std::io::Write;
 use std::path::Path;
@@ -50,11 +51,11 @@ use crate::errors::Result;
 ///
 /// let output_dir = tempdir().expect("A temp dir").keep();
 ///
-/// if let Ok(FlowProcess(mut flow)) = flowrclib::compiler::parser::parse(&url,
+/// if let Ok((FlowProcess(mut flow), mut process_count)) = flowrclib::compiler::parser::parse(&url,
 ///                                                    &provider) {
 ///     let mut source_urls = BTreeMap::<String, Url>::new();
 ///     let tables = flowrclib::compiler::compile::compile(&flow, &output_dir, false, false,
-///                                                         &mut source_urls).unwrap();
+///                                                         &mut process_count, &mut source_urls).unwrap();
 ///
 ///     // strip off filename so output_dir is where the root.toml file resides
 ///     let output_dir = tempdir().unwrap().keep();
@@ -127,7 +128,7 @@ fn process_refs_to_dot(flow: &FlowDefinition, tables: &CompilerTables) -> Result
 // Given a Function as used in the code generation - generate a "dot" format string to draw it
 fn function_to_dot(
     function: &FunctionDefinition,
-    functions: &[FunctionDefinition],
+    functions: &HashMap<usize, FunctionDefinition>,
 ) -> Result<String> {
     let mut function_string = String::new();
 
@@ -157,7 +158,7 @@ fn function_to_dot(
             .get(destination.destination_io_number % INPUT_PORTS.len())
             .ok_or("Could no tget Input Port")?;
         let destination_function = functions
-            .get(destination.destination_id)
+            .get(&destination.destination_id)
             .ok_or("Could not get function")?;
         let source_port = output_name_to_port(&destination.source)?;
         let destination_name = destination_function
@@ -186,7 +187,7 @@ fn output_compiled_function(
     tables: &CompilerTables,
     output: &mut String,
 ) -> Result<()> {
-    for function in &tables.functions {
+    for function in tables.functions.values() {
         if function.route() == route {
             output.push_str(&function_to_dot(function, &tables.functions)?);
         }

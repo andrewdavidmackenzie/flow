@@ -68,28 +68,30 @@ pub enum LibType {
 /// let dummy_provider = DummyProvider{};
 ///
 /// // load the flow from `url = file:///example.toml` using the `dummy_provider`
-/// flowrclib::compiler::parser::parse(&Url::parse("file:///example.toml").unwrap(), &dummy_provider)
+/// let (process, process_count) = flowrclib::compiler::parser::parse(&Url::parse("file:///example.toml").unwrap(), &dummy_provider)
 /// .unwrap();
 /// ```
-pub fn parse(url: &Url, provider: &dyn Provider) -> Result<Process> {
-    parse_process(
+pub fn parse(url: &Url, provider: &dyn Provider) -> Result<(Process, usize)> {
+    let mut process_count: usize = 0;
+    let process = parse_process(
         &Route::default(),
         &Name::default(),
         0,
-        &mut 0,
+        &mut process_count,
         url,
         provider,
         &BTreeMap::new(),
         0,
-    )
+    )?;
+    Ok((process, process_count))
 }
 
 #[allow(clippy::too_many_arguments)]
 fn parse_process(
     parent_route: &Route,
     alias: &Name,
-    parent_flow_id: usize,
-    flow_count: &mut usize,
+    parent_id: usize,
+    process_count: &mut usize,
     url: &Url,
     provider: &dyn Provider,
     initializations: &BTreeMap<String, InputInitializer>,
@@ -123,12 +125,12 @@ fn parse_process(
                 &resolved_url,
                 parent_route,
                 alias,
-                *flow_count,
+                *process_count,
                 initializations,
             )?;
-            *flow_count += 1;
+            *process_count += 1;
             debug!("Deserialized the Flow, now parsing sub-processes");
-            parse_process_refs(flow, flow_count, provider, level)?;
+            parse_process_refs(flow, process_count, provider, level)?;
             flow.build_connections(level)?;
         }
         FunctionProcess(ref mut function) => {
@@ -137,7 +139,7 @@ fn parse_process(
                 &resolved_url,
                 parent_route,
                 alias,
-                parent_flow_id,
+                parent_id,
                 reference,
                 initializations,
             )?;
@@ -187,7 +189,7 @@ pub fn parse_metadata(url: &Url, provider: &dyn Provider) -> Result<(MetaData, L
 */
 fn parse_process_refs(
     flow: &mut FlowDefinition,
-    flow_count: &mut usize,
+    process_count: &mut usize,
     provider: &dyn Provider,
     level: usize,
 ) -> Result<()> {
@@ -200,7 +202,7 @@ fn parse_process_refs(
             &flow.route,
             process_ref.alias(),
             flow.id,
-            flow_count,
+            process_count,
             &subprocess_url,
             provider,
             &process_ref.initializations,

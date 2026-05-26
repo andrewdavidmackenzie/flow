@@ -30,7 +30,7 @@ pub fn compile_and_execute_flow(
     #[cfg(feature = "debugger")]
     let mut source_urls = BTreeMap::<String, Url>::new();
 
-    let root = parser::parse(&options.source_url, provider)?;
+    let (root, mut process_count) = parser::parse(&options.source_url, provider)?;
 
     match root {
         FlowProcess(flow) => {
@@ -43,6 +43,7 @@ pub fn compile_and_execute_flow(
                 output_dir.as_path(),
                 options.provided_implementations,
                 options.optimize,
+                &mut process_count,
                 &mut source_urls,
             )
             .chain_err(|| format!("Could not compile the flow '{}'", options.source_url))?;

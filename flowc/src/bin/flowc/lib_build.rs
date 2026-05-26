@@ -278,7 +278,7 @@ fn compile_functions(
 
                 debug!("Trying to load library FunctionProcess from '{url}'");
                 match parser::parse(&url, provider) {
-                    Ok(FunctionProcess(ref mut function)) => {
+                    Ok((FunctionProcess(ref mut function), _)) => {
                         // calculate the path of the file's directory, relative to lib_root
                         let relative_dir = toml_path
                             .parent()
@@ -341,7 +341,9 @@ fn compile_functions(
 
                         file_count += copy_definition_to_output_dir(toml_path, &out_dir)?;
                     }
-                    Ok(FlowProcess(_)) => debug!("Skipping file '{url}'. Reason: 'It is a Flow'"),
+                    Ok((FlowProcess(_), _)) => {
+                        debug!("Skipping file '{url}'. Reason: 'It is a Flow'");
+                    }
                     Err(err) => debug!("Skipping file '{url}'. Reason: '{err}'"),
                 }
             }
@@ -437,10 +439,10 @@ fn compile_flows(
 
                 debug!("Trying to load library FlowProcess from '{url}'");
                 match parser::parse(&url, provider) {
-                    Ok(FunctionProcess(_)) => {
+                    Ok((FunctionProcess(_), _)) => {
                         debug!("Skipping file '{url}'. Reason: 'It is a Function'");
                     }
-                    Ok(FlowProcess(ref mut flow)) => {
+                    Ok((FlowProcess(ref mut flow), _)) => {
                         // calculate the path of the file's directory, relative to lib_root
                         let relative_dir = toml_path
                             .parent()

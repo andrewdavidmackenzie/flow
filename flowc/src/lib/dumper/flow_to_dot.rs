@@ -53,7 +53,7 @@ pub(crate) static OUTPUT_PORTS: &[&str] = &["s", "se", "sw", "e"];
 /// let mut url = Url::from_file_path(env::current_dir().unwrap()).unwrap();
 /// url = url.join("flowr/examples/hello-world/root.toml").unwrap();
 ///
-/// if let Ok(FlowProcess(mut flow)) = flowrclib::compiler::parser::parse(&url, &provider) {
+/// if let Ok((FlowProcess(mut flow), _)) = flowrclib::compiler::parser::parse(&url, &provider) {
 ///     // strip off the filename so output_dir is where the root.toml file resides
 ///     let output_dir = tempdir().unwrap().keep();
 ///

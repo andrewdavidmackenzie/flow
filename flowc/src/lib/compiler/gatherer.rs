@@ -21,9 +21,10 @@ use crate::errors::Result;
 pub fn gather_functions_and_connections(
     flow: &FlowDefinition,
     tables: &mut CompilerTables,
+    process_count: &mut usize,
 ) -> Result<()> {
     info!("\n=== Compiler: Gathering Functions and Connections");
-    inner_gather_functions_and_connections(flow, tables)?;
+    inner_gather_functions_and_connections(flow, tables, process_count)?;
 
     tables.sort_functions();
 
@@ -41,6 +42,7 @@ pub fn gather_functions_and_connections(
 fn inner_gather_functions_and_connections(
     flow: &FlowDefinition,
     tables: &mut CompilerTables,
+    process_count: &mut usize,
 ) -> Result<()> {
     // Add Connections from this flow hierarchy to the connections table
     let mut connections = flow.connections.clone();
@@ -50,13 +52,16 @@ fn inner_gather_functions_and_connections(
     for subprocess in &flow.subprocesses {
         match subprocess.1 {
             FlowProcess(ref flow) => {
-                inner_gather_functions_and_connections(flow, tables)?; // recurse
+                inner_gather_functions_and_connections(flow, tables, process_count)?;
+                // recurse
             }
             FunctionProcess(ref function) => {
-                // Give function a unique id and add to the table of functions
+                // Give function a unique process_id from the shared counter and add to the table
                 let mut table_function = function.clone();
-                table_function.set_id(tables.functions.len());
-                tables.functions.push(table_function);
+                table_function.set_id(*process_count);
+                *process_count += 1;
+                let id = table_function.get_id();
+                tables.functions.insert(id, table_function);
             }
         }
     }
@@ -177,7 +182,7 @@ pub fn collapse_connections(tables: &mut CompilerTables) -> Result<()> {
                         // get a mutable reference to the destination function and set the initializer on it
                         let destination_function = tables
                             .functions
-                            .get_mut(*destination_function_id)
+                            .get_mut(destination_function_id)
                             .ok_or(format!(
                                 "Could not find a function #{destination_function_id}"
                             ))?;

@@ -45,14 +45,14 @@ pub fn create_manifest(
     let mut manifest = FlowManifest::new(MetaData::from(flow));
 
     // Generate run-time Function struct for each of the compile-time functions
-    for function in &tables.functions {
+    for function in tables.functions.values() {
         manifest.add_function(
             function_to_runtimefunction(manifest_url, function, debug_symbols)
                 .chain_err(|| "Could not convert function to runtime function")?,
         );
     }
 
-    emit_flow_hierarchy(flow, &mut manifest);
+    emit_flow_hierarchy(flow, &mut manifest, None);
 
     manifest.set_lib_references(&tables.libs);
     manifest.set_context_references(&tables.context_functions);
@@ -62,18 +62,23 @@ pub fn create_manifest(
     Ok(manifest)
 }
 
-fn emit_flow_hierarchy(flow: &FlowDefinition, manifest: &mut FlowManifest) {
+fn emit_flow_hierarchy(
+    flow: &FlowDefinition,
+    manifest: &mut FlowManifest,
+    parent_id: Option<usize>,
+) {
     let mut sub_flow_ids = Vec::new();
 
     for subprocess in flow.subprocesses.values() {
         if let Process::FlowProcess(ref sub_flow) = subprocess {
             sub_flow_ids.push(sub_flow.id);
-            emit_flow_hierarchy(sub_flow, manifest);
+            emit_flow_hierarchy(sub_flow, manifest, Some(flow.id));
         }
     }
 
     manifest.add_flow_info(FlowInfo {
-        flow_id: flow.id,
+        process_id: flow.id,
+        parent_id,
         sub_flow_ids,
     });
 }
@@ -165,7 +170,7 @@ fn function_to_runtimefunction(
         implementation_location,
         runtime_inputs,
         function.get_id(),
-        function.get_flow_id(),
+        function.get_parent_id(),
         function.get_output_connections(),
         debug_symbols,
     ))
@@ -261,14 +266,14 @@ mod test {
         );
 
         let expected = "{
-  'function_id': 0,
-  'flow_id': 0,
+  'process_id': 0,
+  'parent_id': 0,
   'implementation_location': 'context://stdio/stdout',
   'output_connections': [
     {
       'destination_id': 1,
       'destination_io_number': 0,
-      'destination_flow_id': 0
+      'destination_parent_id': 0
     },
     {
       'source': {
@@ -276,7 +281,7 @@ mod test {
       },
       'destination_id': 2,
       'destination_io_number': 0,
-      'destination_flow_id': 0
+      'destination_parent_id': 0
     }
   ]
 }";
@@ -322,14 +327,14 @@ mod test {
         );
 
         let expected = "{
-  'function_id': 0,
-  'flow_id': 0,
+  'process_id': 0,
+  'parent_id': 0,
   'implementation_location': 'context://stdio/stdout',
   'output_connections': [
     {
       'destination_id': 1,
       'destination_io_number': 0,
-      'destination_flow_id': 0
+      'destination_parent_id': 0
     }
   ]
 }";
@@ -371,8 +376,8 @@ mod test {
         );
 
         let expected = "{
-  'function_id': 0,
-  'flow_id': 0,
+  'process_id': 0,
+  'parent_id': 0,
   'implementation_location': 'context://stdio/stdout',
   'inputs': [
     {
@@ -419,8 +424,8 @@ mod test {
         );
 
         let expected = "{
-  'function_id': 0,
-  'flow_id': 0,
+  'process_id': 0,
+  'parent_id': 0,
   'implementation_location': 'context://stdio/stdout',
   'inputs': [
     {
@@ -465,8 +470,8 @@ mod test {
         );
 
         let expected = "{
-  'function_id': 0,
-  'flow_id': 0,
+  'process_id': 0,
+  'parent_id': 0,
   'implementation_location': 'context://stdio/stdout',
   'inputs': [
     {
@@ -522,27 +527,27 @@ mod test {
         let expected = "{
   'name': 'print',
   'route': '/flow0/stdout',
-  'function_id': 0,
-  'flow_id': 0,
+  'process_id': 0,
+  'parent_id': 0,
   'implementation_location': 'context://stdio/stdout',
   'output_connections': [
     {
       'destination_id': 1,
       'destination_io_number': 0,
-      'destination_flow_id': 0
+      'destination_parent_id': 0
     }
   ]
 }";
         #[cfg(not(feature = "debugger"))]
         let expected = "{
-  'function_id': 0,
-  'flow_id': 0,
+  'process_id': 0,
+  'parent_id': 0,
   'implementation_location': 'context://stdio/stdout',
   'output_connections': [
     {
       'destination_id': 1,
       'destination_io_number': 0,
-      'destination_flow_id': 0
+      'destination_parent_id': 0
     }
   ]
 }";
@@ -587,8 +592,8 @@ mod test {
         );
 
         let expected = "{
-  'function_id': 0,
-  'flow_id': 0,
+  'process_id': 0,
+  'parent_id': 0,
   'implementation_location': 'context://stdio/stdout',
   'output_connections': [
     {
@@ -597,7 +602,7 @@ mod test {
       },
       'destination_id': 1,
       'destination_io_number': 0,
-      'destination_flow_id': 0
+      'destination_parent_id': 0
     }
   ]
 }";

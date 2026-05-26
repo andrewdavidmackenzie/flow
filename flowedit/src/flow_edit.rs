@@ -566,7 +566,7 @@ impl FlowEdit {
                     let meta_provider =
                         MetaProvider::new(lib_search_path.clone(), context_root.clone());
                     match flowrclib::compiler::parser::parse(locator_url, &meta_provider) {
-                        Ok(process) => {
+                        Ok((process, _)) => {
                             self.all_definitions.insert(locator_url.clone(), process);
                         }
                         Err(e) => {

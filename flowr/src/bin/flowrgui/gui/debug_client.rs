@@ -284,13 +284,13 @@ impl DebugClient {
     fn process_server_message(&mut self, message: DebugServerMessage) -> Result<DebugCommand> {
         match message {
             JobCompleted(job) => {
-                println!("Job #{} completed by Function #{}", job.payload.job_id, job.function_id);
+                println!("Job #{} completed by Function #{}", job.payload.job_id, job.process_id);
                 if let Ok((Some(output), _)) = job.result {
                     println!("\tOutput value: '{output}'");
                 }
             }
             PriorToSendingJob(job) => {
-                println!("About to send Job #{} to Function #{}", job.payload.job_id, job.function_id);
+                println!("About to send Job #{} to Function #{}", job.payload.job_id, job.process_id);
                 println!("\tInputs: {:?}", job.payload.input_set);
             }
             BlockBreakpoint(block) => println!("Block breakpoint: {block:?}"),

@@ -106,7 +106,7 @@ fn function_input_initialized() {
     );
 
     match parser::parse(&url, &meta_provider) {
-        Ok(FlowProcess(mut flow)) => match flow.subprocesses.get_mut(&Name::from("stdout")) {
+        Ok((FlowProcess(mut flow), _)) => match flow.subprocesses.get_mut(&Name::from("stdout")) {
             Some(FunctionProcess(print_function)) => {
                 assert_eq!(
                     *print_function.alias(),
@@ -144,7 +144,7 @@ fn root_flow_takes_name_from_file() {
         helper::absolute_file_url_from_relative_path("flowc/tests/test-flows/names/root.toml");
 
     match parser::parse(&url, &meta_provider) {
-        Ok(FlowProcess(flow)) => assert_eq!(flow.name, Name::from("names")),
+        Ok((FlowProcess(flow), _)) => assert_eq!(flow.name, Name::from("names")),
         _ => panic!("Flow could not be loaded"),
     }
 }

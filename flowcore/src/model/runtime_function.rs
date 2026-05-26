@@ -23,11 +23,11 @@ pub struct RuntimeFunction {
     #[serde(default, skip_serializing_if = "String::is_empty")]
     route: String,
 
-    /// The unique `function_id` of this function at run-time
-    function_id: usize,
+    /// The unique `process_id` of this function at run-time
+    process_id: usize,
 
-    /// The unique id of the flow this function was in at definition time
-    flow_id: usize,
+    /// The unique id of the parent flow this function was in at definition time
+    parent_id: usize,
 
     // Implementation location formats are:
     // - "lib://lib_name/path/to/implementation" - library implementation reference
@@ -61,7 +61,7 @@ fn default_url() -> Url {
 #[cfg(feature = "debugger")]
 impl fmt::Display for RuntimeFunction {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "Function #{}({})", self.function_id, self.flow_id)?;
+        write!(f, "Function #{}({})", self.process_id, self.parent_id)?;
 
         if !self.name.is_empty() {
             write!(f, " '{}'", self.name)?;
@@ -102,7 +102,7 @@ impl RuntimeFunction {
         implementation_location: I,
         inputs: Vec<Input>,
         id: usize,
-        flow_id: usize,
+        parent_id: usize,
         output_connections: &[OutputConnection],
         include_destination_routes: bool,
     ) -> Self {
@@ -120,8 +120,8 @@ impl RuntimeFunction {
             name: name.into(),
             #[cfg(feature = "debugger")]
             route: route.into(),
-            function_id: id,
-            flow_id,
+            process_id: id,
+            parent_id,
             implementation_location: implementation_location.into(),
             implementation_url: default_url(),
             output_connections: connections,
@@ -155,13 +155,13 @@ impl RuntimeFunction {
     /// Accessor for a `RuntimeFunction` `id`
     #[must_use]
     pub fn id(&self) -> usize {
-        self.function_id
+        self.process_id
     }
 
-    /// Accessor for a `RuntimeFunction` `flow_id`
+    /// Accessor for a `RuntimeFunction` `parent_id`
     #[must_use]
-    pub fn get_flow_id(&self) -> usize {
-        self.flow_id
+    pub fn get_parent_id(&self) -> usize {
+        self.parent_id
     }
 
     /// Initialize the function to be ready to be called during flow execution
@@ -175,7 +175,7 @@ impl RuntimeFunction {
             if input.init(first_time, flow_gone_idle) {
                 debug!(
                     "\tInitialized Input #{}:{io_number} in Flow #{}",
-                    self.function_id, self.flow_id
+                    self.process_id, self.parent_id
                 );
             }
         }

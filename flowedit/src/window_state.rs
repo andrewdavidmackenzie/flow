@@ -1397,7 +1397,7 @@ impl WindowState {
 
         let url = Url::from_file_path(&abs_path)
             .map_err(|()| format!("Invalid file path: {}", abs_path.display()))?;
-        let process = flowrclib::compiler::parser::parse(&url, &provider)
+        let (process, _process_count) = flowrclib::compiler::parser::parse(&url, &provider)
             .map_err(|e| format!("Parse error: {e}"))?;
         let flow = match process {
             Process::FlowProcess(f) => f,
@@ -1405,12 +1405,14 @@ impl WindowState {
         };
 
         let output_dir = abs_path.parent().unwrap_or(Path::new(".")).to_path_buf();
+        let mut process_count: usize = 0;
         let mut source_urls = BTreeMap::<String, Url>::new();
         let tables = flowrclib::compiler::compile::compile(
             &flow,
             &output_dir,
             false,
             false,
+            &mut process_count,
             &mut source_urls,
         )
         .map_err(|e| e.to_string())?;
@@ -1758,7 +1760,7 @@ impl WindowState {
             Ok(url) => {
                 let provider = file_ops::build_meta_provider();
                 match flowrclib::compiler::parser::parse(&url, &provider) {
-                    Ok(proc) => Some(proc),
+                    Ok((proc, _)) => Some(proc),
                     Err(e) => {
                         info!("add_library_function: could not parse '{source}': {e}");
                         None

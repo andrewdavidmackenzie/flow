@@ -23,10 +23,10 @@ pub struct Payload {
 /// flow on a set of input values, and then where to send the outputs that maybe produces.
 #[derive(Serialize, Deserialize, Clone)]
 pub struct Job {
-    /// The `id` of the function in the `RunState`'s list of functions that will execute this job
-    pub function_id: usize,
-    /// The `id` of the nested flow (from root flow on down) there the function executing the job is
-    pub flow_id: usize,
+    /// The `process_id` of the function in the `RunState`'s list of functions that will execute this job
+    pub process_id: usize,
+    /// The `parent_id` of the flow containing the function executing the job
+    pub parent_id: usize,
     /// the payload required to execute the job
     pub payload: Payload,
     /// The result of the execution with the `job_id`, the optional output Value and if the function
@@ -42,8 +42,8 @@ impl fmt::Display for Job {
         writeln!(f, "Connections: {:?}", self.connections)?;
         writeln!(
             f,
-            "Function Id: {}, Flow Id: {}",
-            self.function_id, self.flow_id
+            "Process Id: {}, Parent Id: {}",
+            self.process_id, self.parent_id
         )?;
         write!(f, "Result: {:?}", self.result)
     }
@@ -72,8 +72,8 @@ mod test {
     #[test]
     fn display_job_test() {
         let job = super::Job {
-            function_id: 1,
-            flow_id: 0,
+            process_id: 1,
+            parent_id: 0,
             connections: vec![],
             payload: Payload {
                 job_id: 0,
@@ -89,8 +89,8 @@ mod test {
     #[test]
     fn get_entire_output_value() {
         let job = super::Job {
-            function_id: 1,
-            flow_id: 0,
+            process_id: 1,
+            parent_id: 0,
             connections: vec![],
             payload: Payload {
                 job_id: 0,
@@ -118,8 +118,8 @@ mod test {
         map.insert(ARRAY_TYPE, vec![1, 2, 3]);
         let value = json!(map);
         let job = super::Job {
-            function_id: 1,
-            flow_id: 0,
+            process_id: 1,
+            parent_id: 0,
             connections: vec![],
             payload: Payload {
                 job_id: 0,

@@ -30,8 +30,8 @@ pub struct OutputConnection {
     pub destination_id: usize,
     /// `io_number` is the IO number the connection is connected to on the destination function
     pub destination_io_number: usize,
-    /// `flow_id` is the `flow_id` of the target function
-    pub destination_flow_id: usize,
+    /// `parent_id` is the `parent_id` of the target function
+    pub destination_parent_id: usize,
     /// `destination` is the full route to the destination input
     #[serde(default, skip_serializing_if = "String::is_empty")]
     pub destination: String,
@@ -61,7 +61,7 @@ impl OutputConnection {
         source: Source,
         destination_id: usize,
         destination_io_number: usize,
-        flow_id: usize,
+        destination_parent_id: usize,
         destination: String,
         #[cfg(feature = "debugger")] name: String,
     ) -> Self {
@@ -69,7 +69,7 @@ impl OutputConnection {
             source,
             destination_id,
             destination_io_number,
-            destination_flow_id: flow_id,
+            destination_parent_id,
             destination,
             #[cfg(feature = "debugger")]
             name,
@@ -92,7 +92,10 @@ impl fmt::Display for OutputConnection {
         write!(
             f,
             "Output '{}' -> Function #{}({}):{}",
-            self.source, self.destination_id, self.destination_flow_id, self.destination_io_number
+            self.source,
+            self.destination_id,
+            self.destination_parent_id,
+            self.destination_io_number
         )?;
         if !self.destination.is_empty() {
             write!(f, " @ '{}'", self.destination)?;

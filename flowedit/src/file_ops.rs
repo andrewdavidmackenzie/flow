@@ -87,7 +87,7 @@ pub(crate) fn load_flow(path: &PathBuf) -> Result<FlowDefinition, String> {
         .map_err(|()| format!("Invalid file path: {}", abs_path.display()))?;
 
     let provider = build_meta_provider();
-    let process = flowrclib::compiler::parser::parse(&url, &provider)
+    let (process, _process_count) = flowrclib::compiler::parser::parse(&url, &provider)
         .map_err(|e| format!("Could not parse flow definition: {e}"))?;
 
     match process {
