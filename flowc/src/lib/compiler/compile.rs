@@ -236,6 +236,16 @@ fn configure_output_connections(tables: &mut CompilerTables) -> Result<()> {
                 connection.to_io().route()
             ))?;
 
+        let source_parent_id = tables
+            .functions
+            .get(&source_id)
+            .ok_or(format!(
+                "Could not find function with id: {source_id} \
+                while configuring output connection '{connection}'"
+            ))?
+            .get_parent_id();
+        let internal = source_parent_id == *destination_parent_id;
+
         let source_function = tables.functions.get_mut(&source_id).ok_or(format!(
             "Could not find function with id: {source_id} \
             while configuring output connection '{connection}'"
@@ -246,13 +256,14 @@ fn configure_output_connections(tables: &mut CompilerTables) -> Result<()> {
             connection.from_io().route(),
             connection.to_io().route()
         );
-        debug!("  Source output route = '{source}' --> function #{destination_function_id}:{destination_input_index}");
+        debug!("  Source output route = '{source}' --> function #{destination_function_id}:{destination_input_index} (internal={internal})");
 
         let output_conn = OutputConnection::new(
             source,
             *destination_function_id,
             *destination_input_index,
             *destination_parent_id,
+            internal,
             connection.to_io().route().to_string(),
             #[cfg(feature = "debugger")]
             connection.name().clone(),
@@ -513,6 +524,7 @@ mod test {
                 1,
                 0,
                 0,
+                false,
                 String::default(),
                 #[cfg(feature = "debugger")]
                 String::default(),

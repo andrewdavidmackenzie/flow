@@ -428,6 +428,7 @@ mod test {
             1,
             0,
             0,
+            false,
             "/fB".to_string(),
             #[cfg(feature = "debugger")]
             String::default(),

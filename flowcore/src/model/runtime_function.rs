@@ -422,6 +422,7 @@ mod test {
             1,
             1,
             0,
+            false,
             String::default(),
             #[cfg(feature = "debugger")]
             String::default(),
@@ -475,6 +476,7 @@ mod test {
             1,
             1,
             0,
+            false,
             String::default(),
             #[cfg(feature = "debugger")]
             String::default(),

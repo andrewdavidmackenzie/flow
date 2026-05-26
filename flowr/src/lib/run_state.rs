@@ -760,6 +760,7 @@ mod test {
             1,
             0,
             0,
+            false,
             "/fB".to_string(),
             #[cfg(feature = "debugger")]
             String::default(),
@@ -792,6 +793,7 @@ mod test {
             1,
             0,
             0,
+            false,
             "/fB".to_string(),
             #[cfg(feature = "debugger")]
             String::default(),
@@ -867,6 +869,7 @@ mod test {
             destination_process_id,
             0,
             0,
+            false,
             String::default(),
             #[cfg(feature = "debugger")]
             String::default(),
@@ -1316,6 +1319,7 @@ mod test {
                 0,
                 0,
                 0,
+                false,
                 String::default(),
                 #[cfg(feature = "debugger")]
                 String::default(),
@@ -1387,6 +1391,7 @@ mod test {
                 0,
                 0,
                 0,
+                false,
                 String::default(),
                 #[cfg(feature = "debugger")]
                 String::default(),
@@ -1471,6 +1476,7 @@ mod test {
                 1,
                 0,
                 0,
+                false,
                 String::default(),
                 #[cfg(feature = "debugger")]
                 String::default(),
@@ -1480,6 +1486,7 @@ mod test {
                 2,
                 0,
                 0,
+                false,
                 String::default(),
                 #[cfg(feature = "debugger")]
                 String::default(),

@@ -32,6 +32,9 @@ pub struct OutputConnection {
     pub destination_io_number: usize,
     /// `parent_id` is the `parent_id` of the target function
     pub destination_parent_id: usize,
+    /// Whether source and destination are in the same flow (same `parent_id`)
+    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
+    pub internal: bool,
     /// `destination` is the full route to the destination input
     #[serde(default, skip_serializing_if = "String::is_empty")]
     pub destination: String,
@@ -62,6 +65,7 @@ impl OutputConnection {
         destination_id: usize,
         destination_io_number: usize,
         destination_parent_id: usize,
+        internal: bool,
         destination: String,
         #[cfg(feature = "debugger")] name: String,
     ) -> Self {
@@ -70,6 +74,7 @@ impl OutputConnection {
             destination_id,
             destination_io_number,
             destination_parent_id,
+            internal,
             destination,
             #[cfg(feature = "debugger")]
             name,
@@ -115,6 +120,7 @@ mod test {
             1,
             1,
             1,
+            false,
             "/flow1/input".into(),
             #[cfg(feature = "debugger")]
             "test-connection".into(),
