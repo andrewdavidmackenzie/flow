@@ -74,11 +74,12 @@ to = "add-multiple/i2"
 # Decide: continue inner loop or advance outer loop?
 #
 # compare-inner(left=limit, right=NEXT_multiple):
-#   gt:  limit > next_multiple → inner loop continues
-#   lte: limit <= next_multiple → inner loop done, advance divisor
+#   gte: limit >= next_multiple → inner loop continues (inclusive)
+#   lt:  limit < next_multiple  → inner loop done, advance divisor
 #
 # Key: compare-inner receives the NEXT multiple (add-multiple output),
-# not the current one. This is what determines if we should loop.
+# not the current one. Uses gte so that next_multiple == limit is still
+# fed back and emitted on the next iteration.
 ########################################################################
 
 [[process]]
@@ -99,7 +100,7 @@ to = "compare-inner/left"
 # Inner loop feedback: route divisor and next_multiple based on decision
 ########################################################################
 
-# divisor-route: routes the divisor based on compare-inner/gt
+# divisor-route: routes the divisor based on compare-inner/gte
 #   true (continue) → loops divisor back to add-multiple/i2
 #   false (done) → sends divisor to add-divisor for outer loop
 [[process]]
