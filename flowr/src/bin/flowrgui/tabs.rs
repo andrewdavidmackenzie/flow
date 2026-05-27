@@ -1,12 +1,12 @@
 use std::collections::HashMap;
 use std::fs;
 
-use iced::widget::image::{Handle, Viewer};
+use iced::widget::image::{FilterMethod, Handle, Viewer};
 use iced::widget::operation::{self, RelativeOffset};
 use iced::widget::scrollable::Scrollable;
 use iced::widget::TextInput;
 use iced::widget::{text, toggler, Button, Column, Id, Row, Text};
-use iced::{Element, Length, Task};
+use iced::{ContentFit, Element, Length, Task};
 use iced_aw::{TabLabel, Tabs};
 use log::error;
 use once_cell::sync::Lazy;
@@ -254,6 +254,37 @@ impl ImageTab {
     }
 }
 
+impl ImageTab {
+    const MIN_DISPLAY_WIDTH: u32 = 400;
+}
+
+fn scale_image(image_ref: &ImageReference, min_width: u32) -> (u32, u32, Vec<u8>) {
+    let scale = min_width.checked_div(image_ref.width).unwrap_or(1).max(1);
+
+    let new_width = image_ref.width * scale;
+    let new_height = image_ref.height * scale;
+    let mut scaled = Vec::with_capacity((new_width * new_height * 4) as usize);
+
+    for y in 0..image_ref.height {
+        let row: Vec<u8> = (0..image_ref.width)
+            .flat_map(|x| {
+                let pixel = image_ref.data.get_pixel(x, y).0;
+                pixel
+                    .iter()
+                    .copied()
+                    .cycle()
+                    .take(4 * scale as usize)
+                    .collect::<Vec<u8>>()
+            })
+            .collect();
+        for _ in 0..scale {
+            scaled.extend_from_slice(&row);
+        }
+    }
+
+    (new_width, new_height, scaled)
+}
+
 impl Tab for ImageTab {
     type Message = Message;
 
@@ -269,15 +300,28 @@ impl Tab for ImageTab {
         let mut col = Column::new().spacing(10);
 
         for (name, image_ref) in &self.images {
+            let (display_width, display_height, display_data) =
+                scale_image(image_ref, Self::MIN_DISPLAY_WIDTH);
             let viewer = Viewer::new(Handle::from_rgba(
-                image_ref.width,
-                image_ref.height,
-                image_ref.data.as_raw().clone(),
-            ));
+                display_width,
+                display_height,
+                display_data,
+            ))
+            .filter_method(FilterMethod::Nearest)
+            .content_fit(ContentFit::ScaleDown)
+            .min_scale(0.1)
+            .max_scale(10.0)
+            .width(Length::Fill)
+            .height(Length::Fill);
+            let scale = display_width / image_ref.width;
+            let label = format!(
+                "{name} ({}x{}, {scale}x)",
+                image_ref.width, image_ref.height
+            );
             let save_button =
                 Button::new(Text::new("Save")).on_press(Message::SaveImage(name.clone()));
             let header = Row::new()
-                .push(Text::new(name.as_str()))
+                .push(Text::new(label))
                 .push(save_button)
                 .spacing(10);
             col = col.push(header).push(viewer);
