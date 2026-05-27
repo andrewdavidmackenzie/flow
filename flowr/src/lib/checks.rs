@@ -22,14 +22,17 @@ fn runtime_error(
 }
 
 fn ready_check(state: &RunState, job_id: usize, function: &RuntimeFunction) -> Result<()> {
-    if !state.get_busy_flows().contains_key(&function.get_flow_id()) {
+    if !state
+        .get_busy_count()
+        .contains_key(&function.get_parent_id())
+    {
         return runtime_error(
             state,
             job_id,
             &format!(
                 "Function #{} is Ready, but Flow #{} is not busy",
                 function.id(),
-                function.get_flow_id()
+                function.get_parent_id()
             ),
             file!(),
             line!(),
@@ -60,7 +63,9 @@ fn ready_check(state: &RunState, job_id: usize, function: &RuntimeFunction) -> R
 
 fn running_check(state: &RunState, job_id: usize, function: &RuntimeFunction) -> Result<()> {
     if state.get_running().contains_key(&job_id)
-        && !state.get_busy_flows().contains_key(&function.get_flow_id())
+        && !state
+            .get_busy_count()
+            .contains_key(&function.get_parent_id())
     {
         return runtime_error(
             state,
@@ -68,7 +73,7 @@ fn running_check(state: &RunState, job_id: usize, function: &RuntimeFunction) ->
             &format!(
                 "Function #{} is Running, but Flow #{} is not busy",
                 function.id(),
-                function.get_flow_id()
+                function.get_parent_id()
             ),
             file!(),
             line!(),
@@ -134,7 +139,7 @@ fn destination_block_state_check(state: &RunState, job_id: usize, block: &Block,
  */
 
 fn function_state_checks(state: &RunState, job_id: usize) -> Result<()> {
-    for function in state.get_functions() {
+    for function in state.get_functions().values() {
         running_check(state, job_id, function)?;
 
         let function_states = &state.get_function_states(function.id());

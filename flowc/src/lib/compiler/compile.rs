@@ -28,12 +28,12 @@ pub struct CompilerTables {
     pub connections: Vec<Connection>,
     /// Map of sources of values and what route they are connected to
     pub sources: BTreeMap<Route, (Source, usize)>,
-    /// Map from "route of the output of a function" --> (output name, `source_function_id`)
+    /// Map from "route of the output of a function" --> (output name, `source_process_id`)
     pub destination_routes: BTreeMap<Route, (usize, usize, usize)>,
-    /// `HashMap` from "route of the input of a function" --> (`destination_function_id`, `input_number`, `flow_id`)
+    /// `HashMap` from "route of the input of a function" --> (`destination_process_id`, `input_number`, `parent_id`)
     pub collapsed_connections: Vec<Connection>,
     /// The set of functions left in a flow after it has been flattened, connected and optimized
-    pub functions: Vec<FunctionDefinition>,
+    pub functions: BTreeMap<usize, FunctionDefinition>,
     /// The set of libraries used by a flow, from their Urls
     pub libs: BTreeSet<Url>,
     /// The set of context functions used by a flow, from their Urls
@@ -51,7 +51,7 @@ impl CompilerTables {
             sources: BTreeMap::<Route, (Source, usize)>::new(),
             destination_routes: BTreeMap::<Route, (usize, usize, usize)>::new(),
             collapsed_connections: Vec::new(),
-            functions: Vec::new(),
+            functions: BTreeMap::new(),
             libs: BTreeSet::new(),
             context_functions: BTreeSet::new(),
             source_files: Vec::new(),
@@ -72,14 +72,15 @@ impl CompilerTables {
     }
 
     /// consistently order the functions so each compile produces the same numbering
+    /// With `BTreeMap` keyed by `process_id`, ordering is inherent — this is now a no-op
     pub fn sort_functions(&mut self) {
-        self.functions.sort_by_key(FunctionDefinition::get_id);
+        // BTreeMap is keyed by process_id; already sorted
     }
 
     /// Construct two look-up tables that can be used to find the index of a function in the functions table,
     /// and the index of it's input - using the input route, or it's output route
     pub fn create_routes_table(&mut self) {
-        for function in &mut self.functions {
+        for function in self.functions.values() {
             // Add inputs to functions to the table as a possible source of connections from a
             // job that completed using this function
             for (input_number, input) in function.get_inputs().iter().enumerate() {
@@ -101,7 +102,7 @@ impl CompilerTables {
             for (input_index, input) in function.get_inputs().iter().enumerate() {
                 self.destination_routes.insert(
                     input.route().clone(),
-                    (function.get_id(), input_index, function.get_flow_id()),
+                    (function.get_id(), input_index, function.get_parent_id()),
                 );
             }
         }
@@ -125,11 +126,12 @@ pub fn compile(
     output_dir: &Path,
     skip_building: bool,
     optimize: bool,
+    process_count: &mut usize,
     #[cfg(feature = "debugger")] source_urls: &mut BTreeMap<String, Url>,
 ) -> Result<CompilerTables> {
     let mut tables = CompilerTables::new();
 
-    gatherer::gather_functions_and_connections(flow, &mut tables)?;
+    gatherer::gather_functions_and_connections(flow, &mut tables, process_count)?;
     gatherer::collapse_connections(&mut tables)?;
     if optimize {
         optimizer::optimize(&mut tables);
@@ -180,7 +182,7 @@ fn compile_supplied_implementations(
     release_build: bool,
     #[cfg(feature = "debugger")] source_urls: &mut BTreeMap<String, Url>,
 ) -> Result<String> {
-    for function in &mut tables.functions {
+    for function in tables.functions.values_mut() {
         if function.get_lib_reference().is_none() && function.get_context_reference().is_none() {
             let (implementation_source_path, wasm_destination) = get_paths(out_dir, function)?;
             let mut cargo_target_dir = implementation_source_path
@@ -226,7 +228,7 @@ fn configure_output_connections(tables: &mut CompilerTables) -> Result<()> {
                 connection.from_io().route()
             ))?;
 
-        let (destination_function_id, destination_input_index, destination_flow_id) = tables
+        let (destination_function_id, destination_input_index, destination_parent_id) = tables
             .destination_routes
             .get(connection.to_io().route())
             .ok_or(format!(
@@ -234,7 +236,9 @@ fn configure_output_connections(tables: &mut CompilerTables) -> Result<()> {
                 connection.to_io().route()
             ))?;
 
-        let source_function = tables.functions.get_mut(source_id).ok_or(format!(
+        let internal = !connection.external_input();
+
+        let source_function = tables.functions.get_mut(&source_id).ok_or(format!(
             "Could not find function with id: {source_id} \
             while configuring output connection '{connection}'"
         ))?;
@@ -244,13 +248,14 @@ fn configure_output_connections(tables: &mut CompilerTables) -> Result<()> {
             connection.from_io().route(),
             connection.to_io().route()
         );
-        debug!("  Source output route = '{source}' --> function #{destination_function_id}:{destination_input_index}");
+        debug!("  Source output route = '{source}' --> function #{destination_function_id}:{destination_input_index} (internal={internal})");
 
         let output_conn = OutputConnection::new(
             source,
             *destination_function_id,
             *destination_input_index,
-            *destination_flow_id,
+            *destination_parent_id,
+            internal,
             connection.to_io().route().to_string(),
             #[cfg(feature = "debugger")]
             connection.name().clone(),
@@ -472,6 +477,7 @@ mod test {
         };
 
         let output_dir = tempdir().expect("A temp dir").keep();
+        let mut process_count: usize = 0;
         let mut source_urls = BTreeMap::<String, Url>::new();
         // Optimizer should remove unconnected function leaving no side effects
         match compile(
@@ -479,6 +485,7 @@ mod test {
             &output_dir,
             true,
             false,
+            &mut process_count,
             #[cfg(feature = "debugger")]
             &mut source_urls,
         ) {
@@ -509,6 +516,7 @@ mod test {
                 1,
                 0,
                 0,
+                false,
                 String::default(),
                 #[cfg(feature = "debugger")]
                 String::default(),

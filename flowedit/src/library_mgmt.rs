@@ -50,7 +50,7 @@ pub(crate) fn load_library_catalogs(
                 let meta_provider = file_ops::build_meta_provider();
                 for locator_url in manifest.locators.keys() {
                     match flowrclib::compiler::parser::parse(locator_url, &meta_provider) {
-                        Ok(process) => {
+                        Ok((process, _)) => {
                             all_definitions.insert(locator_url.clone(), process);
                         }
                         Err(e) => {
@@ -105,7 +105,7 @@ pub(crate) fn load_library_catalogs(
                                             entry.key(),
                                             &ctx_provider,
                                         ) {
-                                            Ok(process) => {
+                                            Ok((process, _)) => {
                                                 entry.insert(process);
                                             }
                                             Err(e) => {

@@ -1,6 +1,7 @@
 #[cfg(feature = "debugger")]
 use std::collections::BTreeMap;
 use std::collections::BTreeSet;
+use std::collections::HashMap;
 use std::fmt;
 use std::fmt::Display;
 
@@ -33,8 +34,10 @@ pub struct Cargo {
 #[derive(Deserialize, Serialize, Clone, PartialEq, Eq, Debug)]
 /// Describes a flow's direct children: which sub-flow IDs it contains
 pub struct FlowInfo {
-    /// The unique flow ID
-    pub flow_id: usize,
+    /// The unique process ID of this flow
+    pub process_id: usize,
+    /// The ID of the parent flow, if any
+    pub parent_id: Option<usize>,
     /// IDs of direct child sub-flows
     pub sub_flow_ids: Vec<usize>,
 }
@@ -50,10 +53,10 @@ pub struct FlowManifest {
     /// A list of the `context_references` used by this flow
     context_references: BTreeSet<Url>,
     /// A list of `RuntimeFunctions` in this flow
-    functions: Vec<RuntimeFunction>,
+    functions: HashMap<usize, RuntimeFunction>,
     /// Flow hierarchy: which sub-flows each flow contains
     #[serde(default)]
-    flows: Vec<FlowInfo>,
+    flows: HashMap<usize, FlowInfo>,
     #[cfg(feature = "debugger")]
     /// A list of the source files used to build this `flow`
     source_urls: BTreeMap<String, Url>,
@@ -61,10 +64,11 @@ pub struct FlowManifest {
 
 impl Display for FlowManifest {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        for (id, function) in self.functions.iter().enumerate() {
+        for function in self.functions.values() {
             writeln!(
                 f,
-                "         Function #{id} Implementation: {}",
+                "         Function #{} Implementation: {}",
+                function.id(),
                 function.get_implementation_url()
             )?;
         }
@@ -80,8 +84,8 @@ impl FlowManifest {
             metadata,
             lib_references: BTreeSet::<Url>::new(),
             context_references: BTreeSet::<Url>::new(),
-            functions: Vec::<RuntimeFunction>::new(),
-            flows: Vec::<FlowInfo>::new(),
+            functions: HashMap::new(),
+            flows: HashMap::new(),
             #[cfg(feature = "debugger")]
             source_urls: BTreeMap::<String, Url>::new(),
         }
@@ -89,34 +93,34 @@ impl FlowManifest {
 
     /// Add a run-time Function to the manifest for use in serialization
     pub fn add_function(&mut self, function: RuntimeFunction) {
-        self.functions.push(function);
+        self.functions.insert(function.id(), function);
     }
 
     /// Add flow hierarchy info to the manifest
     pub fn add_flow_info(&mut self, flow_info: FlowInfo) {
-        self.flows.push(flow_info);
+        self.flows.insert(flow_info.process_id, flow_info);
     }
 
     /// Get the flow hierarchy
     #[must_use]
-    pub fn flows(&self) -> &[FlowInfo] {
+    pub fn flows(&self) -> &HashMap<usize, FlowInfo> {
         &self.flows
     }
 
     /// Get the list of functions in this manifest
     #[must_use]
-    pub fn functions(&self) -> &Vec<RuntimeFunction> {
+    pub fn functions(&self) -> &HashMap<usize, RuntimeFunction> {
         &self.functions
     }
 
     /// Get the list of functions in this manifest
-    pub fn get_functions(&mut self) -> &mut Vec<RuntimeFunction> {
+    pub fn get_functions(&mut self) -> &mut HashMap<usize, RuntimeFunction> {
         &mut self.functions
     }
 
-    /// Take the vector of functions out of this manifest
+    /// Take the map of functions out of this manifest
     #[must_use]
-    pub fn take_functions(self) -> Vec<RuntimeFunction> {
+    pub fn take_functions(self) -> HashMap<usize, RuntimeFunction> {
         self.functions
     }
 
@@ -199,7 +203,7 @@ impl FlowManifest {
         // normalize the implementation_locations into URLs.
         // context: and lib: URLs will be untouched
         // relative path locations to the manifest_url to file:// using the manifest Url as the base
-        for function in &mut manifest.functions {
+        for function in manifest.functions.values_mut() {
             function.set_implementation_url(&resolved_url)?;
         }
 
@@ -299,16 +303,16 @@ mod test {
             \"context_references\": [
                 \"context://\"
              ],
-            \"functions\": [
-                {
+            \"functions\": {
+                \"0\": {
                     \"name\": \"print\",
                     \"route\": \"/print\",
-                    \"function_id\": 0,
-                    \"flow_id\": 0,
+                    \"process_id\": 0,
+                    \"parent_id\": 0,
                     \"implementation_location\": \"context://stdio/stdout\",
                     \"inputs\": [ {} ]
                 }
-             ],
+             },
             \"source_urls\": {}
             }";
         let provider = TestProvider { test_content };

@@ -29,6 +29,7 @@
 - [Flow Libraries](book/describing/flow_libraries.md)
 - [Context Functions](book/describing/context_functions.md)
 - [Provided Functions](book/describing/provided_functions.md)
+- [Sub-flow Execution Semantics](book/describing/sub_flow_semantics.md)
 - [Programming Methods](book/describing/programming_methods.md)
 
 # `flowrcli's` `context functions`

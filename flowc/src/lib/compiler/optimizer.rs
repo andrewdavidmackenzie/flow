@@ -25,15 +25,15 @@ fn remove_dead_functions(tables: &mut CompilerTables) -> bool {
     let mut functions_to_remove = vec![];
     let mut connections_to_remove = vec![];
 
-    for (index, function) in tables.functions.iter().enumerate() {
+    for (&process_id, function) in &tables.functions {
         if dead_function(&tables.collapsed_connections, function) {
             debug!(
                 "Function #{} '{}' @ '{}' has no connection from it, so it will be removed",
-                index,
+                process_id,
                 function.alias(),
                 function.route()
             );
-            functions_to_remove.push(index);
+            functions_to_remove.push(process_id);
 
             let removed_route = function.route();
             // remove connections to and from the function
@@ -58,18 +58,20 @@ fn remove_dead_functions(tables: &mut CompilerTables) -> bool {
 
     // Remove the functions marked for removal
     let function_remove_count = functions_to_remove.len();
-    functions_to_remove.reverse();
-    for index in functions_to_remove {
-        let removed_function = tables.functions.remove(index);
-        debug!(
-            "Removed function #{}, with route '{}'",
-            index,
-            removed_function.route()
-        );
+    for process_id in &functions_to_remove {
+        if let Some(removed_function) = tables.functions.remove(process_id) {
+            debug!(
+                "Removed function #{}, with route '{}'",
+                process_id,
+                removed_function.route()
+            );
+        }
     }
 
     // Remove the connections marked for removal
     let connection_remove_count = connections_to_remove.len();
+    connections_to_remove.sort_unstable();
+    connections_to_remove.dedup();
     connections_to_remove.reverse(); // start from last index to avoid index changes while working
     for connection_index_to_remove in connections_to_remove {
         let removed = tables
@@ -114,6 +116,8 @@ fn connection_from_function(connections: &[Connection], function: &FunctionDefin
 #[cfg(test)]
 #[allow(clippy::unwrap_used, clippy::expect_used)]
 mod test {
+    use std::collections::BTreeMap;
+
     use url::Url;
 
     use flowcore::model::connection::Connection;
@@ -157,6 +161,10 @@ mod test {
             1,
             0,
         )
+    }
+
+    fn make_functions_map(fns: Vec<FunctionDefinition>) -> BTreeMap<usize, FunctionDefinition> {
+        fns.into_iter().map(|f| (f.get_id(), f)).collect()
     }
 
     #[test]
@@ -204,7 +212,7 @@ mod test {
     #[test]
     fn no_optimization_to_be_done() {
         let mut tables = CompilerTables::new();
-        tables.functions = vec![pure_function(), impure_function()];
+        tables.functions = make_functions_map(vec![pure_function(), impure_function()]);
 
         let mut from_connection =
             Connection::new("/root/pure_function/output", "/root/other/input");
@@ -222,7 +230,7 @@ mod test {
     #[test]
     fn optimization_out_a_dead_one() {
         let mut tables = CompilerTables::new();
-        tables.functions = vec![pure_function(), impure_function()];
+        tables.functions = make_functions_map(vec![pure_function(), impure_function()]);
 
         assert_eq!(tables.functions.len(), 2);
         optimize(&mut tables);

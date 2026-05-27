@@ -21,9 +21,10 @@ use crate::errors::Result;
 pub fn gather_functions_and_connections(
     flow: &FlowDefinition,
     tables: &mut CompilerTables,
+    process_count: &mut usize,
 ) -> Result<()> {
     info!("\n=== Compiler: Gathering Functions and Connections");
-    inner_gather_functions_and_connections(flow, tables)?;
+    inner_gather_functions_and_connections(flow, tables, process_count)?;
 
     tables.sort_functions();
 
@@ -41,6 +42,7 @@ pub fn gather_functions_and_connections(
 fn inner_gather_functions_and_connections(
     flow: &FlowDefinition,
     tables: &mut CompilerTables,
+    process_count: &mut usize,
 ) -> Result<()> {
     // Add Connections from this flow hierarchy to the connections table
     let mut connections = flow.connections.clone();
@@ -50,13 +52,16 @@ fn inner_gather_functions_and_connections(
     for subprocess in &flow.subprocesses {
         match subprocess.1 {
             FlowProcess(ref flow) => {
-                inner_gather_functions_and_connections(flow, tables)?; // recurse
+                inner_gather_functions_and_connections(flow, tables, process_count)?;
+                // recurse
             }
             FunctionProcess(ref function) => {
-                // Give function a unique id and add to the table of functions
+                // Give function a unique process_id from the shared counter and add to the table
                 let mut table_function = function.clone();
-                table_function.set_id(tables.functions.len());
-                tables.functions.push(table_function);
+                table_function.set_id(*process_count);
+                *process_count += 1;
+                let id = table_function.get_id();
+                tables.functions.insert(id, table_function);
             }
         }
     }
@@ -89,6 +94,7 @@ fn inner_gather_functions_and_connections(
 /// - `tables.functions` functions must be indexed by `gather_functions_and_connections`
 /// - `tables.connections`is populated by `gather_functions_and_connections`
 /// - `tables.destination_routes` is populated by `create_routes_table`
+#[allow(clippy::too_many_lines)]
 pub fn collapse_connections(tables: &mut CompilerTables) -> Result<()> {
     info!(
         "\n=== Compiler: Collapsing {} flow connections",
@@ -112,13 +118,16 @@ pub fn collapse_connections(tables: &mut CompilerTables) -> Result<()> {
                     collapsed_connections.push(connection.clone());
                 } else {
                     // If the connection enters or leaves this flow, then follow it to all destinations at function inputs
-                    for (source_subroute, destination_io) in find_connection_destinations(
-                        &Route::from(""),
-                        connection.to_io(),
-                        connection.level(),
-                        &tables.connections,
-                    )? {
+                    for (source_subroute, destination_io, _min_level) in
+                        find_connection_destinations(
+                            &Route::from(""),
+                            connection.to_io(),
+                            connection.level(),
+                            &tables.connections,
+                        )?
+                    {
                         let mut collapsed_connection = connection.clone();
+                        collapsed_connection.set_external_input();
                         // append the subroute from the origin function IO - to select from with in that IO
                         // as prescribed by the connections along the way
                         let from_route = connection
@@ -154,8 +163,11 @@ pub fn collapse_connections(tables: &mut CompilerTables) -> Result<()> {
                 if connection.from_io().get_initializer().is_some() {
                     // find the destination functions (the connection could split to multiple destinations)
                     let destinations = if connection.to_io().io_type() == &IOType::FunctionInput {
-                        // Flow input (or output) (that has an initializer) connects directly to a function's Input
-                        vec![(Route::default(), connection.to_io().clone())]
+                        vec![(
+                            Route::default(),
+                            connection.to_io().clone(),
+                            connection.level(),
+                        )]
                     } else {
                         find_connection_destinations(
                             &Route::from(""),
@@ -165,7 +177,7 @@ pub fn collapse_connections(tables: &mut CompilerTables) -> Result<()> {
                         )?
                     };
 
-                    for (_, destination_io) in destinations {
+                    for (_, destination_io, _) in destinations {
                         let (destination_function_id, destination_input_index, _) = tables
                             .destination_routes
                             .get(destination_io.route())
@@ -177,7 +189,7 @@ pub fn collapse_connections(tables: &mut CompilerTables) -> Result<()> {
                         // get a mutable reference to the destination function and set the initializer on it
                         let destination_function = tables
                             .functions
-                            .get_mut(*destination_function_id)
+                            .get_mut(destination_function_id)
                             .ok_or(format!(
                                 "Could not find a function #{destination_function_id}"
                             ))?;
@@ -265,7 +277,7 @@ fn find_connection_destinations(
     from_io: &IO,
     from_level: usize,
     connections: &[Connection],
-) -> Result<Vec<(Route, IO)>> {
+) -> Result<Vec<(Route, IO, usize)>> {
     let mut destinations = vec![];
 
     for next_connection in connections {
@@ -287,14 +299,19 @@ fn find_connection_destinations(
                 // Accumulate any subroute from this connection to the origin subroute
                 let accumulated_source_subroute = prev_subroute.clone().extend(&subroute).clone();
 
+                let min_level = from_level.min(next_level);
+
                 match *next_connection.to_io().io_type() {
                     IOType::FunctionInput => {
                         debug!(
                             "\t\tFound destination function input at '{}'",
                             next_connection.to_io().route()
                         );
-                        destinations
-                            .push((accumulated_source_subroute, next_connection.to_io().clone()));
+                        destinations.push((
+                            accumulated_source_subroute,
+                            next_connection.to_io().clone(),
+                            min_level,
+                        ));
                     }
 
                     IOType::FunctionOutput => {
@@ -312,6 +329,10 @@ fn find_connection_destinations(
                             next_connection.level(),
                             connections,
                         )?;
+                        // Propagate the minimum level through the chain
+                        for dest in new_destinations.iter_mut() {
+                            dest.2 = dest.2.min(min_level);
+                        }
                         destinations.append(new_destinations);
                     }
 
@@ -326,6 +347,9 @@ fn find_connection_destinations(
                             next_connection.level(),
                             connections,
                         )?;
+                        for dest in new_destinations.iter_mut() {
+                            dest.2 = dest.2.min(min_level);
+                        }
                         destinations.append(new_destinations);
                     }
                 }
@@ -341,7 +365,7 @@ fn find_connection_destinations(
         );
     } else {
         // check that the partial connection has compatible source and destinations types
-        for (sub_route, destination_io) in &destinations {
+        for (sub_route, destination_io, _) in &destinations {
             DataType::compatible_types(from_io.datatypes(), destination_io.datatypes(), sub_route)
                 .chain_err(|| {
                     format!(
@@ -678,6 +702,263 @@ mod test {
                 .to_io()
                 .route(),
             Route::from("/flow1/flow2/func/in")
+        );
+    }
+
+    // A connection from a function in the root flow into a sub-flow goes DOWN
+    // (level 0 → level 1). The source is at level 0. min_level = 0 = source level.
+    // Not external_input — it's a normal parent-to-child connection.
+    #[test]
+    fn connection_into_subflow_is_external() {
+        let mut left = Connection::new("/f1", "/sub/a");
+        left.connect(
+            IO::new(vec![STRING_TYPE.into()], "/f1"),
+            IO::new(vec![STRING_TYPE.into()], "/sub/a"),
+            0,
+        )
+        .expect("Could not connect");
+        left.from_io_mut().set_io_type(IOType::FunctionOutput);
+        left.to_io_mut().set_io_type(IOType::FlowInput);
+
+        let mut right = Connection::new("/sub/a", "/sub/f2");
+        right
+            .connect(
+                IO::new(vec![STRING_TYPE.into()], "/sub/a"),
+                IO::new(vec![STRING_TYPE.into()], "/sub/f2"),
+                1,
+            )
+            .expect("Could not connect");
+        right.from_io_mut().set_io_type(IOType::FlowInput);
+        right.to_io_mut().set_io_type(IOType::FunctionInput);
+
+        let mut tables = CompilerTables::new();
+        tables.connections = vec![left, right];
+        collapse_connections(&mut tables).expect("Could not collapse");
+        assert_eq!(tables.collapsed_connections.len(), 1);
+        assert!(
+            tables
+                .collapsed_connections
+                .first()
+                .expect("no connection")
+                .external_input(),
+            "Connection from parent into sub-flow is external"
+        );
+    }
+
+    // A connection that goes OUT of a sub-flow (level 1 → level 0) and back INTO
+    // the same sub-flow (level 0 → level 1) crosses a boundary.
+    // This is the router pattern: forward_sum → output → parent → input → compare
+    #[test]
+    fn connection_through_parent_is_crossed() {
+        // Step 1: function output → flow output (level 1)
+        let mut out = Connection::new("/sub/f1", "/sub/out");
+        out.connect(
+            IO::new(vec![STRING_TYPE.into()], "/sub/f1"),
+            IO::new(vec![STRING_TYPE.into()], "/sub/out"),
+            1,
+        )
+        .expect("Could not connect");
+        out.from_io_mut().set_io_type(IOType::FunctionOutput);
+        out.to_io_mut().set_io_type(IOType::FlowOutput);
+
+        // Step 2: sub-flow output → sub-flow input (level 0, parent flow)
+        let mut parent = Connection::new("/sub/out", "/sub/in");
+        parent
+            .connect(
+                IO::new(vec![STRING_TYPE.into()], "/sub/out"),
+                IO::new(vec![STRING_TYPE.into()], "/sub/in"),
+                0,
+            )
+            .expect("Could not connect");
+        parent.from_io_mut().set_io_type(IOType::FlowOutput);
+        parent.to_io_mut().set_io_type(IOType::FlowInput);
+
+        // Step 3: flow input → function input (level 1)
+        let mut inp = Connection::new("/sub/in", "/sub/f2");
+        inp.connect(
+            IO::new(vec![STRING_TYPE.into()], "/sub/in"),
+            IO::new(vec![STRING_TYPE.into()], "/sub/f2"),
+            1,
+        )
+        .expect("Could not connect");
+        inp.from_io_mut().set_io_type(IOType::FlowInput);
+        inp.to_io_mut().set_io_type(IOType::FunctionInput);
+
+        let mut tables = CompilerTables::new();
+        tables.connections = vec![out, parent, inp];
+        collapse_connections(&mut tables).expect("Could not collapse");
+        assert_eq!(tables.collapsed_connections.len(), 1);
+        assert!(
+            tables
+                .collapsed_connections
+                .first()
+                .expect("no connection")
+                .external_input(),
+            "Connection through parent flow should cross boundary"
+        );
+    }
+
+    // Function → Function within same flow: direct connection, no boundary crossing
+    #[test]
+    fn sibling_function_to_function_not_crossed() {
+        let mut conn = Connection::new("/flow/f1/out", "/flow/f2/in");
+        conn.connect(
+            IO::new(vec![STRING_TYPE.into()], "/flow/f1/out"),
+            IO::new(vec![STRING_TYPE.into()], "/flow/f2/in"),
+            1,
+        )
+        .expect("Could not connect");
+        conn.from_io_mut().set_io_type(IOType::FunctionOutput);
+        conn.to_io_mut().set_io_type(IOType::FunctionInput);
+
+        let mut tables = CompilerTables::new();
+        tables.connections = vec![conn];
+        collapse_connections(&mut tables).expect("Could not collapse");
+        assert_eq!(tables.collapsed_connections.len(), 1);
+        assert!(
+            !tables
+                .collapsed_connections
+                .first()
+                .expect("no connection")
+                .external_input(),
+            "Function-to-function within same flow should not cross boundary"
+        );
+    }
+
+    // Function → sub-flow (sibling): goes into sub-flow at same level, not crossed
+    #[test]
+    fn sibling_function_to_subflow_is_external() {
+        // function output → sub-flow input (level 1)
+        let mut left = Connection::new("/flow/f1/out", "/flow/sub/in");
+        left.connect(
+            IO::new(vec![STRING_TYPE.into()], "/flow/f1/out"),
+            IO::new(vec![STRING_TYPE.into()], "/flow/sub/in"),
+            1,
+        )
+        .expect("Could not connect");
+        left.from_io_mut().set_io_type(IOType::FunctionOutput);
+        left.to_io_mut().set_io_type(IOType::FlowInput);
+
+        // sub-flow input → function input inside sub-flow (level 2)
+        let mut right = Connection::new("/flow/sub/in", "/flow/sub/f2/in");
+        right
+            .connect(
+                IO::new(vec![STRING_TYPE.into()], "/flow/sub/in"),
+                IO::new(vec![STRING_TYPE.into()], "/flow/sub/f2/in"),
+                2,
+            )
+            .expect("Could not connect");
+        right.from_io_mut().set_io_type(IOType::FlowInput);
+        right.to_io_mut().set_io_type(IOType::FunctionInput);
+
+        let mut tables = CompilerTables::new();
+        tables.connections = vec![left, right];
+        collapse_connections(&mut tables).expect("Could not collapse");
+        assert_eq!(tables.collapsed_connections.len(), 1);
+        assert!(
+            tables
+                .collapsed_connections
+                .first()
+                .expect("no connection")
+                .external_input(),
+            "Function-to-subflow is external (crosses flow boundary)"
+        );
+    }
+
+    // Sub-flow → function (sibling): exits sub-flow to parent level.
+    // Source and destination are in DIFFERENT flows (src_parent != dst_parent),
+    // so external_input doesn't matter — it's already external.
+    // But the flag itself: min_level (1) < source level (2), so it IS set.
+    // This is harmless since the different-parent check makes it external anyway.
+    #[test]
+    fn sibling_subflow_to_function_is_crossed() {
+        // function output inside sub-flow → sub-flow output (level 2)
+        let mut left = Connection::new("/flow/sub/f1/out", "/flow/sub/out");
+        left.connect(
+            IO::new(vec![STRING_TYPE.into()], "/flow/sub/f1/out"),
+            IO::new(vec![STRING_TYPE.into()], "/flow/sub/out"),
+            2,
+        )
+        .expect("Could not connect");
+        left.from_io_mut().set_io_type(IOType::FunctionOutput);
+        left.to_io_mut().set_io_type(IOType::FlowOutput);
+
+        // sub-flow output → function input in parent flow (level 1)
+        let mut right = Connection::new("/flow/sub/out", "/flow/f2/in");
+        right
+            .connect(
+                IO::new(vec![STRING_TYPE.into()], "/flow/sub/out"),
+                IO::new(vec![STRING_TYPE.into()], "/flow/f2/in"),
+                1,
+            )
+            .expect("Could not connect");
+        right.from_io_mut().set_io_type(IOType::FlowOutput);
+        right.to_io_mut().set_io_type(IOType::FunctionInput);
+
+        let mut tables = CompilerTables::new();
+        tables.connections = vec![left, right];
+        collapse_connections(&mut tables).expect("Could not collapse");
+        assert_eq!(tables.collapsed_connections.len(), 1);
+        assert!(
+            tables
+                .collapsed_connections
+                .first()
+                .expect("no connection")
+                .external_input(),
+            "Subflow-to-function going up should cross boundary"
+        );
+    }
+
+    // Sub-flow A → Sub-flow B (siblings): exits sub-flow A, traverses parent, enters sub-flow B
+    // The source function is inside sub-flow A at level 2.
+    // The chain goes: level 2 → level 1 → level 2
+    // min_level = 1 < source level 2, so crossed boundary
+    #[test]
+    fn sibling_subflow_to_subflow_is_crossed() {
+        // function output in sub_a → sub_a output (level 2)
+        let mut out = Connection::new("/flow/sub_a/f1/out", "/flow/sub_a/out");
+        out.connect(
+            IO::new(vec![STRING_TYPE.into()], "/flow/sub_a/f1/out"),
+            IO::new(vec![STRING_TYPE.into()], "/flow/sub_a/out"),
+            2,
+        )
+        .expect("Could not connect");
+        out.from_io_mut().set_io_type(IOType::FunctionOutput);
+        out.to_io_mut().set_io_type(IOType::FlowOutput);
+
+        // sub_a output → sub_b input (level 1, parent flow)
+        let mut mid = Connection::new("/flow/sub_a/out", "/flow/sub_b/in");
+        mid.connect(
+            IO::new(vec![STRING_TYPE.into()], "/flow/sub_a/out"),
+            IO::new(vec![STRING_TYPE.into()], "/flow/sub_b/in"),
+            1,
+        )
+        .expect("Could not connect");
+        mid.from_io_mut().set_io_type(IOType::FlowOutput);
+        mid.to_io_mut().set_io_type(IOType::FlowInput);
+
+        // sub_b input → function input in sub_b (level 2)
+        let mut inp = Connection::new("/flow/sub_b/in", "/flow/sub_b/f2/in");
+        inp.connect(
+            IO::new(vec![STRING_TYPE.into()], "/flow/sub_b/in"),
+            IO::new(vec![STRING_TYPE.into()], "/flow/sub_b/f2/in"),
+            2,
+        )
+        .expect("Could not connect");
+        inp.from_io_mut().set_io_type(IOType::FlowInput);
+        inp.to_io_mut().set_io_type(IOType::FunctionInput);
+
+        let mut tables = CompilerTables::new();
+        tables.connections = vec![out, mid, inp];
+        collapse_connections(&mut tables).expect("Could not collapse");
+        assert_eq!(tables.collapsed_connections.len(), 1);
+        assert!(
+            tables
+                .collapsed_connections
+                .first()
+                .expect("no connection")
+                .external_input(),
+            "Subflow-to-subflow through parent should cross boundary"
         );
     }
 

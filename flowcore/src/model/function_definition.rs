@@ -67,12 +67,12 @@ pub struct FunctionDefinition {
     /// The output connections from this function to other processes (functions or flows)
     #[serde(skip)]
     pub output_connections: Vec<OutputConnection>,
-    /// A unique `id` assigned to the function as the flow is parsed hierarchically
+    /// A unique `process_id` assigned to the function as the flow is parsed hierarchically
     #[serde(skip)]
-    pub(crate) function_id: usize,
-    /// the `id` of the `FlowDefinition` that this `FunctionDefinition` lies within in the hierarchy
+    pub(crate) process_id: usize,
+    /// the `id` of the parent `FlowDefinition` that this `FunctionDefinition` lies within in the hierarchy
     #[serde(skip)]
-    pub(crate) flow_id: usize,
+    pub(crate) parent_id: usize,
 }
 
 impl Default for FunctionDefinition {
@@ -93,8 +93,8 @@ impl Default for FunctionDefinition {
             lib_reference: None,
             context_reference: None,
             output_connections: vec![],
-            function_id: 0,
-            flow_id: 0,
+            process_id: 0,
+            parent_id: 0,
         }
     }
 }
@@ -139,7 +139,7 @@ impl FunctionDefinition {
         context_reference: Option<Url>,
         output_connections: Vec<OutputConnection>,
         id: usize,
-        flow_id: usize,
+        parent_id: usize,
     ) -> Self {
         FunctionDefinition {
             name,
@@ -155,8 +155,8 @@ impl FunctionDefinition {
             lib_reference,
             context_reference,
             output_connections,
-            function_id: id,
-            flow_id,
+            process_id: id,
+            parent_id,
             build_type: String::default(),
             description: String::default(),
         }
@@ -174,11 +174,11 @@ impl FunctionDefinition {
         source_url: &Url,
         parent_route: &Route,
         alias: &Name,
-        flow_id: usize,
+        parent_id: usize,
         reference: Option<Url>,
         initializations: &BTreeMap<String, InputInitializer>,
     ) -> Result<()> {
-        self.set_flow_id(flow_id);
+        self.set_parent_id(parent_id);
         self.set_alias(alias);
         self.set_source_url(source_url);
         if let Some(function_reference) = reference {
@@ -199,15 +199,15 @@ impl FunctionDefinition {
         self.validate()
     }
 
-    /// Set the id of this function
+    /// Set the `process_id` of this function
     pub fn set_id(&mut self, id: usize) {
-        self.function_id = id;
+        self.process_id = id;
     }
 
-    /// Get the id of this function
+    /// Get the `process_id` of this function
     #[must_use]
     pub fn get_id(&self) -> usize {
-        self.function_id
+        self.process_id
     }
 
     /// Get the name of any associated docs file
@@ -216,15 +216,15 @@ impl FunctionDefinition {
         &self.docs
     }
 
-    // Set the id of the low this function is a part of
-    fn set_flow_id(&mut self, flow_id: usize) {
-        self.flow_id = flow_id;
+    // Set the id of the parent flow this function is a part of
+    fn set_parent_id(&mut self, parent_id: usize) {
+        self.parent_id = parent_id;
     }
 
-    /// Get the id of the low this function is a part of  
+    /// Get the id of the parent flow this function is a part of
     #[must_use]
-    pub fn get_flow_id(&self) -> usize {
-        self.flow_id
+    pub fn get_parent_id(&self) -> usize {
+        self.parent_id
     }
 
     /// Return true if this function is impure or not
@@ -423,8 +423,8 @@ impl fmt::Display for FunctionDefinition {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         writeln!(f, "name: \t\t{}", self.name)?;
         writeln!(f, "alias: \t\t{}", self.alias)?;
-        writeln!(f, "id: \t\t{}", self.function_id)?;
-        writeln!(f, "flow_id: \t\t{}", self.flow_id)?;
+        writeln!(f, "id: \t\t{}", self.process_id)?;
+        writeln!(f, "parent_id: \t\t{}", self.parent_id)?;
 
         writeln!(f, "inputs:")?;
         for input in &self.inputs {
@@ -479,6 +479,7 @@ mod test {
                 0,
                 0,
                 0,
+                false,
                 String::default(),
                 #[cfg(feature = "debugger")]
                 String::default(),
@@ -728,12 +729,12 @@ mod test {
             "output_connections should not be serialized"
         );
         assert!(
-            !serialized.contains("function_id"),
-            "function_id should not be serialized"
+            !serialized.contains("process_id"),
+            "process_id should not be serialized"
         );
         assert!(
-            !serialized.contains("flow_id"),
-            "flow_id should not be serialized"
+            !serialized.contains("parent_id"),
+            "parent_id should not be serialized"
         );
         assert!(
             serialized.contains("function = \"test\""),

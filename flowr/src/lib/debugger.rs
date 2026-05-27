@@ -8,6 +8,7 @@ use serde_json::Value;
 
 use flowcore::errors::Result;
 use flowcore::model::output_connection::Source::{Input, Output};
+use flowcore::model::runtime_function::RuntimeFunction;
 
 use crate::block::Block;
 use crate::debug_command::BreakpointSpec;
@@ -92,14 +93,14 @@ impl<'a> Debugger<'a> {
     /// Return values are (display next output, reset execution)
     pub fn check_prior_to_job(&mut self, state: &mut RunState, job: &Job) -> Result<(bool, bool)> {
         if self.break_at_job == job.payload.job_id
-            || self.function_breakpoints.contains(&job.function_id)
+            || self.function_breakpoints.contains(&job.process_id)
         {
             self.debug_server.job_breakpoint(
                 job,
                 state
-                    .get_function(job.function_id)
+                    .get_function(job.process_id)
                     .ok_or("Could not get function")?,
-                state.get_function_states(job.function_id),
+                state.get_function_states(job.process_id),
             );
             return self.wait_for_command(state);
         }
@@ -271,11 +272,14 @@ impl<'a> Debugger<'a> {
                     self.debug_server.message(message);
                 }
                 Ok(DebugCommand::FunctionList) => {
-                    self.debug_server.function_list(state.get_functions());
+                    let mut functions: Vec<RuntimeFunction> =
+                        state.get_functions().values().cloned().collect();
+                    functions.sort_by_key(RuntimeFunction::id);
+                    self.debug_server.function_list(&functions);
                 }
                 Ok(Inspect) => self.debug_server.run_state(state),
                 Ok(InspectFunction(function_id)) => {
-                    if function_id < state.num_functions() {
+                    if state.get_function(function_id).is_some() {
                         self.debug_server.function_states(
                             state
                                 .get_function(function_id)
@@ -289,7 +293,7 @@ impl<'a> Debugger<'a> {
                     }
                 }
                 Ok(InspectInput(function_id, input_number)) => {
-                    if function_id < state.num_functions() {
+                    if state.get_function(function_id).is_some() {
                         let function = state
                             .get_function(function_id)
                             .ok_or("Could not get function")?;
@@ -312,7 +316,7 @@ impl<'a> Debugger<'a> {
                     }
                 }
                 Ok(InspectOutput(function_id, sub_route)) => {
-                    if function_id < state.num_functions() {
+                    if state.get_function(function_id).is_some() {
                         let function = state
                             .get_function(function_id)
                             .ok_or("Could not get function")?;
@@ -409,7 +413,7 @@ impl<'a> Debugger<'a> {
                 bail!("To break on every Function, you can just single step using 's' command\n")
             }
             Some(BreakpointSpec::Numeric(process_id)) => {
-                if process_id >= state.num_functions() {
+                if state.get_function(process_id).is_none() {
                     bail!("There is no Function with id '{process_id}' to set a breakpoint on");
                 }
 
@@ -425,7 +429,7 @@ impl<'a> Debugger<'a> {
                 ))
             }
             Some(BreakpointSpec::Input((destination_id, input_number))) => {
-                if destination_id >= state.num_functions() {
+                if state.get_function(destination_id).is_none() {
                     bail!("There is no Function #{destination_id} to set a breakpoint on");
                 }
 
@@ -447,11 +451,11 @@ impl<'a> Debugger<'a> {
                     function.name()))
             }
             Some(BreakpointSpec::Block((Some(blocked_id), Some(blocking_id)))) => {
-                if blocked_id >= state.num_functions() {
+                if state.get_function(blocked_id).is_none() {
                     bail!("There is no Function #{blocked_id} to set a Block breakpoint on");
                 }
 
-                if blocking_id >= state.num_functions() {
+                if state.get_function(blocking_id).is_none() {
                     bail!("There is no Function #{blocking_id} to set a Block breakpoint on");
                 }
 
@@ -463,7 +467,7 @@ impl<'a> Debugger<'a> {
                 bail!("Invalid format to set a breakpoint on a block\n")
             }
             Some(BreakpointSpec::Output((source_id, source_output_route))) => {
-                if source_id >= state.num_functions() {
+                if state.get_function(source_id).is_none() {
                     bail!("There is no Function #{source_id} to set a Output breakpoint on");
                 }
 
@@ -493,7 +497,7 @@ impl<'a> Debugger<'a> {
                 Ok("Deleted all breakpoints\n".into())
             }
             Some(BreakpointSpec::Numeric(process_number)) => {
-                if process_number >= state.num_functions() {
+                if state.get_function(process_number).is_none() {
                     bail!("There is no Function with id '{process_number}' to delete a breakpoint from");
                 }
 
@@ -506,7 +510,7 @@ impl<'a> Debugger<'a> {
                 }
             }
             Some(BreakpointSpec::Input((destination_id, input_number))) => {
-                if destination_id >= state.num_functions() {
+                if state.get_function(destination_id).is_none() {
                     bail!("There is no Function #{destination_id} to delete a breakpoint from");
                 }
 
@@ -523,11 +527,11 @@ impl<'a> Debugger<'a> {
                 Ok("Inputs breakpoint removed\n".into())
             }
             Some(BreakpointSpec::Block((Some(blocked_id), Some(blocking_id)))) => {
-                if blocked_id >= state.num_functions() {
+                if state.get_function(blocked_id).is_none() {
                     bail!("There is no Function #{blocked_id} to delete a Block breakpoint from");
                 }
 
-                if blocking_id >= state.num_functions() {
+                if state.get_function(blocking_id).is_none() {
                     bail!("There is no Function #{blocking_id} to delete a Block breakpoint from");
                 }
 
@@ -536,7 +540,7 @@ impl<'a> Debugger<'a> {
             }
             Some(BreakpointSpec::Block(_)) => bail!("Invalid format to remove breakpoint\n"),
             Some(BreakpointSpec::Output((source_id, source_output_route))) => {
-                if source_id >= state.num_functions() {
+                if state.get_function(source_id).is_none() {
                     bail!("There is no Function #{source_id} to delete a Output breakpoint from");
                 }
 
@@ -898,8 +902,8 @@ mod test {
 
     fn test_job() -> Job {
         Job {
-            function_id: 0,
-            flow_id: 0,
+            process_id: 0,
+            parent_id: 0,
             connections: vec![],
             payload: Payload {
                 job_id: 0,

@@ -36,6 +36,10 @@ pub struct Connection {
     /// when collapsing connections to reduce work and avoid infinite recursion
     #[serde(skip)]
     level: usize,
+    /// Whether the collapsed connection was routed via a higher-level flow,
+    /// making the destination input external to its flow
+    #[serde(skip)]
+    external_input: bool,
 }
 
 /// `Direction` defines whether a `Connection` is coming from an IO or to an IO
@@ -204,6 +208,18 @@ impl Connection {
     #[must_use]
     pub fn level(&self) -> usize {
         self.level
+    }
+
+    /// Whether the destination input is external to its flow (connection was
+    /// routed via a higher-level flow during collapsing)
+    #[must_use]
+    pub fn external_input(&self) -> bool {
+        self.external_input
+    }
+
+    /// Mark the destination input as external to its flow
+    pub fn set_external_input(&mut self) {
+        self.external_input = true;
     }
 }
 

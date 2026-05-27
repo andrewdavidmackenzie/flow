@@ -14,7 +14,7 @@ use crate::errors::Result;
 /// is not a problem for compiling or running necessarily.
 pub fn check_function_inputs(tables: &CompilerTables) -> Result<()> {
     info!("\n=== Compiler: Checking all Function Inputs are connected");
-    for function in &tables.functions {
+    for function in tables.functions.values() {
         for input in function.get_inputs() {
             if input.get_initializer().is_none()
                 && input.get_flow_initializer().is_none()
@@ -47,7 +47,7 @@ fn got_constant_initializer(input: &IO) -> bool {
 /// Check that some impure function producing a side effect is called or return an error
 pub fn check_side_effects(tables: &CompilerTables) -> Result<()> {
     info!("\n=== Compiler: Checking flow has side-effects");
-    for function in &tables.functions {
+    for function in tables.functions.values() {
         // Until we separate impure inputs and side-effects we will assume that if a function
         // is impure and has inputs then it has side-effects
         if function.is_impure() && !function.inputs.is_empty() {

@@ -555,7 +555,7 @@ mod test {
 
         let process_2 = Process::FunctionProcess(FunctionDefinition {
             name: "process_2".into(),
-            function_id: 1,
+            process_id: 1,
             inputs: vec![IO::new_named(vec![STRING_TYPE.into()], "", "")],
             outputs: vec![IO::new_named(vec![NUMBER_TYPE.into()], "", "")],
             ..Default::default()

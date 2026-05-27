@@ -897,8 +897,8 @@ mod test {
     #[test]
     fn execute_job() {
         let job1 = Job {
-            function_id: 1,
-            flow_id: 0,
+            process_id: 1,
+            parent_id: 0,
             connections: vec![],
             payload: Payload {
                 job_id: 0,
@@ -910,8 +910,8 @@ mod test {
         };
 
         let job2 = Job {
-            function_id: 1,
-            flow_id: 0,
+            process_id: 1,
+            parent_id: 0,
             connections: vec![],
             payload: Payload {
                 job_id: 0,
@@ -923,8 +923,8 @@ mod test {
         };
 
         let job3 = Job {
-            function_id: 1,
-            flow_id: 0,
+            process_id: 1,
+            parent_id: 0,
             connections: vec![],
             payload: Payload {
                 job_id: 0,
