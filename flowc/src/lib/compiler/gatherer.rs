@@ -800,6 +800,168 @@ mod test {
         );
     }
 
+    // Function → Function within same flow: direct connection, no boundary crossing
+    #[test]
+    fn sibling_function_to_function_not_crossed() {
+        let mut conn = Connection::new("/flow/f1/out", "/flow/f2/in");
+        conn.connect(
+            IO::new(vec![STRING_TYPE.into()], "/flow/f1/out"),
+            IO::new(vec![STRING_TYPE.into()], "/flow/f2/in"),
+            1,
+        )
+        .expect("Could not connect");
+        conn.from_io_mut().set_io_type(IOType::FunctionOutput);
+        conn.to_io_mut().set_io_type(IOType::FunctionInput);
+
+        let mut tables = CompilerTables::new();
+        tables.connections = vec![conn];
+        collapse_connections(&mut tables).expect("Could not collapse");
+        assert_eq!(tables.collapsed_connections.len(), 1);
+        assert!(
+            !tables
+                .collapsed_connections
+                .first()
+                .expect("no connection")
+                .crossed_boundary(),
+            "Function-to-function within same flow should not cross boundary"
+        );
+    }
+
+    // Function → sub-flow (sibling): goes into sub-flow at same level, not crossed
+    #[test]
+    fn sibling_function_to_subflow_not_crossed() {
+        // function output → sub-flow input (level 1)
+        let mut left = Connection::new("/flow/f1/out", "/flow/sub/in");
+        left.connect(
+            IO::new(vec![STRING_TYPE.into()], "/flow/f1/out"),
+            IO::new(vec![STRING_TYPE.into()], "/flow/sub/in"),
+            1,
+        )
+        .expect("Could not connect");
+        left.from_io_mut().set_io_type(IOType::FunctionOutput);
+        left.to_io_mut().set_io_type(IOType::FlowInput);
+
+        // sub-flow input → function input inside sub-flow (level 2)
+        let mut right = Connection::new("/flow/sub/in", "/flow/sub/f2/in");
+        right
+            .connect(
+                IO::new(vec![STRING_TYPE.into()], "/flow/sub/in"),
+                IO::new(vec![STRING_TYPE.into()], "/flow/sub/f2/in"),
+                2,
+            )
+            .expect("Could not connect");
+        right.from_io_mut().set_io_type(IOType::FlowInput);
+        right.to_io_mut().set_io_type(IOType::FunctionInput);
+
+        let mut tables = CompilerTables::new();
+        tables.connections = vec![left, right];
+        collapse_connections(&mut tables).expect("Could not collapse");
+        assert_eq!(tables.collapsed_connections.len(), 1);
+        assert!(
+            !tables
+                .collapsed_connections
+                .first()
+                .expect("no connection")
+                .crossed_boundary(),
+            "Function-to-subflow within same parent should not cross boundary"
+        );
+    }
+
+    // Sub-flow → function (sibling): exits sub-flow back to parent level.
+    // The source function is at level 2 and the chain goes through level 1,
+    // so min_level (1) < source level (2) — crossed boundary.
+    #[test]
+    fn sibling_subflow_to_function_is_crossed() {
+        // function output inside sub-flow → sub-flow output (level 2)
+        let mut left = Connection::new("/flow/sub/f1/out", "/flow/sub/out");
+        left.connect(
+            IO::new(vec![STRING_TYPE.into()], "/flow/sub/f1/out"),
+            IO::new(vec![STRING_TYPE.into()], "/flow/sub/out"),
+            2,
+        )
+        .expect("Could not connect");
+        left.from_io_mut().set_io_type(IOType::FunctionOutput);
+        left.to_io_mut().set_io_type(IOType::FlowOutput);
+
+        // sub-flow output → function input in parent flow (level 1)
+        let mut right = Connection::new("/flow/sub/out", "/flow/f2/in");
+        right
+            .connect(
+                IO::new(vec![STRING_TYPE.into()], "/flow/sub/out"),
+                IO::new(vec![STRING_TYPE.into()], "/flow/f2/in"),
+                1,
+            )
+            .expect("Could not connect");
+        right.from_io_mut().set_io_type(IOType::FlowOutput);
+        right.to_io_mut().set_io_type(IOType::FunctionInput);
+
+        let mut tables = CompilerTables::new();
+        tables.connections = vec![left, right];
+        collapse_connections(&mut tables).expect("Could not collapse");
+        assert_eq!(tables.collapsed_connections.len(), 1);
+        assert!(
+            tables
+                .collapsed_connections
+                .first()
+                .expect("no connection")
+                .crossed_boundary(),
+            "Subflow-to-function going up should cross boundary"
+        );
+    }
+
+    // Sub-flow A → Sub-flow B (siblings): exits sub-flow A, traverses parent, enters sub-flow B
+    // The source function is inside sub-flow A at level 2.
+    // The chain goes: level 2 → level 1 → level 2
+    // min_level = 1 < source level 2, so crossed boundary
+    #[test]
+    fn sibling_subflow_to_subflow_is_crossed() {
+        // function output in sub_a → sub_a output (level 2)
+        let mut out = Connection::new("/flow/sub_a/f1/out", "/flow/sub_a/out");
+        out.connect(
+            IO::new(vec![STRING_TYPE.into()], "/flow/sub_a/f1/out"),
+            IO::new(vec![STRING_TYPE.into()], "/flow/sub_a/out"),
+            2,
+        )
+        .expect("Could not connect");
+        out.from_io_mut().set_io_type(IOType::FunctionOutput);
+        out.to_io_mut().set_io_type(IOType::FlowOutput);
+
+        // sub_a output → sub_b input (level 1, parent flow)
+        let mut mid = Connection::new("/flow/sub_a/out", "/flow/sub_b/in");
+        mid.connect(
+            IO::new(vec![STRING_TYPE.into()], "/flow/sub_a/out"),
+            IO::new(vec![STRING_TYPE.into()], "/flow/sub_b/in"),
+            1,
+        )
+        .expect("Could not connect");
+        mid.from_io_mut().set_io_type(IOType::FlowOutput);
+        mid.to_io_mut().set_io_type(IOType::FlowInput);
+
+        // sub_b input → function input in sub_b (level 2)
+        let mut inp = Connection::new("/flow/sub_b/in", "/flow/sub_b/f2/in");
+        inp.connect(
+            IO::new(vec![STRING_TYPE.into()], "/flow/sub_b/in"),
+            IO::new(vec![STRING_TYPE.into()], "/flow/sub_b/f2/in"),
+            2,
+        )
+        .expect("Could not connect");
+        inp.from_io_mut().set_io_type(IOType::FlowInput);
+        inp.to_io_mut().set_io_type(IOType::FunctionInput);
+
+        let mut tables = CompilerTables::new();
+        tables.connections = vec![out, mid, inp];
+        collapse_connections(&mut tables).expect("Could not collapse");
+        assert_eq!(tables.collapsed_connections.len(), 1);
+        assert!(
+            tables
+                .collapsed_connections
+                .first()
+                .expect("no connection")
+                .crossed_boundary(),
+            "Subflow-to-subflow through parent should cross boundary"
+        );
+    }
+
     #[test]
     fn does_not_collapse_a_non_connection() {
         let mut one = Connection::new("/f1/a", "/f2/a");
