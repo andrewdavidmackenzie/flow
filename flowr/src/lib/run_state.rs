@@ -606,9 +606,9 @@ impl RunState {
         self.submission.manifest.functions().len()
     }
 
-    /// A flow is idle when no functions are busy in it
-    fn is_flow_idle(&self, flow_id: usize) -> bool {
-        !self.busy_count.contains_key(&flow_id)
+    /// Check if a flow is idle (no busy functions tracked for it)
+    fn is_flow_idle(&self, process_id: usize) -> bool {
+        !self.busy_count.contains_key(&process_id)
     }
 
     /// Return the ancestor flow ids starting from `parent_id` up to the root
@@ -652,7 +652,9 @@ impl RunState {
                         debugger.check_prior_to_flow_unblock(self, ancestor_id)?;
                 }
 
+                // clear internal values from functions in the idle flow
                 self.clear_flow_internal_inputs(ancestor_id);
+                // run flow initializers on functions in the flow that has just gone idle
                 self.run_flow_initializers(ancestor_id)?;
             }
         }
@@ -685,10 +687,6 @@ impl RunState {
     fn clear_flow_internal_inputs(&mut self, flow_id: usize) {
         for function in self.submission.manifest.get_functions().values_mut() {
             if function.get_parent_id() == flow_id && !self.completed.contains(&function.id()) {
-                debug!(
-                    "\tClearing internal inputs of Function #{} in Flow #{flow_id}",
-                    function.id()
-                );
                 function.clear_internal_inputs();
             }
         }

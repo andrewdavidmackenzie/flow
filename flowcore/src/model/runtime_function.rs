@@ -220,12 +220,6 @@ impl RuntimeFunction {
         }
     }
 
-    /// Check if any input has pending internal values
-    #[must_use]
-    pub fn has_internal_inputs(&self) -> bool {
-        self.inputs.iter().any(Input::has_internal)
-    }
-
     /// Accessor for a `RuntimeFunction` `output_connections` field
     #[must_use]
     pub fn get_output_connections(&self) -> &Vec<OutputConnection> {
