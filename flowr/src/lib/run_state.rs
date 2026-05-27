@@ -606,26 +606,6 @@ impl RunState {
         self.submission.manifest.functions().len()
     }
 
-    /// A flow is idle when no functions are busy AND no function in the flow
-    /// can run from internal data (pipeline still in progress)
-    fn is_flow_idle(&self, flow_id: usize) -> bool {
-        if self.busy_count.contains_key(&flow_id) {
-            return false;
-        }
-
-        for function in self.submission.manifest.functions().values() {
-            if function.get_parent_id() == flow_id
-                && !self.completed.contains(&function.id())
-                && function.has_internal_inputs()
-                && function.can_run()
-            {
-                return false;
-            }
-        }
-
-        true
-    }
-
     /// Return the ancestor flow ids starting from `parent_id` up to the root
     fn ancestors(&self, parent_id: usize) -> Vec<usize> {
         let mut result = vec![parent_id];
