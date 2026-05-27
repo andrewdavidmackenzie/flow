@@ -236,15 +236,7 @@ fn configure_output_connections(tables: &mut CompilerTables) -> Result<()> {
                 connection.to_io().route()
             ))?;
 
-        let source_parent_id = tables
-            .functions
-            .get(&source_id)
-            .ok_or(format!(
-                "Could not find function with id: {source_id} \
-                while configuring output connection '{connection}'"
-            ))?
-            .get_parent_id();
-        let internal = source_parent_id == *destination_parent_id && !connection.external_input();
+        let internal = !connection.external_input();
 
         let source_function = tables.functions.get_mut(&source_id).ok_or(format!(
             "Could not find function with id: {source_id} \

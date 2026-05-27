@@ -118,7 +118,7 @@ pub fn collapse_connections(tables: &mut CompilerTables) -> Result<()> {
                     collapsed_connections.push(connection.clone());
                 } else {
                     // If the connection enters or leaves this flow, then follow it to all destinations at function inputs
-                    for (source_subroute, destination_io, min_level) in
+                    for (source_subroute, destination_io, _min_level) in
                         find_connection_destinations(
                             &Route::from(""),
                             connection.to_io(),
@@ -127,9 +127,7 @@ pub fn collapse_connections(tables: &mut CompilerTables) -> Result<()> {
                         )?
                     {
                         let mut collapsed_connection = connection.clone();
-                        if min_level < connection.level() {
-                            collapsed_connection.set_external_input();
-                        }
+                        collapsed_connection.set_external_input();
                         // append the subroute from the origin function IO - to select from with in that IO
                         // as prescribed by the connections along the way
                         let from_route = connection
@@ -711,7 +709,7 @@ mod test {
     // (level 0 → level 1). The source is at level 0. min_level = 0 = source level.
     // Not external_input — it's a normal parent-to-child connection.
     #[test]
-    fn connection_into_subflow_not_crossed() {
+    fn connection_into_subflow_is_external() {
         let mut left = Connection::new("/f1", "/sub/a");
         left.connect(
             IO::new(vec![STRING_TYPE.into()], "/f1"),
@@ -738,12 +736,12 @@ mod test {
         collapse_connections(&mut tables).expect("Could not collapse");
         assert_eq!(tables.collapsed_connections.len(), 1);
         assert!(
-            !tables
+            tables
                 .collapsed_connections
                 .first()
                 .expect("no connection")
                 .external_input(),
-            "Connection from parent into sub-flow should not cross boundary"
+            "Connection from parent into sub-flow is external"
         );
     }
 
@@ -829,7 +827,7 @@ mod test {
 
     // Function → sub-flow (sibling): goes into sub-flow at same level, not crossed
     #[test]
-    fn sibling_function_to_subflow_not_crossed() {
+    fn sibling_function_to_subflow_is_external() {
         // function output → sub-flow input (level 1)
         let mut left = Connection::new("/flow/f1/out", "/flow/sub/in");
         left.connect(
@@ -858,12 +856,12 @@ mod test {
         collapse_connections(&mut tables).expect("Could not collapse");
         assert_eq!(tables.collapsed_connections.len(), 1);
         assert!(
-            !tables
+            tables
                 .collapsed_connections
                 .first()
                 .expect("no connection")
                 .external_input(),
-            "Function-to-subflow within same parent should not cross boundary"
+            "Function-to-subflow is external (crosses flow boundary)"
         );
     }
 
