@@ -639,10 +639,8 @@ impl RunState {
                 continue;
             }
 
-            // No functions busy — check if pipeline still has internal data in flight
-            if self.has_pending_internal(ancestor_id) {
-                // Pipeline still in progress — don't clear, but create jobs
-                // for any functions that can run now
+            // No functions busy — check if any function can still run on internal data
+            if self.has_runnable_on_internal(ancestor_id) {
                 let runnable: Vec<_> = self
                     .submission
                     .manifest
@@ -700,11 +698,12 @@ impl RunState {
         trace!("\t\t\tUpdated busy_count to: {:?}", self.busy_count);
     }
 
-    fn has_pending_internal(&self, flow_id: usize) -> bool {
+    fn has_runnable_on_internal(&self, flow_id: usize) -> bool {
         self.submission.manifest.functions().values().any(|f| {
             f.get_parent_id() == flow_id
                 && !self.completed.contains(&f.id())
                 && f.has_internal_inputs()
+                && f.can_run()
         })
     }
 
