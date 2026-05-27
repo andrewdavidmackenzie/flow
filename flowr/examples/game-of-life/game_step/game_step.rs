@@ -3,7 +3,7 @@ use flowcore::{RunAgain, RUN_AGAIN};
 use flowmacro::flow_function;
 use serde_json::{json, Value};
 
-fn count_neighbors(grid: &[i64], width: usize, height: usize, x: usize, y: usize) -> i64 {
+fn count_neighbors(grid: &[u8], width: usize, height: usize, x: usize, y: usize) -> u8 {
     let mut count = 0;
     for dy in [-1i32, 0, 1] {
         for dx in [-1i32, 0, 1] {
@@ -18,8 +18,8 @@ fn count_neighbors(grid: &[i64], width: usize, height: usize, x: usize, y: usize
     count
 }
 
-fn next_generation(grid: &[i64], width: usize, height: usize) -> Vec<i64> {
-    let mut new_grid = vec![0i64; width * height];
+fn next_generation(grid: &[u8], width: usize, height: usize) -> Vec<u8> {
+    let mut new_grid = vec![0u8; width * height];
     for y in 0..height {
         for x in 0..width {
             let neighbors = count_neighbors(grid, width, height, x, y);
@@ -34,8 +34,8 @@ fn next_generation(grid: &[i64], width: usize, height: usize) -> Vec<i64> {
     new_grid
 }
 
-fn seed_pattern(name: &str, width: usize, height: usize) -> Vec<i64> {
-    let mut grid = vec![0i64; width * height];
+fn seed_pattern(name: &str, width: usize, height: usize) -> Vec<u8> {
+    let mut grid = vec![0u8; width * height];
     let cx = width / 2;
     let cy = height / 2;
 
@@ -86,7 +86,7 @@ fn step(inputs: &[Value]) -> Result<(Option<Value>, RunAgain)> {
         .as_i64()
         .ok_or("Could not get height as i64")? as usize;
 
-    let grid: Vec<i64> = if let Some(seed_name) = grid_input.as_str() {
+    let grid: Vec<u8> = if let Some(seed_name) = grid_input.as_str() {
         seed_pattern(seed_name, width, height)
     } else {
         let arr = grid_input
@@ -98,20 +98,20 @@ fn step(inputs: &[Value]) -> Result<(Option<Value>, RunAgain)> {
             for row in arr {
                 if let Some(cells) = row.as_array() {
                     for v in cells {
-                        flat.push(v.as_i64().unwrap_or(0));
+                        flat.push(v.as_u64().map(|n| n as u8).unwrap_or(0));
                     }
                 }
             }
             flat
         } else {
             // Flat array
-            arr.iter().map(|v| v.as_i64().unwrap_or(0)).collect()
+            arr.iter().map(|v| v.as_u64().map(|n| n as u8).unwrap_or(0)).collect()
         }
     };
 
     let new_grid = next_generation(&grid, width, height);
 
-    let grid_2d: Vec<Vec<i64>> = new_grid.chunks(width).map(|row| row.to_vec()).collect();
+    let grid_2d: Vec<Vec<u8>> = new_grid.chunks(width).map(|row| row.to_vec()).collect();
     let result = json!({"grid": grid_2d});
 
     Ok((Some(result), RUN_AGAIN))
@@ -150,7 +150,7 @@ mod test {
     #[test]
     fn flow_function_with_2d_grid() {
         let flat = seed_pattern("blinker", 5, 5);
-        let grid_2d: Vec<Vec<i64>> = flat.chunks(5).map(|r| r.to_vec()).collect();
+        let grid_2d: Vec<Vec<u8>> = flat.chunks(5).map(|r| r.to_vec()).collect();
         let inputs = vec![json!(grid_2d), json!([5, 5])];
         let (output, run_again) = step(&inputs).expect("step failed");
         assert!(run_again);

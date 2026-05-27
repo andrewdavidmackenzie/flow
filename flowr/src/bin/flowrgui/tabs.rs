@@ -312,7 +312,7 @@ impl Tab for ImageTab {
             .min_scale(0.1)
             .max_scale(10.0)
             .width(Length::Fill)
-            .height(Length::Fill);
+            .height(Length::Fixed(display_height as f32));
             let scale = display_width / image_ref.width;
             let label = format!(
                 "{name} ({}x{}, {scale}x)",

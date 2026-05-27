@@ -98,11 +98,3 @@ to = "counter-tap/data"
 [[connection]]
 from = "counter-tap"
 to = "counter/i1"
-
-# Output iteration count to stdout for progress
-[[process]]
-source = "context://stdio/stdout"
-
-[[connection]]
-from = "counter"
-to = "stdout"
