@@ -714,14 +714,13 @@ impl FlowrGui {
                 self.error("Coordinator is already connected");
             }
             CoordinatorMessage::FlowStart => {
-                debug!("FlowStart received");
                 self.running = true;
                 self.submitted = false;
                 self.send(ClientMessage::Ack);
             }
             CoordinatorMessage::FlowEnd(metrics) => {
-                debug!("FlowEnd received");
                 self.running = false;
+                self.submitted = false;
                 self.pending_getline = false;
                 self.tab_set.stdin_tab.waiting_for_input = false;
                 if self.submission_settings.display_metrics {
@@ -947,6 +946,36 @@ impl FlowrGui {
                 }) = &mut self.tab_set.images_tab.images.get_mut(name)
                 {
                     data.put_pixel(x_coord, y_coord, Rgba([red, green, blue, 255]));
+                }
+                self.send(ClientMessage::Ack);
+            }
+            CoordinatorMessage::ImageWrite(grid, ref name) => {
+                let height = u32::try_from(grid.len()).unwrap_or(0);
+                let width = grid
+                    .first()
+                    .map_or(0, |row| u32::try_from(row.len()).unwrap_or(0));
+                let data = self
+                    .tab_set
+                    .images_tab
+                    .images
+                    .entry(name.clone())
+                    .or_insert_with(|| ImageReference {
+                        width,
+                        height,
+                        data: RgbaImage::new(width, height),
+                    });
+                for (y, row) in grid.iter().enumerate() {
+                    for (x, &val) in row.iter().enumerate() {
+                        let gray = if val == 0 { 255 } else { 0 };
+                        data.data.put_pixel(
+                            u32::try_from(x).unwrap_or(0),
+                            u32::try_from(y).unwrap_or(0),
+                            Rgba([gray, gray, gray, 255]),
+                        );
+                    }
+                }
+                if self.tab_set.active_tab != 3 {
+                    self.tab_set.images_tab.new_activity = true;
                 }
                 self.send(ClientMessage::Ack);
             }

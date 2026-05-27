@@ -1,0 +1,16 @@
+function = "game_step"
+description = "Compute the next generation of Conway's Game of Life. Accepts a grid as a flat array (or a seed name string for initialization) and the grid size. Returns the next generation grid."
+source = "game_step.rs"
+docs = "game_step.md"
+type = "rust"
+
+[[input]]
+name = "grid" # flat array of 0/1 values, or a seed name string for first call
+
+[[input]]
+name = "size" # [width, height]
+type = "array/number"
+
+[[output]]
+name = "grid" # next generation grid as 2D array for loopback and rendering
+type = "array/array/number"

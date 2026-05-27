@@ -1,0 +1,100 @@
+flow = "game-of-life"
+docs = "DESCRIPTION.md"
+
+# Parse command line arguments
+[[process]]
+source = "parse_args"
+
+# The core Game of Life step function
+[[process]]
+source = "game_step"
+
+# Seed name feeds game_step on first iteration
+[[connection]]
+from = "parse_args/seed"
+to = "game_step/grid"
+
+# Size feeds game_step
+[[connection]]
+from = "parse_args/size"
+to = "game_step/size"
+
+# Loopback: keep size available
+[[connection]]
+from = "game_step/size"
+to = "game_step/size"
+
+####### Write each generation's grid to the image
+
+[[process]]
+source = "context://image/image_write"
+
+[[connection]]
+from = "game_step/grid"
+to = "image_write/grid"
+
+# Filename for image output — loopback to persist
+[[connection]]
+from = "parse_args/filename"
+to = "image_write/filename"
+
+[[connection]]
+from = "image_write/filename"
+to = "image_write/filename"
+
+####### Iteration control
+
+# Subtract 1 from iteration count each generation
+[[process]]
+alias = "counter"
+source = "lib://flowstdlib/math/subtract"
+input.i2 = {always = 1}
+
+[[connection]]
+from = "parse_args/max_iterations"
+to = "counter/i1"
+
+# Compare counter to 0
+[[process]]
+source = "lib://flowstdlib/math/compare"
+input.right = {always = 0}
+
+[[connection]]
+from = "counter"
+to = "compare/left"
+
+# Grid tap: pass grid through only if iterations remain (gt = true)
+[[process]]
+alias = "grid-tap"
+source = "lib://flowstdlib/control/tap"
+
+[[connection]]
+from = "compare/gt"
+to = "grid-tap/control"
+
+[[connection]]
+from = "game_step/grid"
+to = "grid-tap/data"
+
+# Gated grid feeds back to game_step for next generation
+[[connection]]
+from = "grid-tap"
+to = "game_step/grid"
+
+# Counter tap: pass counter through only if iterations remain
+[[process]]
+alias = "counter-tap"
+source = "lib://flowstdlib/control/tap"
+
+[[connection]]
+from = "compare/gt"
+to = "counter-tap/control"
+
+[[connection]]
+from = "counter"
+to = "counter-tap/data"
+
+# Gated counter feeds back for next subtraction
+[[connection]]
+from = "counter-tap"
+to = "counter/i1"

@@ -1,0 +1,13 @@
+function = "image_write"
+description = "Write an entire 2D grid to an image. Each cell value maps to grayscale (0=white, non-zero=black). Grid dimensions determine image size."
+source = "image_write.rs"
+docs = "image_write.md"
+impure = true
+
+[[input]]
+name = "grid"
+type = "array/array/number"
+
+[[input]]
+name = "filename"
+type = "string"

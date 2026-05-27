@@ -168,6 +168,27 @@ impl CliRuntimeClient {
                 image.put_pixel(x, y, Rgb([r, g, b]));
                 ClientMessage::Ack
             }
+            CoordinatorMessage::ImageWrite(grid, name) => {
+                let height = u32::try_from(grid.len()).unwrap_or(0);
+                let width = grid
+                    .first()
+                    .map_or(0, |row| u32::try_from(row.len()).unwrap_or(0));
+                let image = self
+                    .image_buffers
+                    .entry(name)
+                    .or_insert_with(|| RgbImage::new(width, height));
+                for (y, row) in grid.iter().enumerate() {
+                    for (x, &val) in row.iter().enumerate() {
+                        let gray = if val == 0 { 255 } else { 0 };
+                        image.put_pixel(
+                            u32::try_from(x).unwrap_or(0),
+                            u32::try_from(y).unwrap_or(0),
+                            Rgb([gray, gray, gray]),
+                        );
+                    }
+                }
+                ClientMessage::Ack
+            }
             CoordinatorMessage::GetArgs => {
                 if let Ok(override_args) = self.override_args.lock() {
                     if override_args.is_empty() {

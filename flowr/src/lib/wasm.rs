@@ -5,7 +5,7 @@ use log::info;
 use log::trace;
 use serde_json::Value;
 use url::Url;
-use wasmtime::{Func, Instance, Memory, Module, Store, Val};
+use wasmtime::{Config, Engine, Func, Instance, Memory, Module, Store, Val};
 
 use flowcore::errors::{bail, Result, ResultExt};
 use flowcore::provider::Provider;
@@ -13,7 +13,7 @@ use flowcore::{Implementation, RunAgain};
 
 const DEFAULT_WASM_FILENAME: &str = "module";
 
-const MAX_RESULT_SIZE: i32 = 1024;
+const MAX_RESULT_SIZE: i32 = 64 * 1024;
 
 #[derive(Debug)]
 pub struct Executor {
@@ -75,7 +75,7 @@ impl Executor {
                 trace!("Return length from wasm function of {result_length}");
                 if result_length > MAX_RESULT_SIZE {
                     bail!(
-                        "Return length from wasm function of {} exceed maximum allowed",
+                        "Return length from wasm function of {} exceeds maximum allowed",
                         result_length
                     );
                 }
@@ -126,8 +126,11 @@ pub fn load(provider: &Arc<dyn Provider>, source_url: &Url) -> Result<Executor> 
         format!("Could not fetch content from url '{resolved_url}' for loading wasm")
     })?;
 
-    let mut store: Store<()> = Store::default();
-    let module = Module::from_binary(store.engine(), &content)
+    let mut config = Config::new();
+    config.max_wasm_stack(2 * 1024 * 1024);
+    let engine = Engine::new(&config).map_err(|e| format!("Could not create WASM Engine: {e}"))?;
+    let mut store: Store<()> = Store::new(&engine, ());
+    let module = Module::from_binary(&engine, &content)
         .map_err(|e| format!("Could not create WASM Module: {e}"))?;
     let instance = Instance::new(&mut store, &module, &[])
         .map_err(|e| format!("Could not create WASM Instance: {e}"))?;
