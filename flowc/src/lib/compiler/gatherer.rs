@@ -94,6 +94,7 @@ fn inner_gather_functions_and_connections(
 /// - `tables.functions` functions must be indexed by `gather_functions_and_connections`
 /// - `tables.connections`is populated by `gather_functions_and_connections`
 /// - `tables.destination_routes` is populated by `create_routes_table`
+#[allow(clippy::too_many_lines)]
 pub fn collapse_connections(tables: &mut CompilerTables) -> Result<()> {
     info!(
         "\n=== Compiler: Collapsing {} flow connections",
@@ -117,14 +118,18 @@ pub fn collapse_connections(tables: &mut CompilerTables) -> Result<()> {
                     collapsed_connections.push(connection.clone());
                 } else {
                     // If the connection enters or leaves this flow, then follow it to all destinations at function inputs
-                    for (source_subroute, destination_io) in find_connection_destinations(
-                        &Route::from(""),
-                        connection.to_io(),
-                        connection.level(),
-                        &tables.connections,
-                    )? {
+                    for (source_subroute, destination_io, min_level) in
+                        find_connection_destinations(
+                            &Route::from(""),
+                            connection.to_io(),
+                            connection.level(),
+                            &tables.connections,
+                        )?
+                    {
                         let mut collapsed_connection = connection.clone();
-                        collapsed_connection.set_crossed_boundary();
+                        if min_level < connection.level() {
+                            collapsed_connection.set_crossed_boundary();
+                        }
                         // append the subroute from the origin function IO - to select from with in that IO
                         // as prescribed by the connections along the way
                         let from_route = connection
@@ -160,8 +165,11 @@ pub fn collapse_connections(tables: &mut CompilerTables) -> Result<()> {
                 if connection.from_io().get_initializer().is_some() {
                     // find the destination functions (the connection could split to multiple destinations)
                     let destinations = if connection.to_io().io_type() == &IOType::FunctionInput {
-                        // Flow input (or output) (that has an initializer) connects directly to a function's Input
-                        vec![(Route::default(), connection.to_io().clone())]
+                        vec![(
+                            Route::default(),
+                            connection.to_io().clone(),
+                            connection.level(),
+                        )]
                     } else {
                         find_connection_destinations(
                             &Route::from(""),
@@ -171,7 +179,7 @@ pub fn collapse_connections(tables: &mut CompilerTables) -> Result<()> {
                         )?
                     };
 
-                    for (_, destination_io) in destinations {
+                    for (_, destination_io, _) in destinations {
                         let (destination_function_id, destination_input_index, _) = tables
                             .destination_routes
                             .get(destination_io.route())
@@ -271,7 +279,7 @@ fn find_connection_destinations(
     from_io: &IO,
     from_level: usize,
     connections: &[Connection],
-) -> Result<Vec<(Route, IO)>> {
+) -> Result<Vec<(Route, IO, usize)>> {
     let mut destinations = vec![];
 
     for next_connection in connections {
@@ -293,14 +301,19 @@ fn find_connection_destinations(
                 // Accumulate any subroute from this connection to the origin subroute
                 let accumulated_source_subroute = prev_subroute.clone().extend(&subroute).clone();
 
+                let min_level = from_level.min(next_level);
+
                 match *next_connection.to_io().io_type() {
                     IOType::FunctionInput => {
                         debug!(
                             "\t\tFound destination function input at '{}'",
                             next_connection.to_io().route()
                         );
-                        destinations
-                            .push((accumulated_source_subroute, next_connection.to_io().clone()));
+                        destinations.push((
+                            accumulated_source_subroute,
+                            next_connection.to_io().clone(),
+                            min_level,
+                        ));
                     }
 
                     IOType::FunctionOutput => {
@@ -318,6 +331,10 @@ fn find_connection_destinations(
                             next_connection.level(),
                             connections,
                         )?;
+                        // Propagate the minimum level through the chain
+                        for dest in new_destinations.iter_mut() {
+                            dest.2 = dest.2.min(min_level);
+                        }
                         destinations.append(new_destinations);
                     }
 
@@ -332,6 +349,9 @@ fn find_connection_destinations(
                             next_connection.level(),
                             connections,
                         )?;
+                        for dest in new_destinations.iter_mut() {
+                            dest.2 = dest.2.min(min_level);
+                        }
                         destinations.append(new_destinations);
                     }
                 }
@@ -347,7 +367,7 @@ fn find_connection_destinations(
         );
     } else {
         // check that the partial connection has compatible source and destinations types
-        for (sub_route, destination_io) in &destinations {
+        for (sub_route, destination_io, _) in &destinations {
             DataType::compatible_types(from_io.datatypes(), destination_io.datatypes(), sub_route)
                 .chain_err(|| {
                     format!(
