@@ -196,6 +196,49 @@ so that when they read EndOfFile (and running them again makes no sense) they ma
 processed may cause the entire flow to complete. As such a function has no inputs, it otherwise would always be
 `Ready` and always be rerun, and "livelock" would occur and the flow would never end.
 
+### Sub-flow Idle Detection and Internal State Cleanup
+
+Sub-flows (flows used as processes within another flow) follow "run to completion" semantics.
+The runtime tracks whether each flow is busy or idle using a `busy_count` that propagates
+up the flow hierarchy — when a function starts executing, its flow and all ancestor flows
+are marked busy; when it completes, counts are decremented.
+
+A flow is considered idle when:
+- No processes (functions or sub-flows) in it are busy (`busy_count` is zero)
+- No new jobs can be created inside the flow using only internally generated values
+  (i.e., it cannot run again without external inputs)
+
+The second condition prevents premature idle detection when a pipeline is still in progress — 
+if a function has received an internal value on one input and is waiting for another internal
+value from an upstream function, the flow is not yet idle.
+
+#### Internal vs External Value Tracking
+
+Each connection in the compiled manifest is classified as **internal** or **external** based
+on how it was constructed during compilation:
+
+- **Direct connections** between functions defined within the same flow are internal
+- **Indirect connections** that were collapsed from a chain traversing flow boundaries
+  (entering or leaving a sub-flow) are external
+
+At runtime, values sent on internal connections are placed at the *front* of the
+destination input's queue, while external values go to the *back*. This ensures that
+internal pipeline values from the current execution are consumed before external values
+intended for the next invocation.
+
+#### Clearing on Idle
+
+When a flow transitions to idle (run to completion):
+
+1. All internal values on all inputs of functions in that flow are cleared
+2. Flow initializers (`Always` type) are re-applied  
+3. Any functions that now have complete input sets (from preserved external values
+   and re-applied initializers) create new jobs, starting the next invocation
+
+This ensures each invocation of a sub-flow starts with clean internal state. External
+values that arrived while the sub-flow was busy are preserved in the queue and drive
+the next invocation.
+
 ### Termination
 The execution of a flow terminates when there are no functions left on the ready list to execute.
 Depending on options used and the runner, this may cause the output of some statistics, unloading
