@@ -129,6 +129,7 @@
     - [double-connection](flowr/examples/double-connection/DESCRIPTION.md)
     - [factorial](flowr/examples/factorial/DESCRIPTION.md)
     - [fibonacci](flowr/examples/fibonacci/DESCRIPTION.md)
+    - [game-of-life](flowr/examples/game-of-life/DESCRIPTION.md)
     - [hello-world](flowr/examples/hello-world/DESCRIPTION.md)
     - [line-echo](flowr/examples/line-echo/DESCRIPTION.md)
     - [mandlebrot](flowr/examples/mandlebrot/DESCRIPTION.md)

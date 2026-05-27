@@ -1,0 +1,134 @@
+use flowcore::errors::Result;
+use flowcore::{RunAgain, RUN_AGAIN};
+use flowmacro::flow_function;
+use serde_json::{json, Value};
+
+fn count_neighbors(grid: &[i64], width: usize, height: usize, x: usize, y: usize) -> i64 {
+    let mut count = 0;
+    for dy in [-1i32, 0, 1] {
+        for dx in [-1i32, 0, 1] {
+            if dx == 0 && dy == 0 {
+                continue;
+            }
+            let nx = (x as i32 + dx).rem_euclid(width as i32) as usize;
+            let ny = (y as i32 + dy).rem_euclid(height as i32) as usize;
+            count += grid[ny * width + nx];
+        }
+    }
+    count
+}
+
+fn next_generation(grid: &[i64], width: usize, height: usize) -> Vec<i64> {
+    let mut new_grid = vec![0i64; width * height];
+    for y in 0..height {
+        for x in 0..width {
+            let neighbors = count_neighbors(grid, width, height, x, y);
+            let alive = grid[y * width + x] != 0;
+            new_grid[y * width + x] = match (alive, neighbors) {
+                (true, 2) | (true, 3) => 1,
+                (false, 3) => 1,
+                _ => 0,
+            };
+        }
+    }
+    new_grid
+}
+
+fn seed_pattern(name: &str, width: usize, height: usize) -> Vec<i64> {
+    let mut grid = vec![0i64; width * height];
+    let cx = width / 2;
+    let cy = height / 2;
+
+    let cells: Vec<(usize, usize)> = match name {
+        "blinker" => vec![(cx - 1, cy), (cx, cy), (cx + 1, cy)],
+        "glider" => vec![
+            (cx, cy - 1),
+            (cx + 1, cy),
+            (cx - 1, cy + 1),
+            (cx, cy + 1),
+            (cx + 1, cy + 1),
+        ],
+        "block" => vec![(cx, cy), (cx + 1, cy), (cx, cy + 1), (cx + 1, cy + 1)],
+        "rpentomino" => vec![
+            (cx, cy - 1),
+            (cx + 1, cy - 1),
+            (cx - 1, cy),
+            (cx, cy),
+            (cx, cy + 1),
+        ],
+        _ => vec![(cx, cy)],
+    };
+
+    for (x, y) in cells {
+        if x < width && y < height {
+            grid[y * width + x] = 1;
+        }
+    }
+    grid
+}
+
+#[flow_function]
+fn step(inputs: &[Value]) -> Result<(Option<Value>, RunAgain)> {
+    let grid_input = inputs.first().ok_or("Could not get grid")?;
+    let size = inputs
+        .get(1)
+        .ok_or("Could not get size")?
+        .as_array()
+        .ok_or("Could not get size array")?;
+    let width = size
+        .first()
+        .ok_or("Could not get width")?
+        .as_i64()
+        .ok_or("Could not get width as i64")? as usize;
+    let height = size
+        .get(1)
+        .ok_or("Could not get height")?
+        .as_i64()
+        .ok_or("Could not get height as i64")? as usize;
+
+    let grid: Vec<i64> = if let Some(seed_name) = grid_input.as_str() {
+        seed_pattern(seed_name, width, height)
+    } else {
+        grid_input
+            .as_array()
+            .ok_or("Could not get grid as array")?
+            .iter()
+            .map(|v| v.as_i64().unwrap_or(0))
+            .collect()
+    };
+
+    let new_grid = next_generation(&grid, width, height);
+
+    let mut pixels: Vec<Value> = Vec::with_capacity(width * height);
+    for y in 0..height {
+        for x in 0..width {
+            let alive = new_grid[y * width + x] != 0;
+            let color: i64 = if alive { 0 } else { 255 };
+            pixels.push(json!([[x, y], [color, color, color]]));
+        }
+    }
+
+    let result = json!({"grid": new_grid, "pixels": pixels});
+
+    Ok((Some(result), RUN_AGAIN))
+}
+
+#[cfg(test)]
+mod test {
+    use super::*;
+
+    #[test]
+    fn blinker_oscillates() {
+        let grid = seed_pattern("blinker", 5, 5);
+        let gen1 = next_generation(&grid, 5, 5);
+        let gen2 = next_generation(&gen1, 5, 5);
+        assert_eq!(grid, gen2);
+    }
+
+    #[test]
+    fn block_is_stable() {
+        let grid = seed_pattern("block", 6, 6);
+        let gen1 = next_generation(&grid, 6, 6);
+        assert_eq!(grid, gen1);
+    }
+}

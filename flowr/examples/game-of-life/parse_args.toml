@@ -1,0 +1,36 @@
+flow = "parse_args"
+
+[[output]]
+name = "filename"
+type = "string"
+
+[[output]]
+name = "size"
+type = "array/number"
+
+[[output]]
+name = "max_iterations"
+type = "number"
+
+[[output]]
+name = "seed"
+type = "string"
+
+[[process]]
+source = "context://args/get"
+
+[[connection]]
+from = "get/string/1"
+to = "output/filename"
+
+[[connection]]
+from = "get/json/2"
+to = "output/size"
+
+[[connection]]
+from = "get/json/3"
+to = "output/max_iterations"
+
+[[connection]]
+from = "get/string/4"
+to = "output/seed"

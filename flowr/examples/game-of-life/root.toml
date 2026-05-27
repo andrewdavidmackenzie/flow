@@ -1,0 +1,106 @@
+flow = "game-of-life"
+docs = "DESCRIPTION.md"
+
+# Parse command line arguments
+[[process]]
+source = "parse_args"
+
+# The core Game of Life step function
+[[process]]
+source = "game_step"
+
+# Seed name feeds game_step on first iteration
+[[connection]]
+from = "parse_args/seed"
+to = "game_step/grid"
+
+# Size feeds game_step
+[[connection]]
+from = "parse_args/size"
+to = "game_step/size"
+
+# Loopback: keep size available
+[[connection]]
+from = "game_step/size"
+to = "game_step/size"
+
+# Render pixels to image
+[[process]]
+source = "context://image/image_buffer"
+
+# Each pixel pair [[x,y],[r,g,b]] is serialized from the pixels array
+[[connection]]
+from = "game_step/pixels/0"
+to = "image_buffer/pixel"
+
+[[connection]]
+from = "game_step/pixels/1"
+to = "image_buffer/value"
+
+# Filename for image output
+[[connection]]
+from = "parse_args/filename"
+to = "image_buffer/filename"
+
+[[connection]]
+from = "image_buffer/filename"
+to = "image_buffer/filename"
+
+# Size for image dimensions
+[[connection]]
+from = "parse_args/size"
+to = "image_buffer/size"
+
+[[connection]]
+from = "image_buffer/size"
+to = "image_buffer/size"
+
+# Iteration control: count down from max_iterations
+[[process]]
+alias = "counter"
+source = "lib://flowstdlib/math/subtract"
+input.i2 = {always = 1}
+
+[[connection]]
+from = "parse_args/max_iterations"
+to = "counter/i1"
+
+# Compare counter to zero
+[[process]]
+source = "lib://flowstdlib/math/compare"
+input.right = {always = 0}
+
+[[connection]]
+from = "counter"
+to = "compare/left"
+
+# Tap: pass grid through only if iterations remain (counter > 0)
+[[process]]
+alias = "continue-tap"
+source = "lib://flowstdlib/control/tap"
+
+[[connection]]
+from = "compare/gt"
+to = "continue-tap/control"
+
+[[connection]]
+from = "game_step/grid"
+to = "continue-tap/data"
+
+# Loopback counter
+[[connection]]
+from = "counter"
+to = "counter/i1"
+
+# Connect tapped grid back to game_step
+[[connection]]
+from = "continue-tap"
+to = "game_step/grid"
+
+# Output to stdout for debugging
+[[process]]
+source = "context://stdio/stdout"
+
+[[connection]]
+from = "counter"
+to = "stdout"
