@@ -99,16 +99,7 @@ fn step(inputs: &[Value]) -> Result<(Option<Value>, RunAgain)> {
 
     let new_grid = next_generation(&grid, width, height);
 
-    let mut pixels: Vec<Value> = Vec::with_capacity(width * height);
-    for y in 0..height {
-        for x in 0..width {
-            let alive = new_grid[y * width + x] != 0;
-            let color: i64 = if alive { 0 } else { 255 };
-            pixels.push(json!([[x, y], [color, color, color]]));
-        }
-    }
-
-    let result = json!({"grid": new_grid, "pixels": pixels});
+    let result = json!({"grid": new_grid});
 
     Ok((Some(result), RUN_AGAIN))
 }
@@ -130,5 +121,32 @@ mod test {
         let grid = seed_pattern("block", 6, 6);
         let gen1 = next_generation(&grid, 6, 6);
         assert_eq!(grid, gen1);
+    }
+
+    #[test]
+    fn flow_function_with_seed() {
+        let inputs = vec![json!("glider"), json!([16, 16])];
+        let (output, run_again) = step(&inputs).expect("step failed");
+        assert!(run_again);
+        let output = output.expect("no output");
+        let grid = output["grid"].as_array().expect("grid not array");
+        assert_eq!(grid.len(), 256);
+    }
+
+    #[test]
+    fn flow_function_with_grid() {
+        let grid = seed_pattern("blinker", 5, 5);
+        let inputs = vec![json!(grid), json!([5, 5])];
+        let (output, run_again) = step(&inputs).expect("step failed");
+        assert!(run_again);
+        let output = output.expect("no output");
+        let new_grid: Vec<i64> = output["grid"]
+            .as_array()
+            .expect("grid not array")
+            .iter()
+            .map(|v| v.as_i64().unwrap_or(0))
+            .collect();
+        let gen2 = next_generation(&new_grid, 5, 5);
+        assert_eq!(grid, gen2);
     }
 }

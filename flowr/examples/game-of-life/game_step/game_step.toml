@@ -14,7 +14,3 @@ type = "array/number"
 [[output]]
 name = "grid" # next generation grid as flat array for loopback
 type = "array/number"
-
-[[output]]
-name = "pixels" # array of [[x,y],[r,g,b]] pairs for rendering
-type = "array/array/number"

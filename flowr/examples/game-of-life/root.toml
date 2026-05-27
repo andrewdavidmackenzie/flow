@@ -24,38 +24,9 @@ to = "game_step/size"
 from = "game_step/size"
 to = "game_step/size"
 
-# Render pixels to image
-[[process]]
-source = "context://image/image_buffer"
+####### Iteration control
 
-# Each pixel pair [[x,y],[r,g,b]] is serialized from the pixels array
-[[connection]]
-from = "game_step/pixels/0"
-to = "image_buffer/pixel"
-
-[[connection]]
-from = "game_step/pixels/1"
-to = "image_buffer/value"
-
-# Filename for image output
-[[connection]]
-from = "parse_args/filename"
-to = "image_buffer/filename"
-
-[[connection]]
-from = "image_buffer/filename"
-to = "image_buffer/filename"
-
-# Size for image dimensions
-[[connection]]
-from = "parse_args/size"
-to = "image_buffer/size"
-
-[[connection]]
-from = "image_buffer/size"
-to = "image_buffer/size"
-
-# Iteration control: count down from max_iterations
+# Subtract 1 from iteration count each generation
 [[process]]
 alias = "counter"
 source = "lib://flowstdlib/math/subtract"
@@ -65,7 +36,7 @@ input.i2 = {always = 1}
 from = "parse_args/max_iterations"
 to = "counter/i1"
 
-# Compare counter to zero
+# Compare counter to 0
 [[process]]
 source = "lib://flowstdlib/math/compare"
 input.right = {always = 0}
@@ -74,30 +45,43 @@ input.right = {always = 0}
 from = "counter"
 to = "compare/left"
 
-# Tap: pass grid through only if iterations remain (counter > 0)
+# Grid tap: pass grid through only if iterations remain (gt = true)
 [[process]]
-alias = "continue-tap"
+alias = "grid-tap"
 source = "lib://flowstdlib/control/tap"
 
 [[connection]]
 from = "compare/gt"
-to = "continue-tap/control"
+to = "grid-tap/control"
 
 [[connection]]
 from = "game_step/grid"
-to = "continue-tap/data"
+to = "grid-tap/data"
 
-# Loopback counter
+# Gated grid feeds back to game_step for next generation
 [[connection]]
-from = "counter"
-to = "counter/i1"
-
-# Connect tapped grid back to game_step
-[[connection]]
-from = "continue-tap"
+from = "grid-tap"
 to = "game_step/grid"
 
-# Output to stdout for debugging
+# Counter tap: pass counter through only if iterations remain
+[[process]]
+alias = "counter-tap"
+source = "lib://flowstdlib/control/tap"
+
+[[connection]]
+from = "compare/gt"
+to = "counter-tap/control"
+
+[[connection]]
+from = "counter"
+to = "counter-tap/data"
+
+# Gated counter feeds back for next subtraction
+[[connection]]
+from = "counter-tap"
+to = "counter/i1"
+
+# Output iteration count to stdout for progress
 [[process]]
 source = "context://stdio/stdout"
 
