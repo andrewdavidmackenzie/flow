@@ -9,7 +9,6 @@ mod test {
     use std::path::PathBuf;
 
     #[test]
-    #[ignore] // Flat composites state machine goes idle between stages — needs further work
     fn test_prime_example() {
         let _ = env::set_current_dir(
             PathBuf::from(env!("CARGO_MANIFEST_DIR"))

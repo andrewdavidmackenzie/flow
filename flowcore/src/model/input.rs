@@ -345,6 +345,12 @@ impl Input {
     pub fn is_empty(&self) -> bool {
         self.values_available() == 0
     }
+
+    /// Return true if this input has pending internal values
+    #[must_use]
+    pub fn has_internal(&self) -> bool {
+        self.internal_count > 0
+    }
 }
 
 #[cfg(test)]

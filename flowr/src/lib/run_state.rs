@@ -606,9 +606,24 @@ impl RunState {
         self.submission.manifest.functions().len()
     }
 
-    /// Check if a flow is idle (no busy functions tracked for it)
-    fn is_flow_idle(&self, process_id: usize) -> bool {
-        !self.busy_count.contains_key(&process_id)
+    /// A flow is idle when no functions are busy AND no function in the flow
+    /// can run from internal data (pipeline still in progress)
+    fn is_flow_idle(&self, flow_id: usize) -> bool {
+        if self.busy_count.contains_key(&flow_id) {
+            return false;
+        }
+
+        for function in self.submission.manifest.functions().values() {
+            if function.get_parent_id() == flow_id
+                && !self.completed.contains(&function.id())
+                && function.has_internal_inputs()
+                && function.can_run()
+            {
+                return false;
+            }
+        }
+
+        true
     }
 
     /// Return the ancestor flow ids starting from `parent_id` up to the root
@@ -638,9 +653,33 @@ impl RunState {
 
         self.remove_from_busy(job.process_id, job.parent_id);
 
-        // Check each ancestor flow for idleness, from innermost to root
+        // Check each ancestor flow, from innermost to root
         for ancestor_id in self.ancestors(job.parent_id) {
-            if self.is_flow_idle(ancestor_id) {
+            if self.busy_count.contains_key(&ancestor_id) {
+                continue;
+            }
+
+            // No functions busy — check if pipeline still has internal data in flight
+            if self.has_pending_internal(ancestor_id) {
+                // Pipeline still in progress — don't clear, but create jobs
+                // for any functions that can run now
+                let runnable: Vec<_> = self
+                    .submission
+                    .manifest
+                    .functions()
+                    .values()
+                    .filter(|f| {
+                        f.get_parent_id() == ancestor_id
+                            && !self.completed.contains(&f.id())
+                            && f.can_run()
+                    })
+                    .map(|f| (f.id(), ancestor_id))
+                    .collect();
+                for (func_id, flow_id) in runnable {
+                    self.create_jobs(func_id, flow_id)?;
+                }
+            } else {
+                // Flow has truly run to completion
                 debug!(
                     "Job #{}:\tFlow #{} is now idle",
                     job.payload.job_id, ancestor_id
@@ -652,9 +691,7 @@ impl RunState {
                         debugger.check_prior_to_flow_unblock(self, ancestor_id)?;
                 }
 
-                // clear internal values from functions in the idle flow
                 self.clear_flow_internal_inputs(ancestor_id);
-                // run flow initializers on functions in the flow that has just gone idle
                 self.run_flow_initializers(ancestor_id)?;
             }
         }
@@ -681,6 +718,14 @@ impl RunState {
             }
         }
         trace!("\t\t\tUpdated busy_count to: {:?}", self.busy_count);
+    }
+
+    fn has_pending_internal(&self, flow_id: usize) -> bool {
+        self.submission.manifest.functions().values().any(|f| {
+            f.get_parent_id() == flow_id
+                && !self.completed.contains(&f.id())
+                && f.has_internal_inputs()
+        })
     }
 
     // Clear internal values from all functions in a flow that just went idle
