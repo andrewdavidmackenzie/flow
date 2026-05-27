@@ -24,6 +24,24 @@ to = "game_step/size"
 from = "game_step/size"
 to = "game_step/size"
 
+####### Write each generation's grid to the image
+
+[[process]]
+source = "context://image/image_write"
+
+[[connection]]
+from = "game_step/grid"
+to = "image_write/grid"
+
+# Filename for image output — loopback to persist
+[[connection]]
+from = "parse_args/filename"
+to = "image_write/filename"
+
+[[connection]]
+from = "image_write/filename"
+to = "image_write/filename"
+
 ####### Iteration control
 
 # Subtract 1 from iteration count each generation

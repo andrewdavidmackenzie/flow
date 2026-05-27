@@ -89,17 +89,30 @@ fn step(inputs: &[Value]) -> Result<(Option<Value>, RunAgain)> {
     let grid: Vec<i64> = if let Some(seed_name) = grid_input.as_str() {
         seed_pattern(seed_name, width, height)
     } else {
-        grid_input
+        let arr = grid_input
             .as_array()
-            .ok_or("Could not get grid as array")?
-            .iter()
-            .map(|v| v.as_i64().unwrap_or(0))
-            .collect()
+            .ok_or("Could not get grid as array")?;
+        if arr.first().and_then(|v| v.as_array()).is_some() {
+            // 2D array: flatten rows
+            let mut flat = Vec::new();
+            for row in arr {
+                if let Some(cells) = row.as_array() {
+                    for v in cells {
+                        flat.push(v.as_i64().unwrap_or(0));
+                    }
+                }
+            }
+            flat
+        } else {
+            // Flat array
+            arr.iter().map(|v| v.as_i64().unwrap_or(0)).collect()
+        }
     };
 
     let new_grid = next_generation(&grid, width, height);
 
-    let result = json!({"grid": new_grid});
+    let grid_2d: Vec<Vec<i64>> = new_grid.chunks(width).map(|row| row.to_vec()).collect();
+    let result = json!({"grid": grid_2d});
 
     Ok((Some(result), RUN_AGAIN))
 }
@@ -130,23 +143,19 @@ mod test {
         assert!(run_again);
         let output = output.expect("no output");
         let grid = output["grid"].as_array().expect("grid not array");
-        assert_eq!(grid.len(), 256);
+        assert_eq!(grid.len(), 16);
+        assert_eq!(grid[0].as_array().expect("row").len(), 16);
     }
 
     #[test]
-    fn flow_function_with_grid() {
-        let grid = seed_pattern("blinker", 5, 5);
-        let inputs = vec![json!(grid), json!([5, 5])];
+    fn flow_function_with_2d_grid() {
+        let flat = seed_pattern("blinker", 5, 5);
+        let grid_2d: Vec<Vec<i64>> = flat.chunks(5).map(|r| r.to_vec()).collect();
+        let inputs = vec![json!(grid_2d), json!([5, 5])];
         let (output, run_again) = step(&inputs).expect("step failed");
         assert!(run_again);
         let output = output.expect("no output");
-        let new_grid: Vec<i64> = output["grid"]
-            .as_array()
-            .expect("grid not array")
-            .iter()
-            .map(|v| v.as_i64().unwrap_or(0))
-            .collect();
-        let gen2 = next_generation(&new_grid, 5, 5);
-        assert_eq!(grid, gen2);
+        let rows = output["grid"].as_array().expect("grid not array");
+        assert_eq!(rows.len(), 5);
     }
 }

@@ -12,5 +12,5 @@ name = "size" # [width, height]
 type = "array/number"
 
 [[output]]
-name = "grid" # next generation grid as flat array for loopback
-type = "array/number"
+name = "grid" # next generation grid as 2D array for loopback and rendering
+type = "array/array/number"

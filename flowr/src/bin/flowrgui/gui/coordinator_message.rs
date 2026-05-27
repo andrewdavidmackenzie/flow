@@ -44,6 +44,8 @@ pub enum CoordinatorMessage {
     Write(String, Vec<u8>),
     /// A Request to write a pixel to an `ImageBuffer`
     PixelWrite((u32, u32), (u8, u8, u8), (u32, u32), String),
+    /// A Request to write an entire image grid to an `ImageBuffer`
+    ImageWrite(Vec<Vec<u8>>, String),
     /// A Request to snd EOF to Stdout
     StdoutEof,
     /// A Request to snd EOF to Stderr
@@ -71,6 +73,7 @@ impl fmt::Display for CoordinatorMessage {
                 CoordinatorMessage::Read(_) => "Read",
                 CoordinatorMessage::Write(_, _) => "Write",
                 CoordinatorMessage::PixelWrite(_, _, _, _) => "PixelWrite",
+                CoordinatorMessage::ImageWrite(_, _) => "ImageWrite",
                 CoordinatorMessage::StdoutEof => "StdOutEof",
                 CoordinatorMessage::StderrEof => "StdErrEof",
                 CoordinatorMessage::Invalid => "Invalid",
