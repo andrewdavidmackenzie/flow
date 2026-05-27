@@ -36,9 +36,10 @@ pub struct Connection {
     /// when collapsing connections to reduce work and avoid infinite recursion
     #[serde(skip)]
     level: usize,
-    /// Whether this connection crossed a flow boundary during collapsing
+    /// Whether the collapsed connection was routed via a higher-level flow,
+    /// making the destination input external to its flow
     #[serde(skip)]
-    crossed_boundary: bool,
+    external_input: bool,
 }
 
 /// `Direction` defines whether a `Connection` is coming from an IO or to an IO
@@ -209,15 +210,16 @@ impl Connection {
         self.level
     }
 
-    /// Whether this connection crossed a flow boundary during collapsing
+    /// Whether the destination input is external to its flow (connection was
+    /// routed via a higher-level flow during collapsing)
     #[must_use]
-    pub fn crossed_boundary(&self) -> bool {
-        self.crossed_boundary
+    pub fn external_input(&self) -> bool {
+        self.external_input
     }
 
-    /// Mark that this connection crossed a flow boundary during collapsing
-    pub fn set_crossed_boundary(&mut self) {
-        self.crossed_boundary = true;
+    /// Mark the destination input as external to its flow
+    pub fn set_external_input(&mut self) {
+        self.external_input = true;
     }
 }
 

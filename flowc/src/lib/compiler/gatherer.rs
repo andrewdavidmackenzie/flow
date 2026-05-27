@@ -128,7 +128,7 @@ pub fn collapse_connections(tables: &mut CompilerTables) -> Result<()> {
                     {
                         let mut collapsed_connection = connection.clone();
                         if min_level < connection.level() {
-                            collapsed_connection.set_crossed_boundary();
+                            collapsed_connection.set_external_input();
                         }
                         // append the subroute from the origin function IO - to select from with in that IO
                         // as prescribed by the connections along the way
@@ -709,7 +709,7 @@ mod test {
 
     // A connection from a function in the root flow into a sub-flow goes DOWN
     // (level 0 → level 1). The source is at level 0. min_level = 0 = source level.
-    // Not crossed_boundary — it's a normal parent-to-child connection.
+    // Not external_input — it's a normal parent-to-child connection.
     #[test]
     fn connection_into_subflow_not_crossed() {
         let mut left = Connection::new("/f1", "/sub/a");
@@ -742,7 +742,7 @@ mod test {
                 .collapsed_connections
                 .first()
                 .expect("no connection")
-                .crossed_boundary(),
+                .external_input(),
             "Connection from parent into sub-flow should not cross boundary"
         );
     }
@@ -795,7 +795,7 @@ mod test {
                 .collapsed_connections
                 .first()
                 .expect("no connection")
-                .crossed_boundary(),
+                .external_input(),
             "Connection through parent flow should cross boundary"
         );
     }
@@ -822,7 +822,7 @@ mod test {
                 .collapsed_connections
                 .first()
                 .expect("no connection")
-                .crossed_boundary(),
+                .external_input(),
             "Function-to-function within same flow should not cross boundary"
         );
     }
@@ -862,14 +862,14 @@ mod test {
                 .collapsed_connections
                 .first()
                 .expect("no connection")
-                .crossed_boundary(),
+                .external_input(),
             "Function-to-subflow within same parent should not cross boundary"
         );
     }
 
     // Sub-flow → function (sibling): exits sub-flow to parent level.
     // Source and destination are in DIFFERENT flows (src_parent != dst_parent),
-    // so crossed_boundary doesn't matter — it's already external.
+    // so external_input doesn't matter — it's already external.
     // But the flag itself: min_level (1) < source level (2), so it IS set.
     // This is harmless since the different-parent check makes it external anyway.
     #[test]
@@ -906,7 +906,7 @@ mod test {
                 .collapsed_connections
                 .first()
                 .expect("no connection")
-                .crossed_boundary(),
+                .external_input(),
             "Subflow-to-function going up should cross boundary"
         );
     }
@@ -959,7 +959,7 @@ mod test {
                 .collapsed_connections
                 .first()
                 .expect("no connection")
-                .crossed_boundary(),
+                .external_input(),
             "Subflow-to-subflow through parent should cross boundary"
         );
     }
