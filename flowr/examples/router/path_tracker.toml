@@ -15,17 +15,17 @@ type = "number"
 name = "other"
 type = "number"
 
-# The string we use to denominate we have selected the forward route e.g. 'A' on the top, 'B' on the bottom
+# The string we use to denominate we have selected the forward route
 [[input]]
 name = "forward_string"
 type = "string"
 
-# The string we use to denominate we have selected the cross route e.g. 'BC' on the top route, 'AC' on the bottom route
+# The string we use to denominate we have selected the cross route
 [[input]]
 name = "cross_string"
 type = "string"
 
-# The Route taken so far on the forward route (A on top, B on bottom)
+# The Route taken so far on the forward route
 [[input]]
 name = "forward_route"
 type = "string"
@@ -35,7 +35,7 @@ type = "string"
 name = "forward_distance"
 type = "number"
 
-# The Route taken so far on the other route (B on top, A on bottom)
+# The Route taken so far on the other route
 [[input]]
 name = "other_route"
 type = "string"
@@ -45,17 +45,33 @@ type = "string"
 name = "other_distance"
 type = "number"
 
+# Intermediate value routed through parent to avoid internal clearing
+[[input]]
+name = "forward_total"
+type = "number"
+
+# Intermediate value routed through parent to avoid internal clearing
+[[input]]
+name = "cross_total"
+type = "number"
 
 #### Outputs
 
-#### The path (so far) that we have selected
 [[output]]
 name = "route"
 type = "string"
 
-#### The total (so far) for the path (so far) we have selected
 [[output]]
 name = "distance"
+type = "number"
+
+# Intermediate outputs for parent to route back as external
+[[output]]
+name = "forward_total_out"
+type = "number"
+
+[[output]]
+name = "cross_total_out"
 type = "number"
 
 ############################### Definition #####################
@@ -73,6 +89,10 @@ to = "cross_distance/i1"
 from = "input/other"
 to = "cross_distance/i2"
 
+# Output cross_distance for parent to route back
+[[connection]]
+from = "cross_distance"
+to = "output/cross_total_out"
 
 # Accumulate the distances so_far - if we take the forward route
 [[process]]
@@ -87,7 +107,13 @@ to = "forward_sum/i2"
 from = "input/forward"
 to = "forward_sum/i1"
 
+# Output forward_sum for parent to route back
+[[connection]]
+from = "forward_sum"
+to = "output/forward_total_out"
+
 # Accumulate the distances so_far - if we take the cross over route
+# cross_sum gets cross_distance result back from parent as external
 [[process]]
 alias = "cross_sum"
 source = "lib://flowstdlib/math/add"
@@ -97,15 +123,15 @@ from = "input/other_distance"
 to = "cross_sum/i2"
 
 [[connection]]
-from = "cross_distance"
+from = "input/cross_total"
 to = "cross_sum/i1"
 
-# Compare the two distance so far
+# Compare the two distances so far — uses parent-routed forward_total
 [[process]]
 source = "lib://flowstdlib/math/compare"
 
 [[connection]]
-from = "forward_sum"
+from = "input/forward_total"
 to = "compare/left"
 
 [[connection]]
@@ -113,7 +139,6 @@ from = "cross_sum"
 to = "compare/right"
 
 # select the string for the shortest route
-# shortest route = "select_string/select_i1"
 [[process]]
 alias = "select_string"
 source = "lib://flowstdlib/control/select"
@@ -148,13 +173,12 @@ from = "compare/lte"
 to = "select_route/control"
 
 # select the total that corresponds to the lowest sum
-# selected total = "select_total/select_i1"
 [[process]]
 alias = "select_total"
 source = "lib://flowstdlib/control/select"
 
 [[connection]]
-from = "forward_sum"
+from = "input/forward_total"
 to = "select_total/i1"
 
 [[connection]]

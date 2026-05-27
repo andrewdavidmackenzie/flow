@@ -43,6 +43,15 @@ to = "A_tracker/other"
 from = "accumulate_triples/chunk/2"
 to = "A_tracker/cross"
 
+# Route A_tracker intermediate values through parent
+[[connection]]
+from = "A_tracker/forward_total_out"
+to = "A_tracker/forward_total"
+
+[[connection]]
+from = "A_tracker/cross_total_out"
+to = "A_tracker/cross_total"
+
 # Track top path to 'B' points
 [[process]]
 alias = "B_tracker"
@@ -60,6 +69,15 @@ to = "B_tracker/forward"
 [[connection]] # C - cross-over distance
 from = "accumulate_triples/chunk/2"
 to = "B_tracker/cross"
+
+# Route B_tracker intermediate values through parent
+[[connection]]
+from = "B_tracker/forward_total_out"
+to = "B_tracker/forward_total"
+
+[[connection]]
+from = "B_tracker/cross_total_out"
+to = "B_tracker/cross_total"
 
 [[connection]]
 from = "A_tracker/route"
@@ -112,7 +130,7 @@ to = "append/s2"
 [[process]]
 source = "lib://flowstdlib/data/append"
 
-######## Print out the shortest route and it's length to each point 'A' - and the last one is the destination
+######## Print out the shortest route and it's length to each point 'A'
 [[connection]]
 from = "append"
 to = "stdout"
