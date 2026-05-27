@@ -867,9 +867,11 @@ mod test {
         );
     }
 
-    // Sub-flow → function (sibling): exits sub-flow back to parent level.
-    // The source function is at level 2 and the chain goes through level 1,
-    // so min_level (1) < source level (2) — crossed boundary.
+    // Sub-flow → function (sibling): exits sub-flow to parent level.
+    // Source and destination are in DIFFERENT flows (src_parent != dst_parent),
+    // so crossed_boundary doesn't matter — it's already external.
+    // But the flag itself: min_level (1) < source level (2), so it IS set.
+    // This is harmless since the different-parent check makes it external anyway.
     #[test]
     fn sibling_subflow_to_function_is_crossed() {
         // function output inside sub-flow → sub-flow output (level 2)
