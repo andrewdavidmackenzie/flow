@@ -63,7 +63,7 @@ name = "step"
 
 # Take generated number of the sequence and pass it to 'add' to add one to it for the next number in the sequence
 [[connection]]
-from = "compare_switch/right-lte"
+from = "compare_switch/right-lt"
 to = "add/i1"
 name = "previous"
 

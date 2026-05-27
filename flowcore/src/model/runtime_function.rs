@@ -298,6 +298,15 @@ impl RuntimeFunction {
         self.input_sets_available() > 0
     }
 
+    /// Can this function run using only internal values on all inputs?
+    #[must_use]
+    pub fn can_run_on_internal(&self) -> bool {
+        if self.inputs.is_empty() {
+            return false;
+        }
+        self.inputs.iter().all(Input::has_internal)
+    }
+
     /// Inspect the values of the `inputs` of a `RuntimeFunction`
     #[cfg(any(feature = "debugger", debug_assertions))]
     #[must_use]

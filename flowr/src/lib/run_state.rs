@@ -702,8 +702,7 @@ impl RunState {
         self.submission.manifest.functions().values().any(|f| {
             f.get_parent_id() == flow_id
                 && !self.completed.contains(&f.id())
-                && f.has_internal_inputs()
-                && f.can_run()
+                && f.can_run_on_internal()
         })
     }
 
