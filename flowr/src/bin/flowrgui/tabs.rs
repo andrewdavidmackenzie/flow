@@ -1,13 +1,12 @@
 use std::collections::HashMap;
 use std::fs;
 
-use iced::widget::image::Handle;
+use iced::widget::image::{FilterMethod, Handle, Viewer};
 use iced::widget::operation::{self, RelativeOffset};
 use iced::widget::scrollable::Scrollable;
-use iced::widget::Image;
 use iced::widget::TextInput;
 use iced::widget::{text, toggler, Button, Column, Id, Row, Text};
-use iced::{Element, Length, Task};
+use iced::{ContentFit, Element, Length, Task};
 use iced_aw::{TabLabel, Tabs};
 use log::error;
 use once_cell::sync::Lazy;
@@ -303,12 +302,17 @@ impl Tab for ImageTab {
         for (name, image_ref) in &self.images {
             let (display_width, display_height, display_data) =
                 scale_image(image_ref, Self::MIN_DISPLAY_WIDTH);
-            let image_widget = Image::new(Handle::from_rgba(
+            let viewer = Viewer::new(Handle::from_rgba(
                 display_width,
                 display_height,
                 display_data,
             ))
-            .width(Length::Shrink);
+            .filter_method(FilterMethod::Nearest)
+            .content_fit(ContentFit::ScaleDown)
+            .min_scale(0.1)
+            .max_scale(10.0)
+            .width(Length::Fill)
+            .height(Length::Fill);
             let scale = display_width / image_ref.width;
             let label = format!(
                 "{name} ({}x{}, {scale}x)",
@@ -320,7 +324,7 @@ impl Tab for ImageTab {
                 .push(Text::new(label))
                 .push(save_button)
                 .spacing(10);
-            col = col.push(header).push(image_widget);
+            col = col.push(header).push(viewer);
         }
 
         col.into()
