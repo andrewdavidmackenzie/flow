@@ -714,14 +714,13 @@ impl FlowrGui {
                 self.error("Coordinator is already connected");
             }
             CoordinatorMessage::FlowStart => {
-                debug!("FlowStart received");
                 self.running = true;
                 self.submitted = false;
                 self.send(ClientMessage::Ack);
             }
             CoordinatorMessage::FlowEnd(metrics) => {
-                debug!("FlowEnd received");
                 self.running = false;
+                self.submitted = false;
                 self.pending_getline = false;
                 self.tab_set.stdin_tab.waiting_for_input = false;
                 if self.submission_settings.display_metrics {

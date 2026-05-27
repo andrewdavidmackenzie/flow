@@ -315,11 +315,7 @@ impl Tab for ImageTab {
             .height(Length::Fixed(f32::from(
                 u16::try_from(display_height).unwrap_or(u16::MAX),
             )));
-            let scale = display_width / image_ref.width;
-            let label = format!(
-                "{name} ({}x{}, {scale}x)",
-                image_ref.width, image_ref.height
-            );
+            let label = format!("{name} ({}x{})", image_ref.width, image_ref.height);
             let save_button =
                 Button::new(Text::new("Save")).on_press(Message::SaveImage(name.clone()));
             let header = Row::new()
