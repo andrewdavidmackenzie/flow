@@ -37,12 +37,6 @@ impl Implementation for Readline {
                 output_map.insert("string".into(), Value::String(contents));
                 Ok((Some(Value::Object(output_map)), RUN_AGAIN))
             }
-            Ok(ClientMessage::GetLineEof) => {
-                let mut output_map = serde_json::Map::new();
-                output_map.insert("string".into(), Value::Null);
-                output_map.insert("json".into(), Value::Null);
-                Ok((Some(Value::Object(output_map)), DONT_RUN_AGAIN))
-            }
             _ => Ok((None, DONT_RUN_AGAIN)),
         }
     }
@@ -53,7 +47,6 @@ impl Implementation for Readline {
 mod test {
     use flowcore::{Implementation, DONT_RUN_AGAIN, RUN_AGAIN};
     use serde_json::json;
-    use serde_json::Value;
     use serial_test::serial;
 
     use crate::cli::coordinator_message::{ClientMessage, CoordinatorMessage};
@@ -112,15 +105,6 @@ mod test {
         let (value, run_again) = reader.run(&[]).expect("_readline() failed");
 
         assert_eq!(run_again, DONT_RUN_AGAIN);
-        let val = value.expect("Could not get value returned from implementation");
-        let map = val.as_object().expect("Could not get map of output values");
-        assert_eq!(
-            map.get("json").expect("Could not get json args"),
-            &Value::Null
-        );
-        assert_eq!(
-            map.get("string").expect("Could not get string args"),
-            &Value::Null
-        );
+        assert!(value.is_none());
     }
 }

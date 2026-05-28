@@ -1,0 +1,82 @@
+flow = "running-average"
+docs = "DESCRIPTION.md"
+
+# Running RMS (Root Mean Square) average, inspired by the Lucid dataflow
+# programming language example (Wadge & Ashcroft, 1985, page 47).
+#
+# RMS = sqrt(sum(x²) / n)
+
+# Read numbers from stdin, one per line
+[[process]]
+source = "context://stdio/readline"
+input.prompt = { always = "" }
+
+# Square the input: x² = x * x
+[[process]]
+alias = "square"
+source = "lib://flowstdlib/math/multiply"
+
+[[connection]]
+from = "readline/json"
+to = "square/i1"
+
+[[connection]]
+from = "readline/json"
+to = "square/i2"
+
+# Accumulate sum of squares: s = 0 fby s + x²
+[[process]]
+alias = "sum"
+source = "lib://flowstdlib/math/add"
+input.i1 = { once = 0 }
+
+[[connection]]
+from = "square"
+to = "sum/i2"
+
+# Loopback: new sum feeds back
+[[connection]]
+from = "sum"
+to = "sum/i1"
+
+# Count inputs: n = 0 fby n + 1
+[[process]]
+source = "lib://flowstdlib/data/count"
+input.count = { once = 0 }
+
+[[connection]]
+from = "readline/json"
+to = "count/data"
+
+# Loopback: count feeds back
+[[connection]]
+from = "count"
+to = "count/count"
+
+# Mean of squares: sum(x²) / n
+[[process]]
+source = "lib://flowstdlib/math/divide"
+
+[[connection]]
+from = "sum"
+to = "divide/dividend"
+
+[[connection]]
+from = "count"
+to = "divide/divisor"
+
+# Root of mean squares: sqrt(sum(x²) / n)
+[[process]]
+source = "lib://flowstdlib/math/sqrt"
+
+[[connection]]
+from = "divide/result"
+to = "sqrt"
+
+# Output the RMS value
+[[process]]
+source = "context://stdio/stdout"
+
+[[connection]]
+from = "sqrt"
+to = "stdout"
