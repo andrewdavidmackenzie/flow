@@ -1,0 +1,11 @@
+function = "cos"
+description = "Calculate the cos of a number (in radians)"
+source = "cos.rs"
+docs = "cos.md"
+type = "rust"
+
+[[input]]
+type = "number"
+
+[[output]]
+type = "number"

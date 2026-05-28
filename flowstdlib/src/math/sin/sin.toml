@@ -1,0 +1,11 @@
+function = "sin"
+description = "Calculate the sin of a number (in radians)"
+source = "sin.rs"
+docs = "sin.md"
+type = "rust"
+
+[[input]]
+type = "number"
+
+[[output]]
+type = "number"

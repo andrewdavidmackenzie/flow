@@ -1,0 +1,11 @@
+function = "tan"
+description = "Calculate the tan of a number (in radians)"
+source = "tan.rs"
+docs = "tan.md"
+type = "rust"
+
+[[input]]
+type = "number"
+
+[[output]]
+type = "number"
