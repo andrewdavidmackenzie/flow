@@ -31,6 +31,7 @@
 - [Provided Functions](book/describing/provided_functions.md)
 - [Sub-flow Execution Semantics](book/describing/sub_flow_semantics.md)
 - [Programming Methods](book/describing/programming_methods.md)
+- [Feature Examples](book/describing/feature_examples.md)
 
 # `flowrcli's` `context functions`
 - [flowr's context functions](flowr/src/bin/flowrcli/context/flowrcli_context_functions.md)
@@ -122,16 +123,13 @@
 # flow examples
 - [Examples README](flowr/examples/README.md)
     - [args](flowr/examples/args/DESCRIPTION.md)
-    - [args-json](flowr/examples/args-json/DESCRIPTION.md)
     - [arrays](flowr/examples/arrays/DESCRIPTION.md)
     - [debug-help-string](flowr/examples/debug-help-string/DESCRIPTION.md)
     - [debug-print-args](flowr/examples/debug-print-args/DESCRIPTION.md)
-    - [double-connection](flowr/examples/double-connection/DESCRIPTION.md)
     - [factorial](flowr/examples/factorial/DESCRIPTION.md)
     - [fibonacci](flowr/examples/fibonacci/DESCRIPTION.md)
     - [game-of-life](flowr/examples/game-of-life/DESCRIPTION.md)
     - [hello-world](flowr/examples/hello-world/DESCRIPTION.md)
-    - [line-echo](flowr/examples/line-echo/DESCRIPTION.md)
     - [mandlebrot](flowr/examples/mandlebrot/DESCRIPTION.md)
       - [escapes](flowr/examples/mandlebrot/escapes/escapes.md) provided function
       - [pixel_to_point](flowr/examples/mandlebrot/pixel_to_point/pixel_to_point.md) provided function
@@ -139,9 +137,8 @@
     - [prime](flowr/examples/prime/DESCRIPTION.md)
     - [primitives](flowr/examples/primitives/DESCRIPTION.md)
     - [reverse-echo](flowr/examples/reverse-echo/DESCRIPTION.md)
-    - [running-average](flowr/examples/running-average/DESCRIPTION.md)
     - [router](flowr/examples/router/DESCRIPTION.md)
-    - [sequence](flowr/examples/sequence/DESCRIPTION.md)
+    - [running-average](flowr/examples/running-average/DESCRIPTION.md)
     - [sequence-of-sequences](flowr/examples/sequence-of-sequences/DESCRIPTION.md)
     - [tokenizer](flowr/examples/tokenizer/DESCRIPTION.md)
     - [two-destinations](flowr/examples/two-destinations/DESCRIPTION.md)
