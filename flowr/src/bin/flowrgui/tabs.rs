@@ -120,22 +120,9 @@ impl TabSet {
             }
             Message::SaveImage(ref name) => {
                 if let Some(image_ref) = self.images_tab.images.get(name) {
-                    let image_number = self
-                        .images_tab
-                        .images
-                        .keys()
-                        .position(|k| k == name)
-                        .unwrap_or(0)
-                        + 1;
-                    let prefix = if self.flow_name.is_empty() {
-                        String::new()
-                    } else {
-                        format!("{}_", self.flow_name)
-                    };
-                    let file_name = format!("{prefix}image_{image_number}.png");
                     let dialog = rfd::FileDialog::new()
                         .add_filter("PNG", &["png"])
-                        .set_file_name(file_name);
+                        .set_file_name(name);
                     if let Some(path) = dialog.save_file() {
                         if let Err(e) = image_ref
                             .data
