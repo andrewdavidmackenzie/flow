@@ -139,6 +139,7 @@
     - [prime](flowr/examples/prime/DESCRIPTION.md)
     - [primitives](flowr/examples/primitives/DESCRIPTION.md)
     - [reverse-echo](flowr/examples/reverse-echo/DESCRIPTION.md)
+    - [running-average](flowr/examples/running-average/DESCRIPTION.md)
     - [router](flowr/examples/router/DESCRIPTION.md)
     - [sequence](flowr/examples/sequence/DESCRIPTION.md)
     - [sequence-of-sequences](flowr/examples/sequence-of-sequences/DESCRIPTION.md)

@@ -1,0 +1,63 @@
+flow = "running-average"
+docs = "DESCRIPTION.md"
+
+# Based on the Lucid dataflow programming language example (page 47):
+#   next s/n
+#   where
+#       s = 0 fby s + x;
+#       n = 0 fby n + 1;
+#   end
+
+# Read numbers from stdin, one per line
+[[process]]
+source = "context://stdio/readline"
+input.prompt = { always = "" }
+
+# s = 0 fby s + x: accumulate the running sum
+[[process]]
+alias = "sum"
+source = "lib://flowstdlib/math/add"
+input.i1 = { once = 0 }
+
+[[connection]]
+from = "readline/json"
+to = "sum/i2"
+
+# Loopback: new sum feeds back as i1
+[[connection]]
+from = "sum"
+to = "sum/i1"
+
+# n = 0 fby n + 1: count inputs
+[[process]]
+source = "lib://flowstdlib/data/count"
+input.count = { once = 0 }
+
+[[connection]]
+from = "readline/json"
+to = "count/data"
+
+# Loopback: count feeds back
+[[connection]]
+from = "count"
+to = "count/count"
+
+# Divide sum by count to get running average
+[[process]]
+source = "lib://flowstdlib/math/divide"
+
+[[connection]]
+from = "sum"
+to = "divide/dividend"
+
+[[connection]]
+from = "count"
+to = "divide/divisor"
+
+# Output the result
+[[process]]
+source = "context://stdio/stdout"
+
+[[connection]]
+from = "divide/result"
+to = "stdout"
