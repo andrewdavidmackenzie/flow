@@ -1,44 +1,34 @@
-# Running Average
+Running RMS Average
+==
 
-This example implements the running average calculation from the Lucid dataflow
-programming language book ("Lucid, the Dataflow Programming Language" by Wadge
-and Ashcroft, 1985, page 47).
+Description
+===
+A flow that computes the running RMS (Root Mean Square) average of a stream
+of numbers read from stdin. Inspired by the running average example from
+"Lucid, the Dataflow Programming Language" (Wadge & Ashcroft, 1985, page 47).
 
-## The Lucid Program
+RMS = sqrt(sum(x²) / n)
 
-```
-next s/n
-where
-    s = 0 fby s + x;
-    n = 0 fby n + 1;
-end
-```
+This example uses **only flowstdlib functions** — no custom Rust/WASM code needed.
 
-Where:
-- `x` is a stream of input numbers (read from stdin)
-- `s` is the running sum, initialized to 0
-- `n` is the running count, initialized to 0
-- The output is `s/n` — the running average after each input
+Root Diagram
+===
+<a href="root.dot.svg" target="_blank"><img src="root.dot.svg"></a>
 
-## Flow Implementation
+Click image to navigate flow hierarchy.
 
-The flow uses only `flowstdlib` functions:
-- `add` with loopback implements `s = 0 fby s + x`
-- `count` with loopback implements `n = 0 fby n + 1`
-- `divide` computes `s / n`
+Features Used
+===
+* Root flow with no sub-flows
+* Library Functions used (`multiply`, `add`, `count`, `divide`, `sqrt` from `flowstdlib`)
+* Context Functions used (`readline`, `stdout`)
+* Loopback connections for accumulating state across iterations
+* Input initializers (`once` for initial values, `always` for constants)
+* Reading from stdin via `readline/json`
 
-No custom Rust/WASM functions are needed.
+Functions Diagram
+===
+This diagram shows the exploded diagram of all functions in all flows, and their connections.
+<a href="functions.dot.svg" target="_blank"><img src="functions.dot.svg"></a>
 
-## Usage
-
-Pipe numbers (one per line) to stdin:
-```
-echo "10\n20\n30" | flowrcli --native manifest.json
-```
-
-Output will be the running average after each input:
-```
-10
-15
-20
-```
+Click image to view functions graph.
