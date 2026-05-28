@@ -1,0 +1,72 @@
+flow = "gcd"
+docs = "DESCRIPTION.md"
+
+# Euclid's GCD algorithm (subtraction-based):
+#   while n != m:
+#     subtract the smaller from the larger
+#   return n (== m, the GCD)
+#
+# In dataflow: compare_switch routes larger to subtract/i1 and smaller
+# to subtract/i2. The difference loops back as the new "larger candidate".
+# The smaller loops back unchanged. When equal, output the GCD.
+
+# Read n and m from args
+[[process]]
+source = "context://args/get"
+
+[[process]]
+source = "lib://flowstdlib/control/compare_switch"
+
+# n → compare_switch/left
+[[connection]]
+from = "get/json/1"
+to = "compare_switch/left"
+
+# m → compare_switch/right
+[[connection]]
+from = "get/json/2"
+to = "compare_switch/right"
+
+# GCD found when values are equal
+[[process]]
+source = "context://stdio/stdout"
+
+[[connection]]
+from = "compare_switch/equal"
+to = "stdout"
+
+# Subtract: larger - smaller
+[[process]]
+source = "lib://flowstdlib/math/subtract"
+
+# Larger value → subtract/i1
+[[connection]]
+from = "compare_switch/left-gt"
+to = "subtract/i1"
+
+[[connection]]
+from = "compare_switch/right-gt"
+to = "subtract/i1"
+
+# Smaller value → subtract/i2
+[[connection]]
+from = "compare_switch/right-lt"
+to = "subtract/i2"
+
+[[connection]]
+from = "compare_switch/left-lt"
+to = "subtract/i2"
+
+# Smaller value loops back to compare_switch/right
+[[connection]]
+from = "compare_switch/right-lt"
+to = "compare_switch/right"
+
+[[connection]]
+from = "compare_switch/left-lt"
+to = "compare_switch/right"
+
+# Difference loops back to compare_switch/left
+[[connection]]
+from = "subtract"
+to = "compare_switch/left"
