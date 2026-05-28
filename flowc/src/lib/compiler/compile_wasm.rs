@@ -157,7 +157,13 @@ fn optimize_wasm_file_size(wasm_path: &Path) -> Result<()> {
     run_optional_command(
         wasm_path,
         "wasm-opt",
-        &["-O4", "--dce", "--enable-bulk-memory", "-o"],
+        &[
+            "-O4",
+            "--dce",
+            "--enable-bulk-memory",
+            "--enable-nontrapping-float-to-int",
+            "-o",
+        ],
     )
 }
 
