@@ -31,6 +31,7 @@
 - [Provided Functions](book/describing/provided_functions.md)
 - [Sub-flow Execution Semantics](book/describing/sub_flow_semantics.md)
 - [Programming Methods](book/describing/programming_methods.md)
+- [Feature Examples](book/describing/feature_examples.md)
 
 # `flowrcli's` `context functions`
 - [flowr's context functions](flowr/src/bin/flowrcli/context/flowrcli_context_functions.md)
