@@ -127,6 +127,7 @@
     - [debug-help-string](flowr/examples/debug-help-string/DESCRIPTION.md)
     - [debug-print-args](flowr/examples/debug-print-args/DESCRIPTION.md)
     - [factorial](flowr/examples/factorial/DESCRIPTION.md)
+    - [gcd](flowr/examples/gcd/DESCRIPTION.md)
     - [fibonacci](flowr/examples/fibonacci/DESCRIPTION.md)
     - [game-of-life](flowr/examples/game-of-life/DESCRIPTION.md)
     - [hello-world](flowr/examples/hello-world/DESCRIPTION.md)
