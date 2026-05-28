@@ -11,14 +11,14 @@ use super::deserializer::Deserializer;
 #[derive(Default)]
 pub struct YamlDeserializer<T>
 where
-    T: DeserializeOwned,
+    T: DeserializeOwned + 'static,
 {
     t: PhantomData<T>,
 }
 
 impl<T> YamlDeserializer<T>
 where
-    T: DeserializeOwned,
+    T: DeserializeOwned + 'static,
 {
     /// Create a new `YamlDeserializer`
     pub fn new() -> Self {
@@ -28,7 +28,7 @@ where
 
 impl<'a, T> Deserializer<'a, T> for YamlDeserializer<T>
 where
-    T: DeserializeOwned,
+    T: DeserializeOwned + 'static,
 {
     fn deserialize(&self, contents: &'a str, url: Option<&Url>) -> Result<T> {
         serde_yml::from_str(contents).chain_err(|| {
