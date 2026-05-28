@@ -1,0 +1,82 @@
+flow = "hamming"
+docs = "DESCRIPTION.md"
+
+# Generate Hamming numbers (5-smooth numbers) — numbers whose only
+# prime factors are 2, 3, and 5.
+#
+# Based on the Lucid dataflow solution (Wadge & Ashcroft, 1985, p.84):
+#   h = 1 fby merge(merge(2*h, 3*h), 5*h)
+#
+# Each iteration extracts the smallest candidate and generates three
+# new candidates (×2, ×3, ×5) via loopback.
+
+# Read how many Hamming numbers to generate from args
+[[process]]
+source = "context://args/get"
+
+# The core step: extract min, generate new candidates
+[[process]]
+source = "hamming_step"
+input.candidates = { once = [1] }
+
+# Output each Hamming number
+[[process]]
+source = "context://stdio/stdout"
+
+[[connection]]
+from = "hamming_step/next"
+to = "stdout"
+
+####### Iteration control: stop after N numbers
+
+[[process]]
+alias = "counter"
+source = "lib://flowstdlib/math/subtract"
+input.i2 = { always = 1 }
+
+[[connection]]
+from = "get/json/1"
+to = "counter/i1"
+
+[[process]]
+source = "lib://flowstdlib/math/compare"
+input.right = { always = 0 }
+
+[[connection]]
+from = "counter"
+to = "compare/left"
+
+# Gate the candidates loopback: only continue if counter > 0
+[[process]]
+alias = "candidates-tap"
+source = "lib://flowstdlib/control/tap"
+
+[[connection]]
+from = "compare/gt"
+to = "candidates-tap/control"
+
+[[connection]]
+from = "hamming_step/candidates"
+to = "candidates-tap/data"
+
+# Gated candidates loop back
+[[connection]]
+from = "candidates-tap"
+to = "hamming_step/candidates"
+
+# Counter tap: continue counting down
+[[process]]
+alias = "counter-tap"
+source = "lib://flowstdlib/control/tap"
+
+[[connection]]
+from = "compare/gt"
+to = "counter-tap/control"
+
+[[connection]]
+from = "counter"
+to = "counter-tap/data"
+
+[[connection]]
+from = "counter-tap"
+to = "counter/i1"
