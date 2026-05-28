@@ -81,7 +81,7 @@ The order of a flow or sub-flow's output is determined by the data dependencies 
 Examples of ways to create determinism are:
 - [fibonacci example](../../flowr/examples/fibonacci/root.toml) use of a feedback connection so that one value is used
 in the calculation of the next value, thus guaranteeing the order of the series.
-- [sequence example](../../flowr/examples/sequence/root.toml) use of a "data flow control" function (`join`) to ensure
+- [sequence-of-sequences example](../../flowr/examples/sequence-of-sequences/root.toml) use of a "data flow control" function (`join`) to ensure
 that a string is not sent to the `stdout` function until a specific condition (`end-of-sequence`) is met.
   ```
   # Output a string to show we're done when the Sequence ends
