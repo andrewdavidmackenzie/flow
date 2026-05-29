@@ -1,4 +1,4 @@
-//! A runner for the example using flowrcli
+//! A runner for the Image Analysis example using flowrcli
 fn main() {
     utilities::run_example(file!(), "flowrcli", false, true);
 }
@@ -9,7 +9,7 @@ mod test {
     use std::path::PathBuf;
 
     #[test]
-    fn test_reverse_echo_example() {
+    fn test_image_analysis_example() {
         let _ = env::set_current_dir(
             PathBuf::from(env!("CARGO_MANIFEST_DIR"))
                 .parent()

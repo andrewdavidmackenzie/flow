@@ -10,6 +10,8 @@ members = [
     "control/tap",
     "data/accumulate",
     "data/append",
+    "data/array_get",
+    "data/array_set",
     "data/count",
     "data/duplicate",
     "data/enumerate",

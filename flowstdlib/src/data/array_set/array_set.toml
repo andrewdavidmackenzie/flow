@@ -1,0 +1,19 @@
+function = "array_set"
+description = "Set the value at a given index in an array, returning the modified array"
+source = "array_set.rs"
+docs = "array_set.md"
+type = "rust"
+
+[[input]]
+name = "array" # the array to modify
+type = "array/"
+
+[[input]]
+name = "index" # the index to write to
+type = "number"
+
+[[input]]
+name = "value" # the value to set
+
+[[output]]
+type = "array/" # the modified array

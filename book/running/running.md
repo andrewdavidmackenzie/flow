@@ -39,18 +39,6 @@ See the next section [flowc](flowc.md) for a description of the command line arg
   uses the `context_functions` provided by `flowrcli` and run the flow whose root flow is defined in `./flowr/examples/fibonacci/root.toml`. 
   Do not pass in any arguments to the flow. 
   - You should get a fibonacci series output to the terminal, 
-- `echo "Hello" | flowc -C flowr/src/bin/flowrcli flowr/examples/reverse-echo` - This example reads from STDIN so we echo in 
-  some text.
-  - You may see some output like:
-  
-    `Testing /Users/andrew/workspace/flow/flowr/examples/reverse-echo/reverse/Cargo.toml WASM Project
-     Compiling /Users/andrew/workspace/flow/flowr/examples/reverse-echo/reverse/Cargo.toml WASM project`
-
-    the first time this example is run as the `provided function` is tested and compiled to WASM, followed by
-
-    `olleH`
-
-    which is the input string "Hello" reversed.
 - `flowc -C flowr/src/bin/flowrcli flowr/examples/fibonacci` - You should get a fibonacci series output to the terminal
 - `flowc -C flowr/src/bin/flowrcli flowr/examples/sequence 10` - as previous examples except that after the `source_url` a 
 `flow_argument` of "10" is passed in

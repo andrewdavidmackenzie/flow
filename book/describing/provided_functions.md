@@ -13,9 +13,7 @@ between directories, files systems and systems/nodes and the relative locations 
 them to still be found and the flow compiled and ran.
 
 ### Examples of Provided Functions
-The `flowr` crate has two examples that provide functions as part of the flow:
-* [Reverse Echo](../../flowr/examples/reverse-echo/DESCRIPTION.md) in the folder `flowr/examples/reverse-echo` - a
-  simple example that provides a function to reverse a string
+The `flowr` crate has several examples that provide functions as part of the flow:
 * [Mandlebrot](../../flowr/examples/mandlebrot/DESCRIPTION.md) in the folder `flowr/examples/mandlebrot` - provides
   two functions:
   * `pixel_to_point` to do conversions from pixels to points in 2D imaginary
