@@ -39,34 +39,37 @@ mod test {
     fn get_first() {
         let (result, _) = inner_array_get(&[json!([10, 20, 30]), json!(0)]).expect("failed");
         let output = result.expect("no output");
-        assert_eq!(output["value"], json!(10));
+        assert_eq!(*output.pointer("/value").expect("no /value"), json!(10));
     }
 
     #[test]
     fn get_middle() {
         let (result, _) = inner_array_get(&[json!([10, 20, 30]), json!(1)]).expect("failed");
         let output = result.expect("no output");
-        assert_eq!(output["value"], json!(20));
+        assert_eq!(*output.pointer("/value").expect("no /value"), json!(20));
     }
 
     #[test]
     fn get_last() {
         let (result, _) = inner_array_get(&[json!([10, 20, 30]), json!(2)]).expect("failed");
         let output = result.expect("no output");
-        assert_eq!(output["value"], json!(30));
+        assert_eq!(*output.pointer("/value").expect("no /value"), json!(30));
     }
 
     #[test]
     fn get_out_of_bounds() {
         let (result, _) = inner_array_get(&[json!([10, 20]), json!(5)]).expect("failed");
         let output = result.expect("no output");
-        assert_eq!(output["value"], json!(null));
+        assert_eq!(*output.pointer("/value").expect("no /value"), json!(null));
     }
 
     #[test]
     fn passes_through_array() {
         let (result, _) = inner_array_get(&[json!([10, 20, 30]), json!(0)]).expect("failed");
         let output = result.expect("no output");
-        assert_eq!(output["array"], json!([10, 20, 30]));
+        assert_eq!(
+            *output.pointer("/array").expect("no /array"),
+            json!([10, 20, 30])
+        );
     }
 }
