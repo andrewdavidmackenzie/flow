@@ -1,0 +1,21 @@
+function = "image_read"
+description = "Read an image file and output its pixel data as a grayscale array and dimensions"
+source = "image_read.rs"
+docs = "image_read.md"
+impure = true
+
+[[input]]
+name = "filename"
+type = "string"
+
+[[output]]
+name = "pixels" # flat array of grayscale values (0-255), row by row
+type = "array/number"
+
+[[output]]
+name = "width"
+type = "number"
+
+[[output]]
+name = "height"
+type = "number"
