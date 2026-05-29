@@ -1,7 +1,7 @@
-function = "histogram_render"
+function = "histogram"
 description = "Render a histogram as a bar chart image (256x128 grayscale)"
-source = "histogram_render.rs"
-docs = "histogram_render.md"
+source = "histogram.rs"
+docs = "histogram.md"
 type = "rust"
 
 [[input]]

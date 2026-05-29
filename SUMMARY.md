@@ -118,6 +118,8 @@
     - [tan](flowstdlib/src/math/tan/tan.md)
     - [sqrt](flowstdlib/src/math/sqrt/sqrt.md)
     - [subtract](flowstdlib/src/math/subtract/subtract.md)
+- [charts](flowstdlib/src/charts/charts.md)
+    - [histogram](flowstdlib/src/charts/histogram/histogram.md)
 - [matrix](flowstdlib/src/matrix/matrix.md)
     - [duplicate_rows](flowstdlib/src/matrix/duplicate_rows/duplicate_rows.md)
     - [multiply](flowstdlib/src/matrix/multiply.md)

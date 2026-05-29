@@ -1,0 +1,60 @@
+flow = "build_histogram"
+
+# Build a 256-bin histogram from a stream of pixel values.
+# Each pixel value (0-255) increments the corresponding bin.
+# Uses array_get + add + array_set with loopback — algorithm
+# visible in the flow, no provided functions.
+
+[[input]]
+name = "pixel"  # individual pixel value (from auto-decomposition)
+type = "number"
+
+[[input]]
+name = "bins"   # the histogram array (loopback)
+type = "array/number"
+
+[[output]]
+name = "bins"   # updated histogram array
+type = "array/number"
+
+# Read current count at this pixel's bin
+[[process]]
+source = "lib://flowstdlib/data/array_get"
+
+[[connection]]
+from = "input/bins"
+to = "array_get/array"
+
+[[connection]]
+from = "input/pixel"
+to = "array_get/index"
+
+# Increment the count
+[[process]]
+source = "lib://flowstdlib/math/add"
+input.i2 = { always = 1 }
+
+[[connection]]
+from = "array_get/value"
+to = "add/i1"
+
+# Write the incremented count back
+[[process]]
+source = "lib://flowstdlib/data/array_set"
+
+[[connection]]
+from = "array_get/array"
+to = "array_set/array"
+
+[[connection]]
+from = "input/pixel"
+to = "array_set/index"
+
+[[connection]]
+from = "add"
+to = "array_set/value"
+
+# Output updated bins
+[[connection]]
+from = "array_set"
+to = "output/bins"
