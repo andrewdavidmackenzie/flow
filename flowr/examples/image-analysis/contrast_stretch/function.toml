@@ -1,21 +1,20 @@
 [package]
-name = "reverse"
-version = "0.11.0"
+name = "contrast_stretch"
+version = "0.1.0"
 authors = ["Andrew Mackenzie <andrew@mackenzie-serres.net>"]
 edition = "2021"
 
 [lib]
-name = "reverse"
+name = "contrast_stretch"
 crate-type = ["cdylib"]
-path = "reverse.rs"
-rustflags = ["-C", "link-arg=--gc-sections"]
+path = "contrast_stretch.rs"
 
 [profile.release]
 debug = false
 lto = true
 codegen-units = 1
-opt-level = 's' # Optimize for size
-panic = 'abort' # About unwinding code
+opt-level = 's'
+panic = 'abort'
 strip = "debuginfo"
 
 [dependencies]
@@ -24,4 +23,4 @@ flowmacro = {path = "../../../../flowmacro", version = "0"}
 serde_json = { version = "1.0", default-features = false }
 
 [workspace]
-exclude = ["../../.."]
+exclude = ["../../..", ".."]

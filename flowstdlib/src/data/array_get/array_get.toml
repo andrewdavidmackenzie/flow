@@ -1,0 +1,20 @@
+function = "array_get"
+description = "Get the value at a given index in an array"
+source = "array_get.rs"
+docs = "array_get.md"
+type = "rust"
+
+[[input]]
+name = "array" # the array to index into
+type = "array/"
+
+[[input]]
+name = "index" # the index to read from
+type = "number"
+
+[[output]]
+name = "value" # the value at the given index (null if out of bounds)
+
+[[output]]
+name = "array" # pass-through of the input array (for loopback)
+type = "array/"

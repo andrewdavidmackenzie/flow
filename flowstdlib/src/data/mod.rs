@@ -7,6 +7,12 @@ pub mod accumulate;
 /// A module that implements String concatenation
 #[path = "append/append.rs"]
 pub mod append;
+/// A module to get a value from an array at a runtime index
+#[path = "array_get/array_get.rs"]
+pub mod array_get;
+/// A module to set a value in an array at a runtime index
+#[path = "array_set/array_set.rs"]
+pub mod array_set;
 /// A module that counts data passed thru it
 #[path = "count/count.rs"]
 pub mod count;

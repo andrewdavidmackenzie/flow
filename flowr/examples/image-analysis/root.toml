@@ -1,0 +1,69 @@
+flow = "image-analysis"
+docs = "DESCRIPTION.md"
+
+# Image analysis and enhancement demonstrating two levels of parallelism:
+# 1. Fan-out: histogram outputs min/max to contrast_stretch AND summary
+#    to stdout simultaneously — independent paths run in parallel
+# 2. Data parallelism: contrast stretch processes all pixels independently
+
+# Read input and output filenames from args
+[[process]]
+source = "context://args/get"
+
+# Read input image as grayscale pixels
+[[process]]
+source = "context://image/image_read"
+
+[[connection]]
+from = "get/string/1"
+to = "image_read/filename"
+
+# Compute histogram and statistics from pixel data
+[[process]]
+source = "histogram"
+
+[[connection]]
+from = "image_read/pixels"
+to = "histogram/pixels"
+
+# Output statistics summary to stdout
+[[process]]
+source = "context://stdio/stdout"
+
+[[connection]]
+from = "histogram/summary"
+to = "stdout"
+
+# Apply contrast stretch using min/max from histogram
+# This runs in PARALLEL with the stdout output above —
+# min/max flow to contrast_stretch while summary flows to stdout
+[[process]]
+source = "contrast_stretch"
+
+[[connection]]
+from = "image_read/pixels"
+to = "contrast_stretch/pixels"
+
+[[connection]]
+from = "histogram/min"
+to = "contrast_stretch/min"
+
+[[connection]]
+from = "histogram/max"
+to = "contrast_stretch/max"
+
+[[connection]]
+from = "image_read/width"
+to = "contrast_stretch/width"
+
+# Write enhanced image
+[[process]]
+source = "context://image/image_write"
+
+[[connection]]
+from = "contrast_stretch/grid"
+to = "image_write/grid"
+
+[[connection]]
+from = "get/string/2"
+to = "image_write/filename"
