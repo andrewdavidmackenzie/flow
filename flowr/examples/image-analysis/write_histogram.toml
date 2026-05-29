@@ -1,0 +1,20 @@
+flow = "write_histogram"
+
+[[input]]
+name = "grid"
+type = "array/array/number"
+
+[[input]]
+name = "filename"
+type = "string"
+
+[[process]]
+source = "context://image/image_write"
+
+[[connection]]
+from = "input/grid"
+to = "image_write/grid"
+
+[[connection]]
+from = "input/filename"
+to = "image_write/filename"

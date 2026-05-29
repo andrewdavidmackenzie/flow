@@ -127,8 +127,6 @@
     
 # flow examples
 - [Examples README](flowr/examples/README.md)
-    - [args](flowr/examples/args/DESCRIPTION.md)
-    - [arrays](flowr/examples/arrays/DESCRIPTION.md)
     - [debug-help-string](flowr/examples/debug-help-string/DESCRIPTION.md)
     - [debug-print-args](flowr/examples/debug-print-args/DESCRIPTION.md)
     - [factorial](flowr/examples/factorial/DESCRIPTION.md)
@@ -141,14 +139,12 @@
     - [mandlebrot](flowr/examples/mandlebrot/DESCRIPTION.md)
       - [escapes](flowr/examples/mandlebrot/escapes/escapes.md) provided function
       - [pixel_to_point](flowr/examples/mandlebrot/pixel_to_point/pixel_to_point.md) provided function
-    - [pipeline](flowr/examples/pipeline/DESCRIPTION.md)
     - [prime](flowr/examples/prime/DESCRIPTION.md)
-    - [primitives](flowr/examples/primitives/DESCRIPTION.md)
     - [router](flowr/examples/router/DESCRIPTION.md)
     - [running-average](flowr/examples/running-average/DESCRIPTION.md)
     - [sequence-of-sequences](flowr/examples/sequence-of-sequences/DESCRIPTION.md)
     - [tokenizer](flowr/examples/tokenizer/DESCRIPTION.md)
-    - [two-destinations](flowr/examples/two-destinations/DESCRIPTION.md)
+
 
     
 --------------------------------------------------------------------------------

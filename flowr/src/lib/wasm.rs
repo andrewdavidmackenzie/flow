@@ -13,7 +13,7 @@ use flowcore::{Implementation, RunAgain};
 
 const DEFAULT_WASM_FILENAME: &str = "module";
 
-const MAX_RESULT_SIZE: i32 = 64 * 1024;
+const MAX_RESULT_SIZE: i32 = 256 * 1024;
 
 #[derive(Debug)]
 pub struct Executor {

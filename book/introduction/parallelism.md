@@ -46,8 +46,9 @@ Map-Reduce is done similar to above, using a more complex initial step to form i
 final output.
 
 ## Pipelining
-A `flow` program to implement pipeline processing of data is trivial and there is a 
-[pipeline](../../flowr/examples/pipeline/DESCRIPTION.md) example in`flowr/examples`.
+A `flow` program to implement pipeline processing of data is trivial — the
+[running-average](../../flowr/examples/running-average/DESCRIPTION.md) example
+shows a multi-stage pipeline (multiply → add → count → divide → sqrt).
 
 A series of processes (they can be `functions` or `subflows`) are defined. Input data is connected to flow
 to the first, whose output is sent to the second, and so on and the output rendered for the user.
