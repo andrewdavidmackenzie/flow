@@ -7,7 +7,7 @@ use flowcore::model::lib_manifest::LibraryManifest;
 use flowcore::model::metadata::MetaData;
 
 use crate::errors::Result;
-use crate::{control, data, fmt, math, matrix};
+use crate::{charts, control, data, fmt, math, matrix};
 
 /// Return the `LibraryManifest` for this library
 /// # Errors
@@ -26,6 +26,12 @@ pub fn get() -> Result<LibraryManifest> {
     };
     let lib_url = Url::parse(&format!("lib://{}", metadata.name))?;
     let mut manifest = LibraryManifest::new(lib_url, metadata);
+
+    // Charts module functions
+    manifest.locators.insert(
+        Url::parse("lib://flowstdlib/charts/histogram")?,
+        Native(Arc::new(charts::histogram::Histogram)),
+    );
 
     // Control module functions
     manifest.locators.insert(

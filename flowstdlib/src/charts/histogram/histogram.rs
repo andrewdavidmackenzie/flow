@@ -48,6 +48,7 @@ mod test {
     use super::inner_histogram;
 
     #[test]
+    #[allow(clippy::indexing_slicing)]
     fn renders_histogram() {
         let mut bins = vec![json!(0); 256];
         bins[0] = json!(10);
