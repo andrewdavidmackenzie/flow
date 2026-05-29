@@ -1,10 +1,16 @@
 flow = "image-analysis"
 docs = "DESCRIPTION.md"
 
-# Image analysis and enhancement demonstrating two levels of parallelism:
-# 1. Fan-out: histogram outputs min/max to contrast_stretch AND summary
-#    to stdout simultaneously — independent paths run in parallel
-# 2. Data parallelism: contrast stretch processes all pixels independently
+# Image analysis and enhancement demonstrating dataflow parallelism.
+#
+# Fan-out: histogram outputs feed both stats (stdout) AND contrast
+# stretch simultaneously — independent paths run in parallel.
+#
+# The histogram chart uses flowstdlib/charts/histogram (library fn).
+# Histogram computation and contrast stretch use provided functions
+# for now — sub-flow versions using array_get/set and subtract/
+# multiply/divide are defined but need null-EOF support to work
+# end-to-end.
 
 # Read input and output filenames from args
 [[process]]
@@ -35,8 +41,7 @@ from = "histogram/summary"
 to = "stdout"
 
 # Apply contrast stretch using min/max from histogram
-# This runs in PARALLEL with the stdout output above —
-# min/max flow to contrast_stretch while summary flows to stdout
+# This runs in PARALLEL with the stdout output above
 [[process]]
 source = "contrast_stretch"
 
@@ -68,20 +73,21 @@ to = "image_write/grid"
 from = "get/string/2"
 to = "image_write/filename"
 
-# Render histogram as a bar chart image
+# Render histogram as bar chart using flowstdlib charts function
 [[process]]
-source = "histogram_render"
+alias = "chart"
+source = "lib://flowstdlib/charts/histogram"
 
 [[connection]]
 from = "histogram/bins"
-to = "histogram_render/bins"
+to = "chart/bins"
 
 # Write histogram image via sub-flow
 [[process]]
 source = "write_histogram"
 
 [[connection]]
-from = "histogram_render/grid"
+from = "chart/grid"
 to = "write_histogram/grid"
 
 [[connection]]

@@ -18,6 +18,9 @@
 //!   `-n, --native` command line option is not used, when the function is referenced by a flow
 //!   being run, it is loaded and executed in a WASM runtime.
 
+/// Functions for generating charts and visualizations from data.
+pub mod charts;
+
 /// Functions and flows to control the flow of data in a flow based on control inputs.
 pub mod control;
 

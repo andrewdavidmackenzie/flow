@@ -2,6 +2,7 @@
 # all the compilations of all the projects to WASM
 [workspace]
 members = [
+    "charts/histogram",
     "control/compare_switch",
     "control/index",
     "control/join",

@@ -719,7 +719,6 @@ impl FlowrGui {
                 self.send(ClientMessage::Ack);
             }
             CoordinatorMessage::FlowEnd(metrics) => {
-                self.running = false;
                 self.submitted = false;
                 self.pending_getline = false;
                 self.tab_set.stdin_tab.waiting_for_input = false;

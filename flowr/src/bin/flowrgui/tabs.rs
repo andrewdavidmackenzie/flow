@@ -286,22 +286,23 @@ impl Tab for ImageTab {
     fn view(&self) -> Element<'_, Self::Message> {
         let mut col = Column::new().spacing(10);
 
+        if self.images.is_empty() {
+            col = col.push(Text::new("No images yet"));
+        }
+
         for (name, image_ref) in &self.images {
             let (display_width, display_height, display_data) =
                 scale_image(image_ref, Self::MIN_DISPLAY_WIDTH);
-            let viewer = Viewer::new(Handle::from_rgba(
-                display_width,
-                display_height,
-                display_data,
-            ))
-            .filter_method(FilterMethod::Nearest)
-            .content_fit(ContentFit::ScaleDown)
-            .min_scale(0.1)
-            .max_scale(10.0)
-            .width(Length::Fill)
-            .height(Length::Fixed(f32::from(
-                u16::try_from(display_height).unwrap_or(u16::MAX),
-            )));
+            let handle = Handle::from_rgba(display_width, display_height, display_data);
+            let viewer = Viewer::new(handle)
+                .filter_method(FilterMethod::Nearest)
+                .content_fit(ContentFit::ScaleDown)
+                .min_scale(0.1)
+                .max_scale(10.0)
+                .width(Length::Fill)
+                .height(Length::Fixed(f32::from(
+                    u16::try_from(display_height.min(300)).unwrap_or(300),
+                )));
             let label = format!("{name} ({}x{})", image_ref.width, image_ref.height);
             let save_button =
                 Button::new(Text::new("Save")).on_press(Message::SaveImage(name.clone()));
@@ -312,7 +313,10 @@ impl Tab for ImageTab {
             col = col.push(header).push(viewer);
         }
 
-        col.into()
+        Scrollable::new(col)
+            .width(Length::Fill)
+            .height(Length::Fill)
+            .into()
     }
 
     fn clear(&mut self) {
