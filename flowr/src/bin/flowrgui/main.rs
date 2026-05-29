@@ -966,7 +966,7 @@ impl FlowrGui {
                     });
                 for (y, row) in grid.iter().enumerate() {
                     for (x, &val) in row.iter().enumerate() {
-                        let gray = if val == 0 { 255 } else { 0 };
+                        let gray = val;
                         data.data.put_pixel(
                             u32::try_from(x).unwrap_or(0),
                             u32::try_from(y).unwrap_or(0),

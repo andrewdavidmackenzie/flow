@@ -12,7 +12,9 @@ fn count_neighbors(grid: &[u8], width: usize, height: usize, x: usize, y: usize)
             }
             let nx = (x as i32 + dx).rem_euclid(width as i32) as usize;
             let ny = (y as i32 + dy).rem_euclid(height as i32) as usize;
-            count += grid[ny * width + nx];
+            if grid[ny * width + nx] != 0 {
+                count += 1;
+            }
         }
     }
     count
@@ -25,8 +27,8 @@ fn next_generation(grid: &[u8], width: usize, height: usize) -> Vec<u8> {
             let neighbors = count_neighbors(grid, width, height, x, y);
             let alive = grid[y * width + x] != 0;
             new_grid[y * width + x] = match (alive, neighbors) {
-                (true, 2) | (true, 3) => 1,
-                (false, 3) => 1,
+                (true, 2) | (true, 3) => 255,
+                (false, 3) => 255,
                 _ => 0,
             };
         }
@@ -61,7 +63,7 @@ fn seed_pattern(name: &str, width: usize, height: usize) -> Vec<u8> {
 
     for (x, y) in cells {
         if x < width && y < height {
-            grid[y * width + x] = 1;
+            grid[y * width + x] = 255;
         }
     }
     grid
