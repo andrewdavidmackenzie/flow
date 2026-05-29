@@ -134,9 +134,9 @@ fn prime_classification() {
 }
 
 #[test]
-fn pipeline_classification() {
-    let manifest = load_example_manifest("pipeline");
-    verify_basic_invariants(&manifest, "pipeline");
+fn running_average_classification() {
+    let manifest = load_example_manifest("running-average");
+    verify_basic_invariants(&manifest, "running-average");
 }
 
 #[test]

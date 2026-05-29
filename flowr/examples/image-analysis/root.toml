@@ -67,3 +67,23 @@ to = "image_write/grid"
 [[connection]]
 from = "get/string/2"
 to = "image_write/filename"
+
+# Render histogram as a bar chart image
+[[process]]
+source = "histogram_render"
+
+[[connection]]
+from = "histogram/bins"
+to = "histogram_render/bins"
+
+# Write histogram image via sub-flow
+[[process]]
+source = "write_histogram"
+
+[[connection]]
+from = "histogram_render/grid"
+to = "write_histogram/grid"
+
+[[connection]]
+from = "get/string/3"
+to = "write_histogram/filename"
