@@ -43,12 +43,36 @@ impl Implementation for ImageRead {
                 let gray = img.to_luma8();
                 let width = gray.width();
                 let height = gray.height();
-                let pixels: Vec<Value> = gray.into_raw().into_iter().map(|v| json!(v)).collect();
+
+                let pixels: Vec<Value> = gray.as_raw().iter().map(|&v| json!(v)).collect();
+
+                let grid: Vec<Value> = (0..height)
+                    .map(|y| {
+                        let row: Vec<Value> = (0..width)
+                            .map(|x| json!(gray.get_pixel(x, y).0[0]))
+                            .collect();
+                        Value::Array(row)
+                    })
+                    .collect();
+
+                let raw = gray.as_raw();
+                let pixel_coords: Vec<Value> = (0..height)
+                    .flat_map(|y| {
+                        (0..width).map(move |x| {
+                            let idx = (y * width + x) as usize;
+                            let v = raw.get(idx).copied().unwrap_or(0);
+                            json!([x, y, v])
+                        })
+                    })
+                    .collect();
 
                 let mut output_map = serde_json::Map::new();
                 output_map.insert("pixels".into(), Value::Array(pixels));
+                output_map.insert("grid".into(), Value::Array(grid));
+                output_map.insert("pixel_coords".into(), Value::Array(pixel_coords));
                 output_map.insert("width".into(), json!(width));
                 output_map.insert("height".into(), json!(height));
+                output_map.insert("size".into(), json!([width, height]));
 
                 Ok((Some(Value::Object(output_map)), DONT_RUN_AGAIN))
             }

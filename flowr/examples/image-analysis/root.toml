@@ -143,30 +143,17 @@ to = "collect/chunk_size"
 from = "collect/partial"
 to = "collect/partial"
 
-# Reshape flat array to 2D grid for image_write (data layout only)
-[[process]]
-source = "reshape"
-
-[[connection]]
-from = "collect/chunk"
-to = "reshape/pixels"
-
-[[connection]]
-from = "image_read/width"
-to = "reshape/width"
-
-# Persist width via input forwarding
-[[connection]]
-from = "reshape/width"
-to = "reshape/width"
-
-# Write enhanced image
+# Write enhanced image — flat array + width, image_write handles reshaping
 [[process]]
 source = "context://image/image_write"
 
 [[connection]]
-from = "reshape/grid"
+from = "collect/chunk"
 to = "image_write/grid"
+
+[[connection]]
+from = "image_read/width"
+to = "image_write/width"
 
 [[connection]]
 from = "get/string/2"

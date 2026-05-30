@@ -1,5 +1,5 @@
 function = "image_read"
-description = "Read an image file and output its pixel data as a grayscale array and dimensions"
+description = "Read an image file and output pixel data in multiple formats"
 source = "image_read.rs"
 docs = "image_read.md"
 impure = true
@@ -9,8 +9,16 @@ name = "filename"
 type = "string"
 
 [[output]]
-name = "pixels" # flat array of grayscale values (0-255), row by row
+name = "pixels" # flat array of grayscale values (0-255)
 type = "array/number"
+
+[[output]]
+name = "grid" # 2D array of grayscale values (ready for image_write)
+type = "array/array/number"
+
+[[output]]
+name = "pixel_coords" # array of [x, y, value] triples for per-pixel processing
+type = "array/array/number"
 
 [[output]]
 name = "width"
@@ -19,3 +27,7 @@ type = "number"
 [[output]]
 name = "height"
 type = "number"
+
+[[output]]
+name = "size" # [width, height] for image_buffer
+type = "array/number"
