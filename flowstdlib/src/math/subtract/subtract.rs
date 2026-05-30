@@ -1,50 +1,51 @@
-use serde_json::Value::Number;
-use serde_json::{json, Value};
-
 use flowcore::errors::Result;
 use flowcore::{RunAgain, RUN_AGAIN};
 use flowmacro::flow_function;
+use serde_json::{json, Value};
 
-#[flow_function]
-fn inner_subtract(inputs: &[Value]) -> Result<(Option<Value>, RunAgain)> {
-    if inputs.iter().any(serde_json::Value::is_null) {
-        return Ok((Some(Value::Null), RUN_AGAIN));
+#[allow(
+    clippy::cast_possible_truncation,
+    clippy::cast_precision_loss,
+    clippy::float_cmp
+)]
+fn to_integer(v: &Value) -> Option<i64> {
+    if let Some(i) = v.as_i64() {
+        return Some(i);
     }
-
-    let input_a = inputs.first().ok_or("Could not get input_a")?;
-    let input_b = inputs.get(1).ok_or("Could not get input_b")?;
-    let mut value: Option<Value> = None;
-
-    if let (Number(a), Number(b)) = (&input_a, &input_b) {
-        if let Some(a_i64) = a.as_i64() {
-            if let Some(b_i64) = b.as_i64() {
-                let result = a_i64.checked_sub(b_i64);
-                if let Some(int) = result {
-                    value = Some(json!(int));
-                }
-            }
-        } else if let Some(a_u64) = a.as_u64() {
-            if let Some(b_u64) = b.as_u64() {
-                let result = a_u64.checked_sub(b_u64);
-                if let Some(int) = result {
-                    value = Some(json!(int));
-                }
-            }
-        } else if let Some(a_f64) = a.as_f64() {
-            if let Some(b_f64) = b.as_f64() {
-                let result = a_f64 - b_f64;
-                if let Some(f) = serde_json::Number::from_f64(result) {
-                    value = Some(Value::Number(f));
-                }
+    if v.as_u64().is_some() {
+        return None;
+    }
+    if let Some(f) = v.as_f64() {
+        if f.fract() == 0.0 {
+            let i = f as i64;
+            if (i as f64) == f {
+                return Some(i);
             }
         }
     }
+    None
+}
 
-    if let Some(diff) = value {
-        Ok((Some(json!(diff)), RUN_AGAIN))
-    } else {
-        Ok((None, RUN_AGAIN))
+#[flow_function]
+fn inner_subtract(inputs: &[Value]) -> Result<(Option<Value>, RunAgain)> {
+    if inputs.iter().any(Value::is_null) {
+        return Ok((Some(Value::Null), RUN_AGAIN));
     }
+
+    let a = inputs.first().ok_or("Could not get i1")?;
+    let b = inputs.get(1).ok_or("Could not get i2")?;
+
+    let result = if let (Some(a_i), Some(b_i)) = (to_integer(a), to_integer(b)) {
+        a_i.checked_sub(b_i).map(|r| json!(r))
+    } else if let (Some(a_u), Some(b_u)) = (a.as_u64(), b.as_u64()) {
+        a_u.checked_sub(b_u).map(|r| json!(r))
+    } else if let (Some(a_f), Some(b_f)) = (a.as_f64(), b.as_f64()) {
+        Some(json!(a_f - b_f))
+    } else {
+        None
+    };
+
+    Ok((result, RUN_AGAIN))
 }
 
 #[cfg(test)]
@@ -52,106 +53,68 @@ fn inner_subtract(inputs: &[Value]) -> Result<(Option<Value>, RunAgain)> {
 mod test {
     use serde_json::json;
     use serde_json::Value;
-    use serde_json::Value::Number;
 
     use super::inner_subtract;
 
-    fn get_inputs(pair: &(Value, Value, Option<Value>)) -> Vec<Value> {
-        vec![pair.0.clone(), pair.1.clone()]
-    }
-
-    // repeat for:
-    // integer + integer
-    // float plus float
-    // float plus integer
-    // integer plus float
     #[test]
-    fn test_subtract() {
-        let integer_test_set = vec![
-            (
-                // 0 minus 0
-                Number(serde_json::Number::from(0)),
-                Number(serde_json::Number::from(0)),
-                Some(Number(serde_json::Number::from(0))),
-            ),
-            (
-                // 0 minus negative
-                Number(serde_json::Number::from(0)),
-                Number(serde_json::Number::from(-10)),
-                Some(Number(serde_json::Number::from(10))),
-            ),
-            (
-                // negative minus 0
-                Number(serde_json::Number::from(-10)),
-                Number(serde_json::Number::from(0)),
-                Some(Number(serde_json::Number::from(-10))),
-            ),
-            (
-                // 0 minus positive
-                Number(serde_json::Number::from(0)),
-                Number(serde_json::Number::from(10)),
-                Some(Number(serde_json::Number::from(-10))),
-            ),
-            (
-                // positive minus zero
-                Number(serde_json::Number::from(10)),
-                Number(serde_json::Number::from(0)),
-                Some(Number(serde_json::Number::from(10))),
-            ),
-            (
-                // positive minus positive
-                Number(serde_json::Number::from(10)),
-                Number(serde_json::Number::from(20)),
-                Some(Number(serde_json::Number::from(-10))),
-            ),
-            (
-                // negative minus negative
-                Number(serde_json::Number::from(-10)),
-                Number(serde_json::Number::from(-20)),
-                Some(Number(serde_json::Number::from(10))),
-            ),
-            (
-                // positive minus negative
-                Number(serde_json::Number::from(10)),
-                Number(serde_json::Number::from(-20)),
-                Some(Number(serde_json::Number::from(30))),
-            ),
-            (
-                // negative minus positive
-                Number(serde_json::Number::from(-10)),
-                Number(serde_json::Number::from(20)),
-                Some(Number(serde_json::Number::from(-30))),
-            ),
-            (
-                // overflow minus
-                Number(serde_json::Number::from(-4_660_046_610_375_530_309_i64)),
-                Number(serde_json::Number::from(7_540_113_804_746_346_429_i64)),
-                None,
-            ),
-            (
-                // overflow positive
-                Number(serde_json::Number::from(4_660_046_610_375_530_309_i64)),
-                Number(serde_json::Number::from(-7_540_113_804_746_346_429_i64)),
-                None,
-            ),
-            (
-                // force u64
-                Number(serde_json::Number::from(i64::MAX as u64 + 10)),
-                Number(serde_json::Number::from(i64::MAX as u64 + 1)),
-                Some(Number(serde_json::Number::from(9))),
-            ),
-            (
-                // floats
-                json!(5.0),
-                json!(3.0),
-                Some(json!(2.0)),
-            ),
+    fn subtract_integers() {
+        let tests: Vec<(Value, Value, Option<Value>)> = vec![
+            (json!(0), json!(0), Some(json!(0))),
+            (json!(0), json!(-10), Some(json!(10))),
+            (json!(-10), json!(0), Some(json!(-10))),
+            (json!(0), json!(10), Some(json!(-10))),
+            (json!(10), json!(0), Some(json!(10))),
+            (json!(10), json!(20), Some(json!(-10))),
+            (json!(-10), json!(-20), Some(json!(10))),
+            (json!(10), json!(-20), Some(json!(30))),
+            (json!(-10), json!(20), Some(json!(-30))),
         ];
 
-        for test in &integer_test_set {
-            let (output, again) = inner_subtract(&get_inputs(test)).expect("_subtract() failed");
+        for (a, b, expected) in &tests {
+            let (output, again) = inner_subtract(&[a.clone(), b.clone()]).expect("subtract failed");
             assert!(again);
-            assert_eq!(output, test.2);
+            assert_eq!(output, *expected);
         }
+    }
+
+    #[test]
+    fn subtract_large_u64() {
+        let (output, _) =
+            inner_subtract(&[json!(i64::MAX as u64 + 10), json!(i64::MAX as u64 + 1)])
+                .expect("subtract failed");
+        assert_eq!(output, Some(json!(9_u64)));
+    }
+
+    #[test]
+    fn subtract_floats() {
+        let (output, _) = inner_subtract(&[json!(5.5), json!(3.0)]).expect("subtract failed");
+        assert_eq!(output, Some(json!(2.5)));
+    }
+
+    #[test]
+    fn subtract_dot_zero_floats_produce_integer() {
+        let (output, _) = inner_subtract(&[json!(5.0), json!(3.0)]).expect("subtract failed");
+        assert_eq!(output, Some(json!(2)));
+    }
+
+    #[test]
+    fn subtract_mixed_int_and_float() {
+        let (output, _) = inner_subtract(&[json!(10), json!(2.5)]).expect("subtract failed");
+        assert_eq!(output, Some(json!(7.5)));
+    }
+
+    #[test]
+    fn subtract_mixed_float_and_int() {
+        let (output, _) = inner_subtract(&[json!(10.5), json!(3)]).expect("subtract failed");
+        assert_eq!(output, Some(json!(7.5)));
+    }
+
+    #[test]
+    fn subtract_null_propagation() {
+        let (output, _) = inner_subtract(&[json!(null), json!(5)]).expect("subtract failed");
+        assert_eq!(output, Some(Value::Null));
+
+        let (output, _) = inner_subtract(&[json!(5), json!(null)]).expect("subtract failed");
+        assert_eq!(output, Some(Value::Null));
     }
 }

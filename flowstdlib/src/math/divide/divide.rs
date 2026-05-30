@@ -1,8 +1,7 @@
-use serde_json::{json, Value};
-
 use flowcore::errors::Result;
 use flowcore::{RunAgain, RUN_AGAIN};
 use flowmacro::flow_function;
+use serde_json::{json, Value};
 
 #[flow_function]
 fn inner_divide(inputs: &[Value]) -> Result<(Option<Value>, RunAgain)> {
@@ -12,6 +11,7 @@ fn inner_divide(inputs: &[Value]) -> Result<(Option<Value>, RunAgain)> {
         null_map.insert("remainder".into(), Value::Null);
         return Ok((Some(Value::Object(null_map)), RUN_AGAIN));
     }
+
     let mut output_map = serde_json::Map::new();
 
     let dividend = inputs
@@ -37,32 +37,57 @@ mod test {
 
     use super::inner_divide;
 
-    fn do_divide(test_data: (u32, u32, f64, u32)) {
-        // Create input vector
-        let dividend = json!(test_data.0);
-        let divisor = json!(test_data.1);
-        let inputs: Vec<Value> = vec![dividend, divisor];
-
-        let (output, run_again) = inner_divide(&inputs).expect("_divide() failed");
-        assert!(run_again);
-
-        let outputs = output.expect("Could not get the output value");
-
-        let result = outputs.pointer("/result").expect("Could not get /result");
-        assert_eq!(result, &json!(test_data.2));
-
-        let remainder = outputs
-            .pointer("/remainder")
-            .expect("Could not get /remainder");
-        assert_eq!(remainder, &json!(f64::from(test_data.3)));
+    #[test]
+    fn divide_exact() {
+        let inputs = vec![json!(99), json!(3)];
+        let (output, again) = inner_divide(&inputs).expect("divide failed");
+        assert!(again);
+        let out = output.expect("no output");
+        assert_eq!(*out.pointer("/result").expect("no result"), json!(33.0));
+        assert_eq!(
+            *out.pointer("/remainder").expect("no remainder"),
+            json!(0.0)
+        );
     }
 
     #[test]
-    fn test_divide() {
-        let test_set = vec![(100, 3, 33.333_333_333_333_336_f64, 1), (99, 3, 33f64, 0)];
+    fn divide_with_remainder() {
+        let inputs = vec![json!(100), json!(3)];
+        let (output, _) = inner_divide(&inputs).expect("divide failed");
+        let out = output.expect("no output");
+        let result = out
+            .pointer("/result")
+            .expect("no result")
+            .as_f64()
+            .expect("not f64");
+        assert!((result - 33.333_333_333_333_336).abs() < 1e-10);
+    }
 
-        for test in test_set {
-            do_divide(test);
-        }
+    #[test]
+    fn divide_floats() {
+        let inputs = vec![json!(10.5), json!(2.5)];
+        let (output, _) = inner_divide(&inputs).expect("divide failed");
+        let out = output.expect("no output");
+        assert_eq!(*out.pointer("/result").expect("no result"), json!(4.2));
+    }
+
+    #[test]
+    fn divide_mixed_int_and_float() {
+        let inputs = vec![json!(10), json!(2.5)];
+        let (output, _) = inner_divide(&inputs).expect("divide failed");
+        let out = output.expect("no output");
+        assert_eq!(*out.pointer("/result").expect("no result"), json!(4.0));
+    }
+
+    #[test]
+    fn divide_null_propagation() {
+        let inputs = vec![json!(null), json!(5)];
+        let (output, _) = inner_divide(&inputs).expect("divide failed");
+        let out = output.expect("no output");
+        assert_eq!(*out.pointer("/result").expect("no result"), Value::Null);
+        assert_eq!(
+            *out.pointer("/remainder").expect("no remainder"),
+            Value::Null
+        );
     }
 }

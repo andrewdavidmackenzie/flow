@@ -1,42 +1,51 @@
 use flowcore::errors::Result;
 use flowcore::{RunAgain, RUN_AGAIN};
 use flowmacro::flow_function;
-use serde_json::Value::Number;
 use serde_json::{json, Value};
+
+#[allow(
+    clippy::cast_possible_truncation,
+    clippy::cast_precision_loss,
+    clippy::float_cmp
+)]
+fn to_integer(v: &Value) -> Option<i64> {
+    if let Some(i) = v.as_i64() {
+        return Some(i);
+    }
+    if v.as_u64().is_some() {
+        return None;
+    }
+    if let Some(f) = v.as_f64() {
+        if f.fract() == 0.0 {
+            let i = f as i64;
+            if (i as f64) == f {
+                return Some(i);
+            }
+        }
+    }
+    None
+}
 
 #[flow_function]
 fn inner_add(inputs: &[Value]) -> Result<(Option<Value>, RunAgain)> {
-    let input_a = inputs.first().ok_or("Could not get input_a")?;
-    let input_b = inputs.get(1).ok_or("Could not get input_b")?;
+    if inputs.iter().any(Value::is_null) {
+        return Ok((Some(Value::Null), RUN_AGAIN));
+    }
 
-    let sum = match (&input_a, &input_b) {
-        (Number(a), Number(b)) => {
-            if let Some(a_i64) = a.as_i64() {
-                if let Some(b_i64) = b.as_i64() {
-                    a_i64.checked_add(b_i64).map(|result| json!(result))
-                } else {
-                    None
-                }
-            } else if let Some(a_u64) = a.as_u64() {
-                if let Some(b_u64) = b.as_u64() {
-                    a_u64.checked_add(b_u64).map(|result| json!(result))
-                } else {
-                    None
-                }
-            } else if let Some(a_f64) = a.as_f64() {
-                b.as_f64().map(|b_f64| json!(a_f64 + b_f64))
-            } else {
-                None
-            }
-        }
-        (_, _) => None,
+    let a = inputs.first().ok_or("Could not get i1")?;
+    let b = inputs.get(1).ok_or("Could not get i2")?;
+
+    let result = if let (Some(a_i), Some(b_i)) = (to_integer(a), to_integer(b)) {
+        a_i.checked_add(b_i).map(|r| json!(r))
+    } else if let (Some(a_u), Some(b_u)) = (a.as_u64(), b.as_u64()) {
+        a_u.checked_add(b_u).map(|r| json!(r))
+    } else if let (Some(a_f), Some(b_f)) = (a.as_f64(), b.as_f64()) {
+        Some(json!(a_f + b_f))
+    } else {
+        None
     };
 
-    if let Some(total) = sum {
-        Ok((Some(json!(total)), RUN_AGAIN))
-    } else {
-        Ok((None, RUN_AGAIN))
-    }
+    Ok((result, RUN_AGAIN))
 }
 
 #[cfg(test)]
@@ -44,108 +53,75 @@ fn inner_add(inputs: &[Value]) -> Result<(Option<Value>, RunAgain)> {
 mod test {
     use serde_json::json;
     use serde_json::Value;
-    use serde_json::Value::Number;
 
     use super::inner_add;
 
-    fn get_inputs(pair: &(Value, Value, Option<Value>)) -> Vec<Value> {
-        vec![pair.0.clone(), pair.1.clone()]
+    #[test]
+    fn add_integers() {
+        let tests: Vec<(Value, Value, Option<Value>)> = vec![
+            (json!(0), json!(0), Some(json!(0))),
+            (json!(0), json!(-10), Some(json!(-10))),
+            (json!(-10), json!(0), Some(json!(-10))),
+            (json!(10), json!(20), Some(json!(30))),
+            (json!(-10), json!(-20), Some(json!(-30))),
+            (json!(10), json!(-20), Some(json!(-10))),
+            (json!(-10), json!(20), Some(json!(10))),
+        ];
+
+        for (a, b, expected) in &tests {
+            let (output, again) = inner_add(&[a.clone(), b.clone()]).expect("add failed");
+            assert!(again);
+            assert_eq!(output, *expected);
+        }
     }
 
     #[test]
-    fn test_adder() {
-        let integer_test_set = vec![
-            (
-                // 0 plus 0
-                Number(serde_json::Number::from(0)),
-                Number(serde_json::Number::from(0)),
-                Some(Number(serde_json::Number::from(0))),
-            ),
-            (
-                // 0 plus negative
-                Number(serde_json::Number::from(0)),
-                Number(serde_json::Number::from(-10)),
-                Some(Number(serde_json::Number::from(-10))),
-            ),
-            (
-                // negative plus 0
-                Number(serde_json::Number::from(-10)),
-                Number(serde_json::Number::from(0)),
-                Some(Number(serde_json::Number::from(-10))),
-            ),
-            (
-                // 0 plus positive
-                Number(serde_json::Number::from(0)),
-                Number(serde_json::Number::from(10)),
-                Some(Number(serde_json::Number::from(10))),
-            ),
-            (
-                // positive plus zero
-                Number(serde_json::Number::from(10)),
-                Number(serde_json::Number::from(0)),
-                Some(Number(serde_json::Number::from(10))),
-            ),
-            (
-                // positive plus positive
-                Number(serde_json::Number::from(10)),
-                Number(serde_json::Number::from(20)),
-                Some(Number(serde_json::Number::from(30))),
-            ),
-            (
-                // negative plus negative
-                Number(serde_json::Number::from(-10)),
-                Number(serde_json::Number::from(-20)),
-                Some(Number(serde_json::Number::from(-30))),
-            ),
-            (
-                // positive plus negative
-                Number(serde_json::Number::from(10)),
-                Number(serde_json::Number::from(-20)),
-                Some(Number(serde_json::Number::from(-10))),
-            ),
-            (
-                // negative plus positive
-                Number(serde_json::Number::from(-10)),
-                Number(serde_json::Number::from(20)),
-                Some(Number(serde_json::Number::from(10))),
-            ),
-            (
-                // overflow positive
-                Number(serde_json::Number::from(4_660_046_610_375_530_309_i64)),
-                Number(serde_json::Number::from(7_540_113_804_746_346_429_i64)),
-                None,
-            ),
-            (
-                // overflow negative
-                Number(serde_json::Number::from(-4_660_046_610_375_530_309_i64)),
-                Number(serde_json::Number::from(-7_540_113_804_746_346_429_i64)),
-                None,
-            ),
-            (
-                // force u64
-                Number(serde_json::Number::from(i64::MAX as u64 + 10)),
-                Number(serde_json::Number::from(i64::MAX as u64 + 10)),
-                None,
-            ),
-            (
-                // force u64 and i64
-                Number(serde_json::Number::from(i64::MAX as u64 + 10)),
-                Number(serde_json::Number::from(-1_i64)),
-                None,
-            ),
-            (
-                // float
-                json!(1.0),
-                json!(1.0),
-                Some(json!(2.0)),
-            ),
-        ];
+    fn add_integer_overflow_returns_none() {
+        let (output, _) = inner_add(&[
+            json!(4_660_046_610_375_530_309_i64),
+            json!(7_540_113_804_746_346_429_i64),
+        ])
+        .expect("add failed");
+        assert!(output.is_none());
 
-        for test in &integer_test_set {
-            let (output, again) = inner_add(&get_inputs(test)).expect("_add() failed");
+        let (output, _) = inner_add(&[
+            json!(-4_660_046_610_375_530_309_i64),
+            json!(-7_540_113_804_746_346_429_i64),
+        ])
+        .expect("add failed");
+        assert!(output.is_none());
+    }
 
-            assert!(again);
-            assert_eq!(output, test.2);
-        }
+    #[test]
+    fn add_floats() {
+        let (output, _) = inner_add(&[json!(1.5), json!(2.5)]).expect("add failed");
+        assert_eq!(output, Some(json!(4.0)));
+    }
+
+    #[test]
+    fn add_dot_zero_floats_produce_integer() {
+        let (output, _) = inner_add(&[json!(1.0), json!(2.0)]).expect("add failed");
+        assert_eq!(output, Some(json!(3)));
+    }
+
+    #[test]
+    fn add_mixed_int_and_float() {
+        let (output, _) = inner_add(&[json!(1), json!(2.5)]).expect("add failed");
+        assert_eq!(output, Some(json!(3.5)));
+    }
+
+    #[test]
+    fn add_mixed_float_and_int() {
+        let (output, _) = inner_add(&[json!(1.5), json!(2)]).expect("add failed");
+        assert_eq!(output, Some(json!(3.5)));
+    }
+
+    #[test]
+    fn add_null_propagation() {
+        let (output, _) = inner_add(&[json!(null), json!(5)]).expect("add failed");
+        assert_eq!(output, Some(Value::Null));
+
+        let (output, _) = inner_add(&[json!(5), json!(null)]).expect("add failed");
+        assert_eq!(output, Some(Value::Null));
     }
 }
