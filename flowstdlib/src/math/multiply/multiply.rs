@@ -7,6 +7,9 @@ use flowmacro::flow_function;
 
 #[flow_function]
 fn inner_multiply(inputs: &[Value]) -> Result<(Option<Value>, RunAgain)> {
+    if inputs.iter().any(Value::is_null) {
+        return Ok((Some(Value::Null), RUN_AGAIN));
+    }
     let i1 = inputs
         .first()
         .ok_or("Could not get i1")?

@@ -17,6 +17,15 @@ name = "max"
 type = "number"
 
 [[output]]
+name = "stretched"
+type = "number"
+
+[[output]]
+name = "min"
+type = "number"
+
+[[output]]
+name = "max"
 type = "number"
 
 # Step 1: pixel - min
@@ -70,4 +79,13 @@ to = "stretch/divisor"
 
 [[connection]]
 from = "stretch/result"
-to = "output"
+to = "output/stretched"
+
+# Pass min and max through for loopback in parent flow
+[[connection]]
+from = "input/min"
+to = "output/min"
+
+[[connection]]
+from = "input/max"
+to = "output/max"
