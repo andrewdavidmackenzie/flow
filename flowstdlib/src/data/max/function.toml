@@ -1,0 +1,13 @@
+[package]
+name = "max"
+version.workspace = true
+authors.workspace = true
+edition.workspace = true
+[lib]
+name = "max"
+crate-type = ["cdylib"]
+path = "max.rs"
+[dependencies]
+flowcore = { workspace = true }
+flowmacro = { workspace = true }
+serde_json = { workspace = true, default-features = false }

@@ -9,8 +9,11 @@ use std::{env, fs, io};
 /// Name of file where any Stdout will be written while executing an example
 const TEST_STDOUT_FILENAME: &str = "test.stdout";
 
-/// Name of file where the Stdout is defined
+/// Name of file where the Stdout is defined (ordered comparison)
 const EXPECTED_STDOUT_FILENAME: &str = "expected.stdout";
+
+/// Name of file where the Stdout is defined (unordered line-set comparison)
+const EXPECTED_UNORDERED_STDOUT_FILENAME: &str = "expected_unordered.stdout";
 
 /// Name of file where any Stdin will be read from while executing am example
 const TEST_STDIN_FILENAME: &str = "test.stdin";
@@ -192,10 +195,15 @@ pub fn check_test_output(source_file: &str) {
         }
     }
 
-    compare_and_fail(
-        sample_dir.join(EXPECTED_STDOUT_FILENAME),
-        sample_dir.join(TEST_STDOUT_FILENAME),
-    );
+    let unordered_path = sample_dir.join(EXPECTED_UNORDERED_STDOUT_FILENAME);
+    if unordered_path.exists() {
+        compare_unordered_and_fail(unordered_path, sample_dir.join(TEST_STDOUT_FILENAME));
+    } else {
+        compare_and_fail(
+            sample_dir.join(EXPECTED_STDOUT_FILENAME),
+            sample_dir.join(TEST_STDOUT_FILENAME),
+        );
+    }
     compare_and_fail(
         sample_dir.join(EXPECTED_FILE_FILENAME),
         sample_dir.join(TEST_FILE_FILENAME),
@@ -220,6 +228,43 @@ fn compare_and_fail(expected_path: PathBuf, actual_path: PathBuf) {
             actual_path.display(),
             expected_path.display()
         );
+    }
+}
+
+fn compare_unordered_and_fail(expected_path: PathBuf, actual_path: PathBuf) {
+    if expected_path.exists() {
+        let expected = fs::read_to_string(&expected_path).expect("Could not read expected file");
+        let actual = fs::read_to_string(&actual_path).expect("Could not read actual file");
+
+        let mut expected_lines: Vec<&str> = expected.lines().filter(|l| !l.is_empty()).collect();
+        let mut actual_lines: Vec<&str> = actual.lines().filter(|l| !l.is_empty()).collect();
+
+        expected_lines.sort();
+        actual_lines.sort();
+
+        if expected_lines != actual_lines {
+            let missing: Vec<&&str> = expected_lines
+                .iter()
+                .filter(|l| !actual_lines.contains(l))
+                .collect();
+            let extra: Vec<&&str> = actual_lines
+                .iter()
+                .filter(|l| !expected_lines.contains(l))
+                .collect();
+
+            let mut msg = format!(
+                "Unordered comparison of '{}' vs '{}' failed.\n",
+                actual_path.display(),
+                expected_path.display()
+            );
+            if !missing.is_empty() {
+                let _ = write!(msg, "  Missing lines: {missing:?}\n");
+            }
+            if !extra.is_empty() {
+                let _ = write!(msg, "  Extra lines: {extra:?}\n");
+            }
+            panic!("{msg}");
+        }
     }
 }
 
@@ -307,11 +352,26 @@ pub fn execute_flow_client_server(example_name: &str, manifest: PathBuf) {
         panic!("Failed due to STDERR output")
     }
 
-    let expected_stdout = read_file(&samples_dir, "expected.stdout");
-    if expected_stdout != actual_stdout {
-        println!("Expected STDOUT:\n{expected_stdout}");
-        println!("Actual STDOUT:\n{actual_stdout}");
-        panic!("Actual STDOUT did not match expected.stdout");
+    let unordered_path = samples_dir.join(EXPECTED_UNORDERED_STDOUT_FILENAME);
+    if unordered_path.exists() {
+        let expected_stdout = read_file(&samples_dir, EXPECTED_UNORDERED_STDOUT_FILENAME);
+        let mut expected_lines: Vec<&str> =
+            expected_stdout.lines().filter(|l| !l.is_empty()).collect();
+        let mut actual_lines: Vec<&str> = actual_stdout.lines().filter(|l| !l.is_empty()).collect();
+        expected_lines.sort();
+        actual_lines.sort();
+        if expected_lines != actual_lines {
+            println!("Expected lines (sorted): {expected_lines:?}");
+            println!("Actual lines (sorted): {actual_lines:?}");
+            panic!("Actual STDOUT lines did not match expected_unordered.stdout");
+        }
+    } else {
+        let expected_stdout = read_file(&samples_dir, "expected.stdout");
+        if expected_stdout != actual_stdout {
+            println!("Expected STDOUT:\n{expected_stdout}");
+            println!("Actual STDOUT:\n{actual_stdout}");
+            panic!("Actual STDOUT did not match expected.stdout");
+        }
     }
 }
 

@@ -10,6 +10,7 @@ type = "string"
 
 [[process]]
 source = "context://image/image_write"
+input.width = { always = 256 }
 
 [[connection]]
 from = "input/grid"

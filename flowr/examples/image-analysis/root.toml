@@ -1,20 +1,17 @@
 flow = "image-analysis"
 docs = "DESCRIPTION.md"
 
-# Image analysis and enhancement demonstrating dataflow parallelism.
+# Image analysis and enhancement — ALL algorithm logic in flowstdlib.
+# ZERO WASM for algorithms. Only context functions for I/O.
 #
-# Contrast stretching algorithm is expressed directly using flowstdlib
-# math primitives (subtract, multiply, divide). Each pixel is processed
-# independently — data parallelism. No WASM for the algorithm.
-#
-# Fan-out: histogram outputs feed both stats (stdout) AND the stretch
-# pipeline simultaneously — independent paths run in parallel.
+# Demonstrates fan-out parallelism: pixel stream feeds min, max, avg,
+# bin_count, AND contrast stretch — all simultaneously.
 
 # Read input and output filenames from args
 [[process]]
 source = "context://args/get"
 
-# Read input image as grayscale pixels
+# Read input image as grayscale pixels (null-terminated stream)
 [[process]]
 source = "context://image/image_read"
 
@@ -22,52 +19,143 @@ source = "context://image/image_read"
 from = "get/string/1"
 to = "image_read/filename"
 
-# Compute histogram and statistics from pixel data
+########################################################################
+# Statistics — all from pixel stream in PARALLEL (fan-out)
+########################################################################
+
+# Minimum pixel value
 [[process]]
-source = "histogram"
+alias = "find_min"
+source = "lib://flowstdlib/data/min"
+input.partial = { once = 255 }
 
 [[connection]]
-from = "image_read/pixels"
-to = "histogram/pixels"
+from = "image_read/pixels_eof"
+to = "find_min/value"
 
-# Output statistics summary to stdout
+[[connection]]
+from = "find_min/partial"
+to = "find_min/partial"
+
+# Maximum pixel value
+[[process]]
+alias = "find_max"
+source = "lib://flowstdlib/data/max"
+input.partial = { once = 0 }
+
+[[connection]]
+from = "image_read/pixels_eof"
+to = "find_max/value"
+
+[[connection]]
+from = "find_max/partial"
+to = "find_max/partial"
+
+# Average pixel value
+[[process]]
+alias = "find_avg"
+source = "lib://flowstdlib/data/avg"
+input.partial_sum = { once = 0 }
+input.partial_count = { once = 0 }
+
+[[connection]]
+from = "image_read/pixels_eof"
+to = "find_avg/value"
+
+[[connection]]
+from = "find_avg/partial_sum"
+to = "find_avg/partial_sum"
+
+[[connection]]
+from = "find_avg/partial_count"
+to = "find_avg/partial_count"
+
+# Histogram bins (256 bins for grayscale 0-255)
+[[process]]
+alias = "histogram"
+source = "lib://flowstdlib/data/bin_count"
+input.partial = { once = [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0] }
+
+[[connection]]
+from = "image_read/pixels_eof"
+to = "histogram/value"
+
+[[connection]]
+from = "histogram/partial"
+to = "histogram/partial"
+
+# Output statistics to stdout
 [[process]]
 source = "context://stdio/stdout"
 
+[[process]]
+alias = "format_min"
+source = "lib://flowstdlib/fmt/to_string"
+
 [[connection]]
-from = "histogram/summary"
+from = "find_min/result"
+to = "format_min"
+
+[[connection]]
+from = "format_min"
+to = "stdout"
+
+[[process]]
+alias = "format_max"
+source = "lib://flowstdlib/fmt/to_string"
+
+[[connection]]
+from = "find_max/result"
+to = "format_max"
+
+[[connection]]
+from = "format_max"
+to = "stdout"
+
+[[process]]
+alias = "format_avg"
+source = "lib://flowstdlib/fmt/to_string"
+
+[[connection]]
+from = "find_avg/result"
+to = "format_avg"
+
+[[connection]]
+from = "format_avg"
+to = "stdout"
+
+[[process]]
+alias = "format_count"
+source = "lib://flowstdlib/fmt/to_string"
+
+[[connection]]
+from = "find_avg/count"
+to = "format_count"
+
+[[connection]]
+from = "format_count"
 to = "stdout"
 
 ########################################################################
-# Contrast stretch using flowstdlib math — algorithm visible in flow
-#
-# Formula: new_pixel = (pixel - min) * 255 / (max - min)
-#
-# Pixels auto-decompose from the array → each flows through the math
-# pipeline independently (data parallelism).
+# Contrast stretch — (pixel - min) * 255 / (max - min)
 ########################################################################
 
-# Step 1: pixel - min
 [[process]]
 alias = "offset"
 source = "lib://flowstdlib/math/subtract"
 
-# Pixels auto-decompose: each one feeds offset/i1
 [[connection]]
 from = "image_read/pixels"
 to = "offset/i1"
 
-# Min from histogram
 [[connection]]
-from = "histogram/min"
+from = "find_min/result"
 to = "offset/i2"
 
-# Persist min via input forwarding
 [[connection]]
 from = "offset/i2"
 to = "offset/i2"
 
-# Step 2: (pixel - min) * 255
 [[process]]
 alias = "scale"
 source = "lib://flowstdlib/math/multiply"
@@ -77,20 +165,18 @@ input.i2 = { always = 255 }
 from = "offset"
 to = "scale/i1"
 
-# Step 3: max - min (the range)
 [[process]]
 alias = "range_calc"
 source = "lib://flowstdlib/math/subtract"
 
 [[connection]]
-from = "histogram/max"
+from = "find_max/result"
 to = "range_calc/i1"
 
 [[connection]]
-from = "histogram/min"
+from = "find_min/result"
 to = "range_calc/i2"
 
-# Step 4: (pixel - min) * 255 / (max - min)
 [[process]]
 alias = "stretch"
 source = "lib://flowstdlib/math/divide"
@@ -103,12 +189,16 @@ to = "stretch/dividend"
 from = "range_calc"
 to = "stretch/divisor"
 
-# Persist range via input forwarding
 [[connection]]
 from = "stretch/divisor"
 to = "stretch/divisor"
 
-# Compute pixel count = width * height for accumulate chunk_size
+# Accumulate stretched pixels
+[[process]]
+alias = "collect"
+source = "lib://flowstdlib/data/accumulate"
+input.partial = { once = [] }
+
 [[process]]
 alias = "pixel_count"
 source = "lib://flowstdlib/math/multiply"
@@ -120,12 +210,6 @@ to = "pixel_count/i1"
 [[connection]]
 from = "image_read/height"
 to = "pixel_count/i2"
-
-# Accumulate stretched pixels back into a flat array
-[[process]]
-alias = "collect"
-source = "lib://flowstdlib/data/accumulate"
-input.partial = { once = [] }
 
 [[connection]]
 from = "pixel_count"
@@ -143,30 +227,17 @@ to = "collect/chunk_size"
 from = "collect/partial"
 to = "collect/partial"
 
-# Reshape flat array to 2D grid for image_write (data layout only)
-[[process]]
-source = "reshape"
-
-[[connection]]
-from = "collect/chunk"
-to = "reshape/pixels"
-
-[[connection]]
-from = "image_read/width"
-to = "reshape/width"
-
-# Persist width via input forwarding
-[[connection]]
-from = "reshape/width"
-to = "reshape/width"
-
 # Write enhanced image
 [[process]]
 source = "context://image/image_write"
 
 [[connection]]
-from = "reshape/grid"
+from = "collect/chunk"
 to = "image_write/grid"
+
+[[connection]]
+from = "image_read/width"
+to = "image_write/width"
 
 [[connection]]
 from = "get/string/2"
@@ -176,7 +247,6 @@ to = "image_write/filename"
 # Histogram visualization
 ########################################################################
 
-# Render histogram as bar chart using flowstdlib charts function
 [[process]]
 alias = "chart"
 source = "lib://flowstdlib/charts/histogram"
@@ -185,7 +255,6 @@ source = "lib://flowstdlib/charts/histogram"
 from = "histogram/bins"
 to = "chart/bins"
 
-# Write histogram image via sub-flow
 [[process]]
 source = "write_histogram"
 

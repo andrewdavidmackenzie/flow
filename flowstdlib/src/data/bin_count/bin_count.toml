@@ -1,0 +1,21 @@
+function = "bin_count"
+description = "Count occurrences of each value in a stream, using an array of bins"
+source = "bin_count.rs"
+docs = "bin_count.md"
+type = "rust"
+
+[[input]]
+name = "value" # stream of integer values (indices into bins array). Null signals end.
+type = "number"
+
+[[input]]
+name = "partial" # the bins array (loopback)
+type = "array/number"
+
+[[output]]
+name = "partial" # updated bins array (for loopback)
+type = "array/number"
+
+[[output]]
+name = "bins" # final bins array (output on null EOF)
+type = "array/number"

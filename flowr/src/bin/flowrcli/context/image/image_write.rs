@@ -13,6 +13,12 @@ pub struct ImageWrite {
     pub server_connection: Arc<Mutex<CoordinatorConnection>>,
 }
 
+fn to_u8(v: &Value) -> u8 {
+    #[allow(clippy::cast_possible_truncation, clippy::cast_sign_loss)]
+    let result = v.as_f64().unwrap_or(0.0).clamp(0.0, 255.0) as u8;
+    result
+}
+
 impl Implementation for ImageWrite {
     fn run(&self, inputs: &[Value]) -> Result<(Option<Value>, RunAgain)> {
         let grid_input = inputs
@@ -26,16 +32,24 @@ impl Implementation for ImageWrite {
             .as_str()
             .ok_or("Could not get filename as string")?;
 
-        let grid: Vec<Vec<u8>> = grid_input
-            .iter()
-            .map(|row| {
-                row.as_array()
-                    .unwrap_or(&vec![])
-                    .iter()
-                    .map(|v| u8::try_from(v.as_u64().unwrap_or(0)).unwrap_or(0))
-                    .collect()
-            })
-            .collect();
+        let grid: Vec<Vec<u8>> = if grid_input.first().is_some_and(|v| v.as_array().is_some()) {
+            grid_input
+                .iter()
+                .map(|row| {
+                    row.as_array()
+                        .unwrap_or(&vec![])
+                        .iter()
+                        .map(to_u8)
+                        .collect()
+                })
+                .collect()
+        } else {
+            let width = usize::try_from(inputs.get(2).and_then(Value::as_u64).unwrap_or(1))
+                .unwrap_or(1)
+                .max(1);
+            let flat: Vec<u8> = grid_input.iter().map(to_u8).collect();
+            flat.chunks(width).map(<[u8]>::to_vec).collect()
+        };
 
         let mut server = self
             .server_connection
