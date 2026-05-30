@@ -44,9 +44,12 @@ impl Implementation for ImageWrite {
                 })
                 .collect()
         } else {
-            let width = usize::try_from(inputs.get(2).and_then(Value::as_u64).unwrap_or(1))
-                .unwrap_or(1)
-                .max(1);
+            let width = inputs
+                .get(2)
+                .and_then(Value::as_u64)
+                .and_then(|w| usize::try_from(w).ok())
+                .filter(|&w| w > 0)
+                .unwrap_or(1);
             let flat: Vec<u8> = grid_input.iter().map(to_u8).collect();
             flat.chunks(width).map(<[u8]>::to_vec).collect()
         };
