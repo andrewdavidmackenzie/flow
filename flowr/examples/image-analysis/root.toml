@@ -3,14 +3,12 @@ docs = "DESCRIPTION.md"
 
 # Image analysis and enhancement demonstrating dataflow parallelism.
 #
-# Fan-out: histogram outputs feed both stats (stdout) AND contrast
-# stretch simultaneously — independent paths run in parallel.
+# Contrast stretching algorithm is expressed directly using flowstdlib
+# math primitives (subtract, multiply, divide). Each pixel is processed
+# independently — data parallelism. No WASM for the algorithm.
 #
-# The histogram chart uses flowstdlib/charts/histogram (library fn).
-# Histogram computation and contrast stretch use provided functions
-# for now — sub-flow versions using array_get/set and subtract/
-# multiply/divide are defined but need null-EOF support to work
-# end-to-end.
+# Fan-out: histogram outputs feed both stats (stdout) AND the stretch
+# pipeline simultaneously — independent paths run in parallel.
 
 # Read input and output filenames from args
 [[process]]
@@ -40,38 +38,143 @@ source = "context://stdio/stdout"
 from = "histogram/summary"
 to = "stdout"
 
-# Apply contrast stretch using min/max from histogram
-# This runs in PARALLEL with the stdout output above
-[[process]]
-source = "contrast_stretch"
+########################################################################
+# Contrast stretch using flowstdlib math — algorithm visible in flow
+#
+# Formula: new_pixel = (pixel - min) * 255 / (max - min)
+#
+# Pixels auto-decompose from the array → each flows through the math
+# pipeline independently (data parallelism).
+########################################################################
 
+# Step 1: pixel - min
+[[process]]
+alias = "offset"
+source = "lib://flowstdlib/math/subtract"
+
+# Pixels auto-decompose: each one feeds offset/i1
 [[connection]]
 from = "image_read/pixels"
-to = "contrast_stretch/pixels"
+to = "offset/i1"
 
+# Min from histogram
 [[connection]]
 from = "histogram/min"
-to = "contrast_stretch/min"
+to = "offset/i2"
+
+# Persist min via input forwarding
+[[connection]]
+from = "offset/i2"
+to = "offset/i2"
+
+# Step 2: (pixel - min) * 255
+[[process]]
+alias = "scale"
+source = "lib://flowstdlib/math/multiply"
+input.i2 = { always = 255 }
+
+[[connection]]
+from = "offset"
+to = "scale/i1"
+
+# Step 3: max - min (the range)
+[[process]]
+alias = "range_calc"
+source = "lib://flowstdlib/math/subtract"
 
 [[connection]]
 from = "histogram/max"
-to = "contrast_stretch/max"
+to = "range_calc/i1"
+
+[[connection]]
+from = "histogram/min"
+to = "range_calc/i2"
+
+# Step 4: (pixel - min) * 255 / (max - min)
+[[process]]
+alias = "stretch"
+source = "lib://flowstdlib/math/divide"
+
+[[connection]]
+from = "scale"
+to = "stretch/dividend"
+
+[[connection]]
+from = "range_calc"
+to = "stretch/divisor"
+
+# Persist range via input forwarding
+[[connection]]
+from = "stretch/divisor"
+to = "stretch/divisor"
+
+# Compute pixel count = width * height for accumulate chunk_size
+[[process]]
+alias = "pixel_count"
+source = "lib://flowstdlib/math/multiply"
 
 [[connection]]
 from = "image_read/width"
-to = "contrast_stretch/width"
+to = "pixel_count/i1"
+
+[[connection]]
+from = "image_read/height"
+to = "pixel_count/i2"
+
+# Accumulate stretched pixels back into a flat array
+[[process]]
+alias = "collect"
+source = "lib://flowstdlib/data/accumulate"
+input.partial = { once = [] }
+
+[[connection]]
+from = "pixel_count"
+to = "collect/chunk_size"
+
+[[connection]]
+from = "stretch/result"
+to = "collect/values"
+
+[[connection]]
+from = "collect/chunk_size"
+to = "collect/chunk_size"
+
+[[connection]]
+from = "collect/partial"
+to = "collect/partial"
+
+# Reshape flat array to 2D grid for image_write (data layout only)
+[[process]]
+source = "reshape"
+
+[[connection]]
+from = "collect/chunk"
+to = "reshape/pixels"
+
+[[connection]]
+from = "image_read/width"
+to = "reshape/width"
+
+# Persist width via input forwarding
+[[connection]]
+from = "reshape/width"
+to = "reshape/width"
 
 # Write enhanced image
 [[process]]
 source = "context://image/image_write"
 
 [[connection]]
-from = "contrast_stretch/grid"
+from = "reshape/grid"
 to = "image_write/grid"
 
 [[connection]]
 from = "get/string/2"
 to = "image_write/filename"
+
+########################################################################
+# Histogram visualization
+########################################################################
 
 # Render histogram as bar chart using flowstdlib charts function
 [[process]]

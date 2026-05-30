@@ -6,6 +6,12 @@ use flowmacro::flow_function;
 
 #[flow_function]
 fn inner_divide(inputs: &[Value]) -> Result<(Option<Value>, RunAgain)> {
+    if inputs.iter().any(Value::is_null) {
+        let mut null_map = serde_json::Map::new();
+        null_map.insert("result".into(), Value::Null);
+        null_map.insert("remainder".into(), Value::Null);
+        return Ok((Some(Value::Object(null_map)), RUN_AGAIN));
+    }
     let mut output_map = serde_json::Map::new();
 
     let dividend = inputs

@@ -10,31 +10,38 @@ fn inner_accumulate(inputs: &[Value]) -> Result<(Option<Value>, RunAgain)> {
     let mut output_map = serde_json::Map::new();
 
     if value.is_null() {
-        output_map.insert("chunk".into(), Value::Null);
+        let partial_input = inputs.get(1).ok_or("Could not get partial_input")?.clone();
+        let partial = partial_input.as_array().ok_or("Could not get partial")?;
+        if partial.is_empty() {
+            output_map.insert("chunk".into(), Value::Null);
+        } else {
+            output_map.insert("chunk".into(), Value::Array(partial.clone()));
+        }
     } else {
-        let mut partial_input = inputs.get(1).ok_or("Could not get partial_input")?.clone(); // A partial array to append the values to
-                                                                                             // how many elements desired in the output array
+        let mut partial_input = inputs.get(1).ok_or("Could not get partial_input")?.clone();
         let chunk_size = inputs
             .get(2)
             .ok_or("Could not get chunk_size")?
             .as_u64()
-            .ok_or("Could not get chunk_size")?;
+            .filter(|&s| s > 0);
 
         let partial = partial_input
             .as_array_mut()
             .ok_or("Could not get partial")?;
         partial.push(value);
 
-        if partial.len() >= usize::try_from(chunk_size)? {
-            // TODO could pass on any extra elements beyond chunk size in 'partial'
-            // and also force chunk size to be exact....
-            output_map.insert("chunk".into(), Value::Array(partial.clone()));
-            output_map.insert("partial".into(), Value::Array(vec![]));
+        if let Some(size) = chunk_size {
+            if partial.len() >= usize::try_from(size)? {
+                output_map.insert("chunk".into(), Value::Array(partial.clone()));
+                output_map.insert("partial".into(), Value::Array(vec![]));
+            } else {
+                output_map.insert("partial".into(), Value::Array(partial.clone()));
+            }
+            output_map.insert("chunk_size".into(), json!(size));
         } else {
             output_map.insert("partial".into(), Value::Array(partial.clone()));
+            output_map.insert("chunk_size".into(), json!(0));
         }
-
-        output_map.insert("chunk_size".into(), json!(chunk_size));
     }
 
     Ok((Some(Value::Object(output_map)), RUN_AGAIN))

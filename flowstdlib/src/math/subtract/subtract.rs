@@ -7,6 +7,10 @@ use flowmacro::flow_function;
 
 #[flow_function]
 fn inner_subtract(inputs: &[Value]) -> Result<(Option<Value>, RunAgain)> {
+    if inputs.iter().any(serde_json::Value::is_null) {
+        return Ok((Some(Value::Null), RUN_AGAIN));
+    }
+
     let input_a = inputs.first().ok_or("Could not get input_a")?;
     let input_b = inputs.get(1).ok_or("Could not get input_b")?;
     let mut value: Option<Value> = None;
