@@ -44,7 +44,9 @@ impl Implementation for ImageRead {
                 let width = gray.width();
                 let height = gray.height();
 
-                let pixels: Vec<Value> = gray.as_raw().iter().map(|&v| json!(v)).collect();
+                let raw_pixels: Vec<Value> = gray.as_raw().iter().map(|&v| json!(v)).collect();
+                let mut pixels_eof: Vec<Value> = raw_pixels.clone();
+                pixels_eof.push(Value::Null);
 
                 let grid: Vec<Value> = (0..height)
                     .map(|y| {
@@ -67,7 +69,8 @@ impl Implementation for ImageRead {
                     .collect();
 
                 let mut output_map = serde_json::Map::new();
-                output_map.insert("pixels".into(), Value::Array(pixels));
+                output_map.insert("pixels".into(), Value::Array(raw_pixels));
+                output_map.insert("pixels_eof".into(), Value::Array(pixels_eof));
                 output_map.insert("grid".into(), Value::Array(grid));
                 output_map.insert("pixel_coords".into(), Value::Array(pixel_coords));
                 output_map.insert("width".into(), json!(width));

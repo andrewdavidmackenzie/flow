@@ -13,6 +13,10 @@ name = "pixels" # flat array of grayscale values (0-255)
 type = "array/number"
 
 [[output]]
+name = "pixels_eof" # flat array with null EOF appended (for stream functions)
+type = "array/number"
+
+[[output]]
 name = "grid" # 2D array of grayscale values (ready for image_write)
 type = "array/array/number"
 
