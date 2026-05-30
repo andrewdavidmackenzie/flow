@@ -1,13 +1,17 @@
 function = "image_write"
-description = "Write an entire 2D grid to an image. Each cell value maps to grayscale (0=white, non-zero=black). Grid dimensions determine image size."
+description = "Write pixel data to an image file. Accepts either a 2D grid (array/array/number) or a flat array (array/number) with width."
 source = "image_write.rs"
 docs = "image_write.md"
 impure = true
 
 [[input]]
-name = "grid"
-type = "array/array/number"
+name = "grid" # 2D grid OR flat pixel array
+type = "array/"
 
 [[input]]
 name = "filename"
 type = "string"
+
+[[input]]
+name = "width" # optional: required for flat array input
+type = "number"
