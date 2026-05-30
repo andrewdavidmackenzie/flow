@@ -74,6 +74,22 @@ pub fn get() -> Result<LibraryManifest> {
         Url::parse("lib://flowstdlib/data/append")?,
         Native(Arc::new(data::append::Append)),
     );
+    manifest.locators.insert(
+        Url::parse("lib://flowstdlib/data/bin_count")?,
+        Native(Arc::new(data::bin_count::BinCount)),
+    );
+    manifest.locators.insert(
+        Url::parse("lib://flowstdlib/data/min")?,
+        Native(Arc::new(data::min::Min)),
+    );
+    manifest.locators.insert(
+        Url::parse("lib://flowstdlib/data/max")?,
+        Native(Arc::new(data::max::Max)),
+    );
+    manifest.locators.insert(
+        Url::parse("lib://flowstdlib/data/avg")?,
+        Native(Arc::new(data::avg::Avg)),
+    );
 
     manifest.locators.insert(
         Url::parse("lib://flowstdlib/data/count")?,

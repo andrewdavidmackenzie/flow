@@ -1,0 +1,17 @@
+function = "min"
+description = "Track the minimum value in a stream. Output final minimum on null EOF."
+source = "min.rs"
+docs = "min.md"
+type = "rust"
+[[input]]
+name = "value"
+type = "number"
+[[input]]
+name = "partial"
+type = "number"
+[[output]]
+name = "partial"
+type = "number"
+[[output]]
+name = "result"
+type = "number"

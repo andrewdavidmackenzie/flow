@@ -28,6 +28,7 @@ to = "game_step/size"
 
 [[process]]
 source = "context://image/image_write"
+input.width = { always = 16 }
 
 [[connection]]
 from = "game_step/grid"

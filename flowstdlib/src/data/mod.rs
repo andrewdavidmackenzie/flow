@@ -13,6 +13,12 @@ pub mod array_get;
 /// A module to set a value in an array at a runtime index
 #[path = "array_set/array_set.rs"]
 pub mod array_set;
+/// A module for computing stream avg of a stream
+#[path = "avg/avg.rs"]
+pub mod avg;
+/// A module that counts occurrences of each value using bins
+#[path = "bin_count/bin_count.rs"]
+pub mod bin_count;
 /// A module that counts data passed thru it
 #[path = "count/count.rs"]
 pub mod count;
@@ -25,6 +31,12 @@ pub mod enumerate;
 /// A module with a function to get info about a Value
 #[path = "info/info.rs"]
 pub mod info;
+/// A module for computing stream max of a stream
+#[path = "max/max.rs"]
+pub mod max;
+/// A module for computing stream min of a stream
+#[path = "min/min.rs"]
+pub mod min;
 /// A module that splits a String into an array of strings
 #[path = "ordered_split/ordered_split.rs"]
 pub mod ordered_split;

@@ -1,0 +1,58 @@
+use flowcore::errors::Result;
+use flowcore::{RunAgain, RUN_AGAIN};
+use flowmacro::flow_function;
+use serde_json::{json, Value};
+
+#[flow_function]
+fn inner_avg(inputs: &[Value]) -> Result<(Option<Value>, RunAgain)> {
+    let value = inputs.first().ok_or("Could not get value")?;
+    let running_sum = inputs
+        .get(1)
+        .ok_or("Could not get sum")?
+        .as_f64()
+        .ok_or("sum not f64")?;
+    let running_count = inputs
+        .get(2)
+        .ok_or("Could not get count")?
+        .as_f64()
+        .ok_or("count not f64")?;
+
+    if value.is_null() {
+        let avg = if running_count > 0.0 {
+            running_sum / running_count
+        } else {
+            0.0
+        };
+        let mut m = serde_json::Map::new();
+        m.insert("result".into(), json!(avg));
+        m.insert("count".into(), json!(running_count));
+        return Ok((Some(Value::Object(m)), RUN_AGAIN));
+    }
+
+    let v = value.as_f64().ok_or("value not f64")?;
+    let mut m = serde_json::Map::new();
+    m.insert("partial_sum".into(), json!(running_sum + v));
+    m.insert("partial_count".into(), json!(running_count + 1.0));
+    Ok((Some(Value::Object(m)), RUN_AGAIN))
+}
+
+#[cfg(test)]
+#[allow(clippy::unwrap_used, clippy::expect_used)]
+mod test {
+    use super::inner_avg;
+    use serde_json::json;
+
+    #[test]
+    fn accumulates() {
+        let (r, _) = inner_avg(&[json!(10), json!(0), json!(0)]).expect("failed");
+        let o = r.unwrap();
+        assert_eq!(*o.pointer("/partial_sum").unwrap(), json!(10.0));
+        assert_eq!(*o.pointer("/partial_count").unwrap(), json!(1.0));
+    }
+
+    #[test]
+    fn null_outputs_average() {
+        let (r, _) = inner_avg(&[json!(null), json!(30), json!(3)]).expect("failed");
+        assert_eq!(*r.unwrap().pointer("/result").unwrap(), json!(10.0));
+    }
+}
