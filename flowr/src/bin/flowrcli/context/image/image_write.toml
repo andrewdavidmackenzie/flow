@@ -5,8 +5,8 @@ docs = "image_write.md"
 impure = true
 
 [[input]]
-name = "grid" # 2D grid OR flat pixel array
-type = "array/"
+name = "grid" # 2D grid OR flat pixel array (generic to prevent auto-decomposition)
+type = ""
 
 [[input]]
 name = "filename"
