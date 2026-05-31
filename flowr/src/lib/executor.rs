@@ -898,6 +898,8 @@ mod test {
     fn execute_job() {
         let job1 = Job {
             process_id: 1,
+            #[cfg(feature = "debugger")]
+            function_name: String::new(),
             parent_id: 0,
             connections: vec![],
             payload: Payload {
@@ -911,6 +913,8 @@ mod test {
 
         let job2 = Job {
             process_id: 1,
+            #[cfg(feature = "debugger")]
+            function_name: String::new(),
             parent_id: 0,
             connections: vec![],
             payload: Payload {
@@ -924,6 +928,8 @@ mod test {
 
         let job3 = Job {
             process_id: 1,
+            #[cfg(feature = "debugger")]
+            function_name: String::new(),
             parent_id: 0,
             connections: vec![],
             payload: Payload {

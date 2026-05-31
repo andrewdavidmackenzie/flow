@@ -903,6 +903,8 @@ mod test {
     fn test_job() -> Job {
         Job {
             process_id: 0,
+            #[cfg(feature = "debugger")]
+            function_name: String::new(),
             parent_id: 0,
             connections: vec![],
             payload: Payload {

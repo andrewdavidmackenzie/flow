@@ -27,6 +27,9 @@ pub struct Job {
     pub process_id: usize,
     /// The `parent_id` of the flow containing the function executing the job
     pub parent_id: usize,
+    /// The function name (for logging without looking up the function)
+    #[cfg(feature = "debugger")]
+    pub function_name: String,
     /// the payload required to execute the job
     pub payload: Payload,
     /// The result of the execution with the `job_id`, the optional output Value and if the function
@@ -73,6 +76,8 @@ mod test {
     fn display_job_test() {
         let job = super::Job {
             process_id: 1,
+            #[cfg(feature = "debugger")]
+            function_name: String::new(),
             parent_id: 0,
             connections: vec![],
             payload: Payload {
@@ -90,6 +95,8 @@ mod test {
     fn get_entire_output_value() {
         let job = super::Job {
             process_id: 1,
+            #[cfg(feature = "debugger")]
+            function_name: String::new(),
             parent_id: 0,
             connections: vec![],
             payload: Payload {
@@ -119,6 +126,8 @@ mod test {
         let value = json!(map);
         let job = super::Job {
             process_id: 1,
+            #[cfg(feature = "debugger")]
+            function_name: String::new(),
             parent_id: 0,
             connections: vec![],
             payload: Payload {

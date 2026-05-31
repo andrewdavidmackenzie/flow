@@ -284,6 +284,7 @@ impl RunState {
     }
 
     /// Get a reference to the function with `id`
+    #[cfg(any(feature = "debugger", test))]
     #[must_use]
     pub fn get_function(&self, id: usize) -> Option<&RuntimeFunction> {
         self.submission.manifest.functions().get(&id)
@@ -355,9 +356,7 @@ impl RunState {
                     "Job #{}: Function #{} '{}' {:?} -> {:?}",
                     job.payload.job_id,
                     job.process_id,
-                    self.get_function(job.process_id)
-                        .ok_or("No such function")?
-                        .name(),
+                    job.function_name,
                     job.payload.input_set,
                     output_value
                 );
@@ -581,6 +580,8 @@ impl RunState {
                 let job = Job {
                     process_id,
                     parent_id,
+                    #[cfg(feature = "debugger")]
+                    function_name: function.name().to_string(),
                     connections: function.get_output_connections().clone(),
                     payload: Payload {
                         job_id,
@@ -941,6 +942,8 @@ mod test {
         Job {
             process_id: source_process_id,
             parent_id: 0,
+            #[cfg(feature = "debugger")]
+            function_name: String::new(),
             connections: vec![out_conn],
             payload: Payload {
                 job_id: 1,
@@ -1249,6 +1252,8 @@ mod test {
         fn test_job() -> Job {
             Job {
                 process_id: 0,
+                #[cfg(feature = "debugger")]
+                function_name: String::new(),
                 parent_id: 0,
                 connections: vec![],
                 payload: Payload {
