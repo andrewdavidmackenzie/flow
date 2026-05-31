@@ -169,6 +169,8 @@ pub struct RunState {
     number_of_jobs_created: usize,
     /// Track how many busy entries exist per `process_id` (functions and ancestor flows)
     busy_count: HashMap<usize, usize>,
+    /// Index: parent flow ID → function IDs in that flow (avoids full-manifest scans)
+    functions_by_flow: HashMap<usize, Vec<usize>>,
 }
 
 impl RunState {
@@ -176,6 +178,14 @@ impl RunState {
     /// that was sent to be executed
     #[must_use]
     pub fn new(submission: Submission) -> Self {
+        let mut functions_by_flow = HashMap::<usize, Vec<usize>>::new();
+        for (id, function) in submission.manifest.functions() {
+            functions_by_flow
+                .entry(function.get_parent_id())
+                .or_default()
+                .push(*id);
+        }
+
         RunState {
             submission,
             ready_jobs: VecDeque::<Job>::new(),
@@ -183,6 +193,7 @@ impl RunState {
             completed: HashSet::<usize>::new(),
             number_of_jobs_created: 0,
             busy_count: HashMap::<usize, usize>::new(),
+            functions_by_flow,
         }
     }
 
@@ -642,19 +653,23 @@ impl RunState {
             // No functions busy — check if any function can still run on internal data
             if self.has_runnable_on_internal(ancestor_id) {
                 let runnable: Vec<_> = self
-                    .submission
-                    .manifest
-                    .functions()
-                    .values()
-                    .filter(|f| {
-                        f.get_parent_id() == ancestor_id
-                            && !self.completed.contains(&f.id())
-                            && f.can_run()
+                    .functions_by_flow
+                    .get(&ancestor_id)
+                    .cloned()
+                    .unwrap_or_default()
+                    .into_iter()
+                    .filter(|id| {
+                        !self.completed.contains(id)
+                            && self
+                                .submission
+                                .manifest
+                                .functions()
+                                .get(id)
+                                .is_some_and(RuntimeFunction::can_run)
                     })
-                    .map(|f| (f.id(), ancestor_id))
                     .collect();
-                for (func_id, flow_id) in runnable {
-                    self.create_jobs(func_id, flow_id)?;
+                for func_id in runnable {
+                    self.create_jobs(func_id, ancestor_id)?;
                 }
             } else {
                 // Flow has truly run to completion
@@ -699,32 +714,44 @@ impl RunState {
     }
 
     fn has_runnable_on_internal(&self, flow_id: usize) -> bool {
-        self.submission.manifest.functions().values().any(|f| {
-            f.get_parent_id() == flow_id
-                && !self.completed.contains(&f.id())
-                && f.can_run_on_internal()
-        })
+        self.functions_by_flow
+            .get(&flow_id)
+            .is_some_and(|func_ids| {
+                func_ids.iter().any(|id| {
+                    !self.completed.contains(id)
+                        && self
+                            .submission
+                            .manifest
+                            .functions()
+                            .get(id)
+                            .is_some_and(RuntimeFunction::can_run_on_internal)
+                })
+            })
     }
 
-    // Clear internal values from all functions in a flow that just went idle
     fn clear_flow_internal_inputs(&mut self, flow_id: usize) {
-        for function in self.submission.manifest.get_functions().values_mut() {
-            if function.get_parent_id() == flow_id && !self.completed.contains(&function.id()) {
-                function.clear_internal_inputs();
+        if let Some(func_ids) = self.functions_by_flow.get(&flow_id).cloned() {
+            for id in &func_ids {
+                if !self.completed.contains(id) {
+                    if let Some(f) = self.submission.manifest.get_functions().get_mut(id) {
+                        f.clear_internal_inputs();
+                    }
+                }
             }
         }
     }
 
-    // Run flow initializers and create jobs for any functions that can now run
-    // (either from initializers or from external values that were queued while the flow was busy)
     fn run_flow_initializers(&mut self, flow_id: usize) -> Result<()> {
         let mut runnable_functions = Vec::<usize>::new();
-        for function in self.submission.manifest.get_functions().values_mut() {
-            if function.get_parent_id() == flow_id && !self.completed.contains(&function.id()) {
-                function.init_inputs(false, true);
-
-                if function.can_run() {
-                    runnable_functions.push(function.id());
+        if let Some(func_ids) = self.functions_by_flow.get(&flow_id).cloned() {
+            for id in &func_ids {
+                if !self.completed.contains(id) {
+                    if let Some(f) = self.submission.manifest.get_functions().get_mut(id) {
+                        f.init_inputs(false, true);
+                        if f.can_run() {
+                            runnable_functions.push(*id);
+                        }
+                    }
                 }
             }
         }
