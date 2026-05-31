@@ -67,6 +67,17 @@ pub struct IO {
     io_type: IOType,
 }
 
+fn narrow_init_option(init: Option<InputInitializer>, pointer: &str) -> Option<InputInitializer> {
+    init.map(|i| {
+        let narrowed = i.get_value().pointer(pointer).cloned();
+        match (&i, narrowed) {
+            (InputInitializer::Always(_), Some(v)) => InputInitializer::Always(v),
+            (InputInitializer::Once(_), Some(v)) => InputInitializer::Once(v),
+            _ => i,
+        }
+    })
+}
+
 impl IO {
     /// Create a new [IO] with a specific datatype and at a specific `Route`
     pub fn new<R: Into<Route>>(datatypes: Vec<DataType>, route: R) -> Self {
@@ -155,6 +166,19 @@ impl IO {
     #[must_use]
     pub fn get_flow_initializer(&self) -> &Option<InputInitializer> {
         &self.flow_initializer
+    }
+
+    /// Narrow the initializer value using a JSON pointer subroute.
+    /// For example, subroute `0` on initializer `[10, 20]` narrows to `10`.
+    pub fn narrow_initializer(&mut self, subroute: &Route) {
+        let route_str = subroute.to_string();
+        let pointer = if route_str.starts_with('/') {
+            route_str
+        } else {
+            format!("/{route_str}")
+        };
+        self.initializer = narrow_init_option(self.initializer.take(), &pointer);
+        self.flow_initializer = narrow_init_option(self.flow_initializer.take(), &pointer);
     }
 
     /// Set the input initializer of this IO

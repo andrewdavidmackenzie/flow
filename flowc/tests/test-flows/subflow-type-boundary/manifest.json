@@ -20,27 +20,24 @@
         {
           "generic": true,
           "flow_initializer": {
-            "once": [
-              10,
-              20
-            ]
+            "once": 10
           }
         }
       ]
     }
   },
   "flows": {
+    "1": {
+      "process_id": 1,
+      "parent_id": 0,
+      "sub_flow_ids": []
+    },
     "0": {
       "process_id": 0,
       "parent_id": null,
       "sub_flow_ids": [
         1
       ]
-    },
-    "1": {
-      "process_id": 1,
-      "parent_id": 0,
-      "sub_flow_ids": []
     }
   },
   "source_urls": {}
