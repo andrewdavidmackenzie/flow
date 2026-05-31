@@ -1,25 +1,33 @@
 //! Edge rendering with cubic Bézier curves and arrow heads.
 
+#![allow(clippy::cast_precision_loss)]
+
 use svg::node::element::{Group, Path};
 
 use crate::shapes;
 use crate::style;
 
-/// Render a Bézier edge from (x1,y1) to (x2,y2) with an arrow head.
+/// Render a Bézier edge between two points with an arrow head.
 #[must_use]
-pub fn bezier_edge(x1: f32, y1: f32, x2: f32, y2: f32, color: &str, dash: Option<&str>) -> Group {
-    let dx = (x2 - x1).abs();
+pub fn bezier_edge(
+    from_x: f32,
+    from_y: f32,
+    to_x: f32,
+    to_y: f32,
+    color: &str,
+    dash: Option<&str>,
+) -> Group {
+    let dx = (to_x - from_x).abs();
     let offset = (dx / 3.0).max(40.0);
 
-    let cx1 = x1 + offset;
-    let cy1 = y1;
-    let cx2 = x2 - offset;
-    let cy2 = y2;
+    let ctrl_x1 = from_x + offset;
+    let ctrl_x2 = to_x - offset;
 
-    let d = format!("M {x1} {y1} C {cx1} {cy1}, {cx2} {cy2}, {x2} {y2}");
+    let path_data =
+        format!("M {from_x} {from_y} C {ctrl_x1} {from_y}, {ctrl_x2} {to_y}, {to_x} {to_y}");
 
     let mut path = Path::new()
-        .set("d", d)
+        .set("d", path_data)
         .set("fill", "none")
         .set("stroke", color)
         .set("stroke-width", 1.5);
@@ -28,75 +36,76 @@ pub fn bezier_edge(x1: f32, y1: f32, x2: f32, y2: f32, color: &str, dash: Option
         path = path.set("stroke-dasharray", pattern);
     }
 
-    let mut group = Group::new().add(path);
-    group = group.add(arrow_head(x2, y2, cx2, cy2, color));
-    group
+    Group::new()
+        .add(path)
+        .add(arrow_head(to_x, to_y, ctrl_x2, to_y, color))
 }
 
-/// Render a loopback edge that curves below/above the node.
+/// Render a loopback edge that curves below the node.
 #[must_use]
 pub fn loopback_edge(
-    x_out: f32,
-    y_out: f32,
-    x_in: f32,
-    y_in: f32,
+    out_x: f32,
+    out_y: f32,
+    in_x: f32,
+    in_y: f32,
     node_bottom: f32,
     color: &str,
 ) -> Group {
     let loop_y = node_bottom + 30.0;
+    let ctrl_x1 = out_x + 30.0;
+    let ctrl_x2 = in_x - 30.0;
 
-    let d = format!(
-        "M {x_out} {y_out} C {cx1} {loop_y}, {cx2} {loop_y}, {x_in} {y_in}",
-        cx1 = x_out + 30.0,
-        cx2 = x_in - 30.0,
-    );
+    let path_data =
+        format!("M {out_x} {out_y} C {ctrl_x1} {loop_y}, {ctrl_x2} {loop_y}, {in_x} {in_y}");
 
     let path = Path::new()
-        .set("d", d)
+        .set("d", path_data)
         .set("fill", "none")
         .set("stroke", color)
         .set("stroke-width", 1.5);
 
-    let mut group = Group::new().add(path);
-    group = group.add(arrow_head(x_in, y_in, x_in - 30.0, loop_y, color));
-    group
+    Group::new()
+        .add(path)
+        .add(arrow_head(in_x, in_y, ctrl_x2, loop_y, color))
 }
 
-/// Arrow head pointing toward (x, y) from direction (from_x, from_y).
-fn arrow_head(x: f32, y: f32, from_x: f32, from_y: f32, color: &str) -> Path {
-    let angle = (y - from_y).atan2(x - from_x);
-    let s = style::ARROW_SIZE;
+/// Arrow head pointing toward `(tip_x, tip_y)` from direction `(from_x, from_y)`.
+fn arrow_head(tip_x: f32, tip_y: f32, from_x: f32, from_y: f32, color: &str) -> Path {
+    let angle = (tip_y - from_y).atan2(tip_x - from_x);
+    let size = style::ARROW_SIZE;
 
-    let x1 = x - s * (angle - 0.4).cos();
-    let y1 = y - s * (angle - 0.4).sin();
-    let x2 = x - s * (angle + 0.4).cos();
-    let y2 = y - s * (angle + 0.4).sin();
-
-    let d = format!("M {x} {y} L {x1} {y1} L {x2} {y2} Z");
+    let left_x = tip_x - size * (angle - 0.4).cos();
+    let left_y = tip_y - size * (angle - 0.4).sin();
+    let right_x = tip_x - size * (angle + 0.4).cos();
+    let right_y = tip_y - size * (angle + 0.4).sin();
 
     Path::new()
-        .set("d", d)
+        .set(
+            "d",
+            format!("M {tip_x} {tip_y} L {left_x} {left_y} L {right_x} {right_y} Z"),
+        )
         .set("fill", color)
         .set("stroke", "none")
 }
 
-/// Render an edge with an optional label at the midpoint.
+/// Render an edge with an optional label and tooltip.
 #[must_use]
+#[allow(clippy::too_many_arguments)]
 pub fn labeled_edge(
-    x1: f32,
-    y1: f32,
-    x2: f32,
-    y2: f32,
+    from_x: f32,
+    from_y: f32,
+    to_x: f32,
+    to_y: f32,
     label: Option<&str>,
     tooltip_text: Option<&str>,
     color: &str,
     dash: Option<&str>,
 ) -> Group {
-    let mut group = bezier_edge(x1, y1, x2, y2, color, dash);
+    let mut group = bezier_edge(from_x, from_y, to_x, to_y, color, dash);
 
     if let Some(text) = label {
-        let mid_x = (x1 + x2) / 2.0;
-        let mid_y = (y1 + y2) / 2.0 - 8.0;
+        let mid_x = f32::midpoint(from_x, to_x);
+        let mid_y = f32::midpoint(from_y, to_y) - 8.0;
         group = group.add(shapes::centered_text(
             mid_x,
             mid_y,

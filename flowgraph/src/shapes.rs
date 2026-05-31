@@ -6,12 +6,19 @@ use crate::style;
 
 /// Rounded rectangle node (for sub-flows and pure functions).
 #[must_use]
-pub fn rounded_rect(x: f32, y: f32, w: f32, h: f32, fill: &str, stroke: &str) -> Rectangle {
+pub fn rounded_rect(
+    left: f32,
+    top: f32,
+    width: f32,
+    height: f32,
+    fill: &str,
+    stroke: &str,
+) -> Rectangle {
     Rectangle::new()
-        .set("x", x)
-        .set("y", y)
-        .set("width", w)
-        .set("height", h)
+        .set("x", left)
+        .set("y", top)
+        .set("width", width)
+        .set("height", height)
         .set("rx", style::CORNER_RADIUS)
         .set("ry", style::CORNER_RADIUS)
         .set("fill", fill)
@@ -21,20 +28,17 @@ pub fn rounded_rect(x: f32, y: f32, w: f32, h: f32, fill: &str, stroke: &str) ->
 
 /// House shape (pentagon pointing up) for sink nodes.
 #[must_use]
-pub fn house(x: f32, y: f32, w: f32, h: f32, fill: &str, stroke: &str) -> Path {
-    let peak_y = y;
-    let mid_x = x + w / 2.0;
-    let roof_y = y + h * 0.3;
-    let bottom_y = y + h;
-
-    let d = format!(
-        "M {mid_x} {peak_y} L {right} {roof_y} L {right} {bottom_y} L {left} {bottom_y} L {left} {roof_y} Z",
-        left = x,
-        right = x + w,
-    );
+pub fn house(left: f32, top: f32, width: f32, height: f32, fill: &str, stroke: &str) -> Path {
+    let mid_x = left + width / 2.0;
+    let roof_y = top + height * 0.3;
+    let bottom = top + height;
+    let right = left + width;
 
     Path::new()
-        .set("d", d)
+        .set(
+            "d",
+            format!("M {mid_x} {top} L {right} {roof_y} L {right} {bottom} L {left} {bottom} L {left} {roof_y} Z"),
+        )
         .set("fill", fill)
         .set("stroke", stroke)
         .set("stroke-width", 1.5)
@@ -42,20 +46,24 @@ pub fn house(x: f32, y: f32, w: f32, h: f32, fill: &str, stroke: &str) -> Path {
 
 /// Inverted house shape (pentagon pointing down) for source nodes.
 #[must_use]
-pub fn inverted_house(x: f32, y: f32, w: f32, h: f32, fill: &str, stroke: &str) -> Path {
-    let top_y = y;
-    let mid_x = x + w / 2.0;
-    let body_y = y + h * 0.7;
-    let bottom_y = y + h;
-
-    let d = format!(
-        "M {left} {top_y} L {right} {top_y} L {right} {body_y} L {mid_x} {bottom_y} L {left} {body_y} Z",
-        left = x,
-        right = x + w,
-    );
+pub fn inverted_house(
+    left: f32,
+    top: f32,
+    width: f32,
+    height: f32,
+    fill: &str,
+    stroke: &str,
+) -> Path {
+    let mid_x = left + width / 2.0;
+    let body_y = top + height * 0.7;
+    let bottom = top + height;
+    let right = left + width;
 
     Path::new()
-        .set("d", d)
+        .set(
+            "d",
+            format!("M {left} {top} L {right} {top} L {right} {body_y} L {mid_x} {bottom} L {left} {body_y} Z"),
+        )
         .set("fill", fill)
         .set("stroke", stroke)
         .set("stroke-width", 1.5)
@@ -63,10 +71,10 @@ pub fn inverted_house(x: f32, y: f32, w: f32, h: f32, fill: &str, stroke: &str) 
 
 /// Port circle (input or output).
 #[must_use]
-pub fn port_circle(cx: f32, cy: f32) -> Circle {
+pub fn port_circle(center_x: f32, center_y: f32) -> Circle {
     Circle::new()
-        .set("cx", cx)
-        .set("cy", cy)
+        .set("cx", center_x)
+        .set("cy", center_y)
         .set("r", style::PORT_RADIUS)
         .set("fill", style::COLOR_PORT)
         .set("stroke", style::COLOR_BORDER)
@@ -75,10 +83,10 @@ pub fn port_circle(cx: f32, cy: f32) -> Circle {
 
 /// Text label centered at a position.
 #[must_use]
-pub fn centered_text(x: f32, y: f32, label: &str, size: f32, color: &str) -> Text {
+pub fn centered_text(pos_x: f32, pos_y: f32, label: &str, size: f32, color: &str) -> Text {
     Text::new(label)
-        .set("x", x)
-        .set("y", y)
+        .set("x", pos_x)
+        .set("y", pos_y)
         .set("text-anchor", "middle")
         .set("dominant-baseline", "central")
         .set("font-family", "sans-serif")
@@ -88,10 +96,10 @@ pub fn centered_text(x: f32, y: f32, label: &str, size: f32, color: &str) -> Tex
 
 /// Small text label aligned left or right near a port.
 #[must_use]
-pub fn port_label(x: f32, y: f32, label: &str, anchor: &str) -> Text {
+pub fn port_label(pos_x: f32, pos_y: f32, label: &str, anchor: &str) -> Text {
     Text::new(label)
-        .set("x", x)
-        .set("y", y)
+        .set("x", pos_x)
+        .set("y", pos_y)
         .set("text-anchor", anchor)
         .set("dominant-baseline", "central")
         .set("font-family", "sans-serif")

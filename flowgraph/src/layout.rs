@@ -3,7 +3,7 @@
 //! Computes node positions using BFS-based column assignment and vertical stacking.
 //! Adapted from flowedit's `node_layout.rs`.
 
-#![allow(clippy::cast_precision_loss)]
+#![allow(clippy::cast_precision_loss, clippy::implicit_hasher)]
 
 use std::collections::{HashMap, HashSet, VecDeque};
 
@@ -65,7 +65,7 @@ impl NodeLayout {
     }
 }
 
-/// Extract a short name from a source path (e.g., "lib://flowstdlib/math/add" → "add")
+/// Extract a short name from a source path (e.g., `lib://flowstdlib/math/add` → `add`)
 fn derive_short_name(source: &str) -> String {
     source.rsplit('/').next().unwrap_or(source).to_string()
 }

@@ -61,7 +61,10 @@ pub fn render_flow(flow: &FlowDefinition) -> String {
     let (doc_width, doc_height) = compute_document_size(&layouts);
 
     let document = Document::new()
-        .set("viewBox", (0, 0, doc_width as i32, doc_height as i32))
+        .set(
+            "viewBox",
+            format!("0 0 {} {}", doc_width.round(), doc_height.round()),
+        )
         .set("width", doc_width)
         .set("height", doc_height)
         .set("xmlns", "http://www.w3.org/2000/svg")
@@ -93,15 +96,12 @@ fn collect_process_info(flow: &FlowDefinition) -> HashMap<String, ProcessInfo> {
         if let Some(process) = flow.subprocesses.get(&alias) {
             match process {
                 FlowProcess(sub_flow) => {
-                    let inputs: Vec<String> = sub_flow
-                        .inputs
-                        .iter()
-                        .map(|io| io.name().to_string())
-                        .collect();
+                    let inputs: Vec<String> =
+                        sub_flow.inputs.iter().map(|io| io.name().clone()).collect();
                     let outputs: Vec<String> = sub_flow
                         .outputs
                         .iter()
-                        .map(|io| io.name().to_string())
+                        .map(|io| io.name().clone())
                         .collect();
                     info.insert(
                         alias,
@@ -117,12 +117,9 @@ fn collect_process_info(flow: &FlowDefinition) -> HashMap<String, ProcessInfo> {
                 }
                 FunctionProcess(func) => {
                     let inputs: Vec<String> =
-                        func.inputs.iter().map(|io| io.name().to_string()).collect();
-                    let outputs: Vec<String> = func
-                        .outputs
-                        .iter()
-                        .map(|io| io.name().to_string())
-                        .collect();
+                        func.inputs.iter().map(|io| io.name().clone()).collect();
+                    let outputs: Vec<String> =
+                        func.outputs.iter().map(|io| io.name().clone()).collect();
                     info.insert(
                         alias,
                         ProcessInfo {
@@ -269,9 +266,8 @@ fn render_connection(conn: &Connection, layouts: &HashMap<String, NodeLayout>) -
     let from_route = conn.from().to_string();
     let (from_node, from_port) = split_route(&from_route);
 
-    let from_layout = match layouts.get(&from_node) {
-        Some(l) => l,
-        None => return group,
+    let Some(from_layout) = layouts.get(&from_node) else {
+        return group;
     };
 
     let from_port_idx = from_layout
@@ -287,9 +283,8 @@ fn render_connection(conn: &Connection, layouts: &HashMap<String, NodeLayout>) -
         let to_str = to_route.to_string();
         let (to_node, to_port) = split_route(&to_str);
 
-        let to_layout = match layouts.get(&to_node) {
-            Some(l) => l,
-            None => continue,
+        let Some(to_layout) = layouts.get(&to_node) else {
+            continue;
         };
 
         let to_port_idx = to_layout
@@ -380,7 +375,7 @@ fn render_initializers(pr: &ProcessReference, layout: &NodeLayout) -> Group {
             dash,
         ));
 
-        group = group.add(shapes::tooltip(&format!("{}: {}", input_path, value_str)));
+        group = group.add(shapes::tooltip(&format!("{input_path}: {value_str}")));
     }
 
     group
