@@ -168,10 +168,7 @@ mod test {
     use serde_derive::{Deserialize, Serialize};
     use serial_test::serial;
 
-    use crate::cli::connections::{
-        discover_service, enable_service_discovery, ClientConnection, CoordinatorConnection,
-        DONT_WAIT, WAIT,
-    };
+    use crate::cli::connections::{ClientConnection, CoordinatorConnection, DONT_WAIT, WAIT};
 
     #[derive(Serialize, Deserialize, PartialEq, Eq, Debug)]
     enum CoordinatorMessage {
@@ -225,7 +222,6 @@ mod test {
         }
     }
 
-    // Requires network access
     #[test]
     #[serial]
     fn coordinator_receive_wait_get_reply() {
@@ -234,13 +230,8 @@ mod test {
         let mut coordinator_connection = CoordinatorConnection::new(&service_name, test_port)
             .expect("Could not create CoordinatorConnection");
 
-        let _mdns = enable_service_discovery(&service_name, test_port)
-            .expect("Could not enable service discovery");
-
-        let coordinator_address =
-            discover_service(&service_name).expect("Could not discover service");
-        let client =
-            ClientConnection::new(&coordinator_address).expect("Could not create ClientConnection");
+        let client = ClientConnection::new(&format!("localhost:{test_port}"))
+            .expect("Could not create ClientConnection");
 
         // Open the connection by sending the first message from the client
         client
@@ -265,7 +256,6 @@ mod test {
         assert_eq!(coordinator_message, CoordinatorMessage::World);
     }
 
-    // Requires network access
     #[test]
     #[serial]
     fn coordinator_receive_nowait_get_reply() {
@@ -273,13 +263,9 @@ mod test {
         let service_name = format!("test-{test_port}");
         let mut coordinator_connection = CoordinatorConnection::new(&service_name, test_port)
             .expect("Could not create CoordinatorConnection");
-        let _mdns = enable_service_discovery(&service_name, test_port)
-            .expect("Could not enable service discovery");
 
-        let coordinator_address =
-            discover_service(&service_name).expect("Could not discover service");
-        let client =
-            ClientConnection::new(&coordinator_address).expect("Could not create ClientConnection");
+        let client = ClientConnection::new(&format!("localhost:{test_port}"))
+            .expect("Could not create ClientConnection");
 
         // Open the connection by sending the first message from the client
         client
@@ -288,14 +274,14 @@ mod test {
 
         let mut received = None;
         for _ in 0..5 {
-            std::thread::sleep(Duration::from_secs(1));
+            std::thread::sleep(Duration::from_millis(100));
             if let Ok(msg) = coordinator_connection.receive::<ClientMessage>(DONT_WAIT) {
                 received = Some(msg);
                 break;
             }
         }
         assert_eq!(
-            received.expect("Could not receive message at Coordinator after 3 retries"),
+            received.expect("Could not receive message at Coordinator after retries"),
             ClientMessage::Hello
         );
 
