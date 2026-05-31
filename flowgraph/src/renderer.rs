@@ -22,8 +22,10 @@ struct ProcessInfo {
     is_subflow: bool,
     is_impure: bool,
     has_inputs: bool,
-    inputs: Vec<String>,
-    outputs: Vec<String>,
+    /// (name, type) pairs
+    inputs: Vec<(String, String)>,
+    /// (name, type) pairs
+    outputs: Vec<(String, String)>,
     source: String,
 }
 
@@ -87,6 +89,22 @@ text { user-select: none; }",
     )
 }
 
+fn io_name_and_type(io: &flowcore::model::io::IO) -> (String, String) {
+    let name = io.name().clone();
+    let type_str = io
+        .datatypes()
+        .iter()
+        .map(std::string::ToString::to_string)
+        .collect::<Vec<_>>()
+        .join("|");
+    let type_str = if type_str.is_empty() {
+        "generic".to_string()
+    } else {
+        type_str
+    };
+    (name, type_str)
+}
+
 fn collect_process_info(flow: &FlowDefinition) -> HashMap<String, ProcessInfo> {
     let mut info = HashMap::new();
 
@@ -96,13 +114,10 @@ fn collect_process_info(flow: &FlowDefinition) -> HashMap<String, ProcessInfo> {
         if let Some(process) = flow.subprocesses.get(&alias) {
             match process {
                 FlowProcess(sub_flow) => {
-                    let inputs: Vec<String> =
-                        sub_flow.inputs.iter().map(|io| io.name().clone()).collect();
-                    let outputs: Vec<String> = sub_flow
-                        .outputs
-                        .iter()
-                        .map(|io| io.name().clone())
-                        .collect();
+                    let inputs: Vec<(String, String)> =
+                        sub_flow.inputs.iter().map(io_name_and_type).collect();
+                    let outputs: Vec<(String, String)> =
+                        sub_flow.outputs.iter().map(io_name_and_type).collect();
                     info.insert(
                         alias,
                         ProcessInfo {
@@ -116,10 +131,10 @@ fn collect_process_info(flow: &FlowDefinition) -> HashMap<String, ProcessInfo> {
                     );
                 }
                 FunctionProcess(func) => {
-                    let inputs: Vec<String> =
-                        func.inputs.iter().map(|io| io.name().clone()).collect();
-                    let outputs: Vec<String> =
-                        func.outputs.iter().map(|io| io.name().clone()).collect();
+                    let inputs: Vec<(String, String)> =
+                        func.inputs.iter().map(io_name_and_type).collect();
+                    let outputs: Vec<(String, String)> =
+                        func.outputs.iter().map(io_name_and_type).collect();
                     info.insert(
                         alias,
                         ProcessInfo {
@@ -144,7 +159,15 @@ fn build_node_info(
 ) -> HashMap<String, (Vec<String>, Vec<String>)> {
     process_info
         .iter()
-        .map(|(alias, info)| (alias.clone(), (info.inputs.clone(), info.outputs.clone())))
+        .map(|(alias, info)| {
+            (
+                alias.clone(),
+                (
+                    info.inputs.iter().map(|(n, _)| n.clone()).collect(),
+                    info.outputs.iter().map(|(n, _)| n.clone()).collect(),
+                ),
+            )
+        })
         .collect()
 }
 
@@ -217,29 +240,37 @@ fn render_node(layout: &NodeLayout, info: &ProcessInfo, alias: &str) -> Group {
     // Tooltip
     group = group.add(shapes::tooltip(&format!("{} ({})", alias, info.source)));
 
-    // Input ports
-    for (i, port_name) in layout.inputs.iter().enumerate() {
+    // Input ports with type tooltips
+    for (i, (port_name, port_type)) in info.inputs.iter().enumerate() {
         let px = layout.input_port_x();
         let py = layout.input_port_y(i);
-        group = group.add(shapes::port_circle(px, py));
+        let mut port_group = Group::new();
+        port_group = port_group.add(shapes::port_circle(px, py));
+        port_group = port_group.add(shapes::tooltip(&format!("{port_name}: {port_type}")));
+        group = group.add(port_group);
         group = group.add(shapes::port_label(
             px + style::PORT_RADIUS + 3.0,
             py,
             port_name,
             "start",
+            text_color,
         ));
     }
 
-    // Output ports
-    for (i, port_name) in layout.outputs.iter().enumerate() {
+    // Output ports with type tooltips
+    for (i, (port_name, port_type)) in info.outputs.iter().enumerate() {
         let px = layout.output_port_x();
         let py = layout.output_port_y(i);
-        group = group.add(shapes::port_circle(px, py));
+        let mut port_group = Group::new();
+        port_group = port_group.add(shapes::port_circle(px, py));
+        port_group = port_group.add(shapes::tooltip(&format!("{port_name}: {port_type}")));
+        group = group.add(port_group);
         group = group.add(shapes::port_label(
             px - style::PORT_RADIUS - 3.0,
             py,
             port_name,
             "end",
+            text_color,
         ));
     }
 

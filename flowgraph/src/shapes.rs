@@ -96,7 +96,7 @@ pub fn centered_text(pos_x: f32, pos_y: f32, label: &str, size: f32, color: &str
 
 /// Small text label aligned left or right near a port.
 #[must_use]
-pub fn port_label(pos_x: f32, pos_y: f32, label: &str, anchor: &str) -> Text {
+pub fn port_label(pos_x: f32, pos_y: f32, label: &str, anchor: &str, color: &str) -> Text {
     Text::new(label)
         .set("x", pos_x)
         .set("y", pos_y)
@@ -104,7 +104,7 @@ pub fn port_label(pos_x: f32, pos_y: f32, label: &str, anchor: &str) -> Text {
         .set("dominant-baseline", "central")
         .set("font-family", "sans-serif")
         .set("font-size", style::PORT_FONT_SIZE)
-        .set("fill", style::COLOR_TEXT)
+        .set("fill", color)
 }
 
 /// Tooltip element (renders as native browser tooltip on hover).
