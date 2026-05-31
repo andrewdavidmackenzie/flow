@@ -149,7 +149,7 @@
     - [router](flowr/examples/router/DESCRIPTION.md)
     - [running-average](flowr/examples/running-average/DESCRIPTION.md)
     - [sequence-of-sequences](flowr/examples/sequence-of-sequences/DESCRIPTION.md)
-    - [tokenizer](flowr/examples/tokenizer/DESCRIPTION.md)
+    - [word-count](flowr/examples/word-count/DESCRIPTION.md)
 
 
     
