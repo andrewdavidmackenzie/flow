@@ -1,0 +1,44 @@
+{
+  "metadata": {
+    "name": "",
+    "version": "",
+    "description": "",
+    "authors": []
+  },
+  "lib_references": [],
+  "context_references": [
+    "context://stdio/stdout"
+  ],
+  "functions": {
+    "2": {
+      "name": "stdout",
+      "route": "/subflow-type-boundary/stdout",
+      "process_id": 2,
+      "parent_id": 0,
+      "implementation_location": "context://stdio/stdout",
+      "inputs": [
+        {
+          "generic": true,
+          "flow_initializer": {
+            "once": 10
+          }
+        }
+      ]
+    }
+  },
+  "flows": {
+    "1": {
+      "process_id": 1,
+      "parent_id": 0,
+      "sub_flow_ids": []
+    },
+    "0": {
+      "process_id": 0,
+      "parent_id": null,
+      "sub_flow_ids": [
+        1
+      ]
+    }
+  },
+  "source_urls": {}
+}

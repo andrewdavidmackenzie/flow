@@ -397,12 +397,13 @@ impl FlowDefinition {
         debug!("Looking for connection {direction:?} '{route}'");
         match (&direction, route.parse_subroute()?) {
             (&FROM, RouteType::FlowInput(input_name, sub_route)) => {
-                // make sure the sub-route of the input is added to the source of the connection
                 let mut from = self
                     .inputs
                     .find_by_subroute(&Route::from(input_name.clone()))?;
-                // accumulate any subroute within the input
                 from.route_mut().extend(&sub_route);
+                if !sub_route.is_empty() {
+                    from.narrow_initializer(&sub_route);
+                }
                 Ok(from)
             }
 

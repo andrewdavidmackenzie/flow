@@ -186,7 +186,6 @@ pub fn collapse_connections(tables: &mut CompilerTables) -> Result<()> {
                                 destination_io.route()
                             ))?;
 
-                        // get a mutable reference to the destination function and set the initializer on it
                         let destination_function = tables
                             .functions
                             .get_mut(destination_function_id)
@@ -195,8 +194,6 @@ pub fn collapse_connections(tables: &mut CompilerTables) -> Result<()> {
                             ))?;
 
                         let flow_initializer = connection.from_io().get_initializer().clone();
-
-                        // TODO check types
 
                         destination_function
                             .set_flow_initializer(*destination_input_index, flow_initializer)?;
