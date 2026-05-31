@@ -1337,6 +1337,7 @@ dependencies = [
  "env_logger",
  "error-chain",
  "flowcore",
+ "flowgraph",
  "globwalk",
  "log",
  "serde",

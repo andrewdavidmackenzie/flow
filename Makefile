@@ -75,6 +75,7 @@ clean_examples:
 	@find flowr/examples -name manifest.json | xargs rm -rf
 	@find flowr/examples -name \*.dot | xargs rm -rf
 	@find flowr/examples -name \*.dot.svg | xargs rm -rf
+	@find flowr/examples -name \*.svg -not -name test_\* | xargs rm -rf
 	@find flowr/examples -name \*.wasm | xargs rm -rf
 
 .PHONY: clean
@@ -142,10 +143,12 @@ build-book:
 .PHONE: copy-svgs
 copy-svgs:
 	@echo "copy-svgs<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<"
-	@for i in $(shell find flowr/examples -name '*.dot.svg' ); do \
+	@for i in $(shell find flowr/examples -name '*.dot.svg' -o -name '*.svg' | grep -v test_ ); do \
+      mkdir -p target/html/$$(dirname $$i); \
       cp $$i target/html/$$i; \
     done
-	@for i in $(shell cd $$HOME/.flow/lib/flowstdlib && find . -name '*.dot.svg' ); do \
+	@for i in $(shell cd $$HOME/.flow/lib/flowstdlib && find . -name '*.dot.svg' -o -name '*.svg' | grep -v test_ ); do \
+      mkdir -p target/html/flowstdlib/src/$$(dirname $$i); \
       cp $$HOME/.flow/lib/flowstdlib/$$i target/html/flowstdlib/src/$$i; \
     done
 

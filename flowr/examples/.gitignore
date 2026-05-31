@@ -1,6 +1,7 @@
 **/manifest.json
 **/*.dot
 **/*.dot.svg
+**/*.svg
 **/test.stderr
 **/test.stdout
 **/*.wasm

@@ -16,7 +16,6 @@ use flowcore::model::process::Process::{FlowProcess, FunctionProcess};
 use flowcore::provider::Provider;
 use flowrclib::compiler::parser;
 use flowrclib::compiler::{compile, compile_wasm};
-use flowrclib::dumper::flow_to_dot;
 
 use crate::errors::{bail, Result, ResultExt};
 use crate::Options;
@@ -457,8 +456,8 @@ fn compile_flows(
                         }
 
                         if options.graphs {
-                            flow_to_dot::dump_flow(flow, &out_dir, provider)?;
-                            flow_to_dot::generate_svgs(&out_dir, true)?;
+                            flowgraph::dump_flow_svgs(flow, &out_dir)
+                                .map_err(|e| format!("SVG generation failed: {e}"))?;
                         }
 
                         file_count += copy_definition_to_output_dir(toml_path, &out_dir)?;

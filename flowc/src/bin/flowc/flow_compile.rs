@@ -13,7 +13,6 @@ use flowcore::model::process::Process::{FlowProcess, FunctionProcess};
 use flowcore::provider::Provider;
 use flowrclib::compiler::compile;
 use flowrclib::compiler::parser;
-use flowrclib::dumper::{flow_to_dot, functions_to_dot};
 use flowrclib::generator::generate;
 
 use crate::errors::{bail, Result, ResultExt};
@@ -51,9 +50,8 @@ pub fn compile_and_execute_flow(
             make_writeable(output_dir)?;
 
             if options.graphs {
-                flow_to_dot::dump_flow(&flow, output_dir, provider)?;
-                functions_to_dot::dump_functions(&flow, &tables, output_dir)?;
-                flow_to_dot::generate_svgs(output_dir, true)?;
+                flowgraph::dump_flow_svgs(&flow, output_dir)
+                    .map_err(|e| format!("SVG generation failed: {e}"))?;
             }
 
             if !flow.is_runnable() {
