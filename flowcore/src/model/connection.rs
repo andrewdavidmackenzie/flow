@@ -151,9 +151,9 @@ impl Connection {
     ///
     /// Will return `Err` if the source and destinations do not have any compatible types
     pub fn connect(&mut self, from_io: IO, to_io: IO, level: usize) -> Result<()> {
-        // are we selecting from a sub-route of an IO, such as an array index or element of output object?
-        // TODO this requires the accumulation of the subroute to be done during connection building #1192
-        let from_io_subroute = "";
+        let from_str = self.from.to_string();
+        let io_route = from_io.route().to_string();
+        let from_io_subroute = from_str.strip_prefix(&io_route).unwrap_or("");
         DataType::compatible_types(
             from_io.datatypes(),
             to_io.datatypes(),
@@ -286,6 +286,75 @@ mod test {
         assert!(
             connection.is_err(),
             "Deserialized invalid connection TOML without error, but should not have."
+        );
+    }
+
+    use crate::model::datatype::DataType;
+    use crate::model::io::IO;
+
+    #[test]
+    fn connect_with_subroute_compatible() {
+        // Subroute /1 selects a string from array/string, compatible with string input
+        let mut conn = Connection::new("/flow/get/string/1", "/flow/process/input");
+        let from_io = IO::new(vec![DataType::from("array/string")], "/flow/get/string");
+        let to_io = IO::new(vec![DataType::from("string")], "/flow/process/input");
+        assert!(
+            conn.connect(from_io, to_io, 0).is_ok(),
+            "Subroute selection from array/string to string should be compatible"
+        );
+    }
+
+    #[test]
+    fn connect_without_subroute_compatible() {
+        let mut conn = Connection::new("/flow/get/strings", "/flow/process/input");
+        let from_io = IO::new(vec![DataType::from("array/string")], "/flow/get/strings");
+        let to_io = IO::new(vec![DataType::from("array/string")], "/flow/process/input");
+        assert!(
+            conn.connect(from_io, to_io, 0).is_ok(),
+            "Direct array/string to array/string should be compatible"
+        );
+    }
+
+    #[test]
+    fn connect_incompatible_types() {
+        let mut conn = Connection::new("/flow/get/string", "/flow/process/value");
+        let from_io = IO::new(vec![DataType::from("string")], "/flow/get/string");
+        let to_io = IO::new(vec![DataType::from("number")], "/flow/process/value");
+        assert!(
+            conn.connect(from_io, to_io, 0).is_err(),
+            "string to number should be incompatible"
+        );
+    }
+
+    #[test]
+    fn subroute_narrows_deep_array_to_compatible() {
+        // output is array/array/array/number (order 3)
+        // Without subroute: order difference 3→0 = 3, rejected (>2)
+        // With subroute /0: selects array/array/number (order 2), difference 2→0 = 2, accepted
+        let mut conn = Connection::new("/flow/func/output/0", "/flow/process/value");
+        let from_io = IO::new(
+            vec![DataType::from("array/array/array/number")],
+            "/flow/func/output",
+        );
+        let to_io = IO::new(vec![DataType::from("number")], "/flow/process/value");
+        assert!(
+            conn.connect(from_io, to_io, 0).is_ok(),
+            "Subroute /0 on array/array/array/number should narrow to array/array/number, compatible with number (diff 2)"
+        );
+    }
+
+    #[test]
+    fn without_subroute_deep_array_is_incompatible() {
+        // Same types but no subroute — order difference 3, should be rejected
+        let mut conn = Connection::new("/flow/func/output", "/flow/process/value");
+        let from_io = IO::new(
+            vec![DataType::from("array/array/array/number")],
+            "/flow/func/output",
+        );
+        let to_io = IO::new(vec![DataType::from("number")], "/flow/process/value");
+        assert!(
+            conn.connect(from_io, to_io, 0).is_err(),
+            "array/array/array/number to number without subroute should be incompatible (diff 3)"
         );
     }
 }
