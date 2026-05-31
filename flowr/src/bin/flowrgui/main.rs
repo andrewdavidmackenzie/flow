@@ -466,7 +466,14 @@ impl FlowrGui {
             }
         };
 
-        Row::new().push(Text::new(format!("Coordinator: {status}")))
+        let mut row = Row::new().push(Text::new(format!("Coordinator: {status}")));
+        if self.running {
+            row = row.push(Text::new(format!(
+                "    Jobs: {}",
+                connection_manager::get_job_count()
+            )));
+        }
+        row
     }
 
     // Create initial Settings structs for Submission and Coordinator from the CLI options
@@ -716,11 +723,13 @@ impl FlowrGui {
             CoordinatorMessage::FlowStart => {
                 self.running = true;
                 self.submitted = false;
+                connection_manager::set_job_count(0);
                 self.send(ClientMessage::Ack);
             }
             CoordinatorMessage::FlowEnd(metrics) => {
                 self.submitted = false;
                 self.pending_getline = false;
+                connection_manager::set_job_count(0);
                 self.tab_set.stdin_tab.waiting_for_input = false;
                 if self.submission_settings.display_metrics {
                     self.show_modal = true;

@@ -1,5 +1,5 @@
 use std::path::PathBuf;
-use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
 use std::sync::{Arc, Mutex, OnceLock};
 use std::thread;
 
@@ -51,6 +51,19 @@ pub fn request_stop() {
 /// Check and clear the stop request flag
 pub fn take_stop_request() -> bool {
     STOP_REQUESTED.swap(false, Ordering::Relaxed)
+}
+
+/// Global counter for jobs created, updated by the coordinator thread
+static JOB_COUNT: AtomicUsize = AtomicUsize::new(0);
+
+/// Set the current job count (called from coordinator thread)
+pub fn set_job_count(count: usize) {
+    JOB_COUNT.store(count, Ordering::Relaxed);
+}
+
+/// Get the current job count (called from GUI thread)
+pub fn get_job_count() -> usize {
+    JOB_COUNT.load(Ordering::Relaxed)
 }
 
 // Creates an asynchronous worker that sends messages back and forth between the App and

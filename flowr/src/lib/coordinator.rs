@@ -154,6 +154,10 @@ impl<'a> Coordinator<'a> {
                     &mut metrics,
                 )?;
 
+                #[cfg(feature = "submission")]
+                self.submission_handler
+                    .jobs_created(state.get_number_of_jobs_created());
+
                 if restart {
                     break 'jobs;
                 }

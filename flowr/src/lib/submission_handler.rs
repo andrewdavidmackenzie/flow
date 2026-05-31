@@ -56,6 +56,10 @@ pub trait SubmissionHandler {
         Ok(false)
     }
 
+    /// Called by the [Coordinator][crate::coordinator::Coordinator] after jobs are retired,
+    /// with the total number of jobs created so far. Default implementation is a no-op.
+    fn jobs_created(&mut self, _count: usize) {}
+
     /// The [Coordinator][crate::coordinator::Coordinator] is about to exit
     ///
     /// # Errors
