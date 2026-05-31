@@ -1,0 +1,52 @@
+flow = "word-count"
+docs = "DESCRIPTION.md"
+
+# Word count — reads lines of text, splits into words, counts total.
+# Demonstrates parallelism: each line from readline feeds the splitter
+# independently, and the recursive splitting of each line can overlap.
+
+[[process]] # Read lines of text from stdin
+source = "context://stdio/readline"
+input.prompt = { always = "" }
+
+[[process]] # Split each line into words on space separator
+source = "lib://flowstdlib/data/split"
+input.separator = { always = " " }
+
+[[connection]] # Feed each line to the splitter
+from = "readline/string"
+to = "split/string"
+
+[[connection]] # Loop back partial splits for further subdivision
+from = "split/partial"
+to = "split/string"
+
+# Count words using count function on each token produced
+[[process]]
+source = "lib://flowstdlib/data/count"
+input.count = { once = 0 }
+
+[[connection]] # Each word (token) triggers count
+from = "split/token"
+to = "count/data"
+
+[[connection]] # Loop back count to accumulate
+from = "count"
+to = "count/count"
+
+# Format count as string for stdout
+[[process]]
+alias = "format"
+source = "lib://flowstdlib/fmt/to_string"
+
+[[connection]]
+from = "count"
+to = "format"
+
+# Output the running word count
+[[process]]
+source = "context://stdio/stdout"
+
+[[connection]]
+from = "format"
+to = "stdout"

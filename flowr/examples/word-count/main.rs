@@ -9,7 +9,7 @@ mod test {
     use std::path::PathBuf;
 
     #[test]
-    fn test_tokenizer_example() {
+    fn test_word_count_example() {
         let _ = env::set_current_dir(
             PathBuf::from(env!("CARGO_MANIFEST_DIR"))
                 .parent()
