@@ -77,7 +77,7 @@ pub fn dump_functions(
     info!("\tGenerating functions.dot, Use \"dotty\" to view it");
     dot_file.write_all(
         format!(
-            "digraph {} {{\nnodesep=1.0\n",
+            "digraph \"{}\" {{\nnodesep=1.0\n",
             str::replace(&flow.alias.clone(), "-", "_")
         )
         .as_bytes(),
