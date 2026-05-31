@@ -284,6 +284,7 @@ impl RunState {
     }
 
     /// Get a reference to the function with `id`
+    #[cfg(any(feature = "debugger", test))]
     #[must_use]
     pub fn get_function(&self, id: usize) -> Option<&RuntimeFunction> {
         self.submission.manifest.functions().get(&id)
