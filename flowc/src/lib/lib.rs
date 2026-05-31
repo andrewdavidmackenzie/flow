@@ -12,10 +12,6 @@
 /// that into a graph of [runtime functions][flowcore::model::runtime_function::RuntimeFunction]
 pub mod compiler;
 
-/// used to output a human readable version of the model and compiler tables to help debug
-/// compiler problems
-pub mod dumper;
-
 /// takes care of generating the [flow's manifest][flowcore::model::flow_manifest::FlowManifest]
 /// (for later execution by a flow runner) from the [compiler tables][compiler::compile::CompilerTables]
 pub mod generator;

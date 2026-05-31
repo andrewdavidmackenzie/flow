@@ -71,7 +71,7 @@ fn derive_short_name(source: &str) -> String {
 }
 
 /// Split a route like "sequence/number" into ("sequence", "number")
-fn split_route(route: &str) -> (String, String) {
+pub(crate) fn split_route(route: &str) -> (String, String) {
     let route = route.trim_start_matches('/');
     if let Some(pos) = route.find('/') {
         (route[..pos].to_string(), route[pos + 1..].to_string())
@@ -88,7 +88,7 @@ fn compute_node_height(input_count: usize, output_count: usize) -> f32 {
 }
 
 /// Get the alias for a process reference.
-fn process_alias(p: &ProcessReference) -> String {
+pub(crate) fn process_alias(p: &ProcessReference) -> String {
     if p.alias.is_empty() {
         derive_short_name(&p.source)
     } else {

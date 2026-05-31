@@ -12,4 +12,4 @@ workspace = true
 flowcore = { path = "../flowcore", version = "0.142.0" }
 svg = "0.18"
 log = "0.4"
-url = "~2.2"
+url = "2.2"

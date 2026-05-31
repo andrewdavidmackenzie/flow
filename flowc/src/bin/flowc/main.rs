@@ -239,7 +239,7 @@ fn get_matches() -> ArgMatches {
                 .short('g')
                 .long("graphs")
                 .action(clap::ArgAction::SetTrue)
-                .help("Create .dot files for graphs then generate SVGs with 'dot' command (if available)"),
+                .help("Generate SVG graph files for flow visualization"),
         )
         .arg(
             Arg::new("metrics")

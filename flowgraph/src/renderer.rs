@@ -14,7 +14,7 @@ use flowcore::model::name::HasName;
 use flowcore::model::process::Process::{FlowProcess, FunctionProcess};
 use flowcore::model::process_reference::ProcessReference;
 
-use crate::layout::{self, NodeLayout};
+use crate::layout::{self, process_alias, split_route, NodeLayout};
 use crate::{edge, shapes, style};
 
 /// Information about a process needed for rendering.
@@ -171,18 +171,6 @@ fn build_node_info(
         .collect()
 }
 
-fn process_alias(pr: &ProcessReference) -> String {
-    if pr.alias.is_empty() {
-        pr.source
-            .rsplit('/')
-            .next()
-            .unwrap_or(&pr.source)
-            .to_string()
-    } else {
-        pr.alias.clone()
-    }
-}
-
 fn render_node(layout: &NodeLayout, info: &ProcessInfo, alias: &str) -> Group {
     let mut group = Group::new();
 
@@ -280,15 +268,6 @@ fn render_node(layout: &NodeLayout, info: &ProcessInfo, alias: &str) -> Group {
     }
 
     group
-}
-
-fn split_route(route: &str) -> (String, String) {
-    let route = route.trim_start_matches('/');
-    if let Some(pos) = route.find('/') {
-        (route[..pos].to_string(), route[pos + 1..].to_string())
-    } else {
-        (route.to_string(), String::new())
-    }
 }
 
 fn render_connection(conn: &Connection, layouts: &HashMap<String, NodeLayout>) -> Group {
