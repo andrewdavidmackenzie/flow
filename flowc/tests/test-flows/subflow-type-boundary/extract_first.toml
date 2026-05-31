@@ -1,0 +1,16 @@
+flow = "extract_first"
+
+# Sub-flow that takes array/number and extracts the first element via subroute
+
+[[input]]
+name = "pair"
+type = "array/number"
+
+[[output]]
+name = "first"
+type = "number"
+
+# Select element 0 from the pair using subroute
+[[connection]]
+from = "input/pair/0"
+to = "output/first"

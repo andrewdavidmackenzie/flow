@@ -13,8 +13,34 @@ use flowcore::model::process::Process::FunctionProcess;
 use flowcore::model::route::HasRoute;
 use flowcore::model::route::Route;
 
+use flowcore::model::input::InputInitializer;
+use serde_json::Value;
+
 use crate::compiler::compile::CompilerTables;
 use crate::errors::Result;
+
+fn apply_subroute_to_initializer(
+    initializer: &Option<InputInitializer>,
+    subroute: &Route,
+) -> Option<InputInitializer> {
+    if subroute.is_empty() {
+        return initializer.clone();
+    }
+
+    initializer.as_ref().map(|init| {
+        let value = init.get_value();
+        let narrowed = apply_subroute_to_value(value, subroute);
+        match init {
+            InputInitializer::Always(_) => InputInitializer::Always(narrowed),
+            InputInitializer::Once(_) => InputInitializer::Once(narrowed),
+        }
+    })
+}
+
+fn apply_subroute_to_value(value: &Value, subroute: &Route) -> Value {
+    let route_str = subroute.to_string();
+    value.pointer(&route_str).cloned().unwrap_or_else(|| value.clone())
+}
 
 /// Recursively go through the flow hierarchy, harvesting out functions and connections within
 /// each flow into the `CompilerTables` that will be used in later compilers.
@@ -161,6 +187,14 @@ pub fn collapse_connections(tables: &mut CompilerTables) -> Result<()> {
             // connection starts at a flow's input via a FlowInputInitializer - propagate to destination function
             IOType::FlowInput | IOType::FlowOutput => {
                 if connection.from_io().get_initializer().is_some() {
+                    let from_str = connection.from().to_string();
+                    let io_route = connection.from_io().route().to_string();
+                    let source_subroute = Route::from(
+                        from_str.strip_prefix(&io_route).unwrap_or(""),
+                    );
+                    debug!("Initializer propagation: from='{}', io_route='{}', subroute='{}'",
+                        from_str, io_route, source_subroute);
+
                     // find the destination functions (the connection could split to multiple destinations)
                     let destinations = if connection.to_io().io_type() == &IOType::FunctionInput {
                         vec![(
@@ -194,9 +228,11 @@ pub fn collapse_connections(tables: &mut CompilerTables) -> Result<()> {
                                 "Could not find a function #{destination_function_id}"
                             ))?;
 
-                        let flow_initializer = connection.from_io().get_initializer().clone();
-
-                        // TODO check types
+                        let flow_initializer =
+                            apply_subroute_to_initializer(
+                                connection.from_io().get_initializer(),
+                                &source_subroute,
+                            );
 
                         destination_function
                             .set_flow_initializer(*destination_input_index, flow_initializer)?;
