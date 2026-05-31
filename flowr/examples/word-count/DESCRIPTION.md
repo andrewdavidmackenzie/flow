@@ -15,7 +15,7 @@ work reaches zero), then outputs the final word count to stdout.
 
 Root Diagram
 ===
-<a href="root.dot.svg" target="_blank"><img src="root.dot.svg"></a>
+<a href="root.svg" target="_blank"><img src="root.svg"></a>
 
 Click image to navigate flow hierarchy.
 
@@ -30,6 +30,6 @@ Features Used
 Functions Diagram
 ===
 This diagram shows the exploded diagram of all functions in all flows, and their connections.
-<a href="functions.dot.svg" target="_blank"><img src="functions.dot.svg"></a>
+<a href="functions.svg" target="_blank"><img src="functions.svg"></a>
 
 Click image to view functions graph.

@@ -23,8 +23,8 @@ computation.
 
 The root flow defines three sub-flows and connects them:
 
-<a href="../../flowr/examples/mandlebrot/root.dot.svg" target="_blank">
-<img src="../../flowr/examples/mandlebrot/root.dot.svg"></a>
+<a href="../../flowr/examples/mandlebrot/mandlebrot.svg" target="_blank">
+<img src="../../flowr/examples/mandlebrot/mandlebrot.svg"></a>
 
 At this level, `parse_args`, `generate_pixels`, and `render` each look like
 a single process with inputs and outputs. The root flow doesn't know or care
@@ -36,13 +36,13 @@ Each sub-flow contains its own processes and connections. For example,
 `render` contains two provided functions (`pixel_to_point` and `escapes`)
 and a context function (`image_buffer`):
 
-<a href="../../flowr/examples/mandlebrot/render.dot.svg" target="_blank">
-<img src="../../flowr/examples/mandlebrot/render.dot.svg"></a>
+<a href="../../flowr/examples/mandlebrot/render.svg" target="_blank">
+<img src="../../flowr/examples/mandlebrot/render.svg"></a>
 
 And `generate_pixels` is built entirely from library functions:
 
-<a href="../../flowr/examples/mandlebrot/generate_pixels.dot.svg" target="_blank">
-<img src="../../flowr/examples/mandlebrot/generate_pixels.dot.svg"></a>
+<a href="../../flowr/examples/mandlebrot/generate_pixels.svg" target="_blank">
+<img src="../../flowr/examples/mandlebrot/generate_pixels.svg"></a>
 
 #### The Hierarchy as a Tree
 
@@ -113,8 +113,8 @@ directly.
 
 The mandelbrot example's function graph looks like this:
 
-<a href="../../flowr/examples/mandlebrot/functions.dot.svg" target="_blank">
-<img src="../../flowr/examples/mandlebrot/functions.dot.svg"></a>
+<a href="../../flowr/examples/mandlebrot/functions.svg" target="_blank">
+<img src="../../flowr/examples/mandlebrot/functions.svg"></a>
 
 Every function from every sub-flow is visible, with all connections resolved.
 This is the graph that is serialized into the `manifest.json` file and loaded

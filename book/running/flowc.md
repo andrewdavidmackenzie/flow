@@ -30,7 +30,7 @@ Options:
   -t, --tables
           Write flow and compiler tables to .dump and .dot files
   -g, --graphs
-          Create .dot files for graphs then generate SVGs with 'dot' command (if available)
+          Generate SVG graph files for flow visualization
   -m, --metrics
           Show flow execution metrics when execution ends
   -w, --wasm
@@ -58,7 +58,7 @@ Options:
 *  `-n, --native` Compile only native (not wasm) implementations when compiling a library
 *  `-L, --libdir <LIB_DIR|BASE_URL>` Add a directory or base Url to the Library Search path
 *  `-t, --tables` Write flow and compiler tables to .dump and .dot files
-*  `-g, --graphs` Create .dot files for graphs then generate SVGs with 'dot' command (if available)
+*  `-g, --graphs` Generate SVG graph files for flow visualization
 *  `-m, --metrics` Show flow execution metrics when execution ends
 *  `-w, --wasm` Use wasm library implementations (not any statically linked native implementations) when executing flow
 *  `-O, --optimize` Optimize generated output (flows and wasm)

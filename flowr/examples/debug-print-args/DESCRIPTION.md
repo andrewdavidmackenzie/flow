@@ -8,4 +8,4 @@ The flow is the same as print-args.
 
 Root Diagram
 ===
-<a href="root.dot.svg" target="_blank"><img src="root.dot.svg"></a>
+<a href="root.svg" target="_blank"><img src="root.svg"></a>

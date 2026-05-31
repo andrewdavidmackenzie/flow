@@ -84,56 +84,24 @@ to = "histogram/value"
 from = "histogram/partial"
 to = "histogram/partial"
 
-# Output statistics to stdout
+# Output statistics to stdout (accepts numbers directly)
 [[process]]
 source = "context://stdio/stdout"
 
-[[process]]
-alias = "format_min"
-source = "lib://flowstdlib/fmt/to_string"
-
 [[connection]]
 from = "find_min/result"
-to = "format_min"
-
-[[connection]]
-from = "format_min"
 to = "stdout"
-
-[[process]]
-alias = "format_max"
-source = "lib://flowstdlib/fmt/to_string"
 
 [[connection]]
 from = "find_max/result"
-to = "format_max"
-
-[[connection]]
-from = "format_max"
 to = "stdout"
-
-[[process]]
-alias = "format_avg"
-source = "lib://flowstdlib/fmt/to_string"
 
 [[connection]]
 from = "find_avg/result"
-to = "format_avg"
-
-[[connection]]
-from = "format_avg"
 to = "stdout"
-
-[[process]]
-alias = "format_count"
-source = "lib://flowstdlib/fmt/to_string"
 
 [[connection]]
 from = "find_avg/count"
-to = "format_count"
-
-[[connection]]
-from = "format_count"
 to = "stdout"
 
 ########################################################################

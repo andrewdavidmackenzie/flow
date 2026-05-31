@@ -9,7 +9,6 @@ To build and test flow you need:
 - Rust toolchain (`rustup`, `cargo`, `rustc`) with the `wasm32-unknown-unknown` target
 - `clippy` for lint checks
 - `zmq` (Zero Message Queue) library
-- `graphviz` for generating SVG diagrams
 - `mdbook` and `mdbook-linkcheck` for building the book
 
 ## Getting Started
