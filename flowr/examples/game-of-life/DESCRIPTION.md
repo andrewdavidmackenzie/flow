@@ -15,6 +15,12 @@ Root Diagram
 
 Click image to navigate flow hierarchy.
 
+Functions Diagram
+===
+<a href="functions.dot.svg" target="_blank"><img src="functions.dot.svg"></a>
+
+Click image to view functions graph.
+
 Features Used
 ===
 * Root Flow
