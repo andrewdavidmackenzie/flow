@@ -727,6 +727,7 @@ impl FlowrGui {
                 self.send(ClientMessage::Ack);
             }
             CoordinatorMessage::FlowEnd(metrics) => {
+                self.running = false;
                 self.submitted = false;
                 self.pending_getline = false;
                 connection_manager::set_job_count(0);
