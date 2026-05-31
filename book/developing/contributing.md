@@ -1,37 +1,46 @@
-## Contributing
-There are many ways of contributing:
-- adding an issue with a bug report of an enhancement request or new feature idea
-- pick up an
-[issue](https://github.com/users/andrewdavidmackenzie/projects/2/views/1) and try 
-and fix it (I am not very good at labelling these, but will try)
-- adding to or correcting the code documentation or the book
-- adding a new example
-- improvements to the libraries, compiler, standard library, run-time
-- improvements to unit or integration tests
-- improvements to build processes
+# Contributing
 
-To get started, fork the [repo](http://github.com/andrewdavidmackenzie/flow), 
-clone it locally and build from source, as described in [building](building.md).
+There are many ways to contribute:
+- Report bugs or suggest features by creating an [issue](https://github.com/andrewdavidmackenzie/flow/issues)
+- Pick up an existing issue and submit a fix
+- Add or improve documentation, examples, or tests
+- Improve the compiler, runtime, or standard library
 
-Maybe run an example or two. Samples that don't require specific arguments or standard 
-input to work correctly (such as fibonacci) are the easiest to get started.
+## Getting Started
+1. Fork the [repo](http://github.com/andrewdavidmackenzie/flow) and clone locally
+2. Build from source (see [Developing flow](overview.md))
+3. Run an example or two (fibonacci is a good starting point)
+4. Choose an issue from the [GitHub project](https://github.com/users/andrewdavidmackenzie/projects/2/views/1)
 
-Then, once you know everything is working correctly, chose an issue to work on 
-from the [GitHub project kanban](https://github.com/users/andrewdavidmackenzie/projects/2/views/1).
+## Working on an Issue
+- If no issue exists for your change, create one first
+- Add a comment to the issue so others know you're working on it
+- Create a branch for the issue in your fork
+- Make your changes and update tests, docs, and examples as needed
 
-Create a branch to work on, and dive in. Try to make descriptive commit messages
-of limited scope, and stick to the scope of the issue.
+## Before Pushing
+Run the full build and test locally:
+```bash
+make
+```
 
-Make sure all code builds, there are no clippy errors, tests pass, and the books builds,
-before pushing, by running `make`.
+This checks that code builds, clippy passes without warnings, all tests pass,
+and the book builds with valid links.
 
-When you think you are done, you can create a Pull-Request to the upstream project.
-If you include "Fixes #xyq" in the PR description, it will close the issue "xyz"
-when it is merged.
+## Submitting a PR
+- Reference the issue in your PR description (e.g., "Fixes #123")
+- Wait for CI to pass on all platforms
+- For work-in-progress, prefix the PR title with "WIP - "
 
-If you are not sure if it is ready or want some early feedback, prefix the name of the 
-PR with "WIP - " and I will know it's not intended to be merged yet.
+## Continuous Integration
+CI runs on every push to a branch or PR and checks:
+- Unit tests, integration tests, and doc-tests
+- All examples compile, run, and produce expected output
+- Clippy passes without warnings
+- The book builds with no broken links
 
-If in doubt, just reach out to me by email to andrew@mackenzie-serres.net, create an
-issue in GitHub, comment an existing issue or message me on matrix
-(andrewdavidmackenzie:matrix.org).
+## Contact
+If in doubt, reach out via:
+- [GitHub issues](https://github.com/andrewdavidmackenzie/flow/issues)
+- Email: andrew@mackenzie-serres.net
+- Matrix: andrewdavidmackenzie:matrix.org

@@ -157,19 +157,12 @@
 
 # Developing `flow`
 - [Developing flow](book/developing/overview.md)
-- [Pre-requisites](book/developing/prereqs.md)
-- [Building](book/developing/building.md)
-- [Main Crates](book/developing/crates.md)
     - [flowcore](flowcore/README.md)
     - [flowmacro](flowmacro/README.md)
     - [flowc](flowc/README.md)
       - [Flowc Compiler and Parser Test flows](flowc/tests/test-flows/README.md)
     - [flowr](flowr/README.md)
-- [Makefile targets](book/developing/make.md)
-- [Ways to contribute](book/developing/contributing.md)
-    - [Issues](book/developing/issues.md)
-    - [PRs](book/developing/prs.md)
-    - [Continuous Integration Tests](book/developing/ci.md)
+- [Contributing](book/developing/contributing.md)
         
 # Internals of the `flow` Project
 - [Internals of flow](book/internals/overview.md)
