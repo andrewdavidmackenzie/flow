@@ -68,6 +68,10 @@ pub struct Input {
     // How many values at the front of `received` are from internal connections
     #[serde(skip)]
     internal_count: usize,
+
+    // Remaining elements from an array initializer for gradual delivery
+    #[serde(skip)]
+    pending_init_elements: Vec<Value>,
 }
 
 #[allow(clippy::trivially_copy_pass_by_ref)] // As this is imposed on us by serde
@@ -131,6 +135,7 @@ impl Input {
             flow_initializer,
             received: Vec::new(),
             internal_count: 0,
+            pending_init_elements: Vec::new(),
         }
     }
 
@@ -150,6 +155,7 @@ impl Input {
             flow_initializer,
             received: Vec::new(),
             internal_count: 0,
+            pending_init_elements: Vec::new(),
         }
     }
 
@@ -178,14 +184,42 @@ impl Input {
         &self.flow_initializer
     }
 
+    /// Check if an initializer value should be delivered gradually (one element per idle cycle)
+    /// Returns true if the value is an array with higher array order than this input accepts
+    fn should_deliver_gradually(&self, value: &Value) -> bool {
+        !self.generic && value.is_array() && DataType::value_array_order(value) > self.array_order()
+    }
+
+    /// Send one element from an array initializer, keeping the rest for later
+    fn send_one_element(&mut self, value: &Value) -> bool {
+        if let Value::Array(elements) = value {
+            if let Some(first) = elements.first() {
+                self.send(first.clone());
+                self.pending_init_elements = elements.iter().skip(1).cloned().collect();
+                return true;
+            }
+        }
+        false
+    }
+
     /// Initialize an input with the `InputInitializer` if it has one, either on the function
     /// directly or via a connection from a flow input
     /// When called at start-up    it will initialize      if it's a `Once` or `Always` initializer
     /// When called after start-up it will initialize only if it's a           `Always` initializer
     #[allow(clippy::match_same_arms)]
     pub fn init(&mut self, first_time: bool, flow_gone_idle: bool) -> bool {
+        // Deliver pending elements from a previous gradual init
+        if flow_gone_idle && !self.pending_init_elements.is_empty() {
+            let next = self.pending_init_elements.remove(0);
+            self.send(next);
+            return true;
+        }
+
         match (first_time, flow_gone_idle, &self.initializer) {
             (true, false, Some(Once(one_time))) => {
+                if self.should_deliver_gradually(one_time) {
+                    return self.send_one_element(&one_time.clone());
+                }
                 self.send(one_time.clone());
                 return true;
             }
@@ -200,6 +234,9 @@ impl Input {
         // applied
         match (first_time, flow_gone_idle, &self.flow_initializer) {
             (true, _, Some(Once(one_time))) => {
+                if self.should_deliver_gradually(one_time) {
+                    return self.send_one_element(&one_time.clone());
+                }
                 self.send(one_time.clone());
                 return true;
             }
@@ -525,6 +562,54 @@ mod test {
         input.init(false, false);
 
         assert_eq!(input.take(), Some(json!(1)));
+        assert!(input.is_empty());
+    }
+
+    #[test]
+    fn gradual_init_array_on_number_input() {
+        let mut input = Input::new(
+            #[cfg(feature = "debugger")]
+            "",
+            0,
+            false,
+            Some(Once(json!([1, 2, 3]))),
+            None,
+        );
+
+        // First init: sends only element 0
+        input.init(true, false);
+        assert_eq!(input.take(), Some(json!(1)));
+        assert!(input.is_empty());
+
+        // Idle cycle: sends element 1
+        input.init(false, true);
+        assert_eq!(input.take(), Some(json!(2)));
+        assert!(input.is_empty());
+
+        // Idle cycle: sends element 2
+        input.init(false, true);
+        assert_eq!(input.take(), Some(json!(3)));
+        assert!(input.is_empty());
+
+        // No more elements
+        input.init(false, true);
+        assert!(input.is_empty());
+    }
+
+    #[test]
+    fn non_gradual_array_on_array_input() {
+        // array/number input receiving array/number value — same order, send whole array
+        let mut input = Input::new(
+            #[cfg(feature = "debugger")]
+            "",
+            1,
+            false,
+            Some(Once(json!([1, 2, 3]))),
+            None,
+        );
+
+        input.init(true, false);
+        assert_eq!(input.take(), Some(json!([1, 2, 3])));
         assert!(input.is_empty());
     }
 }
