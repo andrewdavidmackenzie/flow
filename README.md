@@ -12,7 +12,9 @@ flow program to generate a sequence of fibonacci numbers.
 
 If you are a programmer, your intuition will probably tell you a lot already about how `flow` works
 without any explanation.
-![First flow](first.svg)
+<div align="center">
+<img src="first.svg" alt="First flow" style="border: 1px solid #ddd; border-radius: 8px; padding: 16px; background: #f8f8f8;">
+</div>
 This flow program generates a fibonacci series on standard output.
 It is one of the examples ([fibonacci](flowr/examples/fibonacci/DESCRIPTION.md)) in the `flowr` crate 
 that is part of the`flow` project, and the first thing I got working (much to my own delight!).
