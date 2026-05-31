@@ -70,6 +70,10 @@ impl SubmissionHandler for CLISubmissionHandler {
         }
     }
 
+    fn jobs_created(&mut self, count: usize) {
+        connection_manager::set_job_count(count);
+    }
+
     fn flow_execution_ended(&mut self, state: &RunState, metrics: Metrics) -> Result<()> {
         self.coordinator_connection
             .lock()
