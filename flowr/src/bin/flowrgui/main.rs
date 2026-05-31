@@ -192,6 +192,7 @@ struct FlowrGui {
     show_modal: bool,
     modal_content: (String, String),
     pending_getline: bool,
+    message_count: usize,
 }
 
 impl FlowrGui {
@@ -212,6 +213,7 @@ impl FlowrGui {
             show_modal: false,
             modal_content: (String::new(), String::new()),
             pending_getline: false,
+            message_count: 0,
         };
 
         (flowrgui, Task::none())
@@ -466,7 +468,11 @@ impl FlowrGui {
             }
         };
 
-        Row::new().push(Text::new(format!("Coordinator: {status}")))
+        let mut row = Row::new().push(Text::new(format!("Coordinator: {status}")));
+        if self.running {
+            row = row.push(Text::new(format!("    Messages: {}", self.message_count)));
+        }
+        row
     }
 
     // Create initial Settings structs for Submission and Coordinator from the CLI options
@@ -709,6 +715,9 @@ impl FlowrGui {
 
     #[allow(clippy::too_many_lines)]
     fn process_coordinator_message(&mut self, message: CoordinatorMessage) -> Task<Message> {
+        if self.running {
+            self.message_count += 1;
+        }
         match message {
             CoordinatorMessage::Connected(_) => {
                 self.error("Coordinator is already connected");
@@ -716,11 +725,13 @@ impl FlowrGui {
             CoordinatorMessage::FlowStart => {
                 self.running = true;
                 self.submitted = false;
+                self.message_count = 0;
                 self.send(ClientMessage::Ack);
             }
             CoordinatorMessage::FlowEnd(metrics) => {
                 self.submitted = false;
                 self.pending_getline = false;
+                self.message_count = 0;
                 self.tab_set.stdin_tab.waiting_for_input = false;
                 if self.submission_settings.display_metrics {
                     self.show_modal = true;
@@ -1038,6 +1049,7 @@ mod test {
             show_modal: false,
             modal_content: (String::new(), String::new()),
             pending_getline: false,
+            message_count: 0,
         }
     }
 
