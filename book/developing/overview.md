@@ -15,7 +15,7 @@ To build and test flow you need:
 ## Getting Started
 
 ### Clone the repo
-```
+```bash
 git clone https://github.com/andrewdavidmackenzie/flow.git
 ```
 
@@ -23,7 +23,7 @@ git clone https://github.com/andrewdavidmackenzie/flow.git
 You need `make` and a Rust toolchain (I suggest [rustup](https://rustup.rs/)).
 Once you have those, install the remaining dependencies with:
 
-```
+```bash
 make config
 ```
 
@@ -31,7 +31,7 @@ This installs the wasm target, clippy, graphviz, mdbook, and other tools.
 It works on macOS and Linux variants using `apt-get` or `yum`.
 
 ### Build and test
-```
+```bash
 make
 ```
 

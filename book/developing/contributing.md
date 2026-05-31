@@ -20,7 +20,7 @@ There are many ways to contribute:
 
 ## Before Pushing
 Run the full build and test locally:
-```
+```bash
 make
 ```
 
