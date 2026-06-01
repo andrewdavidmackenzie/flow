@@ -205,16 +205,22 @@ impl Tab for StdOutTab {
             .on_toggle(|v| Message::StdioAutoScrollTogglerChanged(self.id.clone(), v))
             .width(Length::Shrink);
 
-        let save_button =
-            Button::new(Text::new("Save")).on_press(Message::SaveTabContent(self.name.clone()));
-        let clear_button =
-            Button::new(Text::new("Clear")).on_press(Message::ClearTab(self.name.clone()));
+        let save_button = Button::new(Text::new("Save"))
+            .on_press(Message::SaveTabContent(self.name.clone()))
+            .style(crate::theme::styled_button)
+            .padding([4, 12]);
+        let clear_button = Button::new(Text::new("Clear"))
+            .on_press(Message::ClearTab(self.name.clone()))
+            .style(crate::theme::styled_button)
+            .padding([4, 12]);
 
         let toolbar = Row::new()
             .push(toggler)
             .push(save_button)
             .push(clear_button)
-            .spacing(10);
+            .spacing(10)
+            .padding(4)
+            .align_y(iced::alignment::Vertical::Center);
 
         Column::new().push(toolbar).push(scrollable).into()
     }
@@ -304,8 +310,10 @@ impl Tab for ImageTab {
                     u16::try_from(display_height.min(300)).unwrap_or(300),
                 )));
             let label = format!("{name} ({}x{})", image_ref.width, image_ref.height);
-            let save_button =
-                Button::new(Text::new("Save")).on_press(Message::SaveImage(name.clone()));
+            let save_button = Button::new(Text::new("Save"))
+                .on_press(Message::SaveImage(name.clone()))
+                .style(crate::theme::styled_button)
+                .padding([4, 12]);
             let header = Row::new()
                 .push(Text::new(label))
                 .push(save_button)
@@ -403,9 +411,11 @@ impl Tab for StdInTab {
                 .width(Length::Fill)
                 .padding(1);
 
-        let save_button =
-            Button::new(Text::new("Save")).on_press(Message::SaveTabContent(self.name.clone()));
-        let toolbar = Row::new().push(save_button).spacing(10);
+        let save_button = Button::new(Text::new("Save"))
+            .on_press(Message::SaveTabContent(self.name.clone()))
+            .style(crate::theme::styled_button)
+            .padding([4, 12]);
+        let toolbar = Row::new().push(save_button).spacing(10).padding(4);
 
         let text_input = TextInput::new("Enter new line of Standard input", &self.text)
             .on_input(Message::NewStdin)
@@ -413,7 +423,10 @@ impl Tab for StdInTab {
             .on_submit(Message::LineOfStdin(self.text.clone()))
             .width(Length::Fill)
             .padding(10);
-        let eof_button = Button::new(Text::new("EOF")).on_press(Message::SendEof);
+        let eof_button = Button::new(Text::new("EOF"))
+            .on_press(Message::SendEof)
+            .style(crate::theme::styled_button)
+            .padding([4, 12]);
         let input_row = Row::new().push(text_input).push(eof_button).spacing(5);
         let scrollable = Scrollable::new(text_column)
             .height(Length::Fill)

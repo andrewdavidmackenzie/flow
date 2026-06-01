@@ -75,6 +75,9 @@ mod tabs;
 /// to get access to everything `error_chain` creates.
 mod errors;
 
+/// custom widget styling
+mod theme;
+
 /// [Message] enum captures all the types of messages that are sent to and processed by the
 /// `flowrgui` Iced Application
 #[derive(Debug, Clone)]
@@ -127,11 +130,31 @@ enum CoordinatorState {
     Connected(tokio::sync::mpsc::Sender<ClientMessage>),
 }
 
+/// Detect if the system prefers dark mode.
+fn dark_mode_enabled() -> bool {
+    #[cfg(target_os = "macos")]
+    {
+        // Check macOS dark mode via `defaults read`
+        std::process::Command::new("defaults")
+            .args(["read", "-g", "AppleInterfaceStyle"])
+            .output()
+            .map_or(true, |o| {
+                String::from_utf8_lossy(&o.stdout).contains("Dark")
+            })
+    }
+    #[cfg(not(target_os = "macos"))]
+    {
+        // Default to dark on Linux/other
+        true
+    }
+}
+
 /// Main for flowrgui binary - call `run()` and print any error that results or exit silently if OK
 fn main() -> iced::Result {
     iced::application(FlowrGui::new, FlowrGui::update, FlowrGui::view)
         .subscription(FlowrGui::subscription)
         .title(FlowrGui::title)
+        .theme(FlowrGui::theme)
         .antialiasing(true)
         .run()
 }
@@ -220,6 +243,15 @@ impl FlowrGui {
     #[allow(clippy::unused_self)]
     fn title(&self) -> String {
         String::from("flowrgui")
+    }
+
+    #[allow(clippy::unused_self)]
+    fn theme(&self) -> iced::Theme {
+        if dark_mode_enabled() {
+            iced::Theme::CatppuccinMocha
+        } else {
+            iced::Theme::CatppuccinLatte
+        }
     }
 
     fn update(&mut self, message: Message) -> Task<Message> {
@@ -325,11 +357,11 @@ impl FlowrGui {
 
     fn view(&self) -> Element<'_, Message> {
         let main_content = Column::new()
-            .spacing(10)
+            .spacing(12)
             .push(self.command_row())
             .push(self.tab_set.view())
             .push(self.status_row())
-            .padding(10);
+            .padding(16);
 
         if self.show_modal {
             let modal_card = Card::new(
@@ -429,23 +461,31 @@ impl FlowrGui {
             && !self.submitted;
 
         let play = if self.running {
-            Button::new("Stop").on_press(Message::StopFlow)
+            Button::new(Text::new("\u{23F9} Stop"))
+                .on_press(Message::StopFlow)
+                .style(theme::styled_button)
+                .padding([6, 16])
         } else {
-            let mut btn = Button::new("Play");
+            let mut btn = Button::new(Text::new("\u{25B6} Play"))
+                .style(theme::styled_button)
+                .padding([6, 16]);
             if can_run {
                 btn = btn.on_press(Message::SubmitFlow);
             }
             btn
         };
 
-        let mut debug_play = Button::new("Debug");
+        let mut debug_play = Button::new(Text::new("\u{1F41B} Debug"))
+            .style(theme::styled_button)
+            .padding([6, 16]);
         if can_run {
             debug_play = debug_play.on_press(Message::DebugSubmitFlow);
         }
 
         Row::new()
             .spacing(10)
-            .align_y(iced::alignment::Vertical::Bottom)
+            .padding(5)
+            .align_y(iced::alignment::Vertical::Center)
             .push(url)
             .push(args)
             .push(max_jobs)
@@ -454,24 +494,25 @@ impl FlowrGui {
     }
 
     fn status_row(&self) -> Row<'_, Message> {
-        let status = match &self.coordinator_state {
-            CoordinatorState::Disconnected(reason) => format!("Disconnected({reason})"),
-            CoordinatorState::Connected(_) => {
-                let msg = match (self.submitted, self.running) {
-                    (false, false) => "Ready",
-                    (_, true) => "Running",
-                    (true, false) => "Submitted",
-                };
-                format!("Connected({msg})")
+        let (indicator, status) = match &self.coordinator_state {
+            CoordinatorState::Disconnected(reason) => {
+                ("\u{1F534}", format!("Disconnected({reason})"))
             }
+            CoordinatorState::Connected(_) => match (self.submitted, self.running) {
+                (false, false) => ("\u{1F7E2}", "Ready".to_string()),
+                (_, true) => ("\u{1F535}", "Running".to_string()),
+                (true, false) => ("\u{1F7E1}", "Submitted".to_string()),
+            },
         };
 
-        let mut row = Row::new().push(Text::new(format!("Coordinator: {status}")));
+        let mut row = Row::new()
+            .spacing(8)
+            .align_y(iced::alignment::Vertical::Center)
+            .push(Text::new(indicator))
+            .push(Text::new(status).size(13));
         if self.running {
-            row = row.push(Text::new(format!(
-                "    Jobs: {}",
-                connection_manager::get_job_count()
-            )));
+            row = row
+                .push(Text::new(format!("Jobs: {}", connection_manager::get_job_count())).size(13));
         }
         row
     }
