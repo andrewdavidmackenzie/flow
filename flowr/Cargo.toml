@@ -77,7 +77,7 @@ rustyline = {version = "18.0.0", optional = true } # for debugger
 
 [dev-dependencies]
 tempfile = "3"
-serial_test = "3.4.0"
+serial_test = "3.5.0"
 portpicker = "0.1.1"
 iced_test = "0.14.0"
 # These two are needed for examples
