@@ -1,0 +1,10 @@
+function = "double"
+source = "double.rs"
+description = "Double a number"
+type = "rust"
+
+[[input]]
+name = "value"
+
+[[input.type]]
+string = "number"

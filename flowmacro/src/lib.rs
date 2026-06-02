@@ -23,12 +23,23 @@ use flowcore::model::name::HasName;
 /// Will panic if the file path of the source file where the macro was used cannot be determined.
 #[proc_macro_attribute]
 pub fn flow_function(_attr: TokenStream, implementation: TokenStream) -> TokenStream {
-    let mut definition_file_path = Span::call_site()
+    let source_file = Span::call_site()
         .local_file()
         .expect("the 'flow' macro could not get the file path where macro was invoked");
+
+    let mut definition_file_path = source_file.clone();
     definition_file_path.set_extension("toml");
 
-    let function_definition = load_function_definition(&definition_file_path);
+    let function_definition = if definition_file_path.exists() {
+        load_function_definition(&definition_file_path)
+    } else {
+        let impl_clone: proc_macro2::TokenStream = implementation.clone().into();
+        let ast =
+            syn::parse2::<ItemFn>(impl_clone).expect("flow_function: could not parse function");
+        let def = generate_function_definition(&ast, &source_file);
+        write_function_definition(&def, &definition_file_path);
+        def
+    };
 
     generate_code(implementation, &function_definition)
 }
@@ -47,6 +58,121 @@ fn load_function_definition(path: &Path) -> FunctionDefinition {
             path.display()
         )
     })
+}
+
+/// Generate a `FunctionDefinition` from the function's signature and doc comments.
+fn generate_function_definition(ast: &ItemFn, source_file: &Path) -> FunctionDefinition {
+    let fn_name = ast.sig.ident.to_string();
+    let name = fn_name
+        .strip_prefix("inner_")
+        .unwrap_or(&fn_name)
+        .to_string();
+
+    let source = source_file
+        .file_name()
+        .map(|f| f.to_string_lossy().to_string())
+        .unwrap_or_default();
+
+    // Extract description from doc comments
+    let description = ast
+        .attrs
+        .iter()
+        .filter_map(|attr| {
+            if attr.path().is_ident("doc") {
+                attr.meta.require_name_value().ok().and_then(|nv| {
+                    if let syn::Expr::Lit(syn::ExprLit {
+                        lit: syn::Lit::Str(s),
+                        ..
+                    }) = &nv.value
+                    {
+                        Some(s.value().trim().to_string())
+                    } else {
+                        None
+                    }
+                })
+            } else {
+                None
+            }
+        })
+        .collect::<Vec<_>>()
+        .join(" ");
+
+    // Check for docs .md file
+    let mut docs_path = source_file.to_path_buf();
+    docs_path.set_extension("md");
+    let docs = if docs_path.exists() {
+        docs_path
+            .file_name()
+            .map(|f| f.to_string_lossy().to_string())
+            .unwrap_or_default()
+    } else {
+        String::new()
+    };
+
+    // Build inputs from typed parameters
+    let inputs = build_inputs_from_signature(ast);
+
+    // Default: single unnamed output (most common case)
+    let outputs = flowcore::model::io::IOSet::default();
+
+    let mut def = FunctionDefinition::default();
+    def.name = name;
+    def.source = source;
+    def.docs = docs;
+    def.description = description;
+    def.build_type = "rust".to_string();
+    def.inputs = inputs;
+    def.outputs = outputs;
+    def
+}
+
+/// Build an `IOSet` from the function's typed parameters.
+fn build_inputs_from_signature(ast: &ItemFn) -> flowcore::model::io::IOSet {
+    use flowcore::model::datatype::DataType;
+    use flowcore::model::io::IO;
+
+    let mut ios = Vec::new();
+
+    for fn_arg in &ast.sig.inputs {
+        if let FnArg::Typed(pat_type) = fn_arg {
+            let param_name = match pat_type.pat.as_ref() {
+                Pat::Ident(pat_ident) => pat_ident.ident.to_string(),
+                _ => String::new(),
+            };
+
+            let type_str = pat_type.ty.to_token_stream().to_string();
+            let flow_type = rust_type_to_flow_type(&type_str);
+
+            let mut io = IO::new(vec![DataType::from(flow_type.as_str())], "");
+            io.set_name(param_name);
+            ios.push(io);
+        }
+    }
+
+    flowcore::model::io::IOSet::from(ios)
+}
+
+/// Map a Rust parameter type string to a flow type string.
+fn rust_type_to_flow_type(type_str: &str) -> String {
+    match type_str {
+        "& Number" | "& serde_json :: Number" | "f64" | "i64" => "number".to_string(),
+        "bool" => "boolean".to_string(),
+        "& str" => "string".to_string(),
+        _ => String::new(),
+    }
+}
+
+/// Write a generated `FunctionDefinition` to a TOML file.
+fn write_function_definition(def: &FunctionDefinition, path: &Path) {
+    let toml_str = toml::to_string_pretty(def).unwrap_or_else(|e| {
+        panic!("flow_function: could not serialize generated definition to TOML: {e}")
+    });
+    fs::write(path, toml_str).unwrap_or_else(|e| {
+        panic!(
+            "flow_function: could not write generated definition to '{}': {e}",
+            path.display()
+        )
+    });
 }
 
 /// Determines how to call the implementation function based on its signature.

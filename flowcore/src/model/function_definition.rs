@@ -18,6 +18,11 @@ use crate::model::route::SetIORoutes;
 use crate::model::route::SetRoute;
 use crate::model::validation::Validate;
 
+#[allow(clippy::trivially_copy_pass_by_ref)]
+fn is_false(b: &bool) -> bool {
+    !b
+}
+
 /// `FunctionDefinition` defines a Function (compile time) that implements some processing in the flow hierarchy
 #[derive(Serialize, Deserialize, Debug, Clone)]
 #[serde(deny_unknown_fields)]
@@ -26,15 +31,15 @@ pub struct FunctionDefinition {
     #[serde(rename = "function")]
     pub name: Name,
     /// Is this an impure function that interacts with the environment
-    #[serde(default)]
+    #[serde(default, skip_serializing_if = "is_false")]
     pub impure: bool,
     /// Name of the source file for the function implementation
     pub source: String,
     /// Name of any docs file associated with this Function
-    #[serde(default)]
+    #[serde(default, skip_serializing_if = "String::is_empty")]
     pub docs: String,
     /// Optional description of what this function does
-    #[serde(default)]
+    #[serde(default, skip_serializing_if = "String::is_empty")]
     pub description: String,
     /// Type of build used to compile Function's implementation to WASM from source
     #[serde(default, rename = "type")]
@@ -43,7 +48,7 @@ pub struct FunctionDefinition {
     #[serde(default, rename = "input")]
     pub inputs: IOSet,
     /// The set of outputs this function generates when executed
-    #[serde(default, rename = "output")]
+    #[serde(default, rename = "output", skip_serializing_if = "Vec::is_empty")]
     pub outputs: IOSet,
     /// As a function can be used multiple times in a single flow, the repeated instances must
     /// be referred to using an alias to disambiguate which instance is being referred to
