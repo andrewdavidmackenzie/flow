@@ -513,4 +513,45 @@ mod test {
 
         assert!(library1 == library2);
     }
+
+    #[test]
+    fn remove_existing_locator() {
+        let mut manifest = LibraryManifest::new(
+            Url::parse("lib://test").expect("valid url"),
+            test_meta_data(),
+        );
+        manifest
+            .add_locator(
+                "bin/my.wasm",
+                "bin",
+                #[cfg(feature = "debugger")]
+                "/users/me/myproject/bin/my.rs",
+            )
+            .expect("Could not add to manifest");
+        assert_eq!(manifest.locators.len(), 1);
+
+        let locator_url = Url::parse("lib://test/bin").expect("valid url");
+        manifest.remove_locator(&locator_url);
+        assert_eq!(manifest.locators.len(), 0);
+    }
+
+    #[test]
+    fn remove_nonexistent_locator_is_noop() {
+        let mut manifest = LibraryManifest::new(
+            Url::parse("lib://test").expect("valid url"),
+            test_meta_data(),
+        );
+        manifest
+            .add_locator(
+                "bin/my.wasm",
+                "bin",
+                #[cfg(feature = "debugger")]
+                "/users/me/myproject/bin/my.rs",
+            )
+            .expect("Could not add to manifest");
+
+        let nonexistent = Url::parse("lib://test/nonexistent").expect("valid url");
+        manifest.remove_locator(&nonexistent);
+        assert_eq!(manifest.locators.len(), 1);
+    }
 }

@@ -580,8 +580,17 @@ pub(crate) fn load_editor_prefs(flow_path: &Path) -> Option<EditorPrefs> {
 /// Move a directory, falling back to recursive copy + remove if `rename` fails
 /// (e.g. across filesystem boundaries).
 pub(crate) fn move_directory(src: &Path, dest: &Path) -> Result<(), String> {
-    if std::fs::rename(src, dest).is_ok() {
-        return Ok(());
+    match std::fs::rename(src, dest) {
+        Ok(()) => return Ok(()),
+        // EXDEV (18) — cross-device link, fall back to copy+remove
+        Err(e) if e.raw_os_error() == Some(18) => {}
+        Err(e) => {
+            return Err(format!(
+                "Could not move {} to {}: {e}",
+                src.display(),
+                dest.display()
+            ));
+        }
     }
     copy_dir_recursive(src, dest)?;
     std::fs::remove_dir_all(src).map_err(|e| format!("Could not remove source after copy: {e}"))

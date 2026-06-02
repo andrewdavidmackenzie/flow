@@ -601,8 +601,6 @@ impl FlowEdit {
     }
 
     fn handle_library_delete(&mut self, source: &str) {
-        use flowcore::provider::Provider;
-
         let Ok(source_url) = Url::parse(source) else {
             return;
         };
@@ -642,8 +640,6 @@ impl FlowEdit {
     }
 
     fn handle_library_move(&mut self, source: &str) {
-        use flowcore::provider::Provider;
-
         let Ok(source_url) = Url::parse(source) else {
             return;
         };
@@ -684,21 +680,24 @@ impl FlowEdit {
         let lib_url =
             Url::parse(&format!("lib://{lib_name}")).unwrap_or_else(|_| source_url.clone());
         if let Some(manifest) = self.library_cache.get_mut(&lib_url) {
-            manifest.remove_locator(&source_url);
             let manifest_path = dest_dir
                 .ancestors()
                 .find(|p| p.join("manifest.json").exists())
                 .map(|p| p.join("manifest.json"));
 
-            if let Some(ref mp) = manifest_path {
-                if let Some(lib_root) = mp.parent() {
-                    if let Ok(rel) = dest_dir.strip_prefix(lib_root) {
-                        let new_ref = rel.to_string_lossy().replace('\\', "/");
-                        let wasm_name = format!("{func_dir_name}.wasm");
-                        let wasm_rel = format!("{new_ref}/{wasm_name}");
-                        let _ = manifest.add_locator(&wasm_rel, &new_ref, "");
-                    }
-                }
+            let added = manifest_path
+                .as_ref()
+                .and_then(|mp| mp.parent())
+                .and_then(|lib_root| dest_dir.strip_prefix(lib_root).ok())
+                .is_some_and(|rel| {
+                    let new_ref = rel.to_string_lossy().replace('\\', "/");
+                    let wasm_name = format!("{func_dir_name}.wasm");
+                    let wasm_rel = format!("{new_ref}/{wasm_name}");
+                    manifest.add_locator(&wasm_rel, &new_ref, "").is_ok()
+                });
+
+            if added {
+                manifest.remove_locator(&source_url);
             }
             if let Some(path) = manifest_path {
                 if let Err(e) = manifest.write_json(&path) {
