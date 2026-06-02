@@ -632,7 +632,9 @@ impl FlowEdit {
                 .find(|p| p.join("manifest.json").exists())
                 .map(|p| p.join("manifest.json"));
             if let Some(path) = manifest_path {
-                let _ = manifest.write_json(&path);
+                if let Err(e) = manifest.write_json(&path) {
+                    warn!("Could not write manifest {}: {e}", path.display());
+                }
             }
         }
 
@@ -673,7 +675,7 @@ impl FlowEdit {
             return;
         }
 
-        if let Err(e) = std::fs::rename(func_dir, &dest_dir) {
+        if let Err(e) = file_ops::move_directory(func_dir, &dest_dir) {
             warn!("Could not move {}: {e}", func_dir.display());
             return;
         }
@@ -688,7 +690,6 @@ impl FlowEdit {
                 .find(|p| p.join("manifest.json").exists())
                 .map(|p| p.join("manifest.json"));
 
-            // Compute new lib reference path from the destination relative to lib root
             if let Some(ref mp) = manifest_path {
                 if let Some(lib_root) = mp.parent() {
                     if let Ok(rel) = dest_dir.strip_prefix(lib_root) {
@@ -700,7 +701,9 @@ impl FlowEdit {
                 }
             }
             if let Some(path) = manifest_path {
-                let _ = manifest.write_json(&path);
+                if let Err(e) = manifest.write_json(&path) {
+                    warn!("Could not write manifest {}: {e}", path.display());
+                }
             }
         }
 

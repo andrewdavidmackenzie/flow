@@ -157,7 +157,10 @@ impl LibraryManifest {
         Ok(())
     }
 
-    /// Remove a locator from the manifest by its library URL
+    /// Remove a locator from the manifest by its library URL.
+    ///
+    /// If the locator is a `RelativePath`, the corresponding entry in `source_urls` is also removed.
+    /// If the locator does not exist, this method does nothing.
     pub fn remove_locator(&mut self, locator_url: &Url) {
         if let Some(ImplementationLocator::RelativePath(rel_path)) =
             self.locators.remove(locator_url)

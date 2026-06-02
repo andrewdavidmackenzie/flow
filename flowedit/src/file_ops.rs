@@ -577,6 +577,34 @@ pub(crate) fn load_editor_prefs(flow_path: &Path) -> Option<EditorPrefs> {
     })
 }
 
+/// Move a directory, falling back to recursive copy + remove if `rename` fails
+/// (e.g. across filesystem boundaries).
+pub(crate) fn move_directory(src: &Path, dest: &Path) -> Result<(), String> {
+    if std::fs::rename(src, dest).is_ok() {
+        return Ok(());
+    }
+    copy_dir_recursive(src, dest)?;
+    std::fs::remove_dir_all(src).map_err(|e| format!("Could not remove source after copy: {e}"))
+}
+
+fn copy_dir_recursive(src: &Path, dest: &Path) -> Result<(), String> {
+    std::fs::create_dir_all(dest)
+        .map_err(|e| format!("Could not create {}: {e}", dest.display()))?;
+    let entries =
+        std::fs::read_dir(src).map_err(|e| format!("Could not read {}: {e}", src.display()))?;
+    for entry in entries {
+        let entry = entry.map_err(|e| format!("Could not read entry: {e}"))?;
+        let dest_path = dest.join(entry.file_name());
+        if entry.file_type().is_ok_and(|ft| ft.is_dir()) {
+            copy_dir_recursive(&entry.path(), &dest_path)?;
+        } else {
+            std::fs::copy(entry.path(), &dest_path)
+                .map_err(|e| format!("Could not copy {}: {e}", entry.path().display()))?;
+        }
+    }
+    Ok(())
+}
+
 #[cfg(test)]
 #[allow(clippy::unwrap_used, clippy::expect_used)]
 #[allow(clippy::indexing_slicing)]
