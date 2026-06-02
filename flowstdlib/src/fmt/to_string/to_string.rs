@@ -4,6 +4,7 @@ use flowcore::errors::Result;
 use flowcore::{RunAgain, RUN_AGAIN};
 use flowmacro::flow_function;
 
+#[allow(clippy::unnecessary_wraps)]
 #[flow_function]
 fn inner_to_string(input: &Value) -> Result<(Option<Value>, RunAgain)> {
     Ok((Some(json!(input.to_string())), RUN_AGAIN))

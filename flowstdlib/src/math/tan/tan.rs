@@ -4,6 +4,7 @@ use flowcore::errors::Result;
 use flowcore::{RunAgain, RUN_AGAIN};
 use flowmacro::flow_function;
 
+#[allow(clippy::unnecessary_wraps)]
 #[flow_function]
 fn inner_tan(a: f64) -> Result<(Option<Value>, RunAgain)> {
     Ok((Some(json!(a.tan())), RUN_AGAIN))
