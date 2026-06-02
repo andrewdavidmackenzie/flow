@@ -286,6 +286,7 @@ fn generate_code(
         #[allow(unused_imports)]
         #wasm_boilerplate
 
+        #[allow(clippy::unnecessary_wraps)]
         #implementation
 
         #docs_comment

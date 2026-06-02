@@ -4,7 +4,6 @@ use flowcore::errors::Result;
 use flowcore::{RunAgain, RUN_AGAIN};
 use flowmacro::flow_function;
 
-#[allow(clippy::unnecessary_wraps)]
 #[flow_function]
 fn inner_tan(a: f64) -> Result<(Option<Value>, RunAgain)> {
     Ok((Some(json!(a.tan())), RUN_AGAIN))
@@ -13,7 +12,6 @@ fn inner_tan(a: f64) -> Result<(Option<Value>, RunAgain)> {
 #[cfg(test)]
 #[allow(clippy::unwrap_used, clippy::expect_used)]
 mod test {
-    use serde_json::json;
 
     use super::inner_tan;
 

@@ -4,7 +4,6 @@ use flowcore::errors::Result;
 use flowcore::{RunAgain, RUN_AGAIN};
 use flowmacro::flow_function;
 
-#[allow(clippy::unnecessary_wraps)]
 #[flow_function]
 fn inner_reverse(input: &str) -> Result<(Option<Value>, RunAgain)> {
     let reversed = input.chars().rev().collect::<String>();

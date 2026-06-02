@@ -66,7 +66,7 @@ mod test {
         ];
 
         for (a, b, expected) in &tests {
-            let (output, again) = inner_add(&a, &b).expect("add failed");
+            let (output, again) = inner_add(a, b).expect("add failed");
             assert!(again);
             assert_eq!(output, *expected);
         }
