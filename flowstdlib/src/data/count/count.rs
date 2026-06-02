@@ -1,12 +1,13 @@
 use flowcore::errors::Result;
-use flowcore::{RunAgain, RUN_AGAIN};
+use flowcore::flow_output;
+use flowcore::RunAgain;
 use flowmacro::flow_function;
 use serde_json::{json, Value};
 
 #[flow_function]
 fn inner_count(data: &Value, count: i64) -> Result<(Option<Value>, RunAgain)> {
     let _ = data;
-    Ok((Some(json!(count + 1)), RUN_AGAIN))
+    flow_output!(json!(count + 1))
 }
 
 #[cfg(test)]

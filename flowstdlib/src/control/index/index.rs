@@ -23,11 +23,11 @@ fn inner_index(
             match sel_idx {
                 // A 'select_index' value of -1 indicates to output the last value before the null
                 -1 if value.is_null() => {
-                    let _ = output_map.insert("selected_value".into(), previous_value.clone());
+                    output_map.insert("selected_value".into(), previous_value.clone());
                 }
                 // If 'select_value' is not -1 then see if it matches the current index
                 _ if sel_idx == index => {
-                    let _ = output_map.insert("selected_value".into(), value.clone());
+                    output_map.insert("selected_value".into(), value.clone());
                 }
                 _ => {}
             }

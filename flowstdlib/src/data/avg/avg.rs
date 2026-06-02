@@ -1,5 +1,6 @@
 use flowcore::errors::Result;
-use flowcore::{RunAgain, RUN_AGAIN};
+use flowcore::flow_output;
+use flowcore::RunAgain;
 use flowmacro::flow_function;
 use serde_json::{json, Value};
 
@@ -15,17 +16,17 @@ fn inner_avg(
         } else {
             0.0
         };
-        let mut m = serde_json::Map::new();
-        m.insert("result".into(), json!(avg));
-        m.insert("count".into(), json!(partial_count));
-        return Ok((Some(Value::Object(m)), RUN_AGAIN));
+        return flow_output!(
+            "result" => json!(avg),
+            "count" => json!(partial_count),
+        );
     }
 
     let v = value.as_f64().ok_or("value not f64")?;
-    let mut m = serde_json::Map::new();
-    m.insert("partial_sum".into(), json!(partial_sum + v));
-    m.insert("partial_count".into(), json!(partial_count + 1.0));
-    Ok((Some(Value::Object(m)), RUN_AGAIN))
+    flow_output!(
+        "partial_sum" => json!(partial_sum + v),
+        "partial_count" => json!(partial_count + 1.0),
+    )
 }
 
 #[cfg(test)]

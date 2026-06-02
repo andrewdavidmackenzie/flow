@@ -1,15 +1,13 @@
 use serde_json::Value;
 
 use flowcore::errors::Result;
-use flowcore::{RunAgain, RUN_AGAIN};
+use flowcore::flow_output;
+use flowcore::RunAgain;
 use flowmacro::flow_function;
 
 #[flow_function]
 fn inner_route(data: &Value, control: bool) -> Result<(Option<Value>, RunAgain)> {
-    let mut output_map = serde_json::Map::new();
-    output_map.insert(control.to_string(), data.clone());
-
-    Ok((Some(Value::Object(output_map)), RUN_AGAIN))
+    flow_output!(control.to_string() => data.clone())
 }
 
 #[cfg(test)]

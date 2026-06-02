@@ -1,23 +1,20 @@
 use flowcore::errors::Result;
-use flowcore::{RunAgain, RUN_AGAIN};
+use flowcore::flow_output;
+use flowcore::RunAgain;
 use flowmacro::flow_function;
 use serde_json::{json, Value};
 
 #[flow_function]
 fn inner_max(value: &Value, partial: &Value) -> Result<(Option<Value>, RunAgain)> {
     if value.is_null() {
-        let mut m = serde_json::Map::new();
-        m.insert("result".into(), partial.clone());
-        return Ok((Some(Value::Object(m)), RUN_AGAIN));
+        return flow_output!("result" => partial.clone());
     }
 
     let v = value.as_f64().ok_or("value not f64")?;
     let r = partial.as_f64().ok_or("partial not f64")?;
     let new_max = if v > r { v } else { r };
 
-    let mut m = serde_json::Map::new();
-    m.insert("partial".into(), json!(new_max));
-    Ok((Some(Value::Object(m)), RUN_AGAIN))
+    flow_output!("partial" => json!(new_max))
 }
 
 #[cfg(test)]

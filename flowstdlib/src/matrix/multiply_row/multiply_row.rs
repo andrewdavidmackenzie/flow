@@ -1,7 +1,8 @@
 use serde_json::{json, Value};
 
 use flowcore::errors::Result;
-use flowcore::{RunAgain, RUN_AGAIN};
+use flowcore::flow_output;
+use flowcore::RunAgain;
 use flowmacro::flow_function;
 
 #[flow_function]
@@ -12,7 +13,6 @@ fn inner_multiply_row(
     b_index: &Value,
 ) -> Result<(Option<Value>, RunAgain)> {
     let mut product = 0;
-    let mut output_map = serde_json::Map::new();
 
     let a = a.as_array().ok_or("Could not get a")?;
     let a_index = a_index.as_u64();
@@ -27,10 +27,10 @@ fn inner_multiply_row(
         }
     }
 
-    output_map.insert("product".into(), json!(product));
-    output_map.insert("a_b_index".into(), json!([a_index, b_index]));
-
-    Ok((Some(Value::Object(output_map)), RUN_AGAIN))
+    flow_output!(
+        "product" => json!(product),
+        "a_b_index" => json!([a_index, b_index]),
+    )
 }
 
 #[cfg(test)]

@@ -1,12 +1,13 @@
 use serde_json::{json, Value};
 
 use flowcore::errors::Result;
-use flowcore::{RunAgain, RUN_AGAIN};
+use flowcore::flow_output;
+use flowcore::RunAgain;
 use flowmacro::flow_function;
 
 #[flow_function]
 fn inner_append(s1: &str, s2: &str) -> Result<(Option<Value>, RunAgain)> {
-    Ok((Some(json!(format!("{s1}{s2}"))), RUN_AGAIN))
+    flow_output!(json!(format!("{s1}{s2}")))
 }
 
 #[cfg(test)]

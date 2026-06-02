@@ -1,35 +1,37 @@
 use serde_json::Value;
 
 use flowcore::errors::{bail, Result};
-use flowcore::{RunAgain, RUN_AGAIN};
+use flowcore::flow_output;
+use flowcore::RunAgain;
 use flowmacro::flow_function;
 
 #[flow_function]
 fn compare(left: &Value, right: &Value) -> Result<(Option<Value>, RunAgain)> {
     match (left.as_f64(), right.as_f64()) {
         (Some(lhs), Some(rhs)) => {
-            let mut output_map = serde_json::Map::new();
             if (rhs - lhs).abs() < f64::EPSILON {
-                output_map.insert("equal".into(), right.clone());
-                output_map.insert("right-lte".into(), right.clone());
-                output_map.insert("left-gte".into(), left.clone());
-                output_map.insert("right-gte".into(), right.clone());
-                output_map.insert("left-lte".into(), left.clone());
+                flow_output!(
+                    "equal" => right.clone(),
+                    "right-lte" => right.clone(),
+                    "left-gte" => left.clone(),
+                    "right-gte" => right.clone(),
+                    "left-lte" => left.clone(),
+                )
             } else if rhs < lhs {
-                output_map.insert("right-lt".into(), right.clone());
-                output_map.insert("left-gt".into(), left.clone());
-                output_map.insert("right-lte".into(), right.clone());
-                output_map.insert("left-gte".into(), left.clone());
-            } else if rhs > lhs {
-                output_map.insert("right-gt".into(), right.clone());
-                output_map.insert("left-lt".into(), left.clone());
-                output_map.insert("right-gte".into(), right.clone());
-                output_map.insert("left-lte".into(), left.clone());
+                flow_output!(
+                    "right-lt" => right.clone(),
+                    "left-gt" => left.clone(),
+                    "right-lte" => right.clone(),
+                    "left-gte" => left.clone(),
+                )
+            } else {
+                flow_output!(
+                    "right-gt" => right.clone(),
+                    "left-lt" => left.clone(),
+                    "right-gte" => right.clone(),
+                    "left-lte" => left.clone(),
+                )
             }
-
-            let output = Value::Object(output_map);
-
-            Ok((Some(output), RUN_AGAIN))
         }
         (_, _) => bail!("Could not get input values as f64"),
     }

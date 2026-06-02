@@ -1,42 +1,45 @@
 use serde_json::{Number, Value};
 
 use flowcore::errors::{bail, Result};
-use flowcore::{RunAgain, RUN_AGAIN};
+use flowcore::flow_output;
+use flowcore::RunAgain;
 use flowmacro::flow_function;
 
 #[flow_function]
 fn inner_compare(left: &Number, right: &Number) -> Result<(Option<Value>, RunAgain)> {
-    let mut output_map = serde_json::Map::new();
-
     if left.is_i64() && right.is_i64() {
-        output_map.insert("equal".into(), Value::Bool(left.as_i64() == right.as_i64()));
-        output_map.insert("ne".into(), Value::Bool(left.as_i64() != right.as_i64()));
-        output_map.insert("lt".into(), Value::Bool(left.as_i64() < right.as_i64()));
-        output_map.insert("gt".into(), Value::Bool(left.as_i64() > right.as_i64()));
-        output_map.insert("lte".into(), Value::Bool(left.as_i64() <= right.as_i64()));
-        output_map.insert("gte".into(), Value::Bool(left.as_i64() >= right.as_i64()));
+        flow_output!(
+            "equal" => Value::Bool(left.as_i64() == right.as_i64()),
+            "ne" => Value::Bool(left.as_i64() != right.as_i64()),
+            "lt" => Value::Bool(left.as_i64() < right.as_i64()),
+            "gt" => Value::Bool(left.as_i64() > right.as_i64()),
+            "lte" => Value::Bool(left.as_i64() <= right.as_i64()),
+            "gte" => Value::Bool(left.as_i64() >= right.as_i64()),
+        )
     } else if left.is_u64() && right.is_u64() {
-        output_map.insert("equal".into(), Value::Bool(left.as_u64() == right.as_u64()));
-        output_map.insert("ne".into(), Value::Bool(left.as_u64() != right.as_u64()));
-        output_map.insert("lt".into(), Value::Bool(left.as_u64() < right.as_u64()));
-        output_map.insert("gt".into(), Value::Bool(left.as_u64() > right.as_u64()));
-        output_map.insert("lte".into(), Value::Bool(left.as_u64() <= right.as_u64()));
-        output_map.insert("gte".into(), Value::Bool(left.as_u64() >= right.as_u64()));
+        flow_output!(
+            "equal" => Value::Bool(left.as_u64() == right.as_u64()),
+            "ne" => Value::Bool(left.as_u64() != right.as_u64()),
+            "lt" => Value::Bool(left.as_u64() < right.as_u64()),
+            "gt" => Value::Bool(left.as_u64() > right.as_u64()),
+            "lte" => Value::Bool(left.as_u64() <= right.as_u64()),
+            "gte" => Value::Bool(left.as_u64() >= right.as_u64()),
+        )
     } else {
         match (left.as_f64(), right.as_f64()) {
             (Some(l), Some(r)) => {
-                output_map.insert("equal".into(), Value::Bool((l - r).abs() < f64::EPSILON));
-                output_map.insert("ne".into(), Value::Bool((l - r).abs() >= f64::EPSILON));
-                output_map.insert("lt".into(), Value::Bool(l < r));
-                output_map.insert("gt".into(), Value::Bool(l > r));
-                output_map.insert("lte".into(), Value::Bool(l <= r));
-                output_map.insert("gte".into(), Value::Bool(l >= r));
+                flow_output!(
+                    "equal" => Value::Bool((l - r).abs() < f64::EPSILON),
+                    "ne" => Value::Bool((l - r).abs() >= f64::EPSILON),
+                    "lt" => Value::Bool(l < r),
+                    "gt" => Value::Bool(l > r),
+                    "lte" => Value::Bool(l <= r),
+                    "gte" => Value::Bool(l >= r),
+                )
             }
             (_, _) => bail!("Could not convert to f64"),
         }
     }
-
-    Ok((Some(Value::Object(output_map)), RUN_AGAIN))
 }
 
 #[cfg(test)]

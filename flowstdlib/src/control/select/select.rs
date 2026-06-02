@@ -1,21 +1,23 @@
 use serde_json::Value;
 
 use flowcore::errors::Result;
-use flowcore::{RunAgain, RUN_AGAIN};
+use flowcore::flow_output;
+use flowcore::RunAgain;
 use flowmacro::flow_function;
 
 #[flow_function]
 fn inner_select(i1: &Value, i2: &Value, control: bool) -> Result<(Option<Value>, RunAgain)> {
-    let mut output_map = serde_json::Map::new();
     if control {
-        output_map.insert("select_i1".into(), i1.clone());
-        output_map.insert("select_i2".into(), i2.clone());
+        flow_output!(
+            "select_i1" => i1.clone(),
+            "select_i2" => i2.clone(),
+        )
     } else {
-        output_map.insert("select_i1".into(), i2.clone());
-        output_map.insert("select_i2".into(), i1.clone());
+        flow_output!(
+            "select_i1" => i2.clone(),
+            "select_i2" => i1.clone(),
+        )
     }
-
-    Ok((Some(Value::Object(output_map)), RUN_AGAIN))
 }
 
 #[cfg(test)]

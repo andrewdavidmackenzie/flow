@@ -1,5 +1,6 @@
 use flowcore::errors::Result;
-use flowcore::{RunAgain, RUN_AGAIN};
+use flowcore::flow_output;
+use flowcore::RunAgain;
 use flowmacro::flow_function;
 use serde_json::{json, Value};
 
@@ -11,9 +12,7 @@ fn inner_bin_count(value: &Value, partial: &Value) -> Result<(Option<Value>, Run
         .clone();
 
     if value.is_null() {
-        let mut output_map = serde_json::Map::new();
-        output_map.insert("bins".into(), Value::Array(bins));
-        return Ok((Some(Value::Object(output_map)), RUN_AGAIN));
+        return flow_output!("bins" => Value::Array(bins));
     }
 
     let idx = usize::try_from(value.as_u64().ok_or("Could not get value as u64")?)
@@ -24,9 +23,7 @@ fn inner_bin_count(value: &Value, partial: &Value) -> Result<(Option<Value>, Run
         *bin = json!(count);
     }
 
-    let mut output_map = serde_json::Map::new();
-    output_map.insert("partial".into(), Value::Array(bins));
-    Ok((Some(Value::Object(output_map)), RUN_AGAIN))
+    flow_output!("partial" => Value::Array(bins))
 }
 
 #[cfg(test)]

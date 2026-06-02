@@ -5,23 +5,33 @@ use serde_json::Value;
 
 use crate::errors::Result;
 
-/// Build a named output map and return `Ok((Some(map), RUN_AGAIN))`.
+/// Return a flow function result with `Ok((Some(value), RUN_AGAIN))`.
 ///
-/// Eliminates boilerplate for functions with multiple named outputs.
+/// Single value: `flow_output!(json!(42))`
+/// Named outputs: `flow_output!("result" => json!(42), "remainder" => json!(0))`
 ///
 /// # Examples
 /// ```
 /// use flowcore::flow_output;
 /// use serde_json::json;
 ///
+/// // Single value output
+/// let result: flowcore::errors::Result<(Option<serde_json::Value>, bool)> =
+///     flow_output!(json!(42));
+/// assert_eq!(result.unwrap().0, Some(json!(42)));
+///
+/// // Named output map
 /// let result: flowcore::errors::Result<(Option<serde_json::Value>, bool)> =
 ///     flow_output!("result" => json!(42), "remainder" => json!(0));
-/// let (output, again) = result.unwrap();
-/// assert!(again);
-/// assert_eq!(output.unwrap().pointer("/result").unwrap(), &json!(42));
+/// assert_eq!(result.unwrap().0.unwrap().pointer("/result").unwrap(), &json!(42));
 /// ```
 #[macro_export]
 macro_rules! flow_output {
+    // Single value output
+    ($val:expr) => {
+        Ok((Some($val), $crate::RUN_AGAIN))
+    };
+    // Named output map
     ($($key:expr => $val:expr),+ $(,)?) => {{
         let mut map = serde_json::Map::new();
         $(map.insert($key.into(), $val);)+

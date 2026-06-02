@@ -1,12 +1,13 @@
 use serde_json::{json, Value};
 
 use flowcore::errors::Result;
-use flowcore::{RunAgain, RUN_AGAIN};
+use flowcore::flow_output;
+use flowcore::RunAgain;
 use flowmacro::flow_function;
 
 #[flow_function]
 fn inner_sin(a: f64) -> Result<(Option<Value>, RunAgain)> {
-    Ok((Some(json!(a.sin())), RUN_AGAIN))
+    flow_output!(json!(a.sin()))
 }
 
 #[cfg(test)]
