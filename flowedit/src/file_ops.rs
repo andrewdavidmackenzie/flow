@@ -943,6 +943,7 @@ mod test {
             parent_window: None,
             node_source: String::new(),
             read_only: false,
+            is_library: false,
         };
 
         save_function_definition(&viewer).expect("save failed");
@@ -999,6 +1000,7 @@ mod test {
             parent_window: None,
             node_source: String::new(),
             read_only: false,
+            is_library: false,
         };
 
         save_function_definition(&viewer).expect("save failed");

@@ -93,8 +93,10 @@ pub(crate) struct FunctionViewer {
     pub(crate) parent_window: Option<window::Id>,
     /// Source string of the node this viewer is editing (to find the `NodeLayout`)
     pub(crate) node_source: String,
-    /// Whether this viewer is read-only (library/context functions cannot be edited)
+    /// Whether this viewer is read-only (context functions cannot be edited)
     pub(crate) read_only: bool,
+    /// Whether this function comes from an installed library
+    pub(crate) is_library: bool,
 }
 
 impl FunctionViewer {

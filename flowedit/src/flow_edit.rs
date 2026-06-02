@@ -1726,9 +1726,15 @@ impl FlowEdit {
             iced::widget::tooltip::Position::Top,
         );
 
-        let status_bar = Row::new()
-            .spacing(8)
-            .push(Text::new(status).size(14))
+        let mut status_bar = Row::new().spacing(8).push(Text::new(status).size(14));
+        if viewer.is_library {
+            status_bar = status_bar.push(
+                Text::new("Editing installed library function")
+                    .size(12)
+                    .color(Color::from_rgb(0.8, 0.5, 0.0)),
+            );
+        }
+        let status_bar = status_bar
             .push(iced::widget::Space::new().width(Fill))
             .push(save_with_tooltip);
 
@@ -1992,7 +1998,8 @@ impl FlowEdit {
 
         let (new_id, open_task) = window::open(self.child_window_settings(700.0, 500.0));
 
-        let read_only = node_source.starts_with("lib://") || node_source.starts_with("context://");
+        let read_only = node_source.starts_with("context://");
+        let is_library = node_source.starts_with("lib://");
         let mut func_def = func.clone();
         if let Ok(url) = Url::from_file_path(toml_path) {
             func_def.set_source_url(&url);
@@ -2007,6 +2014,7 @@ impl FlowEdit {
             parent_window: Some(parent_win_id),
             node_source: node_source.to_string(),
             read_only,
+            is_library,
         };
 
         let mut func_flow_def = FlowDefinition {
@@ -2671,6 +2679,7 @@ impl FlowEdit {
             parent_window: Some(parent_id),
             node_source: node_source.into(),
             read_only: false,
+            is_library: false,
         }
     }
 
