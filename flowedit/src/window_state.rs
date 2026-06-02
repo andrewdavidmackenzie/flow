@@ -86,6 +86,7 @@ pub(crate) struct FunctionViewer {
     /// The canonical function definition (owns name, description, source, inputs, outputs, `source_url`)
     pub(crate) func_def: FunctionDefinition,
     pub(crate) rs_content: String,
+    pub(crate) rs_editor_content: iced::widget::text_editor::Content,
     pub(crate) docs_content: Option<String>,
     pub(crate) active_tab: usize,
     /// Parent window that opened this viewer (for propagating edits back to canvas)
