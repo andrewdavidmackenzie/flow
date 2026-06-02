@@ -1,10 +1,7 @@
 function = "double"
-impure = false
 source = "double.rs"
-docs = ""
-description = ""
+description = "Double a number"
 type = "rust"
-output = []
 
 [[input]]
 name = "value"
