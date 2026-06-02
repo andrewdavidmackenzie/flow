@@ -1,0 +1,13 @@
+function = "double"
+impure = false
+source = "double.rs"
+docs = ""
+description = ""
+type = "rust"
+output = []
+
+[[input]]
+name = "value"
+
+[[input.type]]
+string = "number"

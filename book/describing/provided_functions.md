@@ -24,16 +24,43 @@ The `flowr` crate has several examples that provide functions as part of the flo
 In order to provide a function as part of a flow the developer must provide:
 
 #### Function definition file
-Definition of the function in a TOML file.   
-Example [escapes.toml](../../flowr/examples/mandlebrot/escapes/escapes.toml)  
-The same as any other function definition it must define:
-   * `function` - field to show this is a function definition file and provide the function's name 
-   * `source` - the name of the implementation file (relative path to this file)
-   * `type` - to define what type of implementation is provided (`"rust"` is the only supported value at this time)
-   * `input`- the function's inputs - as described in [IOs](ios.md)
-   * `output`- the function's outputs - as described in [IOs](ios.md)
-   * `docs` - Documentation markdown file (relative path)  
-Example [escapes.md](../../flowr/examples/mandlebrot/escapes/escapes.md)
+The function definition can be provided in two ways:
+
+**Option 1: Hand-written TOML** (traditional)
+
+Write a TOML file alongside the implementation.
+Example [escapes.toml](../../flowr/examples/mandlebrot/escapes/escapes.toml)
+
+The definition must include:
+   * `function` - the function's name
+   * `source` - the implementation file (relative path)
+   * `type` - implementation type (`"rust"`)
+   * `input` - the function's inputs (see [IOs](ios.md))
+   * `output` - the function's outputs (see [IOs](ios.md))
+   * `docs` - documentation markdown file (optional)
+
+**Option 2: Auto-generated from Rust source** (recommended for new functions)
+
+If no `.toml` file exists alongside the `.rs` file, the `#[flow_function]`
+macro generates it automatically at compile time. The generated TOML derives:
+- Function name from the implementation function (stripping `inner_` prefix)
+- Input names and types from the typed parameters
+- Source filename from the `.rs` file
+- Description from doc comments on the function
+
+This means you only need to write the `.rs` implementation — the definition
+is generated for you. Example:
+
+```rust
+/// Double a number
+#[flow_function]
+fn inner_double(value: f64) -> Result<(Option<Value>, RunAgain)> {
+    flow_output!(json!(value * 2.0))
+}
+```
+
+This generates a `double.toml` with input `value` of type `number` and
+description "Double a number".
 
 #### Implementation
 Code that implements the function of the type specified by `type` in the file specified by `source`.  
