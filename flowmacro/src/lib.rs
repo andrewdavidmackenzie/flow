@@ -14,6 +14,7 @@ use quote::{format_ident, quote, ToTokens};
 use syn::{parse_macro_input, FnArg, ItemFn, Pat, ReturnType, Type};
 
 use flowcore::model::function_definition::FunctionDefinition;
+use flowcore::model::name::HasName;
 
 /// The `flow_function` macro definition
 ///
@@ -99,6 +100,23 @@ fn analyze_inputs(definition: &FunctionDefinition, implementation_ast: &ItemFn) 
                 Pat::Ident(pat_ident) => &pat_ident.ident,
                 _ => panic!("flow_function: unsupported parameter pattern"),
             };
+
+            // Validate parameter name matches TOML input name (skip if TOML name is empty/default)
+            let toml_name = definition
+                .inputs
+                .get(i)
+                .expect("input index out of bounds")
+                .name();
+            if !toml_name.is_empty() {
+                let param_str = param_name.to_string();
+                let toml_normalized = toml_name.replace('-', "_");
+                assert_eq!(
+                    param_str, toml_normalized,
+                    "flow_function: parameter '{param_str}' at position {i} does not match \
+                     TOML input name '{toml_name}' in function '{}'",
+                    definition.name
+                );
+            }
 
             let extraction = generate_extraction(i, param_name, &pat_type.ty);
             extractions.push(extraction);
