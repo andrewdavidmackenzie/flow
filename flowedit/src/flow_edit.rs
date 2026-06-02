@@ -1584,7 +1584,7 @@ impl FlowEdit {
         );
         if editable {
             source_row = source_row.push(
-                button(Text::new("...").size(12).center())
+                button(Text::new("Browse...").size(12).center())
                     .on_press(Message::FunctionEdit(
                         window_id,
                         FunctionEditMessage::BrowseSource,
