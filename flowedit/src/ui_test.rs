@@ -2087,9 +2087,11 @@ fn function_edit_name_change() {
     let mut func_def = flowcore::model::function_definition::FunctionDefinition::default();
     func_def.name = "orig".into();
     func_def.source = "orig.rs".into();
+    let rs_content = String::new();
     let viewer = crate::window_state::FunctionViewer {
         func_def,
-        rs_content: String::new(),
+        rs_editor_content: iced::widget::text_editor::Content::with_text(&rs_content),
+        rs_content,
         docs_content: None,
         active_tab: 0,
         parent_window: Some(win_id),
@@ -2119,9 +2121,11 @@ fn function_edit_tab_switch() {
     let (mut app, win_id) = test_app();
     let func_win_id = window::Id::unique();
     let func_def = flowcore::model::function_definition::FunctionDefinition::default();
+    let rs_content = String::new();
     let viewer = crate::window_state::FunctionViewer {
         func_def,
-        rs_content: String::new(),
+        rs_editor_content: iced::widget::text_editor::Content::with_text(&rs_content),
+        rs_content,
         docs_content: None,
         active_tab: 0,
         parent_window: Some(win_id),

@@ -4,7 +4,7 @@ use std::process::{Child, Command};
 use std::sync::Arc;
 
 use iced::keyboard;
-use iced::widget::{button, container, text_input, Column, Row, Text};
+use iced::widget::{button, container, text_editor, text_input, Column, Row, Text};
 use iced::window;
 use iced::{Color, Element, Fill, Subscription, Task, Theme};
 use log::{info, warn};
@@ -96,6 +96,8 @@ pub(crate) enum FunctionEditMessage {
     OutputNameChanged(usize, String),
     /// Output port type changed
     OutputTypeChanged(usize, String),
+    /// Source code edited in the text editor
+    SourceEdited(text_editor::Action),
     /// Save function definition to disk
     Save,
 }
@@ -1625,7 +1627,11 @@ impl FlowEdit {
         output_col
     }
 
-    fn view_function_source_tab(window_id: window::Id, rs_content: &str) -> Element<'_, Message> {
+    fn view_function_source_tab(
+        window_id: window::Id,
+        content: &text_editor::Content,
+        read_only: bool,
+    ) -> Element<'_, Message> {
         let back_btn = button(Text::new("\u{2190} Definition").size(13).center())
             .on_press(Message::FunctionEdit(
                 window_id,
@@ -1633,20 +1639,18 @@ impl FlowEdit {
             ))
             .style(button::secondary)
             .padding([6, 14]);
+        let mut editor = text_editor(content)
+            .font(iced::Font::MONOSPACE)
+            .size(14)
+            .height(Fill);
+        if !read_only {
+            editor = editor.on_action(move |action| {
+                Message::FunctionEdit(window_id, FunctionEditMessage::SourceEdited(action))
+            });
+        }
         Column::new()
             .push(container(back_btn).padding([8, 12]))
-            .push(
-                container(
-                    iced::widget::scrollable(
-                        Text::new(rs_content).size(14).font(iced::Font::MONOSPACE),
-                    )
-                    .width(Fill)
-                    .height(Fill),
-                )
-                .width(Fill)
-                .height(Fill)
-                .padding(12),
-            )
+            .push(container(editor).width(Fill).height(Fill).padding(12))
             .into()
     }
 
@@ -1685,7 +1689,11 @@ impl FlowEdit {
     ) -> Element<'a, Message> {
         let content: Element<'_, Message> = match viewer.active_tab {
             0 => Self::view_function_definition_tab(window_id, viewer),
-            1 => Self::view_function_source_tab(window_id, &viewer.rs_content),
+            1 => Self::view_function_source_tab(
+                window_id,
+                &viewer.rs_editor_content,
+                viewer.read_only,
+            ),
             _ => Self::view_function_docs_tab(window_id, viewer.docs_content.as_deref()),
         };
 
@@ -1989,9 +1997,11 @@ impl FlowEdit {
         if let Ok(url) = Url::from_file_path(toml_path) {
             func_def.set_source_url(&url);
         }
+        let rs_editor_content = text_editor::Content::with_text(&rs_content);
         let viewer = FunctionViewer {
             func_def: func_def.clone(),
             rs_content,
+            rs_editor_content,
             docs_content,
             active_tab: 0,
             parent_window: Some(parent_win_id),
@@ -2467,6 +2477,7 @@ impl FlowEdit {
                     viewer.func_def.source = rel;
                     viewer.rs_content = std::fs::read_to_string(&selected)
                         .unwrap_or_else(|_| String::from("// Could not read file"));
+                    viewer.rs_editor_content = text_editor::Content::with_text(&viewer.rs_content);
                 }
                 win.history.mark_modified();
             }
@@ -2649,9 +2660,12 @@ impl FlowEdit {
         if let Ok(url) = Url::from_file_path(path) {
             func_def.set_source_url(&url);
         }
+        let rs_content = String::from("// Save to generate skeleton source");
+        let rs_editor_content = text_editor::Content::with_text(&rs_content);
         FunctionViewer {
             func_def,
-            rs_content: String::from("// Save to generate skeleton source"),
+            rs_content,
+            rs_editor_content,
             docs_content: None,
             active_tab: 0,
             parent_window: Some(parent_id),
@@ -2762,6 +2776,16 @@ impl FlowEdit {
             }
             FunctionEditMessage::OutputTypeChanged(idx, dtype) => {
                 self.handle_func_io_type_changed(win_id, idx, dtype, false);
+            }
+            FunctionEditMessage::SourceEdited(action) => {
+                if let Some(win) = self.windows.get_mut(&win_id) {
+                    if let WindowKind::FunctionViewer(ref mut viewer) = win.kind {
+                        if !viewer.read_only {
+                            viewer.rs_editor_content.perform(action);
+                            win.history.mark_modified();
+                        }
+                    }
+                }
             }
             FunctionEditMessage::Save => self.handle_func_save(win_id),
         }

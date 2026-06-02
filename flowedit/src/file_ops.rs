@@ -437,9 +437,25 @@ pub(crate) fn save_function_definition(viewer: &FunctionViewer) -> Result<(), St
     std::fs::write(&toml_path, &toml)
         .map_err(|e| format!("Could not write {}: {e}", toml_path.display()))?;
 
-    generate_skeleton_rs(dir, func)?;
+    save_source_file(dir, func, viewer)?;
     generate_cargo_manifest(dir, func)?;
 
+    Ok(())
+}
+
+fn save_source_file(
+    dir: &Path,
+    func: &flowcore::model::function_definition::FunctionDefinition,
+    viewer: &FunctionViewer,
+) -> Result<(), String> {
+    let editor_text = viewer.rs_editor_content.text();
+    if editor_text == viewer.rs_content {
+        generate_skeleton_rs(dir, func)?;
+    } else {
+        let rs_path = dir.join(&func.source);
+        std::fs::write(&rs_path, editor_text)
+            .map_err(|e| format!("Could not write {}: {e}", rs_path.display()))?;
+    }
     Ok(())
 }
 
@@ -917,9 +933,11 @@ mod test {
             func_def.set_source_url(&url);
         }
 
+        let rs_content = String::new();
         let viewer = FunctionViewer {
             func_def,
-            rs_content: String::new(),
+            rs_editor_content: iced::widget::text_editor::Content::with_text(&rs_content),
+            rs_content,
             docs_content: None,
             active_tab: 0,
             parent_window: None,
@@ -971,9 +989,11 @@ mod test {
             func_def.set_source_url(&url);
         }
 
+        let rs_content = String::new();
         let viewer = FunctionViewer {
             func_def,
-            rs_content: String::new(),
+            rs_editor_content: iced::widget::text_editor::Content::with_text(&rs_content),
+            rs_content,
             docs_content: None,
             active_tab: 0,
             parent_window: None,
