@@ -370,6 +370,13 @@ are saved directly to the installed library directory (e.g., `~/.flow/lib/flowst
 Context functions (`context://`) remain read-only since they are runtime-provided
 and have no editable source on disk.
 
+### Editing Library Flows
+
+Library flows (e.g., `lib://flowstdlib/math/sequence`) can be opened from the
+library panel and edited on the canvas — adding, removing, or repositioning
+nodes and connections. Library flows are stored separately from the root flow
+and saved back to the library directory when you press **Cmd+S**.
+
 ## Compiling
 
 Click the **🔨 Build** button in the status bar (or press **Cmd+B**) to compile

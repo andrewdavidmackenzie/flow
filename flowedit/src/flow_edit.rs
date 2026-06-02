@@ -190,6 +190,9 @@ pub(crate) struct FlowEdit {
     pub(crate) all_definitions: HashMap<Url, Process>,
     pub(crate) running_process: Option<Child>,
     pub(crate) auto_run: bool,
+    /// Library flows opened in separate windows, keyed by window ID.
+    /// These are not part of `root_flow` and save back to the library directory.
+    pub(crate) library_flows: HashMap<window::Id, FlowDefinition>,
 }
 
 impl Default for FlowEdit {
@@ -206,12 +209,25 @@ impl Default for FlowEdit {
             all_definitions: HashMap::new(),
             running_process: None,
             auto_run: false,
+            library_flows: HashMap::new(),
         }
     }
 }
 
-/// Main entry point for the flowedit binary.
-///
+/// Resolve the `FlowDefinition` for a given window: library flows use their
+/// own copy, all other windows navigate into `root_flow` by route.
+fn resolve_flow_for_window<'a>(
+    root_flow: &'a mut FlowDefinition,
+    library_flows: &'a mut HashMap<window::Id, FlowDefinition>,
+    win_id: window::Id,
+    route: &Route,
+) -> &'a mut FlowDefinition {
+    if let Some(lib_flow) = library_flows.get_mut(&win_id) {
+        return lib_flow;
+    }
+    resolve_flow_def_mut(root_flow, route)
+}
+
 fn resolve_flow_def_mut<'a>(
     root_flow: &'a mut FlowDefinition,
     route: &Route,
@@ -345,6 +361,7 @@ impl FlowEdit {
             all_definitions,
             running_process: None,
             auto_run: cli_args.auto_run,
+            library_flows: HashMap::new(),
         };
 
         let startup_task = if cli_args.auto_build && has_nodes {
@@ -490,6 +507,7 @@ impl FlowEdit {
             }
         }
         self.windows.remove(&id);
+        self.library_flows.remove(&id);
         if self.root_window == Some(id) || self.windows.is_empty() {
             return iced::exit();
         }
@@ -729,7 +747,12 @@ impl FlowEdit {
                     .get(&win_id)
                     .map(|w| w.route.clone())
                     .unwrap_or_default();
-                let flow_def = resolve_flow_def_mut(&mut self.root_flow, &route);
+                let flow_def = resolve_flow_for_window(
+                    &mut self.root_flow,
+                    &mut self.library_flows,
+                    win_id,
+                    &route,
+                );
                 if let Some(win) = self.windows.get_mut(&win_id) {
                     win.add_library_function(flow_def, &source, &func_name);
                 }
@@ -802,6 +825,7 @@ impl FlowEdit {
         let mut tasks = Vec::new();
         for id in orphans {
             self.windows.remove(&id);
+            self.library_flows.remove(&id);
             tasks.push(window::close(id));
         }
 
@@ -822,7 +846,8 @@ impl FlowEdit {
             .get(&win_id)
             .map(|w| w.route.clone())
             .unwrap_or_default();
-        let flow_def = resolve_flow_def_mut(&mut self.root_flow, &route);
+        let flow_def =
+            resolve_flow_for_window(&mut self.root_flow, &mut self.library_flows, win_id, &route);
         let Some(win) = self.windows.get_mut(&win_id) else {
             return Task::none();
         };
@@ -834,7 +859,8 @@ impl FlowEdit {
         if let Some((is_input, old_name, new_name)) = io_renamed {
             self.update_parent_io_rename(&route, is_input, &old_name, &new_name);
         }
-        let flow_def = resolve_flow_def_mut(&mut self.root_flow, &route);
+        let flow_def =
+            resolve_flow_for_window(&mut self.root_flow, &mut self.library_flows, win_id, &route);
         let Some(win) = self.windows.get_mut(&win_id) else {
             return Task::none();
         };
@@ -865,7 +891,12 @@ impl FlowEdit {
                     .get(&win_id)
                     .map(|w| w.route.clone())
                     .unwrap_or_default();
-                let flow_def = resolve_flow_def_mut(&mut self.root_flow, &route);
+                let flow_def = resolve_flow_for_window(
+                    &mut self.root_flow,
+                    &mut self.library_flows,
+                    win_id,
+                    &route,
+                );
                 if let Some(win) = self.windows.get_mut(&win_id) {
                     win.handle_initializer_apply(flow_def);
                 }
@@ -887,7 +918,12 @@ impl FlowEdit {
                 .get(&target_id)
                 .map(|w| w.route.clone())
                 .unwrap_or_default();
-            let flow_def = resolve_flow_def_mut(&mut self.root_flow, &route);
+            let flow_def = resolve_flow_for_window(
+                &mut self.root_flow,
+                &mut self.library_flows,
+                target_id,
+                &route,
+            );
             if let Some(win) = self.windows.get_mut(&target_id) {
                 if is_redo {
                     win.handle_redo(flow_def);
@@ -945,14 +981,24 @@ impl FlowEdit {
         // Capture deleted I/O name before deletion for parent connection cleanup
         let io_delete = match &flow_msg {
             FlowEditMessage::DeleteInput(idx) => {
-                let flow_def = resolve_flow_def_mut(&mut self.root_flow, route);
+                let flow_def = resolve_flow_for_window(
+                    &mut self.root_flow,
+                    &mut self.library_flows,
+                    win_id,
+                    route,
+                );
                 flow_def
                     .inputs
                     .get(*idx)
                     .map(|io| (true, io.name().clone()))
             }
             FlowEditMessage::DeleteOutput(idx) => {
-                let flow_def = resolve_flow_def_mut(&mut self.root_flow, route);
+                let flow_def = resolve_flow_for_window(
+                    &mut self.root_flow,
+                    &mut self.library_flows,
+                    win_id,
+                    route,
+                );
                 flow_def
                     .outputs
                     .get(*idx)
@@ -964,14 +1010,24 @@ impl FlowEdit {
         // Capture old I/O name before rename for parent connection update
         let io_rename = match &flow_msg {
             FlowEditMessage::InputNameChanged(idx, new_name) => {
-                let flow_def = resolve_flow_def_mut(&mut self.root_flow, route);
+                let flow_def = resolve_flow_for_window(
+                    &mut self.root_flow,
+                    &mut self.library_flows,
+                    win_id,
+                    route,
+                );
                 flow_def
                     .inputs
                     .get(*idx)
                     .map(|io| (true, io.name().clone(), new_name.clone()))
             }
             FlowEditMessage::OutputNameChanged(idx, new_name) => {
-                let flow_def = resolve_flow_def_mut(&mut self.root_flow, route);
+                let flow_def = resolve_flow_for_window(
+                    &mut self.root_flow,
+                    &mut self.library_flows,
+                    win_id,
+                    route,
+                );
                 flow_def
                     .outputs
                     .get(*idx)
@@ -989,14 +1045,20 @@ impl FlowEdit {
             _ => None,
         };
 
-        let flow_def = resolve_flow_def_mut(&mut self.root_flow, route);
+        let flow_def =
+            resolve_flow_for_window(&mut self.root_flow, &mut self.library_flows, win_id, route);
         if let Some(win) = self.windows.get_mut(&win_id) {
             win.handle_flow_edit_message(flow_def, flow_msg);
         }
 
         if let Some((old_alias, new_alias)) = node_rename {
             if !new_alias.is_empty() && new_alias != old_alias {
-                let flow_def = resolve_flow_def_mut(&mut self.root_flow, route);
+                let flow_def = resolve_flow_for_window(
+                    &mut self.root_flow,
+                    &mut self.library_flows,
+                    win_id,
+                    route,
+                );
                 let renamed = flow_def.process_refs.iter().any(|p| p.alias == new_alias);
                 if renamed {
                     let parent_route = route.to_string();
@@ -1016,7 +1078,12 @@ impl FlowEdit {
         }
 
         if let Some((is_input, old_name, new_name)) = io_rename {
-            let flow_def = resolve_flow_def_mut(&mut self.root_flow, route);
+            let flow_def = resolve_flow_for_window(
+                &mut self.root_flow,
+                &mut self.library_flows,
+                win_id,
+                route,
+            );
             let ports = if is_input {
                 &flow_def.inputs
             } else {
@@ -1219,9 +1286,10 @@ impl FlowEdit {
             return Self::view_function(window_id, viewer, &win.status, self.unsaved_edit_count());
         }
 
-        // Resolve the FlowDefinition for this window: sub-flow windows use
-        // the sub-flow found via their route, root windows use root_flow directly.
-        let flow_def = if win.is_root || win.route.is_empty() || win.route == self.root_flow.route {
+        // Library flows have their own FlowDefinition; others navigate root_flow.
+        let flow_def = if let Some(lib_flow) = self.library_flows.get(&window_id) {
+            lib_flow
+        } else if win.is_root || win.route.is_empty() || win.route == self.root_flow.route {
             &self.root_flow
         } else {
             match self.root_flow.process_from_route(&win.route) {
@@ -1976,6 +2044,7 @@ impl FlowEdit {
                         ..Default::default()
                     };
                     self.windows.insert(new_id, child);
+                    self.library_flows.insert(new_id, flow_def);
                     open_task.discard()
                 }
                 Err(_) => Task::none(),
@@ -2365,7 +2434,12 @@ impl FlowEdit {
                 .get(&win_id)
                 .map(|w| w.route.clone())
                 .unwrap_or_default();
-            let flow_def = resolve_flow_def_mut(&mut self.root_flow, &route);
+            let flow_def = resolve_flow_for_window(
+                &mut self.root_flow,
+                &mut self.library_flows,
+                win_id,
+                &route,
+            );
             if let Some(win) = self.windows.get_mut(&win_id) {
                 win.commit_name_edit(flow_def);
                 if let Some(rename_info) = win.commit_io_name_edit(flow_def) {
@@ -2413,14 +2487,22 @@ impl FlowEdit {
         match message {
             Message::Save => {
                 let target = self.focused_window.or(self.root_window);
-                if let Some(win) = target.and_then(|id| self.windows.get_mut(&id)) {
-                    if let WindowKind::FunctionViewer(ref v) = win.kind {
-                        match file_ops::save_function_definition(v) {
-                            Ok(()) => {
-                                win.history.clear();
-                                win.status = String::from("Function saved");
+                if let Some(target_id) = target {
+                    if let Some(win) = self.windows.get_mut(&target_id) {
+                        if let WindowKind::FunctionViewer(ref v) = win.kind {
+                            match file_ops::save_function_definition(v) {
+                                Ok(()) => {
+                                    win.history.clear();
+                                    win.status = String::from("Function saved");
+                                }
+                                Err(e) => win.status = format!("Save failed: {e}"),
                             }
-                            Err(e) => win.status = format!("Save failed: {e}"),
+                            return;
+                        }
+                    }
+                    if let Some(lib_flow) = self.library_flows.get_mut(&target_id) {
+                        if let Some(win) = self.windows.get_mut(&target_id) {
+                            win.handle_save(lib_flow);
                         }
                         return;
                     }
