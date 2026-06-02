@@ -5,6 +5,30 @@ use serde_json::Value;
 
 use crate::errors::Result;
 
+/// Build a named output map and return `Ok((Some(map), RUN_AGAIN))`.
+///
+/// Eliminates boilerplate for functions with multiple named outputs.
+///
+/// # Examples
+/// ```
+/// use flowcore::flow_output;
+/// use serde_json::json;
+///
+/// let result: flowcore::errors::Result<(Option<serde_json::Value>, bool)> =
+///     flow_output!("result" => json!(42), "remainder" => json!(0));
+/// let (output, again) = result.unwrap();
+/// assert!(again);
+/// assert_eq!(output.unwrap().pointer("/result").unwrap(), &json!(42));
+/// ```
+#[macro_export]
+macro_rules! flow_output {
+    ($($key:expr => $val:expr),+ $(,)?) => {{
+        let mut map = serde_json::Map::new();
+        $(map.insert($key.into(), $val);)+
+        Ok((Some(serde_json::Value::Object(map)), $crate::RUN_AGAIN))
+    }};
+}
+
 /// serializers to read definition files from various text formats based on file extension
 pub mod deserializers;
 
