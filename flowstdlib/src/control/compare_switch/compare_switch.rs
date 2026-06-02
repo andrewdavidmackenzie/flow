@@ -5,9 +5,7 @@ use flowcore::{RunAgain, RUN_AGAIN};
 use flowmacro::flow_function;
 
 #[flow_function]
-fn compare(inputs: &[Value]) -> Result<(Option<Value>, RunAgain)> {
-    let left = inputs.first().ok_or("Could not get lh value")?;
-    let right = inputs.get(1).ok_or("Could not get rh value")?;
+fn compare(left: &Value, right: &Value) -> Result<(Option<Value>, RunAgain)> {
     match (left.as_f64(), right.as_f64()) {
         (Some(lhs), Some(rhs)) => {
             let mut output_map = serde_json::Map::new();
@@ -50,9 +48,8 @@ mod test {
     fn integer_equals() {
         let left = json!(1);
         let right = json!(1);
-        let inputs = vec![left, right];
 
-        let (value, run_again) = compare(&inputs).expect("compare() failed");
+        let (value, run_again) = compare(&left, &right).expect("compare() failed");
 
         assert_eq!(run_again, RUN_AGAIN);
         assert!(value.is_some());
@@ -65,9 +62,8 @@ mod test {
     fn float_equals() {
         let left = json!(1.0);
         let right = json!(1.0);
-        let inputs = vec![left, right];
 
-        let (value, run_again) = compare(&inputs).expect("compare() failed");
+        let (value, run_again) = compare(&left, &right).expect("compare() failed");
 
         assert_eq!(run_again, RUN_AGAIN);
         assert!(value.is_some());
@@ -80,8 +76,7 @@ mod test {
 
     #[test]
     fn integer_less_than() {
-        let inputs = vec![json!(1), json!(2)];
-        let (value, run_again) = compare(&inputs).expect("compare() failed");
+        let (value, run_again) = compare(&json!(1), &json!(2)).expect("compare() failed");
 
         assert_eq!(run_again, RUN_AGAIN);
         assert!(value.is_some());
@@ -95,8 +90,7 @@ mod test {
 
     #[test]
     fn float_less_than() {
-        let inputs = vec![json!(1.0), json!(2.0)];
-        let (value, run_again) = compare(&inputs).expect("compare() failed");
+        let (value, run_again) = compare(&json!(1.0), &json!(2.0)).expect("compare() failed");
 
         assert_eq!(run_again, RUN_AGAIN);
         assert!(value.is_some());
@@ -110,8 +104,7 @@ mod test {
 
     #[test]
     fn integer_more_than() {
-        let inputs = vec![json!(2), json!(1)];
-        let (value, run_again) = compare(&inputs).expect("compare() failed");
+        let (value, run_again) = compare(&json!(2), &json!(1)).expect("compare() failed");
 
         assert_eq!(run_again, RUN_AGAIN);
         assert!(value.is_some());
@@ -125,8 +118,7 @@ mod test {
 
     #[test]
     fn float_more_than() {
-        let inputs = vec![json!(2.0), json!(1.0)];
-        let (value, run_again) = compare(&inputs).expect("compare() failed");
+        let (value, run_again) = compare(&json!(2.0), &json!(1.0)).expect("compare() failed");
 
         assert_eq!(run_again, RUN_AGAIN);
         assert!(value.is_some());
@@ -140,7 +132,6 @@ mod test {
 
     #[test]
     fn invalid() {
-        let inputs = vec![json!("AAA"), json!(1.0)];
-        assert!(compare(&inputs).is_err());
+        assert!(compare(&json!("AAA"), &json!(1.0)).is_err());
     }
 }

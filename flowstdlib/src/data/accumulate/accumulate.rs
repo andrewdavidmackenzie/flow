@@ -5,30 +5,28 @@ use flowcore::{RunAgain, RUN_AGAIN};
 use flowmacro::flow_function;
 
 #[flow_function]
-fn inner_accumulate(inputs: &[Value]) -> Result<(Option<Value>, RunAgain)> {
-    let value = inputs.first().ok_or("Could not get value")?.clone(); // input value to accumulate in array
+fn inner_accumulate(
+    values: &Value,
+    partial: &Value,
+    chunk_size: &Value,
+) -> Result<(Option<Value>, RunAgain)> {
     let mut output_map = serde_json::Map::new();
 
-    if value.is_null() {
-        let partial_input = inputs.get(1).ok_or("Could not get partial_input")?.clone();
-        let partial = partial_input.as_array().ok_or("Could not get partial")?;
-        if partial.is_empty() {
+    if values.is_null() {
+        let partial_arr = partial.as_array().ok_or("Could not get partial")?;
+        if partial_arr.is_empty() {
             output_map.insert("chunk".into(), Value::Null);
         } else {
-            output_map.insert("chunk".into(), Value::Array(partial.clone()));
+            output_map.insert("chunk".into(), Value::Array(partial_arr.clone()));
         }
     } else {
-        let mut partial_input = inputs.get(1).ok_or("Could not get partial_input")?.clone();
-        let chunk_size = inputs
-            .get(2)
-            .ok_or("Could not get chunk_size")?
-            .as_u64()
-            .filter(|&s| s > 0);
+        let mut partial_input = partial.clone();
+        let chunk_size = chunk_size.as_u64().filter(|&s| s > 0);
 
         let partial = partial_input
             .as_array_mut()
             .ok_or("Could not get partial")?;
-        partial.push(value);
+        partial.push(values.clone());
 
         if let Some(size) = chunk_size {
             if partial.len() >= usize::try_from(size)? {
@@ -61,7 +59,7 @@ mod test {
         let chunk_size = json!(1);
 
         let (result, _) =
-            inner_accumulate(&[value, partial, chunk_size]).expect("_accumulate() failed");
+            inner_accumulate(&value, &partial, &chunk_size).expect("_accumulate() failed");
         let output = result.expect("Could not get the Value from the output");
         assert_eq!(
             output
@@ -78,7 +76,7 @@ mod test {
         let chunk_size = json!(2);
 
         let (result, _) =
-            inner_accumulate(&[value, partial, chunk_size]).expect("_accumulate() failed");
+            inner_accumulate(&value, &partial, &chunk_size).expect("_accumulate() failed");
         let output = result.expect("Could not get the Value from the output");
         assert_eq!(output.pointer("/chunk"), None);
         assert_eq!(
@@ -96,7 +94,7 @@ mod test {
         let chunk_size = json!(2);
 
         let (result, _) =
-            inner_accumulate(&[value, partial, chunk_size]).expect("_accumulate() failed");
+            inner_accumulate(&value, &partial, &chunk_size).expect("_accumulate() failed");
         let output = result.expect("Could not get the Value from the output");
         assert_eq!(
             output

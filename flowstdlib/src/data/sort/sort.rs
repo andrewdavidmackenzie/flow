@@ -5,16 +5,12 @@ use flowcore::{RunAgain, RUN_AGAIN};
 use flowmacro::flow_function;
 
 #[flow_function]
-fn inner_sort(inputs: &[Value]) -> Result<(Option<Value>, RunAgain)> {
-    if inputs.first().ok_or("Could not get first")?.is_null() {
+fn inner_sort(input: &Value) -> Result<(Option<Value>, RunAgain)> {
+    if input.is_null() {
         return Ok((Some(Value::Null), RUN_AGAIN));
     }
 
-    let array_num = inputs
-        .first()
-        .ok_or("Could not get array_num")?
-        .as_array()
-        .ok_or("Could not get array")?;
+    let array_num = input.as_array().ok_or("Could not get array")?;
     let mut array_of_numbers: Vec<Value> = array_num.clone();
     array_of_numbers.sort_by_key(|a| a.as_i64().unwrap_or(0));
 
@@ -30,7 +26,7 @@ mod test {
 
     #[test]
     fn sort_null() {
-        let (result, _) = inner_sort(&[Value::Null]).expect("_sort() failed");
+        let (result, _) = inner_sort(&Value::Null).expect("_sort() failed");
 
         let output = result.expect("Could not get output value");
         assert_eq!(output, Value::Null);
@@ -38,12 +34,12 @@ mod test {
 
     #[test]
     fn sort_invalid() {
-        assert!(inner_sort(&[json!("Hello World")]).is_err());
+        assert!(inner_sort(&json!("Hello World")).is_err());
     }
 
     #[test]
     fn sort_one() {
-        let (result, _) = inner_sort(&[json!([1])]).expect("_sort() failed");
+        let (result, _) = inner_sort(&json!([1])).expect("_sort() failed");
 
         let output = result.expect("Could not get output value");
         assert_eq!(output, json!([1]));
@@ -51,7 +47,7 @@ mod test {
 
     #[test]
     fn sort_array() {
-        let (result, _) = inner_sort(&[json!([7, 1, 4, 8, 3, 9])]).expect("_sort() failed");
+        let (result, _) = inner_sort(&json!([7, 1, 4, 8, 3, 9])).expect("_sort() failed");
 
         let output = result.expect("Could not get output value");
         assert_eq!(output, json!([1, 3, 4, 7, 8, 9]));
@@ -59,7 +55,7 @@ mod test {
 
     #[test]
     fn sort_array_repeats() {
-        let (result, _) = inner_sort(&[json!([7, 1, 8, 4, 8, 3, 1, 9])]).expect("_sort() failed");
+        let (result, _) = inner_sort(&json!([7, 1, 8, 4, 8, 3, 1, 9])).expect("_sort() failed");
 
         let output = result.expect("Could not get output value");
         assert_eq!(output, json!([1, 1, 3, 4, 7, 8, 8, 9]));

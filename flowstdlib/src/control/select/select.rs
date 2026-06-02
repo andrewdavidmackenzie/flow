@@ -5,15 +5,7 @@ use flowcore::{RunAgain, RUN_AGAIN};
 use flowmacro::flow_function;
 
 #[flow_function]
-fn inner_select(inputs: &[Value]) -> Result<(Option<Value>, RunAgain)> {
-    let i1 = inputs.first().ok_or("Could not get i1")?;
-    let i2 = inputs.get(1).ok_or("Could not get i2")?;
-    let control = inputs
-        .get(2)
-        .ok_or("Could not get control")?
-        .as_bool()
-        .ok_or("Could not get boolean")?;
-
+fn inner_select(i1: &Value, i2: &Value, control: bool) -> Result<(Option<Value>, RunAgain)> {
     let mut output_map = serde_json::Map::new();
     if control {
         output_map.insert("select_i1".into(), i1.clone());
@@ -37,8 +29,8 @@ mod test {
 
     #[test]
     fn test_select_first() {
-        let inputs = vec![json!("A"), json!("B"), json!(true)];
-        let (output, run_again) = inner_select(&inputs).expect("_select() failed");
+        let (output, run_again) =
+            inner_select(&json!("A"), &json!("B"), true).expect("_select() failed");
         assert_eq!(run_again, RUN_AGAIN);
 
         assert!(output.is_some());
@@ -58,8 +50,8 @@ mod test {
 
     #[test]
     fn test_select_second() {
-        let inputs = vec![json!("A"), json!("B"), json!(false)];
-        let (output, run_again) = inner_select(&inputs).expect("_select() failed");
+        let (output, run_again) =
+            inner_select(&json!("A"), &json!("B"), false).expect("_select() failed");
         assert_eq!(run_again, RUN_AGAIN);
 
         assert!(output.is_some());

@@ -28,10 +28,10 @@ fn type_string(value: &Value) -> Result<String> {
 }
 
 #[flow_function]
-fn inner_info(inputs: &[Value]) -> Result<(Option<Value>, RunAgain)> {
+fn inner_info(input: &Value) -> Result<(Option<Value>, RunAgain)> {
     let mut output_map = serde_json::Map::new();
 
-    let (rows, cols) = match inputs.first().ok_or("Could not get rows & cols")? {
+    let (rows, cols) = match input {
         Value::String(string) => (1, string.len()),
         Value::Bool(_boolean) => (1, 1),
         Value::Number(_number) => (1, 1),
@@ -43,7 +43,7 @@ fn inner_info(inputs: &[Value]) -> Result<(Option<Value>, RunAgain)> {
         Value::Null => (0, 0),
     };
 
-    let data_type = type_string(inputs.first().ok_or("Could not get type")?)?;
+    let data_type = type_string(input)?;
     output_map.insert("rows".into(), json!(rows));
     output_map.insert("columns".into(), json!(cols));
     output_map.insert("type".into(), json!(data_type));
@@ -67,8 +67,7 @@ mod test {
 
     #[test]
     fn info_on_number() {
-        let inputs = vec![json!(1)];
-        let (result, _) = inner_info(&inputs).expect("_info() failed");
+        let (result, _) = inner_info(&json!(1)).expect("_info() failed");
         let output_map = result.expect("Could not get the Value from the output");
 
         assert_eq!(
@@ -93,8 +92,7 @@ mod test {
 
     #[test]
     fn info_on_boolean() {
-        let inputs = vec![json!(true)];
-        let (result, _) = inner_info(&inputs).expect("_info() failed");
+        let (result, _) = inner_info(&json!(true)).expect("_info() failed");
         let output_map = result.expect("Could not get the Value from the output");
 
         assert_eq!(
@@ -120,7 +118,7 @@ mod test {
     #[test]
     fn info_on_string() {
         let string = json!("Hello");
-        let (result, _) = inner_info(&[string]).expect("_info() failed");
+        let (result, _) = inner_info(&string).expect("_info() failed");
         let output_map = result.expect("Could not get the Value from the output");
 
         assert_eq!(
@@ -145,8 +143,7 @@ mod test {
 
     #[test]
     fn info_on_null() {
-        let inputs = vec![Value::Null];
-        let (result, _) = inner_info(&inputs).expect("_info() failed");
+        let (result, _) = inner_info(&Value::Null).expect("_info() failed");
         let output_map = result.expect("Could not get the Value from the output");
 
         assert_eq!(
@@ -171,8 +168,7 @@ mod test {
 
     #[test]
     fn info_on_array_of_number() {
-        let inputs = vec![json!([1, 2, 3])];
-        let (result, _) = inner_info(&inputs).expect("_info() failed");
+        let (result, _) = inner_info(&json!([1, 2, 3])).expect("_info() failed");
         let output_map = result.expect("Could not get the Value from the output");
 
         assert_eq!(
@@ -198,7 +194,7 @@ mod test {
     #[test]
     fn info_on_array_of_array_of_number() {
         let array_array_numbers = json!([[1, 2, 3], [4, 5, 6]]);
-        let (result, _) = inner_info(&[array_array_numbers]).expect("_info() failed");
+        let (result, _) = inner_info(&array_array_numbers).expect("_info() failed");
         let output_map = result.expect("Could not get the Value from the output");
 
         assert_eq!(
@@ -226,8 +222,8 @@ mod test {
         let mut map = Map::new();
         map.insert("0".into(), json!(1));
         map.insert("1".into(), json!(2));
-        let inputs = vec![Value::Object(map)];
-        let (result, _) = inner_info(&inputs).expect("_info() failed");
+        let input = Value::Object(map);
+        let (result, _) = inner_info(&input).expect("_info() failed");
         let output_map = result.expect("Could not get the Value from the output");
 
         assert_eq!(
@@ -255,8 +251,8 @@ mod test {
         let mut map = Map::new();
         map.insert("0".into(), json!([1, 2]));
         map.insert("1".into(), json!([3, 4]));
-        let inputs = vec![Value::Object(map)];
-        let (result, _) = inner_info(&inputs).expect("_info() failed");
+        let input = Value::Object(map);
+        let (result, _) = inner_info(&input).expect("_info() failed");
         let output_map = result.expect("Could not get the Value from the output");
 
         assert_eq!(

@@ -6,16 +6,12 @@ use flowmacro::flow_function;
 
 #[flow_function]
 #[allow(clippy::needless_range_loop)]
-fn inner_transpose(inputs: &[Value]) -> Result<(Option<Value>, RunAgain)> {
+fn inner_transpose(input: &Value) -> Result<(Option<Value>, RunAgain)> {
     let mut output_matrix: Vec<Value> = vec![]; // vector of Value::Array - i.e. array of rows
     let mut col_indexes = vec![];
     let mut output_map = serde_json::Map::new();
 
-    let matrix = inputs
-        .first()
-        .ok_or("Could not get matrix")?
-        .as_array()
-        .ok_or("Could not get array")?;
+    let matrix = input.as_array().ok_or("Could not get array")?;
 
     let rows = matrix.len();
 
@@ -57,9 +53,7 @@ mod test {
     fn transpose_empty() {
         let matrix = Value::Array(vec![Value::Array(vec![])]);
 
-        let inputs = vec![matrix];
-
-        let (result, _) = inner_transpose(&inputs).expect("_transpose() failed");
+        let (result, _) = inner_transpose(&matrix).expect("_transpose() failed");
 
         let output = result.expect("Could not get the Value from the output");
 
@@ -76,9 +70,7 @@ mod test {
         let row0 = json!([1]);
         let matrix = Value::Array(vec![row0]);
 
-        let inputs = vec![matrix];
-
-        let (result, _) = inner_transpose(&inputs).expect("_transpose() failed");
+        let (result, _) = inner_transpose(&matrix).expect("_transpose() failed");
 
         let output = result.expect("Could not get the Value from the output");
 
@@ -99,9 +91,7 @@ mod test {
         let row1 = json!([3, 4]);
         let matrix = Value::Array(vec![row0, row1]);
 
-        let inputs = vec![matrix];
-
-        let (result, _) = inner_transpose(&inputs).expect("_transpose() failed");
+        let (result, _) = inner_transpose(&matrix).expect("_transpose() failed");
 
         let output = result.expect("Could not get the Value from the output");
 
@@ -123,9 +113,7 @@ mod test {
         let row1 = json!([4, 5, 6]);
         let matrix = Value::Array(vec![row0, row1]);
 
-        let inputs = vec![matrix];
-
-        let (result, _) = inner_transpose(&inputs).expect("_transpose() failed");
+        let (result, _) = inner_transpose(&matrix).expect("_transpose() failed");
 
         let output = result.expect("Could not get the Value from the output");
 

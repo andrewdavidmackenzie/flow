@@ -5,12 +5,9 @@ use flowcore::{RunAgain, RUN_AGAIN};
 use flowmacro::flow_function;
 
 #[flow_function]
-fn inner_join(inputs: &[Value]) -> Result<(Option<Value>, RunAgain)> {
-    let input = inputs.first().ok_or("Could not get input")?;
-    let data = Some(input.clone());
-    // second input of 'control' is not used, it just "controls" the execution of this process
-    // via it's availability
-    Ok((data, RUN_AGAIN))
+fn inner_join(data: &Value, control: &Value) -> Result<(Option<Value>, RunAgain)> {
+    let _ = control;
+    Ok((Some(data.clone()), RUN_AGAIN))
 }
 
 #[cfg(test)]
@@ -18,15 +15,11 @@ fn inner_join(inputs: &[Value]) -> Result<(Option<Value>, RunAgain)> {
 mod test {
     use serde_json::json;
 
-    use flowcore::RUN_AGAIN;
-
     use super::inner_join;
 
     #[test]
     fn test_join() {
-        let inputs = vec![json!(42), json!("OK")];
-        let (output, run_again) = inner_join(&inputs).expect("_join() failed");
-        assert_eq!(run_again, RUN_AGAIN);
-        assert_eq!(output.expect("No output value"), json!(42));
+        let (output, _) = inner_join(&json!(42), &json!("OK")).expect("failed");
+        assert_eq!(output, Some(json!(42)));
     }
 }

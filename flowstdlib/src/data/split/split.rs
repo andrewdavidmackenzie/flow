@@ -5,46 +5,31 @@ use flowcore::{RunAgain, RUN_AGAIN};
 use flowmacro::flow_function;
 
 #[flow_function]
-fn inner_split(inputs: &[Value]) -> Result<(Option<Value>, RunAgain)> {
-    if inputs.first().ok_or("Could not get first")?.is_string() {
-        let string = inputs
-            .first()
-            .ok_or("Could not get string")?
-            .as_str()
-            .unwrap_or("");
-        let separator = inputs
-            .get(1)
-            .ok_or("Could not get separator")?
-            .as_str()
-            .unwrap_or("");
+fn inner_split(string: &str, separator: &str) -> Result<(Option<Value>, RunAgain)> {
+    let (partial, token) = split(string, separator)?;
 
-        let (partial, token) = split(string, separator)?;
+    let mut output_map = serde_json::Map::new();
 
-        let mut output_map = serde_json::Map::new();
+    let mut work_delta: i32 = -1; // we have consumed a string, so one down
 
-        let mut work_delta: i32 = -1; // we have consumed a string, so one down
-
-        if let Some(partial) = partial {
-            // but we have generated some new strings to be processed by other jobs
-            work_delta += i32::try_from(partial.len())?;
-            output_map.insert("partial".into(), json!(partial));
-        }
-
-        output_map.insert("delta".into(), json!(work_delta));
-
-        if let Some(tok) = token {
-            output_map.insert("token".into(), json!(tok));
-            output_map.insert("token-count".into(), json!(1u64));
-        } else {
-            output_map.insert("token-count".into(), json!(0u64));
-        }
-
-        let output = Value::Object(output_map);
-
-        Ok((Some(output), RUN_AGAIN))
-    } else {
-        Ok((None, RUN_AGAIN))
+    if let Some(partial) = partial {
+        // but we have generated some new strings to be processed by other jobs
+        work_delta += i32::try_from(partial.len())?;
+        output_map.insert("partial".into(), json!(partial));
     }
+
+    output_map.insert("delta".into(), json!(work_delta));
+
+    if let Some(tok) = token {
+        output_map.insert("token".into(), json!(tok));
+        output_map.insert("token-count".into(), json!(1u64));
+    } else {
+        output_map.insert("token-count".into(), json!(0u64));
+    }
+
+    let output = Value::Object(output_map);
+
+    Ok((Some(output), RUN_AGAIN))
 }
 
 // Separate an array of text at a separator string close to the center, dividing in two if possible
@@ -195,10 +180,8 @@ mod test {
 
     #[test]
     fn iterate_until_done() {
-        let string = json!("the quick brown fox jumped over the lazy dog");
-        let separator = json!(" ");
         let mut output_vector = vec![];
-        let mut input_strings = vec![string];
+        let mut input_strings = vec!["the quick brown fox jumped over the lazy dog".to_string()];
 
         loop {
             // if nothing else to split we're dong
@@ -207,8 +190,7 @@ mod test {
             }
 
             let this_input = input_strings.pop().expect("Could not pop value");
-            let (result, _) =
-                inner_split(&[this_input, separator.clone()]).expect("_split() failed");
+            let (result, _) = inner_split(&this_input, " ").expect("_split() failed");
 
             let output = result.expect("Could not get the Value from the output");
             if let Some(token) = output.pointer("/token") {
@@ -220,7 +202,7 @@ mod test {
                     .as_array()
                     .expect("Could not get the Array from the output")
                 {
-                    input_strings.push(value.clone());
+                    input_strings.push(value.as_str().unwrap_or("").to_string());
                 }
             }
         }
@@ -228,10 +210,7 @@ mod test {
 
     #[test]
     fn no_partials_no_token_work_delta() {
-        let test = (json!("  "), 1);
-        let separator = json!(" ");
-
-        let (result, _) = inner_split(&[test.0, separator]).expect("_split() failed");
+        let (result, _) = inner_split("  ", " ").expect("_split() failed");
 
         let output = result.expect("Could not get the Value from the output");
         assert!(output.pointer("/token").is_none());
@@ -252,10 +231,8 @@ mod test {
 
     #[test]
     fn two_partials_no_token_work_delta() {
-        let test = (json!("the quick brown fox jumped over the lazy dog"), 1);
-        let separator = json!(" ");
-
-        let (result, _) = inner_split(&[test.0, separator]).expect("_split() failed");
+        let (result, _) = inner_split("the quick brown fox jumped over the lazy dog", " ")
+            .expect("_split() failed");
 
         let output = result.expect("Could not get the Value from the output");
         assert!(output.pointer("/token").is_none());
@@ -281,10 +258,8 @@ mod test {
 
     #[test]
     fn one_partial_one_token_work_delta() {
-        let test = (json!("the quick brown fox-jumped-over-the-lazy-dog"), 1);
-        let separator = json!(" ");
-
-        let (result, _) = inner_split(&[test.0, separator]).expect("_split() failed");
+        let (result, _) = inner_split("the quick brown fox-jumped-over-the-lazy-dog", " ")
+            .expect("_split() failed");
 
         let output = result.expect("Could not get the Value from the output");
         assert_eq!(
@@ -315,10 +290,7 @@ mod test {
 
     #[test]
     fn no_partials_one_token_work_delta() {
-        let test = (json!("the"), -1);
-        let separator = json!(" ");
-
-        let (result, _) = inner_split(&[test.0, separator]).expect("_split() failed");
+        let (result, _) = inner_split("the", " ").expect("_split() failed");
 
         let output = result.expect("Could not get the Value from the output");
         assert!(output.pointer("/partial").is_none());

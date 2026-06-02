@@ -7,12 +7,8 @@ const WIDTH: usize = 256;
 const HEIGHT: usize = 128;
 
 #[flow_function]
-fn inner_histogram(inputs: &[Value]) -> Result<(Option<Value>, RunAgain)> {
-    let bins = inputs
-        .first()
-        .ok_or("Could not get bins")?
-        .as_array()
-        .ok_or("Could not get bins as array")?;
+fn inner_histogram(bins: &Value) -> Result<(Option<Value>, RunAgain)> {
+    let bins = bins.as_array().ok_or("Could not get bins as array")?;
 
     let max_count = bins
         .iter()
@@ -54,7 +50,8 @@ mod test {
         bins[0] = json!(10);
         bins[128] = json!(5);
         bins[255] = json!(10);
-        let (result, _) = inner_histogram(&[Value::Array(bins)]).expect("failed");
+        let bins_value = Value::Array(bins);
+        let (result, _) = inner_histogram(&bins_value).expect("failed");
         let output = result.expect("no output");
         let grid = output.pointer("/grid").expect("no grid");
         let rows = grid.as_array().expect("not array");
