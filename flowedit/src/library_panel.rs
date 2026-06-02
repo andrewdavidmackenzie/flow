@@ -29,6 +29,10 @@ pub(crate) enum LibraryMessage {
     AddFunction(String, String),
     /// View a library function/flow definition.
     ViewFunction(String, String),
+    /// Delete a function from the library: `source_url`.
+    DeleteFunction(String),
+    /// Move a function to a different category: `source_url`.
+    MoveFunction(String),
     /// Add a library manually via file dialog.
     AddLibrary,
     /// Toggle the library search paths editor panel.
@@ -41,6 +45,8 @@ pub(crate) enum LibraryAction {
     None,
     Add(String, String),
     View(String, String),
+    Delete(String),
+    Move(String),
     AddLibrary,
     ToggleLibPaths,
 }
@@ -146,6 +152,8 @@ impl LibraryTree {
             LibraryMessage::ViewFunction(source, name) => {
                 LibraryAction::View(source.clone(), name.clone())
             }
+            LibraryMessage::DeleteFunction(source) => LibraryAction::Delete(source.clone()),
+            LibraryMessage::MoveFunction(source) => LibraryAction::Move(source.clone()),
             LibraryMessage::AddLibrary => LibraryAction::AddLibrary,
             LibraryMessage::ToggleLibPaths => LibraryAction::ToggleLibPaths,
         }
@@ -266,11 +274,26 @@ fn view_function_entry<'a>(
         .style(button::text)
         .padding([2, 4]);
 
-    let row = Row::new()
+    let is_library = func_url.scheme() == "lib";
+
+    let mut row = Row::new()
         .spacing(2)
         .align_y(iced::Alignment::Center)
         .push(view_btn)
         .push(func_btn);
+
+    if is_library {
+        let src = func_url.to_string();
+        let delete_btn = button(text("\u{2715}").size(9))
+            .on_press(LibraryMessage::DeleteFunction(src.clone()))
+            .style(button::text)
+            .padding([1, 3]);
+        let move_btn = button(text("\u{21C4}").size(9))
+            .on_press(LibraryMessage::MoveFunction(src))
+            .style(button::text)
+            .padding([1, 3]);
+        row = row.push(move_btn).push(delete_btn);
+    }
 
     let entry_widget: Element<'_, LibraryMessage> = if description.is_empty() {
         row.into()

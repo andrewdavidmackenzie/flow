@@ -600,6 +600,121 @@ impl FlowEdit {
         }
     }
 
+    fn handle_library_delete(&mut self, source: &str) {
+        use flowcore::provider::Provider;
+
+        let Ok(source_url) = Url::parse(source) else {
+            return;
+        };
+        let provider = file_ops::build_meta_provider();
+        let Ok((resolved_url, _)) = provider.resolve_url(&source_url, "default", &["toml"]) else {
+            return;
+        };
+        let Ok(func_path) = resolved_url.to_file_path() else {
+            return;
+        };
+        let Some(func_dir) = func_path.parent() else {
+            return;
+        };
+
+        if let Err(e) = std::fs::remove_dir_all(func_dir) {
+            warn!("Could not delete {}: {e}", func_dir.display());
+            return;
+        }
+
+        let lib_name = source_url.host_str().unwrap_or_default();
+        if let Some(manifest) = self.library_cache.get_mut(
+            &Url::parse(&format!("lib://{lib_name}")).unwrap_or_else(|_| source_url.clone()),
+        ) {
+            manifest.remove_locator(&source_url);
+            let manifest_path = func_dir
+                .ancestors()
+                .find(|p| p.join("manifest.json").exists())
+                .map(|p| p.join("manifest.json"));
+            if let Some(path) = manifest_path {
+                let _ = manifest.write_json(&path);
+            }
+        }
+
+        self.rebuild_library_tree();
+    }
+
+    fn handle_library_move(&mut self, source: &str) {
+        use flowcore::provider::Provider;
+
+        let Ok(source_url) = Url::parse(source) else {
+            return;
+        };
+        let provider = file_ops::build_meta_provider();
+        let Ok((resolved_url, _)) = provider.resolve_url(&source_url, "default", &["toml"]) else {
+            return;
+        };
+        let Ok(func_path) = resolved_url.to_file_path() else {
+            return;
+        };
+        let Some(func_dir) = func_path.parent() else {
+            return;
+        };
+        let func_dir_name = func_dir
+            .file_name()
+            .and_then(|n| n.to_str())
+            .unwrap_or_default()
+            .to_string();
+
+        let dialog = rfd::FileDialog::new()
+            .set_title("Select destination category directory")
+            .set_directory(func_dir.parent().unwrap_or(func_dir));
+        let Some(dest_category) = dialog.pick_folder() else {
+            return;
+        };
+
+        let dest_dir = dest_category.join(&func_dir_name);
+        if dest_dir == func_dir {
+            return;
+        }
+
+        if let Err(e) = std::fs::rename(func_dir, &dest_dir) {
+            warn!("Could not move {}: {e}", func_dir.display());
+            return;
+        }
+
+        let lib_name = source_url.host_str().unwrap_or_default();
+        let lib_url =
+            Url::parse(&format!("lib://{lib_name}")).unwrap_or_else(|_| source_url.clone());
+        if let Some(manifest) = self.library_cache.get_mut(&lib_url) {
+            manifest.remove_locator(&source_url);
+            let manifest_path = dest_dir
+                .ancestors()
+                .find(|p| p.join("manifest.json").exists())
+                .map(|p| p.join("manifest.json"));
+
+            // Compute new lib reference path from the destination relative to lib root
+            if let Some(ref mp) = manifest_path {
+                if let Some(lib_root) = mp.parent() {
+                    if let Ok(rel) = dest_dir.strip_prefix(lib_root) {
+                        let new_ref = rel.to_string_lossy().replace('\\', "/");
+                        let wasm_name = format!("{func_dir_name}.wasm");
+                        let wasm_rel = format!("{new_ref}/{wasm_name}");
+                        let _ = manifest.add_locator(&wasm_rel, &new_ref, "");
+                    }
+                }
+            }
+            if let Some(path) = manifest_path {
+                let _ = manifest.write_json(&path);
+            }
+        }
+
+        self.rebuild_library_tree();
+    }
+
+    fn rebuild_library_tree(&mut self) {
+        let lib_refs = self.root_flow.lib_references.clone();
+        let (lc, ad) = library_mgmt::load_library_catalogs(&lib_refs);
+        self.library_cache = lc;
+        self.all_definitions = ad;
+        self.library_tree = LibraryTree::from_cache(&self.library_cache, &self.all_definitions);
+    }
+
     fn handle_library_message(
         &mut self,
         win_id: window::Id,
@@ -619,6 +734,12 @@ impl FlowEdit {
             }
             LibraryAction::View(source, _name) => {
                 return self.open_library_function(&source);
+            }
+            LibraryAction::Delete(source) => {
+                self.handle_library_delete(&source);
+            }
+            LibraryAction::Move(source) => {
+                self.handle_library_move(&source);
             }
             LibraryAction::AddLibrary => {
                 self.handle_add_library(win_id);

@@ -273,6 +273,17 @@ alias (e.g., `add_2`, `add_3`).
 Each function also has a pencil icon (✎) that opens the function definition
 in a viewer window, showing its TOML definition, Rust source, and documentation.
 
+### Managing Library Functions
+
+Library functions (not context functions) have additional management controls:
+
+- **Move** (⇄) — moves the function to a different category directory within the
+  library. A folder picker dialog lets you select the destination category.
+- **Delete** (✕) — removes the function from the library by deleting its directory
+  and updating the library manifest.
+
+Both operations update the library's `manifest.json` and refresh the panel immediately.
+
 ## Flow Hierarchy
 
 Above the Process Library, a collapsible tree view shows the structure of the

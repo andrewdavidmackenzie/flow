@@ -157,6 +157,15 @@ impl LibraryManifest {
         Ok(())
     }
 
+    /// Remove a locator from the manifest by its library URL
+    pub fn remove_locator(&mut self, locator_url: &Url) {
+        if let Some(ImplementationLocator::RelativePath(rel_path)) =
+            self.locators.remove(locator_url)
+        {
+            self.source_urls.remove(&rel_path);
+        }
+    }
+
     /// Given an output directory, return a `PathBuf` to the json format manifest that should be
     /// generated inside it
     #[must_use]
