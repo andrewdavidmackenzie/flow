@@ -5,21 +5,13 @@ use flowcore::{RunAgain, RUN_AGAIN};
 use flowmacro::flow_function;
 
 #[flow_function]
-fn inner_duplicate_rows(inputs: &[Value]) -> Result<(Option<Value>, RunAgain)> {
+fn inner_duplicate_rows(input: &Value, factor: &Value) -> Result<(Option<Value>, RunAgain)> {
     let mut output_matrix: Vec<Value> = vec![];
     let mut row_indexes = vec![];
     let mut output_map = serde_json::Map::new();
 
-    let matrix = inputs
-        .first()
-        .ok_or("Could not get matrix")?
-        .as_array()
-        .ok_or("Could not get matrix")?;
-    let factor = inputs
-        .get(1)
-        .ok_or("Could not get factor")?
-        .as_i64()
-        .ok_or("Could not get factor")?;
+    let matrix = input.as_array().ok_or("Could not get matrix")?;
+    let factor = factor.as_i64().ok_or("Could not get factor")?;
 
     for (row_index, row) in matrix.iter().enumerate() {
         for _i in 0..factor {
@@ -46,9 +38,8 @@ mod test {
         let matrix = json!([[1, 2], [3, 4]]);
         let duplication_factor = json!(2);
 
-        let inputs = vec![matrix, duplication_factor];
-
-        let (result, _) = inner_duplicate_rows(&inputs).expect("_duplicate_rows() failed");
+        let (result, _) =
+            inner_duplicate_rows(&matrix, &duplication_factor).expect("_duplicate_rows() failed");
 
         let output = result.expect("Could not get the Value from the output");
 
@@ -87,9 +78,8 @@ mod test {
         let matrix = json!([[1, 2], [3, 4]]);
         let duplication_factor = json!(3);
 
-        let inputs = vec![matrix, duplication_factor];
-
-        let (result, _) = inner_duplicate_rows(&inputs).expect("_duplicate_rows() failed");
+        let (result, _) =
+            inner_duplicate_rows(&matrix, &duplication_factor).expect("_duplicate_rows() failed");
 
         let output = result.expect("Could not get the Value from the output");
 

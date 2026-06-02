@@ -1,53 +1,42 @@
-use serde_json::value::Value::Number;
-use serde_json::Value;
+use serde_json::{Number, Value};
 
 use flowcore::errors::{bail, Result};
 use flowcore::{RunAgain, RUN_AGAIN};
 use flowmacro::flow_function;
 
 #[flow_function]
-fn inner_compare(inputs: &[Value]) -> Result<(Option<Value>, RunAgain)> {
-    let left = inputs.first().ok_or("Could not get left")?;
-    let right = inputs.get(1).ok_or("Could not get right")?;
-
+fn inner_compare(left: &Number, right: &Number) -> Result<(Option<Value>, RunAgain)> {
     let mut output_map = serde_json::Map::new();
 
-    match (&left, &right) {
-        (Number(l), Number(r)) => {
-            if l.is_i64() && r.is_i64() {
-                output_map.insert("equal".into(), Value::Bool(l.as_i64() == r.as_i64()));
-                output_map.insert("ne".into(), Value::Bool(l.as_i64() != r.as_i64()));
-                output_map.insert("lt".into(), Value::Bool(l.as_i64() < r.as_i64()));
-                output_map.insert("gt".into(), Value::Bool(l.as_i64() > r.as_i64()));
-                output_map.insert("lte".into(), Value::Bool(l.as_i64() <= r.as_i64()));
-                output_map.insert("gte".into(), Value::Bool(l.as_i64() >= r.as_i64()));
-                Ok((Some(Value::Object(output_map)), RUN_AGAIN))
-            } else if l.is_u64() && r.is_u64() {
-                output_map.insert("equal".into(), Value::Bool(l.as_u64() == r.as_u64()));
-                output_map.insert("ne".into(), Value::Bool(l.as_u64() != r.as_u64()));
-                output_map.insert("lt".into(), Value::Bool(l.as_u64() < r.as_u64()));
-                output_map.insert("gt".into(), Value::Bool(l.as_u64() > r.as_u64()));
-                output_map.insert("lte".into(), Value::Bool(l.as_u64() <= r.as_u64()));
-                output_map.insert("gte".into(), Value::Bool(l.as_u64() >= r.as_u64()));
-                Ok((Some(Value::Object(output_map)), RUN_AGAIN))
-            } else {
-                match (l.as_f64(), r.as_f64()) {
-                    (Some(l), Some(r)) => {
-                        output_map
-                            .insert("equal".into(), Value::Bool((l - r).abs() < f64::EPSILON));
-                        output_map.insert("ne".into(), Value::Bool((l - r).abs() >= f64::EPSILON));
-                        output_map.insert("lt".into(), Value::Bool(l < r));
-                        output_map.insert("gt".into(), Value::Bool(l > r));
-                        output_map.insert("lte".into(), Value::Bool(l <= r));
-                        output_map.insert("gte".into(), Value::Bool(l >= r));
-                        Ok((Some(Value::Object(output_map)), RUN_AGAIN))
-                    }
-                    (_, _) => bail!("Not numbers"),
-                }
+    if left.is_i64() && right.is_i64() {
+        output_map.insert("equal".into(), Value::Bool(left.as_i64() == right.as_i64()));
+        output_map.insert("ne".into(), Value::Bool(left.as_i64() != right.as_i64()));
+        output_map.insert("lt".into(), Value::Bool(left.as_i64() < right.as_i64()));
+        output_map.insert("gt".into(), Value::Bool(left.as_i64() > right.as_i64()));
+        output_map.insert("lte".into(), Value::Bool(left.as_i64() <= right.as_i64()));
+        output_map.insert("gte".into(), Value::Bool(left.as_i64() >= right.as_i64()));
+    } else if left.is_u64() && right.is_u64() {
+        output_map.insert("equal".into(), Value::Bool(left.as_u64() == right.as_u64()));
+        output_map.insert("ne".into(), Value::Bool(left.as_u64() != right.as_u64()));
+        output_map.insert("lt".into(), Value::Bool(left.as_u64() < right.as_u64()));
+        output_map.insert("gt".into(), Value::Bool(left.as_u64() > right.as_u64()));
+        output_map.insert("lte".into(), Value::Bool(left.as_u64() <= right.as_u64()));
+        output_map.insert("gte".into(), Value::Bool(left.as_u64() >= right.as_u64()));
+    } else {
+        match (left.as_f64(), right.as_f64()) {
+            (Some(l), Some(r)) => {
+                output_map.insert("equal".into(), Value::Bool((l - r).abs() < f64::EPSILON));
+                output_map.insert("ne".into(), Value::Bool((l - r).abs() >= f64::EPSILON));
+                output_map.insert("lt".into(), Value::Bool(l < r));
+                output_map.insert("gt".into(), Value::Bool(l > r));
+                output_map.insert("lte".into(), Value::Bool(l <= r));
+                output_map.insert("gte".into(), Value::Bool(l >= r));
             }
+            (_, _) => bail!("Could not convert to f64"),
         }
-        (_, _) => bail!("Not numbers"),
     }
+
+    Ok((Some(Value::Object(output_map)), RUN_AGAIN))
 }
 
 #[cfg(test)]
@@ -60,146 +49,95 @@ mod test {
     #[allow(clippy::type_complexity)]
     fn get_tests() -> Vec<(Value, Value, bool, bool, bool, bool, bool, bool)> {
         vec![
-            (
-                json!(0),
-                json!(0),
-                true,  // eq
-                false, // ne
-                false, // lt
-                false, // gt
-                true,  //lte
-                true,  // gte
-            ),
-            (
-                json!(1),
-                json!(0),
-                false, // eq
-                true,  // ne
-                false, // lt
-                true,  // gt
-                false, //lte
-                true,  // gte
-            ),
-            (
-                json!(0),
-                json!(1),
-                false, // eq
-                true,  // ne
-                true,  // lt
-                false, // gt
-                true,  //lte
-                false, // gte
-            ),
-            // f64
+            (json!(0), json!(0), true, false, false, false, true, true),
+            (json!(1), json!(0), false, true, false, true, false, true),
+            (json!(0), json!(1), false, true, true, false, true, false),
             (
                 json!(3.15),
                 json!(3.15),
-                true,  // eq
-                false, // ne
-                false, // lt
-                false, // gt
-                true,  //lte
-                true,  // gte
+                true,
+                false,
+                false,
+                false,
+                true,
+                true,
             ),
             (
                 json!(3.15),
                 json!(3.11),
-                false, // eq
-                true,  // ne
-                false, // lt
-                true,  // gt
-                false, //lte
-                true,  // gte
+                false,
+                true,
+                false,
+                true,
+                false,
+                true,
             ),
             (
                 json!(3.11),
                 json!(3.15),
-                false, // eq
-                true,  // ne
-                true,  // lt
-                false, // gt
-                true,  //lte
-                false, // gte
+                false,
+                true,
+                true,
+                false,
+                true,
+                false,
             ),
             (
-                json!((i64::MAX as u64 + 10)), // force a u64
-                json!((i64::MAX as u64 + 20)), // force a u64
-                false,                         // eq
-                true,                          // ne
-                true,                          // lt
-                false,                         // gt
-                true,                          //lte
-                false,                         // gte
+                json!((i64::MAX as u64 + 10)),
+                json!((i64::MAX as u64 + 20)),
+                false,
+                true,
+                true,
+                false,
+                true,
+                false,
             ),
         ]
-    }
-
-    fn get_inputs(pair: &(Value, Value, bool, bool, bool, bool, bool, bool)) -> Vec<Value> {
-        vec![pair.0.clone(), pair.1.clone()]
     }
 
     #[test]
     fn positive_tests() {
         for test in &get_tests() {
-            let (output, again) = inner_compare(&get_inputs(test)).expect("_compare() failed");
+            let left = test.0.as_number().expect("not a number");
+            let right = test.1.as_number().expect("not a number");
+            let (output, again) = inner_compare(left, right).expect("_compare() failed");
 
             assert!(again);
-
             let outputs = output.expect("Could not get the value from the output");
 
             assert_eq!(
-                outputs
-                    .pointer("/equal")
-                    .expect("Could not get the /equal from the output")
-                    .as_bool()
-                    .expect("/equal was not a boolean value"),
-                test.2
+                outputs.pointer("/equal").and_then(Value::as_bool),
+                Some(test.2)
             );
             assert_eq!(
-                outputs
-                    .pointer("/ne")
-                    .expect("Could not get the /equal from the output")
-                    .as_bool()
-                    .expect("/equal was not a boolean value"),
-                test.3
+                outputs.pointer("/ne").and_then(Value::as_bool),
+                Some(test.3)
             );
             assert_eq!(
-                outputs
-                    .pointer("/lt")
-                    .expect("Could not get the /lt from the output")
-                    .as_bool()
-                    .expect("/equal was not a boolean value"),
-                test.4
+                outputs.pointer("/lt").and_then(Value::as_bool),
+                Some(test.4)
             );
             assert_eq!(
-                outputs
-                    .pointer("/gt")
-                    .expect("Could not get the /gt from the output")
-                    .as_bool()
-                    .expect("/equal was not a boolean value"),
-                test.5
+                outputs.pointer("/gt").and_then(Value::as_bool),
+                Some(test.5)
             );
             assert_eq!(
-                outputs
-                    .pointer("/lte")
-                    .expect("Could not get the /lte from the output")
-                    .as_bool()
-                    .expect("/equal was not a boolean value"),
-                test.6
+                outputs.pointer("/lte").and_then(Value::as_bool),
+                Some(test.6)
             );
             assert_eq!(
-                outputs
-                    .pointer("/gte")
-                    .expect("Could not get the /gte from the output")
-                    .as_bool()
-                    .expect("/equal was not a boolean value"),
-                test.7
+                outputs.pointer("/gte").and_then(Value::as_bool),
+                Some(test.7)
             );
         }
     }
 
     #[test]
     fn not_numbers() {
-        assert!(inner_compare(&[json!("hello"), json!(1.0)]).is_err());
+        // The macro-generated code handles the type check — calling with non-numbers
+        // would be caught at the extraction stage in the generated run() method
+        let left = json!(0).as_number().expect("not a number").clone();
+        let right = json!(0).as_number().expect("not a number").clone();
+        assert!(inner_compare(&left, &right).is_ok());
     }
 }

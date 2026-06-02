@@ -5,23 +5,21 @@ use flowcore::{RunAgain, RUN_AGAIN};
 use flowmacro::flow_function;
 
 #[flow_function]
-fn inner_compose_matrix(inputs: &[Value]) -> Result<(Option<Value>, RunAgain)> {
+fn inner_compose_matrix(
+    element: &Value,
+    element_indexes: &Value,
+    partial: &Value,
+) -> Result<(Option<Value>, RunAgain)> {
     let mut new_matrix: Vec<Value> = vec![];
     let mut output_map = serde_json::Map::new();
 
-    let element_to_add = inputs.first().ok_or("Could not get element")?.clone();
+    let element_to_add = element.clone();
 
-    let element_indexes = inputs
-        .get(1)
-        .ok_or("Could not get element index")?
+    let element_indexes = element_indexes
         .as_array()
         .ok_or("Could not get element index array")?;
 
-    let partial = inputs
-        .get(2)
-        .ok_or("Could not get partial")?
-        .as_array()
-        .ok_or("Could not get partial")?;
+    let partial = partial.as_array().ok_or("Could not get partial")?;
     let mut unwritten_cell_count = 0;
 
     // put element into the first null value we find, and only once
@@ -66,9 +64,9 @@ mod test {
         let element = json!(42);
         let element_indexes = json!([0, 1]);
         let partial = json!([[0.0, 0.0], [0.0, 0.0]]);
-        let inputs = vec![element, element_indexes, partial];
 
-        let (result, _) = inner_compose_matrix(&inputs).expect("_compose_matrix() failed");
+        let (result, _) = inner_compose_matrix(&element, &element_indexes, &partial)
+            .expect("_compose_matrix() failed");
 
         let output = result.expect("Could not get the Value from the output");
 
@@ -85,8 +83,9 @@ mod test {
 
         for (index, element) in [1, 2, 3, 4].iter().enumerate() {
             let element_indexes = json!([index / 2, index % 2]);
-            let inputs = vec![json!(element), element_indexes, partial];
-            let (result, _) = inner_compose_matrix(&inputs).expect("_compose_matrix() failed");
+            let element_val = json!(element);
+            let (result, _) = inner_compose_matrix(&element_val, &element_indexes, &partial)
+                .expect("_compose_matrix() failed");
             let output = result.expect("Could not get the Value from the output");
 
             if let Some(matrix) = output.pointer("/matrix") {

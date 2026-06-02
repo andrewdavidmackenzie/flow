@@ -1,30 +1,17 @@
 use serde_json::Value;
 
-use flowcore::errors::{bail, Result};
+use flowcore::errors::Result;
 use flowcore::{RunAgain, RUN_AGAIN};
 use flowmacro::flow_function;
 
 #[flow_function]
-fn inner_to_json(inputs: &[Value]) -> Result<(Option<Value>, RunAgain)> {
-    let input = inputs.first().ok_or("Could not get input")?;
-
-    if input.is_null() {
-        return Ok((Some(Value::Null), RUN_AGAIN));
-    }
-
-    if input.is_string() {
-        match input.as_str() {
-            Some(string) => match serde_json::from_str(string) {
-                Ok(json) => Ok((Some(json), RUN_AGAIN)),
-                Err(_) => Ok((
-                    Some(serde_json::Value::String(string.to_string())),
-                    RUN_AGAIN,
-                )),
-            },
-            None => bail!("Could not get input as string"),
-        }
-    } else {
-        Ok((Some(input.clone()), RUN_AGAIN))
+fn inner_to_json(input: &str) -> Result<(Option<Value>, RunAgain)> {
+    match serde_json::from_str(input) {
+        Ok(json) => Ok((Some(json), RUN_AGAIN)),
+        Err(_) => Ok((
+            Some(serde_json::Value::String(input.to_string())),
+            RUN_AGAIN,
+        )),
     }
 }
 
@@ -38,8 +25,7 @@ mod test {
     use super::inner_to_json;
 
     fn test_to_json(string: &str, expected_value: &Value) {
-        let inputs = vec![json!(string)];
-        let (result, _) = inner_to_json(&inputs).expect("_to_json() failed");
+        let (result, _) = inner_to_json(string).expect("_to_json() failed");
 
         match result {
             Some(value) => {

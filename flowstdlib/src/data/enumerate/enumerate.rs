@@ -5,14 +5,10 @@ use flowcore::{RunAgain, RUN_AGAIN};
 use flowmacro::flow_function;
 
 #[flow_function]
-fn inner_enumerate(inputs: &[Value]) -> Result<(Option<Value>, RunAgain)> {
+fn inner_enumerate(input: &Value) -> Result<(Option<Value>, RunAgain)> {
     let mut output_array: Vec<(usize, Value)> = vec![];
 
-    let array = inputs
-        .first()
-        .ok_or("Could not get array")?
-        .as_array()
-        .ok_or("Could not get array")?;
+    let array = input.as_array().ok_or("Could not get array")?;
     for (index, value) in array.iter().enumerate() {
         output_array.push((index, value.clone()));
     }
@@ -32,7 +28,7 @@ mod test {
     fn enumerate() {
         let array = json!(["a", "b"]);
 
-        let (result, _) = inner_enumerate(&[array]).expect("_enumerate() failed");
+        let (result, _) = inner_enumerate(&array).expect("_enumerate() failed");
 
         let output = result.expect("Could not get the Value from the output");
         let enumerated_array = output
@@ -60,7 +56,7 @@ mod test {
     fn enumerate_empty_array() {
         let array = json!([]);
 
-        let (result, _) = inner_enumerate(&[array]).expect("_enumerate() failed");
+        let (result, _) = inner_enumerate(&array).expect("_enumerate() failed");
 
         let output = result.expect("Could not get the Value from the output");
         let enumerated_array = output

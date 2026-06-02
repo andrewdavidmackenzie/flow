@@ -27,19 +27,16 @@ fn to_integer(v: &Value) -> Option<i64> {
 }
 
 #[flow_function]
-fn inner_subtract(inputs: &[Value]) -> Result<(Option<Value>, RunAgain)> {
-    if inputs.iter().any(Value::is_null) {
+fn inner_subtract(i1: &Value, i2: &Value) -> Result<(Option<Value>, RunAgain)> {
+    if i1.is_null() || i2.is_null() {
         return Ok((Some(Value::Null), RUN_AGAIN));
     }
 
-    let a = inputs.first().ok_or("Could not get i1")?;
-    let b = inputs.get(1).ok_or("Could not get i2")?;
-
-    let result = if let (Some(a_i), Some(b_i)) = (to_integer(a), to_integer(b)) {
+    let result = if let (Some(a_i), Some(b_i)) = (to_integer(i1), to_integer(i2)) {
         a_i.checked_sub(b_i).map(|r| json!(r))
-    } else if let (Some(a_u), Some(b_u)) = (a.as_u64(), b.as_u64()) {
+    } else if let (Some(a_u), Some(b_u)) = (i1.as_u64(), i2.as_u64()) {
         a_u.checked_sub(b_u).map(|r| json!(r))
-    } else if let (Some(a_f), Some(b_f)) = (a.as_f64(), b.as_f64()) {
+    } else if let (Some(a_f), Some(b_f)) = (i1.as_f64(), i2.as_f64()) {
         Some(json!(a_f - b_f))
     } else {
         None
@@ -71,7 +68,7 @@ mod test {
         ];
 
         for (a, b, expected) in &tests {
-            let (output, again) = inner_subtract(&[a.clone(), b.clone()]).expect("subtract failed");
+            let (output, again) = inner_subtract(&a.clone(), &b.clone()).expect("subtract failed");
             assert!(again);
             assert_eq!(output, *expected);
         }
@@ -79,42 +76,41 @@ mod test {
 
     #[test]
     fn subtract_large_u64() {
-        let (output, _) =
-            inner_subtract(&[json!(i64::MAX as u64 + 10), json!(i64::MAX as u64 + 1)])
-                .expect("subtract failed");
+        let (output, _) = inner_subtract(&json!(i64::MAX as u64 + 10), &json!(i64::MAX as u64 + 1))
+            .expect("subtract failed");
         assert_eq!(output, Some(json!(9_u64)));
     }
 
     #[test]
     fn subtract_floats() {
-        let (output, _) = inner_subtract(&[json!(5.5), json!(3.0)]).expect("subtract failed");
+        let (output, _) = inner_subtract(&json!(5.5), &json!(3.0)).expect("subtract failed");
         assert_eq!(output, Some(json!(2.5)));
     }
 
     #[test]
     fn subtract_dot_zero_floats_produce_integer() {
-        let (output, _) = inner_subtract(&[json!(5.0), json!(3.0)]).expect("subtract failed");
+        let (output, _) = inner_subtract(&json!(5.0), &json!(3.0)).expect("subtract failed");
         assert_eq!(output, Some(json!(2)));
     }
 
     #[test]
     fn subtract_mixed_int_and_float() {
-        let (output, _) = inner_subtract(&[json!(10), json!(2.5)]).expect("subtract failed");
+        let (output, _) = inner_subtract(&json!(10), &json!(2.5)).expect("subtract failed");
         assert_eq!(output, Some(json!(7.5)));
     }
 
     #[test]
     fn subtract_mixed_float_and_int() {
-        let (output, _) = inner_subtract(&[json!(10.5), json!(3)]).expect("subtract failed");
+        let (output, _) = inner_subtract(&json!(10.5), &json!(3)).expect("subtract failed");
         assert_eq!(output, Some(json!(7.5)));
     }
 
     #[test]
     fn subtract_null_propagation() {
-        let (output, _) = inner_subtract(&[json!(null), json!(5)]).expect("subtract failed");
+        let (output, _) = inner_subtract(&json!(null), &json!(5)).expect("subtract failed");
         assert_eq!(output, Some(Value::Null));
 
-        let (output, _) = inner_subtract(&[json!(5), json!(null)]).expect("subtract failed");
+        let (output, _) = inner_subtract(&json!(5), &json!(null)).expect("subtract failed");
         assert_eq!(output, Some(Value::Null));
     }
 }

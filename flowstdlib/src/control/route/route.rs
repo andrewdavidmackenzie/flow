@@ -5,14 +5,7 @@ use flowcore::{RunAgain, RUN_AGAIN};
 use flowmacro::flow_function;
 
 #[flow_function]
-fn inner_route(inputs: &[Value]) -> Result<(Option<Value>, RunAgain)> {
-    let data = inputs.first().ok_or("Could not get data")?;
-    let control = inputs
-        .get(1)
-        .ok_or("Could not get control")?
-        .as_bool()
-        .ok_or("Could not get boolean")?;
-
+fn inner_route(data: &Value, control: bool) -> Result<(Option<Value>, RunAgain)> {
     let mut output_map = serde_json::Map::new();
     output_map.insert(control.to_string(), data.clone());
 
@@ -30,8 +23,7 @@ mod test {
 
     #[test]
     fn test_route_true() {
-        let inputs = vec![json!(42), json!(true)];
-        let (output, run_again) = inner_route(&inputs).expect("_route() failed");
+        let (output, run_again) = inner_route(&json!(42), true).expect("_route() failed");
         assert_eq!(run_again, RUN_AGAIN);
 
         assert!(output.is_some());
@@ -45,8 +37,7 @@ mod test {
 
     #[test]
     fn test_route_false() {
-        let inputs = vec![json!(42), json!(false)];
-        let (output, run_again) = inner_route(&inputs).expect("_route() failed");
+        let (output, run_again) = inner_route(&json!(42), false).expect("_route() failed");
         assert_eq!(run_again, RUN_AGAIN);
 
         assert!(output.is_some());
