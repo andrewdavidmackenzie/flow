@@ -1,12 +1,13 @@
 use serde_json::{json, Value};
 
 use flowcore::errors::Result;
-use flowcore::{RunAgain, RUN_AGAIN};
+use flowcore::flow_output;
+use flowcore::RunAgain;
 use flowmacro::flow_function;
 
 #[flow_function]
 fn inner_to_string(input: &Value) -> Result<(Option<Value>, RunAgain)> {
-    Ok((Some(json!(input.to_string())), RUN_AGAIN))
+    flow_output!(json!(input.to_string()))
 }
 
 #[cfg(test)]

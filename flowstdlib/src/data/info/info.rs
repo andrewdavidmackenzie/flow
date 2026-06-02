@@ -1,10 +1,11 @@
 use serde_json::{json, Value};
 
 use flowcore::errors::Result;
+use flowcore::flow_output;
 use flowcore::model::datatype::{
     ARRAY_TYPE, BOOLEAN_TYPE, NULL_TYPE, NUMBER_TYPE, OBJECT_TYPE, STRING_TYPE,
 };
-use flowcore::{RunAgain, RUN_AGAIN};
+use flowcore::RunAgain;
 use flowmacro::flow_function;
 
 fn type_string(value: &Value) -> Result<String> {
@@ -29,8 +30,6 @@ fn type_string(value: &Value) -> Result<String> {
 
 #[flow_function]
 fn inner_info(input: &Value) -> Result<(Option<Value>, RunAgain)> {
-    let mut output_map = serde_json::Map::new();
-
     let (rows, cols) = match input {
         Value::String(string) => (1, string.len()),
         Value::Bool(_boolean) => (1, 1),
@@ -44,11 +43,11 @@ fn inner_info(input: &Value) -> Result<(Option<Value>, RunAgain)> {
     };
 
     let data_type = type_string(input)?;
-    output_map.insert("rows".into(), json!(rows));
-    output_map.insert("columns".into(), json!(cols));
-    output_map.insert("type".into(), json!(data_type));
-
-    Ok((Some(Value::Object(output_map)), RUN_AGAIN))
+    flow_output!(
+        "rows" => json!(rows),
+        "columns" => json!(cols),
+        "type" => json!(data_type),
+    )
 }
 
 #[cfg(test)]

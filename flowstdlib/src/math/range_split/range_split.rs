@@ -1,5 +1,6 @@
 use flowcore::errors::{bail, Result};
-use flowcore::{RunAgain, RUN_AGAIN};
+use flowcore::flow_output;
+use flowcore::RunAgain;
 use flowmacro::flow_function;
 use serde_json::{json, Value};
 
@@ -27,27 +28,28 @@ fn inner_range_split(inputs: &[Value]) -> Result<(Option<Value>, RunAgain)> {
         .as_i64()
         .ok_or("Could not get max")?;
 
-    let mut output_map = serde_json::Map::new();
-
     if min == max {
         // if the two are the same, we are done, output as "number"
-        output_map.insert("number".into(), json!(min));
+        flow_output!("number" => json!(min))
     } else {
         // split the range_split into two and output for further subdivision
         let bottom: Vec<i64> = vec![min, ((max - min) / 2) + min];
-        output_map.insert("bottom".into(), json!(bottom));
 
         let above_middle = ((max - min) / 2) + min + 1;
         if above_middle == max {
             // if the two are the same, we are done, output as "number"
-            output_map.insert("number".into(), json!(max));
+            flow_output!(
+                "bottom" => json!(bottom),
+                "number" => json!(max),
+            )
         } else {
             let top: Vec<i64> = vec![above_middle, max];
-            output_map.insert("top".into(), json!(top));
+            flow_output!(
+                "bottom" => json!(bottom),
+                "top" => json!(top),
+            )
         }
     }
-
-    Ok((Some(json!(output_map)), RUN_AGAIN))
 }
 
 #[cfg(test)]

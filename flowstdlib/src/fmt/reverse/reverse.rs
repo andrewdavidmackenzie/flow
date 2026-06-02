@@ -1,13 +1,14 @@
 use serde_json::{json, Value};
 
 use flowcore::errors::Result;
-use flowcore::{RunAgain, RUN_AGAIN};
+use flowcore::flow_output;
+use flowcore::RunAgain;
 use flowmacro::flow_function;
 
 #[flow_function]
 fn inner_reverse(input: &str) -> Result<(Option<Value>, RunAgain)> {
     let reversed = input.chars().rev().collect::<String>();
-    Ok((Some(json!({"reversed": reversed})), RUN_AGAIN))
+    flow_output!("reversed" => json!(reversed))
 }
 
 #[cfg(test)]

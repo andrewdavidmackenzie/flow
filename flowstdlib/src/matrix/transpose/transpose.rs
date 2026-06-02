@@ -1,7 +1,8 @@
 use serde_json::{json, Value};
 
 use flowcore::errors::Result;
-use flowcore::{RunAgain, RUN_AGAIN};
+use flowcore::flow_output;
+use flowcore::RunAgain;
 use flowmacro::flow_function;
 
 #[flow_function]
@@ -9,7 +10,6 @@ use flowmacro::flow_function;
 fn inner_transpose(input: &Value) -> Result<(Option<Value>, RunAgain)> {
     let mut output_matrix: Vec<Value> = vec![]; // vector of Value::Array - i.e. array of rows
     let mut col_indexes = vec![];
-    let mut output_map = serde_json::Map::new();
 
     let matrix = input.as_array().ok_or("Could not get array")?;
 
@@ -35,10 +35,10 @@ fn inner_transpose(input: &Value) -> Result<(Option<Value>, RunAgain)> {
         col_indexes.push(new_row_num);
     }
 
-    output_map.insert("matrix".into(), json!(output_matrix));
-    output_map.insert("column_indexes".into(), json!(col_indexes));
-
-    Ok((Some(Value::Object(output_map)), RUN_AGAIN))
+    flow_output!(
+        "matrix" => json!(output_matrix),
+        "column_indexes" => json!(col_indexes),
+    )
 }
 
 #[cfg(test)]

@@ -1,5 +1,6 @@
 use flowcore::errors::Result;
-use flowcore::{RunAgain, RUN_AGAIN};
+use flowcore::flow_output;
+use flowcore::RunAgain;
 use flowmacro::flow_function;
 use serde_json::{json, Value};
 
@@ -33,7 +34,7 @@ fn inner_histogram(bins: &Value) -> Result<(Option<Value>, RunAgain)> {
         }
     }
 
-    Ok((Some(json!({"grid": grid})), RUN_AGAIN))
+    flow_output!("grid" => json!(grid))
 }
 
 #[cfg(test)]

@@ -1,5 +1,6 @@
 use flowcore::errors::Result;
-use flowcore::{RunAgain, RUN_AGAIN};
+use flowcore::flow_output;
+use flowcore::RunAgain;
 use flowmacro::flow_function;
 use serde_json::{json, Value};
 
@@ -11,11 +12,10 @@ fn inner_array_get(array: &Value, index: &Value) -> Result<(Option<Value>, RunAg
 
     let value = array.get(index).cloned().unwrap_or(Value::Null);
 
-    let mut output_map = serde_json::Map::new();
-    output_map.insert("value".into(), value);
-    output_map.insert("array".into(), json!(array));
-
-    Ok((Some(Value::Object(output_map)), RUN_AGAIN))
+    flow_output!(
+        "value" => value,
+        "array" => json!(array),
+    )
 }
 
 #[cfg(test)]

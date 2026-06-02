@@ -1,7 +1,8 @@
 use serde_json::{json, Value};
 
 use flowcore::errors::Result;
-use flowcore::{RunAgain, RUN_AGAIN};
+use flowcore::flow_output;
+use flowcore::RunAgain;
 use flowmacro::flow_function;
 
 #[flow_function]
@@ -10,39 +11,42 @@ fn inner_accumulate(
     partial: &Value,
     chunk_size: &Value,
 ) -> Result<(Option<Value>, RunAgain)> {
-    let mut output_map = serde_json::Map::new();
-
     if values.is_null() {
         let partial_arr = partial.as_array().ok_or("Could not get partial")?;
-        if partial_arr.is_empty() {
-            output_map.insert("chunk".into(), Value::Null);
+        return if partial_arr.is_empty() {
+            flow_output!("chunk" => Value::Null)
         } else {
-            output_map.insert("chunk".into(), Value::Array(partial_arr.clone()));
-        }
-    } else {
-        let mut partial_input = partial.clone();
-        let chunk_size = chunk_size.as_u64().filter(|&s| s > 0);
-
-        let partial = partial_input
-            .as_array_mut()
-            .ok_or("Could not get partial")?;
-        partial.push(values.clone());
-
-        if let Some(size) = chunk_size {
-            if partial.len() >= usize::try_from(size)? {
-                output_map.insert("chunk".into(), Value::Array(partial.clone()));
-                output_map.insert("partial".into(), Value::Array(vec![]));
-            } else {
-                output_map.insert("partial".into(), Value::Array(partial.clone()));
-            }
-            output_map.insert("chunk_size".into(), json!(size));
-        } else {
-            output_map.insert("partial".into(), Value::Array(partial.clone()));
-            output_map.insert("chunk_size".into(), json!(0));
-        }
+            flow_output!("chunk" => Value::Array(partial_arr.clone()))
+        };
     }
 
-    Ok((Some(Value::Object(output_map)), RUN_AGAIN))
+    let mut partial_input = partial.clone();
+    let chunk_size = chunk_size.as_u64().filter(|&s| s > 0);
+
+    let partial = partial_input
+        .as_array_mut()
+        .ok_or("Could not get partial")?;
+    partial.push(values.clone());
+
+    if let Some(size) = chunk_size {
+        if partial.len() >= usize::try_from(size)? {
+            flow_output!(
+                "chunk" => Value::Array(partial.clone()),
+                "partial" => Value::Array(vec![]),
+                "chunk_size" => json!(size),
+            )
+        } else {
+            flow_output!(
+                "partial" => Value::Array(partial.clone()),
+                "chunk_size" => json!(size),
+            )
+        }
+    } else {
+        flow_output!(
+            "partial" => Value::Array(partial.clone()),
+            "chunk_size" => json!(0),
+        )
+    }
 }
 
 #[cfg(test)]

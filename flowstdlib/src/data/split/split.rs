@@ -27,9 +27,7 @@ fn inner_split(string: &str, separator: &str) -> Result<(Option<Value>, RunAgain
         output_map.insert("token-count".into(), json!(0u64));
     }
 
-    let output = Value::Object(output_map);
-
-    Ok((Some(output), RUN_AGAIN))
+    Ok((Some(Value::Object(output_map)), RUN_AGAIN))
 }
 
 // Separate an array of text at a separator string close to the center, dividing in two if possible

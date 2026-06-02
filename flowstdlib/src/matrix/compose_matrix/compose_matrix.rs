@@ -1,7 +1,8 @@
 use serde_json::{json, Value};
 
 use flowcore::errors::Result;
-use flowcore::{RunAgain, RUN_AGAIN};
+use flowcore::flow_output;
+use flowcore::RunAgain;
 use flowmacro::flow_function;
 
 #[flow_function]
@@ -11,7 +12,6 @@ fn inner_compose_matrix(
     partial: &Value,
 ) -> Result<(Option<Value>, RunAgain)> {
     let mut new_matrix: Vec<Value> = vec![];
-    let mut output_map = serde_json::Map::new();
 
     let element_to_add = element.clone();
 
@@ -44,12 +44,10 @@ fn inner_compose_matrix(
     }
 
     if unwritten_cell_count == 0 {
-        output_map.insert("matrix".into(), json!(new_matrix));
+        flow_output!("matrix" => json!(new_matrix))
     } else {
-        output_map.insert("partial".into(), json!(new_matrix));
+        flow_output!("partial" => json!(new_matrix))
     }
-
-    Ok((Some(Value::Object(output_map)), RUN_AGAIN))
 }
 
 #[cfg(test)]

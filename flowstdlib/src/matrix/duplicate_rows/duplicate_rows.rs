@@ -1,14 +1,14 @@
 use serde_json::{json, Value};
 
 use flowcore::errors::Result;
-use flowcore::{RunAgain, RUN_AGAIN};
+use flowcore::flow_output;
+use flowcore::RunAgain;
 use flowmacro::flow_function;
 
 #[flow_function]
 fn inner_duplicate_rows(input: &Value, factor: &Value) -> Result<(Option<Value>, RunAgain)> {
     let mut output_matrix: Vec<Value> = vec![];
     let mut row_indexes = vec![];
-    let mut output_map = serde_json::Map::new();
 
     let matrix = input.as_array().ok_or("Could not get matrix")?;
     let factor = factor.as_i64().ok_or("Could not get factor")?;
@@ -20,10 +20,10 @@ fn inner_duplicate_rows(input: &Value, factor: &Value) -> Result<(Option<Value>,
         }
     }
 
-    output_map.insert("matrix".into(), json!(output_matrix));
-    output_map.insert("row_indexes".into(), json!(row_indexes));
-
-    Ok((Some(Value::Object(output_map)), RUN_AGAIN))
+    flow_output!(
+        "matrix" => json!(output_matrix),
+        "row_indexes" => json!(row_indexes),
+    )
 }
 
 #[cfg(test)]
