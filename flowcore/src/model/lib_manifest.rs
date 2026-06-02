@@ -157,6 +157,18 @@ impl LibraryManifest {
         Ok(())
     }
 
+    /// Remove a locator from the manifest by its library URL.
+    ///
+    /// If the locator is a `RelativePath`, the corresponding entry in `source_urls` is also removed.
+    /// If the locator does not exist, this method does nothing.
+    pub fn remove_locator(&mut self, locator_url: &Url) {
+        if let Some(ImplementationLocator::RelativePath(rel_path)) =
+            self.locators.remove(locator_url)
+        {
+            self.source_urls.remove(&rel_path);
+        }
+    }
+
     /// Given an output directory, return a `PathBuf` to the json format manifest that should be
     /// generated inside it
     #[must_use]
@@ -500,5 +512,46 @@ mod test {
             .expect("Could not add to manifest");
 
         assert!(library1 == library2);
+    }
+
+    #[test]
+    fn remove_existing_locator() {
+        let mut manifest = LibraryManifest::new(
+            Url::parse("lib://test").expect("valid url"),
+            test_meta_data(),
+        );
+        manifest
+            .add_locator(
+                "bin/my.wasm",
+                "bin",
+                #[cfg(feature = "debugger")]
+                "/users/me/myproject/bin/my.rs",
+            )
+            .expect("Could not add to manifest");
+        assert_eq!(manifest.locators.len(), 1);
+
+        let locator_url = Url::parse("lib://test/bin").expect("valid url");
+        manifest.remove_locator(&locator_url);
+        assert_eq!(manifest.locators.len(), 0);
+    }
+
+    #[test]
+    fn remove_nonexistent_locator_is_noop() {
+        let mut manifest = LibraryManifest::new(
+            Url::parse("lib://test").expect("valid url"),
+            test_meta_data(),
+        );
+        manifest
+            .add_locator(
+                "bin/my.wasm",
+                "bin",
+                #[cfg(feature = "debugger")]
+                "/users/me/myproject/bin/my.rs",
+            )
+            .expect("Could not add to manifest");
+
+        let nonexistent = Url::parse("lib://test/nonexistent").expect("valid url");
+        manifest.remove_locator(&nonexistent);
+        assert_eq!(manifest.locators.len(), 1);
     }
 }

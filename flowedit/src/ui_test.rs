@@ -2097,6 +2097,7 @@ fn function_edit_name_change() {
         parent_window: Some(win_id),
         node_source: "orig".into(),
         read_only: false,
+        is_library: false,
     };
     let child = WindowState {
         route: Route::from("/test/orig"),
@@ -2131,6 +2132,7 @@ fn function_edit_tab_switch() {
         parent_window: Some(win_id),
         node_source: String::new(),
         read_only: false,
+        is_library: false,
     };
     let child = WindowState {
         kind: WindowKind::FunctionViewer(Box::new(viewer)),

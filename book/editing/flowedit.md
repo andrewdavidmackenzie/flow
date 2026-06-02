@@ -273,6 +273,17 @@ alias (e.g., `add_2`, `add_3`).
 Each function also has a pencil icon (✎) that opens the function definition
 in a viewer window, showing its TOML definition, Rust source, and documentation.
 
+### Managing Library Functions
+
+Library functions (not context functions) have additional management controls:
+
+- **Move** (⇄) — moves the function to a different category directory within the
+  library. A folder picker dialog lets you select the destination category.
+- **Delete** (✕) — removes the function from the library by deleting its directory
+  and updating the library manifest.
+
+Both operations update the library's `manifest.json` and refresh the panel immediately.
+
 ## Flow Hierarchy
 
 Above the Process Library, a collapsible tree view shows the structure of the
@@ -281,7 +292,7 @@ as children, recursively.
 
 - **Orange** nodes are flows — click to expand/collapse, pencil icon to open
 - **Purple** nodes are provided implementations — click to open in editor
-- **Blue** nodes are library/context functions (display only)
+- **Blue** nodes are library/context functions — click pencil icon to view or edit
 
 ## Creating New Processes
 
@@ -337,11 +348,27 @@ editor showing:
   or click "..." to browse for a different source file
 - **Docs tab** — if a `.md` documentation file exists alongside the function
 
+The **Source** tab shows the function's Rust implementation in a full text editor.
+For provided functions and library functions, the source code is editable — changes
+are saved to disk alongside the TOML definition. For context functions (which are
+runtime-provided stubs), the source tab is read-only.
+
 The **💾 Save** button writes the function definition to disk:
 - Updates the `.toml` definition file with the current name, inputs, and outputs
+- Saves any source code edits to the `.rs` implementation file
 - Generates a skeleton `.rs` source file if one doesn't exist (with the
   `#[flow_function]` boilerplate and correct input bindings)
 - Generates a `function.toml` Cargo manifest if one doesn't exist
+
+### Editing Library Functions
+
+Library functions (from `flowstdlib` or other installed libraries) can be edited
+in the same way as provided functions. When editing a library function, an orange
+warning is shown in the status bar: "Editing installed library function". Changes
+are saved directly to the installed library directory (e.g., `~/.flow/lib/flowstdlib/...`).
+
+Context functions (`context://`) remain read-only since they are runtime-provided
+and have no editable source on disk.
 
 ## Compiling
 
