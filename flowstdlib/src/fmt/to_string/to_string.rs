@@ -5,8 +5,7 @@ use flowcore::{RunAgain, RUN_AGAIN};
 use flowmacro::flow_function;
 
 #[flow_function]
-fn inner_to_string(inputs: &[Value]) -> Result<(Option<Value>, RunAgain)> {
-    let input = inputs.first().ok_or("Could not get input")?;
+fn inner_to_string(input: &Value) -> Result<(Option<Value>, RunAgain)> {
     Ok((Some(json!(input.to_string())), RUN_AGAIN))
 }
 
@@ -22,13 +21,9 @@ mod test {
     use super::inner_to_string;
 
     fn test_to_string(value: Value, string: &str) {
-        let inputs = vec![value];
-        let (result, _) = inner_to_string(&inputs).expect("_to_string() failed");
-
+        let (result, _) = inner_to_string(&value).expect("_to_string() failed");
         match result {
-            Some(value) => {
-                assert_eq!(value.as_str(), Some(string));
-            }
+            Some(value) => assert_eq!(value.as_str(), Some(string)),
             None => panic!("No Result returned"),
         }
     }

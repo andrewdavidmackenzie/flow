@@ -1,18 +1,12 @@
-use serde_json::Value::Number;
 use serde_json::{json, Value};
 
-use flowcore::errors::{bail, Result};
+use flowcore::errors::Result;
 use flowcore::{RunAgain, RUN_AGAIN};
 use flowmacro::flow_function;
 
 #[flow_function]
-fn inner_sin(inputs: &[Value]) -> Result<(Option<Value>, RunAgain)> {
-    if let Number(ref a) = inputs.first().ok_or("Could not get input")? {
-        let num = a.as_f64().ok_or("Could not get as f64")?;
-        Ok((Some(json!(num.sin())), RUN_AGAIN))
-    } else {
-        bail!("Input is not a number")
-    }
+fn inner_sin(a: f64) -> Result<(Option<Value>, RunAgain)> {
+    Ok((Some(json!(a.sin())), RUN_AGAIN))
 }
 
 #[cfg(test)]
@@ -24,20 +18,14 @@ mod test {
 
     #[test]
     fn sin_zero() {
-        let (result, _) = inner_sin(&[json!(0.0)]).expect("failed");
-        let val = result.expect("no output").as_f64().expect("not f64");
-        assert!((val - 0.0).abs() < 1e-10);
+        let (result, _) = inner_sin(0.0).expect("failed");
+        assert_eq!(result, Some(json!(0.0)));
     }
 
     #[test]
     fn sin_pi_half() {
-        let (result, _) = inner_sin(&[json!(std::f64::consts::FRAC_PI_2)]).expect("failed");
+        let (result, _) = inner_sin(std::f64::consts::FRAC_PI_2).expect("failed");
         let val = result.expect("no output").as_f64().expect("not f64");
         assert!((val - 1.0).abs() < 1e-10);
-    }
-
-    #[test]
-    fn sin_not_a_number() {
-        assert!(inner_sin(&[json!("hello")]).is_err());
     }
 }

@@ -1,18 +1,12 @@
-use serde_json::Value::Number;
 use serde_json::{json, Value};
 
-use flowcore::errors::{bail, Result};
+use flowcore::errors::Result;
 use flowcore::{RunAgain, RUN_AGAIN};
 use flowmacro::flow_function;
 
 #[flow_function]
-fn inner_sqrt(inputs: &[Value]) -> Result<(Option<Value>, RunAgain)> {
-    if let Number(ref a) = inputs.first().ok_or("Could not get a")? {
-        let num = a.as_f64().ok_or("Could not get num")?;
-        Ok((Some(json!(num.sqrt())), RUN_AGAIN))
-    } else {
-        bail!("Input is not a number")
-    }
+fn inner_sqrt(a: f64) -> Result<(Option<Value>, RunAgain)> {
+    Ok((Some(json!(a.sqrt())), RUN_AGAIN))
 }
 
 #[cfg(test)]
@@ -24,20 +18,8 @@ mod test {
 
     #[test]
     fn test_81() {
-        let test_81 = json!(81);
-        let test_9 = json!(9.0);
-        let (root, again) = inner_sqrt(&[test_81]).expect("_sqrt() failed");
-
+        let (root, again) = inner_sqrt(81.0).expect("_sqrt() failed");
         assert!(again);
-        assert_eq!(
-            test_9,
-            root.expect("Could not get the value from the output")
-        );
-    }
-
-    #[test]
-    fn test_not_a_number() {
-        let test_invalid_input = json!("Hello");
-        assert!(inner_sqrt(&[test_invalid_input]).is_err());
+        assert_eq!(root, Some(json!(9.0)));
     }
 }
