@@ -273,6 +273,13 @@ alias (e.g., `add_2`, `add_3`).
 Each function also has a pencil icon (✎) that opens the function definition
 in a viewer window, showing its TOML definition, Rust source, and documentation.
 
+### Creating New Libraries
+
+Click the **New Lib** button in the Process Library header to create a new
+library. You'll be prompted to choose a location and folder name. The editor
+creates the directory with a `manifest.json` (containing the library name and
+version metadata) and adds the library to the panel immediately.
+
 ### Managing Library Functions
 
 Library functions (not context functions) have additional management controls:
@@ -348,10 +355,18 @@ editor showing:
   or click "..." to browse for a different source file
 - **Docs tab** — if a `.md` documentation file exists alongside the function
 
+The **Docs** tab shows the function's markdown documentation file in an editable
+text editor. Changes are saved to the `.md` file alongside the function definition
+when you press Save. Clearing all docs content and saving deletes the `.md` file.
+
 The **Source** tab shows the function's Rust implementation in a full text editor.
 For provided functions and library functions, the source code is editable — changes
 are saved to disk alongside the TOML definition. For context functions (which are
 runtime-provided stubs), the source tab is read-only.
+
+When a function with a `Cargo.toml` is saved, the editor automatically triggers
+a WASM rebuild (`cargo build --release --target=wasm32-unknown-unknown`). The
+status bar shows the build result.
 
 The **💾 Save** button writes the function definition to disk:
 - Updates the `.toml` definition file with the current name, inputs, and outputs

@@ -35,6 +35,8 @@ pub(crate) enum LibraryMessage {
     MoveFunction(String),
     /// Add a library manually via file dialog.
     AddLibrary,
+    /// Create a new empty library.
+    CreateLibrary,
     /// Toggle the library search paths editor panel.
     ToggleLibPaths,
 }
@@ -48,6 +50,7 @@ pub(crate) enum LibraryAction {
     Delete(String),
     Move(String),
     AddLibrary,
+    CreateLibrary,
     ToggleLibPaths,
 }
 
@@ -155,6 +158,7 @@ impl LibraryTree {
             LibraryMessage::DeleteFunction(source) => LibraryAction::Delete(source.clone()),
             LibraryMessage::MoveFunction(source) => LibraryAction::Move(source.clone()),
             LibraryMessage::AddLibrary => LibraryAction::AddLibrary,
+            LibraryMessage::CreateLibrary => LibraryAction::CreateLibrary,
             LibraryMessage::ToggleLibPaths => LibraryAction::ToggleLibPaths,
         }
     }
@@ -174,14 +178,22 @@ impl LibraryTree {
             .on_press(LibraryMessage::AddLibrary)
             .style(crate::flow_edit::toolbar_btn)
             .padding([2, 6]);
+        let create_lib_btn = button(text("New Lib").size(11))
+            .on_press(LibraryMessage::CreateLibrary)
+            .style(crate::flow_edit::toolbar_btn)
+            .padding([2, 6]);
         let lib_paths_btn = button(text("LibPath").size(11))
             .on_press(LibraryMessage::ToggleLibPaths)
             .style(crate::flow_edit::toolbar_btn)
             .padding([2, 6]);
 
-        content = content
-            .push(header)
-            .push(Row::new().spacing(6).push(add_lib_btn).push(lib_paths_btn));
+        content = content.push(header).push(
+            Row::new()
+                .spacing(6)
+                .push(add_lib_btn)
+                .push(create_lib_btn)
+                .push(lib_paths_btn),
+        );
 
         if self.libraries.is_empty() {
             content = content.push(

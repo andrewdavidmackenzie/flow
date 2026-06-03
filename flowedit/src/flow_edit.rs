@@ -98,6 +98,8 @@ pub(crate) enum FunctionEditMessage {
     OutputTypeChanged(usize, String),
     /// Source code edited in the text editor
     SourceEdited(text_editor::Action),
+    /// Documentation edited in the text editor
+    DocsEdited(text_editor::Action),
     /// Save function definition to disk
     Save,
 }
@@ -618,6 +620,66 @@ impl FlowEdit {
         }
     }
 
+    fn handle_create_library(&mut self, win_id: window::Id) {
+        use flowcore::model::lib_manifest::LibraryManifest;
+        use flowcore::model::metadata::MetaData;
+
+        let dialog = rfd::FileDialog::new().set_title("Choose location for new library");
+        let Some(parent_dir) = dialog.pick_folder() else {
+            return;
+        };
+
+        let lib_name_dialog = rfd::FileDialog::new()
+            .set_title("Enter library name (create a folder)")
+            .set_directory(&parent_dir);
+        let Some(lib_dir) = lib_name_dialog.pick_folder() else {
+            return;
+        };
+        let lib_name = lib_dir
+            .file_name()
+            .and_then(|n| n.to_str())
+            .unwrap_or("newlib")
+            .to_string();
+
+        if let Err(e) = std::fs::create_dir_all(&lib_dir) {
+            warn!("Could not create library directory: {e}");
+            if let Some(win) = self.windows.get_mut(&win_id) {
+                win.status = format!("Failed to create library: {e}");
+            }
+            return;
+        }
+
+        let metadata = MetaData {
+            name: lib_name.clone(),
+            version: "0.1.0".into(),
+            description: String::new(),
+            authors: vec![],
+        };
+        let Ok(lib_url) = Url::parse(&format!("lib://{lib_name}")) else {
+            return;
+        };
+        let manifest = LibraryManifest::new(lib_url.clone(), metadata);
+        let manifest_path = LibraryManifest::manifest_filename(&lib_dir);
+        if let Err(e) = manifest.write_json(&manifest_path) {
+            warn!("Could not write manifest: {e}");
+            if let Some(win) = self.windows.get_mut(&win_id) {
+                win.status = format!("Failed to create manifest: {e}");
+            }
+            return;
+        }
+
+        if let Some(parent_str) = lib_dir.parent().and_then(|p| p.to_str()) {
+            if !self.lib_paths.contains(&parent_str.to_string()) {
+                self.lib_paths.push(parent_str.to_string());
+            }
+        }
+        self.library_cache.insert(lib_url, manifest);
+        self.library_tree = LibraryTree::from_cache(&self.library_cache, &self.all_definitions);
+        if let Some(win) = self.windows.get_mut(&win_id) {
+            win.status = format!("Created library: {lib_name}");
+        }
+    }
+
     fn handle_library_delete(&mut self, source: &str) {
         let Ok(source_url) = Url::parse(source) else {
             return;
@@ -768,6 +830,9 @@ impl FlowEdit {
             }
             LibraryAction::AddLibrary => {
                 self.handle_add_library(win_id);
+            }
+            LibraryAction::CreateLibrary => {
+                self.handle_create_library(win_id);
             }
             LibraryAction::ToggleLibPaths => {
                 self.toggle_lib_paths();
@@ -1847,7 +1912,8 @@ impl FlowEdit {
 
     fn view_function_docs_tab(
         window_id: window::Id,
-        docs_content: Option<&str>,
+        content: &text_editor::Content,
+        read_only: bool,
     ) -> Element<'_, Message> {
         let back_btn = button(Text::new("\u{2190} Definition").size(13).center())
             .on_press(Message::FunctionEdit(
@@ -1856,19 +1922,15 @@ impl FlowEdit {
             ))
             .style(button::secondary)
             .padding([6, 14]);
-        let docs = docs_content.unwrap_or("");
+        let mut editor = text_editor(content).size(14).height(Fill);
+        if !read_only {
+            editor = editor.on_action(move |action| {
+                Message::FunctionEdit(window_id, FunctionEditMessage::DocsEdited(action))
+            });
+        }
         Column::new()
             .push(container(back_btn).padding([8, 12]))
-            .push(
-                container(
-                    iced::widget::scrollable(Text::new(docs).size(14))
-                        .width(Fill)
-                        .height(Fill),
-                )
-                .width(Fill)
-                .height(Fill)
-                .padding(12),
-            )
+            .push(container(editor).width(Fill).height(Fill).padding(12))
             .into()
     }
 
@@ -1885,7 +1947,11 @@ impl FlowEdit {
                 &viewer.rs_editor_content,
                 viewer.read_only,
             ),
-            _ => Self::view_function_docs_tab(window_id, viewer.docs_content.as_deref()),
+            _ => Self::view_function_docs_tab(
+                window_id,
+                &viewer.docs_editor_content,
+                viewer.read_only,
+            ),
         };
 
         let save_label = if edit_count > 0 {
@@ -2197,11 +2263,14 @@ impl FlowEdit {
             func_def.set_source_url(&url);
         }
         let rs_editor_content = text_editor::Content::with_text(&rs_content);
+        let docs_editor_content =
+            text_editor::Content::with_text(docs_content.as_deref().unwrap_or(""));
         let viewer = FunctionViewer {
             func_def: func_def.clone(),
             rs_content,
             rs_editor_content,
             docs_content,
+            docs_editor_content,
             active_tab: 0,
             parent_window: Some(parent_win_id),
             node_source: node_source.to_string(),
@@ -2708,11 +2777,41 @@ impl FlowEdit {
                             .map_or_else(|| String::from("(unknown)"), |p| p.display().to_string());
                         win.status = format!("Saved: {path_display}");
                         win.history.clear();
+                        if let Some(func_dir) = v
+                            .toml_path()
+                            .and_then(|p| p.parent().map(Path::to_path_buf))
+                        {
+                            Self::rebuild_wasm(&func_dir, &mut win.status);
+                        }
                     }
                     Err(e) => {
                         win.status = format!("Save failed: {e}");
                     }
                 }
+            }
+        }
+    }
+
+    fn rebuild_wasm(func_dir: &Path, status: &mut String) {
+        let cargo_toml = func_dir.join("Cargo.toml");
+        if !cargo_toml.exists() {
+            return;
+        }
+        match Command::new("cargo")
+            .args(["build", "--release", "--target=wasm32-unknown-unknown"])
+            .current_dir(func_dir)
+            .output()
+        {
+            Ok(output) if output.status.success() => {
+                *status = format!("{status} | WASM rebuilt");
+            }
+            Ok(output) => {
+                let stderr = String::from_utf8_lossy(&output.stderr);
+                let first_line = stderr.lines().next().unwrap_or("unknown error");
+                *status = format!("{status} | WASM build failed: {first_line}");
+            }
+            Err(e) => {
+                *status = format!("{status} | WASM build error: {e}");
             }
         }
     }
@@ -2880,6 +2979,7 @@ impl FlowEdit {
             rs_content,
             rs_editor_content,
             docs_content: None,
+            docs_editor_content: text_editor::Content::with_text(""),
             active_tab: 0,
             parent_window: Some(parent_id),
             node_source: node_source.into(),
@@ -2996,6 +3096,16 @@ impl FlowEdit {
                     if let WindowKind::FunctionViewer(ref mut viewer) = win.kind {
                         if !viewer.read_only {
                             viewer.rs_editor_content.perform(action);
+                            win.history.mark_modified();
+                        }
+                    }
+                }
+            }
+            FunctionEditMessage::DocsEdited(action) => {
+                if let Some(win) = self.windows.get_mut(&win_id) {
+                    if let WindowKind::FunctionViewer(ref mut viewer) = win.kind {
+                        if !viewer.read_only {
+                            viewer.docs_editor_content.perform(action);
                             win.history.mark_modified();
                         }
                     }
