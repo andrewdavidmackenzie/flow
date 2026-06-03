@@ -1,4 +1,5 @@
-use serde_json::{json, Value};
+use flowcore::numeric_json;
+use serde_json::Value;
 
 use flowcore::errors::Result;
 use flowcore::flow_output;
@@ -17,15 +18,16 @@ fn inner_divide(dividend: &Value, divisor: &Value) -> Result<(Option<Value>, Run
     let divisor = divisor.as_f64().ok_or("Could not get divisor as number")?;
 
     flow_output!(
-        "result" => json!(dividend / divisor),
-        "remainder" => json!(dividend % divisor)
+        "result" => numeric_json(dividend / divisor),
+        "remainder" => numeric_json(dividend % divisor)
     )
 }
 
 #[cfg(test)]
 #[allow(clippy::unwrap_used, clippy::expect_used)]
 mod test {
-    use serde_json::{json, Value};
+    use serde_json::json;
+    use serde_json::Value;
 
     use super::inner_divide;
 
@@ -34,11 +36,8 @@ mod test {
         let (output, again) = inner_divide(&json!(99), &json!(3)).expect("divide failed");
         assert!(again);
         let out = output.expect("no output");
-        assert_eq!(*out.pointer("/result").expect("no result"), json!(33.0));
-        assert_eq!(
-            *out.pointer("/remainder").expect("no remainder"),
-            json!(0.0)
-        );
+        assert_eq!(*out.pointer("/result").expect("no result"), json!(33));
+        assert_eq!(*out.pointer("/remainder").expect("no remainder"), json!(0));
     }
 
     #[test]
@@ -64,7 +63,7 @@ mod test {
     fn divide_mixed_int_and_float() {
         let (output, _) = inner_divide(&json!(10), &json!(2.5)).expect("divide failed");
         let out = output.expect("no output");
-        assert_eq!(*out.pointer("/result").expect("no result"), json!(4.0));
+        assert_eq!(*out.pointer("/result").expect("no result"), json!(4));
     }
 
     #[test]

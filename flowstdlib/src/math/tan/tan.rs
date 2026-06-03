@@ -1,4 +1,5 @@
-use serde_json::{json, Value};
+use flowcore::numeric_json;
+use serde_json::Value;
 
 use flowcore::errors::Result;
 use flowcore::flow_output;
@@ -7,7 +8,7 @@ use flowmacro::flow_function;
 
 #[flow_function]
 fn inner_tan(a: f64) -> Result<(Option<Value>, RunAgain)> {
-    flow_output!(json!(a.tan()))
+    flow_output!(numeric_json(a.tan()))
 }
 
 #[cfg(test)]
@@ -17,10 +18,9 @@ mod test {
     use super::inner_tan;
 
     #[test]
-    fn tan_zero() {
+    fn tan_zero_returns_integer() {
         let (result, _) = inner_tan(0.0).expect("failed");
-        let val = result.expect("no output").as_f64().expect("not f64");
-        assert!(val.abs() < 1e-10);
+        assert_eq!(result, Some(serde_json::json!(0)));
     }
 
     #[test]

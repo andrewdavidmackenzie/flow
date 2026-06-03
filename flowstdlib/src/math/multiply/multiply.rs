@@ -1,4 +1,5 @@
 use flowcore::errors::Result;
+use flowcore::numeric_json;
 use flowcore::{RunAgain, RUN_AGAIN};
 use flowmacro::flow_function;
 use serde_json::{json, Value};
@@ -37,7 +38,7 @@ fn inner_multiply(i1: &Value, i2: &Value) -> Result<(Option<Value>, RunAgain)> {
     } else if let (Some(a_u), Some(b_u)) = (i1.as_u64(), i2.as_u64()) {
         a_u.checked_mul(b_u).map(|r| json!(r))
     } else if let (Some(a_f), Some(b_f)) = (i1.as_f64(), i2.as_f64()) {
-        Some(json!(a_f * b_f))
+        Some(numeric_json(a_f * b_f))
     } else {
         None
     };
@@ -73,7 +74,7 @@ mod test {
     #[test]
     fn multiply_floats() {
         let (output, _) = inner_multiply(&json!(2.5), &json!(4.0)).expect("multiply failed");
-        assert_eq!(output, Some(json!(10.0)));
+        assert_eq!(output, Some(json!(10)));
     }
 
     #[test]
@@ -91,7 +92,7 @@ mod test {
     #[test]
     fn multiply_mixed_float_and_int() {
         let (output, _) = inner_multiply(&json!(2.5), &json!(4)).expect("multiply failed");
-        assert_eq!(output, Some(json!(10.0)));
+        assert_eq!(output, Some(json!(10)));
     }
 
     #[test]

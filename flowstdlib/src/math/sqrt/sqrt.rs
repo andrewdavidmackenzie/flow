@@ -1,4 +1,5 @@
-use serde_json::{json, Value};
+use flowcore::numeric_json;
+use serde_json::Value;
 
 use flowcore::errors::Result;
 use flowcore::flow_output;
@@ -7,7 +8,7 @@ use flowmacro::flow_function;
 
 #[flow_function]
 fn inner_sqrt(a: f64) -> Result<(Option<Value>, RunAgain)> {
-    flow_output!(json!(a.sqrt()))
+    flow_output!(numeric_json(a.sqrt()))
 }
 
 #[cfg(test)]
@@ -18,9 +19,16 @@ mod test {
     use super::inner_sqrt;
 
     #[test]
-    fn test_81() {
-        let (root, again) = inner_sqrt(81.0).expect("_sqrt() failed");
+    fn sqrt_integer_result() {
+        let (root, again) = inner_sqrt(81.0).expect("sqrt failed");
         assert!(again);
-        assert_eq!(root, Some(json!(9.0)));
+        assert_eq!(root, Some(json!(9)));
+    }
+
+    #[test]
+    fn sqrt_float_result() {
+        let (root, _) = inner_sqrt(2.0).expect("sqrt failed");
+        let val = root.expect("no output").as_f64().expect("not f64");
+        assert!((val - std::f64::consts::SQRT_2).abs() < 1e-10);
     }
 }

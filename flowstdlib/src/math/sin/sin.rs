@@ -1,4 +1,5 @@
-use serde_json::{json, Value};
+use flowcore::numeric_json;
+use serde_json::Value;
 
 use flowcore::errors::Result;
 use flowcore::flow_output;
@@ -7,7 +8,7 @@ use flowmacro::flow_function;
 
 #[flow_function]
 fn inner_sin(a: f64) -> Result<(Option<Value>, RunAgain)> {
-    flow_output!(json!(a.sin()))
+    flow_output!(numeric_json(a.sin()))
 }
 
 #[cfg(test)]
@@ -20,7 +21,7 @@ mod test {
     #[test]
     fn sin_zero() {
         let (result, _) = inner_sin(0.0).expect("failed");
-        assert_eq!(result, Some(json!(0.0)));
+        assert_eq!(result, Some(json!(0)));
     }
 
     #[test]
