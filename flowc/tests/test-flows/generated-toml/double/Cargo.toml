@@ -1,6 +1,6 @@
 [package]
 name = "double"
-version = "0.95.0"
+version = "1.0.0"
 edition = "2021"
 
 [lib]
@@ -9,8 +9,8 @@ crate-type = ["cdylib"]
 path = "double.rs"
 
 [dependencies]
-flowcore = { path = "../../../../../flowcore", version = "0.95.0" }
-flowmacro = { path = "../../../../../flowmacro", version = "0.95.0" }
+flowcore = { path = "../../../../../flowcore", version = "1.0.0" }
+flowmacro = { path = "../../../../../flowmacro", version = "1.0.0" }
 serde_json = "1.0"
 
 [workspace]
