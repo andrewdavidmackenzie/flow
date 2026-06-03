@@ -62,6 +62,26 @@ pub mod provider;
 /// Utility functions related to [Urls][url::Url]
 pub mod url_helper;
 
+/// Return a JSON integer when the float value is a whole number, otherwise a float.
+///
+/// Use this in function implementations to avoid unnecessary `.0` precision
+/// in numeric outputs (e.g., `sqrt(81)` returns `9` instead of `9.0`).
+#[allow(
+    clippy::cast_possible_truncation,
+    clippy::cast_precision_loss,
+    clippy::float_cmp
+)]
+#[must_use]
+pub fn numeric_json(f: f64) -> Value {
+    if f.fract() == 0.0 && f.abs() < i64::MAX as f64 {
+        let i = f as i64;
+        if (i as f64) == f {
+            return serde_json::json!(i);
+        }
+    }
+    serde_json::json!(f)
+}
+
 /// Use `DONT_RUN_AGAIN` to indicate that a function should not be executed more times
 pub const DONT_RUN_AGAIN: RunAgain = false;
 

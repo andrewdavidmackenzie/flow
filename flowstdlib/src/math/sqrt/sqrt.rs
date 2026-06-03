@@ -1,4 +1,4 @@
-use super::numeric_json;
+use flowcore::numeric_json;
 use serde_json::Value;
 
 use flowcore::errors::Result;

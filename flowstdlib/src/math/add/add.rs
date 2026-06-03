@@ -1,5 +1,5 @@
-use super::numeric_json;
 use flowcore::errors::Result;
+use flowcore::numeric_json;
 use flowcore::{RunAgain, RUN_AGAIN};
 use flowmacro::flow_function;
 use serde_json::{json, Value};
