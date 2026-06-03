@@ -29,8 +29,8 @@ default = ["debugger"]
 debugger = ["flowcore/debugger"] # feature to add output for the debugger
 
 [dependencies]
-flowcore = {path = "../flowcore", version = "0.95.0", features = ["context", "file_provider", "http_provider", "meta_provider"]}
-flowgraph = {path = "../flowgraph", version = "0.95.0"}
+flowcore = {path = "../flowcore", version = "0.96.0", features = ["context", "file_provider", "http_provider", "meta_provider"]}
+flowgraph = {path = "../flowgraph", version = "0.96.0"}
 clap = "~4"
 env_logger = "0.11.10"
 log = "0.4.30"
@@ -46,7 +46,7 @@ colored = "3"
 toml = { version = "1.1.2" }
 
 [dev-dependencies]
-flowcore = {path = "../flowcore", version = "0.95.0", features = ["context"]}
+flowcore = {path = "../flowcore", version = "0.96.0", features = ["context"]}
 tempfile = "3"
 simpath = { version = "~2.5", features = ["urls"]}
 serial_test = "3.5.0"

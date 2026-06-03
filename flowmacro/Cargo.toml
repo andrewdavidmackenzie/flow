@@ -22,7 +22,7 @@ proc-macro = true
 [dependencies]
 syn = { version = "~2.0", features =["full"] } #Full is required for ItemFn in macro parsing
 quote = "~1.0"
-flowcore = {path = "../flowcore", version = "0.95.0" }
+flowcore = {path = "../flowcore", version = "0.96.0" }
 toml = "1.1.2"
 proc-macro2 = "1.0"
 

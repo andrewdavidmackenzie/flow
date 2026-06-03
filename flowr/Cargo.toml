@@ -44,9 +44,9 @@ submission = []
 context = ["flowcore/context"]
 
 [dependencies]
-flowcore = {path = "../flowcore", version = "0.95.0", features = ["context", "file_provider", "http_provider",
+flowcore = {path = "../flowcore", version = "0.96.0", features = ["context", "file_provider", "http_provider",
         "context", "meta_provider"] }
-flowstdlib = {path = "../flowstdlib", version = "0.95.0", optional = true }
+flowstdlib = {path = "../flowstdlib", version = "0.96.0", optional = true }
 clap = "~4"
 log = "0.4.30"
 env_logger = "0.11.10"
@@ -82,4 +82,4 @@ portpicker = "0.1.1"
 iced_test = "0.14.0"
 # These two are needed for examples
 flowr-utilities = { path = "utilities" }
-flowstdlib = {path = "../flowstdlib", version = "0.95.0" }
+flowstdlib = {path = "../flowstdlib", version = "0.96.0" }
