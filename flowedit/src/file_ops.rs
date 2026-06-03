@@ -470,7 +470,9 @@ fn save_docs_file(
     if editor_text != original {
         let docs_path = dir.join(format!("{}.md", func.name));
         if editor_text.trim().is_empty() {
-            // Don't write an empty docs file
+            if docs_path.exists() {
+                let _ = std::fs::remove_file(&docs_path);
+            }
             return Ok(());
         }
         std::fs::write(&docs_path, editor_text)

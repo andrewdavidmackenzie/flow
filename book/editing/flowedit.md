@@ -275,10 +275,10 @@ in a viewer window, showing its TOML definition, Rust source, and documentation.
 
 ### Creating New Libraries
 
-Click the **New Lib** button in the Process Library header to create a new empty
+Click the **New Lib** button in the Process Library header to create a new
 library. You'll be prompted to choose a location and folder name. The editor
-creates the directory with an empty `manifest.json` and adds the library to the
-panel immediately.
+creates the directory with a `manifest.json` (containing the library name and
+version metadata) and adds the library to the panel immediately.
 
 ### Managing Library Functions
 
@@ -357,7 +357,7 @@ editor showing:
 
 The **Docs** tab shows the function's markdown documentation file in an editable
 text editor. Changes are saved to the `.md` file alongside the function definition
-when you press Save.
+when you press Save. Clearing all docs content and saving deletes the `.md` file.
 
 The **Source** tab shows the function's Rust implementation in a full text editor.
 For provided functions and library functions, the source code is editable — changes
