@@ -26,6 +26,21 @@ fn to_integer(v: &Value) -> Option<i64> {
     None
 }
 
+#[allow(
+    clippy::cast_possible_truncation,
+    clippy::cast_precision_loss,
+    clippy::float_cmp
+)]
+fn numeric_json(f: f64) -> Value {
+    if f.fract() == 0.0 && f.abs() < i64::MAX as f64 {
+        let i = f as i64;
+        if (i as f64) == f {
+            return json!(i);
+        }
+    }
+    json!(f)
+}
+
 #[flow_function]
 fn inner_subtract(i1: &Value, i2: &Value) -> Result<(Option<Value>, RunAgain)> {
     if i1.is_null() || i2.is_null() {
@@ -37,7 +52,7 @@ fn inner_subtract(i1: &Value, i2: &Value) -> Result<(Option<Value>, RunAgain)> {
     } else if let (Some(a_u), Some(b_u)) = (i1.as_u64(), i2.as_u64()) {
         a_u.checked_sub(b_u).map(|r| json!(r))
     } else if let (Some(a_f), Some(b_f)) = (i1.as_f64(), i2.as_f64()) {
-        Some(json!(a_f - b_f))
+        Some(numeric_json(a_f - b_f))
     } else {
         None
     };
