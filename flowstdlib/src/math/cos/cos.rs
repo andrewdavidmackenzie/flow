@@ -1,24 +1,10 @@
-use serde_json::{json, Value};
+use super::numeric_json;
+use serde_json::Value;
 
 use flowcore::errors::Result;
 use flowcore::flow_output;
 use flowcore::RunAgain;
 use flowmacro::flow_function;
-
-#[allow(
-    clippy::cast_possible_truncation,
-    clippy::cast_precision_loss,
-    clippy::float_cmp
-)]
-fn numeric_json(f: f64) -> Value {
-    if f.fract() == 0.0 && f.abs() < i64::MAX as f64 {
-        let i = f as i64;
-        if (i as f64) == f {
-            return json!(i);
-        }
-    }
-    json!(f)
-}
 
 #[flow_function]
 fn inner_cos(a: f64) -> Result<(Option<Value>, RunAgain)> {
@@ -32,16 +18,14 @@ mod test {
     use super::inner_cos;
 
     #[test]
-    fn cos_zero() {
+    fn cos_zero_returns_integer() {
         let (result, _) = inner_cos(0.0).expect("failed");
-        let val = result.expect("no output").as_f64().expect("not f64");
-        assert!((val - 1.0).abs() < 1e-10);
+        assert_eq!(result, Some(serde_json::json!(1)));
     }
 
     #[test]
-    fn cos_pi() {
+    fn cos_pi_returns_integer() {
         let (result, _) = inner_cos(std::f64::consts::PI).expect("failed");
-        let val = result.expect("no output").as_f64().expect("not f64");
-        assert!((val - (-1.0)).abs() < 1e-10);
+        assert_eq!(result, Some(serde_json::json!(-1)));
     }
 }

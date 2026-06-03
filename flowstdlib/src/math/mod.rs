@@ -2,6 +2,24 @@
 //! ## Math (//flowstdlib/math)
 //! Math Functions
 
+use serde_json::{json, Value};
+
+/// Return a JSON integer when the float value is a whole number, otherwise a float.
+#[allow(
+    clippy::cast_possible_truncation,
+    clippy::cast_precision_loss,
+    clippy::float_cmp
+)]
+pub(crate) fn numeric_json(f: f64) -> Value {
+    if f.fract() == 0.0 && f.abs() < i64::MAX as f64 {
+        let i = f as i64;
+        if (i as f64) == f {
+            return json!(i);
+        }
+    }
+    json!(f)
+}
+
 /// A flow to generate numbers within a range
 pub mod range;
 

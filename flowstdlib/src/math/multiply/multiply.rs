@@ -1,3 +1,4 @@
+use super::numeric_json;
 use flowcore::errors::Result;
 use flowcore::{RunAgain, RUN_AGAIN};
 use flowmacro::flow_function;
@@ -24,21 +25,6 @@ fn to_integer(v: &Value) -> Option<i64> {
         }
     }
     None
-}
-
-#[allow(
-    clippy::cast_possible_truncation,
-    clippy::cast_precision_loss,
-    clippy::float_cmp
-)]
-fn numeric_json(f: f64) -> Value {
-    if f.fract() == 0.0 && f.abs() < i64::MAX as f64 {
-        let i = f as i64;
-        if (i as f64) == f {
-            return json!(i);
-        }
-    }
-    json!(f)
 }
 
 #[flow_function]
