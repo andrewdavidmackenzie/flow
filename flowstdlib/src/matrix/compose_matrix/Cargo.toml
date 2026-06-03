@@ -1,0 +1,15 @@
+[package]
+name = "compose_matrix"
+version.workspace = true
+authors.workspace = true
+edition.workspace = true
+
+[lib]
+name = "compose_matrix"
+crate-type = ["cdylib"]
+path = "compose_matrix.rs"
+
+[dependencies]
+flowcore = { workspace = true }
+flowmacro = { workspace = true }
+serde_json = { workspace = true, default-features = false }

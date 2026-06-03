@@ -1,0 +1,15 @@
+[package]
+name = "enumerate"
+version.workspace = true
+authors.workspace = true
+edition.workspace = true
+
+[lib]
+name = "enumerate"
+crate-type = ["cdylib"]
+path = "enumerate.rs"
+
+[dependencies]
+flowcore = { workspace = true }
+flowmacro = { workspace = true }
+serde_json = { workspace = true, default-features = false }

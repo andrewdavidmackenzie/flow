@@ -1,0 +1,15 @@
+[package]
+name = "to_json"
+version.workspace = true
+authors.workspace = true
+edition.workspace = true
+
+[lib]
+name = "to_json"
+crate-type = ["cdylib"]
+path = "to_json.rs"
+
+[dependencies]
+flowcore = { workspace = true }
+flowmacro = { workspace = true }
+serde_json = { workspace = true, default-features = false }

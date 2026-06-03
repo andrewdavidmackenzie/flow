@@ -1,0 +1,15 @@
+[package]
+name = "range_split"
+version.workspace = true
+authors.workspace = true
+edition.workspace = true
+
+[lib]
+name = "range_split"
+crate-type = ["cdylib"]
+path = "range_split.rs"
+
+[dependencies]
+flowcore = { workspace = true }
+flowmacro = { workspace = true }
+serde_json = { workspace = true, default-features = false }

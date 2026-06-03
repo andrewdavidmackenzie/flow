@@ -1,0 +1,15 @@
+[package]
+name = "bin_count"
+version.workspace = true
+authors.workspace = true
+edition.workspace = true
+
+[lib]
+name = "bin_count"
+crate-type = ["cdylib"]
+path = "bin_count.rs"
+
+[dependencies]
+flowcore = { workspace = true }
+flowmacro = { workspace = true }
+serde_json = { workspace = true, default-features = false }

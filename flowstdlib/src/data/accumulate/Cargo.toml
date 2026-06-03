@@ -1,0 +1,15 @@
+[package]
+name = "accumulate"
+version.workspace = true
+authors.workspace = true
+edition.workspace = true
+
+[lib]
+name = "accumulate"
+crate-type = ["cdylib"]
+path = "accumulate.rs"
+
+[dependencies]
+flowcore = { workspace = true }
+flowmacro = { workspace = true }
+serde_json = { workspace = true, default-features = false }

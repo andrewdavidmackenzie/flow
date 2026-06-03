@@ -1,0 +1,15 @@
+[package]
+name = "append"
+version.workspace = true
+authors.workspace = true
+edition.workspace = true
+
+[lib]
+name = "append"
+crate-type = ["cdylib"]
+path = "append.rs"
+
+[dependencies]
+flowcore = { workspace = true }
+flowmacro = { workspace = true }
+serde_json = { workspace = true, default-features = false }

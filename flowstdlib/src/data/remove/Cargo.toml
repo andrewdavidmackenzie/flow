@@ -1,0 +1,15 @@
+[package]
+name = "remove"
+version.workspace = true
+authors.workspace = true
+edition.workspace = true
+
+[lib]
+name = "remove"
+crate-type = ["cdylib"]
+path = "remove.rs"
+
+[dependencies]
+flowcore = { workspace = true }
+flowmacro = { workspace = true }
+serde_json = { workspace = true, default-features = false }

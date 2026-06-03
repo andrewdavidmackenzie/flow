@@ -1,0 +1,15 @@
+[package]
+name = "info"
+version.workspace = true
+authors.workspace = true
+edition.workspace = true
+
+[lib]
+name = "info"
+crate-type = ["cdylib"]
+path = "info.rs"
+
+[dependencies]
+flowcore = { workspace = true }
+flowmacro = { workspace = true }
+serde_json = { workspace = true, default-features = false }

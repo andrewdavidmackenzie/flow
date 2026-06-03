@@ -88,7 +88,7 @@ mod test {
     #[test]
     fn multiply_floats() {
         let (output, _) = inner_multiply(&json!(2.5), &json!(4.0)).expect("multiply failed");
-        assert_eq!(output, Some(json!(10.0)));
+        assert_eq!(output, Some(json!(10)));
     }
 
     #[test]
@@ -106,7 +106,7 @@ mod test {
     #[test]
     fn multiply_mixed_float_and_int() {
         let (output, _) = inner_multiply(&json!(2.5), &json!(4)).expect("multiply failed");
-        assert_eq!(output, Some(json!(10.0)));
+        assert_eq!(output, Some(json!(10)));
     }
 
     #[test]

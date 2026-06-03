@@ -1,0 +1,13 @@
+[package]
+name = "min"
+version.workspace = true
+authors.workspace = true
+edition.workspace = true
+[lib]
+name = "min"
+crate-type = ["cdylib"]
+path = "min.rs"
+[dependencies]
+flowcore = { workspace = true }
+flowmacro = { workspace = true }
+serde_json = { workspace = true, default-features = false }

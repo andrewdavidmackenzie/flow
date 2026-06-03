@@ -1,0 +1,15 @@
+[package]
+name = "index"
+version.workspace = true
+authors.workspace = true
+edition.workspace = true
+
+[lib]
+name = "index"
+crate-type = ["cdylib"]
+path = "index.rs"
+
+[dependencies]
+flowcore = { workspace = true }
+flowmacro = { workspace = true }
+serde_json = { workspace = true, default-features = false }

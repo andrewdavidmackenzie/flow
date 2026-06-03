@@ -1,0 +1,13 @@
+[package]
+name = "avg"
+version.workspace = true
+authors.workspace = true
+edition.workspace = true
+[lib]
+name = "avg"
+crate-type = ["cdylib"]
+path = "avg.rs"
+[dependencies]
+flowcore = { workspace = true }
+flowmacro = { workspace = true }
+serde_json = { workspace = true, default-features = false }
