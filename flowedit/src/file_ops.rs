@@ -438,6 +438,7 @@ pub(crate) fn save_function_definition(viewer: &FunctionViewer) -> Result<(), St
         .map_err(|e| format!("Could not write {}: {e}", toml_path.display()))?;
 
     save_source_file(dir, func, viewer)?;
+    save_docs_file(dir, func, viewer)?;
     generate_cargo_manifest(dir, func)?;
 
     Ok(())
@@ -455,6 +456,25 @@ fn save_source_file(
         let rs_path = dir.join(&func.source);
         std::fs::write(&rs_path, editor_text)
             .map_err(|e| format!("Could not write {}: {e}", rs_path.display()))?;
+    }
+    Ok(())
+}
+
+fn save_docs_file(
+    dir: &Path,
+    func: &flowcore::model::function_definition::FunctionDefinition,
+    viewer: &FunctionViewer,
+) -> Result<(), String> {
+    let editor_text = viewer.docs_editor_content.text();
+    let original = viewer.docs_content.as_deref().unwrap_or("");
+    if editor_text != original {
+        let docs_path = dir.join(format!("{}.md", func.name));
+        if editor_text.trim().is_empty() {
+            // Don't write an empty docs file
+            return Ok(());
+        }
+        std::fs::write(&docs_path, editor_text)
+            .map_err(|e| format!("Could not write {}: {e}", docs_path.display()))?;
     }
     Ok(())
 }
@@ -976,6 +996,7 @@ mod test {
             rs_editor_content: iced::widget::text_editor::Content::with_text(&rs_content),
             rs_content,
             docs_content: None,
+            docs_editor_content: iced::widget::text_editor::Content::with_text(""),
             active_tab: 0,
             parent_window: None,
             node_source: String::new(),
@@ -1033,6 +1054,7 @@ mod test {
             rs_editor_content: iced::widget::text_editor::Content::with_text(&rs_content),
             rs_content,
             docs_content: None,
+            docs_editor_content: iced::widget::text_editor::Content::with_text(""),
             active_tab: 0,
             parent_window: None,
             node_source: String::new(),

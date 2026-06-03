@@ -88,6 +88,7 @@ pub(crate) struct FunctionViewer {
     pub(crate) rs_content: String,
     pub(crate) rs_editor_content: iced::widget::text_editor::Content,
     pub(crate) docs_content: Option<String>,
+    pub(crate) docs_editor_content: iced::widget::text_editor::Content,
     pub(crate) active_tab: usize,
     /// Parent window that opened this viewer (for propagating edits back to canvas)
     pub(crate) parent_window: Option<window::Id>,
