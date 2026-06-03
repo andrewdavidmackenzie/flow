@@ -5,9 +5,24 @@ use flowcore::flow_output;
 use flowcore::RunAgain;
 use flowmacro::flow_function;
 
+#[allow(
+    clippy::cast_possible_truncation,
+    clippy::cast_precision_loss,
+    clippy::float_cmp
+)]
+fn numeric_json(f: f64) -> Value {
+    if f.fract() == 0.0 && f.abs() < i64::MAX as f64 {
+        let i = f as i64;
+        if (i as f64) == f {
+            return json!(i);
+        }
+    }
+    json!(f)
+}
+
 #[flow_function]
 fn inner_tan(a: f64) -> Result<(Option<Value>, RunAgain)> {
-    flow_output!(json!(a.tan()))
+    flow_output!(numeric_json(a.tan()))
 }
 
 #[cfg(test)]
