@@ -73,7 +73,7 @@ rfd = "0.17"
 tokio = { version = "1", features = ["sync"] }
 
 # Optional dependencies
-rustyline = {version = "18.0.0", optional = true } # for debugger
+rustyline = {version = "18.0.0", optional = true } # for debugger - used by flowrgui debug client
 
 [dev-dependencies]
 tempfile = "3"

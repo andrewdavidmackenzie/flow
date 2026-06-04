@@ -9,14 +9,11 @@ use flowrlib::debugger_handler::DebuggerHandler;
 use flowrlib::job::Job;
 use flowrlib::run_state::{RunState, State};
 
-use crate::cli::connections::WAIT;
-use crate::DebugServerMessage::{
-    BlockState, Error, FlowUnblockBreakpoint, FunctionStates, Functions, InputState, Message,
-    OutputState, OverallState,
-};
-use crate::{
-    BlockBreakpoint, CoordinatorConnection, DataBreakpoint, ExecutionEnded, ExecutionStarted,
-    ExitingDebugger, JobCompleted, JobError, Panic, PriorToSendingJob, Resetting,
+use crate::cli::connections::{CoordinatorConnection, WAIT};
+use crate::cli::debug_message::DebugServerMessage::{
+    BlockBreakpoint, BlockState, DataBreakpoint, Error, ExecutionEnded, ExecutionStarted,
+    ExitingDebugger, FlowUnblockBreakpoint, FunctionStates, Functions, InputState, JobCompleted,
+    JobError, Message, OutputState, OverallState, Panic, PriorToSendingJob, Resetting,
     WaitingForCommand,
 };
 

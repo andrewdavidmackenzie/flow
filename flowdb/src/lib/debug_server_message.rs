@@ -108,7 +108,10 @@ impl fmt::Display for DebugServerMessage {
 
 impl From<DebugServerMessage> for String {
     fn from(msg: DebugServerMessage) -> Self {
-        serde_json::to_string(&msg).unwrap_or_default()
+        serde_json::to_string(&msg).unwrap_or_else(|e| {
+            log::error!("Failed to serialize DebugServerMessage: {e}");
+            String::new()
+        })
     }
 }
 

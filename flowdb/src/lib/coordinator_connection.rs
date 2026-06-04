@@ -12,7 +12,7 @@ use flowcore::errors::Result;
 pub const WAIT: i32 = 0;
 
 /// Do NOT WAIT for a message to arrive when performing a `receive()`
-pub static DONT_WAIT: i32 = zmq::DONTWAIT;
+pub const DONT_WAIT: i32 = zmq::DONTWAIT;
 
 /// [`CoordinatorConnection`] stores information about the debug server side of the
 /// connection between a debug client and the [Coordinator][flowrlib::coordinator::Coordinator].

@@ -36,22 +36,10 @@ use simpath::Simpath;
 use url::Url;
 
 use cli::cli_client::CliRuntimeClient;
-#[cfg(feature = "debugger")]
-use cli::cli_debug_client::CliDebugClient;
-#[cfg(feature = "debugger")]
-use cli::cli_debug_handler::CliDebugHandler;
 use cli::cli_submission_handler::CLISubmissionHandler;
-#[cfg(feature = "debugger")]
 use cli::connections::ClientConnection;
 use cli::connections::CoordinatorConnection;
 use cli::coordinator_message::ClientMessage;
-#[cfg(feature = "debugger")]
-use cli::debug_message::DebugServerMessage;
-#[cfg(feature = "debugger")]
-use cli::debug_message::DebugServerMessage::{
-    BlockBreakpoint, DataBreakpoint, ExecutionEnded, ExecutionStarted, ExitingDebugger,
-    JobCompleted, JobError, Panic, PriorToSendingJob, Resetting, WaitingForCommand,
-};
 use flowcore::errors::{Result, ResultExt};
 use flowcore::meta_provider::MetaProvider;
 use flowcore::model::flow_manifest::FlowManifest;
@@ -64,11 +52,13 @@ use flowrlib::executor::Executor;
 use flowrlib::info as flowrlib_info;
 use flowrlib::services::{CONTROL_SERVICE_NAME, JOB_SERVICE_NAME, RESULTS_JOB_SERVICE_NAME};
 
-#[cfg(feature = "debugger")]
-use crate::cli::connections::DEBUG_SERVICE_NAME;
 use crate::cli::connections::{
     discover_service, enable_service_discovery, COORDINATOR_SERVICE_NAME,
 };
+#[cfg(feature = "debugger")]
+use cli::cli_debug_handler::CliDebugHandler;
+#[cfg(feature = "debugger")]
+use flowrlib::services::DEBUG_SERVICE_NAME;
 
 /// Include the module that implements the context functions
 mod context;
@@ -196,6 +186,9 @@ fn coordinator_only(
     #[cfg(feature = "debugger")]
     let _mdns_debug = enable_service_discovery(DEBUG_SERVICE_NAME, debug_port)?;
 
+    #[cfg(feature = "debugger")]
+    info!("Debug server listening on port {debug_port}. Connect with: flowdb --address localhost:{debug_port}");
+
     // Signal to the parent process (e.g. test harness) that the server is ready
     println!("ready");
 
@@ -236,6 +229,11 @@ fn client_and_coordinator(
     let debug_connection = CoordinatorConnection::new(DEBUG_SERVICE_NAME, debug_port)?;
     #[cfg(feature = "debugger")]
     let _mdns_debug = enable_service_discovery(DEBUG_SERVICE_NAME, debug_port)?;
+
+    #[cfg(feature = "debugger")]
+    if debug_this_flow {
+        eprintln!("Debug server listening on port {debug_port}. Connect with: flowdb --address localhost:{debug_port}");
+    }
 
     let coordinator_lib_search_path = lib_search_path.clone();
 
@@ -361,15 +359,13 @@ fn client_only(
     )
 }
 
-/// Start the clients that talks to the coordinator
-#[cfg(feature = "debugger")]
+/// Start the client that talks to the coordinator
 fn client(
     matches: &ArgMatches,
     lib_search_path: Simpath,
     client_connection: &ClientConnection,
     #[cfg(feature = "debugger")] debug_this_flow: bool,
 ) -> Result<()> {
-    // keep an Arc Mutex protected set of override args that debug client can override
     let override_args = Arc::new(Mutex::new(Vec::<String>::new()));
 
     let flow_manifest_url = parse_flow_url(matches)?;
@@ -391,20 +387,10 @@ fn client(
     trace!("Creating CliRuntimeClient");
     let client = CliRuntimeClient::new(
         flow_args,
-        override_args.clone(),
+        override_args,
         #[cfg(feature = "metrics")]
         matches.get_flag("metrics"),
     );
-
-    #[cfg(feature = "debugger")]
-    if debug_this_flow {
-        let debug_server_address = discover_service(DEBUG_SERVICE_NAME)?;
-        let debug_client_connection = ClientConnection::new(&debug_server_address)?;
-        let debug_client = CliDebugClient::new(debug_client_connection, override_args)?;
-        let _ = thread::spawn(move || {
-            debug_client.debug_client_loop();
-        });
-    }
 
     info!("Client sending submission to coordinator");
     client_connection.send(ClientMessage::ClientSubmission(Box::new(submission)))?;

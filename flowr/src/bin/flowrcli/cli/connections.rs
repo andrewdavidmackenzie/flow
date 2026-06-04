@@ -9,8 +9,6 @@ use flowcore::errors::{Result, ResultExt};
 
 pub use flowrlib::discovery::{discover_service, enable_service_discovery};
 pub use flowrlib::services::COORDINATOR_SERVICE_NAME;
-#[cfg(feature = "debugger")]
-pub use flowrlib::services::DEBUG_SERVICE_NAME;
 
 /// WAIT for a message to arrive when performing a `receive()`
 pub const WAIT: i32 = 0;

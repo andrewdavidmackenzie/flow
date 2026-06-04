@@ -77,9 +77,14 @@ impl DebugClient {
         loop {
             match self.connection.receive() {
                 Ok(debug_server_message) => {
-                    if let Ok(response) = self.process_server_message(debug_server_message) {
-                        let _ = self.connection.send(response);
-                    }
+                    let response = match self.process_server_message(debug_server_message) {
+                        Ok(response) => response,
+                        Err(e) => {
+                            error!("Error processing server message: {e}");
+                            Ack
+                        }
+                    };
+                    let _ = self.connection.send(response);
                 }
                 Err(err) => {
                     error!("Error receiving event from debugger: {err}");
@@ -119,7 +124,7 @@ impl DebugClient {
     fn parse_optional_int(params: Option<Vec<String>>) -> Option<usize> {
         if let Some(param) = params {
             if !param.is_empty() {
-                if let Ok(integer) = param.get(1)?.parse::<usize>() {
+                if let Ok(integer) = param.first()?.parse::<usize>() {
                     return Some(integer);
                 }
             }
@@ -280,11 +285,9 @@ impl DebugClient {
             ),
             Panic(message, jobs_created) => {
                 println!("Function panicked after {jobs_created} jobs created: {message}");
-                return self.get_user_command(jobs_created);
             }
             JobError(job) => {
                 println!("Error occurred executing a Job: \n'{job}'");
-                return self.get_user_command(job.payload.job_id);
             }
             Deadlock(message) => println!("Deadlock detected {message}"),
             EnteringDebugger => println!(
