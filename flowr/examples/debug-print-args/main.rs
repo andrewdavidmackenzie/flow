@@ -1,79 +1,111 @@
-//! Integration test for debug continue+exit using flowdb as a separate process
+//! Integration tests for debugger commands using flowdb as a separate process
 fn main() {}
 
 #[cfg(test)]
 #[cfg(feature = "debugger")]
 mod test {
-    use std::io::{BufRead, BufReader, Write};
-    use std::process::{Command, Stdio};
-    use std::thread;
-    use std::time::Duration;
+    use serial_test::serial;
+    use utilities::DebugSession;
+
+    fn example_dir() -> std::path::PathBuf {
+        std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("examples/debug-print-args")
+    }
 
     #[test]
-    fn test_debug_print_args_example() {
-        let crate_dir = std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR"));
-        let example_dir = crate_dir.join("examples/debug-print-args");
-
-        let mut server = Command::new("flowrcli")
-            .args([
-                "--debugger",
-                "--native",
-                "manifest.json",
-                "test_arg1",
-                "test_arg2",
-            ])
-            .current_dir(&example_dir)
-            .stdin(Stdio::piped())
-            .stdout(Stdio::piped())
-            .stderr(Stdio::piped())
-            .spawn()
-            .expect("Could not spawn flowrcli");
-
-        let stderr = server.stderr.as_mut().expect("Could not get stderr");
-        let mut reader = BufReader::new(stderr);
-        let mut port_line = String::new();
-        reader
-            .read_line(&mut port_line)
-            .expect("Could not read port line");
-
-        let port = port_line
-            .split("localhost:")
-            .nth(1)
-            .and_then(|s| s.trim().parse::<u16>().ok())
-            .unwrap_or_else(|| panic!("Could not parse debug port from: {port_line}"));
-
-        let mut flowdb = Command::new("flowdb")
-            .args(["--address", &format!("localhost:{port}")])
-            .stdin(Stdio::piped())
-            .stdout(Stdio::piped())
-            .stderr(Stdio::piped())
-            .spawn()
-            .expect("Could not spawn flowdb");
-
-        let mut stdin = flowdb.stdin.take().expect("Could not get flowdb stdin");
-
-        thread::sleep(Duration::from_secs(2));
-        writeln!(stdin, "c").expect("Could not write c");
-        thread::sleep(Duration::from_secs(3));
-        writeln!(stdin, "e").expect("Could not write e");
-        drop(stdin);
-
-        let output = flowdb
-            .wait_with_output()
-            .expect("Could not wait for flowdb");
-
-        let stdout = String::from_utf8_lossy(&output.stdout);
+    #[serial]
+    fn test_debug_continue_and_exit() {
+        let mut session = DebugSession::start(&example_dir(), &["test_arg1"]);
+        session.send("c");
+        std::thread::sleep(std::time::Duration::from_secs(2));
+        session.send("e");
+        let stdout = session.finish();
 
         assert!(
             stdout.contains("Flow has completed"),
-            "Flow completion not found in flowdb stdout:\n{stdout}"
+            "No completion:\n{stdout}"
+        );
+        assert!(stdout.contains("Debugger is exiting"), "No exit:\n{stdout}");
+    }
+
+    #[test]
+    #[serial]
+    fn test_debug_step() {
+        let mut session = DebugSession::start(&example_dir(), &["test_arg1"]);
+        session.send("s");
+        session.send("e");
+        let stdout = session.finish();
+
+        assert!(
+            stdout.contains("About to send Job #"),
+            "No job info after step:\n{stdout}"
         );
         assert!(
-            stdout.contains("Debugger is exiting"),
-            "Exit message not found in flowdb stdout:\n{stdout}"
+            stdout.contains("Inputs:"),
+            "No inputs after step:\n{stdout}"
         );
+        assert!(stdout.contains("Debugger is exiting"), "No exit:\n{stdout}");
+    }
 
-        server.kill().expect("Could not kill flowrcli");
-        server.wait().expect("Could not wait for flowrcli");
+    #[test]
+    #[serial]
+    fn test_debug_functions() {
+        let mut session = DebugSession::start(&example_dir(), &["test_arg1"]);
+        session.send("f");
+        session.send("e");
+        let stdout = session.finish();
+
+        assert!(
+            stdout.contains("Functions List"),
+            "No function list:\n{stdout}"
+        );
+        assert!(stdout.contains("inspect"), "No inspect hint:\n{stdout}");
+        assert!(stdout.contains("Debugger is exiting"), "No exit:\n{stdout}");
+    }
+
+    #[test]
+    #[serial]
+    fn test_debug_inspect() {
+        let mut session = DebugSession::start(&example_dir(), &["test_arg1"]);
+        session.send("i");
+        session.send("e");
+        let stdout = session.finish();
+
+        assert!(stdout.contains("States:"), "No state info:\n{stdout}");
+        assert!(stdout.contains("Debugger is exiting"), "No exit:\n{stdout}");
+    }
+
+    #[test]
+    #[serial]
+    fn test_debug_list_empty() {
+        let mut session = DebugSession::start(&example_dir(), &["test_arg1"]);
+        session.send("l");
+        session.send("e");
+        let stdout = session.finish();
+
+        assert!(stdout.contains("Debugger is exiting"), "No exit:\n{stdout}");
+    }
+
+    #[test]
+    #[serial]
+    fn test_debug_breakpoint_and_delete() {
+        let mut session = DebugSession::start(&example_dir(), &["test_arg1"]);
+        session.send("b 0");
+        session.send("l");
+        session.send("d 0");
+        session.send("e");
+        let stdout = session.finish();
+
+        assert!(stdout.contains("Debugger is exiting"), "No exit:\n{stdout}");
+    }
+
+    #[test]
+    #[serial]
+    fn test_debug_validate() {
+        let mut session = DebugSession::start(&example_dir(), &["test_arg1"]);
+        session.send("v");
+        session.send("e");
+        let stdout = session.finish();
+
+        assert!(stdout.contains("Debugger is exiting"), "No exit:\n{stdout}");
     }
 }
