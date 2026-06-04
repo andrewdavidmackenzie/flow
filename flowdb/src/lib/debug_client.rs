@@ -77,6 +77,7 @@ impl DebugClient {
         loop {
             match self.connection.receive() {
                 Ok(debug_server_message) => {
+                    let exiting = matches!(debug_server_message, ExitingDebugger);
                     let response = match self.process_server_message(debug_server_message) {
                         Ok(response) => response,
                         Err(e) => {
@@ -85,6 +86,9 @@ impl DebugClient {
                         }
                     };
                     let _ = self.connection.send(response);
+                    if exiting {
+                        break;
+                    }
                 }
                 Err(err) => {
                     error!("Error receiving event from debugger: {err}");
