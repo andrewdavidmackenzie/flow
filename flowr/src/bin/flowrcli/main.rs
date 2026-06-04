@@ -187,7 +187,7 @@ fn coordinator_only(
     let _mdns_debug = enable_service_discovery(DEBUG_SERVICE_NAME, debug_port)?;
 
     #[cfg(feature = "debugger")]
-    info!("Debug server listening on port {debug_port}. Connect with: flowdb --address localhost:{debug_port}");
+    eprintln!("Debug server listening on port {debug_port}. Connect with: flowdb --address localhost:{debug_port}");
 
     // Signal to the parent process (e.g. test harness) that the server is ready
     println!("ready");
