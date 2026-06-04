@@ -1,4 +1,3 @@
-#[cfg(feature = "debugger")]
 use std::collections::BTreeMap;
 
 use log::{debug, info, trace};

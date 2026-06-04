@@ -40,10 +40,7 @@ pub fn compile_implementation(
     #[cfg(feature = "debugger")] source_urls: &mut BTreeMap<String, Url>,
 ) -> Result<bool> {
     let mut built = false;
-
-    let wasm_relative_path = wasm_destination
-        .strip_prefix(out_dir)
-        .map_err(|_| "Could not strip_prefix from wasm location path")?;
+    let _ = out_dir; // used only with debugger feature for source URL tracking
 
     let (missing, out_of_date) = out_of_date(implementation_source_path, wasm_destination)?;
 
@@ -91,12 +88,18 @@ pub fn compile_implementation(
         );
     }
 
-    let function_source_url = Url::from_file_path(implementation_source_path)
-        .map_err(|()| "Could not create Url from source path")?;
-    source_urls.insert(
-        wasm_relative_path.to_string_lossy().to_string(),
-        function_source_url,
-    );
+    #[cfg(feature = "debugger")]
+    {
+        let wasm_relative_path = wasm_destination
+            .strip_prefix(out_dir)
+            .map_err(|_| "Could not strip_prefix from wasm location path")?;
+        let function_source_url = Url::from_file_path(implementation_source_path)
+            .map_err(|()| "Could not create Url from source path")?;
+        source_urls.insert(
+            wasm_relative_path.to_string_lossy().to_string(),
+            function_source_url,
+        );
+    }
     function.set_implementation(
         wasm_destination
             .to_str()
