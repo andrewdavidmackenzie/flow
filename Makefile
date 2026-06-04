@@ -101,6 +101,7 @@ clippy:
 .PHONY: features
 features:
 	@echo "features<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<"
+	@which cargo-build-all-features > /dev/null || cargo install cargo-all-features
 	cargo build-all-features
 
 .PHONY: test
