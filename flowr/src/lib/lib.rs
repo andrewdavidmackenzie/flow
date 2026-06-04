@@ -10,15 +10,15 @@
 //! gathering the Result and passing the output value to other connected functions in the
 //! [flow graph][flowcore::model::flow_manifest::FlowManifest]
 
-/// Provides [Block][block::Block] that represents a block imposed on a function due to destination being busy
-pub mod block;
+/// Re-export [Block][block::Block] from flowcore
+pub use flowcore::model::block;
 
 /// Provides [Coordinator][coordinator::Coordinator] responsible for coordinating the execution of flows submitted to it
 pub mod coordinator;
 
 #[cfg(feature = "debugger")]
-/// Provides the `DebugCommand`[`debug_command::DebugCommand`] enum for commands from debug client to debug server
-pub mod debug_command;
+/// Re-export `DebugCommand` from flowcore
+pub use flowcore::model::debug_command;
 
 /// Provides [Dispatcher][dispatcher::Dispatcher] used by the [Coordinator][coordinator::Coordinator]
 /// to dispatch [Jobs][job::Job] for execution by an [Executor][executor::Executor]
@@ -34,8 +34,8 @@ pub mod executor;
 /// Provides methods to get information about this library
 pub mod info;
 
-/// Provides [Job][job::Job] that holds jobs before and after their execution
-pub mod job;
+/// Re-export [Job][job::Job] from flowcore
+pub use flowcore::model::job;
 
 /// The `SubmissionHandler`[`submission_handler::SubmissionHandler`] trait defines  methods a client
 /// must implement in order to handle submissions from a client
@@ -51,11 +51,12 @@ pub mod debugger_handler;
 /// used by [`Coordinator`][coordinator::Coordinator]
 pub mod run_state;
 
-/// Provides well-known service names used across multiple binary crates
-pub mod services;
+/// Re-export well-known service names from flowcore
+pub use flowcore::services;
 
-/// Optional mDNS-SD service discovery helpers
-pub mod discovery;
+/// Re-export mDNS-SD service discovery helpers from flowcore
+#[cfg(not(target_arch = "wasm32"))]
+pub use flowcore::discovery;
 
 #[cfg(feature = "debugger")]
 mod debugger;

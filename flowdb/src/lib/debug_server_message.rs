@@ -6,11 +6,11 @@ use std::fmt;
 use serde_derive::{Deserialize, Serialize};
 use serde_json::Value;
 
+use flowcore::model::block::Block;
 use flowcore::model::input::Input;
+use flowcore::model::job::Job;
 use flowcore::model::output_connection::OutputConnection;
 use flowcore::model::runtime_function::RuntimeFunction;
-use flowrlib::block::Block;
-use flowrlib::job::Job;
 use flowrlib::run_state::{RunState, State};
 
 /// A `Message` sent from the debugger to a `debug_client`

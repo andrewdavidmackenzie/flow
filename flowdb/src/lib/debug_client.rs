@@ -7,14 +7,14 @@ use rustyline::history::DefaultHistory;
 use rustyline::{DefaultEditor, Editor};
 
 use flowcore::errors::Result;
-use flowcore::model::runtime_function::RuntimeFunction;
-use flowrlib::debug_command::BreakpointSpec;
-use flowrlib::debug_command::DebugCommand;
-use flowrlib::debug_command::DebugCommand::{
+use flowcore::model::debug_command::BreakpointSpec;
+use flowcore::model::debug_command::DebugCommand;
+use flowcore::model::debug_command::DebugCommand::{
     Ack, Breakpoint, Continue, DebugClientStarting, Delete, ExitDebugger, FunctionList, Inspect,
     InspectBlock, InspectFunction, InspectInput, InspectOutput, List, Modify, RunReset, Step,
     Validate,
 };
+use flowcore::model::runtime_function::RuntimeFunction;
 use flowrlib::run_state::RunState;
 
 use crate::client_connection::ClientConnection;

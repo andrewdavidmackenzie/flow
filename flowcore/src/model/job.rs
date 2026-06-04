@@ -4,9 +4,9 @@ use serde_derive::{Deserialize, Serialize};
 use serde_json::Value;
 use url::Url;
 
-use flowcore::errors::Result;
-use flowcore::model::output_connection::OutputConnection;
-use flowcore::RunAgain;
+use crate::errors::Result;
+use crate::model::output_connection::OutputConnection;
+use crate::RunAgain;
 
 /// Conatins the minimum amount of information required to execute a [Job] and return the result
 #[derive(Serialize, Deserialize, Clone)]
@@ -68,9 +68,9 @@ mod test {
     use serde_json::json;
     use url::Url;
 
-    use flowcore::model::datatype::ARRAY_TYPE;
+    use crate::model::datatype::ARRAY_TYPE;
 
-    use crate::job::Payload;
+    use crate::model::job::Payload;
 
     #[test]
     fn display_job_test() {

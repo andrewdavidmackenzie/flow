@@ -90,7 +90,7 @@ impl From<String> for DebugCommand {
 #[cfg(test)]
 #[allow(clippy::unwrap_used, clippy::expect_used)]
 mod test {
-    use crate::debug_command::DebugCommand;
+    use crate::model::debug_command::DebugCommand;
 
     #[test]
     fn display_debug_command() {

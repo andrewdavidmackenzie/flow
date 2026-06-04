@@ -1357,6 +1357,7 @@ dependencies = [
  "curl",
  "error-chain",
  "log",
+ "mdns-sd",
  "serde",
  "serde_derive",
  "serde_json",

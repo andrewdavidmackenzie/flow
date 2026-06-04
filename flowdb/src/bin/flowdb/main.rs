@@ -9,10 +9,10 @@ use std::process::exit;
 use clap::{Arg, Command};
 use log::{error, info};
 
+use flowcore::discovery::discover_service;
+use flowcore::services::DEBUG_SERVICE_NAME;
 use flowdblib::client_connection::ClientConnection;
 use flowdblib::debug_client::DebugClient;
-use flowrlib::discovery::discover_service;
-use flowrlib::services::DEBUG_SERVICE_NAME;
 
 /// Parse command line arguments
 fn parse_args() -> clap::ArgMatches {

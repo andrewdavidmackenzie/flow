@@ -9,7 +9,7 @@ use std::time::{Duration, Instant};
 use log::info;
 use mdns_sd::{ServiceDaemon, ServiceEvent, ServiceInfo};
 
-use flowcore::errors::{bail, Result};
+use crate::errors::{bail, Result};
 
 use crate::services::FLOW_SERVICE_TYPE;
 
