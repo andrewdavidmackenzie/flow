@@ -35,6 +35,8 @@ serde_derive = "~1.0"
 serde = "~1.0"
 serde_json = { version = "1.0", default-features = false }
 zmq = "0.10.0"
+rustyline = "18.0.0"
+mdns-sd = { version = "0.20", default-features = false }
 
 [dev-dependencies]
 portpicker = "0.1.1"

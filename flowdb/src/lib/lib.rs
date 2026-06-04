@@ -9,6 +9,9 @@ pub mod client_connection;
 /// ZMQ server connection (REP socket) used by the debug server in the coordinator
 pub mod coordinator_connection;
 
+/// [`DebugClient`][debug_client::DebugClient] — a CLI REPL debug client
+pub mod debug_client;
+
 /// [`DebugHandler`][debug_handler::DebugHandler] implements the
 /// [`DebuggerHandler`][flowrlib::debugger_handler::DebuggerHandler] trait,
 /// bridging the coordinator to a debug client over ZMQ
