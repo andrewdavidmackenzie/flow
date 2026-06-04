@@ -98,6 +98,11 @@ clippy:
 	@echo "clippy<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<"
 	cargo clippy --tests --no-deps --all-features --all-targets -- --warn clippy::pedantic --deny warnings
 
+.PHONY: features
+features:
+	@echo "features<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<"
+	cargo build-all-features
+
 .PHONY: test
 test: build
 	@echo "test<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<"

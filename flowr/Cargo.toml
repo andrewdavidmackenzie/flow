@@ -43,6 +43,10 @@ submission = []
 # feature to include context functions, make sure flowcore is compiled with it if we plan to use it
 context = ["flowcore/context"]
 
+# cargo-all-features: skip building without default features until #1006 is fixed
+[package.metadata.cargo-all-features]
+skip_feature_sets = [[]]
+
 [dependencies]
 flowcore = {path = "../flowcore", version = "1.0.0", features = ["context", "file_provider", "http_provider",
         "context", "meta_provider"] }

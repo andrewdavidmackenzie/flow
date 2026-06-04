@@ -11,6 +11,7 @@ mod test {
 
     #[cfg(feature = "debugger")]
     #[test]
+    #[ignore] // requires standalone flowdb process — see #1707
     fn test_debug_print_args_example() {
         let _ = env::set_current_dir(
             PathBuf::from(env!("CARGO_MANIFEST_DIR"))

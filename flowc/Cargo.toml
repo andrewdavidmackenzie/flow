@@ -28,6 +28,10 @@ path = "src/bin/flowc/main.rs"
 default = ["debugger"]
 debugger = ["flowcore/debugger"] # feature to add output for the debugger
 
+# cargo-all-features: skip building without default features until #1006 is fixed
+[package.metadata.cargo-all-features]
+skip_feature_sets = [[]]
+
 [dependencies]
 flowcore = {path = "../flowcore", version = "1.0.0", features = ["context", "file_provider", "http_provider", "meta_provider"]}
 flowgraph = {path = "../flowgraph", version = "1.0.0"}
