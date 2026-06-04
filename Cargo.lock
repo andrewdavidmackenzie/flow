@@ -1367,6 +1367,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "flowdb"
+version = "1.0.0"
+dependencies = [
+ "clap",
+ "env_logger",
+ "error-chain",
+ "log",
+]
+
+[[package]]
 name = "flowedit"
 version = "1.0.0"
 dependencies = [
