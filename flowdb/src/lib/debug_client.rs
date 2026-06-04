@@ -175,7 +175,7 @@ impl DebugClient {
         None
     }
 
-    fn parse_inspect_spec(spec: Option<Vec<String>>) -> Option<DebugCommand> {
+    pub(crate) fn parse_inspect_spec(spec: Option<Vec<String>>) -> Option<DebugCommand> {
         match Self::parse_breakpoint_spec(spec) {
             None => Some(Inspect),
             Some(BreakpointSpec::Numeric(function_id)) => Some(InspectFunction(function_id)),
@@ -340,7 +340,7 @@ impl DebugClient {
         Ok(Ack)
     }
 
-    fn function_list(functions: Vec<RuntimeFunction>) {
+    pub(crate) fn function_list(functions: Vec<RuntimeFunction>) {
         println!("Functions List");
         for function in functions {
             println!(
@@ -520,5 +520,57 @@ mod test {
     #[test]
     fn parse_breakpoint_spec_invalid() {
         assert_eq!(DebugClient::parse_breakpoint_spec(specs("abc")), None);
+    }
+
+    #[test]
+    fn parse_inspect_spec_overall() {
+        use flowcore::model::debug_command::DebugCommand;
+        assert_eq!(
+            DebugClient::parse_inspect_spec(None),
+            Some(DebugCommand::Inspect)
+        );
+    }
+
+    #[test]
+    fn parse_inspect_spec_function() {
+        use flowcore::model::debug_command::DebugCommand;
+        assert_eq!(
+            DebugClient::parse_inspect_spec(specs("3")),
+            Some(DebugCommand::InspectFunction(3))
+        );
+    }
+
+    #[test]
+    fn parse_inspect_spec_input() {
+        use flowcore::model::debug_command::DebugCommand;
+        assert_eq!(
+            DebugClient::parse_inspect_spec(specs("5:1")),
+            Some(DebugCommand::InspectInput(5, 1))
+        );
+    }
+
+    #[test]
+    fn parse_inspect_spec_output() {
+        use flowcore::model::debug_command::DebugCommand;
+        assert_eq!(
+            DebugClient::parse_inspect_spec(specs("2/result")),
+            Some(DebugCommand::InspectOutput(2, "/result".to_string()))
+        );
+    }
+
+    #[test]
+    fn parse_inspect_spec_block() {
+        use flowcore::model::debug_command::DebugCommand;
+        assert_eq!(
+            DebugClient::parse_inspect_spec(specs("1->2")),
+            Some(DebugCommand::InspectBlock(Some(1), Some(2)))
+        );
+    }
+
+    #[test]
+    fn function_list_display() {
+        let f_a = test_function_a_to_b();
+        let f_b = test_function_b_init();
+        DebugClient::function_list(vec![f_a, f_b]);
     }
 }

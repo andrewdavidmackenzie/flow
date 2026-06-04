@@ -127,6 +127,8 @@ impl From<String> for DebugServerMessage {
 #[cfg(test)]
 #[allow(clippy::unwrap_used, clippy::expect_used)]
 mod test {
+    use flowrlib::run_state::RunState;
+
     use super::DebugServerMessage;
 
     #[test]
@@ -161,18 +163,80 @@ mod test {
     }
 
     #[test]
-    fn display_variants() {
-        assert_eq!(
-            format!("{}", DebugServerMessage::EnteringDebugger),
-            "DebugServerMessage EnteringDebugger"
-        );
-        assert_eq!(
-            format!("{}", DebugServerMessage::WaitingForCommand(0)),
-            "DebugServerMessage WaitingForCommand"
-        );
-        assert_eq!(
-            format!("{}", DebugServerMessage::Invalid),
-            "DebugServerMessage Invalid"
-        );
+    fn display_all_variants() {
+        use serde_json::json;
+
+        let variants: Vec<(&str, DebugServerMessage)> = vec![
+            ("EnteringDebugger", DebugServerMessage::EnteringDebugger),
+            ("ExitingDebugger", DebugServerMessage::ExitingDebugger),
+            ("ExecutionStarted", DebugServerMessage::ExecutionStarted),
+            ("ExecutionEnded", DebugServerMessage::ExecutionEnded),
+            ("Resetting", DebugServerMessage::Resetting),
+            (
+                "WaitingForCommand",
+                DebugServerMessage::WaitingForCommand(0),
+            ),
+            ("Error", DebugServerMessage::Error("err".into())),
+            ("Message", DebugServerMessage::Message("msg".into())),
+            ("Deadlock", DebugServerMessage::Deadlock("dl".into())),
+            ("Panic", DebugServerMessage::Panic("p".into(), 1)),
+            (
+                "FlowUnblockBreakpoint",
+                DebugServerMessage::FlowUnblockBreakpoint(0),
+            ),
+            ("Invalid", DebugServerMessage::Invalid),
+            (
+                "SendingValue",
+                DebugServerMessage::SendingValue(0, json!(1), 1, 0),
+            ),
+            (
+                "DataBreakpoint",
+                DebugServerMessage::DataBreakpoint(
+                    "f".into(),
+                    0,
+                    "/".into(),
+                    json!(1),
+                    1,
+                    "g".into(),
+                    "i".into(),
+                    0,
+                ),
+            ),
+            ("BlockState", DebugServerMessage::BlockState(vec![])),
+            (
+                "InputState",
+                DebugServerMessage::InputState(flowcore::model::input::Input::new(
+                    "test", 0, false, None, None,
+                )),
+            ),
+            ("OutputState", DebugServerMessage::OutputState(vec![])),
+            ("Functions", DebugServerMessage::Functions(vec![])),
+            (
+                "OverallState",
+                DebugServerMessage::OverallState(RunState::new(
+                    flowcore::model::submission::Submission::new(
+                        flowcore::model::flow_manifest::FlowManifest::new(
+                            flowcore::model::metadata::MetaData {
+                                name: "t".into(),
+                                version: "0".into(),
+                                description: "t".into(),
+                                authors: vec![],
+                            },
+                        ),
+                        None,
+                        None,
+                        true,
+                    ),
+                )),
+            ),
+        ];
+
+        for (expected_name, variant) in variants {
+            let display = format!("{variant}");
+            assert!(
+                display.contains(expected_name),
+                "Display for {expected_name} was: {display}"
+            );
+        }
     }
 }

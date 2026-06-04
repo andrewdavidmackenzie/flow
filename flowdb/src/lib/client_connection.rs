@@ -77,3 +77,80 @@ impl ClientConnection {
             .chain_err(|| "Error sending to debug server")
     }
 }
+
+#[cfg(test)]
+#[allow(clippy::unwrap_used, clippy::expect_used)]
+mod test {
+    use std::fmt;
+
+    use portpicker::pick_unused_port;
+    use serde_derive::{Deserialize, Serialize};
+    use serial_test::serial;
+
+    use super::ClientConnection;
+    use crate::coordinator_connection::{CoordinatorConnection, WAIT};
+
+    #[derive(Serialize, Deserialize, PartialEq, Eq, Debug)]
+    enum Reply {
+        Ok,
+    }
+
+    impl fmt::Display for Reply {
+        fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+            write!(f, "Reply::Ok")
+        }
+    }
+
+    impl From<Reply> for String {
+        fn from(r: Reply) -> Self {
+            serde_json::to_string(&r).expect("serialize")
+        }
+    }
+
+    impl From<String> for Reply {
+        fn from(s: String) -> Self {
+            serde_json::from_str(&s).expect("deserialize")
+        }
+    }
+
+    #[derive(Serialize, Deserialize, PartialEq, Eq, Debug)]
+    enum Cmd {
+        Ping,
+    }
+
+    impl fmt::Display for Cmd {
+        fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+            write!(f, "Cmd::Ping")
+        }
+    }
+
+    impl From<Cmd> for String {
+        fn from(c: Cmd) -> Self {
+            serde_json::to_string(&c).expect("serialize")
+        }
+    }
+
+    impl From<String> for Cmd {
+        fn from(s: String) -> Self {
+            serde_json::from_str(&s).expect("deserialize")
+        }
+    }
+
+    #[test]
+    #[serial]
+    fn client_send_receive_roundtrip() {
+        let port = pick_unused_port().expect("No ports free");
+        let mut server = CoordinatorConnection::new(&format!("test-{port}"), port).expect("bind");
+        let client = ClientConnection::new(&format!("localhost:{port}")).expect("connect");
+
+        client.send(Cmd::Ping).expect("send");
+
+        let cmd: Cmd = server.receive(WAIT).expect("receive");
+        assert_eq!(cmd, Cmd::Ping);
+
+        server.send(Reply::Ok).expect("reply");
+
+        let reply: Reply = client.receive().expect("receive reply");
+        assert_eq!(reply, Reply::Ok);
+    }
+}
