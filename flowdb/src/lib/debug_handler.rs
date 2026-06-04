@@ -16,10 +16,10 @@ use flowrlib::run_state::{RunState, State};
 
 use crate::coordinator_connection::{CoordinatorConnection, WAIT};
 use crate::debug_server_message::DebugServerMessage::{
-    BlockBreakpoint, BlockState, DataBreakpoint, Error, ExecutionEnded, ExecutionStarted,
-    ExitingDebugger, FlowUnblockBreakpoint, FunctionStates, Functions, InputState, JobCompleted,
-    JobError, Message, OutputState, OverallState, Panic, PriorToSendingJob, Resetting,
-    WaitingForCommand,
+    BlockBreakpoint, BlockState, DataBreakpoint, EnteringDebugger, Error, ExecutionEnded,
+    ExecutionStarted, ExitingDebugger, FlowUnblockBreakpoint, FunctionStates, Functions,
+    InputState, JobCompleted, JobError, Message, OutputState, OverallState, Panic,
+    PriorToSendingJob, Resetting, WaitingForCommand,
 };
 
 /// A debug handler that bridges the coordinator's debugger to a debug client over ZMQ
@@ -31,6 +31,9 @@ pub struct DebugHandler {
 impl DebuggerHandler for DebugHandler {
     fn start(&mut self) {
         let _ = self.debug_server_connection.receive::<DebugCommand>(WAIT);
+        let _: flowcore::errors::Result<DebugCommand> = self
+            .debug_server_connection
+            .send_and_receive_response(EnteringDebugger);
     }
 
     fn job_breakpoint(&mut self, job: &Job, function: &RuntimeFunction, states: Vec<State>) {
