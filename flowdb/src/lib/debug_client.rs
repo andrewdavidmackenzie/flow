@@ -121,7 +121,7 @@ impl DebugClient {
         Ok((input, command, None))
     }
 
-    fn parse_optional_int(params: Option<Vec<String>>) -> Option<usize> {
+    pub(crate) fn parse_optional_int(params: Option<Vec<String>>) -> Option<usize> {
         if let Some(param) = params {
             if !param.is_empty() {
                 if let Ok(integer) = param.first()?.parse::<usize>() {
@@ -133,7 +133,7 @@ impl DebugClient {
         None
     }
 
-    fn parse_breakpoint_spec(specs: Option<Vec<String>>) -> Option<BreakpointSpec> {
+    pub(crate) fn parse_breakpoint_spec(specs: Option<Vec<String>>) -> Option<BreakpointSpec> {
         if let Some(spec) = specs {
             if !spec.is_empty() {
                 if spec.first()? == "*" {
@@ -368,7 +368,7 @@ impl DebugClient {
 }
 
 #[cfg(test)]
-#[allow(clippy::unwrap_used, clippy::expect_used)]
+#[allow(clippy::unwrap_used, clippy::expect_used, clippy::unnecessary_wraps)]
 mod test {
     use serde_json::json;
 
@@ -446,5 +446,79 @@ mod test {
         let state = RunState::new(test_submission(vec![f_b, f_a]));
 
         DebugClient::display_state(&state);
+    }
+
+    fn specs(s: &str) -> Option<Vec<String>> {
+        Some(vec![s.to_string()])
+    }
+
+    #[test]
+    fn parse_optional_int_valid() {
+        assert_eq!(DebugClient::parse_optional_int(specs("5")), Some(5));
+        assert_eq!(DebugClient::parse_optional_int(specs("0")), Some(0));
+        assert_eq!(DebugClient::parse_optional_int(specs("100")), Some(100));
+    }
+
+    #[test]
+    fn parse_optional_int_none_cases() {
+        assert_eq!(DebugClient::parse_optional_int(None), None);
+        assert_eq!(DebugClient::parse_optional_int(Some(vec![])), None);
+        assert_eq!(DebugClient::parse_optional_int(specs("abc")), None);
+    }
+
+    #[test]
+    fn parse_breakpoint_spec_all() {
+        use flowcore::model::debug_command::BreakpointSpec;
+        assert_eq!(
+            DebugClient::parse_breakpoint_spec(specs("*")),
+            Some(BreakpointSpec::All)
+        );
+    }
+
+    #[test]
+    fn parse_breakpoint_spec_numeric() {
+        use flowcore::model::debug_command::BreakpointSpec;
+        assert_eq!(
+            DebugClient::parse_breakpoint_spec(specs("42")),
+            Some(BreakpointSpec::Numeric(42))
+        );
+    }
+
+    #[test]
+    fn parse_breakpoint_spec_output() {
+        use flowcore::model::debug_command::BreakpointSpec;
+        assert_eq!(
+            DebugClient::parse_breakpoint_spec(specs("3/result")),
+            Some(BreakpointSpec::Output((3, "/result".to_string())))
+        );
+    }
+
+    #[test]
+    fn parse_breakpoint_spec_input() {
+        use flowcore::model::debug_command::BreakpointSpec;
+        assert_eq!(
+            DebugClient::parse_breakpoint_spec(specs("5:0")),
+            Some(BreakpointSpec::Input((5, 0)))
+        );
+    }
+
+    #[test]
+    fn parse_breakpoint_spec_block() {
+        use flowcore::model::debug_command::BreakpointSpec;
+        assert_eq!(
+            DebugClient::parse_breakpoint_spec(specs("1->2")),
+            Some(BreakpointSpec::Block((Some(1), Some(2))))
+        );
+    }
+
+    #[test]
+    fn parse_breakpoint_spec_none() {
+        assert_eq!(DebugClient::parse_breakpoint_spec(None), None);
+        assert_eq!(DebugClient::parse_breakpoint_spec(Some(vec![])), None);
+    }
+
+    #[test]
+    fn parse_breakpoint_spec_invalid() {
+        assert_eq!(DebugClient::parse_breakpoint_spec(specs("abc")), None);
     }
 }

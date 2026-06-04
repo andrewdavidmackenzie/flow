@@ -123,3 +123,56 @@ impl From<String> for DebugServerMessage {
         }
     }
 }
+
+#[cfg(test)]
+#[allow(clippy::unwrap_used, clippy::expect_used)]
+mod test {
+    use super::DebugServerMessage;
+
+    #[test]
+    fn roundtrip_simple_variants() {
+        let variants: Vec<DebugServerMessage> = vec![
+            DebugServerMessage::EnteringDebugger,
+            DebugServerMessage::ExitingDebugger,
+            DebugServerMessage::ExecutionStarted,
+            DebugServerMessage::ExecutionEnded,
+            DebugServerMessage::Resetting,
+            DebugServerMessage::WaitingForCommand(42),
+            DebugServerMessage::Error("test error".into()),
+            DebugServerMessage::Message("hello".into()),
+            DebugServerMessage::Deadlock("deadlock info".into()),
+            DebugServerMessage::Panic("panic msg".into(), 10),
+            DebugServerMessage::FlowUnblockBreakpoint(5),
+        ];
+
+        for variant in variants {
+            let serialized: String = variant.into();
+            assert!(!serialized.is_empty());
+            let deserialized: DebugServerMessage = serialized.into();
+            let reserialized: String = deserialized.into();
+            assert!(!reserialized.is_empty());
+        }
+    }
+
+    #[test]
+    fn invalid_string_yields_invalid() {
+        let msg: DebugServerMessage = "not valid json".to_string().into();
+        assert_eq!(format!("{msg}"), "DebugServerMessage Invalid");
+    }
+
+    #[test]
+    fn display_variants() {
+        assert_eq!(
+            format!("{}", DebugServerMessage::EnteringDebugger),
+            "DebugServerMessage EnteringDebugger"
+        );
+        assert_eq!(
+            format!("{}", DebugServerMessage::WaitingForCommand(0)),
+            "DebugServerMessage WaitingForCommand"
+        );
+        assert_eq!(
+            format!("{}", DebugServerMessage::Invalid),
+            "DebugServerMessage Invalid"
+        );
+    }
+}
