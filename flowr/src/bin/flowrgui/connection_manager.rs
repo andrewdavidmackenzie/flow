@@ -251,6 +251,8 @@ fn start_server(coordinator_settings: ServerSettings) -> Result<()> {
     let debug_connection = CoordinatorConnection::new(DEBUG_SERVICE_NAME, debug_port)?;
     let _mdns_debug = enable_service_discovery(DEBUG_SERVICE_NAME, debug_port)?;
 
+    eprintln!("Debug server listening on port {debug_port}. Connect with: flowdb --address localhost:{debug_port}");
+
     info!("Starting coordinator in background thread");
     thread::spawn(move || {
         if let Err(e) = coordinator(

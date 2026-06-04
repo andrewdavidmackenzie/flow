@@ -133,7 +133,10 @@ mod test {
         session.send("e");
         let stdout = session.finish();
 
-        assert!(stdout.contains("Functions List"), "No function list:\n{stdout}");
+        assert!(
+            stdout.contains("Functions List"),
+            "No function list:\n{stdout}"
+        );
         assert!(stdout.contains("Debugger is exiting"), "No exit:\n{stdout}");
     }
 
