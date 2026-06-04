@@ -1373,7 +1373,15 @@ dependencies = [
  "clap",
  "env_logger",
  "error-chain",
+ "flowcore",
+ "flowr",
  "log",
+ "portpicker",
+ "serde",
+ "serde_derive",
+ "serde_json",
+ "serial_test",
+ "zmq",
 ]
 
 [[package]]
