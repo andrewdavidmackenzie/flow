@@ -36,6 +36,7 @@ use simpath::Simpath;
 use url::Url;
 
 use cli::cli_client::CliRuntimeClient;
+#[cfg(feature = "submission")]
 use cli::cli_submission_handler::CLISubmissionHandler;
 use cli::connections::ClientConnection;
 use cli::connections::CoordinatorConnection;
@@ -299,6 +300,7 @@ fn coordinator(
     // if the command line options request loading native implementation of available native libs
     // if not, the native implementation is not loaded and later when a flow is loaded its library
     // references will be resolved and those libraries (WASM implementations) will be loaded at runtime
+    #[cfg(feature = "flowstdlib")]
     if native_flowstdlib {
         executor.add_lib(
             flowstdlib::manifest::get()
@@ -327,15 +329,18 @@ fn coordinator(
         &control_socket,
     );
 
+    #[cfg(feature = "submission")]
     let mut submitter = CLISubmissionHandler::new(connection);
 
     let mut coordinator = Coordinator::new(
         dispatcher,
+        #[cfg(feature = "submission")]
         &mut submitter,
         #[cfg(feature = "debugger")]
         &mut debug_server,
     );
 
+    #[cfg(feature = "submission")]
     coordinator.submission_loop(loop_forever)?;
 
     Ok(())

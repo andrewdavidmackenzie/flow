@@ -411,6 +411,7 @@ impl FlowrGui {
             flow_manifest,
             settings.parallel_jobs_limit,
             None,
+            #[cfg(feature = "debugger")]
             settings.debug_this_flow,
         );
 

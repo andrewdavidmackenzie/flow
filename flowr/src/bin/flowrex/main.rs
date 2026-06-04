@@ -22,7 +22,9 @@ use simpath::Simpath;
 #[cfg(feature = "flowstdlib")]
 use url::Url;
 
-use flowcore::errors::{Result, ResultExt};
+use flowcore::errors::Result;
+#[cfg(feature = "flowstdlib")]
+use flowcore::errors::ResultExt;
 use flowcore::meta_provider::MetaProvider;
 use flowcore::provider::Provider;
 use flowrlib::executor::Executor;

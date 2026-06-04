@@ -42,6 +42,7 @@ impl SubmissionHandler for CLISubmissionHandler {
     // See if the runtime client has sent a message to request us to enter the debugger,
     // if so, return Ok(true).
     // A different message or Absence of a message returns Ok(false)
+    #[cfg(feature = "debugger")]
     fn should_enter_debugger(&mut self) -> Result<bool> {
         let msg = self
             .coordinator_connection
@@ -74,7 +75,12 @@ impl SubmissionHandler for CLISubmissionHandler {
         connection_manager::set_job_count(count);
     }
 
-    fn flow_execution_ended(&mut self, state: &RunState, metrics: Metrics) -> Result<()> {
+    fn flow_execution_ended(
+        &mut self,
+        state: &RunState,
+        #[cfg(feature = "metrics")] metrics: Metrics,
+    ) -> Result<()> {
+        #[cfg(feature = "metrics")]
         self.coordinator_connection
             .lock()
             .map_err(|_| "Could not lock coordinator connection")?
