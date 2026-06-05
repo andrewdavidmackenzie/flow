@@ -4,8 +4,8 @@
 
 use svg::node::element::{Group, Path};
 
-use crate::shapes;
-use crate::style;
+use super::shapes;
+use super::style;
 
 /// Render a Bézier edge between two points with an arrow head.
 #[must_use]

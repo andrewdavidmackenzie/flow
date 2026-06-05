@@ -10,10 +10,11 @@ use std::collections::{HashMap, HashSet, VecDeque};
 use flowcore::model::connection::Connection;
 use flowcore::model::process_reference::ProcessReference;
 
-use crate::style;
+use super::style;
 
 /// A positioned node with its dimensions and port info.
 #[derive(Debug, Clone)]
+#[allow(dead_code)]
 pub struct NodeLayout {
     /// Node identifier (alias or derived short name)
     pub name: String,
