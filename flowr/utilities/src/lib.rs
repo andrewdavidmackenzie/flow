@@ -448,6 +448,7 @@ impl DebugSession {
             .take()
             .expect("Could not get flowdb stdout");
         let mut stdout_reader = BufReader::new(stdout);
+        let mut connected = false;
         loop {
             let mut line = String::new();
             stdout_reader
@@ -459,9 +460,15 @@ impl DebugSession {
             let ready = line.contains("Entering Debugger");
             session.stdout_lines.push(line);
             if ready {
+                connected = true;
                 break;
             }
         }
+        assert!(
+            connected,
+            "flowdb exited before completing debug handshake. Output:\n{}",
+            session.stdout_lines.join("")
+        );
         session.stdout_reader = Some(stdout_reader);
 
         session

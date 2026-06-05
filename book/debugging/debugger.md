@@ -9,7 +9,7 @@ This keeps the debugger's I/O separate from the flow's stdin/stdout.
 
 #### Compiling with Debug Symbols
 
-Flows compiled by `flowc` using the `-d` or `--symbols` option will have extra human-readable
+Flows compiled by `flowc` using the `-d` or `--debug` option will have extra human-readable
 content included in the compiled manifest (names of processes, source locations, etc.)
 and be more convenient to debug.
 
@@ -76,7 +76,7 @@ Breakpoints can be set on different aspects of flow execution:
 
 #### Inspect Specs
 
-The `inspect` command accepts the same spec formats to examine specific parts of the flow:
+The `inspect` command accepts the following spec formats to examine specific parts of the flow:
 
 | Command | Description |
 |---------|-------------|
