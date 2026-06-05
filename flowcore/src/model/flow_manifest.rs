@@ -67,7 +67,7 @@ impl Display for FlowManifest {
         for function in self.functions.values() {
             writeln!(
                 f,
-                "         Function #{} Implementation: {}",
+                "               Function #{} Implementation: {}",
                 function.id(),
                 function.get_implementation_url()
             )?;
