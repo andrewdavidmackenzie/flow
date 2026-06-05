@@ -9,11 +9,11 @@ use std::path::Path;
 use flowcore::model::flow_definition::FlowDefinition;
 use flowcore::model::process::Process::FlowProcess;
 
-pub mod edge;
-pub mod layout;
-pub mod renderer;
-pub mod shapes;
-pub mod style;
+mod edge;
+mod layout;
+mod renderer;
+mod shapes;
+mod style;
 
 /// Render a flow and all its sub-flows as SVG files in the output directory.
 ///

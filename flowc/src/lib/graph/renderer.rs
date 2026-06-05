@@ -14,8 +14,8 @@ use flowcore::model::name::HasName;
 use flowcore::model::process::Process::{FlowProcess, FunctionProcess};
 use flowcore::model::process_reference::ProcessReference;
 
-use crate::layout::{self, process_alias, split_route, NodeLayout};
-use crate::{edge, shapes, style};
+use super::layout::{self, process_alias, split_route, NodeLayout};
+use super::{edge, shapes, style};
 
 /// Information about a process needed for rendering.
 struct ProcessInfo {

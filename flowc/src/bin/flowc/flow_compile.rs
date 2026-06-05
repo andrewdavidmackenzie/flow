@@ -50,8 +50,9 @@ pub fn compile_and_execute_flow(
 
             make_writeable(output_dir)?;
 
+            #[cfg(feature = "graph")]
             if options.graphs {
-                flowgraph::dump_flow_svgs(&flow, output_dir)
+                flowrclib::graph::dump_flow_svgs(&flow, output_dir)
                     .map_err(|e| format!("SVG generation failed: {e}"))?;
             }
 

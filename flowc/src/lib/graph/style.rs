@@ -49,5 +49,3 @@ pub const COLOR_PORT: &str = "#888888";
 pub const COLOR_TEXT: &str = "#222222";
 /// Text color (light, for dark backgrounds)
 pub const COLOR_TEXT_LIGHT: &str = "#FFFFFF";
-/// Background color
-pub const COLOR_BACKGROUND: &str = "#F8F8F8";

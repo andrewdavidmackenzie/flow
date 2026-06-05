@@ -2,7 +2,7 @@
 
 use svg::node::element::{Anchor, Circle, Group, Path, Rectangle, Text, Title};
 
-use crate::style;
+use super::style;
 
 /// Rounded rectangle node (for sub-flows and pure functions).
 #[must_use]

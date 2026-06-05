@@ -25,12 +25,13 @@ name = "flowc"
 path = "src/bin/flowc/main.rs"
 
 [features]
-default = ["debugger"]
+default = ["debugger", "graph"]
 debugger = ["flowcore/debugger"] # feature to add output for the debugger
+graph = ["svg"] # feature to enable SVG graph output with -g flag
 
 [dependencies]
 flowcore = {path = "../flowcore", version = "1.0.0", features = ["context", "file_provider", "http_provider", "meta_provider"]}
-flowgraph = {path = "../flowgraph", version = "1.0.0"}
+svg = { version = "0.18", optional = true }
 clap = "~4"
 env_logger = "0.11.10"
 log = "0.4.31"

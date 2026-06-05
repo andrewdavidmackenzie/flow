@@ -455,8 +455,9 @@ fn compile_flows(
                             fs::create_dir_all(&out_dir)?;
                         }
 
+                        #[cfg(feature = "graph")]
                         if options.graphs {
-                            flowgraph::dump_flow_svgs(flow, &out_dir)
+                            flowrclib::graph::dump_flow_svgs(flow, &out_dir)
                                 .map_err(|e| format!("SVG generation failed: {e}"))?;
                         }
 
