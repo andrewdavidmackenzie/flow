@@ -10,3 +10,4 @@ coverage
 flowstdlib/src/Cargo.lock
 .vscode
 .flowdb_history
+notes.txt
