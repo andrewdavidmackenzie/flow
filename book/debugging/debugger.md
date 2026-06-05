@@ -1,53 +1,87 @@
 ### The Flow Debugger
 
-NOTE: To be able to use the flow debugger that is part of `flowrcli`, `flowrcli` must be compiled with
-the `"debugger"` feature enabled. If not, the debugger code is not included in `flowrcli`.
+The flow debugger allows you to interactively debug flow programs by setting breakpoints,
+stepping through execution, and inspecting runtime state.
+
+The debugger uses a two-process architecture: the flow runner (`flowrcli`) hosts the debug
+server, and `flowdb` is a standalone debug client that connects from a separate terminal.
+This keeps the debugger's I/O separate from the flow's stdin/stdout.
 
 #### Compiling with Debug Symbols
-The debugger can be used to debug any flow, but flows compiled by `flowc` using the `-g` or `--symbols`
-option will have extra human readable content included in the compiled manifest (names of processes
-etc) and be more convenient to debug.
 
-#### Running the flow with the debugger
-To start debugging a flow, run it using `flowrcli` as normal, but using the `-d` or `--debugger`
-options.
+Flows compiled by `flowc` using the `-d` or `--symbols` option will have extra human-readable
+content included in the compiled manifest (names of processes, source locations, etc.)
+and be more convenient to debug.
 
-The compiled flow manifest will be loaded by `flowrcli` as usual, functions initialized and a command prompt
-for the debugger will be shown.
+Note: `flowrcli` must be compiled with the `"debugger"` feature enabled (it is by default).
 
-You can use the `'h'` or `'help'` command at the prompt to to get help on debugger commands.
+#### Starting a Debug Session
 
-If you want to inspect the state of the flow at a particular point to debug a problem or understand 
-its execution then you will probably want to either set some breakpoints initially before running the 
-flow, or to step through the flow's execution one function invocation at a time.
+**Terminal 1** — Start the flow with debugging enabled:
+```bash
+flowrcli --debugger --native my-flow/manifest.json
+# Debug server listening on port 12345. Connect with: flowdb --address localhost:12345
+```
 
-Those can be done using the `Break` command to set breakpoints, the `List` command to list breakpoints set,
-the `Run` command to start flow execution, the `Continue` command to continue execution after a breakpoint triggers,
-and the `Step` command to step forward one function invocation.
+**Terminal 2** — Connect the debugger:
+```bash
+flowdb --address localhost:12345
+```
+
+Or let mDNS discover the debug server automatically:
+```bash
+flowdb
+```
+
+The debugger will display a prompt where you can enter commands before execution begins.
+
+#### Debugging Workflow
+
+1. The debugger starts paused before flow execution
+2. Use `inspect` to examine the initial state
+3. Set breakpoints with `breakpoint` on specific functions, inputs, or outputs
+4. Use `continue` to run until a breakpoint, or `step` to advance one job at a time
+5. When a breakpoint triggers, examine state with `inspect` and `functions`
+6. Use `continue` or `step` to resume
+7. After the flow completes, you can `reset` to re-run or `exit` to quit
 
 #### Debugger Commands
-* Break: Set a breakpoint on a function (by id), an output or an input using spec:
-** function_id
-** source_id/output_route ('source_id/' for default output route)
-** destination_id:input_number
-** blocked_process_id->blocking_process_id
-  
-* Continue: Continue execution until next breakpoint or end of execution
 
-* Delete a breakpoint: Delete the breakpoint matching {spec} or all breakpoints with '*'
+| Command | Short | Description |
+|---------|-------|-------------|
+| `help` | `h`, `?` | Display help on available commands |
+| `step [n]` | `s` | Step over the next `n` jobs (default 1) then break |
+| `continue` | `c` | Continue execution until next breakpoint or end |
+| `breakpoint {spec}` | `b` | Set a breakpoint (see specs below) |
+| `delete {spec}` | `d` | Delete a breakpoint matching the spec, or `*` for all |
+| `list` | `l` | List all breakpoints currently set |
+| `functions` | `f` | Show all functions in the flow |
+| `inspect [spec]` | `i` | Inspect overall state, or a specific function/input/output |
+| `validate` | `v` | Run checks to validate the current flow state |
+| `modify name=value` | `m` | Modify a runtime variable (e.g. `max_parallel_jobs=2`) |
+| `run` / `reset` | `r` | Reset the flow state and re-run from the beginning |
+| `exit` / `quit` | `e`, `q` | Stop execution and exit the debugger |
 
-* Exit: Stop flow execution and exit debugger
+#### Breakpoint Specs
 
-* Help: Display this help message
+Breakpoints can be set on different aspects of flow execution:
 
-* List breakpoints: List all breakpoints
+| Spec | Example | Description |
+|------|---------|-------------|
+| `function_id` | `b 3` | Break when function #3 is about to execute |
+| `source_id/route` | `b 3/result` | Break when function #3 sends on output `/result` |
+| `dest_id:input` | `b 5:0` | Break when input #0 of function #5 receives a value |
+| `src->dest` | `b 1->2` | Break when a block is created between functions #1 and #2 |
+| `*` | `d *` | Delete all breakpoints |
 
-* Print: Print the overall state, or state of process number 'n'
+#### Inspect Specs
 
-* Quit: Stop flow execution and exit debugger (same as Exit)
+The `inspect` command accepts the same spec formats to examine specific parts of the flow:
 
-* Run: Run the flow or if running already then reset the state to initial state
-
-* Step: Step over the next 'n' jobs (default = 1) then break
-
-* Validate: Run a series of defined checks to validate the status of flow
+| Command | Description |
+|---------|-------------|
+| `i` | Show overall flow state with all functions |
+| `i 3` | Show state of function #3 |
+| `i 5:0` | Show state of input #0 on function #5 |
+| `i 3/result` | Show output connections from function #3's `/result` route |
+| `i 1->2` | Show blocks between functions #1 and #2 |
