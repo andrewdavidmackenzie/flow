@@ -10,9 +10,9 @@ use log::{debug, error, info, trace};
 
 use crate::connection_manager;
 use crate::gui::client_message::ClientMessage;
-use crate::gui::coordinator_connection::{DONT_WAIT, WAIT};
 use crate::gui::coordinator_message::CoordinatorMessage;
 use crate::CoordinatorConnection;
+use flowrlib::connections::{DONT_WAIT, WAIT};
 
 /// A [`SubmissionHandler`] to allow submitting flows for execution from the CLI
 pub(crate) struct CLISubmissionHandler {

@@ -1377,14 +1377,10 @@ dependencies = [
  "flowcore",
  "flowr",
  "log",
- "mdns-sd",
  "portpicker",
  "rustyline",
- "serde",
- "serde_derive",
  "serde_json",
  "serial_test",
- "zmq",
 ]
 
 [[package]]

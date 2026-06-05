@@ -11,8 +11,8 @@ use log::{error, info};
 
 use flowcore::discovery::discover_service;
 use flowcore::services::DEBUG_SERVICE_NAME;
-use flowdblib::client_connection::ClientConnection;
 use flowdblib::debug_client::DebugClient;
+use flowrlib::connections::ClientConnection;
 
 /// Parse command line arguments
 fn parse_args() -> clap::ArgMatches {

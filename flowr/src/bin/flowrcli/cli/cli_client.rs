@@ -10,8 +10,8 @@ use log::{debug, error, info};
 
 use flowcore::errors::Result;
 
-use crate::cli::connections::ClientConnection;
 use crate::cli::coordinator_message::{ClientMessage, CoordinatorMessage};
+use flowrlib::connections::ClientConnection;
 
 const DEFAULT_NAME: &str = "unknown";
 

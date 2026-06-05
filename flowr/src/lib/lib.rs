@@ -51,12 +51,25 @@ pub mod debugger_handler;
 /// used by [`Coordinator`][coordinator::Coordinator]
 pub mod run_state;
 
+/// ZMQ-based connections for client-coordinator communication
+pub mod connections;
+
 /// Re-export well-known service names from flowcore
 pub use flowcore::services;
 
 /// Re-export mDNS-SD service discovery helpers from flowcore
 #[cfg(not(target_arch = "wasm32"))]
 pub use flowcore::discovery;
+
+#[cfg(feature = "debugger")]
+/// [`DebugServerMessage`][debug_server_message::DebugServerMessage] — messages sent from the
+/// debug server to debug clients
+pub mod debug_server_message;
+
+#[cfg(feature = "debugger")]
+/// ZMQ-based [`DebuggerHandler`][debugger_handler::DebuggerHandler] implementation for
+/// forwarding debug events to an external client like `flowdb`
+pub mod debug_zmq_handler;
 
 #[cfg(feature = "debugger")]
 mod debugger;

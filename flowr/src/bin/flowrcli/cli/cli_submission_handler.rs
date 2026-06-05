@@ -11,11 +11,11 @@ use flowrlib::run_state::RunState;
 use flowrlib::submission_handler::SubmissionHandler;
 
 #[cfg(feature = "debugger")]
-use crate::cli::connections::DONT_WAIT;
-use crate::cli::connections::WAIT;
+use flowrlib::connections::DONT_WAIT;
+use flowrlib::connections::{CoordinatorConnection, WAIT};
+
 use crate::cli::coordinator_message::ClientMessage;
 use crate::cli::coordinator_message::CoordinatorMessage;
-use crate::CoordinatorConnection;
 
 /// A [`SubmissionHandler`] to allow submitting flows for execution from the CLI
 pub(crate) struct CLISubmissionHandler {

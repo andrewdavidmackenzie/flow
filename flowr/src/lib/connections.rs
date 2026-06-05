@@ -1,14 +1,14 @@
+//! ZMQ-based connections for client-coordinator communication.
+//!
+//! Provides [`ClientConnection`] (REQ socket) and [`CoordinatorConnection`] (REP socket)
+//! used by runners and debug clients to communicate with the coordinator.
+
 use std::fmt::Display;
 
-/// This is the message-queue implementation of the Client<-->[Coordinator][flowrlib::coordinator::Coordinator]
-/// communications
 use log::{debug, info, trace};
 use zmq::Socket;
 
 use flowcore::errors::{Result, ResultExt};
-
-pub use flowrlib::discovery::{discover_service, enable_service_discovery};
-pub use flowrlib::services::COORDINATOR_SERVICE_NAME;
 
 /// WAIT for a message to arrive when performing a `receive()`
 pub const WAIT: i32 = 0;
@@ -24,7 +24,10 @@ pub struct ClientConnection {
 }
 
 impl ClientConnection {
-    /// Create a new connection between client and [Coordinator][flowrlib::coordinator::Coordinator]
+    /// Create a new connection between client and [Coordinator][crate::coordinator::Coordinator]
+    ///
+    /// # Errors
+    /// Returns an error if the ZMQ socket cannot be created or connected
     pub fn new(coordinator_address: &str) -> Result<Self> {
         info!("Client will attempt to connect to coordinator at: '{coordinator_address}'");
 
@@ -45,8 +48,10 @@ impl ClientConnection {
         Ok(ClientConnection { requester })
     }
 
-    /// Receive a [`CoordinatorMessage`][crate::cli::coordinator_message::CoordinatorMessage] from the
-    /// [Coordinator][flowrlib::coordinator::Coordinator]
+    /// Receive a message from the coordinator
+    ///
+    /// # Errors
+    /// Returns an error if the message cannot be received or deserialized
     pub fn receive<CM>(&self) -> Result<CM>
     where
         CM: From<String> + Display,
@@ -67,8 +72,10 @@ impl ClientConnection {
         Ok(message)
     }
 
-    /// Send a [`CoordinatorMessage`][crate::cli::coordinator_message::CoordinatorMessage] to the
-    /// [Coordinator][flowrlib::coordinator::Coordinator]
+    /// Send a message to the coordinator
+    ///
+    /// # Errors
+    /// Returns an error if the message cannot be sent
     pub fn send<CM>(&self, message: CM) -> Result<()>
     where
         CM: Into<String> + Display,
@@ -90,8 +97,10 @@ pub struct CoordinatorConnection {
 /// Implement a [`CoordinatorConnection`] for sending and receiving messages between client and
 /// a [Coordinator][flowrlib::coordinator::Coordinator]
 impl CoordinatorConnection {
-    /// Create a new [Coordinator][flowrlib::coordinator::Coordinator]
-    /// side of the client/coordinator Connection
+    /// Create a new coordinator-side connection that listens on the given port
+    ///
+    /// # Errors
+    /// Returns an error if the ZMQ socket cannot be created or bound
     pub fn new(service_name: &str, port: u16) -> Result<Self> {
         let context = zmq::Context::new();
         let responder = context
@@ -108,7 +117,10 @@ impl CoordinatorConnection {
         Ok(CoordinatorConnection { responder })
     }
 
-    /// Receive a Message sent from the client to the [Coordinator][flowrlib::coordinator::Coordinator]
+    /// Receive a message from the client
+    ///
+    /// # Errors
+    /// Returns an error if the message cannot be received or deserialized
     pub fn receive<CM>(&self, flags: i32) -> Result<CM>
     where
         CM: From<String> + Display,
@@ -129,8 +141,10 @@ impl CoordinatorConnection {
         Ok(message)
     }
 
-    /// Send a Message from the [Coordinator][flowrlib::coordinator::Coordinator]
-    /// to the Client and wait for it's response
+    /// Send a message to the client and wait for its response
+    ///
+    /// # Errors
+    /// Returns an error if the message cannot be sent or the response cannot be received
     pub fn send_and_receive_response<SM, CM>(&mut self, message: SM) -> Result<CM>
     where
         SM: Into<String> + Display,
@@ -140,8 +154,10 @@ impl CoordinatorConnection {
         self.receive(WAIT)
     }
 
-    /// Send a Message from the [Coordinator][flowrlib::coordinator::Coordinator]
-    /// to the Client but don't wait for it's response
+    /// Send a message to the client without waiting for a response
+    ///
+    /// # Errors
+    /// Returns an error if the message cannot be sent
     pub fn send<SM>(&mut self, message: SM) -> Result<()>
     where
         SM: Into<String> + Display,
@@ -166,7 +182,7 @@ mod test {
     use serde_derive::{Deserialize, Serialize};
     use serial_test::serial;
 
-    use crate::cli::connections::{ClientConnection, CoordinatorConnection, DONT_WAIT, WAIT};
+    use super::{ClientConnection, CoordinatorConnection, DONT_WAIT, WAIT};
 
     #[derive(Serialize, Deserialize, PartialEq, Eq, Debug)]
     enum CoordinatorMessage {
