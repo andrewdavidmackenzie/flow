@@ -34,7 +34,7 @@ flowcore = {path = "../flowcore", version = "1.0.0", features = ["context", "fil
 svg = { version = "0.18", optional = true }
 clap = "~4"
 env_logger = "0.11.10"
-log = "0.4.31"
+log = "0.4.32"
 url = { version = "2.2", features = ["serde"] }
 tempfile = "3"
 simpath = { version = "~2.5", features = ["urls"]}
