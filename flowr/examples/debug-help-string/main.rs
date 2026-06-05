@@ -9,7 +9,6 @@ mod test {
 
     #[test]
     #[serial]
-    #[ignore] // requires flowrcli+flowdb in PATH with adequate startup time
     fn test_debug_help_string_example() {
         let example_dir =
             std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("examples/debug-help-string");
