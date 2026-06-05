@@ -383,6 +383,8 @@ pub struct DebugSession {
     server: std::process::Child,
     flowdb: std::process::Child,
     stdin: Option<std::process::ChildStdin>,
+    stdout_lines: Vec<String>,
+    stdout_reader: Option<BufReader<std::process::ChildStdout>>,
 }
 
 impl DebugSession {
@@ -390,6 +392,8 @@ impl DebugSession {
     /// Spawns flowrcli with `--debugger --native` and connects flowdb to it.
     /// Extra args (e.g. flow arguments) can be passed via `extra_args`.
     pub fn start(example_dir: &Path, extra_args: &[&str]) -> Self {
+        compile_example(example_dir, "flowrcli");
+
         let mut args = vec!["--debugger", "--native", "manifest.json"];
         args.extend_from_slice(extra_args);
 
@@ -431,10 +435,42 @@ impl DebugSession {
             server,
             flowdb,
             stdin: None,
+            stdout_lines: Vec::new(),
+            stdout_reader: None,
         };
         session.stdin = session.flowdb.stdin.take();
 
-        std::thread::sleep(std::time::Duration::from_secs(2));
+        // Wait for the ZMQ handshake to complete by reading flowdb stdout
+        // until we see "Entering Debugger" which confirms the connection
+        let stdout = session
+            .flowdb
+            .stdout
+            .take()
+            .expect("Could not get flowdb stdout");
+        let mut stdout_reader = BufReader::new(stdout);
+        let mut connected = false;
+        loop {
+            let mut line = String::new();
+            stdout_reader
+                .read_line(&mut line)
+                .expect("Could not read from flowdb stdout");
+            if line.is_empty() {
+                break;
+            }
+            let ready = line.contains("Entering Debugger");
+            session.stdout_lines.push(line);
+            if ready {
+                connected = true;
+                break;
+            }
+        }
+        assert!(
+            connected,
+            "flowdb exited before completing debug handshake. Output:\n{}",
+            session.stdout_lines.join("")
+        );
+        session.stdout_reader = Some(stdout_reader);
+
         session
     }
 
@@ -450,13 +486,20 @@ impl DebugSession {
     /// Close stdin, wait for flowdb to exit, and return its stdout
     pub fn finish(mut self) -> String {
         drop(self.stdin.take());
-        let output = self
-            .flowdb
-            .wait_with_output()
-            .expect("Could not wait for flowdb");
+
+        if let Some(reader) = self.stdout_reader.take() {
+            for line in reader.lines() {
+                match line {
+                    Ok(l) => self.stdout_lines.push(format!("{l}\n")),
+                    Err(_) => break,
+                }
+            }
+        }
+
+        self.flowdb.wait().expect("Could not wait for flowdb");
         self.server.kill().expect("Could not kill flowrcli");
         self.server.wait().expect("Could not wait for flowrcli");
-        String::from_utf8_lossy(&output.stdout).to_string()
+        self.stdout_lines.join("")
     }
 }
 
