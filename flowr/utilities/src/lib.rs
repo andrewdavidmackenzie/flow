@@ -392,6 +392,8 @@ impl DebugSession {
     /// Spawns flowrcli with `--debugger --native` and connects flowdb to it.
     /// Extra args (e.g. flow arguments) can be passed via `extra_args`.
     pub fn start(example_dir: &Path, extra_args: &[&str]) -> Self {
+        compile_example(example_dir, "flowrcli");
+
         let mut args = vec!["--debugger", "--native", "manifest.json"];
         args.extend_from_slice(extra_args);
 
