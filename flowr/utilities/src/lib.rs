@@ -375,6 +375,91 @@ pub fn execute_flow_client_server(example_name: &str, manifest: PathBuf) {
     }
 }
 
+/// A debug session that manages flowrcli and flowdb processes for integration testing.
+///
+/// Start a debug session with `DebugSession::start()`, send commands with `send()`,
+/// and get flowdb's output with `finish()`.
+pub struct DebugSession {
+    server: std::process::Child,
+    flowdb: std::process::Child,
+    stdin: Option<std::process::ChildStdin>,
+}
+
+impl DebugSession {
+    /// Start a debug session on the given example directory.
+    /// Spawns flowrcli with `--debugger --native` and connects flowdb to it.
+    /// Extra args (e.g. flow arguments) can be passed via `extra_args`.
+    pub fn start(example_dir: &Path, extra_args: &[&str]) -> Self {
+        let mut args = vec!["--debugger", "--native", "manifest.json"];
+        args.extend_from_slice(extra_args);
+
+        let mut server = Command::new("flowrcli")
+            .args(&args)
+            .current_dir(
+                example_dir
+                    .canonicalize()
+                    .expect("Could not canonicalize example dir"),
+            )
+            .stdin(Stdio::piped())
+            .stdout(Stdio::piped())
+            .stderr(Stdio::piped())
+            .spawn()
+            .expect("Could not spawn flowrcli");
+
+        let stderr = server.stderr.as_mut().expect("Could not get stderr");
+        let mut reader = BufReader::new(stderr);
+        let mut port_line = String::new();
+        reader
+            .read_line(&mut port_line)
+            .expect("Could not read port line from flowrcli stderr");
+
+        let port = port_line
+            .split("localhost:")
+            .nth(1)
+            .and_then(|s| s.trim().parse::<u16>().ok())
+            .unwrap_or_else(|| panic!("Could not parse debug port from: {port_line}"));
+
+        let flowdb = Command::new("flowdb")
+            .args(["--address", &format!("localhost:{port}")])
+            .stdin(Stdio::piped())
+            .stdout(Stdio::piped())
+            .stderr(Stdio::piped())
+            .spawn()
+            .expect("Could not spawn flowdb");
+
+        let mut session = DebugSession {
+            server,
+            flowdb,
+            stdin: None,
+        };
+        session.stdin = session.flowdb.stdin.take();
+
+        std::thread::sleep(std::time::Duration::from_secs(2));
+        session
+    }
+
+    /// Send a debugger command (e.g. "s", "c", "h", "e")
+    pub fn send(&mut self, command: &str) {
+        use std::io::Write as _;
+        if let Some(ref mut stdin) = self.stdin {
+            writeln!(stdin, "{command}").expect("Could not write to flowdb stdin");
+            std::thread::sleep(std::time::Duration::from_millis(500));
+        }
+    }
+
+    /// Close stdin, wait for flowdb to exit, and return its stdout
+    pub fn finish(mut self) -> String {
+        drop(self.stdin.take());
+        let output = self
+            .flowdb
+            .wait_with_output()
+            .expect("Could not wait for flowdb");
+        self.server.kill().expect("Could not kill flowrcli");
+        self.server.wait().expect("Could not wait for flowrcli");
+        String::from_utf8_lossy(&output.stdout).to_string()
+    }
+}
+
 fn read_file(test_dir: &Path, file_name: &str) -> String {
     let expected_file = test_dir.join(file_name);
     if !expected_file.exists() {

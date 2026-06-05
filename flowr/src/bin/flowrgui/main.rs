@@ -46,11 +46,6 @@ use flowcore::provider::Provider;
 use flowcore::url_helper::url_from_string;
 use flowrlib::info as flowrlib_info;
 use gui::coordinator_connection::CoordinatorConnection;
-use gui::debug_message::DebugServerMessage;
-use gui::debug_message::DebugServerMessage::{
-    BlockBreakpoint, DataBreakpoint, ExecutionEnded, ExecutionStarted, ExitingDebugger,
-    JobCompleted, JobError, Panic, PriorToSendingJob, Resetting, WaitingForCommand,
-};
 
 use crate::gui::client_message::ClientMessage;
 use crate::gui::coordinator_message::CoordinatorMessage;
@@ -416,6 +411,7 @@ impl FlowrGui {
             flow_manifest,
             settings.parallel_jobs_limit,
             None,
+            #[cfg(feature = "debugger")]
             settings.debug_this_flow,
         );
 

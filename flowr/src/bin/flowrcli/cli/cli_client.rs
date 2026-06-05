@@ -6,11 +6,7 @@ use std::path::Path;
 use std::sync::{Arc, Mutex};
 
 use image::{ImageBuffer, ImageFormat, Rgb, RgbImage};
-use log::debug;
-#[cfg(feature = "debugger")]
-use log::error;
-#[cfg(feature = "debugger")]
-use log::info;
+use log::{debug, error, info};
 
 use flowcore::errors::Result;
 

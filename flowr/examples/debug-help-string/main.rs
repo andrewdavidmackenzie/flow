@@ -1,24 +1,33 @@
-//! A runner for the example using flowrcli
-fn main() {
-    #[cfg(feature = "debugger")]
-    utilities::run_example(file!(), "flowrcli", false, true);
-}
+//! Integration test for the debug help command using flowdb as a separate process
+fn main() {}
 
 #[cfg(test)]
+#[cfg(feature = "debugger")]
 mod test {
-    use std::env;
-    use std::path::PathBuf;
+    use serial_test::serial;
+    use utilities::DebugSession;
 
-    #[cfg(feature = "debugger")]
     #[test]
+    #[serial]
     fn test_debug_help_string_example() {
-        let _ = env::set_current_dir(
-            PathBuf::from(env!("CARGO_MANIFEST_DIR"))
-                .parent()
-                .expect("Could not cd into flow directory"),
-        );
+        let example_dir =
+            std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("examples/debug-help-string");
+        let mut session = DebugSession::start(&example_dir, &[]);
+        session.send("h");
+        session.send("e");
+        let stdout = session.finish();
 
-        super::main();
-        utilities::check_test_output(file!());
+        assert!(
+            stdout.contains("Debugger commands:"),
+            "No help output:\n{stdout}"
+        );
+        assert!(
+            stdout.contains("'b' | 'breakpoint'"),
+            "No breakpoint help:\n{stdout}"
+        );
+        assert!(
+            stdout.contains("Debugger is exiting"),
+            "No exit message:\n{stdout}"
+        );
     }
 }

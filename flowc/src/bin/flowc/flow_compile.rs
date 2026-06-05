@@ -43,6 +43,7 @@ pub fn compile_and_execute_flow(
                 options.provided_implementations,
                 options.optimize,
                 &mut process_count,
+                #[cfg(feature = "debugger")]
                 &mut source_urls,
             )
             .chain_err(|| format!("Could not compile the flow '{}'", options.source_url))?;

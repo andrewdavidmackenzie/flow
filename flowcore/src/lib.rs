@@ -62,6 +62,13 @@ pub mod provider;
 /// Utility functions related to [Urls][url::Url]
 pub mod url_helper;
 
+/// Provides well-known service names used across multiple binary crates
+pub mod services;
+
+/// Optional mDNS-SD service discovery helpers
+#[cfg(not(target_arch = "wasm32"))]
+pub mod discovery;
+
 /// Return a JSON integer when the float value is a whole number, otherwise a float.
 ///
 /// Use this in function implementations to avoid unnecessary `.0` precision

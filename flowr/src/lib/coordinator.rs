@@ -128,7 +128,7 @@ impl<'a> Coordinator<'a> {
                     break 'flow_execution;
                 }
 
-                #[cfg(feature = "debugger")]
+                #[cfg(all(feature = "debugger", feature = "submission"))]
                 if state.submission.debug_enabled
                     && self.submission_handler.should_enter_debugger()?
                 {
@@ -154,7 +154,10 @@ impl<'a> Coordinator<'a> {
                     &mut metrics,
                 )?;
 
-                #[cfg(feature = "submission")]
+                #[cfg(all(
+                    feature = "submission",
+                    any(feature = "metrics", feature = "debugger")
+                ))]
                 self.submission_handler
                     .jobs_created(state.get_number_of_jobs_created());
 
@@ -197,7 +200,7 @@ impl<'a> Coordinator<'a> {
         self.submission_handler
             .flow_execution_ended(&state, metrics)?;
         #[cfg(all(feature = "submission", not(feature = "metrics")))]
-        self.submitter.flow_execution_ended(&state)?;
+        self.submission_handler.flow_execution_ended(&state)?;
 
         Ok(()) // Normal flow completion exit
     }

@@ -144,6 +144,7 @@ pub fn compile(
         &mut tables,
         skip_building,
         optimize,
+        #[cfg(feature = "debugger")]
         source_urls,
     )
     .chain_err(|| "Could not compile to wasm the flow's supplied implementation(s)")?;

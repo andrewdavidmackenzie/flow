@@ -62,8 +62,10 @@ to a flow manifest, which is executed.
 The `flow` project includes:
 - Compiler: a library and a binary (`flowclib` and `flowc`) for compiling flows
 - Runner: a library (`flowrlib`) and two binaries for running flows:
-  - `flowrcli` - default command line runner and debugger to use from a terminal
-  - `flowrgui` - a GUI application for running and debugging flows
+  - `flowrcli` - default command line runner to use from a terminal
+  - `flowrgui` - a GUI application for running flows
+- Debugger: `flowdb` connects to a running flow (started with `flowrcli --debugger`) for
+interactive debugging from a separate terminal
 - Job executor: `flowrex` binary can be discovered (on same machine or local network) 
 by a runner and used to execute jobs, distributing execution in a basic fashion
 - Standard Library: `flowstdlib` library of pre-defined flows and functions that can be re-used in flows

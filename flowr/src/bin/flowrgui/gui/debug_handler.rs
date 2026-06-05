@@ -8,15 +8,12 @@ use flowrlib::job::Job;
 use flowrlib::run_state::{RunState, State};
 use serde_json::Value;
 
-use crate::gui::coordinator_connection::WAIT;
-use crate::DebugServerMessage::{
-    BlockState, Error, FlowUnblockBreakpoint, FunctionStates, Functions, InputState, Message,
-    OutputState, OverallState,
-};
-use crate::{
-    BlockBreakpoint, CoordinatorConnection, DataBreakpoint, ExecutionEnded, ExecutionStarted,
-    ExitingDebugger, JobCompleted, JobError, Panic, PriorToSendingJob, Resetting,
-    WaitingForCommand,
+use crate::gui::coordinator_connection::{CoordinatorConnection, WAIT};
+use crate::gui::debug_message::DebugServerMessage::{
+    BlockBreakpoint, BlockState, DataBreakpoint, EnteringDebugger, Error, ExecutionEnded,
+    ExecutionStarted, ExitingDebugger, FlowUnblockBreakpoint, FunctionStates, Functions,
+    InputState, JobCompleted, JobError, Message, OutputState, OverallState, Panic,
+    PriorToSendingJob, Resetting, WaitingForCommand,
 };
 
 /// A debug handler for interacting between the CLI client and the Debugger in the Coordinator
@@ -29,6 +26,9 @@ impl DebuggerHandler for CliDebugHandler {
     // Start the debugger - which swallows the first message to initialize the connection
     fn start(&mut self) {
         let _ = self.debug_server_connection.receive::<DebugCommand>(WAIT);
+        let _: flowcore::errors::Result<DebugCommand> = self
+            .debug_server_connection
+            .send_and_receive_response(EnteringDebugger);
     }
 
     // a breakpoint has been hit on a Job being created

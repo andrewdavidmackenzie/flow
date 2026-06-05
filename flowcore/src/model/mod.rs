@@ -4,10 +4,17 @@
 /// Definition of `RuntimeFunction` structure
 pub mod runtime_function;
 
+/// `block` represents a block imposed on a function due to destination being busy
+pub mod block;
+
 /// `connection` defines the connection between one process output to another process's input
 pub mod connection;
+
 /// `datatype` specifies the type of data permitted on a input, output or connection
 pub mod datatype;
+#[cfg(feature = "debugger")]
+/// Provides the `DebugCommand` enum for commands from debug client to debug server
+pub mod debug_command;
 /// `flow` is the definition of an entire flow, including children flows
 pub mod flow_definition;
 /// `flow_manifest` is the struct that specifies the manifest of functions in a flow
@@ -18,6 +25,8 @@ pub mod function_definition;
 pub mod input;
 /// `io` is the object used to define a process's inputs or outputs
 pub mod io;
+/// `job` defines the Job struct that holds jobs before and after execution
+pub mod job;
 /// `lib_manifest` defines the structs for specifying a Library's manifest and methods to load it
 pub mod lib_manifest;
 /// `metadata` defined structs for flow meta data

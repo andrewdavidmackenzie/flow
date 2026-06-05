@@ -43,6 +43,7 @@ submission = []
 # feature to include context functions, make sure flowcore is compiled with it if we plan to use it
 context = ["flowcore/context"]
 
+
 [dependencies]
 flowcore = {path = "../flowcore", version = "1.0.0", features = ["context", "file_provider", "http_provider",
         "context", "meta_provider"] }
@@ -73,7 +74,7 @@ rfd = "0.17"
 tokio = { version = "1", features = ["sync"] }
 
 # Optional dependencies
-rustyline = {version = "18.0.0", optional = true } # for debugger
+rustyline = {version = "18.0.0", optional = true } # for debugger - used by flowrgui debug client
 
 [dev-dependencies]
 tempfile = "3"

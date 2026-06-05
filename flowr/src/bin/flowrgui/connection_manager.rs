@@ -21,11 +21,13 @@ use crate::errors::{Result, ResultExt};
 use crate::gui::client_connection::{discover_service, ClientConnection};
 use crate::gui::client_message::ClientMessage;
 use crate::gui::coordinator_connection::CoordinatorConnection;
-use crate::gui::coordinator_connection::{
-    enable_service_discovery, COORDINATOR_SERVICE_NAME, DEBUG_SERVICE_NAME,
-};
+#[cfg(feature = "debugger")]
+use crate::gui::coordinator_connection::DEBUG_SERVICE_NAME;
+use crate::gui::coordinator_connection::{enable_service_discovery, COORDINATOR_SERVICE_NAME};
 use crate::gui::coordinator_message::CoordinatorMessage;
+#[cfg(feature = "debugger")]
 use crate::gui::debug_handler::CliDebugHandler;
+#[cfg(feature = "submission")]
 use crate::gui::submission_handler::CLISubmissionHandler;
 use crate::{context, CoordinatorSettings, ServerSettings};
 
@@ -247,15 +249,22 @@ fn start_server(coordinator_settings: ServerSettings) -> Result<()> {
 
     let _mdns_coordinator = enable_service_discovery(COORDINATOR_SERVICE_NAME, runtime_port)?;
 
+    #[cfg(feature = "debugger")]
     let debug_port = pick_unused_port().chain_err(|| "No ports free")?;
+    #[cfg(feature = "debugger")]
     let debug_connection = CoordinatorConnection::new(DEBUG_SERVICE_NAME, debug_port)?;
+    #[cfg(feature = "debugger")]
     let _mdns_debug = enable_service_discovery(DEBUG_SERVICE_NAME, debug_port)?;
+
+    #[cfg(feature = "debugger")]
+    info!("Debug server listening on port {debug_port}. Connect with: flowdb --address localhost:{debug_port}");
 
     info!("Starting coordinator in background thread");
     thread::spawn(move || {
         if let Err(e) = coordinator(
             coordinator_settings,
             coordinator_connection,
+            #[cfg(feature = "debugger")]
             debug_connection,
             true,
         ) {
@@ -269,11 +278,12 @@ fn start_server(coordinator_settings: ServerSettings) -> Result<()> {
 fn coordinator(
     coordinator_settings: ServerSettings,
     coordinator_connection: CoordinatorConnection,
-    debug_connection: CoordinatorConnection,
+    #[cfg(feature = "debugger")] debug_connection: CoordinatorConnection,
     loop_forever: bool,
 ) -> Result<()> {
     let connection = Arc::new(Mutex::new(coordinator_connection));
 
+    #[cfg(feature = "debugger")]
     let mut debug_server = CliDebugHandler {
         debug_server_connection: debug_connection,
     };
@@ -298,6 +308,7 @@ fn coordinator(
     // if the command line options request loading native implementation of available native libs
     // if not, the native implementation is not loaded and later when a flow is loaded it's library
     // references will be resolved and those libraries (WASM implementations) will be loaded at runtime
+    #[cfg(feature = "flowstdlib")]
     if coordinator_settings.native_flowstdlib {
         executor.add_lib(
             flowstdlib::manifest::get()
@@ -326,11 +337,22 @@ fn coordinator(
         &control_socket,
     );
 
+    #[cfg(feature = "submission")]
     let mut submitter = CLISubmissionHandler::new(connection);
 
-    let mut coordinator = Coordinator::new(dispatcher, &mut submitter, &mut debug_server);
+    let mut coordinator = Coordinator::new(
+        dispatcher,
+        #[cfg(feature = "submission")]
+        &mut submitter,
+        #[cfg(feature = "debugger")]
+        &mut debug_server,
+    );
 
-    Ok(coordinator.submission_loop(loop_forever)?)
+    #[cfg(feature = "submission")]
+    {
+        coordinator.submission_loop(loop_forever)?;
+    }
+    Ok(())
 }
 
 // Return addresses and ports to be used for each of the three queues

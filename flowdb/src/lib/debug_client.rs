@@ -1,22 +1,24 @@
-use std::sync::{Arc, Mutex};
+//! [`DebugClient`] — a CLI REPL debug client that connects to a debug server
+//! and provides interactive debugging of flow programs.
 
-use flowcore::errors::Result;
-use flowcore::model::runtime_function::RuntimeFunction;
-use flowrlib::debug_command::BreakpointSpec;
-use flowrlib::debug_command::DebugCommand;
-use flowrlib::debug_command::DebugCommand::{
-    Ack, Breakpoint, Continue, DebugClientStarting, Delete, ExitDebugger, FunctionList, Inspect,
-    InspectBlock, InspectFunction, InspectInput, InspectOutput, List, Modify, RunReset, Step,
-    Validate,
-};
-use flowrlib::run_state::RunState;
 use log::error;
 use rustyline::error::ReadlineError;
 use rustyline::history::DefaultHistory;
 use rustyline::{DefaultEditor, Editor};
 
-use crate::gui::client_connection::ClientConnection;
-use crate::gui::debug_message::DebugServerMessage;
+use flowcore::errors::Result;
+use flowcore::model::debug_command::BreakpointSpec;
+use flowcore::model::debug_command::DebugCommand;
+use flowcore::model::debug_command::DebugCommand::{
+    Ack, Breakpoint, Continue, DebugClientStarting, Delete, ExitDebugger, FunctionList, Inspect,
+    InspectBlock, InspectFunction, InspectInput, InspectOutput, List, Modify, RunReset, Step,
+    Validate,
+};
+use flowcore::model::runtime_function::RuntimeFunction;
+use flowrlib::run_state::RunState;
+
+use crate::client_connection::ClientConnection;
+use crate::debug_server_message::DebugServerMessage;
 use DebugServerMessage::{
     BlockBreakpoint, BlockState, DataBreakpoint, Deadlock, EnteringDebugger, ExecutionEnded,
     ExecutionStarted, ExitingDebugger, FlowUnblockBreakpoint, FunctionStates, Functions,
@@ -24,7 +26,7 @@ use DebugServerMessage::{
     PriorToSendingJob, Resetting, SendingValue, WaitingForCommand,
 };
 
-const FLOWR_HISTORY_FILENAME: &str = ".flowr_history";
+const FLOWDB_HISTORY_FILENAME: &str = ".flowdb_history";
 
 const HELP_STRING: &str = "Debugger commands:
 'b' | 'breakpoint' {spec}     - Set a breakpoint using spec:
@@ -41,34 +43,26 @@ const HELP_STRING: &str = "Debugger commands:
 'l' | 'list'                  - List all breakpoints
 'm' | 'modify' [name]=[value] - Modify a debugger or runtime variable named 'name' to value 'value'
 'q' | 'quit'                  - Stop flow execution and exit debugger
-'r' | 'reset' or 'run' {args} - If running already then reset the state, or run the flow with {args}
+'r' | 'reset' or 'run'        - Reset the state and re-run the flow
 's' | 'step' [n]              - Step over the next 'n' jobs (default = 1) then break
 'v' | 'validate'              - Validate the state of the flow by running a series of checks
 ";
 
-/*
-    A debug client that implements the DebugClient trait defined in the flowrlib library.
-*/
+/// A CLI debug client that uses a REPL to interact with the debug server
 pub struct DebugClient {
     connection: ClientConnection,
-    override_args: Arc<Mutex<Vec<String>>>,
     editor: Editor<(), DefaultHistory>,
     last_command: String,
 }
 
 impl DebugClient {
-    /// Create a new debug client accepting the debug connection
+    /// Create a new debug client with the given connection to a debug server
     ///
     /// # Errors
-    ///
     /// Returns an error if the terminal editor cannot be created
-    pub fn new(
-        connection: ClientConnection,
-        override_args: Arc<Mutex<Vec<String>>>,
-    ) -> Result<Self> {
+    pub fn new(connection: ClientConnection) -> Result<Self> {
         Ok(DebugClient {
             connection,
-            override_args,
             editor: DefaultEditor::new().map_err(|e| format!("Could not create Editor: {e}"))?,
             last_command: String::new(),
         })
@@ -76,18 +70,24 @@ impl DebugClient {
 
     /// Main debug client loop where events are received, processed and responses sent
     pub fn debug_client_loop(mut self) {
-        // Ignore error on first start-up due to no previous command history existing
-        let _ = self.editor.load_history(FLOWR_HISTORY_FILENAME);
+        let _ = self.editor.load_history(FLOWDB_HISTORY_FILENAME);
 
-        // Send a first message to initialize the connection
         let _ = self.connection.send(DebugClientStarting);
 
-        // loop while? and avoid break?
         loop {
             match self.connection.receive() {
                 Ok(debug_server_message) => {
-                    if let Ok(response) = self.process_server_message(debug_server_message) {
-                        let _ = self.connection.send(response);
+                    let exiting = matches!(debug_server_message, ExitingDebugger);
+                    let response = match self.process_server_message(debug_server_message) {
+                        Ok(response) => response,
+                        Err(e) => {
+                            error!("Error processing server message: {e}");
+                            Ack
+                        }
+                    };
+                    let _ = self.connection.send(response);
+                    if exiting {
+                        break;
                     }
                 }
                 Err(err) => {
@@ -97,7 +97,7 @@ impl DebugClient {
             }
         }
 
-        let _ = self.editor.save_history(FLOWR_HISTORY_FILENAME);
+        let _ = self.editor.save_history(FLOWDB_HISTORY_FILENAME);
     }
 
     fn help() {
@@ -125,10 +125,10 @@ impl DebugClient {
         Ok((input, command, None))
     }
 
-    fn parse_optional_int(params: Option<Vec<String>>) -> Option<usize> {
+    pub(crate) fn parse_optional_int(params: Option<Vec<String>>) -> Option<usize> {
         if let Some(param) = params {
             if !param.is_empty() {
-                if let Ok(integer) = param.get(1)?.parse::<usize>() {
+                if let Ok(integer) = param.first()?.parse::<usize>() {
                     return Some(integer);
                 }
             }
@@ -137,7 +137,7 @@ impl DebugClient {
         None
     }
 
-    fn parse_breakpoint_spec(specs: Option<Vec<String>>) -> Option<BreakpointSpec> {
+    pub(crate) fn parse_breakpoint_spec(specs: Option<Vec<String>>) -> Option<BreakpointSpec> {
         if let Some(spec) = specs {
             if !spec.is_empty() {
                 if spec.first()? == "*" {
@@ -149,7 +149,6 @@ impl DebugClient {
                 }
 
                 if spec.first()?.contains('/') {
-                    // is an output specified
                     let sub_parts: Vec<&str> = spec.first()?.split('/').collect();
                     if let Ok(source_process_id) = sub_parts.first()?.parse::<usize>() {
                         return Some(BreakpointSpec::Output((
@@ -158,7 +157,6 @@ impl DebugClient {
                         )));
                     }
                 } else if spec.first()?.contains(':') {
-                    // is an input specifier
                     let sub_parts: Vec<&str> = spec.first()?.split(':').collect();
                     if let (Ok(destination_function_id), Ok(destination_input_number)) = (
                         sub_parts.first()?.parse::<usize>(),
@@ -170,7 +168,6 @@ impl DebugClient {
                         )));
                     }
                 } else if spec.first()?.contains("->") {
-                    // is a block specifier
                     let sub_parts: Vec<&str> = spec.first()?.split("->").collect();
                     let source = sub_parts.first()?.parse::<usize>().ok();
                     let destination = sub_parts.get(1)?.parse::<usize>().ok();
@@ -182,7 +179,7 @@ impl DebugClient {
         None
     }
 
-    fn parse_inspect_spec(spec: Option<Vec<String>>) -> Option<DebugCommand> {
+    pub(crate) fn parse_inspect_spec(spec: Option<Vec<String>>) -> Option<DebugCommand> {
         match Self::parse_breakpoint_spec(spec) {
             None => Some(Inspect),
             Some(BreakpointSpec::Numeric(function_id)) => Some(InspectFunction(function_id)),
@@ -204,10 +201,6 @@ impl DebugClient {
         }
     }
 
-    /*
-       Wait for the user to input a valid debugger command then return the corresponding response
-       that should be sent to the debug server
-    */
     fn get_user_command(&mut self, job_number: usize) -> Result<DebugCommand> {
         loop {
             match self.editor.readline(&format!("Job #{job_number}> ")) {
@@ -220,24 +213,17 @@ impl DebugClient {
                             self.last_command = line;
                             return Ok(debugger_command);
                         }
-                        self.last_command = String::new();
                     }
                     Err(e) => eprintln!("{e}"),
                 },
                 Err(ReadlineError::Interrupted) => {
                     println!("Use 'q' or 'quit' to exit the debugger");
                 }
-                Err(_) => return Ok(ExitDebugger), // Includes CONTROL-D exits
+                Err(_) => return Ok(ExitDebugger),
             }
         }
     }
 
-    /*
-       Determine what response should be sent to the server for the input command, or none.
-       Some commands act locally at the client (such as "help") and don't generate any response
-       to send to the server.
-       Likewise, command parsing errors shouldn't generate a response to send to the server.
-    */
     fn get_server_command(
         &mut self,
         command: &str,
@@ -250,7 +236,6 @@ impl DebugClient {
             "e" | "exit" | "q" | "quit" => Some(ExitDebugger),
             "f" | "functions" => Some(FunctionList),
             "h" | "?" | "help" => {
-                // only command that doesn't send a message to debugger
                 Self::help();
                 let _ = self.editor.add_history_entry(command);
                 None
@@ -258,15 +243,7 @@ impl DebugClient {
             "i" | "inspect" => Self::parse_inspect_spec(params),
             "l" | "list" => Some(List),
             "m" | "modify" => Some(Modify(params)),
-            "r" | "run" | "reset" => {
-                if let Some(mut overrides) = params {
-                    if let Ok(mut args) = self.override_args.lock() {
-                        args.clear();
-                        args.append(&mut overrides);
-                    }
-                }
-                Some(RunReset)
-            }
+            "r" | "run" | "reset" => Some(RunReset),
             "s" | "step" => Some(Step(Self::parse_optional_int(params))),
             "v" | "validate" => Some(Validate),
             _ => {
@@ -276,21 +253,22 @@ impl DebugClient {
         }
     }
 
-    /*
-        This processes a message received from the debug server.
-        A message may be generated by the debug server without any a request from the debug client
-        Some messages expect the client to respond with a command for the debug server.
-    */
     fn process_server_message(&mut self, message: DebugServerMessage) -> Result<DebugCommand> {
         match message {
             JobCompleted(job) => {
-                println!("Job #{} completed by Function #{}", job.payload.job_id, job.process_id);
+                println!(
+                    "Job #{} completed by Function #{}",
+                    job.payload.job_id, job.process_id
+                );
                 if let Ok((Some(output), _)) = job.result {
                     println!("\tOutput value: '{output}'");
                 }
             }
             PriorToSendingJob(job) => {
-                println!("About to send Job #{} to Function #{}", job.payload.job_id, job.process_id);
+                println!(
+                    "About to send Job #{} to Function #{}",
+                    job.payload.job_id, job.process_id
+                );
                 println!("\tInputs: {:?}", job.payload.input_set);
             }
             BlockBreakpoint(block) => println!("Block breakpoint: {block:?}"),
@@ -304,16 +282,16 @@ impl DebugClient {
                 io_name,
                 input_number,
             ) => println!(
-                "Data breakpoint: Function #{source_function_id} '{source_function_name}{output_route}' \
-                --{value}-> Function #{destination_id}:{input_number} '{destination_name}'/'{io_name}'",
+                "Data breakpoint: Function #{source_function_id} \
+                '{source_function_name}{output_route}' \
+                --{value}-> Function #{destination_id}:{input_number} \
+                '{destination_name}'/'{io_name}'",
             ),
             Panic(message, jobs_created) => {
                 println!("Function panicked after {jobs_created} jobs created: {message}");
-                return self.get_user_command(jobs_created);
             }
             JobError(job) => {
                 println!("Error occurred executing a Job: \n'{job}'");
-                return self.get_user_command(job.payload.job_id);
             }
             Deadlock(message) => println!("Deadlock detected {message}"),
             EnteringDebugger => println!(
@@ -324,7 +302,8 @@ impl DebugClient {
             ExecutionEnded => println!("Flow has completed"),
             Functions(functions) => Self::function_list(functions),
             SendingValue(source_process_id, value, destination_id, input_number) => println!(
-                "Function #{source_process_id} sending '{value}' to {destination_id}:{input_number}",
+                "Function #{source_process_id} sending '{value}' to \
+                {destination_id}:{input_number}",
             ),
             DebugServerMessage::Error(error_message) => println!("{error_message}"),
             Message(message) => println!("{message}"),
@@ -355,14 +334,17 @@ impl DebugClient {
                 }
             }
             FlowUnblockBreakpoint(flow_id) => {
-                println!("Flow #{flow_id} was busy and has now gone idle, unblocking senders to functions");
+                println!(
+                    "Flow #{flow_id} was busy and has now gone idle, unblocking senders to \
+                    functions"
+                );
             }
         }
 
         Ok(Ack)
     }
 
-    fn function_list(functions: Vec<RuntimeFunction>) {
+    pub(crate) fn function_list(functions: Vec<RuntimeFunction>) {
         println!("Functions List");
         for function in functions {
             println!(
@@ -375,10 +357,8 @@ impl DebugClient {
         println!("Use 'i n' or 'inspect n' to inspect the function number 'n'");
     }
 
-    /*
-       Display information to the user about the current RunState
-    */
-    fn display_state(run_state: &RunState) {
+    /// Display information about the current `RunState`
+    pub fn display_state(run_state: &RunState) {
         println!("{run_state}\n");
 
         for id in 0..run_state.num_functions() {
@@ -388,5 +368,213 @@ impl DebugClient {
                 println!("\tStates: {function_states:?}");
             }
         }
+    }
+}
+
+#[cfg(test)]
+#[allow(clippy::unwrap_used, clippy::expect_used, clippy::unnecessary_wraps)]
+mod test {
+    use serde_json::json;
+
+    use flowcore::model::flow_manifest::FlowManifest;
+    use flowcore::model::input::Input;
+    use flowcore::model::input::InputInitializer::Once;
+    use flowcore::model::metadata::MetaData;
+    use flowcore::model::output_connection::{OutputConnection, Source};
+    use flowcore::model::runtime_function::RuntimeFunction;
+    use flowcore::model::submission::Submission;
+    use flowrlib::run_state::RunState;
+
+    use super::DebugClient;
+
+    fn test_function_b_init() -> RuntimeFunction {
+        RuntimeFunction::new(
+            "fB",
+            "/fB",
+            "file://fake/test",
+            vec![Input::new("", 0, false, Some(Once(json!(1))), None)],
+            1,
+            0,
+            &[],
+            false,
+        )
+    }
+
+    fn test_function_a_to_b() -> RuntimeFunction {
+        let connection_to_f1 = OutputConnection::new(
+            Source::default(),
+            1,
+            0,
+            0,
+            false,
+            "/fB".to_string(),
+            String::default(),
+        );
+        RuntimeFunction::new(
+            "fA",
+            "/fA",
+            "file://fake/test",
+            vec![Input::new("", 0, false, Some(Once(json!(1))), None)],
+            0,
+            0,
+            &[connection_to_f1],
+            false,
+        )
+    }
+
+    fn test_meta_data() -> MetaData {
+        MetaData {
+            name: "test".into(),
+            version: "0.0.0".into(),
+            description: "a test".into(),
+            authors: vec!["me".into()],
+        }
+    }
+
+    fn test_manifest(functions: Vec<RuntimeFunction>) -> FlowManifest {
+        let mut manifest = FlowManifest::new(test_meta_data());
+        for function in functions {
+            manifest.add_function(function);
+        }
+        manifest
+    }
+
+    fn test_submission(functions: Vec<RuntimeFunction>) -> Submission {
+        Submission::new(test_manifest(functions), None, None, true)
+    }
+
+    #[test]
+    fn display_run_state() {
+        let f_a = test_function_a_to_b();
+        let f_b = test_function_b_init();
+        let state = RunState::new(test_submission(vec![f_b, f_a]));
+
+        DebugClient::display_state(&state);
+    }
+
+    fn specs(s: &str) -> Option<Vec<String>> {
+        Some(vec![s.to_string()])
+    }
+
+    #[test]
+    fn parse_optional_int_valid() {
+        assert_eq!(DebugClient::parse_optional_int(specs("5")), Some(5));
+        assert_eq!(DebugClient::parse_optional_int(specs("0")), Some(0));
+        assert_eq!(DebugClient::parse_optional_int(specs("100")), Some(100));
+    }
+
+    #[test]
+    fn parse_optional_int_none_cases() {
+        assert_eq!(DebugClient::parse_optional_int(None), None);
+        assert_eq!(DebugClient::parse_optional_int(Some(vec![])), None);
+        assert_eq!(DebugClient::parse_optional_int(specs("abc")), None);
+    }
+
+    #[test]
+    fn parse_breakpoint_spec_all() {
+        use flowcore::model::debug_command::BreakpointSpec;
+        assert_eq!(
+            DebugClient::parse_breakpoint_spec(specs("*")),
+            Some(BreakpointSpec::All)
+        );
+    }
+
+    #[test]
+    fn parse_breakpoint_spec_numeric() {
+        use flowcore::model::debug_command::BreakpointSpec;
+        assert_eq!(
+            DebugClient::parse_breakpoint_spec(specs("42")),
+            Some(BreakpointSpec::Numeric(42))
+        );
+    }
+
+    #[test]
+    fn parse_breakpoint_spec_output() {
+        use flowcore::model::debug_command::BreakpointSpec;
+        assert_eq!(
+            DebugClient::parse_breakpoint_spec(specs("3/result")),
+            Some(BreakpointSpec::Output((3, "/result".to_string())))
+        );
+    }
+
+    #[test]
+    fn parse_breakpoint_spec_input() {
+        use flowcore::model::debug_command::BreakpointSpec;
+        assert_eq!(
+            DebugClient::parse_breakpoint_spec(specs("5:0")),
+            Some(BreakpointSpec::Input((5, 0)))
+        );
+    }
+
+    #[test]
+    fn parse_breakpoint_spec_block() {
+        use flowcore::model::debug_command::BreakpointSpec;
+        assert_eq!(
+            DebugClient::parse_breakpoint_spec(specs("1->2")),
+            Some(BreakpointSpec::Block((Some(1), Some(2))))
+        );
+    }
+
+    #[test]
+    fn parse_breakpoint_spec_none() {
+        assert_eq!(DebugClient::parse_breakpoint_spec(None), None);
+        assert_eq!(DebugClient::parse_breakpoint_spec(Some(vec![])), None);
+    }
+
+    #[test]
+    fn parse_breakpoint_spec_invalid() {
+        assert_eq!(DebugClient::parse_breakpoint_spec(specs("abc")), None);
+    }
+
+    #[test]
+    fn parse_inspect_spec_overall() {
+        use flowcore::model::debug_command::DebugCommand;
+        assert_eq!(
+            DebugClient::parse_inspect_spec(None),
+            Some(DebugCommand::Inspect)
+        );
+    }
+
+    #[test]
+    fn parse_inspect_spec_function() {
+        use flowcore::model::debug_command::DebugCommand;
+        assert_eq!(
+            DebugClient::parse_inspect_spec(specs("3")),
+            Some(DebugCommand::InspectFunction(3))
+        );
+    }
+
+    #[test]
+    fn parse_inspect_spec_input() {
+        use flowcore::model::debug_command::DebugCommand;
+        assert_eq!(
+            DebugClient::parse_inspect_spec(specs("5:1")),
+            Some(DebugCommand::InspectInput(5, 1))
+        );
+    }
+
+    #[test]
+    fn parse_inspect_spec_output() {
+        use flowcore::model::debug_command::DebugCommand;
+        assert_eq!(
+            DebugClient::parse_inspect_spec(specs("2/result")),
+            Some(DebugCommand::InspectOutput(2, "/result".to_string()))
+        );
+    }
+
+    #[test]
+    fn parse_inspect_spec_block() {
+        use flowcore::model::debug_command::DebugCommand;
+        assert_eq!(
+            DebugClient::parse_inspect_spec(specs("1->2")),
+            Some(DebugCommand::InspectBlock(Some(1), Some(2)))
+        );
+    }
+
+    #[test]
+    fn function_list_display() {
+        let f_a = test_function_a_to_b();
+        let f_b = test_function_b_init();
+        DebugClient::function_list(vec![f_a, f_b]);
     }
 }
