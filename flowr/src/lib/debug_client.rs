@@ -6,19 +6,19 @@ use rustyline::error::ReadlineError;
 use rustyline::history::DefaultHistory;
 use rustyline::{DefaultEditor, Editor};
 
-use flowcore::errors::Result;
-use flowcore::model::debug_command::BreakpointSpec;
-use flowcore::model::debug_command::DebugCommand;
-use flowcore::model::debug_command::DebugCommand::{
+use crate::debug_command::BreakpointSpec;
+use crate::debug_command::DebugCommand;
+use crate::debug_command::DebugCommand::{
     Ack, Breakpoint, Continue, DebugClientStarting, Delete, ExitDebugger, FunctionList, Inspect,
     InspectBlock, InspectFunction, InspectInput, InspectOutput, List, Modify, RunReset, Step,
     Validate,
 };
+use crate::run_state::RunState;
+use flowcore::errors::Result;
 use flowcore::model::runtime_function::RuntimeFunction;
-use flowrlib::run_state::RunState;
 
-use flowrlib::connections::ClientConnection;
-use flowrlib::debug_server_message::DebugServerMessage;
+use crate::connections::ClientConnection;
+use crate::debug_server_message::DebugServerMessage;
 use DebugServerMessage::{
     BlockBreakpoint, BlockState, DataBreakpoint, Deadlock, EnteringDebugger, ExecutionEnded,
     ExecutionStarted, ExitingDebugger, FlowUnblockBreakpoint, FunctionStates, Functions,
@@ -26,7 +26,7 @@ use DebugServerMessage::{
     PriorToSendingJob, Resetting, SendingValue, WaitingForCommand,
 };
 
-const FLOWDB_HISTORY_FILENAME: &str = ".flowdb_history";
+const FLOWDB_HISTORY_FILENAME: &str = ".flowrdb_history";
 
 const HELP_STRING: &str = "Debugger commands:
 'b' | 'breakpoint' {spec}     - Set a breakpoint using spec:
@@ -376,6 +376,7 @@ impl DebugClient {
 mod test {
     use serde_json::json;
 
+    use crate::run_state::RunState;
     use flowcore::model::flow_manifest::FlowManifest;
     use flowcore::model::input::Input;
     use flowcore::model::input::InputInitializer::Once;
@@ -383,7 +384,6 @@ mod test {
     use flowcore::model::output_connection::{OutputConnection, Source};
     use flowcore::model::runtime_function::RuntimeFunction;
     use flowcore::model::submission::Submission;
-    use flowrlib::run_state::RunState;
 
     use super::DebugClient;
 
@@ -472,7 +472,7 @@ mod test {
 
     #[test]
     fn parse_breakpoint_spec_all() {
-        use flowcore::model::debug_command::BreakpointSpec;
+        use crate::debug_command::BreakpointSpec;
         assert_eq!(
             DebugClient::parse_breakpoint_spec(specs("*")),
             Some(BreakpointSpec::All)
@@ -481,7 +481,7 @@ mod test {
 
     #[test]
     fn parse_breakpoint_spec_numeric() {
-        use flowcore::model::debug_command::BreakpointSpec;
+        use crate::debug_command::BreakpointSpec;
         assert_eq!(
             DebugClient::parse_breakpoint_spec(specs("42")),
             Some(BreakpointSpec::Numeric(42))
@@ -490,7 +490,7 @@ mod test {
 
     #[test]
     fn parse_breakpoint_spec_output() {
-        use flowcore::model::debug_command::BreakpointSpec;
+        use crate::debug_command::BreakpointSpec;
         assert_eq!(
             DebugClient::parse_breakpoint_spec(specs("3/result")),
             Some(BreakpointSpec::Output((3, "/result".to_string())))
@@ -499,7 +499,7 @@ mod test {
 
     #[test]
     fn parse_breakpoint_spec_input() {
-        use flowcore::model::debug_command::BreakpointSpec;
+        use crate::debug_command::BreakpointSpec;
         assert_eq!(
             DebugClient::parse_breakpoint_spec(specs("5:0")),
             Some(BreakpointSpec::Input((5, 0)))
@@ -508,7 +508,7 @@ mod test {
 
     #[test]
     fn parse_breakpoint_spec_block() {
-        use flowcore::model::debug_command::BreakpointSpec;
+        use crate::debug_command::BreakpointSpec;
         assert_eq!(
             DebugClient::parse_breakpoint_spec(specs("1->2")),
             Some(BreakpointSpec::Block((Some(1), Some(2))))
@@ -528,7 +528,7 @@ mod test {
 
     #[test]
     fn parse_inspect_spec_overall() {
-        use flowcore::model::debug_command::DebugCommand;
+        use crate::debug_command::DebugCommand;
         assert_eq!(
             DebugClient::parse_inspect_spec(None),
             Some(DebugCommand::Inspect)
@@ -537,7 +537,7 @@ mod test {
 
     #[test]
     fn parse_inspect_spec_function() {
-        use flowcore::model::debug_command::DebugCommand;
+        use crate::debug_command::DebugCommand;
         assert_eq!(
             DebugClient::parse_inspect_spec(specs("3")),
             Some(DebugCommand::InspectFunction(3))
@@ -546,7 +546,7 @@ mod test {
 
     #[test]
     fn parse_inspect_spec_input() {
-        use flowcore::model::debug_command::DebugCommand;
+        use crate::debug_command::DebugCommand;
         assert_eq!(
             DebugClient::parse_inspect_spec(specs("5:1")),
             Some(DebugCommand::InspectInput(5, 1))
@@ -555,7 +555,7 @@ mod test {
 
     #[test]
     fn parse_inspect_spec_output() {
-        use flowcore::model::debug_command::DebugCommand;
+        use crate::debug_command::DebugCommand;
         assert_eq!(
             DebugClient::parse_inspect_spec(specs("2/result")),
             Some(DebugCommand::InspectOutput(2, "/result".to_string()))
@@ -564,7 +564,7 @@ mod test {
 
     #[test]
     fn parse_inspect_spec_block() {
-        use flowcore::model::debug_command::DebugCommand;
+        use crate::debug_command::DebugCommand;
         assert_eq!(
             DebugClient::parse_inspect_spec(specs("1->2")),
             Some(DebugCommand::InspectBlock(Some(1), Some(2)))

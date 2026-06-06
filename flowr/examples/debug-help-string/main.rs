@@ -1,4 +1,4 @@
-//! Integration test for the debug help command using flowdb as a separate process
+//! Integration test for the debug help command using flowrdb as a separate process
 fn main() {}
 
 #[cfg(test)]

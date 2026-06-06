@@ -9,5 +9,5 @@ coverage.info
 coverage
 flowstdlib/src/Cargo.lock
 .vscode
-.flowdb_history
+.flowrdb_history
 notes.txt

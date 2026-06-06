@@ -1,6 +1,6 @@
 [workspace]
-members = ["flowc", "flowstdlib", "flowr", "flowcore", "flowmacro", "flowedit", "flowdb"]
-default-members = ["flowc", "flowstdlib", "flowr", "flowcore", "flowmacro", "flowedit", "flowdb"]
+members = ["flowc", "flowstdlib", "flowr", "flowcore", "flowmacro", "flowedit"]
+default-members = ["flowc", "flowstdlib", "flowr", "flowcore", "flowmacro", "flowedit"]
 resolver = "2"
 
 [workspace.package]

@@ -375,13 +375,13 @@ pub fn execute_flow_client_server(example_name: &str, manifest: PathBuf) {
     }
 }
 
-/// A debug session that manages flowrcli and flowdb processes for integration testing.
+/// A debug session that manages flowrcli and flowrdb processes for integration testing.
 ///
 /// Start a debug session with `DebugSession::start()`, send commands with `send()`,
-/// and get flowdb's output with `finish()`.
+/// and get flowrdb's output with `finish()`.
 pub struct DebugSession {
     server: std::process::Child,
-    flowdb: std::process::Child,
+    flowrdb: std::process::Child,
     stdin: Option<std::process::ChildStdin>,
     stdout_lines: Vec<String>,
     stdout_reader: Option<BufReader<std::process::ChildStdout>>,
@@ -389,7 +389,7 @@ pub struct DebugSession {
 
 impl DebugSession {
     /// Start a debug session on the given example directory.
-    /// Spawns flowrcli with `--debugger --native` and connects flowdb to it.
+    /// Spawns flowrcli with `--debugger --native` and connects flowrdb to it.
     /// Extra args (e.g. flow arguments) can be passed via `extra_args`.
     pub fn start(example_dir: &Path, extra_args: &[&str]) -> Self {
         Self::start_with_runner(example_dir, "flowrcli", extra_args)
@@ -448,37 +448,37 @@ impl DebugSession {
             .and_then(|s| s.trim().parse::<u16>().ok())
             .unwrap_or_else(|| panic!("Could not parse debug port from: {port_line}"));
 
-        let flowdb = Command::new("flowdb")
+        let flowrdb = Command::new("flowrdb")
             .args(["--address", &format!("localhost:{port}")])
             .stdin(Stdio::piped())
             .stdout(Stdio::piped())
             .stderr(Stdio::piped())
             .spawn()
-            .expect("Could not spawn flowdb");
+            .expect("Could not spawn flowrdb");
 
         let mut session = DebugSession {
             server,
-            flowdb,
+            flowrdb,
             stdin: None,
             stdout_lines: Vec::new(),
             stdout_reader: None,
         };
-        session.stdin = session.flowdb.stdin.take();
+        session.stdin = session.flowrdb.stdin.take();
 
-        // Wait for the ZMQ handshake to complete by reading flowdb stdout
+        // Wait for the ZMQ handshake to complete by reading flowrdb stdout
         // until we see "Entering Debugger" which confirms the connection
         let stdout = session
-            .flowdb
+            .flowrdb
             .stdout
             .take()
-            .expect("Could not get flowdb stdout");
+            .expect("Could not get flowrdb stdout");
         let mut stdout_reader = BufReader::new(stdout);
         let mut connected = false;
         loop {
             let mut line = String::new();
             stdout_reader
                 .read_line(&mut line)
-                .expect("Could not read from flowdb stdout");
+                .expect("Could not read from flowrdb stdout");
             if line.is_empty() {
                 break;
             }
@@ -491,7 +491,7 @@ impl DebugSession {
         }
         assert!(
             connected,
-            "flowdb exited before completing debug handshake. Output:\n{}",
+            "flowrdb exited before completing debug handshake. Output:\n{}",
             session.stdout_lines.join("")
         );
         session.stdout_reader = Some(stdout_reader);
@@ -503,12 +503,12 @@ impl DebugSession {
     pub fn send(&mut self, command: &str) {
         use std::io::Write as _;
         if let Some(ref mut stdin) = self.stdin {
-            writeln!(stdin, "{command}").expect("Could not write to flowdb stdin");
+            writeln!(stdin, "{command}").expect("Could not write to flowrdb stdin");
             std::thread::sleep(std::time::Duration::from_millis(500));
         }
     }
 
-    /// Close stdin, wait for flowdb to exit, and return its stdout
+    /// Close stdin, wait for flowrdb to exit, and return its stdout
     pub fn finish(mut self) -> String {
         drop(self.stdin.take());
 
@@ -521,7 +521,7 @@ impl DebugSession {
             }
         }
 
-        self.flowdb.wait().expect("Could not wait for flowdb");
+        self.flowrdb.wait().expect("Could not wait for flowrdb");
         self.server.kill().expect("Could not kill flowrcli");
         self.server.wait().expect("Could not wait for flowrcli");
         self.stdout_lines.join("")

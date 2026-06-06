@@ -1,5 +1,5 @@
 //! Defines [`DebugServerMessage`] — messages sent from the debug server (in the coordinator)
-//! to a debug client (such as `flowdb` or a GUI debugger).
+//! to a debug client (such as `flowrdb` or a GUI debugger).
 
 use std::fmt;
 
