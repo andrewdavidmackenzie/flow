@@ -32,6 +32,7 @@ pub struct Debugger<'a> {
     output_breakpoints: HashSet<(usize, String)>,
     break_at_job: usize,
     function_breakpoints: HashSet<usize>,
+    completed_breakpoints: HashSet<usize>,
     flow_unblock_breakpoints: HashSet<usize>,
 }
 
@@ -80,6 +81,7 @@ impl<'a> Debugger<'a> {
             output_breakpoints: HashSet::<(usize, String)>::new(),
             break_at_job: usize::MAX,
             function_breakpoints: HashSet::<usize>::new(),
+            completed_breakpoints: HashSet::<usize>::new(),
             flow_unblock_breakpoints: HashSet::<usize>::new(),
         }
     }
@@ -218,6 +220,18 @@ impl<'a> Debugger<'a> {
             }
         } else {
             self.debug_server.job_completed(job);
+            if self.completed_breakpoints.contains(&job.process_id) {
+                if let Some(function) = state.get_function(job.process_id) {
+                    self.debug_server.job_breakpoint(
+                        job,
+                        function,
+                        state.get_function_states(job.process_id),
+                    );
+                    if let Ok(result) = self.wait_for_command(state) {
+                        return result;
+                    }
+                }
+            }
         }
         (false, false)
     }
@@ -477,6 +491,24 @@ impl<'a> Debugger<'a> {
                     "Data breakpoint set on Function #{source_id} sending data via output: '{source_output_route}'"
                 ))
             }
+            Some(BreakpointSpec::Completed(process_id)) => {
+                if state.get_function(process_id).is_none() {
+                    bail!(
+                        "There is no Function with id '{process_id}' to set a completion breakpoint on"
+                    );
+                }
+
+                self.completed_breakpoints.insert(process_id);
+                let function = state
+                    .get_function(process_id)
+                    .ok_or("Could not get function")?;
+                Ok(format!(
+                    "Completion breakpoint set on Function #{} ({}) @ '{}'",
+                    process_id,
+                    function.name(),
+                    function.route()
+                ))
+            }
         }
     }
 
@@ -494,6 +526,7 @@ impl<'a> Debugger<'a> {
                 self.output_breakpoints.clear();
                 self.input_breakpoints.clear();
                 self.function_breakpoints.clear();
+                self.completed_breakpoints.clear();
                 Ok("Deleted all breakpoints\n".into())
             }
             Some(BreakpointSpec::Numeric(process_number)) => {
@@ -548,6 +581,21 @@ impl<'a> Debugger<'a> {
                     .remove(&(source_id, source_output_route));
                 Ok("Output breakpoint removed\n".into())
             }
+            Some(BreakpointSpec::Completed(process_id)) => {
+                if state.get_function(process_id).is_none() {
+                    bail!(
+                        "There is no Function with id '{process_id}' to delete a completion breakpoint from"
+                    );
+                }
+
+                if self.completed_breakpoints.remove(&process_id) {
+                    Ok(format!(
+                        "Completion breakpoint on Function #{process_id} was deleted"
+                    ))
+                } else {
+                    bail!("No completion breakpoint on Function #{process_id} exists\n")
+                }
+            }
         }
     }
 
@@ -588,6 +636,14 @@ impl<'a> Debugger<'a> {
             response.push_str("Block Breakpoints: \n");
             for (blocked_id, blocking_id) in &self.block_breakpoints {
                 let _ = writeln!(response, "\tBlock #{blocked_id}->#{blocking_id}");
+            }
+        }
+
+        if !self.completed_breakpoints.is_empty() {
+            breakpoints = true;
+            response.push_str("Completion Breakpoints: \n");
+            for process_id in &self.completed_breakpoints {
+                let _ = writeln!(response, "\tFunction #{process_id}+");
             }
         }
 

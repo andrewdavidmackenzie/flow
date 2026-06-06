@@ -15,6 +15,8 @@ pub enum BreakpointSpec {
     Input((usize, usize)),
     /// A description of a "block" (when one function is blocked from running by another) was specified
     Block((Option<usize>, Option<usize>)),
+    /// A breakpoint on job completion for a specific function
+    Completed(usize),
 }
 
 /// A Command sent by the `debug_client` to the debugger

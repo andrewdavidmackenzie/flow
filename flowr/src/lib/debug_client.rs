@@ -31,6 +31,7 @@ const FLOWDB_HISTORY_FILENAME: &str = ".flowrdb_history";
 const HELP_STRING: &str = "Debugger commands:
 'b' | 'breakpoint' {spec}     - Set a breakpoint using spec:
                                  - on a function by function_id (integer)
+                                 - on job completion by function_id+ (e.g. '3+')
                                  - on an output by source_id/output_route ('source_id/' for default output)
                                  - on an input by destination_id:input_number
                                  - on block creation by blocked_process_id->blocking_process_id
@@ -146,6 +147,12 @@ impl DebugClient {
             if !spec.is_empty() {
                 if spec.first()? == "*" {
                     return Some(BreakpointSpec::All);
+                }
+
+                if let Some(stripped) = spec.first()?.strip_suffix('+') {
+                    if let Ok(process_id) = stripped.parse::<usize>() {
+                        return Some(BreakpointSpec::Completed(process_id));
+                    }
                 }
 
                 if let Ok(integer) = spec.first()?.parse::<usize>() {
@@ -518,6 +525,19 @@ mod test {
         assert_eq!(
             DebugClient::parse_breakpoint_spec(specs("1->2")),
             Some(BreakpointSpec::Block((Some(1), Some(2))))
+        );
+    }
+
+    #[test]
+    fn parse_breakpoint_spec_completed() {
+        use crate::debug_command::BreakpointSpec;
+        assert_eq!(
+            DebugClient::parse_breakpoint_spec(specs("3+")),
+            Some(BreakpointSpec::Completed(3))
+        );
+        assert_eq!(
+            DebugClient::parse_breakpoint_spec(specs("0+")),
+            Some(BreakpointSpec::Completed(0))
         );
     }
 
