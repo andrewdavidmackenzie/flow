@@ -48,6 +48,9 @@ submission = []
 # feature to include context functions, make sure flowcore is compiled with it if we plan to use it
 context = ["flowcore/context"]
 
+[package.metadata.cargo-all-features]
+max_combination_size = 2
+skip_optional_dependencies = true
 
 [dependencies]
 flowcore = {path = "../flowcore", version = "1.0.0", features = ["context", "file_provider", "http_provider",
