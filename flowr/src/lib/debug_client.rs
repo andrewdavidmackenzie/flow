@@ -43,6 +43,7 @@ const HELP_STRING: &str = "Debugger commands:
 'i' | 'inspect' [n]           - Inspect the overall state, or the function number 'n'
 'l' | 'list'                  - List all breakpoints
 'm' | 'modify' [name]=[value] - Modify a debugger or runtime variable named 'name' to value 'value'
+'p' | 'processes'             - Show flows and functions in a hierarchical tree
 'q' | 'quit'                  - Stop flow execution and exit debugger
 'r' | 'reset' or 'run'        - Reset the state and re-run the flow
 's' | 'step' [n]              - Step over the next 'n' jobs (default = 1) then break
@@ -255,6 +256,7 @@ impl DebugClient {
             }
             "i" | "inspect" => Self::parse_inspect_spec(params),
             "l" | "list" => Some(List),
+            "p" | "processes" => Some(DebugCommand::ProcessList),
             "m" | "modify" => Some(Modify(params)),
             "r" | "run" | "reset" => Some(RunReset),
             "s" | "step" => Some(Step(Self::parse_optional_int(params))),
