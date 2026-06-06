@@ -27,6 +27,7 @@ pub struct DebugGuiHandler {
 
 impl DebugGuiHandler {
     /// Create a new GUI debug handler with the given channels
+    #[must_use]
     pub fn new(
         event_sender: mpsc::Sender<DebugServerMessage>,
         command_receiver: mpsc::Receiver<DebugCommand>,

@@ -21,6 +21,8 @@ pub(crate) struct TabSet {
     pub stdin_tab: StdInTab,
     pub images_tab: ImageTab,
     pub fileio_tab: StdOutTab,
+    #[cfg(feature = "debugger")]
+    pub debug_tab: StdOutTab,
     pub flow_name: String,
 }
 
@@ -51,6 +53,14 @@ impl TabSet {
                 auto_scroll: true,
                 unread_count: 0,
             },
+            #[cfg(feature = "debugger")]
+            debug_tab: StdOutTab {
+                name: "Debug".to_owned(),
+                id: Lazy::new(Id::unique).clone(),
+                content: vec![],
+                auto_scroll: true,
+                unread_count: 0,
+            },
             flow_name: String::new(),
         }
     }
@@ -64,6 +74,8 @@ impl TabSet {
                     1 if self.stderr_tab.auto_scroll => self.stderr_tab.unread_count = 0,
                     3 => self.images_tab.new_activity = false,
                     4 if self.fileio_tab.auto_scroll => self.fileio_tab.unread_count = 0,
+                    #[cfg(feature = "debugger")]
+                    5 if self.debug_tab.auto_scroll => self.debug_tab.unread_count = 0,
                     _ => {}
                 }
             }
@@ -74,6 +86,10 @@ impl TabSet {
                     self.stderr_tab.clear();
                 } else if name == &self.fileio_tab.name {
                     self.fileio_tab.clear();
+                }
+                #[cfg(feature = "debugger")]
+                if name == &self.debug_tab.name {
+                    self.debug_tab.clear();
                 }
             }
             Message::StdioAutoScrollTogglerChanged(id, value) => {
@@ -88,7 +104,7 @@ impl TabSet {
                 }
             }
             Message::SaveTabContent(ref name) => {
-                let content = if name == &self.stdout_tab.name {
+                let mut content = if name == &self.stdout_tab.name {
                     Some(&self.stdout_tab.content)
                 } else if name == &self.stderr_tab.name {
                     Some(&self.stderr_tab.content)
@@ -99,6 +115,10 @@ impl TabSet {
                 } else {
                     None
                 };
+                #[cfg(feature = "debugger")]
+                if name == &self.debug_tab.name {
+                    content = Some(&self.debug_tab.content);
+                }
 
                 if let Some(lines) = content {
                     let prefix = if self.flow_name.is_empty() {
@@ -142,14 +162,15 @@ impl TabSet {
     }
 
     pub(crate) fn view(&self) -> Element<'_, Message> {
-        Tabs::new(Message::TabSelected)
+        let tabs = Tabs::new(Message::TabSelected)
             .push(0, self.stdout_tab.tab_label(), self.stdout_tab.view())
             .push(1, self.stderr_tab.tab_label(), self.stderr_tab.view())
             .push(2, self.stdin_tab.tab_label(), self.stdin_tab.view())
             .push(3, self.images_tab.tab_label(), self.images_tab.view())
-            .push(4, self.fileio_tab.tab_label(), self.fileio_tab.view())
-            .set_active_tab(&self.active_tab)
-            .into()
+            .push(4, self.fileio_tab.tab_label(), self.fileio_tab.view());
+        #[cfg(feature = "debugger")]
+        let tabs = tabs.push(5, self.debug_tab.tab_label(), self.debug_tab.view());
+        tabs.set_active_tab(&self.active_tab).into()
     }
 
     pub(crate) fn clear(&mut self) {
@@ -158,6 +179,8 @@ impl TabSet {
         self.stdin_tab.clear();
         self.images_tab.clear();
         self.fileio_tab.clear();
+        #[cfg(feature = "debugger")]
+        self.debug_tab.clear();
     }
 }
 
@@ -191,10 +214,15 @@ impl Tab for StdOutTab {
     }
 
     fn view(&self) -> Element<'_, Message> {
-        let text_column =
-            Column::with_children(self.content.iter().cloned().map(text).map(Element::from))
-                .width(Length::Fill)
-                .padding(1);
+        let text_column = Column::with_children(
+            self.content
+                .iter()
+                .cloned()
+                .map(|s| text(s).shaping(iced::widget::text::Shaping::Advanced))
+                .map(Element::from),
+        )
+        .width(Length::Fill)
+        .padding(1);
 
         let scrollable = Scrollable::new(text_column)
             .height(Length::Fill)
