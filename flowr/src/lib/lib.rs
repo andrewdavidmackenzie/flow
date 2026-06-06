@@ -83,3 +83,6 @@ mod wasm;
 
 #[cfg(debug_assertions)]
 mod checks;
+
+/// Shared test helper for setting up client-coordinator test connections
+pub mod test_helper;

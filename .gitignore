@@ -11,3 +11,4 @@ flowstdlib/src/Cargo.lock
 .vscode
 .flowrdb_history
 notes.txt
+.flowdb_history
