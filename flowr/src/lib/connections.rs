@@ -43,6 +43,11 @@ impl ClientConnection {
                 format!("Client Connection - Could not connect to socket at: {coordinator_address}")
             })?;
 
+        // Set a receive timeout so the client doesn't hang forever if the server exits
+        requester
+            .set_rcvtimeo(5_000)
+            .chain_err(|| "Could not set receive timeout")?;
+
         info!("Client connected to coordinator at '{coordinator_address}'");
 
         Ok(ClientConnection { requester })

@@ -497,7 +497,16 @@ impl FlowrGui {
             CoordinatorState::Connected(_) => match (self.submitted, self.running) {
                 (false, false) => ("\u{1F7E2}", "Ready".to_string()),
                 (_, true) => ("\u{1F535}", "Running".to_string()),
-                (true, false) => ("\u{1F7E1}", "Submitted".to_string()),
+                (true, false) => {
+                    if self.submission_settings.debug_this_flow {
+                        (
+                            "\u{1F7E0}",
+                            "Waiting for debugger to connect...".to_string(),
+                        )
+                    } else {
+                        ("\u{1F7E1}", "Submitted".to_string())
+                    }
+                }
             },
         };
 
