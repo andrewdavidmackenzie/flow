@@ -253,4 +253,47 @@ mod test {
 
         assert!(stdout.contains("Debugger is exiting"), "No exit:\n{stdout}");
     }
+
+    #[test]
+    #[serial]
+    fn test_debug_completion_breakpoint() {
+        let mut session = DebugSession::start(&example_dir(), &["test_arg1"]);
+        session.send("b 0+");
+        session.send("l");
+        session.send("d 0+");
+        session.send("e");
+        let stdout = session.finish();
+
+        assert!(
+            stdout.contains("Completion breakpoint set on Function #0"),
+            "No completion breakpoint confirmation:\n{stdout}"
+        );
+        assert!(
+            stdout.contains("Completion Breakpoints"),
+            "No completion breakpoints in list:\n{stdout}"
+        );
+        assert!(
+            stdout.contains("Function #0+"),
+            "No Function #0+ in list:\n{stdout}"
+        );
+        assert!(
+            stdout.contains("Completion breakpoint on Function #0 was deleted"),
+            "No deletion confirmation:\n{stdout}"
+        );
+    }
+
+    #[test]
+    #[serial]
+    fn test_debug_processes() {
+        let mut session = DebugSession::start(&example_dir(), &["test_arg1"]);
+        session.send("p");
+        session.send("e");
+        let stdout = session.finish();
+
+        assert!(
+            stdout.contains("Process Tree"),
+            "No process tree header:\n{stdout}"
+        );
+        assert!(stdout.contains("Debugger is exiting"), "No exit:\n{stdout}");
+    }
 }
