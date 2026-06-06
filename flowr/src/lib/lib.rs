@@ -76,6 +76,11 @@ pub mod debug_zmq_handler;
 pub mod debug_client;
 
 #[cfg(feature = "debugger")]
+/// Channel-based [`DebuggerHandler`][debugger_handler::DebuggerHandler] implementation
+/// for routing debug events to the GUI
+pub mod debug_gui_handler;
+
+#[cfg(feature = "debugger")]
 mod debugger;
 
 /// `wasmtime` module contains a number of implementations of the wasm execution
