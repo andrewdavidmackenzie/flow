@@ -291,6 +291,10 @@ impl<'a> Debugger<'a> {
                     functions.sort_by_key(RuntimeFunction::id);
                     self.debug_server.function_list(&functions);
                 }
+                Ok(DebugCommand::ProcessList) => {
+                    let message = Self::process_tree(state);
+                    self.debug_server.message(message);
+                }
                 Ok(Inspect) => self.debug_server.run_state(state),
                 Ok(InspectFunction(function_id)) => {
                     if state.get_function(function_id).is_some() {
@@ -656,10 +660,66 @@ impl<'a> Debugger<'a> {
         response
     }
 
-    /*
-       Run checks on the current flow execution state to check if it is valid
-       Currently deadlock check is the only check that exists.
-    */
+    fn process_tree(state: &RunState) -> String {
+        use std::collections::HashMap;
+
+        let functions = state.get_functions();
+        let mut by_parent: HashMap<usize, Vec<&RuntimeFunction>> = HashMap::new();
+        for func in functions.values() {
+            let parent = func.get_parent_id();
+            if parent == func.id() {
+                by_parent.entry(usize::MAX).or_default().push(func);
+            } else {
+                by_parent.entry(parent).or_default().push(func);
+            }
+        }
+        for children in by_parent.values_mut() {
+            children.sort_by_key(|f| f.id());
+        }
+
+        let mut response = String::from("Process Tree\n");
+        Self::print_tree(&by_parent, functions, usize::MAX, 0, &mut response);
+        response
+    }
+
+    fn print_tree(
+        by_parent: &std::collections::HashMap<usize, Vec<&RuntimeFunction>>,
+        all_functions: &std::collections::HashMap<usize, RuntimeFunction>,
+        parent_id: usize,
+        depth: usize,
+        response: &mut String,
+    ) {
+        let indent = "  ".repeat(depth);
+        if let Some(parent) = all_functions.get(&parent_id) {
+            let _ = writeln!(
+                response,
+                "{indent}#{} '{}' @ '{}'",
+                parent.id(),
+                parent.name(),
+                parent.route()
+            );
+        } else if depth == 0 {
+            let _ = writeln!(response, "{indent}/ (root flow)");
+        }
+
+        if let Some(children) = by_parent.get(&parent_id) {
+            for child in children {
+                if by_parent.contains_key(&child.id()) {
+                    Self::print_tree(by_parent, all_functions, child.id(), depth + 1, response);
+                } else {
+                    let child_indent = "  ".repeat(depth + 1);
+                    let _ = writeln!(
+                        response,
+                        "{child_indent}#{} '{}' @ '{}'",
+                        child.id(),
+                        child.name(),
+                        child.route()
+                    );
+                }
+            }
+        }
+    }
+
     fn validate(_state: &RunState) -> String {
         let mut response = String::new();
 
@@ -1403,5 +1463,71 @@ mod test {
         assert!(debugger
             .delete_breakpoint(&state, Some(BreakpointSpec::Output((0, String::new()))))
             .is_ok());
+    }
+
+    #[test]
+    fn test_add_completed_breakpoint() {
+        let state = RunState::new(test_submission(vec![test_function(0)]));
+        let mut server = DummyServer::new();
+        let mut debugger = Debugger::new(&mut server);
+        let result = debugger.add_breakpoint(&state, Some(BreakpointSpec::Completed(0)));
+        assert!(result.is_ok());
+        assert!(debugger.completed_breakpoints.contains(&0));
+    }
+
+    #[test]
+    fn test_add_completed_breakpoint_invalid_function() {
+        let state = RunState::new(test_submission(vec![test_function(0)]));
+        let mut server = DummyServer::new();
+        let mut debugger = Debugger::new(&mut server);
+        let result = debugger.add_breakpoint(&state, Some(BreakpointSpec::Completed(99)));
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_delete_completed_breakpoint() {
+        let state = RunState::new(test_submission(vec![test_function(0)]));
+        let mut server = DummyServer::new();
+        let mut debugger = Debugger::new(&mut server);
+        debugger
+            .add_breakpoint(&state, Some(BreakpointSpec::Completed(0)))
+            .expect("Couldn't add breakpoint");
+        assert!(debugger
+            .delete_breakpoint(&state, Some(BreakpointSpec::Completed(0)))
+            .is_ok());
+        assert!(!debugger.completed_breakpoints.contains(&0));
+    }
+
+    #[test]
+    fn test_list_completed_breakpoints() {
+        let state = RunState::new(test_submission(vec![test_function(0)]));
+        let mut server = DummyServer::new();
+        let mut debugger = Debugger::new(&mut server);
+        debugger
+            .add_breakpoint(&state, Some(BreakpointSpec::Completed(0)))
+            .expect("Couldn't add breakpoint");
+        let list = debugger.list_breakpoints();
+        assert!(list.contains("Completion Breakpoints"));
+        assert!(list.contains("Function #0+"));
+    }
+
+    #[test]
+    fn test_process_tree() {
+        let state = RunState::new(test_submission(vec![test_function(0)]));
+        let tree = Debugger::process_tree(&state);
+        assert!(tree.contains("Process Tree"));
+        assert!(tree.contains("#0"));
+    }
+
+    #[test]
+    fn test_job_done_with_completed_breakpoint() {
+        let mut state = RunState::new(test_submission(vec![test_function(0)]));
+        let mut server = DummyServer::new();
+        let job = test_job();
+        let mut debugger = Debugger::new(&mut server);
+        debugger.completed_breakpoints.insert(0);
+        let _ = debugger.job_done(&mut state, &job);
+        assert!(server.job_completed);
+        assert_eq!(server.job_breakpoint, job.payload.job_id);
     }
 }

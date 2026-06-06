@@ -60,6 +60,8 @@ pub enum DebugCommand {
     Step(Option<usize>),
     /// `validate` the current state
     Validate,
+    /// List all flows and functions in a hierarchical tree
+    ProcessList,
 }
 
 impl fmt::Display for DebugCommand {
