@@ -89,6 +89,7 @@ Breakpoints can be set on different aspects of flow execution:
 | `source_id/route` | `b 3/result` | Break when function #3 sends on output `/result` |
 | `dest_id:input` | `b 5:0` | Break when input #0 of function #5 receives a value |
 | `src->dest` | `b 1->2` | Break when a block is created between functions #1 and #2 |
+| `/route` | `b /my-flow/add` | Break on function at that route path |
 | `*` | `d *` | Delete all breakpoints |
 
 #### Inspect Specs
@@ -107,3 +108,4 @@ The `inspect` command accepts the following spec formats to examine specific par
 | `i running` | Show functions in Running state with job IDs |
 | `i completed` | Show functions that have completed |
 | `i blocked` | Show functions blocked on output, and what blocks them |
+| `i /my-flow/add` | Inspect function or flow at that route path |

@@ -300,6 +300,10 @@ impl<'a> Debugger<'a> {
                     let message = Self::inspect_by_state(state, state_name);
                     self.debug_server.message(message);
                 }
+                Ok(DebugCommand::InspectRoute(ref route)) => {
+                    let message = Self::inspect_by_route(state, route);
+                    self.debug_server.message(message);
+                }
                 Ok(InspectFunction(function_id)) => {
                     if state.get_function(function_id).is_some() {
                         self.debug_server.function_states(
@@ -517,6 +521,22 @@ impl<'a> Debugger<'a> {
                     function.route()
                 ))
             }
+            Some(BreakpointSpec::Route(route)) => {
+                if let Some(process_id) = Self::find_by_route(state, &route) {
+                    self.function_breakpoints.insert(process_id);
+                    let function = state
+                        .get_function(process_id)
+                        .ok_or("Could not get function")?;
+                    Ok(format!(
+                        "Breakpoint set on Function #{} ({}) @ '{}'",
+                        process_id,
+                        function.name(),
+                        function.route()
+                    ))
+                } else {
+                    bail!(format!("No function or flow found at route '{route}'"))
+                }
+            }
         }
     }
 
@@ -604,6 +624,19 @@ impl<'a> Debugger<'a> {
                     bail!("No completion breakpoint on Function #{process_id} exists\n")
                 }
             }
+            Some(BreakpointSpec::Route(route)) => {
+                if let Some(process_id) = Self::find_by_route(state, &route) {
+                    if self.function_breakpoints.remove(&process_id) {
+                        Ok(format!(
+                            "Breakpoint on '{route}' (Function #{process_id}) was deleted"
+                        ))
+                    } else {
+                        bail!(format!("No breakpoint on '{route}' exists"))
+                    }
+                } else {
+                    bail!(format!("No function or flow found at route '{route}'"))
+                }
+            }
         }
     }
 
@@ -659,6 +692,71 @@ impl<'a> Debugger<'a> {
             response.push_str(
                 "No Breakpoints set. Use the 'b' command to set a breakpoint. Use 'h' for help.\n",
             );
+        }
+
+        response
+    }
+
+    fn find_by_route(state: &RunState, route: &str) -> Option<usize> {
+        state
+            .get_functions()
+            .values()
+            .find(|f| f.route() == route)
+            .map(RuntimeFunction::id)
+    }
+
+    fn inspect_by_route(state: &RunState, route: &str) -> String {
+        let Some(func_id) = Self::find_by_route(state, route) else {
+            return format!("No function or flow found at route '{route}'");
+        };
+
+        let is_flow = state.submission.manifest.flows().contains_key(&func_id);
+
+        let mut response = String::new();
+
+        if is_flow {
+            let function = state.get_functions().get(&func_id).cloned();
+            if let Some(func) = function {
+                let _ = writeln!(
+                    response,
+                    "Flow #{} '{}' @ '{}'",
+                    func.id(),
+                    func.name(),
+                    func.route()
+                );
+            }
+            let _ = writeln!(response, "Children:");
+            let mut children: Vec<_> = state
+                .get_functions()
+                .values()
+                .filter(|f| f.get_parent_id() == func_id && f.id() != func_id)
+                .collect();
+            children.sort_by_key(|f| f.id());
+            if children.is_empty() {
+                let _ = writeln!(response, "  (none)");
+            } else {
+                for child in children {
+                    let states = state.get_function_states(child.id());
+                    let _ = writeln!(
+                        response,
+                        "  #{} '{}' @ '{}' [{:?}]",
+                        child.id(),
+                        child.name(),
+                        child.route(),
+                        states
+                    );
+                }
+            }
+        } else if let Some(function) = state.get_function(func_id) {
+            let _ = writeln!(
+                response,
+                "Function #{} '{}' @ '{}'",
+                function.id(),
+                function.name(),
+                function.route()
+            );
+            let states = state.get_function_states(func_id);
+            let _ = writeln!(response, "  State: {states:?}");
         }
 
         response
@@ -1637,5 +1735,46 @@ mod test {
         let state = RunState::new(test_submission(vec![test_function(0)]));
         let result = Debugger::inspect_by_state(&state, "blocked");
         assert!(result.contains("Blocked functions:"));
+    }
+
+    #[test]
+    fn test_inspect_by_route_found() {
+        let state = RunState::new(test_submission(vec![test_function(0)]));
+        let result = Debugger::inspect_by_route(&state, "/fA");
+        assert!(result.contains("Function #0"));
+    }
+
+    #[test]
+    fn test_inspect_by_route_not_found() {
+        let state = RunState::new(test_submission(vec![test_function(0)]));
+        let result = Debugger::inspect_by_route(&state, "/nonexistent");
+        assert!(result.contains("No function or flow found"));
+    }
+
+    #[test]
+    fn test_find_by_route() {
+        let state = RunState::new(test_submission(vec![test_function(0)]));
+        assert_eq!(Debugger::find_by_route(&state, "/fA"), Some(0));
+        assert_eq!(Debugger::find_by_route(&state, "/nonexistent"), None);
+    }
+
+    #[test]
+    fn test_add_breakpoint_by_route() {
+        let state = RunState::new(test_submission(vec![test_function(0)]));
+        let mut server = DummyServer::new();
+        let mut debugger = Debugger::new(&mut server);
+        let result = debugger.add_breakpoint(&state, Some(BreakpointSpec::Route("/fA".into())));
+        assert!(result.is_ok());
+        assert!(debugger.function_breakpoints.contains(&0));
+    }
+
+    #[test]
+    fn test_add_breakpoint_by_route_not_found() {
+        let state = RunState::new(test_submission(vec![test_function(0)]));
+        let mut server = DummyServer::new();
+        let mut debugger = Debugger::new(&mut server);
+        let result =
+            debugger.add_breakpoint(&state, Some(BreakpointSpec::Route("/nonexistent".into())));
+        assert!(result.is_err());
     }
 }

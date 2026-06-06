@@ -35,6 +35,7 @@ const HELP_STRING: &str = "Debugger commands:
                                  - on an output by source_id/output_route ('source_id/' for default output)
                                  - on an input by destination_id:input_number
                                  - on block creation by blocked_process_id->blocking_process_id
+                                 - on a function by route path (e.g. '/my-flow/add')
 'c' | 'continue'              - Continue execution after a breakpoint
 'd' | 'delete' {spec} or '*'  - Delete the breakpoint matching {spec} or all with '*'
 'e' | 'exit'                  - Stop flow execution and exit debugger
@@ -47,6 +48,7 @@ const HELP_STRING: &str = "Debugger commands:
                                  - 'i <id>/<route>' inspects output connections
                                  - 'i <id>-><id>' inspects blocks between functions
                                  - 'i ready|waiting|running|completed|blocked' filters by state
+                                 - 'i /route/path' inspects function or flow at that route
 'l' | 'list'                  - List all breakpoints
 'm' | 'modify' [name]=[value] - Modify a debugger or runtime variable named 'name' to value 'value'
 'p' | 'processes'             - Show flows and functions in a hierarchical tree
@@ -166,6 +168,10 @@ impl DebugClient {
                     return Some(BreakpointSpec::Numeric(integer));
                 }
 
+                if spec.first()?.starts_with('/') {
+                    return Some(BreakpointSpec::Route(spec.first()?.clone()));
+                }
+
                 if spec.first()?.contains('/') {
                     let sub_parts: Vec<&str> = spec.first()?.split('/').collect();
                     if let Ok(source_process_id) = sub_parts.first()?.parse::<usize>() {
@@ -222,6 +228,7 @@ impl DebugClient {
             Some(BreakpointSpec::Block((source_function_id, destination_function_id))) => {
                 Some(InspectBlock(source_function_id, destination_function_id))
             }
+            Some(BreakpointSpec::Route(route)) => Some(DebugCommand::InspectRoute(route)),
             _ => {
                 println!(
                     "Unsupported format for 'inspect' command. Use 'h' or 'help' command for help"
@@ -543,6 +550,28 @@ mod test {
         assert_eq!(
             DebugClient::parse_breakpoint_spec(specs("1->2")),
             Some(BreakpointSpec::Block((Some(1), Some(2))))
+        );
+    }
+
+    #[test]
+    fn parse_breakpoint_spec_route() {
+        use crate::debug_command::BreakpointSpec;
+        assert_eq!(
+            DebugClient::parse_breakpoint_spec(specs("/my-flow/add")),
+            Some(BreakpointSpec::Route("/my-flow/add".into()))
+        );
+        assert_eq!(
+            DebugClient::parse_breakpoint_spec(specs("/")),
+            Some(BreakpointSpec::Route("/".into()))
+        );
+    }
+
+    #[test]
+    fn parse_inspect_spec_route() {
+        use crate::debug_command::DebugCommand;
+        assert_eq!(
+            DebugClient::parse_inspect_spec(specs("/my-flow/add")),
+            Some(DebugCommand::InspectRoute("/my-flow/add".into()))
         );
     }
 
