@@ -37,15 +37,18 @@ The debugger will display a prompt where you can enter commands before execution
 
 #### Starting a Debug Session from flowrgui
 
-You can also debug flows launched from the `flowrgui` GUI runner:
+You can also debug flows from the `flowrgui` GUI runner with built-in visual controls:
 
 1. Open `flowrgui` and load a flow
-2. Click the **Debug** button (instead of Run)
-3. The status bar shows "Waiting for debugger to connect..." along with the
-   `flowrdb` command to use
-4. In a separate terminal, run the `flowrdb` command shown in the status bar
-5. The flow will start executing once `flowrdb` connects
-6. Flow output appears in flowrgui's tabs while debug commands are entered in flowrdb
+2. Click the **Debug** button (instead of Play)
+3. A debug control row appears with buttons for Continue, Step, Reset, Exit,
+   breakpoints, and inspect commands
+4. A **Debug** tab shows debug events and command output
+5. Use the controls to step through execution, set breakpoints, and inspect state
+6. Click **Stop** to exit the debugger at any time
+
+Alternatively, you can attach the CLI debugger `flowrdb` from a separate terminal
+using the connection info shown in the status bar.
 
 #### Debugging Workflow
 
@@ -68,6 +71,7 @@ You can also debug flows launched from the `flowrgui` GUI runner:
 | `delete {spec}` | `d` | Delete a breakpoint matching the spec, or `*` for all |
 | `list` | `l` | List all breakpoints currently set |
 | `functions` | `f` | Show all functions in the flow |
+| `processes` | `p` | Show flows and functions in a hierarchical tree |
 | `inspect [spec]` | `i` | Inspect overall state, or a specific function/input/output |
 | `validate` | `v` | Run checks to validate the current flow state |
 | `modify name=value` | `m` | Modify a runtime variable (e.g. `max_parallel_jobs=2`) |
@@ -81,6 +85,7 @@ Breakpoints can be set on different aspects of flow execution:
 | Spec | Example | Description |
 |------|---------|-------------|
 | `function_id` | `b 3` | Break when function #3 is about to execute |
+| `function_id+` | `b 3+` | Break when function #3 completes a job |
 | `source_id/route` | `b 3/result` | Break when function #3 sends on output `/result` |
 | `dest_id:input` | `b 5:0` | Break when input #0 of function #5 receives a value |
 | `src->dest` | `b 1->2` | Break when a block is created between functions #1 and #2 |
