@@ -525,7 +525,7 @@ impl FlowrGui {
             let debug_port = connection_manager::get_debug_port();
             if debug_port > 0 {
                 row = row.push(
-                    Text::new(format!("flowdb --address localhost:{debug_port}"))
+                    Text::new(format!("flowrdb --address localhost:{debug_port}"))
                         .size(13)
                         .color(iced::Color::from_rgb(0.4, 0.6, 1.0)),
                 );

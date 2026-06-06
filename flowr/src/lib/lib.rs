@@ -68,8 +68,12 @@ pub mod debug_server_message;
 
 #[cfg(feature = "debugger")]
 /// ZMQ-based [`DebuggerHandler`][debugger_handler::DebuggerHandler] implementation for
-/// forwarding debug events to an external client like `flowdb`
+/// forwarding debug events to an external client like `flowrdb`
 pub mod debug_zmq_handler;
+
+#[cfg(feature = "debugger")]
+/// CLI REPL debug client used by the `flowrdb` binary
+pub mod debug_client;
 
 #[cfg(feature = "debugger")]
 mod debugger;
@@ -79,3 +83,6 @@ mod wasm;
 
 #[cfg(debug_assertions)]
 mod checks;
+
+/// Shared test helper for setting up client-coordinator test connections
+pub mod test_helper;

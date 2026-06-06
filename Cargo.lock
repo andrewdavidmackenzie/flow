@@ -1368,22 +1368,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "flowdb"
-version = "1.0.0"
-dependencies = [
- "clap",
- "env_logger",
- "error-chain",
- "flowcore",
- "flowr",
- "log",
- "portpicker",
- "rustyline",
- "serde_json",
- "serial_test",
-]
-
-[[package]]
 name = "flowedit"
 version = "1.0.0"
 dependencies = [

@@ -1,7 +1,7 @@
 //! ZMQ-based [`DebuggerHandler`] implementation that forwards debug events
 //! between the coordinator and an external debug client over a [`CoordinatorConnection`].
 //!
-//! Used by `flowrcli` and `flowrgui` when debugging with an external `flowdb` client.
+//! Used by `flowrcli` and `flowrgui` when debugging with an external `flowrdb` client.
 //! In the future, `flowrgui` may use a different handler that routes to its own UI.
 
 use serde_json::Value;

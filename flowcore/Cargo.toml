@@ -29,6 +29,10 @@ meta_provider = []
 file_provider = []
 http_provider = []
 
+[package.metadata.cargo-all-features]
+max_combination_size = 2
+skip_feature_sets = [["online_tests"]]
+
 [dependencies]
 serde_json = { version = "1.0", default-features = false, features = ["alloc"] }
 serde_derive = { version = "~1.0.27"}

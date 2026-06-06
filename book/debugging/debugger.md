@@ -4,7 +4,7 @@ The flow debugger allows you to interactively debug flow programs by setting bre
 stepping through execution, and inspecting runtime state.
 
 The debugger uses a two-process architecture: the flow runner (`flowrcli`) hosts the debug
-server, and `flowdb` is a standalone debug client that connects from a separate terminal.
+server, and `flowrdb` is a standalone debug client that connects from a separate terminal.
 This keeps the debugger's I/O separate from the flow's stdin/stdout.
 
 #### Compiling with Debug Symbols
@@ -20,17 +20,17 @@ Note: `flowrcli` must be compiled with the `"debugger"` feature enabled (it is b
 **Terminal 1** — Start the flow with debugging enabled:
 ```bash
 flowrcli --debugger --native my-flow/manifest.json
-# Debug server listening on port 12345. Connect with: flowdb --address localhost:12345
+# Debug server listening on port 12345. Connect with: flowrdb --address localhost:12345
 ```
 
 **Terminal 2** — Connect the debugger:
 ```bash
-flowdb --address localhost:12345
+flowrdb --address localhost:12345
 ```
 
 Or let mDNS discover the debug server automatically:
 ```bash
-flowdb
+flowrdb
 ```
 
 The debugger will display a prompt where you can enter commands before execution begins.
@@ -42,10 +42,10 @@ You can also debug flows launched from the `flowrgui` GUI runner:
 1. Open `flowrgui` and load a flow
 2. Click the **Debug** button (instead of Run)
 3. The status bar shows "Waiting for debugger to connect..." along with the
-   `flowdb` command to use
-4. In a separate terminal, run the `flowdb` command shown in the status bar
-5. The flow will start executing once `flowdb` connects
-6. Flow output appears in flowrgui's tabs while debug commands are entered in flowdb
+   `flowrdb` command to use
+4. In a separate terminal, run the `flowrdb` command shown in the status bar
+5. The flow will start executing once `flowrdb` connects
+6. Flow output appears in flowrgui's tabs while debug commands are entered in flowrdb
 
 #### Debugging Workflow
 

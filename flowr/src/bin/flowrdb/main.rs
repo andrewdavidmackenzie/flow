@@ -1,6 +1,6 @@
-//! `flowdb` is a standalone debugger client for flow programs.
+//! `flowrdb` is a standalone debugger client for flow programs.
 //!
-//! It connects to a flow runner's debug server (started with `flowrcli --debugger`)
+//! It connects to a flow runner's debug server (started with `flowrcli --debugger or flowrgui Debug button`)
 //! and provides an interactive REPL for setting breakpoints, stepping through
 //! execution, and inspecting runtime state.
 
@@ -9,10 +9,10 @@ use std::process::exit;
 use clap::{Arg, Command};
 use log::{error, info};
 
-use flowcore::discovery::discover_service;
-use flowcore::services::DEBUG_SERVICE_NAME;
-use flowdblib::debug_client::DebugClient;
 use flowrlib::connections::ClientConnection;
+use flowrlib::debug_client::DebugClient;
+use flowrlib::discovery::discover_service;
+use flowrlib::services::DEBUG_SERVICE_NAME;
 
 /// Parse command line arguments
 fn parse_args() -> clap::ArgMatches {
@@ -62,7 +62,7 @@ fn main() {
                 error!("Could not discover debug server: {e}");
                 eprintln!(
                     "Could not discover debug server. Is flowrcli running with --debugger?\n\
-                    You can also connect directly with: flowdb --address HOST:PORT"
+                    You can also connect directly with: flowrdb --address HOST:PORT"
                 );
                 exit(1);
             }
@@ -95,7 +95,7 @@ fn main() {
     };
 
     println!(
-        "flowdb {} - connected to {server_address}",
+        "flowrdb {} - connected to {server_address}",
         env!("CARGO_PKG_VERSION")
     );
     println!("Type 'h' or 'help' for available commands.\n");

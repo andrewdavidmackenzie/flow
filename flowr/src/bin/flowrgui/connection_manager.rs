@@ -271,7 +271,7 @@ fn start_server(coordinator_settings: ServerSettings) -> Result<()> {
     #[cfg(feature = "debugger")]
     {
         DEBUG_PORT.store(debug_port, Ordering::Relaxed);
-        info!("Debug server listening on port {debug_port}. Connect with: flowdb --address localhost:{debug_port}");
+        info!("Debug server listening on port {debug_port}. Connect with: flowrdb --address localhost:{debug_port}");
     }
 
     info!("Starting coordinator in background thread");
