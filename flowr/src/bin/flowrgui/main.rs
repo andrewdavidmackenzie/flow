@@ -45,6 +45,8 @@ use flowcore::model::submission::Submission;
 use flowcore::provider::Provider;
 use flowcore::url_helper::url_from_string;
 use flowrlib::connections::CoordinatorConnection;
+#[cfg(feature = "debugger")]
+use flowrlib::debug_client::DebugClient;
 use flowrlib::info as flowrlib_info;
 
 use crate::gui::client_message::ClientMessage;
@@ -117,6 +119,54 @@ pub enum Message {
     SaveError(String),
     /// closing of the Modal was requested
     CloseModal,
+    /// A formatted debug event from the debug server
+    #[cfg(feature = "debugger")]
+    DebugEvent(String),
+    /// The debugger is waiting for a command (enables debug buttons)
+    #[cfg(feature = "debugger")]
+    DebugWaiting,
+    /// Debug client connected to the debug server
+    #[cfg(feature = "debugger")]
+    DebugConnected,
+    /// Debug client disconnected from the debug server
+    #[cfg(feature = "debugger")]
+    DebugDisconnected(String),
+    /// User clicked Continue in the debug controls
+    #[cfg(feature = "debugger")]
+    DebugContinue,
+    /// User clicked Step in the debug controls
+    #[cfg(feature = "debugger")]
+    DebugStep,
+    /// User clicked Run/Reset in the debug controls
+    #[cfg(feature = "debugger")]
+    DebugReset,
+    /// User clicked Exit Debugger in the debug controls
+    #[cfg(feature = "debugger")]
+    DebugExit,
+    /// The step count text input changed
+    #[cfg(feature = "debugger")]
+    DebugStepCountChanged(String),
+    /// The breakpoint/inspect spec text input changed
+    #[cfg(feature = "debugger")]
+    DebugSpecChanged(String),
+    /// User clicked Set Breakpoint
+    #[cfg(feature = "debugger")]
+    DebugSetBreakpoint,
+    /// User clicked Delete All Breakpoints
+    #[cfg(feature = "debugger")]
+    DebugDeleteBreakpoints,
+    /// User clicked List Breakpoints
+    #[cfg(feature = "debugger")]
+    DebugListBreakpoints,
+    /// User clicked Inspect State
+    #[cfg(feature = "debugger")]
+    DebugInspect,
+    /// User clicked Functions list
+    #[cfg(feature = "debugger")]
+    DebugFunctions,
+    /// User clicked Validate
+    #[cfg(feature = "debugger")]
+    DebugValidate,
 }
 
 #[allow(clippy::ignored_unit_patterns)]
@@ -210,6 +260,14 @@ struct FlowrGui {
     show_modal: bool,
     modal_content: (String, String),
     pending_getline: bool,
+    #[cfg(feature = "debugger")]
+    debug_waiting: bool,
+    #[cfg(feature = "debugger")]
+    debug_spec_text: String,
+    #[cfg(feature = "debugger")]
+    debug_step_count: String,
+    #[cfg(feature = "debugger")]
+    debug_client_active: bool,
 }
 
 impl FlowrGui {
@@ -230,6 +288,14 @@ impl FlowrGui {
             show_modal: false,
             modal_content: (String::new(), String::new()),
             pending_getline: false,
+            #[cfg(feature = "debugger")]
+            debug_waiting: false,
+            #[cfg(feature = "debugger")]
+            debug_spec_text: String::new(),
+            #[cfg(feature = "debugger")]
+            debug_step_count: String::new(),
+            #[cfg(feature = "debugger")]
+            debug_client_active: false,
         };
 
         (flowrgui, Task::none())
@@ -249,6 +315,7 @@ impl FlowrGui {
         }
     }
 
+    #[allow(clippy::too_many_lines)]
     fn update(&mut self, message: Message) -> Task<Message> {
         match message {
             Message::CoordinatorSent(CoordinatorMessage::Connected(sender)) => {
@@ -285,6 +352,13 @@ impl FlowrGui {
             }
             Message::StopFlow => {
                 connection_manager::request_stop();
+                #[cfg(feature = "debugger")]
+                if self.debug_client_active {
+                    self.debug_waiting = false;
+                    connection_manager::send_debug_command(
+                        flowcore::model::debug_command::DebugCommand::ExitDebugger,
+                    );
+                }
             }
             Message::FlowArgsChanged(value) => self.submission_settings.flow_args = value,
             Message::MaxJobsChanged(value) => {
@@ -295,6 +369,12 @@ impl FlowrGui {
                 if let CoordinatorState::Connected(sender) = &self.coordinator_state {
                     let mut settings = self.submission_settings.clone();
                     settings.debug_this_flow = true;
+                    self.submission_settings.debug_this_flow = true;
+                    #[cfg(feature = "debugger")]
+                    {
+                        self.debug_client_active = true;
+                        self.debug_waiting = false;
+                    }
                     return Task::perform(Self::submit(sender.clone(), settings), |result| {
                         match result {
                             Ok(()) => Message::Submitted,
@@ -315,6 +395,25 @@ impl FlowrGui {
                 return self.process_coordinator_message(coord_msg);
             }
             Message::CloseModal => self.show_modal = false,
+            #[cfg(feature = "debugger")]
+            msg @ (Message::DebugEvent(_)
+            | Message::DebugWaiting
+            | Message::DebugConnected
+            | Message::DebugDisconnected(_)
+            | Message::DebugContinue
+            | Message::DebugStep
+            | Message::DebugReset
+            | Message::DebugExit
+            | Message::DebugStepCountChanged(_)
+            | Message::DebugSpecChanged(_)
+            | Message::DebugSetBreakpoint
+            | Message::DebugDeleteBreakpoints
+            | Message::DebugListBreakpoints
+            | Message::DebugInspect
+            | Message::DebugFunctions
+            | Message::DebugValidate) => {
+                return self.process_debug_message(msg);
+            }
             Message::CoordinatorDisconnected(reason) => {
                 self.coordinator_state = CoordinatorState::Disconnected(reason);
             }
@@ -351,9 +450,14 @@ impl FlowrGui {
     }
 
     fn view(&self) -> Element<'_, Message> {
-        let main_content = Column::new()
-            .spacing(12)
-            .push(self.command_row())
+        let mut main_content = Column::new().spacing(12).push(self.command_row());
+
+        #[cfg(feature = "debugger")]
+        if self.submission_settings.debug_this_flow && self.debug_client_active {
+            main_content = main_content.push(self.debug_row());
+        }
+
+        let main_content = main_content
             .push(self.tab_set.view())
             .push(self.status_row())
             .padding(16);
@@ -383,8 +487,21 @@ impl FlowrGui {
     }
 
     fn subscription(&self) -> Subscription<Message> {
-        connection_manager::subscribe(self.coordinator_settings.clone())
-            .map(Message::CoordinatorSent)
+        let coordinator_sub = connection_manager::subscribe(self.coordinator_settings.clone())
+            .map(Message::CoordinatorSent);
+
+        #[cfg(feature = "debugger")]
+        if self.debug_client_active {
+            let debug_port = connection_manager::get_debug_port();
+            if debug_port > 0 {
+                return Subscription::batch([
+                    coordinator_sub,
+                    connection_manager::debug_client_subscribe(debug_port),
+                ]);
+            }
+        }
+
+        coordinator_sub
     }
 }
 
@@ -487,6 +604,108 @@ impl FlowrGui {
             .push(max_jobs)
             .push(play)
             .push(debug_play)
+    }
+
+    #[cfg(feature = "debugger")]
+    fn debug_row(&self) -> Row<'_, Message> {
+        let can_cmd = self.debug_waiting;
+
+        let mut continue_btn = Button::new(Text::new("\u{25B6} Continue"))
+            .style(theme::styled_button)
+            .padding([4, 10]);
+        if can_cmd {
+            continue_btn = continue_btn.on_press(Message::DebugContinue);
+        }
+
+        let mut step_btn = Button::new(Text::new("\u{23ED} Step"))
+            .style(theme::styled_button)
+            .padding([4, 10]);
+        if can_cmd {
+            step_btn = step_btn.on_press(Message::DebugStep);
+        }
+
+        let step_count = text_input("n", &self.debug_step_count)
+            .on_input(Message::DebugStepCountChanged)
+            .width(40);
+
+        let mut reset_btn = Button::new(Text::new("\u{21BB} Reset"))
+            .style(theme::styled_button)
+            .padding([4, 10]);
+        if can_cmd {
+            reset_btn = reset_btn.on_press(Message::DebugReset);
+        }
+
+        let mut exit_btn = Button::new(Text::new("\u{23F9} Exit"))
+            .style(theme::styled_button)
+            .padding([4, 10]);
+        if can_cmd {
+            exit_btn = exit_btn.on_press(Message::DebugExit);
+        }
+
+        let spec_input = text_input("breakpoint spec", &self.debug_spec_text)
+            .on_input(Message::DebugSpecChanged)
+            .width(120);
+
+        let mut bp_btn = Button::new(Text::new("Set BP"))
+            .style(theme::styled_button)
+            .padding([4, 8]);
+        if can_cmd {
+            bp_btn = bp_btn.on_press(Message::DebugSetBreakpoint);
+        }
+
+        let mut del_btn = Button::new(Text::new("Del All"))
+            .style(theme::styled_button)
+            .padding([4, 8]);
+        if can_cmd {
+            del_btn = del_btn.on_press(Message::DebugDeleteBreakpoints);
+        }
+
+        let mut list_btn = Button::new(Text::new("List BPs"))
+            .style(theme::styled_button)
+            .padding([4, 8]);
+        if can_cmd {
+            list_btn = list_btn.on_press(Message::DebugListBreakpoints);
+        }
+
+        let mut inspect_btn = Button::new(Text::new("Inspect"))
+            .style(theme::styled_button)
+            .padding([4, 8]);
+        if can_cmd {
+            inspect_btn = inspect_btn.on_press(Message::DebugInspect);
+        }
+
+        let mut funcs_btn = Button::new(Text::new("Functions"))
+            .style(theme::styled_button)
+            .padding([4, 8]);
+        if can_cmd {
+            funcs_btn = funcs_btn.on_press(Message::DebugFunctions);
+        }
+
+        let mut validate_btn = Button::new(Text::new("Validate"))
+            .style(theme::styled_button)
+            .padding([4, 8]);
+        if can_cmd {
+            validate_btn = validate_btn.on_press(Message::DebugValidate);
+        }
+
+        Row::new()
+            .spacing(6)
+            .padding(5)
+            .align_y(iced::alignment::Vertical::Center)
+            .push(continue_btn)
+            .push(step_btn)
+            .push(step_count)
+            .push(reset_btn)
+            .push(exit_btn)
+            .push(Text::new("|").size(13))
+            .push(spec_input)
+            .push(bp_btn)
+            .push(del_btn)
+            .push(list_btn)
+            .push(Text::new("|").size(13))
+            .push(inspect_btn)
+            .push(funcs_btn)
+            .push(validate_btn)
     }
 
     fn status_row(&self) -> Row<'_, Message> {
@@ -771,6 +990,142 @@ impl FlowrGui {
         if let CoordinatorState::Connected(ref sender) = self.coordinator_state {
             let _ = sender.try_send(msg);
         }
+    }
+
+    #[cfg(feature = "debugger")]
+    fn debug_separator(&mut self, label: &str) {
+        self.tab_set
+            .debug_tab
+            .content
+            .push(format!("\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500} {label} \u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}"));
+    }
+
+    #[cfg(feature = "debugger")]
+    #[allow(clippy::too_many_lines)]
+    fn process_debug_message(&mut self, message: Message) -> Task<Message> {
+        use flowcore::model::debug_command::{BreakpointSpec, DebugCommand};
+
+        match message {
+            Message::DebugEvent(event) => {
+                self.tab_set.debug_tab.content.push(event);
+                if self.tab_set.active_tab != 5 {
+                    self.tab_set.debug_tab.unread_count += 1;
+                }
+                if self.tab_set.debug_tab.auto_scroll {
+                    return operation::snap_to(
+                        self.tab_set.debug_tab.id.clone(),
+                        RelativeOffset::END,
+                    );
+                }
+            }
+            Message::DebugWaiting => self.debug_waiting = true,
+            Message::DebugConnected => {
+                self.tab_set
+                    .debug_tab
+                    .content
+                    .push("Connected to debug server".into());
+                self.tab_set.active_tab = 5;
+            }
+            Message::DebugDisconnected(reason) => {
+                self.debug_waiting = false;
+                self.debug_client_active = false;
+                self.tab_set
+                    .debug_tab
+                    .content
+                    .push(format!("Disconnected: {reason}"));
+            }
+            Message::DebugContinue => {
+                self.debug_waiting = false;
+                self.debug_separator("Continue");
+                connection_manager::send_debug_command(DebugCommand::Continue);
+            }
+            Message::DebugStep => {
+                self.debug_waiting = false;
+                let params = if self.debug_step_count.is_empty() {
+                    None
+                } else {
+                    Some(vec![self.debug_step_count.clone()])
+                };
+                let count = DebugClient::parse_optional_int(params);
+                if let Some(n) = count {
+                    self.debug_separator(&format!("Step ({n})"));
+                } else {
+                    self.debug_separator("Step");
+                }
+                connection_manager::send_debug_command(DebugCommand::Step(count));
+            }
+            Message::DebugReset => {
+                self.debug_waiting = false;
+                self.debug_separator("Run / Reset");
+                connection_manager::send_debug_command(DebugCommand::RunReset);
+            }
+            Message::DebugExit => {
+                self.debug_waiting = false;
+                self.debug_separator("Exit Debugger");
+                connection_manager::send_debug_command(DebugCommand::ExitDebugger);
+            }
+            Message::DebugStepCountChanged(value) => self.debug_step_count = value,
+            Message::DebugSpecChanged(value) => self.debug_spec_text = value,
+            Message::DebugSetBreakpoint => {
+                self.debug_waiting = false;
+                let params = if self.debug_spec_text.is_empty() {
+                    None
+                } else {
+                    Some(vec![self.debug_spec_text.clone()])
+                };
+                let spec_label = if self.debug_spec_text.is_empty() {
+                    "no spec".to_string()
+                } else {
+                    self.debug_spec_text.clone()
+                };
+                self.debug_separator(&format!("Set Breakpoint ({spec_label})"));
+                let spec = DebugClient::parse_breakpoint_spec(params);
+                connection_manager::send_debug_command(DebugCommand::Breakpoint(spec));
+            }
+            Message::DebugDeleteBreakpoints => {
+                self.debug_waiting = false;
+                self.debug_separator("Delete All Breakpoints");
+                connection_manager::send_debug_command(DebugCommand::Delete(Some(
+                    BreakpointSpec::All,
+                )));
+            }
+            Message::DebugListBreakpoints => {
+                self.debug_waiting = false;
+                self.debug_separator("List Breakpoints");
+                connection_manager::send_debug_command(DebugCommand::List);
+            }
+            Message::DebugInspect => {
+                self.debug_waiting = false;
+                let params = if self.debug_spec_text.is_empty() {
+                    None
+                } else {
+                    Some(vec![self.debug_spec_text.clone()])
+                };
+                if let Some(cmd) = DebugClient::parse_inspect_spec(params) {
+                    let label = if self.debug_spec_text.is_empty() {
+                        "Inspect (overall flow state)".to_string()
+                    } else {
+                        format!("Inspect ({})", self.debug_spec_text)
+                    };
+                    self.debug_separator(&label);
+                    connection_manager::send_debug_command(cmd);
+                } else {
+                    self.debug_waiting = true;
+                }
+            }
+            Message::DebugFunctions => {
+                self.debug_waiting = false;
+                self.debug_separator("Functions");
+                connection_manager::send_debug_command(DebugCommand::FunctionList);
+            }
+            Message::DebugValidate => {
+                self.debug_waiting = false;
+                self.debug_separator("Validate");
+                connection_manager::send_debug_command(DebugCommand::Validate);
+            }
+            _ => {}
+        }
+        Task::none()
     }
 
     #[allow(clippy::too_many_lines)]
@@ -1107,6 +1462,14 @@ mod test {
             show_modal: false,
             modal_content: (String::new(), String::new()),
             pending_getline: false,
+            #[cfg(feature = "debugger")]
+            debug_waiting: false,
+            #[cfg(feature = "debugger")]
+            debug_spec_text: String::new(),
+            #[cfg(feature = "debugger")]
+            debug_step_count: String::new(),
+            #[cfg(feature = "debugger")]
+            debug_client_active: false,
         }
     }
 

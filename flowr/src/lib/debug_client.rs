@@ -125,7 +125,9 @@ impl DebugClient {
         Ok((input, command, None))
     }
 
-    pub(crate) fn parse_optional_int(params: Option<Vec<String>>) -> Option<usize> {
+    /// Parse an optional integer from the first element of a parameter list
+    #[must_use]
+    pub fn parse_optional_int(params: Option<Vec<String>>) -> Option<usize> {
         if let Some(param) = params {
             if !param.is_empty() {
                 if let Ok(integer) = param.first()?.parse::<usize>() {
@@ -137,7 +139,9 @@ impl DebugClient {
         None
     }
 
-    pub(crate) fn parse_breakpoint_spec(specs: Option<Vec<String>>) -> Option<BreakpointSpec> {
+    /// Parse a breakpoint specification from a parameter list
+    #[must_use]
+    pub fn parse_breakpoint_spec(specs: Option<Vec<String>>) -> Option<BreakpointSpec> {
         if let Some(spec) = specs {
             if !spec.is_empty() {
                 if spec.first()? == "*" {
@@ -179,7 +183,9 @@ impl DebugClient {
         None
     }
 
-    pub(crate) fn parse_inspect_spec(spec: Option<Vec<String>>) -> Option<DebugCommand> {
+    /// Parse an inspect specification into a [`DebugCommand`]
+    #[must_use]
+    pub fn parse_inspect_spec(spec: Option<Vec<String>>) -> Option<DebugCommand> {
         match Self::parse_breakpoint_spec(spec) {
             None => Some(Inspect),
             Some(BreakpointSpec::Numeric(function_id)) => Some(InspectFunction(function_id)),
