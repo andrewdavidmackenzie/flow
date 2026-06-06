@@ -377,13 +377,14 @@ fn coordinator(
 
 /// Global sender for debug commands from GUI to the debug client subscription
 #[cfg(feature = "debugger")]
-static DEBUG_CMD_SENDER: OnceLock<Mutex<tokio::sync::mpsc::Sender<DebugCommand>>> = OnceLock::new();
+static DEBUG_CMD_SENDER: std::sync::RwLock<Option<tokio::sync::mpsc::Sender<DebugCommand>>> =
+    std::sync::RwLock::new(None);
 
 /// Send a debug command from the GUI to the debug client subscription
 #[cfg(feature = "debugger")]
 pub fn send_debug_command(cmd: DebugCommand) {
-    if let Some(sender) = DEBUG_CMD_SENDER.get() {
-        if let Ok(sender) = sender.lock() {
+    if let Ok(guard) = DEBUG_CMD_SENDER.read() {
+        if let Some(ref sender) = *guard {
             let _ = sender.blocking_send(cmd);
         }
     }
@@ -517,7 +518,9 @@ fn debug_client_stream(port: u16) -> impl iced::futures::Stream<Item = Message> 
         100,
         move |mut sender: iced::futures::channel::mpsc::Sender<Message>| async move {
             let (cmd_tx, mut cmd_rx) = tokio::sync::mpsc::channel::<DebugCommand>(10);
-            DEBUG_CMD_SENDER.get_or_init(|| Mutex::new(cmd_tx));
+            if let Ok(mut guard) = DEBUG_CMD_SENDER.write() {
+                *guard = Some(cmd_tx);
+            }
 
             let mut blocking_sender = sender.clone();
             let result = tokio::task::spawn_blocking(move || -> std::result::Result<(), String> {
