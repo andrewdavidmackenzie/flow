@@ -164,6 +164,9 @@ pub enum Message {
     /// User clicked Functions list
     #[cfg(feature = "debugger")]
     DebugFunctions,
+    /// User clicked Processes tree
+    #[cfg(feature = "debugger")]
+    DebugProcesses,
     /// User clicked Validate
     #[cfg(feature = "debugger")]
     DebugValidate,
@@ -411,6 +414,7 @@ impl FlowrGui {
             | Message::DebugListBreakpoints
             | Message::DebugInspect
             | Message::DebugFunctions
+            | Message::DebugProcesses
             | Message::DebugValidate) => {
                 return self.process_debug_message(msg);
             }
@@ -681,6 +685,13 @@ impl FlowrGui {
             funcs_btn = funcs_btn.on_press(Message::DebugFunctions);
         }
 
+        let mut procs_btn = Button::new(Text::new("Processes"))
+            .style(theme::styled_button)
+            .padding([4, 8]);
+        if can_cmd {
+            procs_btn = procs_btn.on_press(Message::DebugProcesses);
+        }
+
         let mut validate_btn = Button::new(Text::new("Validate"))
             .style(theme::styled_button)
             .padding([4, 8]);
@@ -705,6 +716,7 @@ impl FlowrGui {
             .push(Text::new("|").size(13))
             .push(inspect_btn)
             .push(funcs_btn)
+            .push(procs_btn)
             .push(validate_btn)
     }
 
@@ -1117,6 +1129,11 @@ impl FlowrGui {
                 self.debug_waiting = false;
                 self.debug_separator("Functions");
                 connection_manager::send_debug_command(DebugCommand::FunctionList);
+            }
+            Message::DebugProcesses => {
+                self.debug_waiting = false;
+                self.debug_separator("Processes");
+                connection_manager::send_debug_command(DebugCommand::ProcessList);
             }
             Message::DebugValidate => {
                 self.debug_waiting = false;

@@ -291,6 +291,10 @@ impl<'a> Debugger<'a> {
                     functions.sort_by_key(RuntimeFunction::id);
                     self.debug_server.function_list(&functions);
                 }
+                Ok(DebugCommand::ProcessList) => {
+                    let message = Self::process_tree(state);
+                    self.debug_server.message(message);
+                }
                 Ok(Inspect) => self.debug_server.run_state(state),
                 Ok(InspectFunction(function_id)) => {
                     if state.get_function(function_id).is_some() {
@@ -656,10 +660,64 @@ impl<'a> Debugger<'a> {
         response
     }
 
-    /*
-       Run checks on the current flow execution state to check if it is valid
-       Currently deadlock check is the only check that exists.
-    */
+    fn process_tree(state: &RunState) -> String {
+        use std::collections::HashMap;
+
+        let functions = state.get_functions();
+        let mut by_parent: HashMap<usize, Vec<&RuntimeFunction>> = HashMap::new();
+        for func in functions.values() {
+            by_parent
+                .entry(func.get_parent_id())
+                .or_default()
+                .push(func);
+        }
+        for children in by_parent.values_mut() {
+            children.sort_by_key(|f| f.id());
+        }
+
+        let mut response = String::from("Process Tree\n");
+        Self::print_tree(&by_parent, functions, 0, 0, &mut response);
+        response
+    }
+
+    fn print_tree(
+        by_parent: &std::collections::HashMap<usize, Vec<&RuntimeFunction>>,
+        all_functions: &std::collections::HashMap<usize, RuntimeFunction>,
+        parent_id: usize,
+        depth: usize,
+        response: &mut String,
+    ) {
+        let indent = "  ".repeat(depth);
+        if let Some(parent) = all_functions.get(&parent_id) {
+            let _ = writeln!(
+                response,
+                "{indent}#{} '{}' @ '{}'",
+                parent.id(),
+                parent.name(),
+                parent.route()
+            );
+        } else if depth == 0 {
+            let _ = writeln!(response, "{indent}/ (root flow)");
+        }
+
+        if let Some(children) = by_parent.get(&parent_id) {
+            for child in children {
+                if by_parent.contains_key(&child.id()) {
+                    Self::print_tree(by_parent, all_functions, child.id(), depth + 1, response);
+                } else {
+                    let child_indent = "  ".repeat(depth + 1);
+                    let _ = writeln!(
+                        response,
+                        "{child_indent}#{} '{}' @ '{}'",
+                        child.id(),
+                        child.name(),
+                        child.route()
+                    );
+                }
+            }
+        }
+    }
+
     fn validate(_state: &RunState) -> String {
         let mut response = String::new();
 
