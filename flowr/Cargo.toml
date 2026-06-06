@@ -35,6 +35,7 @@ path = "src/bin/flowrex/main.rs"
 [[bin]]
 name = "flowrdb"
 path = "src/bin/flowrdb/main.rs"
+required-features = ["debugger"]
 
 [features]
 default = ["debugger", "metrics", "context", "submission", "flowstdlib"]
