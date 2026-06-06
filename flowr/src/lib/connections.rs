@@ -48,6 +48,17 @@ impl ClientConnection {
         Ok(ClientConnection { requester })
     }
 
+    /// Set a receive timeout in milliseconds so the client doesn't block forever
+    /// if the server exits. Use 0 or -1 to disable (infinite wait).
+    ///
+    /// # Errors
+    /// Returns an error if the timeout cannot be set on the socket
+    pub fn set_receive_timeout(&self, timeout_ms: i32) -> Result<()> {
+        self.requester
+            .set_rcvtimeo(timeout_ms)
+            .chain_err(|| "Could not set receive timeout")
+    }
+
     /// Receive a message from the coordinator
     ///
     /// # Errors

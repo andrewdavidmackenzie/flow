@@ -72,7 +72,12 @@ fn main() {
     info!("Connecting to debug server at: {server_address}");
 
     let connection = match ClientConnection::new(&server_address) {
-        Ok(conn) => conn,
+        Ok(conn) => {
+            if let Err(e) = conn.set_receive_timeout(5_000) {
+                error!("Could not set receive timeout: {e}");
+            }
+            conn
+        }
         Err(e) => {
             error!("Could not connect to debug server: {e}");
             eprintln!("Could not connect to debug server at {server_address}: {e}");

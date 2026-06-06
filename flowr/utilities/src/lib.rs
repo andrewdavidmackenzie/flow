@@ -392,12 +392,25 @@ impl DebugSession {
     /// Spawns flowrcli with `--debugger --native` and connects flowdb to it.
     /// Extra args (e.g. flow arguments) can be passed via `extra_args`.
     pub fn start(example_dir: &Path, extra_args: &[&str]) -> Self {
-        compile_example(example_dir, "flowrcli");
+        Self::start_with_runner(example_dir, "flowrcli", extra_args)
+    }
 
-        let mut args = vec!["--debugger", "--native", "manifest.json"];
-        args.extend_from_slice(extra_args);
+    /// Start a debug session using a specific runner (`flowrcli` or `flowrgui`).
+    pub fn start_with_runner(example_dir: &Path, runner: &str, extra_args: &[&str]) -> Self {
+        compile_example(example_dir, runner);
 
-        let mut server = Command::new("flowrcli")
+        let mut args = vec!["--debugger", "--native"];
+        if runner == "flowrgui" {
+            args.push("--auto");
+            args.push("-v");
+            args.push("info");
+        }
+        args.push("manifest.json");
+        for arg in extra_args {
+            args.push(arg);
+        }
+
+        let mut server = Command::new(runner)
             .args(&args)
             .current_dir(
                 example_dir
@@ -408,14 +421,26 @@ impl DebugSession {
             .stdout(Stdio::piped())
             .stderr(Stdio::piped())
             .spawn()
-            .expect("Could not spawn flowrcli");
+            .unwrap_or_else(|e| panic!("Could not spawn {runner}: {e}"));
 
         let stderr = server.stderr.as_mut().expect("Could not get stderr");
         let mut reader = BufReader::new(stderr);
-        let mut port_line = String::new();
-        reader
-            .read_line(&mut port_line)
-            .expect("Could not read port line from flowrcli stderr");
+
+        // Read stderr lines until we find the debug port
+        let port_line;
+        loop {
+            let mut line = String::new();
+            reader
+                .read_line(&mut line)
+                .unwrap_or_else(|e| panic!("Could not read stderr from {runner}: {e}"));
+            if line.is_empty() {
+                panic!("Runner {runner} exited before printing debug port");
+            }
+            if line.contains("localhost:") {
+                port_line = line;
+                break;
+            }
+        }
 
         let port = port_line
             .split("localhost:")
