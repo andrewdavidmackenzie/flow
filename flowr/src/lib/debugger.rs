@@ -20,7 +20,7 @@ use crate::debug_command::DebugCommand::{
 };
 use crate::debugger_handler::DebuggerHandler;
 use crate::job::Job;
-use crate::run_state::RunState;
+use crate::run_state::{RunState, State};
 
 /// Debugger struct contains all the info necessary to conduct a debugging session, storing
 /// set breakpoints, connections to the debug client etc
@@ -296,6 +296,10 @@ impl<'a> Debugger<'a> {
                     self.debug_server.message(message);
                 }
                 Ok(Inspect) => self.debug_server.run_state(state),
+                Ok(DebugCommand::InspectState(ref state_name)) => {
+                    let message = Self::inspect_by_state(state, state_name);
+                    self.debug_server.message(message);
+                }
                 Ok(InspectFunction(function_id)) => {
                     if state.get_function(function_id).is_some() {
                         self.debug_server.function_states(
@@ -655,6 +659,82 @@ impl<'a> Debugger<'a> {
             response.push_str(
                 "No Breakpoints set. Use the 'b' command to set a breakpoint. Use 'h' for help.\n",
             );
+        }
+
+        response
+    }
+
+    fn inspect_by_state(state: &RunState, state_name: &str) -> String {
+        let target_state = match state_name {
+            "ready" => Some(State::Ready),
+            "waiting" => Some(State::Waiting),
+            "running" => Some(State::Running),
+            "completed" => Some(State::Completed),
+            "blocked" => None,
+            _ => {
+                return format!(
+                "Unknown state '{state_name}'. Use: ready, waiting, running, completed, blocked"
+            )
+            }
+        };
+
+        let mut response = String::new();
+        let functions = state.get_functions();
+        let mut sorted: Vec<_> = functions.values().collect();
+        sorted.sort_by_key(|f| f.id());
+        let mut count = 0;
+
+        if state_name == "blocked" {
+            let _ = writeln!(response, "Blocked functions:");
+            for func in &sorted {
+                let states = state.get_function_states(func.id());
+                if states.contains(&State::Waiting) {
+                    if let Ok(blockers) = state.get_input_blockers(func.id()) {
+                        if !blockers.is_empty() {
+                            count += 1;
+                            let _ = writeln!(
+                                response,
+                                "  #{} '{}' @ '{}' — blocked by: {:?}",
+                                func.id(),
+                                func.name(),
+                                func.route(),
+                                blockers
+                            );
+                        }
+                    }
+                }
+            }
+        } else if let Some(ref target) = target_state {
+            let _ = writeln!(response, "Functions in '{state_name}' state:");
+            for func in &sorted {
+                let states = state.get_function_states(func.id());
+                if states.contains(target) {
+                    count += 1;
+                    let _ = write!(
+                        response,
+                        "  #{} '{}' @ '{}'",
+                        func.id(),
+                        func.name(),
+                        func.route()
+                    );
+                    if state_name == "running" {
+                        let running_jobs: Vec<_> = state
+                            .get_running()
+                            .iter()
+                            .filter(|(_, job)| job.process_id == func.id())
+                            .map(|(job_id, _)| format!("Job #{job_id}"))
+                            .collect();
+                        if !running_jobs.is_empty() {
+                            let _ = write!(response, " ({})", running_jobs.join(", "));
+                        }
+                    }
+                    let _ = writeln!(response);
+                }
+            }
+        }
+
+        if count == 0 {
+            let _ = writeln!(response, "  (none)");
         }
 
         response
@@ -1529,5 +1609,33 @@ mod test {
         let _ = debugger.job_done(&mut state, &job);
         assert!(server.job_completed);
         assert_eq!(server.job_breakpoint, job.payload.job_id);
+    }
+
+    #[test]
+    fn test_inspect_by_state_ready() {
+        let state = RunState::new(test_submission(vec![test_function(0)]));
+        let result = Debugger::inspect_by_state(&state, "ready");
+        assert!(result.contains("Functions in 'ready' state:"));
+    }
+
+    #[test]
+    fn test_inspect_by_state_waiting() {
+        let state = RunState::new(test_submission(vec![test_function(0)]));
+        let result = Debugger::inspect_by_state(&state, "waiting");
+        assert!(result.contains("Functions in 'waiting' state:"));
+    }
+
+    #[test]
+    fn test_inspect_by_state_unknown() {
+        let state = RunState::new(test_submission(vec![test_function(0)]));
+        let result = Debugger::inspect_by_state(&state, "bogus");
+        assert!(result.contains("Unknown state"));
+    }
+
+    #[test]
+    fn test_inspect_by_state_blocked() {
+        let state = RunState::new(test_submission(vec![test_function(0)]));
+        let result = Debugger::inspect_by_state(&state, "blocked");
+        assert!(result.contains("Blocked functions:"));
     }
 }

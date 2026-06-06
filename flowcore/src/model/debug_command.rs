@@ -48,6 +48,8 @@ pub enum DebugCommand {
     InspectOutput(usize, String),
     /// Inspect a Block (optional source `function_id`, optional `destination_function_id`)
     InspectBlock(Option<usize>, Option<usize>),
+    /// Inspect functions filtered by state (ready, waiting, running, completed, blocked)
+    InspectState(String),
     /// Invalid - used when deserialization goes wrong
     Invalid,
     /// `list` existing breakpoints

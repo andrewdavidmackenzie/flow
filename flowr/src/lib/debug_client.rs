@@ -40,7 +40,13 @@ const HELP_STRING: &str = "Debugger commands:
 'e' | 'exit'                  - Stop flow execution and exit debugger
 'f' | 'functions'             - Show the list of functions
 'h' | 'help' | '?'            - Display this help message
-'i' | 'inspect' [n]           - Inspect the overall state, or the function number 'n'
+'i' | 'inspect' [spec]        - Inspect overall state, a function, input, output, or block
+                                 - 'i' with no args shows overall state
+                                 - 'i <id>' inspects function by ID
+                                 - 'i <id>:<input>' inspects an input
+                                 - 'i <id>/<route>' inspects output connections
+                                 - 'i <id>-><id>' inspects blocks between functions
+                                 - 'i ready|waiting|running|completed|blocked' filters by state
 'l' | 'list'                  - List all breakpoints
 'm' | 'modify' [name]=[value] - Modify a debugger or runtime variable named 'name' to value 'value'
 'p' | 'processes'             - Show flows and functions in a hierarchical tree
@@ -191,9 +197,19 @@ impl DebugClient {
         None
     }
 
+    const STATE_KEYWORDS: &[&str] = &["ready", "waiting", "running", "completed", "blocked"];
+
     /// Parse an inspect specification into a [`DebugCommand`]
     #[must_use]
     pub fn parse_inspect_spec(spec: Option<Vec<String>>) -> Option<DebugCommand> {
+        if let Some(ref params) = spec {
+            if let Some(keyword) = params.first() {
+                if Self::STATE_KEYWORDS.contains(&keyword.as_str()) {
+                    return Some(DebugCommand::InspectState(keyword.clone()));
+                }
+            }
+        }
+
         match Self::parse_breakpoint_spec(spec) {
             None => Some(Inspect),
             Some(BreakpointSpec::Numeric(function_id)) => Some(InspectFunction(function_id)),
@@ -560,6 +576,24 @@ mod test {
         assert_eq!(
             DebugClient::parse_inspect_spec(None),
             Some(DebugCommand::Inspect)
+        );
+    }
+
+    #[test]
+    fn parse_inspect_spec_state_ready() {
+        use crate::debug_command::DebugCommand;
+        assert_eq!(
+            DebugClient::parse_inspect_spec(specs("ready")),
+            Some(DebugCommand::InspectState("ready".into()))
+        );
+    }
+
+    #[test]
+    fn parse_inspect_spec_state_blocked() {
+        use crate::debug_command::DebugCommand;
+        assert_eq!(
+            DebugClient::parse_inspect_spec(specs("blocked")),
+            Some(DebugCommand::InspectState("blocked".into()))
         );
     }
 
