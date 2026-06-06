@@ -15,7 +15,7 @@ and be more convenient to debug.
 
 Note: `flowrcli` must be compiled with the `"debugger"` feature enabled (it is by default).
 
-#### Starting a Debug Session
+#### Starting a Debug Session from the Command Line
 
 **Terminal 1** — Start the flow with debugging enabled:
 ```bash
@@ -34,6 +34,18 @@ flowdb
 ```
 
 The debugger will display a prompt where you can enter commands before execution begins.
+
+#### Starting a Debug Session from flowrgui
+
+You can also debug flows launched from the `flowrgui` GUI runner:
+
+1. Open `flowrgui` and load a flow
+2. Click the **Debug** button (instead of Run)
+3. The status bar shows "Waiting for debugger to connect..." along with the
+   `flowdb` command to use
+4. In a separate terminal, run the `flowdb` command shown in the status bar
+5. The flow will start executing once `flowdb` connects
+6. Flow output appears in flowrgui's tabs while debug commands are entered in flowdb
 
 #### Debugging Workflow
 
