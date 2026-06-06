@@ -6,8 +6,8 @@ use image::ImageReader;
 use serde_json::{json, Value};
 use std::io::Cursor;
 
-use crate::gui::coordinator_connection::CoordinatorConnection;
 use crate::gui::coordinator_message::CoordinatorMessage;
+use flowrlib::connections::CoordinatorConnection;
 
 /// `Implementation` struct for the `image_read` function
 pub struct ImageRead {

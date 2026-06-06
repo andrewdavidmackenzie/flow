@@ -38,8 +38,6 @@ use url::Url;
 use cli::cli_client::CliRuntimeClient;
 #[cfg(feature = "submission")]
 use cli::cli_submission_handler::CLISubmissionHandler;
-use cli::connections::ClientConnection;
-use cli::connections::CoordinatorConnection;
 use cli::coordinator_message::ClientMessage;
 use flowcore::errors::{Result, ResultExt};
 use flowcore::meta_provider::MetaProvider;
@@ -47,19 +45,19 @@ use flowcore::model::flow_manifest::FlowManifest;
 use flowcore::model::submission::Submission;
 use flowcore::provider::Provider;
 use flowcore::url_helper::url_from_string;
+use flowrlib::connections::{ClientConnection, CoordinatorConnection};
 use flowrlib::coordinator::Coordinator;
+#[cfg(feature = "debugger")]
+use flowrlib::debug_zmq_handler::DebugZmqHandler;
+use flowrlib::discovery::{discover_service, enable_service_discovery};
 use flowrlib::dispatcher::Dispatcher;
 use flowrlib::executor::Executor;
 use flowrlib::info as flowrlib_info;
-use flowrlib::services::{CONTROL_SERVICE_NAME, JOB_SERVICE_NAME, RESULTS_JOB_SERVICE_NAME};
-
-use crate::cli::connections::{
-    discover_service, enable_service_discovery, COORDINATOR_SERVICE_NAME,
-};
-#[cfg(feature = "debugger")]
-use cli::cli_debug_handler::CliDebugHandler;
 #[cfg(feature = "debugger")]
 use flowrlib::services::DEBUG_SERVICE_NAME;
+use flowrlib::services::{
+    CONTROL_SERVICE_NAME, COORDINATOR_SERVICE_NAME, JOB_SERVICE_NAME, RESULTS_JOB_SERVICE_NAME,
+};
 
 /// Include the module that implements the context functions
 mod context;
@@ -278,7 +276,7 @@ fn coordinator(
     let connection = Arc::new(Mutex::new(coordinator_connection));
 
     #[cfg(feature = "debugger")]
-    let mut debug_server = CliDebugHandler {
+    let mut debug_server = DebugZmqHandler {
         debug_server_connection: debug_connection,
     };
 

@@ -4,8 +4,8 @@ use flowcore::errors::Result;
 use flowcore::{Implementation, RunAgain, DONT_RUN_AGAIN, RUN_AGAIN};
 use serde_json::{json, Value};
 
-use crate::cli::connections::CoordinatorConnection;
 use crate::cli::coordinator_message::{ClientMessage, CoordinatorMessage};
+use flowrlib::connections::CoordinatorConnection;
 
 /// `Implementation` struct for the `file_read` function
 pub struct FileRead {

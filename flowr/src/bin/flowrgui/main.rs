@@ -44,8 +44,8 @@ use flowcore::model::flow_manifest::FlowManifest;
 use flowcore::model::submission::Submission;
 use flowcore::provider::Provider;
 use flowcore::url_helper::url_from_string;
+use flowrlib::connections::CoordinatorConnection;
 use flowrlib::info as flowrlib_info;
-use gui::coordinator_connection::CoordinatorConnection;
 
 use crate::gui::client_message::ClientMessage;
 use crate::gui::coordinator_message::CoordinatorMessage;

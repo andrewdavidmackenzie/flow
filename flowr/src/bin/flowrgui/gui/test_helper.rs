@@ -5,11 +5,10 @@ pub mod test {
 
     use portpicker::pick_unused_port;
 
-    use crate::gui::client_connection::{discover_service, ClientConnection};
+    use flowrlib::connections::{ClientConnection, CoordinatorConnection, WAIT};
+    use flowrlib::discovery::{discover_service, enable_service_discovery};
+
     use crate::gui::client_message::ClientMessage;
-    use crate::gui::coordinator_connection::{
-        enable_service_discovery, CoordinatorConnection, WAIT,
-    };
     use crate::gui::coordinator_message::CoordinatorMessage;
 
     pub fn wait_for_then_send(

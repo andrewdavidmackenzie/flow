@@ -16,7 +16,7 @@ use flowrlib::debug_command::DebugCommand::{
 };
 use flowrlib::run_state::RunState;
 
-use crate::cli::connections::ClientConnection;
+use flowrlib::connections::ClientConnection;
 use crate::cli::debug_message::DebugServerMessage;
 use DebugServerMessage::{
     BlockBreakpoint, BlockState, DataBreakpoint, Deadlock, EnteringDebugger, ExecutionEnded,

@@ -53,6 +53,7 @@ impl fmt::Display for Submission {
         writeln!(f, "          Job Timeout: {:?}", self.job_timeout)?;
         #[cfg(feature = "debugger")]
         writeln!(f, "                Debug: {}", self.debug_enabled)?;
-        write!(f, "             Manifest: \n{}", self.manifest)
+        writeln!(f, "             Manifest:")?;
+        write!(f, "{}", self.manifest)
     }
 }

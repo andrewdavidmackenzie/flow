@@ -17,8 +17,8 @@ use flowcore::model::debug_command::DebugCommand::{
 use flowcore::model::runtime_function::RuntimeFunction;
 use flowrlib::run_state::RunState;
 
-use crate::client_connection::ClientConnection;
-use crate::debug_server_message::DebugServerMessage;
+use flowrlib::connections::ClientConnection;
+use flowrlib::debug_server_message::DebugServerMessage;
 use DebugServerMessage::{
     BlockBreakpoint, BlockState, DataBreakpoint, Deadlock, EnteringDebugger, ExecutionEnded,
     ExecutionStarted, ExitingDebugger, FlowUnblockBreakpoint, FunctionStates, Functions,

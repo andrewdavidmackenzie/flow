@@ -18,18 +18,20 @@ use flowrlib::executor::Executor;
 use flowrlib::services::{CONTROL_SERVICE_NAME, JOB_SERVICE_NAME, RESULTS_JOB_SERVICE_NAME};
 
 use crate::errors::{Result, ResultExt};
-use crate::gui::client_connection::{discover_service, ClientConnection};
 use crate::gui::client_message::ClientMessage;
-use crate::gui::coordinator_connection::CoordinatorConnection;
-#[cfg(feature = "debugger")]
-use crate::gui::coordinator_connection::DEBUG_SERVICE_NAME;
-use crate::gui::coordinator_connection::{enable_service_discovery, COORDINATOR_SERVICE_NAME};
 use crate::gui::coordinator_message::CoordinatorMessage;
-#[cfg(feature = "debugger")]
-use crate::gui::debug_handler::CliDebugHandler;
 #[cfg(feature = "submission")]
 use crate::gui::submission_handler::CLISubmissionHandler;
 use crate::{context, CoordinatorSettings, ServerSettings};
+use flowrlib::connections::ClientConnection;
+use flowrlib::connections::CoordinatorConnection;
+#[cfg(feature = "debugger")]
+use flowrlib::debug_zmq_handler::DebugZmqHandler;
+use flowrlib::discovery::discover_service;
+use flowrlib::discovery::enable_service_discovery;
+use flowrlib::services::COORDINATOR_SERVICE_NAME;
+#[cfg(feature = "debugger")]
+use flowrlib::services::DEBUG_SERVICE_NAME;
 
 /// States in which the Connection to the Coordinator can find itself
 pub enum CoordinatorState {
@@ -284,7 +286,7 @@ fn coordinator(
     let connection = Arc::new(Mutex::new(coordinator_connection));
 
     #[cfg(feature = "debugger")]
-    let mut debug_server = CliDebugHandler {
+    let mut debug_server = DebugZmqHandler {
         debug_server_connection: debug_connection,
     };
 
