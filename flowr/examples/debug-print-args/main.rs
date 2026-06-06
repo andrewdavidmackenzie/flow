@@ -258,14 +258,14 @@ mod test {
     #[serial]
     fn test_debug_completion_breakpoint() {
         let mut session = DebugSession::start(&example_dir(), &["test_arg1"]);
-        session.send("b 0+");
+        session.send("b 1+");
         session.send("l");
-        session.send("d 0+");
+        session.send("d 1+");
         session.send("e");
         let stdout = session.finish();
 
         assert!(
-            stdout.contains("Completion breakpoint set on Function #0"),
+            stdout.contains("Completion breakpoint set on Function #1"),
             "No completion breakpoint confirmation:\n{stdout}"
         );
         assert!(
@@ -273,11 +273,11 @@ mod test {
             "No completion breakpoints in list:\n{stdout}"
         );
         assert!(
-            stdout.contains("Function #0+"),
-            "No Function #0+ in list:\n{stdout}"
+            stdout.contains("Function #1+"),
+            "No Function #1+ in list:\n{stdout}"
         );
         assert!(
-            stdout.contains("Completion breakpoint on Function #0 was deleted"),
+            stdout.contains("Completion breakpoint on Function #1 was deleted"),
             "No deletion confirmation:\n{stdout}"
         );
     }
