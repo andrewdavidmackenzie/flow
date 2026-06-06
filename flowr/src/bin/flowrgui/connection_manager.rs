@@ -57,6 +57,16 @@ pub fn take_stop_request() -> bool {
     STOP_REQUESTED.swap(false, Ordering::Relaxed)
 }
 
+/// Global debug port, set when the debug server starts
+#[cfg(feature = "debugger")]
+static DEBUG_PORT: std::sync::atomic::AtomicU16 = std::sync::atomic::AtomicU16::new(0);
+
+/// Get the debug port (0 means not set)
+#[cfg(feature = "debugger")]
+pub fn get_debug_port() -> u16 {
+    DEBUG_PORT.load(Ordering::Relaxed)
+}
+
 /// Global counter for jobs created, updated by the coordinator thread
 static JOB_COUNT: AtomicUsize = AtomicUsize::new(0);
 
@@ -259,7 +269,10 @@ fn start_server(coordinator_settings: ServerSettings) -> Result<()> {
     let _mdns_debug = enable_service_discovery(DEBUG_SERVICE_NAME, debug_port)?;
 
     #[cfg(feature = "debugger")]
-    info!("Debug server listening on port {debug_port}. Connect with: flowdb --address localhost:{debug_port}");
+    {
+        DEBUG_PORT.store(debug_port, Ordering::Relaxed);
+        info!("Debug server listening on port {debug_port}. Connect with: flowdb --address localhost:{debug_port}");
+    }
 
     info!("Starting coordinator in background thread");
     thread::spawn(move || {

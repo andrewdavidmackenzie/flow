@@ -510,6 +510,19 @@ impl FlowrGui {
             row = row
                 .push(Text::new(format!("Jobs: {}", connection_manager::get_job_count())).size(13));
         }
+
+        #[cfg(feature = "debugger")]
+        if self.submission_settings.debug_this_flow {
+            let debug_port = connection_manager::get_debug_port();
+            if debug_port > 0 {
+                row = row.push(
+                    Text::new(format!("flowdb --address localhost:{debug_port}"))
+                        .size(13)
+                        .color(iced::Color::from_rgb(0.4, 0.6, 1.0)),
+                );
+            }
+        }
+
         row
     }
 
