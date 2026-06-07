@@ -555,6 +555,7 @@ pub fn debug_client_subscribe(address: String) -> Subscription<Message> {
 }
 
 #[cfg(feature = "debugger")]
+#[allow(clippy::too_many_lines)]
 fn debug_client_stream(address: String) -> impl iced::futures::Stream<Item = Message> {
     iced::stream::channel(
         100,
@@ -593,9 +594,34 @@ fn debug_client_stream(address: String) -> impl iced::futures::Stream<Item = Mes
                     let is_waiting = matches!(message, DebugServerMessage::WaitingForCommand(_));
 
                     if let DebugServerMessage::Functions(ref functions) = message {
-                        let func_data: Vec<(usize, String, String)> = functions
+                        let func_data: Vec<crate::CachedFunction> = functions
                             .iter()
-                            .map(|f| (f.id(), f.name().to_string(), f.route().to_string()))
+                            .map(|f| {
+                                let inputs: Vec<(usize, String)> = f
+                                    .inputs()
+                                    .iter()
+                                    .enumerate()
+                                    .map(|(i, inp)| (i, inp.name().to_string()))
+                                    .collect();
+                                let mut outputs: Vec<String> = Vec::new();
+                                for conn in f.get_output_connections() {
+                                    if let flowcore::model::output_connection::Source::Output(
+                                        ref route,
+                                    ) = conn.source
+                                    {
+                                        if !outputs.contains(route) {
+                                            outputs.push(route.clone());
+                                        }
+                                    }
+                                }
+                                crate::CachedFunction {
+                                    id: f.id(),
+                                    name: f.name().to_string(),
+                                    route: f.route().to_string(),
+                                    inputs,
+                                    outputs,
+                                }
+                            })
                             .collect();
                         let _ =
                             blocking_sender.try_send(Message::DebugFunctionListReceived(func_data));

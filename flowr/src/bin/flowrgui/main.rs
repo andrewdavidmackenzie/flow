@@ -216,9 +216,9 @@ pub enum Message {
     /// Confirm and set breakpoint from popup
     #[cfg(feature = "debugger")]
     BpPopupConfirm,
-    /// Function list received from debug server (id, name, route)
+    /// Function list received from debug server
     #[cfg(feature = "debugger")]
-    DebugFunctionListReceived(Vec<(usize, String, String)>),
+    DebugFunctionListReceived(Vec<CachedFunction>),
 }
 
 #[allow(clippy::ignored_unit_patterns)]
@@ -301,6 +301,22 @@ enum DebugMode {
     External,
 }
 
+/// Cached function info for the breakpoint popup
+#[cfg(feature = "debugger")]
+#[derive(Debug, Clone)]
+pub struct CachedFunction {
+    /// Function ID
+    pub id: usize,
+    /// Function name
+    pub name: String,
+    /// Function route
+    pub route: String,
+    /// Input names (index, name)
+    pub inputs: Vec<(usize, String)>,
+    /// Output routes
+    pub outputs: Vec<String>,
+}
+
 /// Types of breakpoints that can be set from the popup
 #[cfg(feature = "debugger")]
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -377,7 +393,7 @@ struct FlowrGui {
     #[cfg(feature = "debugger")]
     bp_target: String,
     #[cfg(feature = "debugger")]
-    cached_functions: Vec<(usize, String, String)>,
+    cached_functions: Vec<CachedFunction>,
 }
 
 impl FlowrGui {
@@ -899,24 +915,62 @@ impl FlowrGui {
                     .color(iced::Color::from_rgb(0.6, 0.6, 0.6)),
             );
         } else {
-            for (id, name, route) in &self.cached_functions {
-                let spec = match self.bp_type {
-                    BpType::Function => format!("{id}"),
-                    BpType::Completion => format!("{id}+"),
-                    BpType::Input => format!("{id}:0"),
-                    BpType::Output => format!("{id}/"),
-                    BpType::Route => route.clone(),
-                };
-                let label = format!("#{id} '{name}' @ '{route}'");
-                let is_selected = self.bp_target == spec;
-                let mut btn = Button::new(Text::new(label).size(13))
-                    .width(Length::Fill)
-                    .padding([3, 8]);
-                if is_selected {
-                    btn = btn.style(theme::styled_button);
+            match self.bp_type {
+                BpType::Function | BpType::Completion | BpType::Route => {
+                    for f in &self.cached_functions {
+                        let spec = match self.bp_type {
+                            BpType::Function => format!("{}", f.id),
+                            BpType::Completion => format!("{}+", f.id),
+                            BpType::Route => f.route.clone(),
+                            _ => unreachable!(),
+                        };
+                        let label = format!("#{} '{}' @ '{}'", f.id, f.name, f.route);
+                        let is_selected = self.bp_target == spec;
+                        let mut btn = Button::new(Text::new(label).size(13))
+                            .width(Length::Fill)
+                            .padding([3, 8]);
+                        if is_selected {
+                            btn = btn.style(theme::styled_button);
+                        }
+                        btn = btn.on_press(Message::BpTargetChanged(spec));
+                        items = items.push(btn);
+                    }
                 }
-                btn = btn.on_press(Message::BpTargetChanged(spec));
-                items = items.push(btn);
+                BpType::Input => {
+                    for f in &self.cached_functions {
+                        for (idx, input_name) in &f.inputs {
+                            let spec = format!("{}:{idx}", f.id);
+                            let label =
+                                format!("#{} '{}' input:{idx} '{input_name}'", f.id, f.name);
+                            let is_selected = self.bp_target == spec;
+                            let mut btn = Button::new(Text::new(label).size(13))
+                                .width(Length::Fill)
+                                .padding([3, 8]);
+                            if is_selected {
+                                btn = btn.style(theme::styled_button);
+                            }
+                            btn = btn.on_press(Message::BpTargetChanged(spec));
+                            items = items.push(btn);
+                        }
+                    }
+                }
+                BpType::Output => {
+                    for f in &self.cached_functions {
+                        for output_route in &f.outputs {
+                            let spec = format!("{}{output_route}", f.id);
+                            let label = format!("#{} '{}' output:'{output_route}'", f.id, f.name);
+                            let is_selected = self.bp_target == spec;
+                            let mut btn = Button::new(Text::new(label).size(13))
+                                .width(Length::Fill)
+                                .padding([3, 8]);
+                            if is_selected {
+                                btn = btn.style(theme::styled_button);
+                            }
+                            btn = btn.on_press(Message::BpTargetChanged(spec));
+                            items = items.push(btn);
+                        }
+                    }
+                }
             }
         }
 
