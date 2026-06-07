@@ -143,6 +143,54 @@ impl DebugEventLine {
             search_from = digit_end;
         }
 
+        // Extract function ID from first "Function #N" if present, for context
+        let context_func_id = text.find("Function #").and_then(|pos| {
+            let after = pos + "Function #".len();
+            let end = text[after..]
+                .find(|c: char| !c.is_ascii_digit())
+                .map_or(text.len(), |i| after + i);
+            text[after..end].parse::<usize>().ok()
+        });
+
+        // Match Input:N patterns
+        search_from = 0;
+        while let Some(pos) = text[search_from..].find("Input:") {
+            let abs_pos = search_from + pos;
+            let after = abs_pos + "Input:".len();
+            let digit_end = text[after..]
+                .find(|c: char| !c.is_ascii_digit())
+                .map_or(text.len(), |i| after + i);
+            if digit_end > after {
+                if let Some(func_id) = context_func_id {
+                    let input_num = &text[after..digit_end];
+                    links.push(DebugLink {
+                        start: abs_pos,
+                        end: digit_end,
+                        spec: format!("{func_id}:{input_num}"),
+                    });
+                }
+            }
+            search_from = digit_end;
+        }
+
+        // Match Output routes like "Output '...'" or "Output:"
+        search_from = 0;
+        while let Some(pos) = text[search_from..].find("Output ") {
+            let abs_pos = search_from + pos;
+            let output_text_end = text[abs_pos..]
+                .find("->")
+                .map_or(abs_pos + "Output ".len(), |i| abs_pos + i);
+            if let Some(func_id) = context_func_id {
+                links.push(DebugLink {
+                    start: abs_pos,
+                    end: output_text_end.min(abs_pos + 20),
+                    spec: format!("{func_id}/"),
+                });
+            }
+            search_from = output_text_end;
+        }
+
+        // Match state keywords
         for keyword in &[
             "[Ready]",
             "[Waiting]",
@@ -161,6 +209,8 @@ impl DebugEventLine {
         }
 
         links.sort_by_key(|l| l.start);
+        // Remove overlapping links
+        links.dedup_by(|b, a| b.start < a.end);
         links
     }
 }
@@ -1498,12 +1548,6 @@ impl FlowrGui {
             }
             Message::DebugWaiting => {
                 self.debug_waiting = true;
-                if self.show_bp_popup && !self.cached_functions.is_empty() {
-                    self.debug_waiting = false;
-                    connection_manager::send_debug_command(
-                        flowcore::model::debug_command::DebugCommand::List,
-                    );
-                }
             }
             Message::DebugConnected => {
                 self.tab_set
