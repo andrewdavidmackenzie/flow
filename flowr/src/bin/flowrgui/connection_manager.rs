@@ -524,10 +524,20 @@ fn format_debug_event(message: &DebugServerMessage) -> Vec<crate::DebugEventLine
             .lines()
             .map(|l| DebugEventLine::new(l.trim_start().to_string(), None))
             .collect(),
-        DebugServerMessage::InputState(input) => format!("{input}")
-            .lines()
-            .map(|l| DebugEventLine::new(l.trim_start().to_string(), None))
-            .collect(),
+        DebugServerMessage::InputState(input) => {
+            let display = format!("{input}");
+            if display.trim().is_empty() {
+                vec![DebugEventLine::new(
+                    format!("Input '{}' — no values queued", input.name()),
+                    None,
+                )]
+            } else {
+                display
+                    .lines()
+                    .map(|l| DebugEventLine::new(l.trim_start().to_string(), None))
+                    .collect()
+            }
+        }
         DebugServerMessage::OutputState(connections) => {
             if connections.is_empty() {
                 line("No output connections from that sub-route".into(), None)

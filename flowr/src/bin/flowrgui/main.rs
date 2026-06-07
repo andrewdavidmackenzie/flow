@@ -1265,7 +1265,9 @@ impl FlowrGui {
                 (false, false) => ("\u{1F7E2}", "Ready".to_string()),
                 (_, true) => ("\u{1F535}", "Running".to_string()),
                 (true, false) => {
-                    if self.submission_settings.debug_this_flow {
+                    if self.debug_client_active {
+                        ("\u{1F7E3}", "Debugging".to_string())
+                    } else if self.submission_settings.debug_this_flow {
                         (
                             "\u{1F7E0}",
                             "Waiting for debugger to connect...".to_string(),
