@@ -6,6 +6,7 @@ use std::fmt;
 use serde_derive::{Deserialize, Serialize};
 use serde_json::Value;
 
+use flowcore::model::debug_command::BreakpointSpec;
 use flowcore::model::input::Input;
 use flowcore::model::output_connection::OutputConnection;
 use flowcore::model::runtime_function::RuntimeFunction;
@@ -60,6 +61,8 @@ pub enum DebugServerMessage {
     BlockState(Vec<Block>),
     /// A message for display to the user
     Message(String),
+    /// The list of active breakpoints
+    BreakpointList(Vec<BreakpointSpec>),
     /// The run-time is resetting the status back to the initial state
     Resetting,
     /// Debugger is blocked waiting for a command
@@ -98,6 +101,7 @@ impl fmt::Display for DebugServerMessage {
                 DebugServerMessage::WaitingForCommand(_) => "WaitingForCommand",
                 DebugServerMessage::Invalid => "Invalid",
                 DebugServerMessage::FlowUnblockBreakpoint(_) => "FlowUnblockBreakpoint",
+                DebugServerMessage::BreakpointList(_) => "BreakpointList",
             }
         )
     }

@@ -126,6 +126,10 @@ impl DebuggerHandler for DebugGuiHandler {
         self.send_event(DebugServerMessage::Message(message));
     }
 
+    fn breakpoint_list(&mut self, breakpoints: Vec<crate::debug_command::BreakpointSpec>) {
+        self.send_event(DebugServerMessage::BreakpointList(breakpoints));
+    }
+
     fn panic(&mut self, state: &RunState, error_message: String) {
         self.send_event(DebugServerMessage::Panic(
             error_message,

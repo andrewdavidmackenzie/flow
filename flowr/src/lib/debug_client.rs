@@ -377,9 +377,33 @@ impl DebugClient {
                     functions"
                 );
             }
+            DebugServerMessage::BreakpointList(specs) => {
+                Self::print_breakpoint_list(&specs);
+            }
         }
 
         Ok(Ack)
+    }
+
+    fn print_breakpoint_list(specs: &[BreakpointSpec]) {
+        if specs.is_empty() {
+            println!(
+                "No Breakpoints set. Use the 'b' command to set a breakpoint. Use 'h' for help."
+            );
+            return;
+        }
+        println!("Active breakpoints:");
+        for spec in specs {
+            match spec {
+                BreakpointSpec::Numeric(id) => println!("\tFunction #{id}"),
+                BreakpointSpec::Completed(id) => println!("\tFunction #{id}+ (completion)"),
+                BreakpointSpec::Input((id, num)) => println!("\tInput #{id}:{num}"),
+                BreakpointSpec::Output((id, route)) => println!("\tOutput #{id}{route}"),
+                BreakpointSpec::Block((src, dst)) => println!("\tBlock {src:?}->{dst:?}"),
+                BreakpointSpec::Route(route) => println!("\tRoute {route}"),
+                BreakpointSpec::All => {}
+            }
+        }
     }
 
     pub(crate) fn function_list(functions: Vec<RuntimeFunction>) {

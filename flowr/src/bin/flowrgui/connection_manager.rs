@@ -545,6 +545,40 @@ fn format_debug_event(message: &DebugServerMessage) -> Vec<crate::DebugEventLine
             "Invalid message from debug server".into(),
             Some(debug_colors::ERROR),
         ),
+        DebugServerMessage::BreakpointList(specs) => {
+            if specs.is_empty() {
+                line("No breakpoints set".into(), None)
+            } else {
+                let mut lines = vec![DebugEventLine::new("Active breakpoints:".into(), None)];
+                for spec in specs {
+                    let text = match spec {
+                        flowcore::model::debug_command::BreakpointSpec::Numeric(id) => {
+                            format!("  Function #{id}")
+                        }
+                        flowcore::model::debug_command::BreakpointSpec::Completed(id) => {
+                            format!("  Function #{id}+ (completion)")
+                        }
+                        flowcore::model::debug_command::BreakpointSpec::Input((id, num)) => {
+                            format!("  Input #{id}:{num}")
+                        }
+                        flowcore::model::debug_command::BreakpointSpec::Output((id, route)) => {
+                            format!("  Output #{id}{route}")
+                        }
+                        flowcore::model::debug_command::BreakpointSpec::Block((src, dst)) => {
+                            format!("  Block {src:?}->{dst:?}")
+                        }
+                        flowcore::model::debug_command::BreakpointSpec::Route(route) => {
+                            format!("  Route {route}")
+                        }
+                        flowcore::model::debug_command::BreakpointSpec::All => String::new(),
+                    };
+                    if !text.is_empty() {
+                        lines.push(DebugEventLine::new(text, None));
+                    }
+                }
+                lines
+            }
+        }
     }
 }
 
@@ -555,6 +589,7 @@ pub fn debug_client_subscribe(address: String) -> Subscription<Message> {
 }
 
 #[cfg(feature = "debugger")]
+#[allow(clippy::too_many_lines)]
 fn debug_client_stream(address: String) -> impl iced::futures::Stream<Item = Message> {
     iced::stream::channel(
         100,
@@ -591,6 +626,86 @@ fn debug_client_stream(address: String) -> impl iced::futures::Stream<Item = Mes
 
                     let is_exiting = matches!(message, DebugServerMessage::ExitingDebugger);
                     let is_waiting = matches!(message, DebugServerMessage::WaitingForCommand(_));
+
+                    if let DebugServerMessage::Functions(ref functions) = message {
+                        let func_data: Vec<crate::CachedFunction> = functions
+                            .iter()
+                            .map(|f| {
+                                let inputs: Vec<(usize, String)> = f
+                                    .inputs()
+                                    .iter()
+                                    .enumerate()
+                                    .map(|(i, inp)| (i, inp.name().to_string()))
+                                    .collect();
+                                let mut outputs: Vec<String> = Vec::new();
+                                for conn in f.get_output_connections() {
+                                    if let flowcore::model::output_connection::Source::Output(
+                                        ref route,
+                                    ) = conn.source
+                                    {
+                                        let route = if route.starts_with('/') {
+                                            route.clone()
+                                        } else {
+                                            format!("/{route}")
+                                        };
+                                        if !outputs.contains(&route) {
+                                            outputs.push(route);
+                                        }
+                                    }
+                                }
+                                crate::CachedFunction {
+                                    id: f.id(),
+                                    name: f.name().to_string(),
+                                    route: f.route().to_string(),
+                                    inputs,
+                                    outputs,
+                                }
+                            })
+                            .collect();
+                        let _ =
+                            blocking_sender.try_send(Message::DebugFunctionListReceived(func_data));
+                    }
+
+                    if let DebugServerMessage::BreakpointList(ref specs) = message {
+                        let spec_strings: Vec<String> = specs
+                            .iter()
+                            .map(|s| match s {
+                                flowcore::model::debug_command::BreakpointSpec::Numeric(id) => {
+                                    format!("{id}")
+                                }
+                                flowcore::model::debug_command::BreakpointSpec::Completed(id) => {
+                                    format!("{id}+")
+                                }
+                                flowcore::model::debug_command::BreakpointSpec::Input((
+                                    id,
+                                    num,
+                                )) => {
+                                    format!("{id}:{num}")
+                                }
+                                flowcore::model::debug_command::BreakpointSpec::Output((
+                                    id,
+                                    route,
+                                )) => format!("{id}{route}"),
+                                flowcore::model::debug_command::BreakpointSpec::Block((
+                                    src,
+                                    dst,
+                                )) => {
+                                    let s = src.map_or(String::new(), |v| v.to_string());
+                                    let d = dst.map_or(String::new(), |v| v.to_string());
+                                    format!("{s}->{d}")
+                                }
+                                flowcore::model::debug_command::BreakpointSpec::Route(route) => {
+                                    route.clone()
+                                }
+                                flowcore::model::debug_command::BreakpointSpec::All => {
+                                    String::new()
+                                }
+                            })
+                            .filter(|s| !s.is_empty())
+                            .collect();
+                        let _ = blocking_sender
+                            .try_send(Message::DebugBreakpointListReceived(spec_strings));
+                    }
 
                     if !is_waiting {
                         let _ = blocking_sender

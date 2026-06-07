@@ -201,6 +201,30 @@ pub enum Message {
     /// User clicked Validate
     #[cfg(feature = "debugger")]
     DebugValidate,
+    /// Show the breakpoint spec popup
+    #[cfg(feature = "debugger")]
+    ShowBpPopup,
+    /// Close the breakpoint spec popup
+    #[cfg(feature = "debugger")]
+    CloseBpPopup,
+    /// Breakpoint type changed in popup
+    #[cfg(feature = "debugger")]
+    BpTabChanged(BpTab),
+    /// Breakpoint target changed in popup
+    #[cfg(feature = "debugger")]
+    BpTargetChanged(String),
+    /// Confirm and set breakpoint from popup
+    #[cfg(feature = "debugger")]
+    BpPopupConfirm,
+    /// Cycle before/after breakpoint on a function in Route tab
+    #[cfg(feature = "debugger")]
+    BpCycleFunction(usize),
+    /// Function list received from debug server
+    #[cfg(feature = "debugger")]
+    DebugFunctionListReceived(Vec<CachedFunction>),
+    /// Breakpoint list received from debug server
+    #[cfg(feature = "debugger")]
+    DebugBreakpointListReceived(Vec<String>),
 }
 
 #[allow(clippy::ignored_unit_patterns)]
@@ -283,6 +307,60 @@ enum DebugMode {
     External,
 }
 
+/// Cached function info for the breakpoint popup
+#[cfg(feature = "debugger")]
+#[derive(Debug, Clone)]
+pub struct CachedFunction {
+    /// Function ID
+    pub id: usize,
+    /// Function name
+    pub name: String,
+    /// Function route
+    pub route: String,
+    /// Input names (index, name)
+    pub inputs: Vec<(usize, String)>,
+    /// Output routes
+    pub outputs: Vec<String>,
+}
+
+/// Tabs in the breakpoint popup
+#[cfg(feature = "debugger")]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum BpTab {
+    /// Break before a function executes
+    Before,
+    /// Break after a function completes
+    After,
+    /// Break when data arrives at an input
+    Input,
+    /// Break when data is sent from an output
+    Output,
+    /// Full hierarchical route view
+    Route,
+}
+
+#[cfg(feature = "debugger")]
+impl std::fmt::Display for BpTab {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::Before => write!(f, "Before"),
+            Self::After => write!(f, "After"),
+            Self::Input => write!(f, "Input"),
+            Self::Output => write!(f, "Output"),
+            Self::Route => write!(f, "Route"),
+        }
+    }
+}
+
+#[cfg(feature = "debugger")]
+const BP_TABS: [BpTab; 5] = [
+    BpTab::Before,
+    BpTab::After,
+    BpTab::Input,
+    BpTab::Output,
+    BpTab::Route,
+];
+
 struct UiSettings {
     auto_start: bool,
     auto_exit: bool,
@@ -314,6 +392,16 @@ struct FlowrGui {
     debug_step_count: String,
     #[cfg(feature = "debugger")]
     debug_client_active: bool,
+    #[cfg(feature = "debugger")]
+    show_bp_popup: bool,
+    #[cfg(feature = "debugger")]
+    bp_tab: BpTab,
+    #[cfg(feature = "debugger")]
+    bp_target: String,
+    #[cfg(feature = "debugger")]
+    cached_functions: Vec<CachedFunction>,
+    #[cfg(feature = "debugger")]
+    active_breakpoints: std::collections::HashSet<String>,
 }
 
 impl FlowrGui {
@@ -342,6 +430,16 @@ impl FlowrGui {
             debug_step_count: String::new(),
             #[cfg(feature = "debugger")]
             debug_client_active: false,
+            #[cfg(feature = "debugger")]
+            show_bp_popup: false,
+            #[cfg(feature = "debugger")]
+            bp_tab: BpTab::Before,
+            #[cfg(feature = "debugger")]
+            bp_target: String::new(),
+            #[cfg(feature = "debugger")]
+            cached_functions: Vec::new(),
+            #[cfg(feature = "debugger")]
+            active_breakpoints: std::collections::HashSet::new(),
         };
 
         (flowrgui, Task::none())
@@ -462,7 +560,15 @@ impl FlowrGui {
             | Message::DebugInspect
             | Message::DebugFunctions
             | Message::DebugProcesses
-            | Message::DebugValidate) => {
+            | Message::DebugValidate
+            | Message::ShowBpPopup
+            | Message::CloseBpPopup
+            | Message::BpTabChanged(_)
+            | Message::BpTargetChanged(_)
+            | Message::BpPopupConfirm
+            | Message::BpCycleFunction(_)
+            | Message::DebugFunctionListReceived(_)
+            | Message::DebugBreakpointListReceived(_)) => {
                 return self.process_debug_message(msg);
             }
             Message::CoordinatorDisconnected(reason) => {
@@ -512,6 +618,16 @@ impl FlowrGui {
             .push(self.tab_set.view())
             .push(self.status_bar())
             .padding(16);
+
+        #[cfg(feature = "debugger")]
+        if self.show_bp_popup {
+            let bp_popup = self.bp_popup_card();
+            return stack![
+                main_content,
+                opaque(mouse_area(center(opaque(bp_popup))).on_press(Message::CloseBpPopup))
+            ]
+            .into();
+        }
 
         if self.show_modal {
             let modal_card = Card::new(
@@ -706,13 +822,14 @@ impl FlowrGui {
 
         let spec_input = text_input("breakpoint spec", &self.debug_spec_text)
             .on_input(Message::DebugSpecChanged)
+            .on_submit(Message::DebugSetBreakpoint)
             .width(120);
 
         let mut bp_btn = Button::new(Text::new("Set BP"))
             .style(theme::styled_button)
             .padding([4, 8]);
         if can_cmd {
-            bp_btn = bp_btn.on_press(Message::DebugSetBreakpoint);
+            bp_btn = bp_btn.on_press(Message::ShowBpPopup);
         }
 
         let mut del_btn = Button::new(Text::new("Del All"))
@@ -776,6 +893,189 @@ impl FlowrGui {
             .push(funcs_btn)
             .push(procs_btn)
             .push(validate_btn)
+    }
+
+    #[cfg(feature = "debugger")]
+    #[allow(clippy::too_many_lines)]
+    fn bp_popup_card(&self) -> Card<'_, Message> {
+        use iced::widget::scrollable::Scrollable;
+        use iced::Length;
+
+        let type_row = Row::new()
+            .spacing(4)
+            .align_y(iced::alignment::Vertical::Center);
+        let type_row = BP_TABS.iter().fold(type_row, |row, &bt| {
+            let mut btn = Button::new(Text::new(bt.to_string()).size(13)).padding([3, 6]);
+            if bt == self.bp_tab {
+                btn = btn.style(theme::styled_button);
+            } else {
+                btn = btn.on_press(Message::BpTabChanged(bt));
+            }
+            row.push(btn)
+        });
+
+        let mut items = Column::new().spacing(2);
+
+        if self.cached_functions.is_empty() {
+            items = items.push(
+                Text::new("Loading function list...")
+                    .size(13)
+                    .color(iced::Color::from_rgb(0.6, 0.6, 0.6)),
+            );
+        } else {
+            let bp_marker = |spec: &str| -> &str {
+                if self.active_breakpoints.contains(spec) {
+                    "\u{1F534} "
+                } else {
+                    "  "
+                }
+            };
+
+            match self.bp_tab {
+                BpTab::Before | BpTab::After => {
+                    for f in &self.cached_functions {
+                        let spec = match self.bp_tab {
+                            BpTab::Before => format!("{}", f.id),
+                            BpTab::After => format!("{}+", f.id),
+                            _ => unreachable!(),
+                        };
+                        let marker = bp_marker(&spec);
+                        let label = format!("{marker}#{} '{}' @ '{}'", f.id, f.name, f.route);
+                        let mut btn = Button::new(Text::new(label).size(13))
+                            .width(Length::Fill)
+                            .padding([3, 8]);
+                        if self.active_breakpoints.contains(&spec) {
+                            btn = btn.style(theme::styled_button);
+                        } else {
+                            btn = btn.style(theme::list_button);
+                        }
+                        btn = btn.on_press(Message::BpTargetChanged(spec.clone()));
+                        items = items.push(btn);
+                    }
+                }
+                BpTab::Route => {
+                    for f in &self.cached_functions {
+                        let before_spec = format!("{}", f.id);
+                        let after_spec = format!("{}+", f.id);
+                        let has_before = self.active_breakpoints.contains(&before_spec);
+                        let has_after = self.active_breakpoints.contains(&after_spec);
+                        let before_dot = if has_before { "\u{1F534}" } else { "  " };
+                        let after_dot = if has_after { " \u{1F534}" } else { "" };
+                        let label = format!(
+                            "{before_dot} {} (#{} '{}'){after_dot}",
+                            f.route, f.id, f.name
+                        );
+                        let mut btn = Button::new(
+                            Text::new(label)
+                                .size(13)
+                                .shaping(iced::widget::text::Shaping::Advanced),
+                        )
+                        .width(Length::Fill)
+                        .padding([3, 8]);
+                        if has_before || has_after {
+                            btn = btn.style(theme::styled_button);
+                        } else {
+                            btn = btn.style(theme::list_button);
+                        }
+                        btn = btn.on_press(Message::BpCycleFunction(f.id));
+                        items = items.push(btn);
+
+                        for (idx, input_name) in &f.inputs {
+                            let input_spec = format!("{}:{idx}", f.id);
+                            let name_part = if input_name.is_empty() {
+                                String::new()
+                            } else {
+                                format!(" '{input_name}'")
+                            };
+                            let im = bp_marker(&input_spec);
+                            let input_label =
+                                format!("  {im}input:{idx}{name_part} on '{}'", f.route);
+                            let mut ibtn = Button::new(Text::new(input_label).size(12))
+                                .width(Length::Fill)
+                                .padding([2, 16]);
+                            if self.active_breakpoints.contains(&input_spec) {
+                                ibtn = ibtn.style(theme::styled_button);
+                            } else {
+                                ibtn = ibtn.style(theme::list_button);
+                            }
+                            ibtn = ibtn.on_press(Message::BpTargetChanged(input_spec));
+                            items = items.push(ibtn);
+                        }
+                        for output_route in &f.outputs {
+                            let out_spec = format!("{}{output_route}", f.id);
+                            let om = bp_marker(&out_spec);
+                            let out_label =
+                                format!("  {om}output:'{output_route}' on '{}'", f.route);
+                            let mut obtn = Button::new(Text::new(out_label).size(12))
+                                .width(Length::Fill)
+                                .padding([2, 16]);
+                            if self.active_breakpoints.contains(&out_spec) {
+                                obtn = obtn.style(theme::styled_button);
+                            } else {
+                                obtn = obtn.style(theme::list_button);
+                            }
+                            obtn = obtn.on_press(Message::BpTargetChanged(out_spec));
+                            items = items.push(obtn);
+                        }
+                    }
+                }
+                BpTab::Input => {
+                    for f in &self.cached_functions {
+                        for (idx, input_name) in &f.inputs {
+                            let spec = format!("{}:{idx}", f.id);
+                            let marker = bp_marker(&spec);
+                            let name_part = if input_name.is_empty() {
+                                String::new()
+                            } else {
+                                format!(" '{input_name}'")
+                            };
+                            let label =
+                                format!("{marker}#{} '{}' input:{idx}{name_part}", f.id, f.name);
+                            let mut btn = Button::new(Text::new(label).size(13))
+                                .width(Length::Fill)
+                                .padding([3, 8]);
+                            if self.active_breakpoints.contains(&spec) {
+                                btn = btn.style(theme::styled_button);
+                            } else {
+                                btn = btn.style(theme::list_button);
+                            }
+                            btn = btn.on_press(Message::BpTargetChanged(spec));
+                            items = items.push(btn);
+                        }
+                    }
+                }
+                BpTab::Output => {
+                    for f in &self.cached_functions {
+                        for output_route in &f.outputs {
+                            let spec = format!("{}{output_route}", f.id);
+                            let marker = bp_marker(&spec);
+                            let label =
+                                format!("{marker}#{} '{}' output:'{output_route}'", f.id, f.name);
+                            let mut btn = Button::new(Text::new(label).size(13))
+                                .width(Length::Fill)
+                                .padding([3, 8]);
+                            if self.active_breakpoints.contains(&spec) {
+                                btn = btn.style(theme::styled_button);
+                            } else {
+                                btn = btn.style(theme::list_button);
+                            }
+                            btn = btn.on_press(Message::BpTargetChanged(spec));
+                            items = items.push(btn);
+                        }
+                    }
+                }
+            }
+        }
+
+        let list = Scrollable::new(items)
+            .height(Length::Fixed(200.0))
+            .width(Length::Fill);
+
+        let body = Column::new().spacing(8).push(type_row).push(list);
+
+        Card::new(Text::new("Breakpoints"), body)
+            .on_close(Message::CloseBpPopup)
+            .max_width(500.0)
     }
 
     fn status_bar(&self) -> Column<'_, Message> {
@@ -1133,7 +1433,15 @@ impl FlowrGui {
                     );
                 }
             }
-            Message::DebugWaiting => self.debug_waiting = true,
+            Message::DebugWaiting => {
+                self.debug_waiting = true;
+                if self.show_bp_popup && !self.cached_functions.is_empty() {
+                    self.debug_waiting = false;
+                    connection_manager::send_debug_command(
+                        flowcore::model::debug_command::DebugCommand::List,
+                    );
+                }
+            }
             Message::DebugConnected => {
                 self.tab_set
                     .debug_tab
@@ -1193,11 +1501,15 @@ impl FlowrGui {
                     self.debug_spec_text.clone()
                 };
                 self.debug_separator(&format!("Set Breakpoint ({spec_label})"));
+                if !self.debug_spec_text.is_empty() {
+                    self.active_breakpoints.insert(self.debug_spec_text.clone());
+                }
                 let spec = DebugClient::parse_breakpoint_spec(params);
                 connection_manager::send_debug_command(DebugCommand::Breakpoint(spec));
             }
             Message::DebugDeleteBreakpoints => {
                 self.debug_waiting = false;
+                self.active_breakpoints.clear();
                 self.debug_separator("Delete All Breakpoints");
                 connection_manager::send_debug_command(DebugCommand::Delete(Some(
                     BreakpointSpec::All,
@@ -1241,6 +1553,89 @@ impl FlowrGui {
                 self.debug_waiting = false;
                 self.debug_separator("Validate");
                 connection_manager::send_debug_command(DebugCommand::Validate);
+            }
+            Message::DebugFunctionListReceived(functions) => {
+                self.cached_functions = functions;
+            }
+            Message::DebugBreakpointListReceived(specs) => {
+                self.active_breakpoints = specs.into_iter().collect();
+            }
+            Message::ShowBpPopup => {
+                self.show_bp_popup = true;
+                self.bp_target.clear();
+                if self.debug_waiting {
+                    self.debug_waiting = false;
+                    if self.cached_functions.is_empty() {
+                        connection_manager::send_debug_command(DebugCommand::FunctionList);
+                    } else {
+                        connection_manager::send_debug_command(DebugCommand::List);
+                    }
+                }
+            }
+            Message::CloseBpPopup => self.show_bp_popup = false,
+            Message::BpTabChanged(tab) => {
+                self.bp_tab = tab;
+                self.bp_target.clear();
+            }
+            Message::BpTargetChanged(value) => {
+                if self.debug_waiting {
+                    let spec_str = if self.bp_tab == BpTab::After {
+                        format!("{value}+")
+                    } else {
+                        value.clone()
+                    };
+                    if self.active_breakpoints.contains(&spec_str) {
+                        self.active_breakpoints.remove(&spec_str);
+                        self.debug_waiting = false;
+                        let spec = DebugClient::parse_breakpoint_spec(Some(vec![spec_str.clone()]));
+                        self.debug_separator(&format!("Delete Breakpoint ({spec_str})"));
+                        connection_manager::send_debug_command(DebugCommand::Delete(spec));
+                    } else {
+                        self.active_breakpoints.insert(spec_str.clone());
+                        self.debug_waiting = false;
+                        let spec = DebugClient::parse_breakpoint_spec(Some(vec![spec_str.clone()]));
+                        self.debug_separator(&format!("Set Breakpoint ({spec_str})"));
+                        connection_manager::send_debug_command(DebugCommand::Breakpoint(spec));
+                    }
+                }
+                self.bp_target = value;
+            }
+            Message::BpPopupConfirm => {
+                self.show_bp_popup = false;
+            }
+            Message::BpCycleFunction(func_id) if self.debug_waiting => {
+                let before_spec = format!("{func_id}");
+                let after_spec = format!("{func_id}+");
+                let has_before = self.active_breakpoints.contains(&before_spec);
+                let has_after = self.active_breakpoints.contains(&after_spec);
+
+                self.debug_waiting = false;
+                match (has_before, has_after) {
+                    (true, true) => {
+                        self.active_breakpoints.remove(&before_spec);
+                        let spec = DebugClient::parse_breakpoint_spec(Some(vec![before_spec]));
+                        self.debug_separator("Remove before breakpoint");
+                        connection_manager::send_debug_command(DebugCommand::Delete(spec));
+                    }
+                    (false, true) => {
+                        self.active_breakpoints.remove(&after_spec);
+                        let spec = DebugClient::parse_breakpoint_spec(Some(vec![after_spec]));
+                        self.debug_separator("Remove after breakpoint");
+                        connection_manager::send_debug_command(DebugCommand::Delete(spec));
+                    }
+                    (false, false) => {
+                        self.active_breakpoints.insert(before_spec.clone());
+                        let spec = DebugClient::parse_breakpoint_spec(Some(vec![before_spec]));
+                        self.debug_separator("Set before breakpoint");
+                        connection_manager::send_debug_command(DebugCommand::Breakpoint(spec));
+                    }
+                    (true, false) => {
+                        self.active_breakpoints.insert(after_spec.clone());
+                        let spec = DebugClient::parse_breakpoint_spec(Some(vec![after_spec]));
+                        self.debug_separator("Set after breakpoint");
+                        connection_manager::send_debug_command(DebugCommand::Breakpoint(spec));
+                    }
+                }
             }
             _ => {}
         }
@@ -1591,6 +1986,16 @@ mod test {
             debug_step_count: String::new(),
             #[cfg(feature = "debugger")]
             debug_client_active: false,
+            #[cfg(feature = "debugger")]
+            show_bp_popup: false,
+            #[cfg(feature = "debugger")]
+            bp_tab: BpTab::Before,
+            #[cfg(feature = "debugger")]
+            bp_target: String::new(),
+            #[cfg(feature = "debugger")]
+            cached_functions: Vec::new(),
+            #[cfg(feature = "debugger")]
+            active_breakpoints: std::collections::HashSet::new(),
         }
     }
 

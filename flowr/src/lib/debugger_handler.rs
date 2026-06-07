@@ -6,6 +6,7 @@ use flowcore::model::output_connection::OutputConnection;
 use flowcore::model::runtime_function::RuntimeFunction;
 
 use crate::block::Block;
+use crate::debug_command::BreakpointSpec;
 use crate::debug_command::DebugCommand;
 use crate::job::Job;
 use crate::run_state::RunState;
@@ -68,6 +69,8 @@ pub trait DebuggerHandler {
     fn execution_starting(&mut self);
     /// Execution of the flow fn `execution_ended`
     fn execution_ended(&mut self);
+    /// The list of active breakpoints
+    fn breakpoint_list(&mut self, breakpoints: Vec<BreakpointSpec>);
     /// Get a command for the debugger to perform
     ///
     /// # Errors
