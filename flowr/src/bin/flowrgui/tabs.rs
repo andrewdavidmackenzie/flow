@@ -525,6 +525,7 @@ impl DebugTab {
             text,
             color: None,
             separator: false,
+            links: Vec::new(),
         });
     }
 }
@@ -560,12 +561,43 @@ impl Tab for DebugTab {
                         .push(rule_right)
                         .padding([6, 0]),
                 )
-            } else {
+            } else if line.links.is_empty() {
                 let mut t = text(line.text.clone()).shaping(iced::widget::text::Shaping::Advanced);
                 if let Some(color) = line.color {
                     t = t.color(color);
                 }
                 Element::from(t)
+            } else {
+                let base_color = line.color;
+                let link_color = iced::Color::from_rgb(0.3, 0.6, 1.0);
+                let mut spans: Vec<iced::widget::text::Span<'_, String>> = Vec::new();
+                let mut pos = 0;
+                for link in &line.links {
+                    if link.start > pos {
+                        let mut s = iced::widget::span(line.text[pos..link.start].to_string());
+                        if let Some(c) = base_color {
+                            s = s.color(c);
+                        }
+                        spans.push(s);
+                    }
+                    spans.push(
+                        iced::widget::span(line.text[link.start..link.end].to_string())
+                            .color(link_color)
+                            .underline(true)
+                            .link(link.spec.clone()),
+                    );
+                    pos = link.end;
+                }
+                if pos < line.text.len() {
+                    let mut s = iced::widget::span(line.text[pos..].to_string());
+                    if let Some(c) = base_color {
+                        s = s.color(c);
+                    }
+                    spans.push(s);
+                }
+                Element::from(
+                    iced::widget::rich_text(spans).on_link_click(Message::DebugInspectLink),
+                )
             }
         }))
         .width(Length::Fill)

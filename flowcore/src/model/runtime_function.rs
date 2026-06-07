@@ -61,7 +61,11 @@ fn default_url() -> Url {
 #[cfg(feature = "debugger")]
 impl fmt::Display for RuntimeFunction {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "Function #{}({})", self.process_id, self.parent_id)?;
+        write!(
+            f,
+            "Function #{} (Flow #{})",
+            self.process_id, self.parent_id
+        )?;
 
         if !self.name.is_empty() {
             write!(f, " '{}'", self.name)?;

@@ -75,7 +75,19 @@ mod errors;
 /// custom widget styling
 mod theme;
 
-/// A line of debug output with optional color
+/// A clickable link in debug output
+#[cfg(feature = "debugger")]
+#[derive(Debug, Clone)]
+pub struct DebugLink {
+    /// Byte range in the text
+    pub start: usize,
+    /// End of byte range
+    pub end: usize,
+    /// Inspect spec to trigger on click
+    pub spec: String,
+}
+
+/// A line of debug output with optional color and clickable links
 #[cfg(feature = "debugger")]
 #[derive(Debug, Clone)]
 pub struct DebugEventLine {
@@ -85,15 +97,29 @@ pub struct DebugEventLine {
     pub color: Option<iced::Color>,
     /// Whether this line is a separator (rendered as Rule + label + Rule)
     pub separator: bool,
+    /// Clickable links in this line
+    pub links: Vec<DebugLink>,
 }
 
 #[cfg(feature = "debugger")]
 impl DebugEventLine {
     fn new(text: String, color: Option<iced::Color>) -> Self {
+        let links = Self::extract_links(&text, None);
         Self {
             text,
             color,
             separator: false,
+            links,
+        }
+    }
+
+    fn with_context(text: String, color: Option<iced::Color>, context_func_id: usize) -> Self {
+        let links = Self::extract_links(&text, Some(context_func_id));
+        Self {
+            text,
+            color,
+            separator: false,
+            links,
         }
     }
 
@@ -102,7 +128,215 @@ impl DebugEventLine {
             text: label,
             color: Some(color),
             separator: true,
+            links: Vec::new(),
         }
+    }
+
+    #[allow(clippy::too_many_lines)]
+    fn extract_links(text: &str, override_func_id: Option<usize>) -> Vec<DebugLink> {
+        let mut links = Vec::new();
+        let mut search_from = 0;
+
+        while let Some(pos) = text[search_from..].find("Function #") {
+            let abs_pos = search_from + pos;
+            let after_hash = abs_pos + "Function #".len();
+            let digit_end = text[after_hash..]
+                .find(|c: char| !c.is_ascii_digit())
+                .map_or(text.len(), |i| after_hash + i);
+            if digit_end > after_hash {
+                let id_str = &text[after_hash..digit_end];
+                links.push(DebugLink {
+                    start: abs_pos,
+                    end: digit_end,
+                    spec: id_str.to_string(),
+                });
+            }
+            search_from = digit_end;
+        }
+
+        // Match standalone #N patterns (process tree lines like "#1 'add' @ ...")
+        if text.trim_start().starts_with('#') && !text.contains("Function #") {
+            let trimmed = text.trim_start();
+            let hash_pos = text.len() - trimmed.len();
+            let after_hash = hash_pos + 1;
+            if after_hash < text.len() {
+                let digit_end = text[after_hash..]
+                    .find(|c: char| !c.is_ascii_digit())
+                    .map_or(text.len(), |i| after_hash + i);
+                if digit_end > after_hash {
+                    let id_str = &text[after_hash..digit_end];
+                    links.push(DebugLink {
+                        start: hash_pos,
+                        end: digit_end,
+                        spec: id_str.to_string(),
+                    });
+                }
+            }
+        }
+
+        // Match Flow #N patterns
+        search_from = 0;
+        while let Some(pos) = text[search_from..].find("Flow #") {
+            let abs_pos = search_from + pos;
+            let after_hash = abs_pos + "Flow #".len();
+            let digit_end = text[after_hash..]
+                .find(|c: char| !c.is_ascii_digit())
+                .map_or(text.len(), |i| after_hash + i);
+            if digit_end > after_hash {
+                let id_str = &text[after_hash..digit_end];
+                links.push(DebugLink {
+                    start: abs_pos,
+                    end: digit_end,
+                    spec: id_str.to_string(),
+                });
+            }
+            search_from = digit_end;
+        }
+
+        let context_func_id = override_func_id.or_else(|| {
+            text.find("Function #").and_then(|pos| {
+                let after = pos + "Function #".len();
+                let end = text[after..]
+                    .find(|c: char| !c.is_ascii_digit())
+                    .map_or(text.len(), |i| after + i);
+                text[after..end].parse::<usize>().ok()
+            })
+        });
+
+        // Match Job #N patterns — link to the function that ran the job
+        search_from = 0;
+        while let Some(pos) = text[search_from..].find("Job #") {
+            let abs_pos = search_from + pos;
+            let after_hash = abs_pos + "Job #".len();
+            let digit_end = text[after_hash..]
+                .find(|c: char| !c.is_ascii_digit())
+                .map_or(text.len(), |i| after_hash + i);
+            if digit_end > after_hash {
+                if let Some(func_id) = context_func_id {
+                    links.push(DebugLink {
+                        start: abs_pos,
+                        end: digit_end,
+                        spec: func_id.to_string(),
+                    });
+                }
+            }
+            search_from = digit_end;
+        }
+
+        // Match Input:N patterns
+        search_from = 0;
+        while let Some(pos) = text[search_from..].find("Input:") {
+            let abs_pos = search_from + pos;
+            let after = abs_pos + "Input:".len();
+            let digit_end = text[after..]
+                .find(|c: char| !c.is_ascii_digit())
+                .map_or(text.len(), |i| after + i);
+            if digit_end > after {
+                if let Some(func_id) = context_func_id {
+                    let input_num = &text[after..digit_end];
+                    links.push(DebugLink {
+                        start: abs_pos,
+                        end: digit_end,
+                        spec: format!("{func_id}:{input_num}"),
+                    });
+                }
+            }
+            search_from = digit_end;
+        }
+
+        // Match Output routes like "Output '...'" or "Output:"
+        search_from = 0;
+        while let Some(pos) = text[search_from..].find("Output ") {
+            let abs_pos = search_from + pos;
+            let output_text_end = text[abs_pos..]
+                .find("->")
+                .map_or(abs_pos + "Output ".len(), |i| abs_pos + i);
+            if let Some(func_id) = context_func_id {
+                links.push(DebugLink {
+                    start: abs_pos,
+                    end: output_text_end.min(abs_pos + 20),
+                    spec: format!("{func_id}/"),
+                });
+            }
+            search_from = output_text_end;
+        }
+
+        // Match ALL occurrences of state keywords in square brackets
+        for keyword in &[
+            "[Ready]",
+            "[Waiting]",
+            "[Running]",
+            "[Completed]",
+            "[Blocked]",
+        ] {
+            let mut kw_from = 0;
+            while let Some(pos) = text[kw_from..].find(keyword) {
+                let abs_pos = kw_from + pos;
+                let state_name = &keyword[1..keyword.len() - 1];
+                links.push(DebugLink {
+                    start: abs_pos,
+                    end: abs_pos + keyword.len(),
+                    spec: state_name.to_lowercase(),
+                });
+                kw_from = abs_pos + keyword.len();
+            }
+        }
+
+        // Match route paths like '/my-first-flow/add'
+        search_from = 0;
+        while let Some(pos) = text[search_from..].find("'/") {
+            let abs_pos = search_from + pos + 1;
+            if let Some(end_quote) = text[abs_pos..].find('\'') {
+                let route = &text[abs_pos..abs_pos + end_quote];
+                links.push(DebugLink {
+                    start: abs_pos,
+                    end: abs_pos + end_quote,
+                    spec: route.to_string(),
+                });
+                search_from = abs_pos + end_quote;
+            } else {
+                break;
+            }
+        }
+
+        // Match RunState field labels as links to state inspections
+        for (label, spec) in &[
+            ("Jobs Running:", "running"),
+            ("Functions Ready:", "ready"),
+            ("Functions Completed:", "completed"),
+        ] {
+            if let Some(pos) = text.find(label) {
+                links.push(DebugLink {
+                    start: pos,
+                    end: pos + label.len(),
+                    spec: (*spec).to_string(),
+                });
+            }
+        }
+
+        // Match Busy Count entries like "1: 1, 0: 1" — the keys are function IDs
+        if let Some(after_colon) = text.strip_prefix("Busy Count:") {
+            for part in after_colon.split(',') {
+                let part = part.trim().trim_start_matches(['{', ' ']);
+                if let Some(colon_pos) = part.find(':') {
+                    let key = part[..colon_pos].trim();
+                    if let Ok(_id) = key.parse::<usize>() {
+                        if let Some(abs_pos) = text.find(&format!("{key}:")) {
+                            links.push(DebugLink {
+                                start: abs_pos,
+                                end: abs_pos + key.len(),
+                                spec: key.to_string(),
+                            });
+                        }
+                    }
+                }
+            }
+        }
+
+        links.sort_by_key(|l| l.start);
+        // Remove overlapping links
+        links.dedup_by(|b, a| b.start < a.end);
+        links
     }
 }
 
@@ -219,6 +453,9 @@ pub enum Message {
     /// Cycle before/after breakpoint on a function in Route tab
     #[cfg(feature = "debugger")]
     BpCycleFunction(usize),
+    /// A clickable link in the debug output was clicked (spec to inspect)
+    #[cfg(feature = "debugger")]
+    DebugInspectLink(String),
     /// Function list received from debug server
     #[cfg(feature = "debugger")]
     DebugFunctionListReceived(Vec<CachedFunction>),
@@ -568,7 +805,8 @@ impl FlowrGui {
             | Message::BpPopupConfirm
             | Message::BpCycleFunction(_)
             | Message::DebugFunctionListReceived(_)
-            | Message::DebugBreakpointListReceived(_)) => {
+            | Message::DebugBreakpointListReceived(_)
+            | Message::DebugInspectLink(_)) => {
                 return self.process_debug_message(msg);
             }
             Message::CoordinatorDisconnected(reason) => {
@@ -785,6 +1023,41 @@ impl FlowrGui {
     }
 
     #[cfg(feature = "debugger")]
+    fn tip<'a>(content: impl Into<Element<'a, Message>>, hint: &str) -> Element<'a, Message> {
+        let tip_content = iced::widget::Container::new(Text::new(hint.to_string()).size(13))
+            .padding([4, 8])
+            .style(|theme: &iced::Theme| {
+                let palette = theme.palette();
+                iced::widget::container::Style {
+                    background: Some(iced::Background::Color(iced::Color {
+                        r: 0.15,
+                        g: 0.15,
+                        b: 0.2,
+                        a: 0.95,
+                    })),
+                    border: iced::Border {
+                        color: iced::Color {
+                            a: 0.3,
+                            ..palette.text
+                        },
+                        width: 1.0,
+                        radius: 6.0.into(),
+                    },
+                    text_color: Some(palette.text),
+                    ..Default::default()
+                }
+            });
+        iced::widget::tooltip(
+            content,
+            tip_content,
+            iced::widget::tooltip::Position::Bottom,
+        )
+        .gap(4)
+        .into()
+    }
+
+    #[cfg(feature = "debugger")]
+    #[allow(clippy::too_many_lines)]
     fn debug_row(&self) -> Row<'_, Message> {
         let can_cmd = self.debug_waiting;
 
@@ -878,21 +1151,33 @@ impl FlowrGui {
             .spacing(6)
             .padding(5)
             .align_y(iced::alignment::Vertical::Center)
-            .push(continue_btn)
-            .push(step_btn)
-            .push(step_count)
-            .push(reset_btn)
-            .push(exit_btn)
+            .push(Self::tip(
+                continue_btn,
+                "Continue execution until next breakpoint",
+            ))
+            .push(Self::tip(step_btn, "Execute the next job(s) then pause"))
+            .push(Self::tip(step_count, "Number of jobs to step"))
+            .push(Self::tip(
+                reset_btn,
+                "Reset flow state and re-run from start",
+            ))
+            .push(Self::tip(exit_btn, "Stop execution and exit debugger"))
             .push(Text::new("|").size(13))
-            .push(spec_input)
-            .push(bp_btn)
-            .push(del_btn)
-            .push(list_btn)
+            .push(Self::tip(
+                spec_input,
+                "Enter breakpoint spec (e.g. 3, 3+, 1:0, 1/sum)",
+            ))
+            .push(Self::tip(bp_btn, "Open breakpoint picker"))
+            .push(Self::tip(del_btn, "Delete all breakpoints"))
+            .push(Self::tip(list_btn, "List active breakpoints"))
             .push(Text::new("|").size(13))
-            .push(inspect_btn)
-            .push(funcs_btn)
-            .push(procs_btn)
-            .push(validate_btn)
+            .push(Self::tip(
+                inspect_btn,
+                "Inspect state (use spec field for specific target)",
+            ))
+            .push(Self::tip(funcs_btn, "List all functions"))
+            .push(Self::tip(procs_btn, "Show flow/function hierarchy"))
+            .push(Self::tip(validate_btn, "Validate flow state for deadlocks"))
     }
 
     #[cfg(feature = "debugger")]
@@ -1087,12 +1372,19 @@ impl FlowrGui {
                 (false, false) => ("\u{1F7E2}", "Ready".to_string()),
                 (_, true) => ("\u{1F535}", "Running".to_string()),
                 (true, false) => {
-                    if self.submission_settings.debug_this_flow {
+                    #[cfg(feature = "debugger")]
+                    if self.debug_client_active {
+                        ("\u{1F7E3}", "Debugging".to_string())
+                    } else if self.submission_settings.debug_this_flow {
                         (
                             "\u{1F7E0}",
                             "Waiting for debugger to connect...".to_string(),
                         )
                     } else {
+                        ("\u{1F7E1}", "Submitted".to_string())
+                    }
+                    #[cfg(not(feature = "debugger"))]
+                    {
                         ("\u{1F7E1}", "Submitted".to_string())
                     }
                 }
@@ -1435,12 +1727,6 @@ impl FlowrGui {
             }
             Message::DebugWaiting => {
                 self.debug_waiting = true;
-                if self.show_bp_popup && !self.cached_functions.is_empty() {
-                    self.debug_waiting = false;
-                    connection_manager::send_debug_command(
-                        flowcore::model::debug_command::DebugCommand::List,
-                    );
-                }
             }
             Message::DebugConnected => {
                 self.tab_set
@@ -1559,6 +1845,27 @@ impl FlowrGui {
             }
             Message::DebugBreakpointListReceived(specs) => {
                 self.active_breakpoints = specs.into_iter().collect();
+            }
+            Message::DebugInspectLink(ref spec) if self.debug_waiting => {
+                self.debug_waiting = false;
+                let label = if spec.parse::<usize>().is_ok() {
+                    format!("Inspect #{spec}")
+                } else if spec.contains(':') {
+                    format!("Inspect Input ({spec})")
+                } else if spec.starts_with('/') {
+                    format!("Inspect Route ({spec})")
+                } else if spec.contains('/') {
+                    format!("Inspect Output ({spec})")
+                } else {
+                    format!("Inspect {spec}")
+                };
+                let params = Some(vec![spec.clone()]);
+                if let Some(cmd) = DebugClient::parse_inspect_spec(params) {
+                    self.debug_separator(&label);
+                    connection_manager::send_debug_command(cmd);
+                } else {
+                    self.debug_waiting = true;
+                }
             }
             Message::ShowBpPopup => {
                 self.show_bp_popup = true;

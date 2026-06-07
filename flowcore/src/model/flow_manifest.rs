@@ -64,15 +64,28 @@ pub struct FlowManifest {
 
 impl Display for FlowManifest {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        if !self.flows.is_empty() {
+            writeln!(f, "Flows:")?;
+            for (id, flow) in &self.flows {
+                let parent = flow
+                    .parent_id
+                    .map_or("root".to_string(), |p| format!("Flow #{p}"));
+                writeln!(f, "  Flow #{id} (parent: {parent})")?;
+                if !flow.sub_flow_ids.is_empty() {
+                    writeln!(f, "    Sub-flows: {:?}", flow.sub_flow_ids)?;
+                }
+            }
+        }
+        writeln!(f, "Functions:")?;
         for function in self.functions.values() {
             writeln!(
                 f,
-                "               Function #{} Implementation: {}",
+                "  Function #{} Implementation: {}",
                 function.id(),
                 function.get_implementation_url()
             )?;
         }
-        write!(f, "")
+        Ok(())
     }
 }
 

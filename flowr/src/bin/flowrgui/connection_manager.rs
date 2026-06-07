@@ -420,8 +420,8 @@ fn format_debug_event(message: &DebugServerMessage) -> Vec<crate::DebugEventLine
         DebugServerMessage::JobCompleted(job) => {
             let mut lines = vec![DebugEventLine::new(
                 format!(
-                    "Job #{} completed by Function #{} '{}'",
-                    job.payload.job_id, job.process_id, job.function_name
+                    "Job #{} completed by Function #{} (Flow #{}) '{}'",
+                    job.payload.job_id, job.process_id, job.parent_id, job.function_name
                 ),
                 Some(debug_colors::COMPLETION),
             )];
@@ -433,13 +433,19 @@ fn format_debug_event(message: &DebugServerMessage) -> Vec<crate::DebugEventLine
             }
             lines
         }
-        DebugServerMessage::PriorToSendingJob(job) => line(
-            format!(
-                "About to send Job #{} to Function #{} '{}'\n\tInputs: {:?}",
-                job.payload.job_id, job.process_id, job.function_name, job.payload.input_set
+        DebugServerMessage::PriorToSendingJob(job) => vec![
+            DebugEventLine::new(
+                format!(
+                    "About to send Job #{} to Function #{} (Flow #{}) '{}'",
+                    job.payload.job_id, job.process_id, job.parent_id, job.function_name
+                ),
+                Some(debug_colors::DATA_FLOW),
             ),
-            Some(debug_colors::DATA_FLOW),
-        ),
+            DebugEventLine::new(
+                format!("Inputs: {:?}", job.payload.input_set),
+                Some(debug_colors::DATA_FLOW),
+            ),
+        ],
         DebugServerMessage::BlockBreakpoint(block) => line(
             format!("Block breakpoint: {block:?}"),
             Some(debug_colors::BREAKPOINT),
@@ -466,8 +472,8 @@ fn format_debug_event(message: &DebugServerMessage) -> Vec<crate::DebugEventLine
         ),
         DebugServerMessage::JobError(job) => line(
             format!(
-                "Error executing Job #{} on Function #{} '{}': '{job}'",
-                job.payload.job_id, job.process_id, job.function_name
+                "Error executing Job #{} on Function #{} (Flow #{}) '{}': '{job}'",
+                job.payload.job_id, job.process_id, job.parent_id, job.function_name
             ),
             Some(debug_colors::ERROR),
         ),
@@ -506,10 +512,32 @@ fn format_debug_event(message: &DebugServerMessage) -> Vec<crate::DebugEventLine
         DebugServerMessage::Message(msg) => line(rewrite_for_gui(msg), None),
         DebugServerMessage::Resetting => line("Resetting state".into(), Some(debug_colors::STATUS)),
         DebugServerMessage::FunctionStates((function, states)) => {
-            line(format!("{function}\n\tState: {states:?}"), None)
+            let func_id = function.id();
+            let mut lines: Vec<DebugEventLine> = format!("{function}")
+                .lines()
+                .map(|l| DebugEventLine::with_context(l.trim_start().to_string(), None, func_id))
+                .collect();
+            lines.push(DebugEventLine::new(format!("State: {states:?}"), None));
+            lines
         }
-        DebugServerMessage::OverallState(run_state) => line(format!("{run_state}"), None),
-        DebugServerMessage::InputState(input) => line(format!("{input}"), None),
+        DebugServerMessage::OverallState(run_state) => format!("{run_state}")
+            .lines()
+            .map(|l| DebugEventLine::new(l.trim_start().to_string(), None))
+            .collect(),
+        DebugServerMessage::InputState(input) => {
+            let display = format!("{input}");
+            if display.trim().is_empty() {
+                vec![DebugEventLine::new(
+                    format!("Input '{}' — no values queued", input.name()),
+                    None,
+                )]
+            } else {
+                display
+                    .lines()
+                    .map(|l| DebugEventLine::new(l.trim_start().to_string(), None))
+                    .collect()
+            }
+        }
         DebugServerMessage::OutputState(connections) => {
             if connections.is_empty() {
                 line("No output connections from that sub-route".into(), None)
