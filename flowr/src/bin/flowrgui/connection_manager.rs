@@ -592,6 +592,15 @@ fn debug_client_stream(address: String) -> impl iced::futures::Stream<Item = Mes
                     let is_exiting = matches!(message, DebugServerMessage::ExitingDebugger);
                     let is_waiting = matches!(message, DebugServerMessage::WaitingForCommand(_));
 
+                    if let DebugServerMessage::Functions(ref functions) = message {
+                        let func_data: Vec<(usize, String, String)> = functions
+                            .iter()
+                            .map(|f| (f.id(), f.name().to_string(), f.route().to_string()))
+                            .collect();
+                        let _ =
+                            blocking_sender.try_send(Message::DebugFunctionListReceived(func_data));
+                    }
+
                     if !is_waiting {
                         let _ = blocking_sender
                             .try_send(Message::DebugEvent(format_debug_event(&message)));

@@ -216,6 +216,9 @@ pub enum Message {
     /// Confirm and set breakpoint from popup
     #[cfg(feature = "debugger")]
     BpPopupConfirm,
+    /// Function list received from debug server (id, name, route)
+    #[cfg(feature = "debugger")]
+    DebugFunctionListReceived(Vec<(usize, String, String)>),
 }
 
 #[allow(clippy::ignored_unit_patterns)]
@@ -373,6 +376,8 @@ struct FlowrGui {
     bp_type: BpType,
     #[cfg(feature = "debugger")]
     bp_target: String,
+    #[cfg(feature = "debugger")]
+    cached_functions: Vec<(usize, String, String)>,
 }
 
 impl FlowrGui {
@@ -407,6 +412,8 @@ impl FlowrGui {
             bp_type: BpType::Function,
             #[cfg(feature = "debugger")]
             bp_target: String::new(),
+            #[cfg(feature = "debugger")]
+            cached_functions: Vec::new(),
         };
 
         (flowrgui, Task::none())
@@ -532,7 +539,8 @@ impl FlowrGui {
             | Message::CloseBpPopup
             | Message::BpTypeChanged(_)
             | Message::BpTargetChanged(_)
-            | Message::BpPopupConfirm) => {
+            | Message::BpPopupConfirm
+            | Message::DebugFunctionListReceived(_)) => {
                 return self.process_debug_message(msg);
             }
             Message::CoordinatorDisconnected(reason) => {
@@ -859,35 +867,81 @@ impl FlowrGui {
     }
 
     #[cfg(feature = "debugger")]
+    #[allow(clippy::too_many_lines)]
     fn bp_popup_card(&self) -> Card<'_, Message> {
-        let type_label = Text::new("Breakpoint type:").size(14);
-        let type_buttons = Row::new().spacing(6).push(type_label);
-        let type_buttons = BP_TYPES.iter().fold(type_buttons, |row, &bt| {
-            let mut btn = Button::new(Text::new(bt.to_string()).size(13))
+        use iced::widget::scrollable::Scrollable;
+        use iced::Length;
+
+        let type_row = Row::new()
+            .spacing(4)
+            .align_y(iced::alignment::Vertical::Center);
+        let type_row = BP_TYPES.iter().fold(type_row, |row, &bt| {
+            let label = if bt == self.bp_type {
+                format!("[{bt}]")
+            } else {
+                bt.to_string()
+            };
+            let mut btn = Button::new(Text::new(label).size(13))
                 .style(theme::styled_button)
-                .padding([4, 8]);
+                .padding([3, 6]);
             if bt != self.bp_type {
                 btn = btn.on_press(Message::BpTypeChanged(bt));
             }
             row.push(btn)
         });
 
-        let hint = match self.bp_type {
-            BpType::Function | BpType::Completion => "Enter function ID (e.g. 3)",
-            BpType::Input => "Enter function_id:input (e.g. 5:0)",
-            BpType::Output => "Enter function_id/route (e.g. 3/result)",
-            BpType::Route => "Enter route path (e.g. /my-flow/add)",
+        let mut items = Column::new().spacing(2);
+
+        if self.cached_functions.is_empty() {
+            items = items.push(
+                Text::new("No function list yet — click 'Funcs' first")
+                    .size(13)
+                    .color(iced::Color::from_rgb(0.6, 0.6, 0.6)),
+            );
+        } else {
+            for (id, name, route) in &self.cached_functions {
+                let spec = match self.bp_type {
+                    BpType::Function => format!("{id}"),
+                    BpType::Completion => format!("{id}+"),
+                    BpType::Input => format!("{id}:0"),
+                    BpType::Output => format!("{id}/"),
+                    BpType::Route => route.clone(),
+                };
+                let label = format!("#{id} '{name}' @ '{route}'");
+                let is_selected = self.bp_target == spec;
+                let mut btn = Button::new(Text::new(label).size(13))
+                    .width(Length::Fill)
+                    .padding([3, 8]);
+                if is_selected {
+                    btn = btn.style(theme::styled_button);
+                }
+                btn = btn.on_press(Message::BpTargetChanged(spec));
+                items = items.push(btn);
+            }
+        }
+
+        let list = Scrollable::new(items)
+            .height(Length::Fixed(200.0))
+            .width(Length::Fill);
+
+        let selected_label = if self.bp_target.is_empty() {
+            "Select a function above".to_string()
+        } else {
+            format!("Breakpoint spec: {}", self.bp_target)
         };
 
-        let target_input = text_input(hint, &self.bp_target)
-            .on_input(Message::BpTargetChanged)
-            .on_submit(Message::BpPopupConfirm)
-            .width(Fill);
-
         let body = Column::new()
-            .spacing(10)
-            .push(type_buttons)
-            .push(target_input);
+            .spacing(8)
+            .push(type_row)
+            .push(list)
+            .push(Text::new(selected_label).size(13));
+
+        let mut set_btn = Button::new(Text::new("Set").align_x(Center))
+            .width(Fill)
+            .style(theme::styled_button);
+        if !self.bp_target.is_empty() {
+            set_btn = set_btn.on_press(Message::BpPopupConfirm);
+        }
 
         Card::new(Text::new("Set Breakpoint"), body)
             .foot(
@@ -900,14 +954,9 @@ impl FlowrGui {
                             .width(Fill)
                             .on_press(Message::CloseBpPopup),
                     )
-                    .push(
-                        Button::new(Text::new("Set").align_x(Center))
-                            .width(Fill)
-                            .on_press(Message::BpPopupConfirm)
-                            .style(theme::styled_button),
-                    ),
+                    .push(set_btn),
             )
-            .max_width(400.0)
+            .max_width(500.0)
     }
 
     fn status_bar(&self) -> Column<'_, Message> {
@@ -1374,6 +1423,9 @@ impl FlowrGui {
                 self.debug_separator("Validate");
                 connection_manager::send_debug_command(DebugCommand::Validate);
             }
+            Message::DebugFunctionListReceived(functions) => {
+                self.cached_functions = functions;
+            }
             Message::ShowBpPopup => {
                 self.show_bp_popup = true;
                 self.bp_target.clear();
@@ -1762,6 +1814,8 @@ mod test {
             bp_type: BpType::Function,
             #[cfg(feature = "debugger")]
             bp_target: String::new(),
+            #[cfg(feature = "debugger")]
+            cached_functions: Vec::new(),
         }
     }
 
