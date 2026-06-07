@@ -839,59 +839,89 @@ impl<'a> Debugger<'a> {
     }
 
     fn process_tree(state: &RunState) -> String {
-        use std::collections::HashMap;
+        use std::collections::BTreeMap;
 
         let functions = state.get_functions();
-        let mut by_parent: HashMap<usize, Vec<&RuntimeFunction>> = HashMap::new();
+        let mut by_parent: BTreeMap<usize, Vec<&RuntimeFunction>> = BTreeMap::new();
         for func in functions.values() {
             let parent = func.get_parent_id();
-            if parent == func.id() {
-                by_parent.entry(usize::MAX).or_default().push(func);
-            } else {
-                by_parent.entry(parent).or_default().push(func);
-            }
+            by_parent.entry(parent).or_default().push(func);
         }
         for children in by_parent.values_mut() {
             children.sort_by_key(|f| f.id());
         }
 
         let mut response = String::from("Process Tree\n");
-        Self::print_tree(&by_parent, functions, usize::MAX, 0, &mut response);
+
+        let root_parents: Vec<usize> = by_parent
+            .keys()
+            .filter(|pid| !functions.contains_key(pid))
+            .copied()
+            .collect();
+
+        for root_id in root_parents {
+            Self::print_tree(&by_parent, functions, state, root_id, 0, &mut response);
+        }
+
+        let mut self_roots: Vec<_> = functions
+            .values()
+            .filter(|func| func.get_parent_id() == func.id())
+            .collect();
+        self_roots.sort_by_key(|func| func.id());
+        for func in self_roots {
+            Self::print_tree(&by_parent, functions, state, func.id(), 0, &mut response);
+        }
+
         response
     }
 
     fn print_tree(
-        by_parent: &std::collections::HashMap<usize, Vec<&RuntimeFunction>>,
+        by_parent: &std::collections::BTreeMap<usize, Vec<&RuntimeFunction>>,
         all_functions: &std::collections::HashMap<usize, RuntimeFunction>,
+        state: &RunState,
         parent_id: usize,
         depth: usize,
         response: &mut String,
     ) {
         let indent = "  ".repeat(depth);
         if let Some(parent) = all_functions.get(&parent_id) {
+            let states = state.get_function_states(parent.id());
             let _ = writeln!(
                 response,
-                "{indent}#{} '{}' @ '{}'",
+                "{indent}#{} '{}' @ '{}' [{:?}]",
                 parent.id(),
                 parent.name(),
-                parent.route()
+                parent.route(),
+                states
             );
-        } else if depth == 0 {
-            let _ = writeln!(response, "{indent}/ (root flow)");
+        } else {
+            let _ = writeln!(response, "{indent}Flow #{parent_id}");
         }
 
         if let Some(children) = by_parent.get(&parent_id) {
             for child in children {
+                if child.id() == parent_id {
+                    continue;
+                }
                 if by_parent.contains_key(&child.id()) {
-                    Self::print_tree(by_parent, all_functions, child.id(), depth + 1, response);
+                    Self::print_tree(
+                        by_parent,
+                        all_functions,
+                        state,
+                        child.id(),
+                        depth + 1,
+                        response,
+                    );
                 } else {
                     let child_indent = "  ".repeat(depth + 1);
+                    let states = state.get_function_states(child.id());
                     let _ = writeln!(
                         response,
-                        "{child_indent}#{} '{}' @ '{}'",
+                        "{child_indent}#{} '{}' @ '{}' [{:?}]",
                         child.id(),
                         child.name(),
-                        child.route()
+                        child.route(),
+                        states
                     );
                 }
             }

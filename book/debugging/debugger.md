@@ -37,18 +37,42 @@ The debugger will display a prompt where you can enter commands before execution
 
 #### Starting a Debug Session from flowrgui
 
-You can also debug flows from the `flowrgui` GUI runner with built-in visual controls:
+`flowrgui` supports three debugging modes:
 
-1. Open `flowrgui` and load a flow
-2. Click the **Debug** button (instead of Play)
-3. A debug control row appears with buttons for Continue, Step, Reset, Exit,
-   breakpoints, and inspect commands
-4. A **Debug** tab shows debug events and command output
-5. Use the controls to step through execution, set breakpoints, and inspect state
-6. Click **Stop** to exit the debugger at any time
+**1. Debug locally with the GUI debugger (`-d`)**
 
-Alternatively, you can attach the CLI debugger `flowrdb` from a separate terminal
-using the connection info shown in the status bar.
+```bash
+flowrgui -d --native my-flow/manifest.json
+```
+
+This auto-submits the flow in debug mode and connects the built-in GUI debugger.
+A debug control row appears with buttons for Continue, Step, Reset, Exit,
+breakpoints, and inspect commands. A **Debug** tab shows debug events and
+command output. Click **Stop** to exit the debugger at any time.
+
+You can also start this mode interactively by clicking the **Debug** button
+(instead of Play) in the UI.
+
+**2. Debug a remote server (`-d <host:port>`)**
+
+```bash
+flowrgui -d localhost:12345 --native my-flow/manifest.json
+```
+
+This connects the GUI debugger to a debug server running elsewhere (e.g., a
+`flowrcli --debugger` session on another machine). The same debug controls
+and Debug tab are available, but the flow runs on the remote server.
+
+**3. Let an external debugger connect (`--external-debugger`)**
+
+```bash
+flowrgui --external-debugger --native my-flow/manifest.json
+```
+
+This starts the debug server inside flowrgui and waits for an external debug
+client (such as `flowrdb`) to connect from a separate terminal. The status bar
+shows the `flowrdb` command to use. Flow output appears in flowrgui's tabs
+while debug commands are entered in `flowrdb`.
 
 #### Debugging Workflow
 

@@ -75,6 +75,49 @@ pub fn styled_button(theme: &Theme, status: button::Status) -> button::Style {
     }
 }
 
+/// Debug event colors
+#[cfg(feature = "debugger")]
+pub mod debug_colors {
+    use iced::Color;
+
+    pub const ERROR: Color = Color {
+        r: 0.9,
+        g: 0.3,
+        b: 0.3,
+        a: 1.0,
+    };
+    pub const BREAKPOINT: Color = Color {
+        r: 0.9,
+        g: 0.7,
+        b: 0.2,
+        a: 1.0,
+    };
+    pub const COMPLETION: Color = Color {
+        r: 0.4,
+        g: 0.8,
+        b: 0.4,
+        a: 1.0,
+    };
+    pub const DATA_FLOW: Color = Color {
+        r: 0.4,
+        g: 0.7,
+        b: 0.9,
+        a: 1.0,
+    };
+    pub const STATUS: Color = Color {
+        r: 0.6,
+        g: 0.6,
+        b: 0.6,
+        a: 1.0,
+    };
+    pub const SEPARATOR: Color = Color {
+        r: 0.4,
+        g: 0.6,
+        b: 1.0,
+        a: 1.0,
+    };
+}
+
 fn lighten(c: Color, amount: f32) -> Color {
     Color {
         r: (c.r + amount).min(1.0),
