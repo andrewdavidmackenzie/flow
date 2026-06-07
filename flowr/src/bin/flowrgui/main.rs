@@ -878,9 +878,8 @@ impl FlowrGui {
             }
             Message::CoordinatorSelected(address) => {
                 self.show_coordinator_picker = false;
-                self.coordinator_state =
-                    CoordinatorState::Disconnected(format!("Connecting to {address}..."));
                 info!("User selected coordinator at {address}");
+                connection_manager::set_discovered_address(address);
             }
             Message::CloseCoordinatorPicker => {
                 self.show_coordinator_picker = false;
@@ -1206,7 +1205,13 @@ impl FlowrGui {
         let body = Column::new().spacing(8).push(list);
 
         Card::new(Text::new("Discover Coordinators"), body)
-            .on_close(Message::CloseCoordinatorPicker)
+            .foot(
+                Button::new(Text::new("Close").align_x(Center))
+                    .width(Fill)
+                    .on_press(Message::CloseCoordinatorPicker)
+                    .style(theme::styled_button)
+                    .padding([4, 8]),
+            )
             .max_width(450.0)
     }
 

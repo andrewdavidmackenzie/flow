@@ -49,6 +49,25 @@ pub enum CoordinatorState {
 /// Global storage for coordinator settings, initialized once and read by the subscription
 static COORDINATOR_SETTINGS: OnceLock<CoordinatorSettings> = OnceLock::new();
 
+/// Global storage for a user-selected coordinator address (from the picker)
+static DISCOVERED_ADDRESS: std::sync::RwLock<Option<String>> = std::sync::RwLock::new(None);
+
+/// Set a discovered coordinator address for the subscription to pick up
+pub fn set_discovered_address(address: String) {
+    if let Ok(mut guard) = DISCOVERED_ADDRESS.write() {
+        *guard = Some(address);
+    }
+}
+
+/// Take the discovered address (consumes it)
+fn take_discovered_address() -> Option<String> {
+    if let Ok(mut guard) = DISCOVERED_ADDRESS.write() {
+        guard.take()
+    } else {
+        None
+    }
+}
+
 /// Global flag for requesting flow stop from the GUI
 static STOP_REQUESTED: AtomicBool = AtomicBool::new(false);
 
@@ -121,15 +140,19 @@ fn coordinator_stream() -> impl iced::futures::Stream<Item = CoordinatorMessage>
                     },
 
                     CoordinatorState::Discovery => {
-                        match discover_service(COORDINATOR_SERVICE_NAME) {
-                            Ok(address) => state = CoordinatorState::Discovered(address),
-                            Err(e) => {
-                                let _ = app_sender
-                                    .send(CoordinatorMessage::Disconnected(format!(
-                                        "Could not discover coordinator: {e}"
-                                    )))
-                                    .await;
-                                break;
+                        if let Some(address) = take_discovered_address() {
+                            state = CoordinatorState::Discovered(address);
+                        } else {
+                            match discover_service(COORDINATOR_SERVICE_NAME) {
+                                Ok(address) => state = CoordinatorState::Discovered(address),
+                                Err(e) => {
+                                    let _ = app_sender
+                                        .send(CoordinatorMessage::Disconnected(format!(
+                                            "Could not discover coordinator: {e}"
+                                        )))
+                                        .await;
+                                    break;
+                                }
                             }
                         }
                     }
