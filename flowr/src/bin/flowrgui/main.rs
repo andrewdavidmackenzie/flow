@@ -844,7 +844,6 @@ impl FlowrGui {
                 if matches!(self.coordinator_state, CoordinatorState::Disconnected(_))
                     && matches!(self.coordinator_settings, CoordinatorSettings::ClientOnly)
                 {
-                    self.submission_settings.debug_this_flow = true;
                     return Task::done(Message::DiscoverCoordinators);
                 }
                 if let CoordinatorState::Connected(sender) = &self.coordinator_state {
@@ -875,14 +874,20 @@ impl FlowrGui {
                         tokio::task::spawn_blocking(move || {
                             let mut results = Vec::new();
                             let timeout = std::time::Duration::from_secs(5);
-                            if let Ok(coords) = flowcore::discovery::discover_services(
+                            match flowcore::discovery::discover_services(
                                 flowrlib::services::COORDINATOR_SERVICE_NAME,
                                 timeout,
                             ) {
-                                for (addr, _port) in coords {
-                                    results.push(("Coordinator".to_string(), addr));
+                                Ok(coords) => {
+                                    for (addr, _port) in coords {
+                                        results.push(("Coordinator".to_string(), addr));
+                                    }
+                                }
+                                Err(e) => {
+                                    log::error!("Coordinator discovery failed: {e}");
                                 }
                             }
+                            #[cfg(feature = "debugger")]
                             if discover_debug {
                                 if let Ok(debugs) = flowcore::discovery::discover_services(
                                     flowrlib::services::DEBUG_SERVICE_NAME,
