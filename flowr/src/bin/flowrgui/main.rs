@@ -1747,6 +1747,8 @@ impl FlowrGui {
                 if let Some(cmd) = DebugClient::parse_inspect_spec(params) {
                     self.debug_separator(&label);
                     connection_manager::send_debug_command(cmd);
+                } else {
+                    self.debug_waiting = true;
                 }
             }
             Message::ShowBpPopup => {
