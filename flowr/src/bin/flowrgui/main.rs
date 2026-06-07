@@ -631,106 +631,109 @@ impl FlowrGui {
     fn debug_row(&self) -> Row<'_, Message> {
         let can_cmd = self.debug_waiting;
 
-        let mut continue_btn = Button::new(Text::new("\u{25B6} Continue"))
+        let p = [3, 6];
+        let mut continue_btn = Button::new(Text::new("\u{25B6}Cont").size(12))
             .style(theme::styled_button)
-            .padding([4, 10]);
+            .padding(p);
         if can_cmd {
             continue_btn = continue_btn.on_press(Message::DebugContinue);
         }
 
-        let mut step_btn = Button::new(Text::new("\u{23ED} Step"))
+        let mut step_btn = Button::new(Text::new("\u{23ED}Step").size(12))
             .style(theme::styled_button)
-            .padding([4, 10]);
+            .padding(p);
         if can_cmd {
             step_btn = step_btn.on_press(Message::DebugStep);
         }
 
         let step_count = text_input("n", &self.debug_step_count)
             .on_input(Message::DebugStepCountChanged)
-            .width(40);
+            .size(12)
+            .width(30);
 
-        let mut reset_btn = Button::new(Text::new("\u{21BB} Reset"))
+        let mut reset_btn = Button::new(Text::new("\u{21BB}Reset").size(12))
             .style(theme::styled_button)
-            .padding([4, 10]);
+            .padding(p);
         if can_cmd {
             reset_btn = reset_btn.on_press(Message::DebugReset);
         }
 
-        let mut exit_btn = Button::new(Text::new("\u{23F9} Exit"))
+        let mut exit_btn = Button::new(Text::new("\u{23F9}Exit").size(12))
             .style(theme::styled_button)
-            .padding([4, 10]);
+            .padding(p);
         if can_cmd {
             exit_btn = exit_btn.on_press(Message::DebugExit);
         }
 
-        let spec_input = text_input("breakpoint spec", &self.debug_spec_text)
+        let spec_input = text_input("spec", &self.debug_spec_text)
             .on_input(Message::DebugSpecChanged)
-            .width(120);
+            .size(12)
+            .width(80);
 
-        let mut bp_btn = Button::new(Text::new("Set BP"))
+        let mut bp_btn = Button::new(Text::new("BP+").size(12))
             .style(theme::styled_button)
-            .padding([4, 8]);
+            .padding(p);
         if can_cmd {
             bp_btn = bp_btn.on_press(Message::DebugSetBreakpoint);
         }
 
-        let mut del_btn = Button::new(Text::new("Del All"))
+        let mut del_btn = Button::new(Text::new("Del").size(12))
             .style(theme::styled_button)
-            .padding([4, 8]);
+            .padding(p);
         if can_cmd {
             del_btn = del_btn.on_press(Message::DebugDeleteBreakpoints);
         }
 
-        let mut list_btn = Button::new(Text::new("List BPs"))
+        let mut list_btn = Button::new(Text::new("List").size(12))
             .style(theme::styled_button)
-            .padding([4, 8]);
+            .padding(p);
         if can_cmd {
             list_btn = list_btn.on_press(Message::DebugListBreakpoints);
         }
 
-        let mut inspect_btn = Button::new(Text::new("Inspect"))
+        let mut inspect_btn = Button::new(Text::new("Insp").size(12))
             .style(theme::styled_button)
-            .padding([4, 8]);
+            .padding(p);
         if can_cmd {
             inspect_btn = inspect_btn.on_press(Message::DebugInspect);
         }
 
-        let mut funcs_btn = Button::new(Text::new("Functions"))
+        let mut funcs_btn = Button::new(Text::new("Funcs").size(12))
             .style(theme::styled_button)
-            .padding([4, 8]);
+            .padding(p);
         if can_cmd {
             funcs_btn = funcs_btn.on_press(Message::DebugFunctions);
         }
 
-        let mut procs_btn = Button::new(Text::new("Processes"))
+        let mut procs_btn = Button::new(Text::new("Procs").size(12))
             .style(theme::styled_button)
-            .padding([4, 8]);
+            .padding(p);
         if can_cmd {
             procs_btn = procs_btn.on_press(Message::DebugProcesses);
         }
 
-        let mut validate_btn = Button::new(Text::new("Validate"))
+        let mut validate_btn = Button::new(Text::new("Valid").size(12))
             .style(theme::styled_button)
-            .padding([4, 8]);
+            .padding(p);
         if can_cmd {
             validate_btn = validate_btn.on_press(Message::DebugValidate);
         }
 
         Row::new()
-            .spacing(6)
-            .padding(5)
+            .spacing(4)
+            .padding(3)
             .align_y(iced::alignment::Vertical::Center)
             .push(continue_btn)
             .push(step_btn)
             .push(step_count)
             .push(reset_btn)
             .push(exit_btn)
-            .push(Text::new("|").size(13))
+            .push(Text::new("|").size(11))
             .push(spec_input)
             .push(bp_btn)
             .push(del_btn)
             .push(list_btn)
-            .push(Text::new("|").size(13))
+            .push(Text::new("|").size(11))
             .push(inspect_btn)
             .push(funcs_btn)
             .push(procs_btn)
