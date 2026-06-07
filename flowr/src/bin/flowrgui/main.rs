@@ -216,6 +216,9 @@ pub enum Message {
     /// Confirm and set breakpoint from popup
     #[cfg(feature = "debugger")]
     BpPopupConfirm,
+    /// Cycle before/after breakpoint on a function in Route tab
+    #[cfg(feature = "debugger")]
+    BpCycleFunction(usize),
     /// Function list received from debug server
     #[cfg(feature = "debugger")]
     DebugFunctionListReceived(Vec<CachedFunction>),
@@ -560,6 +563,7 @@ impl FlowrGui {
             | Message::BpTabChanged(_)
             | Message::BpTargetChanged(_)
             | Message::BpPopupConfirm
+            | Message::BpCycleFunction(_)
             | Message::DebugFunctionListReceived(_)) => {
                 return self.process_debug_message(msg);
             }
@@ -946,18 +950,29 @@ impl FlowrGui {
                 }
                 BpTab::Route => {
                     for f in &self.cached_functions {
-                        let spec = f.route.clone();
-                        let marker = bp_marker(&spec);
-                        let label = format!("{marker}{} (#{} '{}')", f.route, f.id, f.name);
-                        let mut btn = Button::new(Text::new(label).size(13))
-                            .width(Length::Fill)
-                            .padding([3, 8]);
-                        if self.active_breakpoints.contains(&spec) {
+                        let before_spec = format!("{}", f.id);
+                        let after_spec = format!("{}+", f.id);
+                        let has_before = self.active_breakpoints.contains(&before_spec);
+                        let has_after = self.active_breakpoints.contains(&after_spec);
+                        let before_dot = if has_before { "\u{1F534}" } else { "  " };
+                        let after_dot = if has_after { " \u{1F534}" } else { "" };
+                        let label = format!(
+                            "{before_dot} {} (#{} '{}'){after_dot}",
+                            f.route, f.id, f.name
+                        );
+                        let mut btn = Button::new(
+                            Text::new(label)
+                                .size(13)
+                                .shaping(iced::widget::text::Shaping::Advanced),
+                        )
+                        .width(Length::Fill)
+                        .padding([3, 8]);
+                        if has_before || has_after {
                             btn = btn.style(theme::styled_button);
                         } else {
                             btn = btn.style(theme::list_button);
                         }
-                        btn = btn.on_press(Message::BpTargetChanged(spec));
+                        btn = btn.on_press(Message::BpCycleFunction(f.id));
                         items = items.push(btn);
 
                         for (idx, input_name) in &f.inputs {
@@ -1566,6 +1581,40 @@ impl FlowrGui {
             }
             Message::BpPopupConfirm => {
                 self.show_bp_popup = false;
+            }
+            Message::BpCycleFunction(func_id) if self.debug_waiting => {
+                let before_spec = format!("{func_id}");
+                let after_spec = format!("{func_id}+");
+                let has_before = self.active_breakpoints.contains(&before_spec);
+                let has_after = self.active_breakpoints.contains(&after_spec);
+
+                self.debug_waiting = false;
+                match (has_before, has_after) {
+                    (true, true) => {
+                        self.active_breakpoints.remove(&before_spec);
+                        let spec = DebugClient::parse_breakpoint_spec(Some(vec![before_spec]));
+                        self.debug_separator("Remove before breakpoint");
+                        connection_manager::send_debug_command(DebugCommand::Delete(spec));
+                    }
+                    (false, true) => {
+                        self.active_breakpoints.remove(&after_spec);
+                        let spec = DebugClient::parse_breakpoint_spec(Some(vec![after_spec]));
+                        self.debug_separator("Remove after breakpoint");
+                        connection_manager::send_debug_command(DebugCommand::Delete(spec));
+                    }
+                    (false, false) => {
+                        self.active_breakpoints.insert(before_spec.clone());
+                        let spec = DebugClient::parse_breakpoint_spec(Some(vec![before_spec]));
+                        self.debug_separator("Set before breakpoint");
+                        connection_manager::send_debug_command(DebugCommand::Breakpoint(spec));
+                    }
+                    (true, false) => {
+                        self.active_breakpoints.insert(after_spec.clone());
+                        let spec = DebugClient::parse_breakpoint_spec(Some(vec![after_spec]));
+                        self.debug_separator("Set after breakpoint");
+                        connection_manager::send_debug_command(DebugCommand::Breakpoint(spec));
+                    }
+                }
             }
             _ => {}
         }
