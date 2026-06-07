@@ -521,7 +521,11 @@ impl DebugTab {
     }
 
     pub fn push_text(&mut self, text: String) {
-        self.content.push(DebugEventLine { text, color: None });
+        self.content.push(DebugEventLine {
+            text,
+            color: None,
+            separator: false,
+        });
     }
 }
 
@@ -539,11 +543,30 @@ impl Tab for DebugTab {
 
     fn view(&self) -> Element<'_, Message> {
         let text_column = Column::with_children(self.content.iter().map(|line| {
-            let mut t = text(line.text.clone()).shaping(iced::widget::text::Shaping::Advanced);
-            if let Some(color) = line.color {
-                t = t.color(color);
+            if line.separator {
+                let color = line.color.unwrap_or(iced::Color::WHITE);
+                let rule_left = iced::widget::rule::horizontal(1);
+                let rule_right = iced::widget::rule::horizontal(1);
+                let label = text(line.text.clone())
+                    .shaping(iced::widget::text::Shaping::Advanced)
+                    .size(13)
+                    .color(color);
+                Element::from(
+                    Row::new()
+                        .align_y(iced::alignment::Vertical::Center)
+                        .spacing(8)
+                        .push(rule_left)
+                        .push(label)
+                        .push(rule_right)
+                        .padding([6, 0]),
+                )
+            } else {
+                let mut t = text(line.text.clone()).shaping(iced::widget::text::Shaping::Advanced);
+                if let Some(color) = line.color {
+                    t = t.color(color);
+                }
+                Element::from(t)
             }
-            Element::from(t)
         }))
         .width(Length::Fill)
         .padding(1);

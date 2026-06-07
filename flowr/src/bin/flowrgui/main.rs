@@ -83,12 +83,26 @@ pub struct DebugEventLine {
     pub text: String,
     /// Optional color override (None = default theme text color)
     pub color: Option<iced::Color>,
+    /// Whether this line is a separator (rendered as Rule + label + Rule)
+    pub separator: bool,
 }
 
 #[cfg(feature = "debugger")]
 impl DebugEventLine {
     fn new(text: String, color: Option<iced::Color>) -> Self {
-        Self { text, color }
+        Self {
+            text,
+            color,
+            separator: false,
+        }
+    }
+
+    fn separator(label: String, color: iced::Color) -> Self {
+        Self {
+            text: label,
+            color: Some(color),
+            separator: true,
+        }
     }
 }
 
@@ -221,6 +235,7 @@ fn main() -> iced::Result {
         .title(FlowrGui::title)
         .theme(FlowrGui::theme)
         .antialiasing(true)
+        .window_size((1100.0, 700.0))
         .run()
 }
 
@@ -480,7 +495,7 @@ impl FlowrGui {
 
         let main_content = main_content
             .push(self.tab_set.view())
-            .push(self.status_row())
+            .push(self.status_bar())
             .padding(16);
 
         if self.show_modal {
@@ -631,116 +646,113 @@ impl FlowrGui {
     fn debug_row(&self) -> Row<'_, Message> {
         let can_cmd = self.debug_waiting;
 
-        let p = [3, 6];
-        let mut continue_btn = Button::new(Text::new("\u{25B6}Cont").size(12))
+        let mut continue_btn = Button::new(Text::new("\u{25B6} Continue"))
             .style(theme::styled_button)
-            .padding(p);
+            .padding([4, 10]);
         if can_cmd {
             continue_btn = continue_btn.on_press(Message::DebugContinue);
         }
 
-        let mut step_btn = Button::new(Text::new("\u{23ED}Step").size(12))
+        let mut step_btn = Button::new(Text::new("\u{23ED} Step"))
             .style(theme::styled_button)
-            .padding(p);
+            .padding([4, 10]);
         if can_cmd {
             step_btn = step_btn.on_press(Message::DebugStep);
         }
 
         let step_count = text_input("n", &self.debug_step_count)
             .on_input(Message::DebugStepCountChanged)
-            .size(12)
-            .width(30);
+            .width(40);
 
-        let mut reset_btn = Button::new(Text::new("\u{21BB}Reset").size(12))
+        let mut reset_btn = Button::new(Text::new("\u{21BB} Reset"))
             .style(theme::styled_button)
-            .padding(p);
+            .padding([4, 10]);
         if can_cmd {
             reset_btn = reset_btn.on_press(Message::DebugReset);
         }
 
-        let mut exit_btn = Button::new(Text::new("\u{23F9}Exit").size(12))
+        let mut exit_btn = Button::new(Text::new("\u{23F9} Exit"))
             .style(theme::styled_button)
-            .padding(p);
+            .padding([4, 10]);
         if can_cmd {
             exit_btn = exit_btn.on_press(Message::DebugExit);
         }
 
-        let spec_input = text_input("spec", &self.debug_spec_text)
+        let spec_input = text_input("breakpoint spec", &self.debug_spec_text)
             .on_input(Message::DebugSpecChanged)
-            .size(12)
-            .width(80);
+            .width(120);
 
-        let mut bp_btn = Button::new(Text::new("BP+").size(12))
+        let mut bp_btn = Button::new(Text::new("Set BP"))
             .style(theme::styled_button)
-            .padding(p);
+            .padding([4, 8]);
         if can_cmd {
             bp_btn = bp_btn.on_press(Message::DebugSetBreakpoint);
         }
 
-        let mut del_btn = Button::new(Text::new("Del").size(12))
+        let mut del_btn = Button::new(Text::new("Del All"))
             .style(theme::styled_button)
-            .padding(p);
+            .padding([4, 8]);
         if can_cmd {
             del_btn = del_btn.on_press(Message::DebugDeleteBreakpoints);
         }
 
-        let mut list_btn = Button::new(Text::new("List").size(12))
+        let mut list_btn = Button::new(Text::new("List BPs"))
             .style(theme::styled_button)
-            .padding(p);
+            .padding([4, 8]);
         if can_cmd {
             list_btn = list_btn.on_press(Message::DebugListBreakpoints);
         }
 
-        let mut inspect_btn = Button::new(Text::new("Insp").size(12))
+        let mut inspect_btn = Button::new(Text::new("Inspect"))
             .style(theme::styled_button)
-            .padding(p);
+            .padding([4, 8]);
         if can_cmd {
             inspect_btn = inspect_btn.on_press(Message::DebugInspect);
         }
 
-        let mut funcs_btn = Button::new(Text::new("Funcs").size(12))
+        let mut funcs_btn = Button::new(Text::new("Functions"))
             .style(theme::styled_button)
-            .padding(p);
+            .padding([4, 8]);
         if can_cmd {
             funcs_btn = funcs_btn.on_press(Message::DebugFunctions);
         }
 
-        let mut procs_btn = Button::new(Text::new("Procs").size(12))
+        let mut procs_btn = Button::new(Text::new("Processes"))
             .style(theme::styled_button)
-            .padding(p);
+            .padding([4, 8]);
         if can_cmd {
             procs_btn = procs_btn.on_press(Message::DebugProcesses);
         }
 
-        let mut validate_btn = Button::new(Text::new("Valid").size(12))
+        let mut validate_btn = Button::new(Text::new("Validate"))
             .style(theme::styled_button)
-            .padding(p);
+            .padding([4, 8]);
         if can_cmd {
             validate_btn = validate_btn.on_press(Message::DebugValidate);
         }
 
         Row::new()
-            .spacing(4)
-            .padding(3)
+            .spacing(6)
+            .padding(5)
             .align_y(iced::alignment::Vertical::Center)
             .push(continue_btn)
             .push(step_btn)
             .push(step_count)
             .push(reset_btn)
             .push(exit_btn)
-            .push(Text::new("|").size(11))
+            .push(Text::new("|").size(13))
             .push(spec_input)
             .push(bp_btn)
             .push(del_btn)
             .push(list_btn)
-            .push(Text::new("|").size(11))
+            .push(Text::new("|").size(13))
             .push(inspect_btn)
             .push(funcs_btn)
             .push(procs_btn)
             .push(validate_btn)
     }
 
-    fn status_row(&self) -> Row<'_, Message> {
+    fn status_bar(&self) -> Column<'_, Message> {
         let (indicator, status) = match &self.coordinator_state {
             CoordinatorState::Disconnected(reason) => {
                 ("\u{1F534}", format!("Disconnected({reason})"))
@@ -783,7 +795,23 @@ impl FlowrGui {
             }
         }
 
-        row
+        let rule = iced::widget::rule::horizontal(1);
+
+        Column::new().push(rule).push(
+            iced::widget::Container::new(row)
+                .padding(4)
+                .style(|theme: &iced::Theme| {
+                    let palette = theme.palette();
+                    iced::widget::container::Style {
+                        background: Some(iced::Background::Color(iced::Color {
+                            a: 0.08,
+                            ..palette.text
+                        })),
+                        ..Default::default()
+                    }
+                })
+                .width(iced::Length::Fill),
+        )
     }
 
     // Create initial Settings structs for Submission and Coordinator from the CLI options
@@ -1026,9 +1054,9 @@ impl FlowrGui {
 
     #[cfg(feature = "debugger")]
     fn debug_separator(&mut self, label: &str) {
-        self.tab_set.debug_tab.push(DebugEventLine::new(
-            format!("\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500} {label} \u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}"),
-            Some(crate::theme::debug_colors::SEPARATOR),
+        self.tab_set.debug_tab.push(DebugEventLine::separator(
+            label.to_string(),
+            crate::theme::debug_colors::SEPARATOR,
         ));
     }
 
