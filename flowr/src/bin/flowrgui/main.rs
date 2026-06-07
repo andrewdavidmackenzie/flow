@@ -394,6 +394,8 @@ struct FlowrGui {
     bp_target: String,
     #[cfg(feature = "debugger")]
     cached_functions: Vec<CachedFunction>,
+    #[cfg(feature = "debugger")]
+    active_breakpoints: std::collections::HashSet<String>,
 }
 
 impl FlowrGui {
@@ -430,6 +432,8 @@ impl FlowrGui {
             bp_target: String::new(),
             #[cfg(feature = "debugger")]
             cached_functions: Vec::new(),
+            #[cfg(feature = "debugger")]
+            active_breakpoints: std::collections::HashSet::new(),
         };
 
         (flowrgui, Task::none())
@@ -910,6 +914,14 @@ impl FlowrGui {
                     .color(iced::Color::from_rgb(0.6, 0.6, 0.6)),
             );
         } else {
+            let bp_marker = |spec: &str| -> &str {
+                if self.active_breakpoints.contains(spec) {
+                    "\u{1F534} "
+                } else {
+                    "  "
+                }
+            };
+
             match self.bp_tab {
                 BpTab::Before | BpTab::After => {
                     for f in &self.cached_functions {
@@ -918,59 +930,60 @@ impl FlowrGui {
                             BpTab::After => format!("{}+", f.id),
                             _ => unreachable!(),
                         };
-                        let label = format!("#{} '{}' @ '{}'", f.id, f.name, f.route);
-                        let is_selected = self.bp_target == spec;
+                        let marker = bp_marker(&spec);
+                        let label = format!("{marker}#{} '{}' @ '{}'", f.id, f.name, f.route);
                         let mut btn = Button::new(Text::new(label).size(13))
                             .width(Length::Fill)
                             .padding([3, 8]);
-                        if is_selected {
+                        if self.active_breakpoints.contains(&spec) {
                             btn = btn.style(theme::styled_button);
                         }
-                        btn = btn.on_press(Message::BpTargetChanged(spec));
+                        btn = btn.on_press(Message::BpTargetChanged(spec.clone()));
                         items = items.push(btn);
                     }
                 }
                 BpTab::Route => {
                     for f in &self.cached_functions {
                         let spec = f.route.clone();
-                        let label = format!("{} (#{} '{}')", f.route, f.id, f.name);
-                        let is_selected = self.bp_target == spec;
+                        let marker = bp_marker(&spec);
+                        let label = format!("{marker}{} (#{} '{}')", f.route, f.id, f.name);
                         let mut btn = Button::new(Text::new(label).size(13))
                             .width(Length::Fill)
                             .padding([3, 8]);
-                        if is_selected {
+                        if self.active_breakpoints.contains(&spec) {
                             btn = btn.style(theme::styled_button);
                         }
                         btn = btn.on_press(Message::BpTargetChanged(spec));
                         items = items.push(btn);
 
                         for (idx, input_name) in &f.inputs {
-                            let input_route = format!("{}:{idx}", f.route);
+                            let input_spec = format!("{}:{idx}", f.id);
                             let name_part = if input_name.is_empty() {
                                 String::new()
                             } else {
                                 format!(" '{input_name}'")
                             };
-                            let input_label = format!("  input:{idx}{name_part} on '{}'", f.route);
-                            let is_sel = self.bp_target == input_route;
+                            let im = bp_marker(&input_spec);
+                            let input_label =
+                                format!("  {im}input:{idx}{name_part} on '{}'", f.route);
                             let mut ibtn = Button::new(Text::new(input_label).size(12))
                                 .width(Length::Fill)
                                 .padding([2, 16]);
-                            if is_sel {
+                            if self.active_breakpoints.contains(&input_spec) {
                                 ibtn = ibtn.style(theme::styled_button);
                             }
-                            ibtn =
-                                ibtn.on_press(Message::BpTargetChanged(format!("{}:{idx}", f.id)));
+                            ibtn = ibtn.on_press(Message::BpTargetChanged(input_spec));
                             items = items.push(ibtn);
                         }
                         for output_route in &f.outputs {
-                            let out_label = format!("  output:'{output_route}' on '{}'", f.route);
                             let out_spec = format!("{}{output_route}", f.id);
-                            let is_sel = self.bp_target == out_spec;
+                            let om = bp_marker(&out_spec);
+                            let out_label =
+                                format!("  {om}output:'{output_route}' on '{}'", f.route);
                             let mut obtn = Button::new(Text::new(out_label).size(12))
                                 .width(Length::Fill)
                                 .padding([2, 16]);
-                            if is_sel {
+                            if self.active_breakpoints.contains(&out_spec) {
                                 obtn = obtn.style(theme::styled_button);
                             }
                             obtn = obtn.on_press(Message::BpTargetChanged(out_spec));
@@ -982,17 +995,18 @@ impl FlowrGui {
                     for f in &self.cached_functions {
                         for (idx, input_name) in &f.inputs {
                             let spec = format!("{}:{idx}", f.id);
+                            let marker = bp_marker(&spec);
                             let name_part = if input_name.is_empty() {
                                 String::new()
                             } else {
                                 format!(" '{input_name}'")
                             };
-                            let label = format!("#{} '{}' input:{idx}{name_part}", f.id, f.name);
-                            let is_selected = self.bp_target == spec;
+                            let label =
+                                format!("{marker}#{} '{}' input:{idx}{name_part}", f.id, f.name);
                             let mut btn = Button::new(Text::new(label).size(13))
                                 .width(Length::Fill)
                                 .padding([3, 8]);
-                            if is_selected {
+                            if self.active_breakpoints.contains(&spec) {
                                 btn = btn.style(theme::styled_button);
                             }
                             btn = btn.on_press(Message::BpTargetChanged(spec));
@@ -1004,12 +1018,13 @@ impl FlowrGui {
                     for f in &self.cached_functions {
                         for output_route in &f.outputs {
                             let spec = format!("{}{output_route}", f.id);
-                            let label = format!("#{} '{}' output:'{output_route}'", f.id, f.name);
-                            let is_selected = self.bp_target == spec;
+                            let marker = bp_marker(&spec);
+                            let label =
+                                format!("{marker}#{} '{}' output:'{output_route}'", f.id, f.name);
                             let mut btn = Button::new(Text::new(label).size(13))
                                 .width(Length::Fill)
                                 .padding([3, 8]);
-                            if is_selected {
+                            if self.active_breakpoints.contains(&spec) {
                                 btn = btn.style(theme::styled_button);
                             }
                             btn = btn.on_press(Message::BpTargetChanged(spec));
@@ -1024,38 +1039,10 @@ impl FlowrGui {
             .height(Length::Fixed(200.0))
             .width(Length::Fill);
 
-        let selected_label = if self.bp_target.is_empty() {
-            "Select a function above".to_string()
-        } else {
-            format!("Breakpoint spec: {}", self.bp_target)
-        };
+        let body = Column::new().spacing(8).push(type_row).push(list);
 
-        let body = Column::new()
-            .spacing(8)
-            .push(type_row)
-            .push(list)
-            .push(Text::new(selected_label).size(13));
-
-        let mut set_btn = Button::new(Text::new("Set").align_x(Center))
-            .width(Fill)
-            .style(theme::styled_button);
-        if !self.bp_target.is_empty() {
-            set_btn = set_btn.on_press(Message::BpPopupConfirm);
-        }
-
-        Card::new(Text::new("Set Breakpoint"), body)
-            .foot(
-                Row::new()
-                    .spacing(10)
-                    .padding(5)
-                    .width(Fill)
-                    .push(
-                        Button::new(Text::new("Cancel").align_x(Center))
-                            .width(Fill)
-                            .on_press(Message::CloseBpPopup),
-                    )
-                    .push(set_btn),
-            )
+        Card::new(Text::new("Breakpoints"), body)
+            .on_close(Message::CloseBpPopup)
             .max_width(500.0)
     }
 
@@ -1479,6 +1466,7 @@ impl FlowrGui {
             }
             Message::DebugDeleteBreakpoints => {
                 self.debug_waiting = false;
+                self.active_breakpoints.clear();
                 self.debug_separator("Delete All Breakpoints");
                 connection_manager::send_debug_command(DebugCommand::Delete(Some(
                     BreakpointSpec::All,
@@ -1539,20 +1527,31 @@ impl FlowrGui {
                 self.bp_tab = tab;
                 self.bp_target.clear();
             }
-            Message::BpTargetChanged(value) => self.bp_target = value,
+            Message::BpTargetChanged(value) => {
+                if self.debug_waiting {
+                    let spec_str = if self.bp_tab == BpTab::After {
+                        format!("{value}+")
+                    } else {
+                        value.clone()
+                    };
+                    if self.active_breakpoints.contains(&spec_str) {
+                        self.active_breakpoints.remove(&spec_str);
+                        self.debug_waiting = false;
+                        let spec = DebugClient::parse_breakpoint_spec(Some(vec![spec_str.clone()]));
+                        self.debug_separator(&format!("Delete Breakpoint ({spec_str})"));
+                        connection_manager::send_debug_command(DebugCommand::Delete(spec));
+                    } else {
+                        self.active_breakpoints.insert(spec_str.clone());
+                        self.debug_waiting = false;
+                        let spec = DebugClient::parse_breakpoint_spec(Some(vec![spec_str.clone()]));
+                        self.debug_separator(&format!("Set Breakpoint ({spec_str})"));
+                        connection_manager::send_debug_command(DebugCommand::Breakpoint(spec));
+                    }
+                }
+                self.bp_target = value;
+            }
             Message::BpPopupConfirm => {
                 self.show_bp_popup = false;
-                if !self.bp_target.is_empty() {
-                    self.debug_waiting = false;
-                    let spec_str = if self.bp_tab == BpTab::After {
-                        format!("{}+", self.bp_target)
-                    } else {
-                        self.bp_target.clone()
-                    };
-                    let spec = DebugClient::parse_breakpoint_spec(Some(vec![spec_str]));
-                    self.debug_separator(&format!("Set Breakpoint ({})", self.bp_target));
-                    connection_manager::send_debug_command(DebugCommand::Breakpoint(spec));
-                }
             }
             _ => {}
         }
@@ -1911,6 +1910,8 @@ mod test {
             bp_target: String::new(),
             #[cfg(feature = "debugger")]
             cached_functions: Vec::new(),
+            #[cfg(feature = "debugger")]
+            active_breakpoints: std::collections::HashSet::new(),
         }
     }
 
