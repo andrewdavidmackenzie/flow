@@ -564,6 +564,7 @@ impl Tab for DebugTab {
         }
     }
 
+    #[allow(clippy::too_many_lines)]
     fn view(&self) -> Element<'_, Message> {
         let text_column = Column::with_children(
             self.content
@@ -573,25 +574,31 @@ impl Tab for DebugTab {
                     if line.separator {
                         let color = line.color.unwrap_or(iced::Color::WHITE);
                         let is_collapsed = self.collapsed.contains(&line.section_id);
-                        let indicator = if is_collapsed { "\u{25B8}" } else { "\u{25BE}" };
+                        let indicator = if is_collapsed { "\u{25B6}" } else { "\u{25BC}" };
+                        let section_id = line.section_id;
+                        let toggle_btn = Button::new(
+                            Text::new(indicator)
+                                .size(14)
+                                .shaping(iced::widget::text::Shaping::Advanced),
+                        )
+                        .on_press(Message::DebugToggleSection(section_id))
+                        .style(crate::theme::list_button)
+                        .padding([2, 6]);
                         let rule_left = iced::widget::rule::horizontal(1);
                         let rule_right = iced::widget::rule::horizontal(1);
-                        let label = text(format!("{indicator} {}", line.text))
+                        let label = text(line.text.clone())
                             .shaping(iced::widget::text::Shaping::Advanced)
                             .size(13)
                             .color(color);
-                        let section_id = line.section_id;
                         Element::from(
-                            iced::widget::mouse_area(
-                                Row::new()
-                                    .align_y(iced::alignment::Vertical::Center)
-                                    .spacing(8)
-                                    .push(rule_left)
-                                    .push(label)
-                                    .push(rule_right)
-                                    .padding([6, 0]),
-                            )
-                            .on_press(Message::DebugToggleSection(section_id)),
+                            Row::new()
+                                .align_y(iced::alignment::Vertical::Center)
+                                .spacing(6)
+                                .push(toggle_btn)
+                                .push(rule_left)
+                                .push(label)
+                                .push(rule_right)
+                                .padding([4, 0]),
                         )
                     } else if line.links.is_empty() {
                         let mut t =
