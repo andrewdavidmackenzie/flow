@@ -250,6 +250,8 @@ struct SubmissionSettings {
     debug_this_flow: bool,
     display_metrics: bool,
     parallel_jobs_limit: Option<usize>,
+    #[cfg(feature = "debugger")]
+    debug_mode: DebugMode,
 }
 
 /// Settings to use when starting a coordinator server
@@ -270,6 +272,15 @@ pub enum CoordinatorSettings {
     Server(ServerSettings),
     /// Don't start a coordinator server, just discover existing one on this port
     ClientOnly(u16),
+}
+
+#[cfg(feature = "debugger")]
+#[derive(Clone, PartialEq, Eq)]
+enum DebugMode {
+    Off,
+    GuiLocal,
+    GuiRemote(String),
+    External,
 }
 
 struct UiSettings {
@@ -356,6 +367,10 @@ impl FlowrGui {
             Message::CoordinatorSent(CoordinatorMessage::Connected(sender)) => {
                 self.coordinator_state = CoordinatorState::Connected(sender);
                 if self.ui_settings.auto_start {
+                    #[cfg(feature = "debugger")]
+                    if self.submission_settings.debug_this_flow {
+                        return Task::perform(Self::auto_submit(), |()| Message::DebugSubmitFlow);
+                    }
                     return Task::perform(Self::auto_submit(), |()| Message::SubmitFlow);
                 }
             }
@@ -528,11 +543,22 @@ impl FlowrGui {
 
         #[cfg(feature = "debugger")]
         if self.debug_client_active {
-            let debug_port = connection_manager::get_debug_port();
-            if debug_port > 0 {
+            let address = match &self.submission_settings.debug_mode {
+                DebugMode::GuiRemote(addr) => Some(addr.clone()),
+                DebugMode::GuiLocal => {
+                    let port = connection_manager::get_debug_port();
+                    if port > 0 {
+                        Some(format!("localhost:{port}"))
+                    } else {
+                        None
+                    }
+                }
+                _ => None,
+            };
+            if let Some(addr) = address {
                 return Subscription::batch([
                     coordinator_sub,
-                    connection_manager::debug_client_subscribe(debug_port),
+                    connection_manager::debug_client_subscribe(addr),
                 ]);
             }
         }
@@ -852,8 +878,22 @@ impl FlowrGui {
             .get_one::<usize>("jobs")
             .map(std::borrow::ToOwned::to_owned);
 
-        // TODO make a UI setting
-        let debug_this_flow = matches.get_flag("debugger");
+        #[cfg(feature = "debugger")]
+        let debug_mode = if matches.get_flag("external-debugger") {
+            DebugMode::External
+        } else if let Some(val) = matches.get_one::<String>("debugger") {
+            if val.is_empty() {
+                DebugMode::GuiLocal
+            } else {
+                DebugMode::GuiRemote(val.clone())
+            }
+        } else {
+            DebugMode::Off
+        };
+        #[cfg(feature = "debugger")]
+        let debug_this_flow = debug_mode != DebugMode::Off;
+        #[cfg(not(feature = "debugger"))]
+        let debug_this_flow = false;
 
         let coordinator_settings = if let Some(port) = matches.get_one::<u16>("client") {
             CoordinatorSettings::ClientOnly(*port)
@@ -884,7 +924,11 @@ impl FlowrGui {
         };
 
         let auto = matches.get_flag("auto");
-        let auto_start = auto || matches.get_flag("auto-start");
+        let mut auto_start = auto || matches.get_flag("auto-start");
+        #[cfg(feature = "debugger")]
+        if debug_mode != DebugMode::Off {
+            auto_start = true;
+        }
 
         (
             SubmissionSettings {
@@ -894,6 +938,8 @@ impl FlowrGui {
                 debug_this_flow,
                 display_metrics: matches.get_flag("metrics"),
                 parallel_jobs_limit,
+                #[cfg(feature = "debugger")]
+                debug_mode,
             },
             coordinator_settings,
             UiSettings {
@@ -907,13 +953,22 @@ impl FlowrGui {
     fn parse_cli_args() -> ArgMatches {
         let app = ClapCommand::new(env!("CARGO_PKG_NAME")).version(env!("CARGO_PKG_VERSION"));
 
-        let app = app.arg(
-            Arg::new("debugger")
-                .short('d')
-                .long("debugger")
-                .action(clap::ArgAction::SetTrue)
-                .help("Enable the debugger when running a flow"),
-        );
+        let app = app
+            .arg(
+                Arg::new("debugger")
+                    .short('d')
+                    .long("debugger")
+                    .num_args(0..=1)
+                    .default_missing_value("")
+                    .value_name("HOST:PORT")
+                    .help("Debug with GUI debugger. No value: local. With HOST:PORT: remote"),
+            )
+            .arg(
+                Arg::new("external-debugger")
+                    .long("external-debugger")
+                    .action(clap::ArgAction::SetTrue)
+                    .help("Start debug server for external flowrdb to connect"),
+            );
 
         #[cfg(feature = "flowstdlib")]
         let app = app.arg(
@@ -1513,6 +1568,8 @@ mod test {
                 debug_this_flow: false,
                 display_metrics: false,
                 parallel_jobs_limit: None,
+                #[cfg(feature = "debugger")]
+                debug_mode: DebugMode::Off,
             },
             coordinator_settings: CoordinatorSettings::ClientOnly(0),
             ui_settings: UiSettings {

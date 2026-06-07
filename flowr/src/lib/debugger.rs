@@ -863,10 +863,13 @@ impl<'a> Debugger<'a> {
             Self::print_tree(&by_parent, functions, state, root_id, 0, &mut response);
         }
 
-        for func in functions.values() {
-            if func.get_parent_id() == func.id() {
-                Self::print_tree(&by_parent, functions, state, func.id(), 0, &mut response);
-            }
+        let mut self_roots: Vec<_> = functions
+            .values()
+            .filter(|func| func.get_parent_id() == func.id())
+            .collect();
+        self_roots.sort_by_key(|func| func.id());
+        for func in self_roots {
+            Self::print_tree(&by_parent, functions, state, func.id(), 0, &mut response);
         }
 
         response

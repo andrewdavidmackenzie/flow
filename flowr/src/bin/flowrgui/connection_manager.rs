@@ -550,12 +550,12 @@ fn format_debug_event(message: &DebugServerMessage) -> Vec<crate::DebugEventLine
 
 /// Create a subscription that runs a debug client, connecting to the debug server via ZMQ
 #[cfg(feature = "debugger")]
-pub fn debug_client_subscribe(port: u16) -> Subscription<Message> {
-    Subscription::run_with(port, |port| debug_client_stream(*port))
+pub fn debug_client_subscribe(address: String) -> Subscription<Message> {
+    Subscription::run_with(address, |address| debug_client_stream(address.clone()))
 }
 
 #[cfg(feature = "debugger")]
-fn debug_client_stream(port: u16) -> impl iced::futures::Stream<Item = Message> {
+fn debug_client_stream(address: String) -> impl iced::futures::Stream<Item = Message> {
     iced::stream::channel(
         100,
         move |mut sender: iced::futures::channel::mpsc::Sender<Message>| async move {
@@ -566,7 +566,7 @@ fn debug_client_stream(port: u16) -> impl iced::futures::Stream<Item = Message> 
 
             let mut blocking_sender = sender.clone();
             let result = tokio::task::spawn_blocking(move || -> std::result::Result<(), String> {
-                let address = format!("localhost:{port}");
+                let address = address.clone();
                 let connection = ClientConnection::new(&address)
                     .map_err(|e| format!("Could not connect to debug server: {e}"))?;
                 if let Err(e) = connection.set_receive_timeout(5_000) {
