@@ -1838,12 +1838,12 @@ impl FlowrGui {
             }
             Message::DebugFunctions => {
                 self.debug_waiting = false;
-                self.debug_separator("Functions");
+                self.debug_separator("Functions List");
                 connection_manager::send_debug_command(DebugCommand::FunctionList);
             }
             Message::DebugProcesses => {
                 self.debug_waiting = false;
-                self.debug_separator("Processes");
+                self.debug_separator("Process Tree");
                 connection_manager::send_debug_command(DebugCommand::ProcessList);
             }
             Message::DebugValidate => {

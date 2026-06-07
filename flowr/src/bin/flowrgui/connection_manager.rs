@@ -495,7 +495,7 @@ fn format_debug_event(message: &DebugServerMessage) -> Vec<crate::DebugEventLine
             line("Flow has completed".into(), Some(debug_colors::COMPLETION))
         }
         DebugServerMessage::Functions(functions) => {
-            let mut lines = vec![DebugEventLine::new("Functions List".into(), None)];
+            let mut lines = Vec::new();
             for f in functions {
                 lines.push(DebugEventLine::new(
                     format!("  #{} '{}' @ '{}'", f.id(), f.name(), f.route()),
@@ -577,7 +577,7 @@ fn format_debug_event(message: &DebugServerMessage) -> Vec<crate::DebugEventLine
             if specs.is_empty() {
                 line("No breakpoints set".into(), None)
             } else {
-                let mut lines = vec![DebugEventLine::new("Active breakpoints:".into(), None)];
+                let mut lines = Vec::new();
                 for spec in specs {
                     let text = match spec {
                         flowcore::model::debug_command::BreakpointSpec::Numeric(id) => {

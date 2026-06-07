@@ -859,7 +859,7 @@ impl<'a> Debugger<'a> {
             children.sort_by_key(|f| f.id());
         }
 
-        let mut response = String::from("Process Tree\n");
+        let mut response = String::new();
 
         let root_parents: Vec<usize> = by_parent
             .keys()
@@ -939,8 +939,7 @@ impl<'a> Debugger<'a> {
     fn validate(_state: &RunState) -> String {
         let mut response = String::new();
 
-        response.push_str("Validating flow state\n");
-        response.push_str("Running deadlock check...  ");
+        response.push_str("Deadlock check: ");
         response.push_str(&Self::deadlock_check());
 
         response
@@ -1731,7 +1730,7 @@ mod test {
     fn test_process_tree() {
         let state = RunState::new(test_submission(vec![test_function(0)]));
         let tree = Debugger::process_tree(&state);
-        assert!(tree.contains("Process Tree"));
+        assert!(!tree.is_empty());
         assert!(tree.contains("#0"));
     }
 
