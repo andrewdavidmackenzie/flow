@@ -143,6 +143,25 @@ impl DebugEventLine {
             search_from = digit_end;
         }
 
+        // Match Flow #N patterns
+        search_from = 0;
+        while let Some(pos) = text[search_from..].find("Flow #") {
+            let abs_pos = search_from + pos;
+            let after_hash = abs_pos + "Flow #".len();
+            let digit_end = text[after_hash..]
+                .find(|c: char| !c.is_ascii_digit())
+                .map_or(text.len(), |i| after_hash + i);
+            if digit_end > after_hash {
+                let id_str = &text[after_hash..digit_end];
+                links.push(DebugLink {
+                    start: abs_pos,
+                    end: digit_end,
+                    spec: id_str.to_string(),
+                });
+            }
+            search_from = digit_end;
+        }
+
         // Extract function ID from first "Function #N" if present, for context
         let context_func_id = text.find("Function #").and_then(|pos| {
             let after = pos + "Function #".len();
