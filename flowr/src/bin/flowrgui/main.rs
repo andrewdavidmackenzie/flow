@@ -1433,7 +1433,15 @@ impl FlowrGui {
                     );
                 }
             }
-            Message::DebugWaiting => self.debug_waiting = true,
+            Message::DebugWaiting => {
+                self.debug_waiting = true;
+                if self.show_bp_popup && !self.cached_functions.is_empty() {
+                    self.debug_waiting = false;
+                    connection_manager::send_debug_command(
+                        flowcore::model::debug_command::DebugCommand::List,
+                    );
+                }
+            }
             Message::DebugConnected => {
                 self.tab_set
                     .debug_tab

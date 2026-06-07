@@ -690,7 +690,9 @@ fn debug_client_stream(address: String) -> impl iced::futures::Stream<Item = Mes
                                     src,
                                     dst,
                                 )) => {
-                                    format!("{src:?}->{dst:?}")
+                                    let s = src.map_or(String::new(), |v| v.to_string());
+                                    let d = dst.map_or(String::new(), |v| v.to_string());
+                                    format!("{s}->{d}")
                                 }
                                 flowcore::model::debug_command::BreakpointSpec::Route(route) => {
                                     route.clone()
