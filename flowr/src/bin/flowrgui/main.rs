@@ -818,6 +818,7 @@ impl FlowrGui {
 
         let spec_input = text_input("breakpoint spec", &self.debug_spec_text)
             .on_input(Message::DebugSpecChanged)
+            .on_submit(Message::DebugSetBreakpoint)
             .width(120);
 
         let mut bp_btn = Button::new(Text::new("Set BP"))
@@ -1031,6 +1032,8 @@ impl FlowrGui {
                                 .padding([3, 8]);
                             if self.active_breakpoints.contains(&spec) {
                                 btn = btn.style(theme::styled_button);
+                            } else {
+                                btn = btn.style(theme::list_button);
                             }
                             btn = btn.on_press(Message::BpTargetChanged(spec));
                             items = items.push(btn);
@@ -1049,6 +1052,8 @@ impl FlowrGui {
                                 .padding([3, 8]);
                             if self.active_breakpoints.contains(&spec) {
                                 btn = btn.style(theme::styled_button);
+                            } else {
+                                btn = btn.style(theme::list_button);
                             }
                             btn = btn.on_press(Message::BpTargetChanged(spec));
                             items = items.push(btn);
@@ -1065,13 +1070,7 @@ impl FlowrGui {
         let body = Column::new().spacing(8).push(type_row).push(list);
 
         Card::new(Text::new("Breakpoints"), body)
-            .foot(
-                Button::new(Text::new("Close").align_x(Center))
-                    .width(Fill)
-                    .on_press(Message::CloseBpPopup)
-                    .style(theme::styled_button)
-                    .padding([4, 8]),
-            )
+            .on_close(Message::CloseBpPopup)
             .max_width(500.0)
     }
 
