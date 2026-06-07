@@ -470,6 +470,14 @@ pub enum Message {
     /// Breakpoint list received from debug server
     #[cfg(feature = "debugger")]
     DebugBreakpointListReceived(Vec<String>),
+    /// Discover coordinators on the network
+    DiscoverCoordinators,
+    /// Coordinators discovered
+    CoordinatorsDiscovered(Vec<(String, u16)>),
+    /// User selected a coordinator from the picker
+    CoordinatorSelected(String),
+    /// Close the coordinator picker
+    CloseCoordinatorPicker,
     /// Show the inspect helper popup
     #[cfg(feature = "debugger")]
     ShowInspectPopup,
@@ -703,6 +711,9 @@ struct FlowrGui {
     suppress_next_output: bool,
     #[cfg(feature = "debugger")]
     inspect_tab: InspectTab,
+    show_coordinator_picker: bool,
+    discovered_coordinators: Vec<(String, u16)>,
+    discovering: bool,
 }
 
 impl FlowrGui {
@@ -747,6 +758,9 @@ impl FlowrGui {
             suppress_next_output: false,
             #[cfg(feature = "debugger")]
             inspect_tab: InspectTab::Function,
+            show_coordinator_picker: false,
+            discovered_coordinators: Vec::new(),
+            discovering: false,
         };
 
         (flowrgui, Task::none())
@@ -839,6 +853,38 @@ impl FlowrGui {
                 }
             }
             Message::UrlChanged(value) => self.submission_settings.flow_manifest_url = value,
+            Message::DiscoverCoordinators => {
+                self.show_coordinator_picker = true;
+                self.discovering = true;
+                self.discovered_coordinators.clear();
+                return Task::perform(
+                    async {
+                        tokio::task::spawn_blocking(|| {
+                            flowcore::discovery::discover_services(
+                                flowrlib::services::COORDINATOR_SERVICE_NAME,
+                                std::time::Duration::from_secs(5),
+                            )
+                            .unwrap_or_default()
+                        })
+                        .await
+                        .unwrap_or_default()
+                    },
+                    Message::CoordinatorsDiscovered,
+                );
+            }
+            Message::CoordinatorsDiscovered(coordinators) => {
+                self.discovered_coordinators = coordinators;
+                self.discovering = false;
+            }
+            Message::CoordinatorSelected(address) => {
+                self.show_coordinator_picker = false;
+                self.coordinator_state =
+                    CoordinatorState::Disconnected(format!("Connecting to {address}..."));
+                info!("User selected coordinator at {address}");
+            }
+            Message::CloseCoordinatorPicker => {
+                self.show_coordinator_picker = false;
+            }
             Message::TabSelected(_)
             | Message::StdioAutoScrollTogglerChanged(_, _)
             | Message::ClearTab(_)
@@ -948,6 +994,17 @@ impl FlowrGui {
             return stack![
                 main_content,
                 opaque(mouse_area(center(opaque(popup))).on_press(Message::CloseInspectPopup))
+            ]
+            .into();
+        }
+
+        if self.show_coordinator_picker {
+            let picker = self.coordinator_picker_card();
+            return stack![
+                main_content,
+                opaque(
+                    mouse_area(center(opaque(picker))).on_press(Message::CloseCoordinatorPicker)
+                )
             ]
             .into();
         }
@@ -1105,6 +1162,52 @@ impl FlowrGui {
             .push(max_jobs)
             .push(play)
             .push(debug_play)
+            .push(
+                Button::new(Text::new("\u{1F50D} Connect"))
+                    .style(theme::styled_button)
+                    .padding([6, 16])
+                    .on_press(Message::DiscoverCoordinators),
+            )
+    }
+
+    fn coordinator_picker_card(&self) -> Card<'_, Message> {
+        use iced::widget::scrollable::Scrollable;
+        use iced::Length;
+
+        let mut items = Column::new().spacing(4);
+
+        if self.discovering {
+            items = items.push(
+                Text::new("Discovering coordinators...")
+                    .size(14)
+                    .color(iced::Color::from_rgb(0.6, 0.6, 0.6)),
+            );
+        } else if self.discovered_coordinators.is_empty() {
+            items = items.push(
+                Text::new("No coordinators found on the network")
+                    .size(14)
+                    .color(iced::Color::from_rgb(0.8, 0.4, 0.4)),
+            );
+        } else {
+            for (address, port) in &self.discovered_coordinators {
+                let btn = Button::new(Text::new(format!("{address} (port {port})")).size(14))
+                    .width(Length::Fill)
+                    .padding([6, 10])
+                    .style(theme::list_button)
+                    .on_press(Message::CoordinatorSelected(address.clone()));
+                items = items.push(btn);
+            }
+        }
+
+        let list = Scrollable::new(items)
+            .height(Length::Fixed(200.0))
+            .width(Length::Fill);
+
+        let body = Column::new().spacing(8).push(list);
+
+        Card::new(Text::new("Discover Coordinators"), body)
+            .on_close(Message::CloseCoordinatorPicker)
+            .max_width(450.0)
     }
 
     #[cfg(feature = "debugger")]
@@ -2563,6 +2666,9 @@ mod test {
             suppress_next_output: false,
             #[cfg(feature = "debugger")]
             inspect_tab: InspectTab::Function,
+            show_coordinator_picker: false,
+            discovered_coordinators: Vec::new(),
+            discovering: false,
         }
     }
 
