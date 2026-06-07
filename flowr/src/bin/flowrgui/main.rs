@@ -209,7 +209,7 @@ pub enum Message {
     CloseBpPopup,
     /// Breakpoint type changed in popup
     #[cfg(feature = "debugger")]
-    BpTypeChanged(BpType),
+    BpTabChanged(BpTab),
     /// Breakpoint target changed in popup
     #[cfg(feature = "debugger")]
     BpTargetChanged(String),
@@ -317,28 +317,28 @@ pub struct CachedFunction {
     pub outputs: Vec<String>,
 }
 
-/// Types of breakpoints that can be set from the popup
+/// Tabs in the breakpoint popup
 #[cfg(feature = "debugger")]
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum BpType {
+pub enum BpTab {
     /// Break before a function executes
-    Function,
+    Before,
     /// Break after a function completes
-    Completion,
+    After,
     /// Break when data arrives at an input
     Input,
     /// Break when data is sent from an output
     Output,
-    /// Break on a function by route path
+    /// Full hierarchical route view
     Route,
 }
 
 #[cfg(feature = "debugger")]
-impl std::fmt::Display for BpType {
+impl std::fmt::Display for BpTab {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            Self::Function => write!(f, "Function"),
-            Self::Completion => write!(f, "Completion"),
+            Self::Before => write!(f, "Before"),
+            Self::After => write!(f, "After"),
             Self::Input => write!(f, "Input"),
             Self::Output => write!(f, "Output"),
             Self::Route => write!(f, "Route"),
@@ -347,12 +347,12 @@ impl std::fmt::Display for BpType {
 }
 
 #[cfg(feature = "debugger")]
-const BP_TYPES: [BpType; 5] = [
-    BpType::Function,
-    BpType::Completion,
-    BpType::Input,
-    BpType::Output,
-    BpType::Route,
+const BP_TABS: [BpTab; 5] = [
+    BpTab::Before,
+    BpTab::After,
+    BpTab::Input,
+    BpTab::Output,
+    BpTab::Route,
 ];
 
 struct UiSettings {
@@ -389,7 +389,7 @@ struct FlowrGui {
     #[cfg(feature = "debugger")]
     show_bp_popup: bool,
     #[cfg(feature = "debugger")]
-    bp_type: BpType,
+    bp_tab: BpTab,
     #[cfg(feature = "debugger")]
     bp_target: String,
     #[cfg(feature = "debugger")]
@@ -425,7 +425,7 @@ impl FlowrGui {
             #[cfg(feature = "debugger")]
             show_bp_popup: false,
             #[cfg(feature = "debugger")]
-            bp_type: BpType::Function,
+            bp_tab: BpTab::Before,
             #[cfg(feature = "debugger")]
             bp_target: String::new(),
             #[cfg(feature = "debugger")]
@@ -553,7 +553,7 @@ impl FlowrGui {
             | Message::DebugValidate
             | Message::ShowBpPopup
             | Message::CloseBpPopup
-            | Message::BpTypeChanged(_)
+            | Message::BpTabChanged(_)
             | Message::BpTargetChanged(_)
             | Message::BpPopupConfirm
             | Message::DebugFunctionListReceived(_)) => {
@@ -891,8 +891,8 @@ impl FlowrGui {
         let type_row = Row::new()
             .spacing(4)
             .align_y(iced::alignment::Vertical::Center);
-        let type_row = BP_TYPES.iter().fold(type_row, |row, &bt| {
-            let label = if bt == self.bp_type {
+        let type_row = BP_TABS.iter().fold(type_row, |row, &bt| {
+            let label = if bt == self.bp_tab {
                 format!("[{bt}]")
             } else {
                 bt.to_string()
@@ -900,8 +900,8 @@ impl FlowrGui {
             let mut btn = Button::new(Text::new(label).size(13))
                 .style(theme::styled_button)
                 .padding([3, 6]);
-            if bt != self.bp_type {
-                btn = btn.on_press(Message::BpTypeChanged(bt));
+            if bt != self.bp_tab {
+                btn = btn.on_press(Message::BpTabChanged(bt));
             }
             row.push(btn)
         });
@@ -915,12 +915,12 @@ impl FlowrGui {
                     .color(iced::Color::from_rgb(0.6, 0.6, 0.6)),
             );
         } else {
-            match self.bp_type {
-                BpType::Function | BpType::Completion => {
+            match self.bp_tab {
+                BpTab::Before | BpTab::After => {
                     for f in &self.cached_functions {
-                        let spec = match self.bp_type {
-                            BpType::Function => format!("{}", f.id),
-                            BpType::Completion => format!("{}+", f.id),
+                        let spec = match self.bp_tab {
+                            BpTab::Before => format!("{}", f.id),
+                            BpTab::After => format!("{}+", f.id),
                             _ => unreachable!(),
                         };
                         let label = format!("#{} '{}' @ '{}'", f.id, f.name, f.route);
@@ -935,7 +935,7 @@ impl FlowrGui {
                         items = items.push(btn);
                     }
                 }
-                BpType::Route => {
+                BpTab::Route => {
                     for f in &self.cached_functions {
                         let spec = f.route.clone();
                         let label = format!("{} (#{} '{}')", f.route, f.id, f.name);
@@ -983,7 +983,7 @@ impl FlowrGui {
                         }
                     }
                 }
-                BpType::Input => {
+                BpTab::Input => {
                     for f in &self.cached_functions {
                         for (idx, input_name) in &f.inputs {
                             let spec = format!("{}:{idx}", f.id);
@@ -1005,7 +1005,7 @@ impl FlowrGui {
                         }
                     }
                 }
-                BpType::Output => {
+                BpTab::Output => {
                     for f in &self.cached_functions {
                         for output_route in &f.outputs {
                             let spec = format!("{}{output_route}", f.id);
@@ -1540,8 +1540,8 @@ impl FlowrGui {
                 }
             }
             Message::CloseBpPopup => self.show_bp_popup = false,
-            Message::BpTypeChanged(bp_type) => {
-                self.bp_type = bp_type;
+            Message::BpTabChanged(tab) => {
+                self.bp_tab = tab;
                 self.bp_target.clear();
             }
             Message::BpTargetChanged(value) => self.bp_target = value,
@@ -1549,21 +1549,12 @@ impl FlowrGui {
                 self.show_bp_popup = false;
                 if !self.bp_target.is_empty() {
                     self.debug_waiting = false;
-                    let spec = match self.bp_type {
-                        BpType::Function | BpType::Input | BpType::Output => {
-                            DebugClient::parse_breakpoint_spec(Some(vec![self.bp_target.clone()]))
-                        }
-                        BpType::Completion => {
-                            DebugClient::parse_breakpoint_spec(Some(vec![format!(
-                                "{}+",
-                                self.bp_target
-                            )]))
-                        }
-                        BpType::Route => DebugClient::parse_breakpoint_spec(Some(vec![format!(
-                            "/{}",
-                            self.bp_target.trim_start_matches('/')
-                        )])),
+                    let spec_str = if self.bp_tab == BpTab::After {
+                        format!("{}+", self.bp_target)
+                    } else {
+                        self.bp_target.clone()
                     };
+                    let spec = DebugClient::parse_breakpoint_spec(Some(vec![spec_str]));
                     self.debug_separator(&format!("Set Breakpoint ({})", self.bp_target));
                     connection_manager::send_debug_command(DebugCommand::Breakpoint(spec));
                 }
@@ -1920,7 +1911,7 @@ mod test {
             #[cfg(feature = "debugger")]
             show_bp_popup: false,
             #[cfg(feature = "debugger")]
-            bp_type: BpType::Function,
+            bp_tab: BpTab::Before,
             #[cfg(feature = "debugger")]
             bp_target: String::new(),
             #[cfg(feature = "debugger")]
