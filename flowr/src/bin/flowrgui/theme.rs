@@ -76,7 +76,7 @@ pub fn styled_button(theme: &Theme, status: button::Status) -> button::Style {
 }
 
 /// Transparent button style for list items — no background, hover highlight only.
-pub fn list_button(theme: &Theme, status: button::Status) -> button::Style {
+pub(crate) fn list_button(theme: &Theme, status: button::Status) -> button::Style {
     let palette = theme.palette();
     match status {
         button::Status::Active => button::Style {

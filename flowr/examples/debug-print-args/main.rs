@@ -269,8 +269,8 @@ mod test {
             "No completion breakpoint confirmation:\n{stdout}"
         );
         assert!(
-            stdout.contains("Completion Breakpoints"),
-            "No completion breakpoints in list:\n{stdout}"
+            stdout.contains("Active breakpoints"),
+            "No breakpoints in list:\n{stdout}"
         );
         assert!(
             stdout.contains("Function #1+"),
