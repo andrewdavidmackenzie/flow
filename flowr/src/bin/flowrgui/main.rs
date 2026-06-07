@@ -1723,7 +1723,9 @@ impl FlowrGui {
 
         match message {
             Message::DebugEvent(lines) => {
-                self.tab_set.debug_tab.content.extend(lines);
+                for line in lines {
+                    self.tab_set.debug_tab.push(line);
+                }
                 if self.tab_set.active_tab != 5 {
                     self.tab_set.debug_tab.unread_count += 1;
                 }
