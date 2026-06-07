@@ -1489,6 +1489,9 @@ impl FlowrGui {
                     self.debug_spec_text.clone()
                 };
                 self.debug_separator(&format!("Set Breakpoint ({spec_label})"));
+                if !self.debug_spec_text.is_empty() {
+                    self.active_breakpoints.insert(self.debug_spec_text.clone());
+                }
                 let spec = DebugClient::parse_breakpoint_spec(params);
                 connection_manager::send_debug_command(DebugCommand::Breakpoint(spec));
             }
