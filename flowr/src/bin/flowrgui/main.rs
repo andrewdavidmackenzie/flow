@@ -201,6 +201,21 @@ pub enum Message {
     /// User clicked Validate
     #[cfg(feature = "debugger")]
     DebugValidate,
+    /// Show the breakpoint spec popup
+    #[cfg(feature = "debugger")]
+    ShowBpPopup,
+    /// Close the breakpoint spec popup
+    #[cfg(feature = "debugger")]
+    CloseBpPopup,
+    /// Breakpoint type changed in popup
+    #[cfg(feature = "debugger")]
+    BpTypeChanged(BpType),
+    /// Breakpoint target changed in popup
+    #[cfg(feature = "debugger")]
+    BpTargetChanged(String),
+    /// Confirm and set breakpoint from popup
+    #[cfg(feature = "debugger")]
+    BpPopupConfirm,
 }
 
 #[allow(clippy::ignored_unit_patterns)]
@@ -283,6 +298,44 @@ enum DebugMode {
     External,
 }
 
+/// Types of breakpoints that can be set from the popup
+#[cfg(feature = "debugger")]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum BpType {
+    /// Break before a function executes
+    Function,
+    /// Break after a function completes
+    Completion,
+    /// Break when data arrives at an input
+    Input,
+    /// Break when data is sent from an output
+    Output,
+    /// Break on a function by route path
+    Route,
+}
+
+#[cfg(feature = "debugger")]
+impl std::fmt::Display for BpType {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::Function => write!(f, "Function"),
+            Self::Completion => write!(f, "Completion"),
+            Self::Input => write!(f, "Input"),
+            Self::Output => write!(f, "Output"),
+            Self::Route => write!(f, "Route"),
+        }
+    }
+}
+
+#[cfg(feature = "debugger")]
+const BP_TYPES: [BpType; 5] = [
+    BpType::Function,
+    BpType::Completion,
+    BpType::Input,
+    BpType::Output,
+    BpType::Route,
+];
+
 struct UiSettings {
     auto_start: bool,
     auto_exit: bool,
@@ -314,6 +367,12 @@ struct FlowrGui {
     debug_step_count: String,
     #[cfg(feature = "debugger")]
     debug_client_active: bool,
+    #[cfg(feature = "debugger")]
+    show_bp_popup: bool,
+    #[cfg(feature = "debugger")]
+    bp_type: BpType,
+    #[cfg(feature = "debugger")]
+    bp_target: String,
 }
 
 impl FlowrGui {
@@ -342,6 +401,12 @@ impl FlowrGui {
             debug_step_count: String::new(),
             #[cfg(feature = "debugger")]
             debug_client_active: false,
+            #[cfg(feature = "debugger")]
+            show_bp_popup: false,
+            #[cfg(feature = "debugger")]
+            bp_type: BpType::Function,
+            #[cfg(feature = "debugger")]
+            bp_target: String::new(),
         };
 
         (flowrgui, Task::none())
@@ -462,7 +527,12 @@ impl FlowrGui {
             | Message::DebugInspect
             | Message::DebugFunctions
             | Message::DebugProcesses
-            | Message::DebugValidate) => {
+            | Message::DebugValidate
+            | Message::ShowBpPopup
+            | Message::CloseBpPopup
+            | Message::BpTypeChanged(_)
+            | Message::BpTargetChanged(_)
+            | Message::BpPopupConfirm) => {
                 return self.process_debug_message(msg);
             }
             Message::CoordinatorDisconnected(reason) => {
@@ -512,6 +582,16 @@ impl FlowrGui {
             .push(self.tab_set.view())
             .push(self.status_bar())
             .padding(16);
+
+        #[cfg(feature = "debugger")]
+        if self.show_bp_popup {
+            let bp_popup = self.bp_popup_card();
+            return stack![
+                main_content,
+                opaque(mouse_area(center(opaque(bp_popup))).on_press(Message::CloseBpPopup))
+            ]
+            .into();
+        }
 
         if self.show_modal {
             let modal_card = Card::new(
@@ -712,7 +792,7 @@ impl FlowrGui {
             .style(theme::styled_button)
             .padding([4, 8]);
         if can_cmd {
-            bp_btn = bp_btn.on_press(Message::DebugSetBreakpoint);
+            bp_btn = bp_btn.on_press(Message::ShowBpPopup);
         }
 
         let mut del_btn = Button::new(Text::new("Del All"))
@@ -776,6 +856,58 @@ impl FlowrGui {
             .push(funcs_btn)
             .push(procs_btn)
             .push(validate_btn)
+    }
+
+    #[cfg(feature = "debugger")]
+    fn bp_popup_card(&self) -> Card<'_, Message> {
+        let type_label = Text::new("Breakpoint type:").size(14);
+        let type_buttons = Row::new().spacing(6).push(type_label);
+        let type_buttons = BP_TYPES.iter().fold(type_buttons, |row, &bt| {
+            let mut btn = Button::new(Text::new(bt.to_string()).size(13))
+                .style(theme::styled_button)
+                .padding([4, 8]);
+            if bt != self.bp_type {
+                btn = btn.on_press(Message::BpTypeChanged(bt));
+            }
+            row.push(btn)
+        });
+
+        let hint = match self.bp_type {
+            BpType::Function | BpType::Completion => "Enter function ID (e.g. 3)",
+            BpType::Input => "Enter function_id:input (e.g. 5:0)",
+            BpType::Output => "Enter function_id/route (e.g. 3/result)",
+            BpType::Route => "Enter route path (e.g. /my-flow/add)",
+        };
+
+        let target_input = text_input(hint, &self.bp_target)
+            .on_input(Message::BpTargetChanged)
+            .on_submit(Message::BpPopupConfirm)
+            .width(Fill);
+
+        let body = Column::new()
+            .spacing(10)
+            .push(type_buttons)
+            .push(target_input);
+
+        Card::new(Text::new("Set Breakpoint"), body)
+            .foot(
+                Row::new()
+                    .spacing(10)
+                    .padding(5)
+                    .width(Fill)
+                    .push(
+                        Button::new(Text::new("Cancel").align_x(Center))
+                            .width(Fill)
+                            .on_press(Message::CloseBpPopup),
+                    )
+                    .push(
+                        Button::new(Text::new("Set").align_x(Center))
+                            .width(Fill)
+                            .on_press(Message::BpPopupConfirm)
+                            .style(theme::styled_button),
+                    ),
+            )
+            .max_width(400.0)
     }
 
     fn status_bar(&self) -> Column<'_, Message> {
@@ -1242,6 +1374,39 @@ impl FlowrGui {
                 self.debug_separator("Validate");
                 connection_manager::send_debug_command(DebugCommand::Validate);
             }
+            Message::ShowBpPopup => {
+                self.show_bp_popup = true;
+                self.bp_target.clear();
+            }
+            Message::CloseBpPopup => self.show_bp_popup = false,
+            Message::BpTypeChanged(bp_type) => {
+                self.bp_type = bp_type;
+                self.bp_target.clear();
+            }
+            Message::BpTargetChanged(value) => self.bp_target = value,
+            Message::BpPopupConfirm => {
+                self.show_bp_popup = false;
+                if !self.bp_target.is_empty() {
+                    self.debug_waiting = false;
+                    let spec = match self.bp_type {
+                        BpType::Function | BpType::Input | BpType::Output => {
+                            DebugClient::parse_breakpoint_spec(Some(vec![self.bp_target.clone()]))
+                        }
+                        BpType::Completion => {
+                            DebugClient::parse_breakpoint_spec(Some(vec![format!(
+                                "{}+",
+                                self.bp_target
+                            )]))
+                        }
+                        BpType::Route => DebugClient::parse_breakpoint_spec(Some(vec![format!(
+                            "/{}",
+                            self.bp_target.trim_start_matches('/')
+                        )])),
+                    };
+                    self.debug_separator(&format!("Set Breakpoint ({})", self.bp_target));
+                    connection_manager::send_debug_command(DebugCommand::Breakpoint(spec));
+                }
+            }
             _ => {}
         }
         Task::none()
@@ -1591,6 +1756,12 @@ mod test {
             debug_step_count: String::new(),
             #[cfg(feature = "debugger")]
             debug_client_active: false,
+            #[cfg(feature = "debugger")]
+            show_bp_popup: false,
+            #[cfg(feature = "debugger")]
+            bp_type: BpType::Function,
+            #[cfg(feature = "debugger")]
+            bp_target: String::new(),
         }
     }
 
