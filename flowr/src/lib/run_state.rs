@@ -985,6 +985,7 @@ mod test {
         fn function_states(&mut self, _function: RuntimeFunction, _function_states: Vec<State>) {}
         fn run_state(&mut self, _run_state: &RunState) {}
         fn message(&mut self, _message: String) {}
+        fn breakpoint_list(&mut self, _breakpoints: Vec<crate::debug_command::BreakpointSpec>) {}
         fn panic(&mut self, _state: &RunState, _error_message: String) {}
         fn debugger_exiting(&mut self) {}
         fn debugger_resetting(&mut self) {}

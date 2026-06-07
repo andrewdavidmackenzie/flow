@@ -282,8 +282,8 @@ impl<'a> Debugger<'a> {
                     self.debug_server.message(message);
                 }
                 Ok(List) => {
-                    let message = self.list_breakpoints();
-                    self.debug_server.message(message);
+                    let specs = self.collect_breakpoint_specs();
+                    self.debug_server.breakpoint_list(specs);
                 }
                 Ok(DebugCommand::FunctionList) => {
                     let mut functions: Vec<RuntimeFunction> =
@@ -644,57 +644,24 @@ impl<'a> Debugger<'a> {
        List all debugger breakpoints of all types.
        // TODO make structs not a string
     */
-    fn list_breakpoints(&self) -> String {
-        let mut response = String::new();
-
-        let mut breakpoints = false;
-        if !self.function_breakpoints.is_empty() {
-            breakpoints = true;
-            response.push_str("Function Breakpoints: \n");
-            for process_id in &self.function_breakpoints {
-                let _ = writeln!(response, "\tFunction #{process_id}");
-            }
+    fn collect_breakpoint_specs(&self) -> Vec<BreakpointSpec> {
+        let mut specs = Vec::new();
+        for &id in &self.function_breakpoints {
+            specs.push(BreakpointSpec::Numeric(id));
         }
-
-        if !self.output_breakpoints.is_empty() {
-            breakpoints = true;
-            response.push_str("Output Breakpoints: \n");
-            for (process_id, route) in &self.output_breakpoints {
-                let _ = writeln!(response, "\tOutput #{process_id}/{route}");
-            }
+        for &id in &self.completed_breakpoints {
+            specs.push(BreakpointSpec::Completed(id));
         }
-
-        if !self.input_breakpoints.is_empty() {
-            breakpoints = true;
-            response.push_str("Input Breakpoints: \n");
-            for (process_id, input_number) in &self.input_breakpoints {
-                let _ = writeln!(response, "\tInput #{process_id}:{input_number}");
-            }
+        for &(func_id, input_num) in &self.input_breakpoints {
+            specs.push(BreakpointSpec::Input((func_id, input_num)));
         }
-
-        if !self.block_breakpoints.is_empty() {
-            breakpoints = true;
-            response.push_str("Block Breakpoints: \n");
-            for (blocked_id, blocking_id) in &self.block_breakpoints {
-                let _ = writeln!(response, "\tBlock #{blocked_id}->#{blocking_id}");
-            }
+        for (func_id, route) in &self.output_breakpoints {
+            specs.push(BreakpointSpec::Output((*func_id, route.clone())));
         }
-
-        if !self.completed_breakpoints.is_empty() {
-            breakpoints = true;
-            response.push_str("Completion Breakpoints: \n");
-            for process_id in &self.completed_breakpoints {
-                let _ = writeln!(response, "\tFunction #{process_id}+");
-            }
+        for &(blocked, blocking) in &self.block_breakpoints {
+            specs.push(BreakpointSpec::Block((Some(blocked), Some(blocking))));
         }
-
-        if !breakpoints {
-            response.push_str(
-                "No Breakpoints set. Use the 'b' command to set a breakpoint. Use 'h' for help.\n",
-            );
-        }
-
-        response
+        specs
     }
 
     fn find_by_route(state: &RunState, route: &str) -> Option<usize> {
@@ -1162,6 +1129,7 @@ mod test {
         fn function_states(&mut self, _function: RuntimeFunction, _function_states: Vec<State>) {}
         fn run_state(&mut self, _run_state: &RunState) {}
         fn message(&mut self, _message: String) {}
+        fn breakpoint_list(&mut self, _breakpoints: Vec<BreakpointSpec>) {}
         fn panic(&mut self, _state: &RunState, _error_message: String) {
             self.panicked = true;
         }
@@ -1714,9 +1682,8 @@ mod test {
         debugger
             .add_breakpoint(&state, Some(BreakpointSpec::Completed(0)))
             .expect("Couldn't add breakpoint");
-        let list = debugger.list_breakpoints();
-        assert!(list.contains("Completion Breakpoints"));
-        assert!(list.contains("Function #0+"));
+        let specs = debugger.collect_breakpoint_specs();
+        assert!(specs.contains(&BreakpointSpec::Completed(0)));
     }
 
     #[test]

@@ -222,6 +222,9 @@ pub enum Message {
     /// Function list received from debug server
     #[cfg(feature = "debugger")]
     DebugFunctionListReceived(Vec<CachedFunction>),
+    /// Breakpoint list received from debug server
+    #[cfg(feature = "debugger")]
+    DebugBreakpointListReceived(Vec<String>),
 }
 
 #[allow(clippy::ignored_unit_patterns)]
@@ -564,7 +567,8 @@ impl FlowrGui {
             | Message::BpTargetChanged(_)
             | Message::BpPopupConfirm
             | Message::BpCycleFunction(_)
-            | Message::DebugFunctionListReceived(_)) => {
+            | Message::DebugFunctionListReceived(_)
+            | Message::DebugBreakpointListReceived(_)) => {
                 return self.process_debug_message(msg);
             }
             Message::CoordinatorDisconnected(reason) => {
@@ -1545,12 +1549,19 @@ impl FlowrGui {
             Message::DebugFunctionListReceived(functions) => {
                 self.cached_functions = functions;
             }
+            Message::DebugBreakpointListReceived(specs) => {
+                self.active_breakpoints = specs.into_iter().collect();
+            }
             Message::ShowBpPopup => {
                 self.show_bp_popup = true;
                 self.bp_target.clear();
-                if self.cached_functions.is_empty() && self.debug_waiting {
+                if self.debug_waiting {
                     self.debug_waiting = false;
-                    connection_manager::send_debug_command(DebugCommand::FunctionList);
+                    if self.cached_functions.is_empty() {
+                        connection_manager::send_debug_command(DebugCommand::FunctionList);
+                    } else {
+                        connection_manager::send_debug_command(DebugCommand::List);
+                    }
                 }
             }
             Message::CloseBpPopup => self.show_bp_popup = false,

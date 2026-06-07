@@ -12,7 +12,8 @@ use flowcore::model::runtime_function::RuntimeFunction;
 
 use crate::block::Block;
 use crate::connections::{CoordinatorConnection, WAIT};
-use crate::debug_command::DebugCommand;
+use crate::debug_command::{BreakpointSpec, DebugCommand};
+use crate::debug_server_message::DebugServerMessage;
 use crate::debug_server_message::DebugServerMessage::{
     BlockBreakpoint, BlockState, DataBreakpoint, EnteringDebugger, Error, ExecutionEnded,
     ExecutionStarted, ExitingDebugger, FlowUnblockBreakpoint, FunctionStates, Functions,
@@ -135,6 +136,12 @@ impl DebuggerHandler for DebugZmqHandler {
         let _: flowcore::errors::Result<DebugCommand> = self
             .debug_server_connection
             .send_and_receive_response(Message(message));
+    }
+
+    fn breakpoint_list(&mut self, breakpoints: Vec<BreakpointSpec>) {
+        let _: flowcore::errors::Result<DebugCommand> = self
+            .debug_server_connection
+            .send_and_receive_response(DebugServerMessage::BreakpointList(breakpoints));
     }
 
     fn panic(&mut self, state: &RunState, error_message: String) {
