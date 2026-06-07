@@ -17,6 +17,8 @@ pub enum BreakpointSpec {
     Block((Option<usize>, Option<usize>)),
     /// A breakpoint on job completion for a specific function
     Completed(usize),
+    /// A function or flow specified by route path
+    Route(String),
 }
 
 /// A Command sent by the `debug_client` to the debugger
@@ -50,6 +52,8 @@ pub enum DebugCommand {
     InspectBlock(Option<usize>, Option<usize>),
     /// Inspect functions filtered by state (ready, waiting, running, completed, blocked)
     InspectState(String),
+    /// Inspect a function or flow by its route path
+    InspectRoute(String),
     /// Invalid - used when deserialization goes wrong
     Invalid,
     /// `list` existing breakpoints
