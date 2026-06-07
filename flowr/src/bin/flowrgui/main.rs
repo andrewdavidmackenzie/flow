@@ -951,8 +951,12 @@ impl FlowrGui {
 
                         for (idx, input_name) in &f.inputs {
                             let input_route = format!("{}:{idx}", f.route);
-                            let input_label =
-                                format!("  input:{idx} '{input_name}' on '{}'", f.route);
+                            let name_part = if input_name.is_empty() {
+                                String::new()
+                            } else {
+                                format!(" '{input_name}'")
+                            };
+                            let input_label = format!("  input:{idx}{name_part} on '{}'", f.route);
                             let is_sel = self.bp_target == input_route;
                             let mut ibtn = Button::new(Text::new(input_label).size(12))
                                 .width(Length::Fill)
@@ -983,8 +987,12 @@ impl FlowrGui {
                     for f in &self.cached_functions {
                         for (idx, input_name) in &f.inputs {
                             let spec = format!("{}:{idx}", f.id);
-                            let label =
-                                format!("#{} '{}' input:{idx} '{input_name}'", f.id, f.name);
+                            let name_part = if input_name.is_empty() {
+                                String::new()
+                            } else {
+                                format!(" '{input_name}'")
+                            };
+                            let label = format!("#{} '{}' input:{idx}{name_part}", f.id, f.name);
                             let is_selected = self.bp_target == spec;
                             let mut btn = Button::new(Text::new(label).size(13))
                                 .width(Length::Fill)
