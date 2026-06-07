@@ -75,6 +75,23 @@ mod errors;
 /// custom widget styling
 mod theme;
 
+/// A line of debug output with optional color
+#[cfg(feature = "debugger")]
+#[derive(Debug, Clone)]
+pub struct DebugEventLine {
+    /// The text content
+    pub text: String,
+    /// Optional color override (None = default theme text color)
+    pub color: Option<iced::Color>,
+}
+
+#[cfg(feature = "debugger")]
+impl DebugEventLine {
+    fn new(text: String, color: Option<iced::Color>) -> Self {
+        Self { text, color }
+    }
+}
+
 /// [Message] enum captures all the types of messages that are sent to and processed by the
 /// `flowrgui` Iced Application
 #[derive(Debug, Clone)]
@@ -119,9 +136,9 @@ pub enum Message {
     SaveError(String),
     /// closing of the Modal was requested
     CloseModal,
-    /// A formatted debug event from the debug server
+    /// Formatted debug event lines from the debug server
     #[cfg(feature = "debugger")]
-    DebugEvent(String),
+    DebugEvent(Vec<DebugEventLine>),
     /// The debugger is waiting for a command (enables debug buttons)
     #[cfg(feature = "debugger")]
     DebugWaiting,
@@ -1006,10 +1023,10 @@ impl FlowrGui {
 
     #[cfg(feature = "debugger")]
     fn debug_separator(&mut self, label: &str) {
-        self.tab_set
-            .debug_tab
-            .content
-            .push(format!("\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500} {label} \u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}"));
+        self.tab_set.debug_tab.push(DebugEventLine::new(
+            format!("\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500} {label} \u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}"),
+            Some(crate::theme::debug_colors::SEPARATOR),
+        ));
     }
 
     #[cfg(feature = "debugger")]
@@ -1018,8 +1035,8 @@ impl FlowrGui {
         use flowcore::model::debug_command::{BreakpointSpec, DebugCommand};
 
         match message {
-            Message::DebugEvent(event) => {
-                self.tab_set.debug_tab.content.push(event);
+            Message::DebugEvent(lines) => {
+                self.tab_set.debug_tab.content.extend(lines);
                 if self.tab_set.active_tab != 5 {
                     self.tab_set.debug_tab.unread_count += 1;
                 }
@@ -1034,17 +1051,16 @@ impl FlowrGui {
             Message::DebugConnected => {
                 self.tab_set
                     .debug_tab
-                    .content
-                    .push("Connected to debug server".into());
+                    .push_text("Connected to debug server".into());
                 self.tab_set.active_tab = 5;
             }
             Message::DebugDisconnected(reason) => {
                 self.debug_waiting = false;
                 self.debug_client_active = false;
-                self.tab_set
-                    .debug_tab
-                    .content
-                    .push(format!("Disconnected: {reason}"));
+                self.tab_set.debug_tab.push(DebugEventLine::new(
+                    format!("Disconnected: {reason}"),
+                    Some(crate::theme::debug_colors::ERROR),
+                ));
             }
             Message::DebugContinue => {
                 self.debug_waiting = false;

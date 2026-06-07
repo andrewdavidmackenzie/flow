@@ -407,28 +407,43 @@ fn rewrite_for_gui(msg: &str) -> String {
     )
 }
 
-/// Format a `DebugServerMessage` into a human-readable string for the debug tab
+/// Format a `DebugServerMessage` into colored lines for the debug tab
 #[cfg(feature = "debugger")]
-fn format_debug_event(message: &DebugServerMessage) -> String {
+#[allow(clippy::too_many_lines)]
+fn format_debug_event(message: &DebugServerMessage) -> Vec<crate::DebugEventLine> {
+    use crate::theme::debug_colors;
+    use crate::DebugEventLine;
+
+    let line = |text: String, color: Option<iced::Color>| vec![DebugEventLine::new(text, color)];
+
     match message {
         DebugServerMessage::JobCompleted(job) => {
-            let mut s = format!(
-                "Job #{} completed by Function #{}",
-                job.payload.job_id, job.process_id
-            );
+            let mut lines = vec![DebugEventLine::new(
+                format!(
+                    "Job #{} completed by Function #{}",
+                    job.payload.job_id, job.process_id
+                ),
+                Some(debug_colors::COMPLETION),
+            )];
             if let Ok((Some(output), _)) = &job.result {
-                use std::fmt::Write;
-                let _ = write!(s, "\n\tOutput value: '{output}'");
+                lines.push(DebugEventLine::new(
+                    format!("\tOutput value: '{output}'"),
+                    Some(debug_colors::COMPLETION),
+                ));
             }
-            s
+            lines
         }
-        DebugServerMessage::PriorToSendingJob(job) => {
+        DebugServerMessage::PriorToSendingJob(job) => line(
             format!(
                 "About to send Job #{} to Function #{}\n\tInputs: {:?}",
                 job.payload.job_id, job.process_id, job.payload.input_set
-            )
-        }
-        DebugServerMessage::BlockBreakpoint(block) => format!("Block breakpoint: {block:?}"),
+            ),
+            Some(debug_colors::DATA_FLOW),
+        ),
+        DebugServerMessage::BlockBreakpoint(block) => line(
+            format!("Block breakpoint: {block:?}"),
+            Some(debug_colors::BREAKPOINT),
+        ),
         DebugServerMessage::DataBreakpoint(
             source_name,
             source_id,
@@ -438,71 +453,95 @@ fn format_debug_event(message: &DebugServerMessage) -> String {
             dest_name,
             io_name,
             input_number,
-        ) => {
+        ) => line(
             format!(
                 "Data breakpoint: Function #{source_id} '{source_name}{output_route}' \
                 --{value}-> Function #{dest_id}:{input_number} '{dest_name}'/'{io_name}'"
-            )
+            ),
+            Some(debug_colors::BREAKPOINT),
+        ),
+        DebugServerMessage::Panic(message, jobs_created) => line(
+            format!("Function panicked after {jobs_created} jobs created: {message}"),
+            Some(debug_colors::ERROR),
+        ),
+        DebugServerMessage::JobError(job) => line(
+            format!("Error executing Job: '{job}'"),
+            Some(debug_colors::ERROR),
+        ),
+        DebugServerMessage::Deadlock(message) => line(
+            format!("Deadlock detected: {message}"),
+            Some(debug_colors::ERROR),
+        ),
+        DebugServerMessage::EnteringDebugger => line(
+            "Entering debugger. Use the controls above to debug.".into(),
+            Some(debug_colors::STATUS),
+        ),
+        DebugServerMessage::ExitingDebugger => {
+            line("Debugger is exiting".into(), Some(debug_colors::STATUS))
         }
-        DebugServerMessage::Panic(message, jobs_created) => {
-            format!("Function panicked after {jobs_created} jobs created: {message}")
+        DebugServerMessage::ExecutionStarted => {
+            line("Running flow".into(), Some(debug_colors::STATUS))
         }
-        DebugServerMessage::JobError(job) => format!("Error executing Job: '{job}'"),
-        DebugServerMessage::Deadlock(message) => format!("Deadlock detected: {message}"),
-        DebugServerMessage::EnteringDebugger => {
-            "Entering debugger. Use the controls above to debug.".into()
+        DebugServerMessage::ExecutionEnded => {
+            line("Flow has completed".into(), Some(debug_colors::COMPLETION))
         }
-        DebugServerMessage::ExitingDebugger => "Debugger is exiting".into(),
-        DebugServerMessage::ExecutionStarted => "Running flow".into(),
-        DebugServerMessage::ExecutionEnded => "Flow has completed".into(),
         DebugServerMessage::Functions(functions) => {
-            use std::fmt::Write;
-            let mut s = String::from("Functions List\n");
+            let mut lines = vec![DebugEventLine::new("Functions List".into(), None)];
             for f in functions {
-                let _ = writeln!(s, "\t#{} '{}' @ '{}'", f.id(), f.name(), f.route());
+                lines.push(DebugEventLine::new(
+                    format!("  #{} '{}' @ '{}'", f.id(), f.name(), f.route()),
+                    None,
+                ));
             }
-            s
+            lines
         }
-        DebugServerMessage::SendingValue(source_id, value, dest_id, input_number) => {
-            format!("Function #{source_id} sending '{value}' to {dest_id}:{input_number}")
-        }
-        DebugServerMessage::Error(msg) => msg.clone(),
-        DebugServerMessage::Message(msg) => rewrite_for_gui(msg),
-        DebugServerMessage::Resetting => "Resetting state".into(),
+        DebugServerMessage::SendingValue(source_id, value, dest_id, input_number) => line(
+            format!("Function #{source_id} sending '{value}' to {dest_id}:{input_number}"),
+            Some(debug_colors::DATA_FLOW),
+        ),
+        DebugServerMessage::Error(msg) => line(msg.clone(), Some(debug_colors::ERROR)),
+        DebugServerMessage::Message(msg) => line(rewrite_for_gui(msg), None),
+        DebugServerMessage::Resetting => line("Resetting state".into(), Some(debug_colors::STATUS)),
         DebugServerMessage::FunctionStates((function, states)) => {
-            format!("{function}\n\tState: {states:?}")
+            line(format!("{function}\n\tState: {states:?}"), None)
         }
-        DebugServerMessage::OverallState(run_state) => format!("{run_state}"),
-        DebugServerMessage::InputState(input) => format!("{input}"),
+        DebugServerMessage::OverallState(run_state) => line(format!("{run_state}"), None),
+        DebugServerMessage::InputState(input) => line(format!("{input}"), None),
         DebugServerMessage::OutputState(connections) => {
             if connections.is_empty() {
-                "No output connections from that sub-route".into()
+                line("No output connections from that sub-route".into(), None)
             } else {
                 connections
                     .iter()
-                    .map(|c| format!("{c}"))
-                    .collect::<Vec<_>>()
-                    .join("\n")
+                    .map(|c| DebugEventLine::new(format!("{c}"), None))
+                    .collect()
             }
         }
         DebugServerMessage::BlockState(blocks) => {
             if blocks.is_empty() {
-                "No blocks matching the specification were found".into()
+                line(
+                    "No blocks matching the specification were found".into(),
+                    None,
+                )
             } else {
                 blocks
                     .iter()
-                    .map(|b| format!("{b}"))
-                    .collect::<Vec<_>>()
-                    .join("\n")
+                    .map(|b| DebugEventLine::new(format!("{b}"), None))
+                    .collect()
             }
         }
-        DebugServerMessage::FlowUnblockBreakpoint(flow_id) => {
-            format!("Flow #{flow_id} was busy and has now gone idle, unblocking senders")
-        }
-        DebugServerMessage::WaitingForCommand(job_id) => {
-            format!("Waiting for command (Job #{job_id})")
-        }
-        DebugServerMessage::Invalid => "Invalid message from debug server".into(),
+        DebugServerMessage::FlowUnblockBreakpoint(flow_id) => line(
+            format!("Flow #{flow_id} was busy and has now gone idle, unblocking senders"),
+            Some(debug_colors::STATUS),
+        ),
+        DebugServerMessage::WaitingForCommand(job_id) => line(
+            format!("Waiting for command (Job #{job_id})"),
+            Some(debug_colors::STATUS),
+        ),
+        DebugServerMessage::Invalid => line(
+            "Invalid message from debug server".into(),
+            Some(debug_colors::ERROR),
+        ),
     }
 }
 

@@ -11,6 +11,8 @@ use iced_aw::{TabLabel, Tabs};
 use log::error;
 use once_cell::sync::Lazy;
 
+#[cfg(feature = "debugger")]
+use crate::DebugEventLine;
 use crate::{ImageReference, Message};
 
 #[allow(clippy::struct_field_names)]
@@ -22,7 +24,7 @@ pub(crate) struct TabSet {
     pub images_tab: ImageTab,
     pub fileio_tab: StdOutTab,
     #[cfg(feature = "debugger")]
-    pub debug_tab: StdOutTab,
+    pub debug_tab: DebugTab,
     pub flow_name: String,
 }
 
@@ -54,17 +56,12 @@ impl TabSet {
                 unread_count: 0,
             },
             #[cfg(feature = "debugger")]
-            debug_tab: StdOutTab {
-                name: "Debug".to_owned(),
-                id: Lazy::new(Id::unique).clone(),
-                content: vec![],
-                auto_scroll: true,
-                unread_count: 0,
-            },
+            debug_tab: DebugTab::new("Debug"),
             flow_name: String::new(),
         }
     }
 
+    #[allow(clippy::too_many_lines)]
     pub(crate) fn update(&mut self, message: Message) -> Task<Message> {
         match message {
             Message::TabSelected(tab_index) => {
@@ -95,7 +92,12 @@ impl TabSet {
             Message::StdioAutoScrollTogglerChanged(id, value) => {
                 if id == self.stdout_tab.id {
                     self.stdout_tab.auto_scroll = value;
-                } else {
+                }
+                #[cfg(feature = "debugger")]
+                if id == self.debug_tab.id {
+                    self.debug_tab.auto_scroll = value;
+                }
+                if id == self.stderr_tab.id {
                     self.stderr_tab.auto_scroll = value;
                 }
 
@@ -104,7 +106,7 @@ impl TabSet {
                 }
             }
             Message::SaveTabContent(ref name) => {
-                let mut content = if name == &self.stdout_tab.name {
+                let content = if name == &self.stdout_tab.name {
                     Some(&self.stdout_tab.content)
                 } else if name == &self.stderr_tab.name {
                     Some(&self.stderr_tab.content)
@@ -117,7 +119,28 @@ impl TabSet {
                 };
                 #[cfg(feature = "debugger")]
                 if name == &self.debug_tab.name {
-                    content = Some(&self.debug_tab.content);
+                    let debug_lines: Vec<String> = self
+                        .debug_tab
+                        .content
+                        .iter()
+                        .map(|l| l.text.clone())
+                        .collect();
+                    let prefix = if self.flow_name.is_empty() {
+                        String::new()
+                    } else {
+                        format!("{}_", self.flow_name)
+                    };
+                    let dialog = rfd::FileDialog::new()
+                        .add_filter("Text", &["txt"])
+                        .set_file_name(format!("{prefix}{name}.txt"));
+                    if let Some(path) = dialog.save_file() {
+                        if let Err(e) = fs::write(&path, debug_lines.join("\n")) {
+                            let msg = format!("Failed to save {name}: {e}");
+                            error!("{msg}");
+                            return Task::done(Message::SaveError(msg));
+                        }
+                    }
+                    return Task::none();
                 }
 
                 if let Some(lines) = content {
@@ -470,6 +493,94 @@ impl Tab for StdInTab {
     // Avoid clearing standard input - to allow the user to type in input ahead of the
     // flow being run
     fn clear(&mut self) {}
+}
+
+#[cfg(feature = "debugger")]
+pub(crate) struct DebugTab {
+    pub name: String,
+    pub id: Id,
+    pub content: Vec<DebugEventLine>,
+    pub auto_scroll: bool,
+    pub unread_count: usize,
+}
+
+#[cfg(feature = "debugger")]
+impl DebugTab {
+    pub fn new(name: &str) -> Self {
+        Self {
+            name: name.to_owned(),
+            id: Lazy::new(Id::unique).clone(),
+            content: Vec::new(),
+            auto_scroll: true,
+            unread_count: 0,
+        }
+    }
+
+    pub fn push(&mut self, line: DebugEventLine) {
+        self.content.push(line);
+    }
+
+    pub fn push_text(&mut self, text: String) {
+        self.content.push(DebugEventLine { text, color: None });
+    }
+}
+
+#[cfg(feature = "debugger")]
+impl Tab for DebugTab {
+    type Message = Message;
+
+    fn tab_label(&self) -> TabLabel {
+        if self.unread_count > 0 {
+            TabLabel::Text(format!("{} ({})", self.name, self.unread_count))
+        } else {
+            TabLabel::Text(self.name.clone())
+        }
+    }
+
+    fn view(&self) -> Element<'_, Message> {
+        let text_column = Column::with_children(self.content.iter().map(|line| {
+            let mut t = text(line.text.clone()).shaping(iced::widget::text::Shaping::Advanced);
+            if let Some(color) = line.color {
+                t = t.color(color);
+            }
+            Element::from(t)
+        }))
+        .width(Length::Fill)
+        .padding(1);
+
+        let scrollable = Scrollable::new(text_column)
+            .height(Length::Fill)
+            .id(self.id.clone());
+
+        let toggler = toggler(self.auto_scroll)
+            .label(format!("Auto-scroll {}", self.name))
+            .on_toggle(|v| Message::StdioAutoScrollTogglerChanged(self.id.clone(), v))
+            .width(Length::Shrink);
+
+        let save_button = Button::new(Text::new("Save"))
+            .on_press(Message::SaveTabContent(self.name.clone()))
+            .style(crate::theme::styled_button)
+            .padding([4, 12]);
+        let clear_button = Button::new(Text::new("Clear"))
+            .on_press(Message::ClearTab(self.name.clone()))
+            .style(crate::theme::styled_button)
+            .padding([4, 12]);
+
+        let toolbar = Row::new()
+            .push(toggler)
+            .push(save_button)
+            .push(clear_button)
+            .spacing(10)
+            .padding(4)
+            .align_y(iced::alignment::Vertical::Center);
+
+        Column::new().push(toolbar).push(scrollable).into()
+    }
+
+    fn clear(&mut self) {
+        self.content.clear();
+        self.unread_count = 0;
+    }
 }
 
 #[cfg(test)]
