@@ -105,7 +105,7 @@ impl TryFrom<&IO> for Input {
 impl fmt::Display for Input {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         if !self.name.is_empty() {
-            write!(f, "({}) ", self.name)?;
+            write!(f, "'{}' ", self.name)?;
         }
         if !self.received.is_empty() {
             write!(f, "{:?}", self.received)?;
