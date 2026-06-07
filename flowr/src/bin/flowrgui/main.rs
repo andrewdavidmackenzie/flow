@@ -700,6 +700,8 @@ struct FlowrGui {
     #[cfg(feature = "debugger")]
     show_inspect_popup: bool,
     #[cfg(feature = "debugger")]
+    suppress_next_output: bool,
+    #[cfg(feature = "debugger")]
     inspect_tab: InspectTab,
 }
 
@@ -741,6 +743,8 @@ impl FlowrGui {
             active_breakpoints: std::collections::HashSet::new(),
             #[cfg(feature = "debugger")]
             show_inspect_popup: false,
+            #[cfg(feature = "debugger")]
+            suppress_next_output: false,
             #[cfg(feature = "debugger")]
             inspect_tab: InspectTab::Function,
         };
@@ -1913,17 +1917,21 @@ impl FlowrGui {
 
         match message {
             Message::DebugEvent(lines) => {
-                for line in lines {
-                    self.tab_set.debug_tab.push(line);
-                }
-                if self.tab_set.active_tab != 5 {
-                    self.tab_set.debug_tab.unread_count += 1;
-                }
-                if self.tab_set.debug_tab.auto_scroll {
-                    return operation::snap_to(
-                        self.tab_set.debug_tab.id.clone(),
-                        RelativeOffset::END,
-                    );
+                if self.suppress_next_output {
+                    self.suppress_next_output = false;
+                } else {
+                    for line in lines {
+                        self.tab_set.debug_tab.push(line);
+                    }
+                    if self.tab_set.active_tab != 5 {
+                        self.tab_set.debug_tab.unread_count += 1;
+                    }
+                    if self.tab_set.debug_tab.auto_scroll {
+                        return operation::snap_to(
+                            self.tab_set.debug_tab.id.clone(),
+                            RelativeOffset::END,
+                        );
+                    }
                 }
             }
             Message::DebugWaiting => {
@@ -2075,6 +2083,7 @@ impl FlowrGui {
                 self.show_inspect_popup = true;
                 if self.cached_functions.is_empty() && self.debug_waiting {
                     self.debug_waiting = false;
+                    self.suppress_next_output = true;
                     connection_manager::send_debug_command(
                         flowcore::model::debug_command::DebugCommand::FunctionList,
                     );
@@ -2116,6 +2125,7 @@ impl FlowrGui {
                 self.bp_target.clear();
                 if self.debug_waiting {
                     self.debug_waiting = false;
+                    self.suppress_next_output = true;
                     if self.cached_functions.is_empty() {
                         connection_manager::send_debug_command(DebugCommand::FunctionList);
                     } else {
@@ -2549,6 +2559,8 @@ mod test {
             active_breakpoints: std::collections::HashSet::new(),
             #[cfg(feature = "debugger")]
             show_inspect_popup: false,
+            #[cfg(feature = "debugger")]
+            suppress_next_output: false,
             #[cfg(feature = "debugger")]
             inspect_tab: InspectTab::Function,
         }
