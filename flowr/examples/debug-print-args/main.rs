@@ -296,4 +296,34 @@ mod test {
         );
         assert!(stdout.contains("Debugger is exiting"), "No exit:\n{stdout}");
     }
+
+    #[test]
+    #[serial]
+    fn test_debug_inspect_ready() {
+        let mut session = DebugSession::start(&example_dir(), &["test_arg1"]);
+        session.send("i ready");
+        session.send("e");
+        let stdout = session.finish();
+
+        assert!(
+            stdout.contains("Functions in 'ready' state:"),
+            "No ready state header:\n{stdout}"
+        );
+        assert!(stdout.contains("Debugger is exiting"), "No exit:\n{stdout}");
+    }
+
+    #[test]
+    #[serial]
+    fn test_debug_inspect_waiting() {
+        let mut session = DebugSession::start(&example_dir(), &["test_arg1"]);
+        session.send("i waiting");
+        session.send("e");
+        let stdout = session.finish();
+
+        assert!(
+            stdout.contains("Functions in 'waiting' state:"),
+            "No waiting state header:\n{stdout}"
+        );
+        assert!(stdout.contains("Debugger is exiting"), "No exit:\n{stdout}");
+    }
 }

@@ -102,3 +102,8 @@ The `inspect` command accepts the following spec formats to examine specific par
 | `i 5:0` | Show state of input #0 on function #5 |
 | `i 3/result` | Show output connections from function #3's `/result` route |
 | `i 1->2` | Show blocks between functions #1 and #2 |
+| `i ready` | Show functions currently in Ready state |
+| `i waiting` | Show functions in Waiting state |
+| `i running` | Show functions in Running state with job IDs |
+| `i completed` | Show functions that have completed |
+| `i blocked` | Show functions blocked on output, and what blocks them |
