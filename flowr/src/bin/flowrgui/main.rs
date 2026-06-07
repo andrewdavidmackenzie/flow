@@ -203,6 +203,26 @@ impl DebugEventLine {
             })
         });
 
+        // Match Job #N patterns — link to the function that ran the job
+        search_from = 0;
+        while let Some(pos) = text[search_from..].find("Job #") {
+            let abs_pos = search_from + pos;
+            let after_hash = abs_pos + "Job #".len();
+            let digit_end = text[after_hash..]
+                .find(|c: char| !c.is_ascii_digit())
+                .map_or(text.len(), |i| after_hash + i);
+            if digit_end > after_hash {
+                if let Some(func_id) = context_func_id {
+                    links.push(DebugLink {
+                        start: abs_pos,
+                        end: digit_end,
+                        spec: func_id.to_string(),
+                    });
+                }
+            }
+            search_from = digit_end;
+        }
+
         // Match Input:N patterns
         search_from = 0;
         while let Some(pos) = text[search_from..].find("Input:") {
