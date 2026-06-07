@@ -512,9 +512,10 @@ fn format_debug_event(message: &DebugServerMessage) -> Vec<crate::DebugEventLine
         DebugServerMessage::Message(msg) => line(rewrite_for_gui(msg), None),
         DebugServerMessage::Resetting => line("Resetting state".into(), Some(debug_colors::STATUS)),
         DebugServerMessage::FunctionStates((function, states)) => {
+            let func_id = function.id();
             let mut lines: Vec<DebugEventLine> = format!("{function}")
                 .lines()
-                .map(|l| DebugEventLine::new(l.trim_start().to_string(), None))
+                .map(|l| DebugEventLine::with_context(l.trim_start().to_string(), None, func_id))
                 .collect();
             lines.push(DebugEventLine::new(format!("State: {states:?}"), None));
             lines

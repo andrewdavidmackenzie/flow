@@ -104,7 +104,17 @@ pub struct DebugEventLine {
 #[cfg(feature = "debugger")]
 impl DebugEventLine {
     fn new(text: String, color: Option<iced::Color>) -> Self {
-        let links = Self::extract_links(&text);
+        let links = Self::extract_links(&text, None);
+        Self {
+            text,
+            color,
+            separator: false,
+            links,
+        }
+    }
+
+    fn with_context(text: String, color: Option<iced::Color>, context_func_id: usize) -> Self {
+        let links = Self::extract_links(&text, Some(context_func_id));
         Self {
             text,
             color,
@@ -123,7 +133,7 @@ impl DebugEventLine {
     }
 
     #[allow(clippy::too_many_lines)]
-    fn extract_links(text: &str) -> Vec<DebugLink> {
+    fn extract_links(text: &str, override_func_id: Option<usize>) -> Vec<DebugLink> {
         let mut links = Vec::new();
         let mut search_from = 0;
 
@@ -163,13 +173,14 @@ impl DebugEventLine {
             search_from = digit_end;
         }
 
-        // Extract function ID from first "Function #N" if present, for context
-        let context_func_id = text.find("Function #").and_then(|pos| {
-            let after = pos + "Function #".len();
-            let end = text[after..]
-                .find(|c: char| !c.is_ascii_digit())
-                .map_or(text.len(), |i| after + i);
-            text[after..end].parse::<usize>().ok()
+        let context_func_id = override_func_id.or_else(|| {
+            text.find("Function #").and_then(|pos| {
+                let after = pos + "Function #".len();
+                let end = text[after..]
+                    .find(|c: char| !c.is_ascii_digit())
+                    .map_or(text.len(), |i| after + i);
+                text[after..end].parse::<usize>().ok()
+            })
         });
 
         // Match Input:N patterns
@@ -1721,11 +1732,20 @@ impl FlowrGui {
             Message::DebugBreakpointListReceived(specs) => {
                 self.active_breakpoints = specs.into_iter().collect();
             }
-            Message::DebugInspectLink(spec) if self.debug_waiting => {
+            Message::DebugInspectLink(ref spec) if self.debug_waiting => {
                 self.debug_waiting = false;
-                let params = Some(vec![spec]);
+                let label = if spec.parse::<usize>().is_ok() {
+                    format!("Inspect #{spec}")
+                } else if spec.contains(':') {
+                    format!("Inspect Input ({spec})")
+                } else if spec.contains('/') {
+                    format!("Inspect Output ({spec})")
+                } else {
+                    format!("Inspect {spec}")
+                };
+                let params = Some(vec![spec.clone()]);
                 if let Some(cmd) = DebugClient::parse_inspect_spec(params) {
-                    self.debug_separator("Inspect");
+                    self.debug_separator(&label);
                     connection_manager::send_debug_command(cmd);
                 }
             }
