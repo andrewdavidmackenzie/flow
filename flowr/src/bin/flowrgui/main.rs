@@ -937,6 +937,8 @@ impl FlowrGui {
                             .padding([3, 8]);
                         if self.active_breakpoints.contains(&spec) {
                             btn = btn.style(theme::styled_button);
+                        } else {
+                            btn = btn.style(theme::list_button);
                         }
                         btn = btn.on_press(Message::BpTargetChanged(spec.clone()));
                         items = items.push(btn);
@@ -952,6 +954,8 @@ impl FlowrGui {
                             .padding([3, 8]);
                         if self.active_breakpoints.contains(&spec) {
                             btn = btn.style(theme::styled_button);
+                        } else {
+                            btn = btn.style(theme::list_button);
                         }
                         btn = btn.on_press(Message::BpTargetChanged(spec));
                         items = items.push(btn);
@@ -971,6 +975,8 @@ impl FlowrGui {
                                 .padding([2, 16]);
                             if self.active_breakpoints.contains(&input_spec) {
                                 ibtn = ibtn.style(theme::styled_button);
+                            } else {
+                                ibtn = ibtn.style(theme::list_button);
                             }
                             ibtn = ibtn.on_press(Message::BpTargetChanged(input_spec));
                             items = items.push(ibtn);
@@ -985,6 +991,8 @@ impl FlowrGui {
                                 .padding([2, 16]);
                             if self.active_breakpoints.contains(&out_spec) {
                                 obtn = obtn.style(theme::styled_button);
+                            } else {
+                                obtn = obtn.style(theme::list_button);
                             }
                             obtn = obtn.on_press(Message::BpTargetChanged(out_spec));
                             items = items.push(obtn);
@@ -1042,7 +1050,13 @@ impl FlowrGui {
         let body = Column::new().spacing(8).push(type_row).push(list);
 
         Card::new(Text::new("Breakpoints"), body)
-            .on_close(Message::CloseBpPopup)
+            .foot(
+                Button::new(Text::new("Close").align_x(Center))
+                    .width(Fill)
+                    .on_press(Message::CloseBpPopup)
+                    .style(theme::styled_button)
+                    .padding([4, 8]),
+            )
             .max_width(500.0)
     }
 
