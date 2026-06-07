@@ -549,17 +549,26 @@ fn format_debug_event(message: &DebugServerMessage) -> Vec<crate::DebugEventLine
             lines
         }
         DebugServerMessage::InputState(input) => {
-            let display = format!("{input}");
-            if display.trim().is_empty() {
+            let name = input.name();
+            let name_label = if name.is_empty() {
+                String::new()
+            } else {
+                format!("'{name}' ")
+            };
+            if input.is_empty() {
                 vec![DebugEventLine::new(
-                    format!("Input '{}' — no values queued", input.name()),
+                    format!("Input {name_label}— no values queued"),
                     None,
                 )]
             } else {
-                display
-                    .lines()
-                    .map(|l| DebugEventLine::new(l.trim_start().to_string(), None))
-                    .collect()
+                vec![DebugEventLine::new(
+                    format!(
+                        "Input {name_label}— {} value(s) queued: {}",
+                        input.values_available(),
+                        format!("{input}").trim()
+                    ),
+                    None,
+                )]
             }
         }
         DebugServerMessage::OutputState(connections) => {

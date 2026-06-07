@@ -470,6 +470,18 @@ pub enum Message {
     /// Breakpoint list received from debug server
     #[cfg(feature = "debugger")]
     DebugBreakpointListReceived(Vec<String>),
+    /// Show the inspect helper popup
+    #[cfg(feature = "debugger")]
+    ShowInspectPopup,
+    /// Close the inspect helper popup
+    #[cfg(feature = "debugger")]
+    CloseInspectPopup,
+    /// Inspect tab changed in popup
+    #[cfg(feature = "debugger")]
+    InspectTabChanged(InspectTab),
+    /// Item selected in inspect popup
+    #[cfg(feature = "debugger")]
+    InspectPopupSelect(String),
 }
 
 #[allow(clippy::ignored_unit_patterns)]
@@ -606,6 +618,44 @@ const BP_TABS: [BpTab; 5] = [
     BpTab::Route,
 ];
 
+/// Tabs in the inspect popup
+#[cfg(feature = "debugger")]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum InspectTab {
+    /// Inspect by state (ready, waiting, etc.)
+    State,
+    /// Inspect a function
+    Function,
+    /// Inspect an input
+    Input,
+    /// Inspect an output
+    Output,
+    /// Inspect by route
+    Route,
+}
+
+#[cfg(feature = "debugger")]
+impl std::fmt::Display for InspectTab {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::State => write!(f, "State"),
+            Self::Function => write!(f, "Function"),
+            Self::Input => write!(f, "Input"),
+            Self::Output => write!(f, "Output"),
+            Self::Route => write!(f, "Route"),
+        }
+    }
+}
+
+#[cfg(feature = "debugger")]
+const INSPECT_TABS: [InspectTab; 5] = [
+    InspectTab::State,
+    InspectTab::Function,
+    InspectTab::Input,
+    InspectTab::Output,
+    InspectTab::Route,
+];
+
 struct UiSettings {
     auto_start: bool,
     auto_exit: bool,
@@ -647,6 +697,12 @@ struct FlowrGui {
     cached_functions: Vec<CachedFunction>,
     #[cfg(feature = "debugger")]
     active_breakpoints: std::collections::HashSet<String>,
+    #[cfg(feature = "debugger")]
+    show_inspect_popup: bool,
+    #[cfg(feature = "debugger")]
+    suppress_next_output: bool,
+    #[cfg(feature = "debugger")]
+    inspect_tab: InspectTab,
 }
 
 impl FlowrGui {
@@ -685,6 +741,12 @@ impl FlowrGui {
             cached_functions: Vec::new(),
             #[cfg(feature = "debugger")]
             active_breakpoints: std::collections::HashSet::new(),
+            #[cfg(feature = "debugger")]
+            show_inspect_popup: false,
+            #[cfg(feature = "debugger")]
+            suppress_next_output: false,
+            #[cfg(feature = "debugger")]
+            inspect_tab: InspectTab::Function,
         };
 
         (flowrgui, Task::none())
@@ -815,7 +877,11 @@ impl FlowrGui {
             | Message::DebugFunctionListReceived(_)
             | Message::DebugBreakpointListReceived(_)
             | Message::DebugInspectLink(_)
-            | Message::DebugToggleSection(_)) => {
+            | Message::DebugToggleSection(_)
+            | Message::ShowInspectPopup
+            | Message::CloseInspectPopup
+            | Message::InspectTabChanged(_)
+            | Message::InspectPopupSelect(_)) => {
                 return self.process_debug_message(msg);
             }
             Message::CoordinatorDisconnected(reason) => {
@@ -872,6 +938,16 @@ impl FlowrGui {
             return stack![
                 main_content,
                 opaque(mouse_area(center(opaque(bp_popup))).on_press(Message::CloseBpPopup))
+            ]
+            .into();
+        }
+
+        #[cfg(feature = "debugger")]
+        if self.show_inspect_popup {
+            let popup = self.inspect_popup_card();
+            return stack![
+                main_content,
+                opaque(mouse_area(center(opaque(popup))).on_press(Message::CloseInspectPopup))
             ]
             .into();
         }
@@ -1132,7 +1208,11 @@ impl FlowrGui {
             .style(theme::styled_button)
             .padding([4, 8]);
         if can_cmd {
-            inspect_btn = inspect_btn.on_press(Message::DebugInspect);
+            inspect_btn = inspect_btn.on_press(if self.debug_spec_text.is_empty() {
+                Message::ShowInspectPopup
+            } else {
+                Message::DebugInspect
+            });
         }
 
         let mut funcs_btn = Button::new(Text::new("Functions"))
@@ -1369,6 +1449,120 @@ impl FlowrGui {
 
         Card::new(Text::new("Breakpoints"), body)
             .on_close(Message::CloseBpPopup)
+            .max_width(500.0)
+    }
+
+    #[cfg(feature = "debugger")]
+    #[allow(clippy::too_many_lines)]
+    fn inspect_popup_card(&self) -> Card<'_, Message> {
+        use iced::widget::scrollable::Scrollable;
+        use iced::Length;
+
+        let tab_row = Row::new()
+            .spacing(4)
+            .align_y(iced::alignment::Vertical::Center);
+        let tab_row = INSPECT_TABS.iter().fold(tab_row, |row, &tab| {
+            let mut btn = Button::new(Text::new(tab.to_string()).size(13)).padding([3, 6]);
+            if tab == self.inspect_tab {
+                btn = btn.style(theme::styled_button);
+            } else {
+                btn = btn.on_press(Message::InspectTabChanged(tab));
+            }
+            row.push(btn)
+        });
+
+        let mut items = Column::new().spacing(2);
+
+        match self.inspect_tab {
+            InspectTab::State => {
+                let global_btn =
+                    Button::new(Text::new("Overall State (global inspection)").size(13))
+                        .width(Length::Fill)
+                        .padding([3, 8])
+                        .style(theme::styled_button)
+                        .on_press(Message::InspectPopupSelect(String::new()));
+                items = items.push(global_btn);
+                for state_name in &["ready", "waiting", "running", "completed", "blocked"] {
+                    let btn = Button::new(Text::new(format!("  {state_name}")).size(13))
+                        .width(Length::Fill)
+                        .padding([3, 8])
+                        .style(theme::list_button)
+                        .on_press(Message::InspectPopupSelect((*state_name).to_string()));
+                    items = items.push(btn);
+                }
+            }
+            InspectTab::Function => {
+                for f in &self.cached_functions {
+                    let btn = Button::new(
+                        Text::new(format!("#{} '{}' @ '{}'", f.id, f.name, f.route)).size(13),
+                    )
+                    .width(Length::Fill)
+                    .padding([3, 8])
+                    .style(theme::list_button)
+                    .on_press(Message::InspectPopupSelect(format!("{}", f.id)));
+                    items = items.push(btn);
+                }
+            }
+            InspectTab::Input => {
+                for f in &self.cached_functions {
+                    for (idx, input_name) in &f.inputs {
+                        let name_part = if input_name.is_empty() {
+                            String::new()
+                        } else {
+                            format!(" '{input_name}'")
+                        };
+                        let btn = Button::new(
+                            Text::new(format!("#{} '{}' input:{idx}{name_part}", f.id, f.name))
+                                .size(13),
+                        )
+                        .width(Length::Fill)
+                        .padding([3, 8])
+                        .style(theme::list_button)
+                        .on_press(Message::InspectPopupSelect(format!("{}:{idx}", f.id)));
+                        items = items.push(btn);
+                    }
+                }
+            }
+            InspectTab::Output => {
+                for f in &self.cached_functions {
+                    for output_route in &f.outputs {
+                        let btn = Button::new(
+                            Text::new(format!("#{} '{}' output:'{output_route}'", f.id, f.name))
+                                .size(13),
+                        )
+                        .width(Length::Fill)
+                        .padding([3, 8])
+                        .style(theme::list_button)
+                        .on_press(Message::InspectPopupSelect(format!(
+                            "{}{output_route}",
+                            f.id
+                        )));
+                        items = items.push(btn);
+                    }
+                }
+            }
+            InspectTab::Route => {
+                for f in &self.cached_functions {
+                    let btn = Button::new(
+                        Text::new(format!("{} (#{} '{}')", f.route, f.id, f.name)).size(13),
+                    )
+                    .width(Length::Fill)
+                    .padding([3, 8])
+                    .style(theme::list_button)
+                    .on_press(Message::InspectPopupSelect(f.route.clone()));
+                    items = items.push(btn);
+                }
+            }
+        }
+
+        let list = Scrollable::new(items)
+            .height(Length::Fixed(200.0))
+            .width(Length::Fill);
+
+        let body = Column::new().spacing(8).push(tab_row).push(list);
+
+        Card::new(Text::new("Inspect"), body)
+            .on_close(Message::CloseInspectPopup)
             .max_width(500.0)
     }
 
@@ -1723,17 +1917,21 @@ impl FlowrGui {
 
         match message {
             Message::DebugEvent(lines) => {
-                for line in lines {
-                    self.tab_set.debug_tab.push(line);
-                }
-                if self.tab_set.active_tab != 5 {
-                    self.tab_set.debug_tab.unread_count += 1;
-                }
-                if self.tab_set.debug_tab.auto_scroll {
-                    return operation::snap_to(
-                        self.tab_set.debug_tab.id.clone(),
-                        RelativeOffset::END,
-                    );
+                if self.suppress_next_output {
+                    self.suppress_next_output = false;
+                } else {
+                    for line in lines {
+                        self.tab_set.debug_tab.push(line);
+                    }
+                    if self.tab_set.active_tab != 5 {
+                        self.tab_set.debug_tab.unread_count += 1;
+                    }
+                    if self.tab_set.debug_tab.auto_scroll {
+                        return operation::snap_to(
+                            self.tab_set.debug_tab.id.clone(),
+                            RelativeOffset::END,
+                        );
+                    }
                 }
             }
             Message::DebugWaiting => {
@@ -1881,11 +2079,53 @@ impl FlowrGui {
             Message::DebugToggleSection(section_id) => {
                 self.tab_set.debug_tab.toggle_section(section_id);
             }
+            Message::ShowInspectPopup => {
+                self.show_inspect_popup = true;
+                if self.cached_functions.is_empty() && self.debug_waiting {
+                    self.debug_waiting = false;
+                    self.suppress_next_output = true;
+                    connection_manager::send_debug_command(
+                        flowcore::model::debug_command::DebugCommand::FunctionList,
+                    );
+                }
+            }
+            Message::CloseInspectPopup => self.show_inspect_popup = false,
+            Message::InspectTabChanged(tab) => self.inspect_tab = tab,
+            Message::InspectPopupSelect(spec) => {
+                self.show_inspect_popup = false;
+                if self.debug_waiting {
+                    self.debug_waiting = false;
+                    if spec.is_empty() {
+                        self.debug_separator("Inspect (overall flow state)");
+                        connection_manager::send_debug_command(
+                            flowcore::model::debug_command::DebugCommand::Inspect,
+                        );
+                    } else {
+                        let label = if spec.parse::<usize>().is_ok() {
+                            format!("Inspect #{spec}")
+                        } else if spec.starts_with('/') {
+                            format!("Inspect Route ({spec})")
+                        } else if spec.contains(':') {
+                            format!("Inspect Input ({spec})")
+                        } else if spec.contains('/') {
+                            format!("Inspect Output ({spec})")
+                        } else {
+                            format!("Inspect {spec}")
+                        };
+                        let params = Some(vec![spec]);
+                        if let Some(cmd) = DebugClient::parse_inspect_spec(params) {
+                            self.debug_separator(&label);
+                            connection_manager::send_debug_command(cmd);
+                        }
+                    }
+                }
+            }
             Message::ShowBpPopup => {
                 self.show_bp_popup = true;
                 self.bp_target.clear();
                 if self.debug_waiting {
                     self.debug_waiting = false;
+                    self.suppress_next_output = true;
                     if self.cached_functions.is_empty() {
                         connection_manager::send_debug_command(DebugCommand::FunctionList);
                     } else {
@@ -2317,6 +2557,12 @@ mod test {
             cached_functions: Vec::new(),
             #[cfg(feature = "debugger")]
             active_breakpoints: std::collections::HashSet::new(),
+            #[cfg(feature = "debugger")]
+            show_inspect_popup: false,
+            #[cfg(feature = "debugger")]
+            suppress_next_output: false,
+            #[cfg(feature = "debugger")]
+            inspect_tab: InspectTab::Function,
         }
     }
 
