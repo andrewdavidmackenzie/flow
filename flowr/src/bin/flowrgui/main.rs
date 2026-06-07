@@ -894,7 +894,7 @@ impl FlowrGui {
 
         if self.cached_functions.is_empty() {
             items = items.push(
-                Text::new("No function list yet — click 'Funcs' first")
+                Text::new("Loading function list...")
                     .size(13)
                     .color(iced::Color::from_rgb(0.6, 0.6, 0.6)),
             );
@@ -1429,6 +1429,10 @@ impl FlowrGui {
             Message::ShowBpPopup => {
                 self.show_bp_popup = true;
                 self.bp_target.clear();
+                if self.cached_functions.is_empty() && self.debug_waiting {
+                    self.debug_waiting = false;
+                    connection_manager::send_debug_command(DebugCommand::FunctionList);
+                }
             }
             Message::CloseBpPopup => self.show_bp_popup = false,
             Message::BpTypeChanged(bp_type) => {
