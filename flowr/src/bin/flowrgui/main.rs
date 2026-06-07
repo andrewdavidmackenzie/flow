@@ -99,6 +99,8 @@ pub struct DebugEventLine {
     pub separator: bool,
     /// Clickable links in this line
     pub links: Vec<DebugLink>,
+    /// Section ID for collapsible grouping (set by `DebugTab` on push)
+    pub section_id: usize,
 }
 
 #[cfg(feature = "debugger")]
@@ -110,6 +112,7 @@ impl DebugEventLine {
             color,
             separator: false,
             links,
+            section_id: 0,
         }
     }
 
@@ -120,6 +123,7 @@ impl DebugEventLine {
             color,
             separator: false,
             links,
+            section_id: 0,
         }
     }
 
@@ -129,6 +133,7 @@ impl DebugEventLine {
             color: Some(color),
             separator: true,
             links: Vec::new(),
+            section_id: 0,
         }
     }
 
@@ -456,6 +461,9 @@ pub enum Message {
     /// A clickable link in the debug output was clicked (spec to inspect)
     #[cfg(feature = "debugger")]
     DebugInspectLink(String),
+    /// Toggle collapse of a debug output section
+    #[cfg(feature = "debugger")]
+    DebugToggleSection(usize),
     /// Function list received from debug server
     #[cfg(feature = "debugger")]
     DebugFunctionListReceived(Vec<CachedFunction>),
@@ -806,7 +814,8 @@ impl FlowrGui {
             | Message::BpCycleFunction(_)
             | Message::DebugFunctionListReceived(_)
             | Message::DebugBreakpointListReceived(_)
-            | Message::DebugInspectLink(_)) => {
+            | Message::DebugInspectLink(_)
+            | Message::DebugToggleSection(_)) => {
                 return self.process_debug_message(msg);
             }
             Message::CoordinatorDisconnected(reason) => {
@@ -1714,7 +1723,9 @@ impl FlowrGui {
 
         match message {
             Message::DebugEvent(lines) => {
-                self.tab_set.debug_tab.content.extend(lines);
+                for line in lines {
+                    self.tab_set.debug_tab.push(line);
+                }
                 if self.tab_set.active_tab != 5 {
                     self.tab_set.debug_tab.unread_count += 1;
                 }
@@ -1827,12 +1838,12 @@ impl FlowrGui {
             }
             Message::DebugFunctions => {
                 self.debug_waiting = false;
-                self.debug_separator("Functions");
+                self.debug_separator("Functions List");
                 connection_manager::send_debug_command(DebugCommand::FunctionList);
             }
             Message::DebugProcesses => {
                 self.debug_waiting = false;
-                self.debug_separator("Processes");
+                self.debug_separator("Process Tree");
                 connection_manager::send_debug_command(DebugCommand::ProcessList);
             }
             Message::DebugValidate => {
@@ -1866,6 +1877,9 @@ impl FlowrGui {
                 } else {
                     self.debug_waiting = true;
                 }
+            }
+            Message::DebugToggleSection(section_id) => {
+                self.tab_set.debug_tab.toggle_section(section_id);
             }
             Message::ShowBpPopup => {
                 self.show_bp_popup = true;

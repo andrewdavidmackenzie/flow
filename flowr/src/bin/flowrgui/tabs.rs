@@ -502,6 +502,9 @@ pub(crate) struct DebugTab {
     pub content: Vec<DebugEventLine>,
     pub auto_scroll: bool,
     pub unread_count: usize,
+    next_section_id: usize,
+    current_section_id: usize,
+    collapsed: std::collections::HashSet<usize>,
 }
 
 #[cfg(feature = "debugger")]
@@ -513,20 +516,39 @@ impl DebugTab {
             content: Vec::new(),
             auto_scroll: true,
             unread_count: 0,
+            next_section_id: 1,
+            current_section_id: 0,
+            collapsed: std::collections::HashSet::new(),
         }
     }
 
-    pub fn push(&mut self, line: DebugEventLine) {
+    pub fn push(&mut self, mut line: DebugEventLine) {
+        if line.separator {
+            self.current_section_id = self.next_section_id;
+            self.next_section_id += 1;
+            line.section_id = self.current_section_id;
+        } else {
+            line.section_id = self.current_section_id;
+        }
         self.content.push(line);
     }
 
     pub fn push_text(&mut self, text: String) {
-        self.content.push(DebugEventLine {
+        self.push(DebugEventLine {
             text,
             color: None,
             separator: false,
             links: Vec::new(),
+            section_id: 0,
         });
+    }
+
+    pub fn toggle_section(&mut self, section_id: usize) {
+        if self.collapsed.contains(&section_id) {
+            self.collapsed.remove(&section_id);
+        } else {
+            self.collapsed.insert(section_id);
+        }
     }
 }
 
@@ -542,64 +564,84 @@ impl Tab for DebugTab {
         }
     }
 
+    #[allow(clippy::too_many_lines)]
     fn view(&self) -> Element<'_, Message> {
-        let text_column = Column::with_children(self.content.iter().map(|line| {
-            if line.separator {
-                let color = line.color.unwrap_or(iced::Color::WHITE);
-                let rule_left = iced::widget::rule::horizontal(1);
-                let rule_right = iced::widget::rule::horizontal(1);
-                let label = text(line.text.clone())
-                    .shaping(iced::widget::text::Shaping::Advanced)
-                    .size(13)
-                    .color(color);
-                Element::from(
-                    Row::new()
-                        .align_y(iced::alignment::Vertical::Center)
-                        .spacing(8)
-                        .push(rule_left)
-                        .push(label)
-                        .push(rule_right)
-                        .padding([6, 0]),
-                )
-            } else if line.links.is_empty() {
-                let mut t = text(line.text.clone()).shaping(iced::widget::text::Shaping::Advanced);
-                if let Some(color) = line.color {
-                    t = t.color(color);
-                }
-                Element::from(t)
-            } else {
-                let base_color = line.color;
-                let link_color = iced::Color::from_rgb(0.3, 0.6, 1.0);
-                let mut spans: Vec<iced::widget::text::Span<'_, String>> = Vec::new();
-                let mut pos = 0;
-                for link in &line.links {
-                    if link.start > pos {
-                        let mut s = iced::widget::span(line.text[pos..link.start].to_string());
-                        if let Some(c) = base_color {
-                            s = s.color(c);
+        let text_column = Column::with_children(
+            self.content
+                .iter()
+                .filter(|line| line.separator || !self.collapsed.contains(&line.section_id))
+                .map(|line| {
+                    if line.separator {
+                        let color = line.color.unwrap_or(iced::Color::WHITE);
+                        let is_collapsed = self.collapsed.contains(&line.section_id);
+                        let indicator = if is_collapsed { "\u{25B6}" } else { "\u{25BC}" };
+                        let section_id = line.section_id;
+                        let toggle_btn = Button::new(
+                            Text::new(indicator)
+                                .size(14)
+                                .shaping(iced::widget::text::Shaping::Advanced),
+                        )
+                        .on_press(Message::DebugToggleSection(section_id))
+                        .style(crate::theme::list_button)
+                        .padding([2, 6]);
+                        let rule_left = iced::widget::rule::horizontal(1);
+                        let rule_right = iced::widget::rule::horizontal(1);
+                        let label = text(line.text.clone())
+                            .shaping(iced::widget::text::Shaping::Advanced)
+                            .size(13)
+                            .color(color);
+                        Element::from(
+                            Row::new()
+                                .align_y(iced::alignment::Vertical::Center)
+                                .spacing(6)
+                                .push(toggle_btn)
+                                .push(rule_left)
+                                .push(label)
+                                .push(rule_right)
+                                .padding([4, 0]),
+                        )
+                    } else if line.links.is_empty() {
+                        let mut t =
+                            text(line.text.clone()).shaping(iced::widget::text::Shaping::Advanced);
+                        if let Some(color) = line.color {
+                            t = t.color(color);
                         }
-                        spans.push(s);
+                        Element::from(t)
+                    } else {
+                        let base_color = line.color;
+                        let link_color = iced::Color::from_rgb(0.3, 0.6, 1.0);
+                        let mut spans: Vec<iced::widget::text::Span<'_, String>> = Vec::new();
+                        let mut pos = 0;
+                        for link in &line.links {
+                            if link.start > pos {
+                                let mut s =
+                                    iced::widget::span(line.text[pos..link.start].to_string());
+                                if let Some(c) = base_color {
+                                    s = s.color(c);
+                                }
+                                spans.push(s);
+                            }
+                            spans.push(
+                                iced::widget::span(line.text[link.start..link.end].to_string())
+                                    .color(link_color)
+                                    .underline(true)
+                                    .link(link.spec.clone()),
+                            );
+                            pos = link.end;
+                        }
+                        if pos < line.text.len() {
+                            let mut s = iced::widget::span(line.text[pos..].to_string());
+                            if let Some(c) = base_color {
+                                s = s.color(c);
+                            }
+                            spans.push(s);
+                        }
+                        Element::from(
+                            iced::widget::rich_text(spans).on_link_click(Message::DebugInspectLink),
+                        )
                     }
-                    spans.push(
-                        iced::widget::span(line.text[link.start..link.end].to_string())
-                            .color(link_color)
-                            .underline(true)
-                            .link(link.spec.clone()),
-                    );
-                    pos = link.end;
-                }
-                if pos < line.text.len() {
-                    let mut s = iced::widget::span(line.text[pos..].to_string());
-                    if let Some(c) = base_color {
-                        s = s.color(c);
-                    }
-                    spans.push(s);
-                }
-                Element::from(
-                    iced::widget::rich_text(spans).on_link_click(Message::DebugInspectLink),
-                )
-            }
-        }))
+                }),
+        )
         .width(Length::Fill)
         .padding(1);
 
@@ -635,6 +677,9 @@ impl Tab for DebugTab {
     fn clear(&mut self) {
         self.content.clear();
         self.unread_count = 0;
+        self.collapsed.clear();
+        self.next_section_id = 1;
+        self.current_section_id = 0;
     }
 }
 

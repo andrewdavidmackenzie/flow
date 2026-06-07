@@ -495,7 +495,7 @@ fn format_debug_event(message: &DebugServerMessage) -> Vec<crate::DebugEventLine
             line("Flow has completed".into(), Some(debug_colors::COMPLETION))
         }
         DebugServerMessage::Functions(functions) => {
-            let mut lines = vec![DebugEventLine::new("Functions List".into(), None)];
+            let mut lines = Vec::new();
             for f in functions {
                 lines.push(DebugEventLine::new(
                     format!("  #{} '{}' @ '{}'", f.id(), f.name(), f.route()),
@@ -513,17 +513,41 @@ fn format_debug_event(message: &DebugServerMessage) -> Vec<crate::DebugEventLine
         DebugServerMessage::Resetting => line("Resetting state".into(), Some(debug_colors::STATUS)),
         DebugServerMessage::FunctionStates((function, states)) => {
             let func_id = function.id();
+            let mut first = true;
             let mut lines: Vec<DebugEventLine> = format!("{function}")
                 .lines()
-                .map(|l| DebugEventLine::with_context(l.trim_start().to_string(), None, func_id))
+                .map(|l| {
+                    let trimmed = l.trim_start();
+                    let text = if first {
+                        first = false;
+                        trimmed.to_string()
+                    } else {
+                        format!("  {trimmed}")
+                    };
+                    DebugEventLine::with_context(text, None, func_id)
+                })
                 .collect();
-            lines.push(DebugEventLine::new(format!("State: {states:?}"), None));
+            lines.push(DebugEventLine::new(format!("  State: {states:?}"), None));
             lines
         }
-        DebugServerMessage::OverallState(run_state) => format!("{run_state}")
-            .lines()
-            .map(|l| DebugEventLine::new(l.trim_start().to_string(), None))
-            .collect(),
+        DebugServerMessage::OverallState(run_state) => {
+            let mut lines = Vec::new();
+            for l in format!("{run_state}").lines() {
+                let trimmed = l.trim_start();
+                if trimmed.is_empty() {
+                    continue;
+                }
+                let is_header =
+                    trimmed.starts_with("Submission:") || trimmed.starts_with("RunState:");
+                let text = if is_header {
+                    trimmed.to_string()
+                } else {
+                    format!("  {trimmed}")
+                };
+                lines.push(DebugEventLine::new(text, None));
+            }
+            lines
+        }
         DebugServerMessage::InputState(input) => {
             let display = format!("{input}");
             if display.trim().is_empty() {
@@ -577,7 +601,7 @@ fn format_debug_event(message: &DebugServerMessage) -> Vec<crate::DebugEventLine
             if specs.is_empty() {
                 line("No breakpoints set".into(), None)
             } else {
-                let mut lines = vec![DebugEventLine::new("Active breakpoints:".into(), None)];
+                let mut lines = Vec::new();
                 for spec in specs {
                     let text = match spec {
                         flowcore::model::debug_command::BreakpointSpec::Numeric(id) => {
