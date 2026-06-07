@@ -904,16 +904,24 @@ impl FlowrGui {
                 self.discovering = false;
             }
             Message::ServiceSelected(service_type, address) => {
-                self.show_coordinator_picker = false;
                 info!("User selected {service_type} at {address}");
                 if service_type == "Coordinator" {
                     connection_manager::set_discovered_address(address);
+                    if !self.submission_settings.debug_this_flow
+                        || self
+                            .discovered_services
+                            .iter()
+                            .all(|(t, _)| t != "Debug Server")
+                    {
+                        self.show_coordinator_picker = false;
+                    }
                 } else if service_type == "Debug Server" {
                     #[cfg(feature = "debugger")]
                     {
                         self.debug_client_active = true;
                         self.submission_settings.debug_this_flow = true;
                     }
+                    self.show_coordinator_picker = false;
                 }
             }
             Message::CloseCoordinatorPicker => {
@@ -1197,12 +1205,6 @@ impl FlowrGui {
             .push(max_jobs)
             .push(play)
             .push(debug_play)
-            .push(
-                Button::new(Text::new("\u{1F50D} Connect"))
-                    .style(theme::styled_button)
-                    .padding([6, 16])
-                    .on_press(Message::DiscoverCoordinators),
-            )
     }
 
     fn coordinator_picker_card(&self) -> Card<'_, Message> {
@@ -1224,8 +1226,22 @@ impl FlowrGui {
                     .color(iced::Color::from_rgb(0.8, 0.4, 0.4)),
             );
         } else {
+            if self.submission_settings.debug_this_flow {
+                items = items.push(
+                    Text::new("Select a coordinator, then a debug server")
+                        .size(12)
+                        .color(iced::Color::from_rgb(0.6, 0.6, 0.6)),
+                );
+            }
             for (service_type, address) in &self.discovered_services {
-                let btn = Button::new(Text::new(format!("{service_type}: {address}")).size(14))
+                let is_coord_selected =
+                    service_type == "Coordinator" && connection_manager::has_discovered_address();
+                let label = if is_coord_selected {
+                    format!("\u{2714} {service_type}: {address}")
+                } else {
+                    format!("{service_type}: {address}")
+                };
+                let btn = Button::new(Text::new(label).size(14))
                     .width(Length::Fill)
                     .padding([6, 10])
                     .style(theme::list_button)

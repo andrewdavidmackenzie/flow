@@ -59,6 +59,11 @@ pub fn set_discovered_address(address: String) {
     }
 }
 
+/// Check if a discovered address has been set
+pub fn has_discovered_address() -> bool {
+    DISCOVERED_ADDRESS.read().is_ok_and(|guard| guard.is_some())
+}
+
 /// Take the discovered address (consumes it)
 fn take_discovered_address() -> Option<String> {
     if let Ok(mut guard) = DISCOVERED_ADDRESS.write() {
