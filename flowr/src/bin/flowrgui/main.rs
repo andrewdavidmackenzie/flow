@@ -892,15 +892,10 @@ impl FlowrGui {
             .spacing(4)
             .align_y(iced::alignment::Vertical::Center);
         let type_row = BP_TABS.iter().fold(type_row, |row, &bt| {
-            let label = if bt == self.bp_tab {
-                format!("[{bt}]")
+            let mut btn = Button::new(Text::new(bt.to_string()).size(13)).padding([3, 6]);
+            if bt == self.bp_tab {
+                btn = btn.style(theme::styled_button);
             } else {
-                bt.to_string()
-            };
-            let mut btn = Button::new(Text::new(label).size(13))
-                .style(theme::styled_button)
-                .padding([3, 6]);
-            if bt != self.bp_tab {
                 btn = btn.on_press(Message::BpTabChanged(bt));
             }
             row.push(btn)
