@@ -713,6 +713,7 @@ struct FlowrGui {
     show_coordinator_picker: bool,
     discovered_services: Vec<(String, String)>,
     discovering: bool,
+    selected_debug_address: Option<String>,
 }
 
 impl FlowrGui {
@@ -760,6 +761,7 @@ impl FlowrGui {
             show_coordinator_picker: false,
             discovered_services: Vec::new(),
             discovering: false,
+            selected_debug_address: None,
         };
 
         (flowrgui, Task::none())
@@ -919,6 +921,7 @@ impl FlowrGui {
                 } else if service_type == "Debug Server" {
                     #[cfg(feature = "debugger")]
                     {
+                        self.selected_debug_address = Some(address);
                         self.debug_client_active = true;
                         self.submission_settings.debug_this_flow = true;
                     }
@@ -1083,16 +1086,20 @@ impl FlowrGui {
 
         #[cfg(feature = "debugger")]
         if self.debug_client_active {
-            let address = match &self.submission_settings.debug_mode {
-                DebugMode::GuiLocal => {
-                    let port = connection_manager::get_debug_port();
-                    if port > 0 {
-                        Some(format!("localhost:{port}"))
-                    } else {
-                        None
+            let address = if let Some(ref addr) = self.selected_debug_address {
+                Some(addr.clone())
+            } else {
+                match &self.submission_settings.debug_mode {
+                    DebugMode::GuiLocal => {
+                        let port = connection_manager::get_debug_port();
+                        if port > 0 {
+                            Some(format!("localhost:{port}"))
+                        } else {
+                            None
+                        }
                     }
+                    _ => None,
                 }
-                _ => None,
             };
             if let Some(addr) = address {
                 return Subscription::batch([
@@ -2726,6 +2733,7 @@ mod test {
             show_coordinator_picker: false,
             discovered_services: Vec::new(),
             discovering: false,
+            selected_debug_address: None,
         }
     }
 
