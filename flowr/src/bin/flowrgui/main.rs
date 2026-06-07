@@ -914,6 +914,7 @@ impl FlowrGui {
                             .all(|(t, _)| t != "Debug Server")
                     {
                         self.show_coordinator_picker = false;
+                        self.ui_settings.auto_start = true;
                     }
                 } else if service_type == "Debug Server" {
                     #[cfg(feature = "debugger")]
@@ -922,6 +923,7 @@ impl FlowrGui {
                         self.submission_settings.debug_this_flow = true;
                     }
                     self.show_coordinator_picker = false;
+                    self.ui_settings.auto_start = true;
                 }
             }
             Message::CloseCoordinatorPicker => {
