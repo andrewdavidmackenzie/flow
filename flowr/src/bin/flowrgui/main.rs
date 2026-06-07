@@ -1449,6 +1449,7 @@ impl FlowrGui {
     }
 
     #[cfg(feature = "debugger")]
+    #[allow(clippy::too_many_lines)]
     fn inspect_popup_card(&self) -> Card<'_, Message> {
         use iced::widget::scrollable::Scrollable;
         use iced::Length;
@@ -1470,6 +1471,13 @@ impl FlowrGui {
 
         match self.inspect_tab {
             InspectTab::State => {
+                let global_btn =
+                    Button::new(Text::new("Overall State (global inspection)").size(13))
+                        .width(Length::Fill)
+                        .padding([3, 8])
+                        .style(theme::styled_button)
+                        .on_press(Message::InspectPopupSelect(String::new()));
+                items = items.push(global_btn);
                 for state_name in &["ready", "waiting", "running", "completed", "blocked"] {
                     let btn = Button::new(Text::new(format!("  {state_name}")).size(13))
                         .width(Length::Fill)
@@ -2078,21 +2086,28 @@ impl FlowrGui {
                 self.show_inspect_popup = false;
                 if self.debug_waiting {
                     self.debug_waiting = false;
-                    let label = if spec.parse::<usize>().is_ok() {
-                        format!("Inspect #{spec}")
-                    } else if spec.starts_with('/') {
-                        format!("Inspect Route ({spec})")
-                    } else if spec.contains(':') {
-                        format!("Inspect Input ({spec})")
-                    } else if spec.contains('/') {
-                        format!("Inspect Output ({spec})")
+                    if spec.is_empty() {
+                        self.debug_separator("Inspect (overall flow state)");
+                        connection_manager::send_debug_command(
+                            flowcore::model::debug_command::DebugCommand::Inspect,
+                        );
                     } else {
-                        format!("Inspect {spec}")
-                    };
-                    let params = Some(vec![spec]);
-                    if let Some(cmd) = DebugClient::parse_inspect_spec(params) {
-                        self.debug_separator(&label);
-                        connection_manager::send_debug_command(cmd);
+                        let label = if spec.parse::<usize>().is_ok() {
+                            format!("Inspect #{spec}")
+                        } else if spec.starts_with('/') {
+                            format!("Inspect Route ({spec})")
+                        } else if spec.contains(':') {
+                            format!("Inspect Input ({spec})")
+                        } else if spec.contains('/') {
+                            format!("Inspect Output ({spec})")
+                        } else {
+                            format!("Inspect {spec}")
+                        };
+                        let params = Some(vec![spec]);
+                        if let Some(cmd) = DebugClient::parse_inspect_spec(params) {
+                            self.debug_separator(&label);
+                            connection_manager::send_debug_command(cmd);
+                        }
                     }
                 }
             }
