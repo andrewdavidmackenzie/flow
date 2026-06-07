@@ -433,13 +433,19 @@ fn format_debug_event(message: &DebugServerMessage) -> Vec<crate::DebugEventLine
             }
             lines
         }
-        DebugServerMessage::PriorToSendingJob(job) => line(
-            format!(
-                "About to send Job #{} to Function #{} '{}'\n\tInputs: {:?}",
-                job.payload.job_id, job.process_id, job.function_name, job.payload.input_set
+        DebugServerMessage::PriorToSendingJob(job) => vec![
+            DebugEventLine::new(
+                format!(
+                    "About to send Job #{} to Function #{} '{}'",
+                    job.payload.job_id, job.process_id, job.function_name
+                ),
+                Some(debug_colors::DATA_FLOW),
             ),
-            Some(debug_colors::DATA_FLOW),
-        ),
+            DebugEventLine::new(
+                format!("Inputs: {:?}", job.payload.input_set),
+                Some(debug_colors::DATA_FLOW),
+            ),
+        ],
         DebugServerMessage::BlockBreakpoint(block) => line(
             format!("Block breakpoint: {block:?}"),
             Some(debug_colors::BREAKPOINT),
@@ -506,10 +512,21 @@ fn format_debug_event(message: &DebugServerMessage) -> Vec<crate::DebugEventLine
         DebugServerMessage::Message(msg) => line(rewrite_for_gui(msg), None),
         DebugServerMessage::Resetting => line("Resetting state".into(), Some(debug_colors::STATUS)),
         DebugServerMessage::FunctionStates((function, states)) => {
-            line(format!("{function}\n\tState: {states:?}"), None)
+            let mut lines: Vec<DebugEventLine> = format!("{function}")
+                .lines()
+                .map(|l| DebugEventLine::new(l.trim_start().to_string(), None))
+                .collect();
+            lines.push(DebugEventLine::new(format!("State: {states:?}"), None));
+            lines
         }
-        DebugServerMessage::OverallState(run_state) => line(format!("{run_state}"), None),
-        DebugServerMessage::InputState(input) => line(format!("{input}"), None),
+        DebugServerMessage::OverallState(run_state) => format!("{run_state}")
+            .lines()
+            .map(|l| DebugEventLine::new(l.trim_start().to_string(), None))
+            .collect(),
+        DebugServerMessage::InputState(input) => format!("{input}")
+            .lines()
+            .map(|l| DebugEventLine::new(l.trim_start().to_string(), None))
+            .collect(),
         DebugServerMessage::OutputState(connections) => {
             if connections.is_empty() {
                 line("No output connections from that sub-route".into(), None)

@@ -143,6 +143,24 @@ impl DebugEventLine {
             search_from = digit_end;
         }
 
+        for keyword in &[
+            "[Ready]",
+            "[Waiting]",
+            "[Running]",
+            "[Completed]",
+            "[Blocked]",
+        ] {
+            if let Some(pos) = text.find(keyword) {
+                let state_name = &keyword[1..keyword.len() - 1];
+                links.push(DebugLink {
+                    start: pos,
+                    end: pos + keyword.len(),
+                    spec: state_name.to_lowercase(),
+                });
+            }
+        }
+
+        links.sort_by_key(|l| l.start);
         links
     }
 }
