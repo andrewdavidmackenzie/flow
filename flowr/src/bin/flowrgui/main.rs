@@ -122,6 +122,7 @@ impl DebugEventLine {
         }
     }
 
+    #[allow(clippy::too_many_lines)]
     fn extract_links(text: &str) -> Vec<DebugLink> {
         let mut links = Vec::new();
         let mut search_from = 0;
@@ -209,7 +210,7 @@ impl DebugEventLine {
             search_from = output_text_end;
         }
 
-        // Match state keywords
+        // Match state keywords in square brackets like [Ready]
         for keyword in &[
             "[Ready]",
             "[Waiting]",
@@ -224,6 +225,40 @@ impl DebugEventLine {
                     end: pos + keyword.len(),
                     spec: state_name.to_lowercase(),
                 });
+            }
+        }
+
+        // Match RunState field labels as links to state inspections
+        for (label, spec) in &[
+            ("Jobs Running:", "running"),
+            ("Functions Ready:", "ready"),
+            ("Functions Completed:", "completed"),
+        ] {
+            if let Some(pos) = text.find(label) {
+                links.push(DebugLink {
+                    start: pos,
+                    end: pos + label.len(),
+                    spec: (*spec).to_string(),
+                });
+            }
+        }
+
+        // Match Busy Count entries like "1: 1, 0: 1" — the keys are function IDs
+        if let Some(after_colon) = text.strip_prefix("Busy Count:") {
+            for part in after_colon.split(',') {
+                let part = part.trim().trim_start_matches(['{', ' ']);
+                if let Some(colon_pos) = part.find(':') {
+                    let key = part[..colon_pos].trim();
+                    if let Ok(_id) = key.parse::<usize>() {
+                        if let Some(abs_pos) = text.find(&format!("{key}:")) {
+                            links.push(DebugLink {
+                                start: abs_pos,
+                                end: abs_pos + key.len(),
+                                spec: key.to_string(),
+                            });
+                        }
+                    }
+                }
             }
         }
 
