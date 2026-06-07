@@ -702,7 +702,7 @@ impl<'a> Debugger<'a> {
                 let states = state.get_function_states(child.id());
                 let _ = writeln!(
                     response,
-                    "  Function #{} '{}' @ '{}' [{:?}]",
+                    "  Function #{} '{}' @ '{}' {:?}",
                     child.id(),
                     child.name(),
                     child.route(),
@@ -747,7 +747,7 @@ impl<'a> Debugger<'a> {
                     let states = state.get_function_states(child.id());
                     let _ = writeln!(
                         response,
-                        "  #{} '{}' @ '{}' [{:?}]",
+                        "  #{} '{}' @ '{}' {:?}",
                         child.id(),
                         child.name(),
                         child.route(),
@@ -896,7 +896,7 @@ impl<'a> Debugger<'a> {
             let states = state.get_function_states(parent.id());
             let _ = writeln!(
                 response,
-                "{indent}#{} '{}' @ '{}' [{:?}]",
+                "{indent}#{} '{}' @ '{}' {:?}",
                 parent.id(),
                 parent.name(),
                 parent.route(),
@@ -925,7 +925,7 @@ impl<'a> Debugger<'a> {
                     let states = state.get_function_states(child.id());
                     let _ = writeln!(
                         response,
-                        "{child_indent}#{} '{}' @ '{}' [{:?}]",
+                        "{child_indent}#{} '{}' @ '{}' {:?}",
                         child.id(),
                         child.name(),
                         child.route(),

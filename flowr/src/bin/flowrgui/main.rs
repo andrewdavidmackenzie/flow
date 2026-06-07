@@ -154,6 +154,26 @@ impl DebugEventLine {
             search_from = digit_end;
         }
 
+        // Match standalone #N patterns (process tree lines like "#1 'add' @ ...")
+        if text.trim_start().starts_with('#') && !text.contains("Function #") {
+            let trimmed = text.trim_start();
+            let hash_pos = text.len() - trimmed.len();
+            let after_hash = hash_pos + 1;
+            if after_hash < text.len() {
+                let digit_end = text[after_hash..]
+                    .find(|c: char| !c.is_ascii_digit())
+                    .map_or(text.len(), |i| after_hash + i);
+                if digit_end > after_hash {
+                    let id_str = &text[after_hash..digit_end];
+                    links.push(DebugLink {
+                        start: hash_pos,
+                        end: digit_end,
+                        spec: id_str.to_string(),
+                    });
+                }
+            }
+        }
+
         // Match Flow #N patterns
         search_from = 0;
         while let Some(pos) = text[search_from..].find("Flow #") {
@@ -221,7 +241,7 @@ impl DebugEventLine {
             search_from = output_text_end;
         }
 
-        // Match state keywords in square brackets like [Ready]
+        // Match ALL occurrences of state keywords in square brackets
         for keyword in &[
             "[Ready]",
             "[Waiting]",
@@ -229,13 +249,33 @@ impl DebugEventLine {
             "[Completed]",
             "[Blocked]",
         ] {
-            if let Some(pos) = text.find(keyword) {
+            let mut kw_from = 0;
+            while let Some(pos) = text[kw_from..].find(keyword) {
+                let abs_pos = kw_from + pos;
                 let state_name = &keyword[1..keyword.len() - 1];
                 links.push(DebugLink {
-                    start: pos,
-                    end: pos + keyword.len(),
+                    start: abs_pos,
+                    end: abs_pos + keyword.len(),
                     spec: state_name.to_lowercase(),
                 });
+                kw_from = abs_pos + keyword.len();
+            }
+        }
+
+        // Match route paths like '/my-first-flow/add'
+        search_from = 0;
+        while let Some(pos) = text[search_from..].find("'/") {
+            let abs_pos = search_from + pos + 1;
+            if let Some(end_quote) = text[abs_pos..].find('\'') {
+                let route = &text[abs_pos..abs_pos + end_quote];
+                links.push(DebugLink {
+                    start: abs_pos,
+                    end: abs_pos + end_quote,
+                    spec: route.to_string(),
+                });
+                search_from = abs_pos + end_quote;
+            } else {
+                break;
             }
         }
 
@@ -963,6 +1003,18 @@ impl FlowrGui {
     }
 
     #[cfg(feature = "debugger")]
+    fn tip<'a>(content: impl Into<Element<'a, Message>>, hint: &str) -> Element<'a, Message> {
+        iced::widget::tooltip(
+            content,
+            Text::new(hint.to_string()).size(12),
+            iced::widget::tooltip::Position::Bottom,
+        )
+        .gap(2)
+        .into()
+    }
+
+    #[cfg(feature = "debugger")]
+    #[allow(clippy::too_many_lines)]
     fn debug_row(&self) -> Row<'_, Message> {
         let can_cmd = self.debug_waiting;
 
@@ -1056,21 +1108,33 @@ impl FlowrGui {
             .spacing(6)
             .padding(5)
             .align_y(iced::alignment::Vertical::Center)
-            .push(continue_btn)
-            .push(step_btn)
-            .push(step_count)
-            .push(reset_btn)
-            .push(exit_btn)
+            .push(Self::tip(
+                continue_btn,
+                "Continue execution until next breakpoint",
+            ))
+            .push(Self::tip(step_btn, "Execute the next job(s) then pause"))
+            .push(Self::tip(step_count, "Number of jobs to step"))
+            .push(Self::tip(
+                reset_btn,
+                "Reset flow state and re-run from start",
+            ))
+            .push(Self::tip(exit_btn, "Stop execution and exit debugger"))
             .push(Text::new("|").size(13))
-            .push(spec_input)
-            .push(bp_btn)
-            .push(del_btn)
-            .push(list_btn)
+            .push(Self::tip(
+                spec_input,
+                "Enter breakpoint spec (e.g. 3, 3+, 1:0, 1/sum)",
+            ))
+            .push(Self::tip(bp_btn, "Open breakpoint picker"))
+            .push(Self::tip(del_btn, "Delete all breakpoints"))
+            .push(Self::tip(list_btn, "List active breakpoints"))
             .push(Text::new("|").size(13))
-            .push(inspect_btn)
-            .push(funcs_btn)
-            .push(procs_btn)
-            .push(validate_btn)
+            .push(Self::tip(
+                inspect_btn,
+                "Inspect state (use spec field for specific target)",
+            ))
+            .push(Self::tip(funcs_btn, "List all functions"))
+            .push(Self::tip(procs_btn, "Show flow/function hierarchy"))
+            .push(Self::tip(validate_btn, "Validate flow state for deadlocks"))
     }
 
     #[cfg(feature = "debugger")]
