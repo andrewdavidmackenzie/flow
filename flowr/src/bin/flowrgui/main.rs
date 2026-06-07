@@ -1832,6 +1832,8 @@ impl FlowrGui {
                     format!("Inspect #{spec}")
                 } else if spec.contains(':') {
                     format!("Inspect Input ({spec})")
+                } else if spec.starts_with('/') {
+                    format!("Inspect Route ({spec})")
                 } else if spec.contains('/') {
                     format!("Inspect Output ({spec})")
                 } else {
