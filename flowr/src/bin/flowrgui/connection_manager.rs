@@ -601,7 +601,15 @@ fn debug_client_stream(address: String) -> impl iced::futures::Stream<Item = Mes
                                     .inputs()
                                     .iter()
                                     .enumerate()
-                                    .map(|(i, inp)| (i, inp.name().to_string()))
+                                    .map(|(i, inp)| {
+                                        let name = inp.name();
+                                        let label = if name.is_empty() {
+                                            "Generic".to_string()
+                                        } else {
+                                            name.to_string()
+                                        };
+                                        (i, label)
+                                    })
                                     .collect();
                                 let mut outputs: Vec<String> = Vec::new();
                                 for conn in f.get_output_connections() {

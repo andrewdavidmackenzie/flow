@@ -916,12 +916,11 @@ impl FlowrGui {
             );
         } else {
             match self.bp_type {
-                BpType::Function | BpType::Completion | BpType::Route => {
+                BpType::Function | BpType::Completion => {
                     for f in &self.cached_functions {
                         let spec = match self.bp_type {
                             BpType::Function => format!("{}", f.id),
                             BpType::Completion => format!("{}+", f.id),
-                            BpType::Route => f.route.clone(),
                             _ => unreachable!(),
                         };
                         let label = format!("#{} '{}' @ '{}'", f.id, f.name, f.route);
@@ -934,6 +933,50 @@ impl FlowrGui {
                         }
                         btn = btn.on_press(Message::BpTargetChanged(spec));
                         items = items.push(btn);
+                    }
+                }
+                BpType::Route => {
+                    for f in &self.cached_functions {
+                        let spec = f.route.clone();
+                        let label = format!("{} (#{} '{}')", f.route, f.id, f.name);
+                        let is_selected = self.bp_target == spec;
+                        let mut btn = Button::new(Text::new(label).size(13))
+                            .width(Length::Fill)
+                            .padding([3, 8]);
+                        if is_selected {
+                            btn = btn.style(theme::styled_button);
+                        }
+                        btn = btn.on_press(Message::BpTargetChanged(spec));
+                        items = items.push(btn);
+
+                        for (idx, input_name) in &f.inputs {
+                            let input_route = format!("{}:{idx}", f.route);
+                            let input_label =
+                                format!("  input:{idx} '{input_name}' on '{}'", f.route);
+                            let is_sel = self.bp_target == input_route;
+                            let mut ibtn = Button::new(Text::new(input_label).size(12))
+                                .width(Length::Fill)
+                                .padding([2, 16]);
+                            if is_sel {
+                                ibtn = ibtn.style(theme::styled_button);
+                            }
+                            ibtn =
+                                ibtn.on_press(Message::BpTargetChanged(format!("{}:{idx}", f.id)));
+                            items = items.push(ibtn);
+                        }
+                        for output_route in &f.outputs {
+                            let out_label = format!("  output:'{output_route}' on '{}'", f.route);
+                            let out_spec = format!("{}{output_route}", f.id);
+                            let is_sel = self.bp_target == out_spec;
+                            let mut obtn = Button::new(Text::new(out_label).size(12))
+                                .width(Length::Fill)
+                                .padding([2, 16]);
+                            if is_sel {
+                                obtn = obtn.style(theme::styled_button);
+                            }
+                            obtn = obtn.on_press(Message::BpTargetChanged(out_spec));
+                            items = items.push(obtn);
+                        }
                     }
                 }
                 BpType::Input => {
