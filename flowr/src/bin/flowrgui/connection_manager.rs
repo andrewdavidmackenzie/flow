@@ -420,8 +420,8 @@ fn format_debug_event(message: &DebugServerMessage) -> Vec<crate::DebugEventLine
         DebugServerMessage::JobCompleted(job) => {
             let mut lines = vec![DebugEventLine::new(
                 format!(
-                    "Job #{} completed by Function #{} '{}'",
-                    job.payload.job_id, job.process_id, job.function_name
+                    "Job #{} completed by Function #{} (Flow #{}) '{}'",
+                    job.payload.job_id, job.process_id, job.parent_id, job.function_name
                 ),
                 Some(debug_colors::COMPLETION),
             )];
@@ -436,8 +436,8 @@ fn format_debug_event(message: &DebugServerMessage) -> Vec<crate::DebugEventLine
         DebugServerMessage::PriorToSendingJob(job) => vec![
             DebugEventLine::new(
                 format!(
-                    "About to send Job #{} to Function #{} '{}'",
-                    job.payload.job_id, job.process_id, job.function_name
+                    "About to send Job #{} to Function #{} (Flow #{}) '{}'",
+                    job.payload.job_id, job.process_id, job.parent_id, job.function_name
                 ),
                 Some(debug_colors::DATA_FLOW),
             ),
@@ -472,8 +472,8 @@ fn format_debug_event(message: &DebugServerMessage) -> Vec<crate::DebugEventLine
         ),
         DebugServerMessage::JobError(job) => line(
             format!(
-                "Error executing Job #{} on Function #{} '{}': '{job}'",
-                job.payload.job_id, job.process_id, job.function_name
+                "Error executing Job #{} on Function #{} (Flow #{}) '{}': '{job}'",
+                job.payload.job_id, job.process_id, job.parent_id, job.function_name
             ),
             Some(debug_colors::ERROR),
         ),

@@ -96,7 +96,7 @@ impl fmt::Display for OutputConnection {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(
             f,
-            "Output '{}' -> Function #{}({}):{}",
+            "Output '{}' -> Function #{} (Flow #{}):{}",
             self.source,
             self.destination_id,
             self.destination_parent_id,
