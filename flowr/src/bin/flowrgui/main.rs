@@ -794,6 +794,11 @@ impl FlowrGui {
                 }
             }
             Message::SubmitFlow => {
+                if matches!(self.coordinator_state, CoordinatorState::Disconnected(_))
+                    && matches!(self.coordinator_settings, CoordinatorSettings::ClientOnly)
+                {
+                    return Task::done(Message::DiscoverCoordinators);
+                }
                 if let CoordinatorState::Connected(sender) = &self.coordinator_state {
                     return Task::perform(
                         Self::submit(sender.clone(), self.submission_settings.clone()),
@@ -835,6 +840,12 @@ impl FlowrGui {
                 self.submission_settings.max_jobs_text = value;
             }
             Message::DebugSubmitFlow => {
+                if matches!(self.coordinator_state, CoordinatorState::Disconnected(_))
+                    && matches!(self.coordinator_settings, CoordinatorSettings::ClientOnly)
+                {
+                    self.submission_settings.debug_this_flow = true;
+                    return Task::done(Message::DiscoverCoordinators);
+                }
                 if let CoordinatorState::Connected(sender) = &self.coordinator_state {
                     let mut settings = self.submission_settings.clone();
                     settings.debug_this_flow = true;
@@ -1151,7 +1162,9 @@ impl FlowrGui {
             .on_input(Message::MaxJobsChanged)
             .width(80);
 
-        let can_run = matches!(self.coordinator_state, CoordinatorState::Connected(_))
+        let is_client_mode = matches!(self.coordinator_settings, CoordinatorSettings::ClientOnly);
+        let can_run = (matches!(self.coordinator_state, CoordinatorState::Connected(_))
+            || is_client_mode)
             && !self.running
             && !self.submitted;
 
@@ -1815,8 +1828,16 @@ impl FlowrGui {
         } else if let Some(val) = matches.get_one::<String>("debugger") {
             if val.is_empty() {
                 DebugMode::GuiLocal
-            } else {
+            } else if val.contains(':')
+                && val.split(':').count() == 2
+                && val
+                    .split(':')
+                    .next_back()
+                    .is_some_and(|p| p.parse::<u16>().is_ok())
+            {
                 DebugMode::GuiRemote(val.clone())
+            } else {
+                DebugMode::GuiLocal
             }
         } else {
             DebugMode::Off
