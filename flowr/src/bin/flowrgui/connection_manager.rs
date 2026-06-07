@@ -609,8 +609,13 @@ fn debug_client_stream(address: String) -> impl iced::futures::Stream<Item = Mes
                                         ref route,
                                     ) = conn.source
                                     {
-                                        if !outputs.contains(route) {
-                                            outputs.push(route.clone());
+                                        let route = if route.starts_with('/') {
+                                            route.clone()
+                                        } else {
+                                            format!("/{route}")
+                                        };
+                                        if !outputs.contains(&route) {
+                                            outputs.push(route);
                                         }
                                     }
                                 }
