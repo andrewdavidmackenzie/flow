@@ -75,7 +75,19 @@ mod errors;
 /// custom widget styling
 mod theme;
 
-/// A line of debug output with optional color
+/// A clickable link in debug output
+#[cfg(feature = "debugger")]
+#[derive(Debug, Clone)]
+pub struct DebugLink {
+    /// Byte range in the text
+    pub start: usize,
+    /// End of byte range
+    pub end: usize,
+    /// Inspect spec to trigger on click
+    pub spec: String,
+}
+
+/// A line of debug output with optional color and clickable links
 #[cfg(feature = "debugger")]
 #[derive(Debug, Clone)]
 pub struct DebugEventLine {
@@ -85,15 +97,19 @@ pub struct DebugEventLine {
     pub color: Option<iced::Color>,
     /// Whether this line is a separator (rendered as Rule + label + Rule)
     pub separator: bool,
+    /// Clickable links in this line
+    pub links: Vec<DebugLink>,
 }
 
 #[cfg(feature = "debugger")]
 impl DebugEventLine {
     fn new(text: String, color: Option<iced::Color>) -> Self {
+        let links = Self::extract_links(&text);
         Self {
             text,
             color,
             separator: false,
+            links,
         }
     }
 
@@ -102,7 +118,32 @@ impl DebugEventLine {
             text: label,
             color: Some(color),
             separator: true,
+            links: Vec::new(),
         }
+    }
+
+    fn extract_links(text: &str) -> Vec<DebugLink> {
+        let mut links = Vec::new();
+        let mut search_from = 0;
+
+        while let Some(pos) = text[search_from..].find("Function #") {
+            let abs_pos = search_from + pos;
+            let after_hash = abs_pos + "Function #".len();
+            let digit_end = text[after_hash..]
+                .find(|c: char| !c.is_ascii_digit())
+                .map_or(text.len(), |i| after_hash + i);
+            if digit_end > after_hash {
+                let id_str = &text[after_hash..digit_end];
+                links.push(DebugLink {
+                    start: abs_pos,
+                    end: digit_end,
+                    spec: id_str.to_string(),
+                });
+            }
+            search_from = digit_end;
+        }
+
+        links
     }
 }
 
@@ -219,6 +260,9 @@ pub enum Message {
     /// Cycle before/after breakpoint on a function in Route tab
     #[cfg(feature = "debugger")]
     BpCycleFunction(usize),
+    /// A clickable link in the debug output was clicked (spec to inspect)
+    #[cfg(feature = "debugger")]
+    DebugInspectLink(String),
     /// Function list received from debug server
     #[cfg(feature = "debugger")]
     DebugFunctionListReceived(Vec<CachedFunction>),
@@ -568,7 +612,8 @@ impl FlowrGui {
             | Message::BpPopupConfirm
             | Message::BpCycleFunction(_)
             | Message::DebugFunctionListReceived(_)
-            | Message::DebugBreakpointListReceived(_)) => {
+            | Message::DebugBreakpointListReceived(_)
+            | Message::DebugInspectLink(_)) => {
                 return self.process_debug_message(msg);
             }
             Message::CoordinatorDisconnected(reason) => {
@@ -1559,6 +1604,14 @@ impl FlowrGui {
             }
             Message::DebugBreakpointListReceived(specs) => {
                 self.active_breakpoints = specs.into_iter().collect();
+            }
+            Message::DebugInspectLink(spec) if self.debug_waiting => {
+                self.debug_waiting = false;
+                let params = Some(vec![spec]);
+                if let Some(cmd) = DebugClient::parse_inspect_spec(params) {
+                    self.debug_separator("Inspect");
+                    connection_manager::send_debug_command(cmd);
+                }
             }
             Message::ShowBpPopup => {
                 self.show_bp_popup = true;
