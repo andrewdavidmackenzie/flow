@@ -124,6 +124,7 @@ fn coordinator_stream() -> impl iced::futures::Stream<Item = CoordinatorMessage>
     iced::stream::channel(
         100,
         move |mut app_sender: iced::futures::channel::mpsc::Sender<CoordinatorMessage>| async move {
+            let is_client_only = matches!(settings, CoordinatorSettings::ClientOnly);
             let mut state = match settings {
                 CoordinatorSettings::Server(sett) => CoordinatorState::Init(sett.clone()),
                 CoordinatorSettings::ClientOnly => CoordinatorState::Discovery,
@@ -147,6 +148,8 @@ fn coordinator_stream() -> impl iced::futures::Stream<Item = CoordinatorMessage>
                     CoordinatorState::Discovery => {
                         if let Some(address) = take_discovered_address() {
                             state = CoordinatorState::Discovered(address);
+                        } else if is_client_only {
+                            tokio::time::sleep(std::time::Duration::from_millis(500)).await;
                         } else {
                             match discover_service(COORDINATOR_SERVICE_NAME) {
                                 Ok(address) => state = CoordinatorState::Discovered(address),

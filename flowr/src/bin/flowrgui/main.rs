@@ -1880,7 +1880,9 @@ impl FlowrGui {
         let auto = matches.get_flag("auto");
         let mut auto_start = auto || matches.get_flag("auto-start");
         #[cfg(feature = "debugger")]
-        if debug_mode != DebugMode::Off {
+        if debug_mode != DebugMode::Off
+            && !matches!(coordinator_settings, CoordinatorSettings::ClientOnly)
+        {
             auto_start = true;
         }
 
