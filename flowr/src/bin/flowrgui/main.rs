@@ -472,10 +472,10 @@ pub enum Message {
     DebugBreakpointListReceived(Vec<String>),
     /// Discover coordinators on the network
     DiscoverCoordinators,
-    /// Coordinators discovered
-    CoordinatorsDiscovered(Vec<(String, u16)>),
-    /// User selected a coordinator from the picker
-    CoordinatorSelected(String),
+    /// Services discovered (label, address)
+    ServicesDiscovered(Vec<(String, String)>),
+    /// User selected a service from the picker
+    ServiceSelected(String, String),
     /// Close the coordinator picker
     CloseCoordinatorPicker,
     /// Show the inspect helper popup
@@ -560,7 +560,7 @@ pub enum CoordinatorSettings {
     /// Start a server coordinator using the settings supplied
     Server(ServerSettings),
     /// Don't start a coordinator server, just discover existing one on this port
-    ClientOnly(u16),
+    ClientOnly,
 }
 
 #[cfg(feature = "debugger")]
@@ -712,7 +712,7 @@ struct FlowrGui {
     #[cfg(feature = "debugger")]
     inspect_tab: InspectTab,
     show_coordinator_picker: bool,
-    discovered_coordinators: Vec<(String, u16)>,
+    discovered_services: Vec<(String, String)>,
     discovering: bool,
 }
 
@@ -759,7 +759,7 @@ impl FlowrGui {
             #[cfg(feature = "debugger")]
             inspect_tab: InspectTab::Function,
             show_coordinator_picker: false,
-            discovered_coordinators: Vec::new(),
+            discovered_services: Vec::new(),
             discovering: false,
         };
 
@@ -856,30 +856,55 @@ impl FlowrGui {
             Message::DiscoverCoordinators => {
                 self.show_coordinator_picker = true;
                 self.discovering = true;
-                self.discovered_coordinators.clear();
+                self.discovered_services.clear();
+                let discover_debug = self.submission_settings.debug_this_flow;
                 return Task::perform(
-                    async {
-                        tokio::task::spawn_blocking(|| {
-                            flowcore::discovery::discover_services(
+                    async move {
+                        tokio::task::spawn_blocking(move || {
+                            let mut results = Vec::new();
+                            let timeout = std::time::Duration::from_secs(5);
+                            if let Ok(coords) = flowcore::discovery::discover_services(
                                 flowrlib::services::COORDINATOR_SERVICE_NAME,
-                                std::time::Duration::from_secs(5),
-                            )
-                            .unwrap_or_default()
+                                timeout,
+                            ) {
+                                for (addr, _port) in coords {
+                                    results.push(("Coordinator".to_string(), addr));
+                                }
+                            }
+                            if discover_debug {
+                                if let Ok(debugs) = flowcore::discovery::discover_services(
+                                    flowrlib::services::DEBUG_SERVICE_NAME,
+                                    timeout,
+                                ) {
+                                    for (addr, _port) in debugs {
+                                        results.push(("Debug Server".to_string(), addr));
+                                    }
+                                }
+                            }
+                            results
                         })
                         .await
                         .unwrap_or_default()
                     },
-                    Message::CoordinatorsDiscovered,
+                    Message::ServicesDiscovered,
                 );
             }
-            Message::CoordinatorsDiscovered(coordinators) => {
-                self.discovered_coordinators = coordinators;
+            Message::ServicesDiscovered(services) => {
+                self.discovered_services = services;
                 self.discovering = false;
             }
-            Message::CoordinatorSelected(address) => {
+            Message::ServiceSelected(service_type, address) => {
                 self.show_coordinator_picker = false;
-                info!("User selected coordinator at {address}");
-                connection_manager::set_discovered_address(address);
+                info!("User selected {service_type} at {address}");
+                if service_type == "Coordinator" {
+                    connection_manager::set_discovered_address(address);
+                } else if service_type == "Debug Server" {
+                    #[cfg(feature = "debugger")]
+                    {
+                        self.debug_client_active = true;
+                        self.submission_settings.debug_this_flow = true;
+                    }
+                }
             }
             Message::CloseCoordinatorPicker => {
                 self.show_coordinator_picker = false;
@@ -1177,23 +1202,26 @@ impl FlowrGui {
 
         if self.discovering {
             items = items.push(
-                Text::new("Discovering coordinators...")
+                Text::new("Discovering services...")
                     .size(14)
                     .color(iced::Color::from_rgb(0.6, 0.6, 0.6)),
             );
-        } else if self.discovered_coordinators.is_empty() {
+        } else if self.discovered_services.is_empty() {
             items = items.push(
-                Text::new("No coordinators found on the network")
+                Text::new("No services found on the network")
                     .size(14)
                     .color(iced::Color::from_rgb(0.8, 0.4, 0.4)),
             );
         } else {
-            for (address, port) in &self.discovered_coordinators {
-                let btn = Button::new(Text::new(format!("{address} (port {port})")).size(14))
+            for (service_type, address) in &self.discovered_services {
+                let btn = Button::new(Text::new(format!("{service_type}: {address}")).size(14))
                     .width(Length::Fill)
                     .padding([6, 10])
                     .style(theme::list_button)
-                    .on_press(Message::CoordinatorSelected(address.clone()));
+                    .on_press(Message::ServiceSelected(
+                        service_type.clone(),
+                        address.clone(),
+                    ));
                 items = items.push(btn);
             }
         }
@@ -1798,8 +1826,8 @@ impl FlowrGui {
         #[cfg(not(feature = "debugger"))]
         let debug_this_flow = false;
 
-        let coordinator_settings = if let Some(port) = matches.get_one::<u16>("client") {
-            CoordinatorSettings::ClientOnly(*port)
+        let coordinator_settings = if matches.get_flag("client") {
+            CoordinatorSettings::ClientOnly
         } else {
             let lib_dirs = if matches.contains_id("lib_dir") {
                 if let Some(dirs) = matches.get_many::<String>("lib_dir") {
@@ -1886,9 +1914,8 @@ impl FlowrGui {
             Arg::new("client")
                 .short('c')
                 .long("client")
-                .number_of_values(1)
-                .value_parser(clap::value_parser!(u16))
-                .help("Launch only a client (no coordinator) to connect to a remote coordinator"),
+                .action(clap::ArgAction::SetTrue)
+                .help("Client only — discover and connect to a remote coordinator"),
         );
 
         let app = app.arg(
@@ -2635,7 +2662,7 @@ mod test {
                 #[cfg(feature = "debugger")]
                 debug_mode: DebugMode::Off,
             },
-            coordinator_settings: CoordinatorSettings::ClientOnly(0),
+            coordinator_settings: CoordinatorSettings::ClientOnly,
             ui_settings: UiSettings {
                 auto_start: false,
                 auto_exit: false,
@@ -2672,7 +2699,7 @@ mod test {
             #[cfg(feature = "debugger")]
             inspect_tab: InspectTab::Function,
             show_coordinator_picker: false,
-            discovered_coordinators: Vec::new(),
+            discovered_services: Vec::new(),
             discovering: false,
         }
     }

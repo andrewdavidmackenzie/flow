@@ -121,7 +121,7 @@ fn coordinator_stream() -> impl iced::futures::Stream<Item = CoordinatorMessage>
         move |mut app_sender: iced::futures::channel::mpsc::Sender<CoordinatorMessage>| async move {
             let mut state = match settings {
                 CoordinatorSettings::Server(sett) => CoordinatorState::Init(sett.clone()),
-                CoordinatorSettings::ClientOnly(_) => CoordinatorState::Discovery,
+                CoordinatorSettings::ClientOnly => CoordinatorState::Discovery,
             };
 
             let mut running = false;
