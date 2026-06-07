@@ -1004,12 +1004,35 @@ impl FlowrGui {
 
     #[cfg(feature = "debugger")]
     fn tip<'a>(content: impl Into<Element<'a, Message>>, hint: &str) -> Element<'a, Message> {
+        let tip_content = iced::widget::Container::new(Text::new(hint.to_string()).size(13))
+            .padding([4, 8])
+            .style(|theme: &iced::Theme| {
+                let palette = theme.palette();
+                iced::widget::container::Style {
+                    background: Some(iced::Background::Color(iced::Color {
+                        r: 0.15,
+                        g: 0.15,
+                        b: 0.2,
+                        a: 0.95,
+                    })),
+                    border: iced::Border {
+                        color: iced::Color {
+                            a: 0.3,
+                            ..palette.text
+                        },
+                        width: 1.0,
+                        radius: 6.0.into(),
+                    },
+                    text_color: Some(palette.text),
+                    ..Default::default()
+                }
+            });
         iced::widget::tooltip(
             content,
-            Text::new(hint.to_string()).size(12),
+            tip_content,
             iced::widget::tooltip::Position::Bottom,
         )
-        .gap(2)
+        .gap(4)
         .into()
     }
 
