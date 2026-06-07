@@ -568,7 +568,6 @@ pub enum CoordinatorSettings {
 enum DebugMode {
     Off,
     GuiLocal,
-    GuiRemote(String),
     External,
 }
 
@@ -1075,7 +1074,6 @@ impl FlowrGui {
         #[cfg(feature = "debugger")]
         if self.debug_client_active {
             let address = match &self.submission_settings.debug_mode {
-                DebugMode::GuiRemote(addr) => Some(addr.clone()),
                 DebugMode::GuiLocal => {
                     let port = connection_manager::get_debug_port();
                     if port > 0 {
@@ -1825,20 +1823,8 @@ impl FlowrGui {
         #[cfg(feature = "debugger")]
         let debug_mode = if matches.get_flag("external-debugger") {
             DebugMode::External
-        } else if let Some(val) = matches.get_one::<String>("debugger") {
-            if val.is_empty() {
-                DebugMode::GuiLocal
-            } else if val.contains(':')
-                && val.split(':').count() == 2
-                && val
-                    .split(':')
-                    .next_back()
-                    .is_some_and(|p| p.parse::<u16>().is_ok())
-            {
-                DebugMode::GuiRemote(val.clone())
-            } else {
-                DebugMode::GuiLocal
-            }
+        } else if matches.get_flag("debugger") {
+            DebugMode::GuiLocal
         } else {
             DebugMode::Off
         };
@@ -1910,10 +1896,8 @@ impl FlowrGui {
                 Arg::new("debugger")
                     .short('d')
                     .long("debugger")
-                    .num_args(0..=1)
-                    .default_missing_value("")
-                    .value_name("HOST:PORT")
-                    .help("Debug with GUI debugger. No value: local. With HOST:PORT: remote"),
+                    .action(clap::ArgAction::SetTrue)
+                    .help("Enable debugging (use with -c for remote, or alone for local)"),
             )
             .arg(
                 Arg::new("external-debugger")
