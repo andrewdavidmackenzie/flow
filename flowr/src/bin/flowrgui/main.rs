@@ -1524,10 +1524,7 @@ impl FlowrGui {
 
         for (i, name) in self.run_input_names.iter().enumerate() {
             let value = self.run_input_values.get(i).cloned().unwrap_or_default();
-            let type_hint = self
-                .run_input_types
-                .get(i)
-                .map_or("Value", String::as_str);
+            let type_hint = self.run_input_types.get(i).map_or("Value", String::as_str);
             let tooltip = type_hint.to_string();
             let idx = i;
             let input = Self::tip(
@@ -2328,6 +2325,7 @@ impl FlowrGui {
                         } else {
                             let args: Vec<String> = parts.get(1..).unwrap_or_default().to_vec();
                             self.debug_waiting = false;
+                            self.debug_spec_text.clear();
                             self.debug_separator(&format!("Run process #{id}"));
                             connection_manager::send_debug_command(DebugCommand::RunReset(
                                 Some(flowcore::model::debug_command::ProcessTarget::Id(id)),
@@ -2359,6 +2357,7 @@ impl FlowrGui {
                 if let Some(id) = self.run_target_id.take() {
                     let args = self.run_input_values.clone();
                     self.debug_waiting = false;
+                    self.debug_spec_text.clear();
                     self.debug_separator(&format!("Run process #{id}"));
                     connection_manager::send_debug_command(DebugCommand::RunReset(
                         Some(flowcore::model::debug_command::ProcessTarget::Id(id)),
