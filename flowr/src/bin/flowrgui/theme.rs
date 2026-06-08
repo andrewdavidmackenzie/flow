@@ -411,7 +411,7 @@ pub fn popup_card(theme: &Theme, _status: iced_aw::style::Status) -> iced_aw::st
         border_radius: RADIUS_MD,
         border_width: 1.5,
         border_color: Color { a: 0.5, ..ACCENT },
-        head_background: Background::Color(Color { a: 0.3, ..ACCENT }),
+        head_background: Background::Color(Color::TRANSPARENT),
         head_text_color: Color::WHITE,
         body_background: Background::Color(SURFACE_BUTTON),
         body_text_color: palette.text,
