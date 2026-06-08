@@ -264,7 +264,7 @@ pub fn ghost_button(theme: &Theme, status: button::Status) -> button::Style {
     match status {
         button::Status::Hovered => button::Style {
             background: None,
-            text_color: ACCENT,
+            text_color: lighten(ACCENT, 0.3),
             ..button::Style::default()
         },
         _ => button::Style {
