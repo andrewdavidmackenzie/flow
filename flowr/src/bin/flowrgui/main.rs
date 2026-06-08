@@ -1335,9 +1335,10 @@ impl FlowrGui {
             continue_btn = continue_btn.on_press(Message::DebugContinue);
         }
 
-        let mut step_btn = Button::new(Text::new("\u{23ED} Step"))
-            .style(theme::styled_button)
-            .padding([4, 10]);
+        let mut step_btn =
+            Button::new(Text::new("\u{2BA9} Step").shaping(iced::widget::text::Shaping::Advanced))
+                .style(theme::styled_button)
+                .padding([4, 10]);
         if can_cmd {
             step_btn = step_btn.on_press(Message::DebugStep);
         }
