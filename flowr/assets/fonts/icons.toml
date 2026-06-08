@@ -1,0 +1,18 @@
+module = "icons"
+
+[glyphs]
+play = "fontawesome-play"
+pause = "fontawesome-pause"
+stop = "fontawesome-stop"
+step_forward = "fontawesome-right"
+refresh = "fontawesome-cw"
+forward = "fontawesome-forward"
+search = "fontawesome-search"
+trash = "fontawesome-trash"
+list = "fontawesome-list"
+cog = "fontawesome-cog"
+bug = "fontawesome-bug"
+level_down = "fontawesome-level-down"
+logout = "fontawesome-logout"
+cancel = "fontawesome-cancel"
+export = "fontawesome-export"

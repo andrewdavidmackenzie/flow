@@ -136,15 +136,16 @@ pub mod debug_colors {
 
 // ── Spacing scale ───────────────────────────────────────────────────────────
 
-pub const SPACE_XS: u16 = 2;
-pub const SPACE_SM: u16 = 4;
-pub const SPACE_MD: u16 = 8;
-pub const SPACE_LG: u16 = 16;
+pub const SPACE_XS: f32 = 2.0;
+pub const SPACE_SM: f32 = 4.0;
+pub const SPACE_MD: f32 = 8.0;
+pub const SPACE_LG: f32 = 16.0;
 
 // ── Font sizes ──────────────────────────────────────────────────────────────
 
 pub const FONT_SM: f32 = 12.0;
 pub const FONT_MD: f32 = 14.0;
+pub const FONT_DEFAULT: f32 = 16.0;
 
 // ── Border radii ────────────────────────────────────────────────────────────
 
@@ -153,8 +154,8 @@ pub const RADIUS_MD: f32 = 8.0;
 
 // ── Button padding ─────────────────────────────────────────────────────────
 
-pub const BUTTON_PAD: [u16; 2] = [3, 6];
-pub const BUTTON_PAD_SM: [u16; 2] = [3, 5];
+pub const BUTTON_PAD: [f32; 2] = [3.0, 6.0];
+pub const BUTTON_PAD_SM: [f32; 2] = [3.0, 5.0];
 
 // ── Button styles ───────────────────────────────────────────────────────────
 
@@ -210,6 +211,36 @@ pub fn styled_button(theme: &Theme, status: button::Status) -> button::Style {
     }
 }
 
+pub fn pill_button(theme: &Theme, status: button::Status) -> button::Style {
+    let palette = theme.palette();
+    let border = Border {
+        radius: 12.0.into(),
+        width: 1.0,
+        color: Color {
+            a: 0.3,
+            ..palette.text
+        },
+    };
+    match status {
+        button::Status::Active => button::Style {
+            background: None,
+            text_color: palette.text,
+            border,
+            ..button::Style::default()
+        },
+        button::Status::Hovered => button::Style {
+            background: Some(Background::Color(ACCENT)),
+            text_color: Color::WHITE,
+            border: Border {
+                color: lighten(ACCENT, 0.3),
+                ..border
+            },
+            ..button::Style::default()
+        },
+        _ => styled_button(theme, status),
+    }
+}
+
 pub(crate) fn list_button(theme: &Theme, status: button::Status) -> button::Style {
     let palette = theme.palette();
     match status {
@@ -227,6 +258,113 @@ pub(crate) fn list_button(theme: &Theme, status: button::Status) -> button::Styl
             ..button::Style::default()
         },
         _ => styled_button(theme, status),
+    }
+}
+
+// ── Toggler style ───────────────────────────────────────────────────────────
+
+pub fn accent_toggler(
+    theme: &Theme,
+    status: iced::widget::toggler::Status,
+) -> iced::widget::toggler::Style {
+    let palette = theme.palette();
+    let make_style = |bg: Color, fg: Color| iced::widget::toggler::Style {
+        background: Background::Color(bg),
+        foreground: Background::Color(fg),
+        foreground_border_width: 0.0,
+        foreground_border_color: Color::TRANSPARENT,
+        background_border_width: 0.0,
+        background_border_color: Color::TRANSPARENT,
+        text_color: Some(palette.text),
+        border_radius: None,
+        padding_ratio: 0.1,
+    };
+
+    match status {
+        iced::widget::toggler::Status::Active { is_toggled } => {
+            if is_toggled {
+                make_style(ACCENT, palette.text)
+            } else {
+                make_style(
+                    Color {
+                        a: 0.2,
+                        ..palette.text
+                    },
+                    palette.text,
+                )
+            }
+        }
+        iced::widget::toggler::Status::Hovered { is_toggled } => {
+            if is_toggled {
+                make_style(lighten(ACCENT, 0.15), Color::WHITE)
+            } else {
+                make_style(
+                    Color {
+                        a: 0.3,
+                        ..palette.text
+                    },
+                    Color::WHITE,
+                )
+            }
+        }
+        iced::widget::toggler::Status::Disabled { .. } => make_style(
+            Color {
+                a: 0.1,
+                ..palette.text
+            },
+            Color {
+                a: 0.3,
+                ..palette.text
+            },
+        ),
+    }
+}
+
+// ── Text input style ────────────────────────────────────────────────────────
+
+pub fn pill_input(
+    theme: &Theme,
+    status: iced::widget::text_input::Status,
+) -> iced::widget::text_input::Style {
+    let palette = theme.palette();
+    let base = iced::widget::text_input::Style {
+        background: iced::Background::Color(Color::TRANSPARENT),
+        border: Border {
+            radius: 12.0.into(),
+            width: 1.0,
+            color: Color {
+                a: 0.3,
+                ..palette.text
+            },
+        },
+        icon: palette.text,
+        placeholder: Color {
+            a: 0.4,
+            ..palette.text
+        },
+        value: palette.text,
+        selection: Color { a: 0.3, ..ACCENT },
+    };
+
+    match status {
+        iced::widget::text_input::Status::Focused { .. } => iced::widget::text_input::Style {
+            border: Border {
+                color: ACCENT,
+                ..base.border
+            },
+            ..base
+        },
+        iced::widget::text_input::Status::Hovered => iced::widget::text_input::Style {
+            border: Border {
+                color: Color {
+                    a: 0.5,
+                    ..palette.text
+                },
+                ..base.border
+            },
+            ..base
+        },
+        _ => base,
     }
 }
 

@@ -66,6 +66,7 @@ mod gui;
 mod connection_manager;
 
 /// module with the different UI tabs
+mod icons;
 mod tabs;
 
 /// provides [Error][errors::Error] that other modules in this crate will `use crate::errors::*;`
@@ -538,6 +539,7 @@ fn main() -> iced::Result {
         .subscription(FlowrGui::subscription)
         .title(FlowrGui::title)
         .theme(FlowrGui::theme)
+        .font(icons::FONT)
         .antialiasing(true)
         .window_size((1100.0, 700.0))
         .run()
@@ -1058,7 +1060,7 @@ impl FlowrGui {
     }
 
     fn view(&self) -> Element<'_, Message> {
-        let mut main_content = Column::new().spacing(12).push(self.command_row());
+        let mut main_content = Column::new().spacing(4).push(self.command_row());
 
         #[cfg(feature = "debugger")]
         if self.submission_settings.debug_this_flow && self.debug_client_active {
@@ -1071,7 +1073,7 @@ impl FlowrGui {
         let main_content = main_content
             .push(self.tab_set.view())
             .push(self.status_bar())
-            .padding(16);
+            .padding([theme::SPACE_XS, theme::SPACE_SM]);
 
         #[cfg(feature = "debugger")]
         if self.show_bp_popup {
@@ -1211,7 +1213,9 @@ impl FlowrGui {
             &self.submission_settings.flow_manifest_url,
         )
         .on_input(Message::UrlChanged)
-        .on_submit(Message::SubmitFlow);
+        .on_submit(Message::SubmitFlow)
+        .style(theme::pill_input)
+        .width(iced::Length::FillPortion(7));
 
         let args = text_input(
             "Space separated flow arguments",
@@ -1219,10 +1223,13 @@ impl FlowrGui {
         )
         .on_submit(Message::SubmitFlow)
         .on_input(Message::FlowArgsChanged)
-        .on_paste(Message::FlowArgsChanged);
+        .on_paste(Message::FlowArgsChanged)
+        .style(theme::pill_input)
+        .width(iced::Length::FillPortion(3));
 
         let max_jobs = text_input("Max jobs", &self.submission_settings.max_jobs_text)
             .on_input(Message::MaxJobsChanged)
+            .style(theme::pill_input)
             .width(80);
 
         let is_client_mode = matches!(self.coordinator_settings, CoordinatorSettings::ClientOnly);
@@ -1231,13 +1238,25 @@ impl FlowrGui {
             && !self.running
             && !self.submitted;
 
+        let cmd_icon = |icon_text: &str, label: &str| -> Row<'_, Message> {
+            Row::new()
+                .spacing(theme::SPACE_SM)
+                .align_y(iced::alignment::Vertical::Center)
+                .push(
+                    Text::new(icon_text.to_string())
+                        .font(iced::Font::with_name("icons"))
+                        .size(theme::FONT_MD),
+                )
+                .push(Text::new(label.to_string()))
+        };
+
         let play = if self.running {
-            Button::new(Text::new("\u{23F9} Stop"))
+            Button::new(cmd_icon("\u{25AA}", "Stop"))
                 .on_press(Message::StopFlow)
                 .style(theme::styled_button)
                 .padding([6, 16])
         } else {
-            let mut btn = Button::new(Text::new("\u{25B6} Play"))
+            let mut btn = Button::new(cmd_icon("\u{25B6}", "Play"))
                 .style(theme::styled_button)
                 .padding([6, 16]);
             if can_run {
@@ -1246,7 +1265,7 @@ impl FlowrGui {
             btn
         };
 
-        let mut debug_play = Button::new(Text::new("\u{1F41B} Debug"))
+        let mut debug_play = Button::new(cmd_icon("\u{F188}", "Debug"))
             .style(theme::styled_button)
             .padding([6, 16]);
         if can_run {
@@ -1366,14 +1385,26 @@ impl FlowrGui {
         let bp = theme::BUTTON_PAD;
         let sp = theme::BUTTON_PAD_SM;
 
-        let mut continue_btn = Button::new(Text::new("\u{25B6} Continue"))
+        let icon_btn = |icon_text: &str, label: &str| -> Row<'_, Message> {
+            Row::new()
+                .spacing(theme::SPACE_SM)
+                .align_y(iced::alignment::Vertical::Center)
+                .push(
+                    Text::new(icon_text.to_string())
+                        .font(iced::Font::with_name("icons"))
+                        .size(theme::FONT_SM),
+                )
+                .push(Text::new(label.to_string()))
+        };
+
+        let mut continue_btn = Button::new(icon_btn("\u{27A6}", "Continue"))
             .style(theme::styled_button)
             .padding(bp);
         if can_cmd && jobs_started {
             continue_btn = continue_btn.on_press(Message::DebugContinue);
         }
 
-        let mut step_btn = Button::new(Text::new("\u{23ED} Step"))
+        let mut step_btn = Button::new(icon_btn("\u{F178}", "Step"))
             .style(theme::styled_button)
             .padding(bp);
         if can_cmd {
@@ -1382,18 +1413,19 @@ impl FlowrGui {
 
         let step_count = text_input("n", &self.debug_step_count)
             .on_input(Message::DebugStepCountChanged)
+            .style(theme::pill_input)
+            .padding(theme::BUTTON_PAD)
             .width(35);
 
         let has_run_target = !self.debug_spec_text.trim().is_empty();
         let is_run = has_run_target || !jobs_started;
-        let reset_label = if is_run {
-            "\u{25B6} Run"
+        let mut reset_btn = Button::new(if is_run {
+            icon_btn("\u{25B6}", "Run")
         } else {
-            "\u{21BB} Reset"
-        };
-        let mut reset_btn = Button::new(Text::new(reset_label))
-            .style(theme::styled_button)
-            .padding(bp);
+            icon_btn("\u{27F3}", "Reset")
+        })
+        .style(theme::styled_button)
+        .padding(bp);
         if self.debug_client_active {
             reset_btn = reset_btn.on_press(if has_run_target {
                 Message::DebugRunProcess
@@ -1402,14 +1434,14 @@ impl FlowrGui {
             });
         }
 
-        let mut pause_btn = Button::new(Text::new("\u{23F8} Pause"))
+        let mut pause_btn = Button::new(icon_btn("\u{2389}", "Pause"))
             .style(theme::styled_button)
             .padding(bp);
         if self.debug_client_active && !can_cmd && jobs_started {
             pause_btn = pause_btn.on_press(Message::DebugPause);
         }
 
-        let mut exit_btn = Button::new(Text::new("\u{23F9} Exit"))
+        let mut exit_btn = Button::new(icon_btn("\u{E741}", "Exit"))
             .style(theme::styled_button)
             .padding(bp);
         if can_cmd {
@@ -1419,6 +1451,7 @@ impl FlowrGui {
         let spec_input = text_input("spec", &self.debug_spec_text)
             .on_input(Message::DebugSpecChanged)
             .on_submit(Message::DebugSetBreakpoint)
+            .style(theme::pill_input)
             .width(100);
 
         let mut bp_btn = Button::new(Text::new("Set BP"))
@@ -1527,6 +1560,7 @@ impl FlowrGui {
                 text_input(name, &value)
                     .on_input(move |v| Message::RunInputChanged(idx, v))
                     .on_submit(Message::RunInputExecute)
+                    .style(theme::pill_input)
                     .width(100),
                 &tooltip,
             );
@@ -1904,21 +1938,9 @@ impl FlowrGui {
             }
         }
 
-        let rule = iced::widget::rule::horizontal(1);
-
-        Column::new().push(rule).push(
+        Column::new().push(
             iced::widget::Container::new(row)
-                .padding(4)
-                .style(|theme: &iced::Theme| {
-                    let palette = theme.palette();
-                    iced::widget::container::Style {
-                        background: Some(iced::Background::Color(iced::Color {
-                            a: 0.08,
-                            ..palette.text
-                        })),
-                        ..Default::default()
-                    }
-                })
+                .padding([theme::SPACE_XS, theme::SPACE_MD])
                 .width(iced::Length::Fill),
         )
     }
