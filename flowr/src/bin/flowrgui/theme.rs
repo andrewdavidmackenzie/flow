@@ -384,16 +384,15 @@ pub fn pill_input(
         iced::widget::text_input::Status::Focused { .. } => iced::widget::text_input::Style {
             border: Border {
                 color: lighten(ACCENT, 0.3),
+                width: 2.0,
                 ..base.border
             },
             ..base
         },
         iced::widget::text_input::Status::Hovered => iced::widget::text_input::Style {
             border: Border {
-                color: Color {
-                    a: 0.5,
-                    ..palette.text
-                },
+                color: lighten(ACCENT, 0.3),
+                width: 2.0,
                 ..base.border
             },
             ..base
