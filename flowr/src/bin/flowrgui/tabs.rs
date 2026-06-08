@@ -358,23 +358,25 @@ impl Tab for StdOutTab {
         let toggler = toggler(self.auto_scroll)
             .label(format!("Auto-scroll {}", self.name))
             .on_toggle(|v| Message::StdioAutoScrollTogglerChanged(self.id.clone(), v))
+            .size(14.0)
+            .text_size(crate::theme::FONT_MD)
             .width(Length::Shrink);
 
-        let save_button = Button::new(Text::new("Save"))
+        let save_button = Button::new(Text::new("Save").size(crate::theme::FONT_MD))
             .on_press(Message::SaveTabContent(self.name.clone()))
-            .style(crate::theme::styled_button)
-            .padding([4, 12]);
-        let clear_button = Button::new(Text::new("Clear"))
+            .style(crate::theme::list_button)
+            .padding(crate::theme::BUTTON_PAD_SM);
+        let clear_button = Button::new(Text::new("Clear").size(crate::theme::FONT_MD))
             .on_press(Message::ClearTab(self.name.clone()))
-            .style(crate::theme::styled_button)
-            .padding([4, 12]);
+            .style(crate::theme::list_button)
+            .padding(crate::theme::BUTTON_PAD_SM);
 
         let toolbar = Row::new()
             .push(toggler)
             .push(save_button)
             .push(clear_button)
-            .spacing(10)
-            .padding(4)
+            .spacing(crate::theme::SPACE_MD)
+            .padding(crate::theme::SPACE_XS)
             .align_y(iced::alignment::Vertical::Center);
 
         Column::new().push(toolbar).push(scrollable).into()
@@ -756,23 +758,25 @@ impl Tab for DebugTab {
         let toggler = toggler(self.auto_scroll)
             .label(format!("Auto-scroll {}", self.name))
             .on_toggle(|v| Message::StdioAutoScrollTogglerChanged(self.id.clone(), v))
+            .size(14.0)
+            .text_size(crate::theme::FONT_MD)
             .width(Length::Shrink);
 
-        let save_button = Button::new(Text::new("Save"))
+        let save_button = Button::new(Text::new("Save").size(crate::theme::FONT_MD))
             .on_press(Message::SaveTabContent(self.name.clone()))
-            .style(crate::theme::styled_button)
-            .padding([4, 12]);
-        let clear_button = Button::new(Text::new("Clear"))
+            .style(crate::theme::list_button)
+            .padding(crate::theme::BUTTON_PAD_SM);
+        let clear_button = Button::new(Text::new("Clear").size(crate::theme::FONT_MD))
             .on_press(Message::ClearTab(self.name.clone()))
-            .style(crate::theme::styled_button)
-            .padding([4, 12]);
+            .style(crate::theme::list_button)
+            .padding(crate::theme::BUTTON_PAD_SM);
 
         let toolbar = Row::new()
             .push(toggler)
             .push(save_button)
             .push(clear_button)
-            .spacing(10)
-            .padding(4)
+            .spacing(crate::theme::SPACE_MD)
+            .padding(crate::theme::SPACE_XS)
             .align_y(iced::alignment::Vertical::Center);
 
         Column::new().push(toolbar).push(scrollable).into()
