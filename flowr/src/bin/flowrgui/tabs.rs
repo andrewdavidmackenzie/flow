@@ -284,8 +284,8 @@ fn tab_button_style(
         ..palette.text
     };
     let top_only = iced::border::Radius {
-        top_left: 4.0,
-        top_right: 4.0,
+        top_left: crate::theme::RADIUS_MD,
+        top_right: crate::theme::RADIUS_MD,
         bottom_right: 0.0,
         bottom_left: 0.0,
     };

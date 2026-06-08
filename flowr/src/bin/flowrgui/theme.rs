@@ -241,6 +241,24 @@ pub fn pill_button(theme: &Theme, status: button::Status) -> button::Style {
     }
 }
 
+pub fn pill_button_active(theme: &Theme, status: button::Status) -> button::Style {
+    let _palette = theme.palette();
+    let border = Border {
+        radius: 12.0.into(),
+        width: 1.0,
+        color: lighten(ACCENT, 0.3),
+    };
+    match status {
+        button::Status::Active | button::Status::Disabled => button::Style {
+            background: Some(Background::Color(ACCENT)),
+            text_color: Color::WHITE,
+            border,
+            ..button::Style::default()
+        },
+        _ => pill_button(theme, status),
+    }
+}
+
 pub(crate) fn list_button(theme: &Theme, status: button::Status) -> button::Style {
     let palette = theme.palette();
     match status {
@@ -349,7 +367,7 @@ pub fn pill_input(
     match status {
         iced::widget::text_input::Status::Focused { .. } => iced::widget::text_input::Style {
             border: Border {
-                color: ACCENT,
+                color: lighten(ACCENT, 0.3),
                 ..base.border
             },
             ..base
@@ -365,6 +383,25 @@ pub fn pill_input(
             ..base
         },
         _ => base,
+    }
+}
+
+// ── Card/popup style ────────────────────────────────────────────────────────
+
+pub fn popup_card(theme: &Theme, _status: iced_aw::style::Status) -> iced_aw::style::card::Style {
+    let palette = theme.palette();
+    iced_aw::style::card::Style {
+        background: Background::Color(SURFACE_BUTTON),
+        border_radius: RADIUS_MD,
+        border_width: 1.5,
+        border_color: Color { a: 0.5, ..ACCENT },
+        head_background: Background::Color(Color { a: 0.3, ..ACCENT }),
+        head_text_color: Color::WHITE,
+        body_background: Background::Color(SURFACE_BUTTON),
+        body_text_color: palette.text,
+        foot_background: Background::Color(SURFACE_BUTTON),
+        foot_text_color: palette.text,
+        close_color: Color::WHITE,
     }
 }
 
