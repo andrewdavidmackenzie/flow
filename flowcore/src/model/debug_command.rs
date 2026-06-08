@@ -2,6 +2,17 @@ use std::fmt;
 
 use serde_derive::{Deserialize, Serialize};
 
+/// Identifies a process (function or sub-flow) for the `run` command
+#[derive(Serialize, Deserialize, PartialEq, Eq, Debug, Clone)]
+pub enum ProcessTarget {
+    /// A process identified by its numeric ID
+    Id(usize),
+    /// A process identified by its route path (e.g., "/flow/add")
+    Route(String),
+    /// A process identified by its name
+    Name(String),
+}
+
 /// Types of `Params` used in communications between the debugger and the `debug_client`
 #[derive(Serialize, Deserialize, PartialEq, Eq, Debug)]
 pub enum BreakpointSpec {
@@ -60,8 +71,9 @@ pub enum DebugCommand {
     List,
     /// `modify` a debugger or runtime state value e.g. jobs=1 to set parallel jobs to 1
     Modify(Option<Vec<String>>),
-    /// `reset` flow execution back to the initial state, or run the flow from the start
-    RunReset,
+    /// `reset` flow execution back to the initial state, run the flow from the start,
+    /// or run a specific process with optional inline input arguments
+    RunReset(Option<ProcessTarget>, Vec<String>),
     /// `step` forward in flow execution by executing one (default) or more `Jobs`
     Step(Option<usize>),
     /// `validate` the current state
@@ -118,7 +130,7 @@ mod test {
         println!("{}", DebugCommand::InspectBlock(None, None));
         println!("{}", DebugCommand::Invalid);
         println!("{}", DebugCommand::List);
-        println!("{}", DebugCommand::RunReset);
+        println!("{}", DebugCommand::RunReset(None, vec![]));
         println!("{}", DebugCommand::Step(None));
         println!("{}", DebugCommand::Validate);
         println!("{}", DebugCommand::DebugClientStarting);

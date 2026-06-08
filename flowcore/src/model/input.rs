@@ -172,6 +172,12 @@ impl Input {
         &self.name
     }
 
+    /// Return whether this input accepts generic types
+    #[must_use]
+    pub fn is_generic(&self) -> bool {
+        self.generic
+    }
+
     /// Return a reference to the initializer
     #[must_use]
     pub fn initializer(&self) -> &Option<InputInitializer> {

@@ -2146,7 +2146,7 @@ impl FlowrGui {
             Message::DebugReset => {
                 self.debug_waiting = false;
                 self.debug_separator("Run / Reset");
-                connection_manager::send_debug_command(DebugCommand::RunReset);
+                connection_manager::send_debug_command(DebugCommand::RunReset(None, vec![]));
             }
             Message::DebugExit => {
                 self.debug_waiting = false;

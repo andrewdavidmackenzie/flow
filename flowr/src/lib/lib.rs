@@ -81,6 +81,10 @@ pub mod debug_client;
 pub mod debug_gui_handler;
 
 #[cfg(feature = "debugger")]
+#[allow(dead_code)]
+mod coerce_value;
+
+#[cfg(feature = "debugger")]
 mod debugger;
 
 /// `wasmtime` module contains a number of implementations of the wasm execution

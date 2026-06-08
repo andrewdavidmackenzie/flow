@@ -18,6 +18,7 @@ use crate::debug_command::DebugCommand::{
     InspectBlock, InspectFunction, InspectInput, InspectOutput, Invalid, List, Modify, RunReset,
     Step, Validate,
 };
+use crate::debug_command::ProcessTarget;
 use crate::debugger_handler::DebuggerHandler;
 use crate::job::Job;
 use crate::run_state::{RunState, State};
@@ -391,7 +392,7 @@ impl<'a> Debugger<'a> {
                         return Ok((false, false));
                     }
                 }
-                Ok(RunReset) => {
+                Ok(RunReset(None, _)) => {
                     return if state.get_number_of_jobs_created() > 0 {
                         self.reset();
                         self.debug_server.debugger_resetting();
@@ -400,6 +401,21 @@ impl<'a> Debugger<'a> {
                         self.debug_server.execution_starting();
                         Ok((false, false))
                     };
+                }
+                Ok(RunReset(Some(target), _args)) => {
+                    if state.get_number_of_jobs_created() > 0 {
+                        self.debug_server.debugger_error(
+                            "Cannot run a process mid-execution. Reset first with 'r'.".into(),
+                        );
+                    } else {
+                        match Self::resolve_target(state, &target) {
+                            Ok(process_id) => {
+                                self.debug_server
+                                    .message(format!("Resolved target to process #{process_id}"));
+                            }
+                            Err(e) => self.debug_server.debugger_error(e.to_string()),
+                        }
+                    }
                 }
                 Ok(Step(param)) => {
                     self.step(state, param);
@@ -673,6 +689,45 @@ impl<'a> Debugger<'a> {
             .values()
             .find(|f| f.route() == route)
             .map(RuntimeFunction::id)
+    }
+
+    fn resolve_target(state: &RunState, target: &ProcessTarget) -> Result<usize> {
+        match target {
+            ProcessTarget::Id(id) => {
+                if state.get_function(*id).is_some()
+                    || state.submission.manifest.flows().contains_key(id)
+                {
+                    Ok(*id)
+                } else {
+                    bail!("No process found matching '#{id}'")
+                }
+            }
+            ProcessTarget::Route(route) => Self::find_by_route(state, route)
+                .ok_or_else(|| format!("No process found matching '{route}'").into()),
+            ProcessTarget::Name(name) => {
+                let matches: Vec<usize> = state
+                    .get_functions()
+                    .values()
+                    .filter(|f| f.name() == name)
+                    .map(RuntimeFunction::id)
+                    .collect();
+                match matches.as_slice() {
+                    [] => bail!("No process found matching '{name}'"),
+                    [id] => Ok(*id),
+                    _ => {
+                        let mut msg =
+                            format!("Multiple processes match '{name}'. Use ID or route:\n");
+                        for id in &matches {
+                            if let Some(f) = state.get_function(*id) {
+                                use std::fmt::Write;
+                                let _ = writeln!(msg, "  #{} @ '{}'", f.id(), f.route());
+                            }
+                        }
+                        bail!(msg)
+                    }
+                }
+            }
+        }
     }
 
     fn inspect_flow(state: &RunState, flow_id: usize) -> String {
