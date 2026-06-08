@@ -5,9 +5,8 @@ use iced::widget::image::{FilterMethod, Handle, Viewer};
 use iced::widget::operation::{self, RelativeOffset};
 use iced::widget::scrollable::Scrollable;
 use iced::widget::TextInput;
-use iced::widget::{text, toggler, Button, Column, Id, Row, Text};
-use iced::{ContentFit, Element, Length, Task};
-use iced_aw::{TabLabel, Tabs};
+use iced::widget::{text, toggler, Button, Column, Container, Id, Row, Text};
+use iced::{Background, Border, ContentFit, Element, Length, Task};
 use log::error;
 use once_cell::sync::Lazy;
 
@@ -185,15 +184,66 @@ impl TabSet {
     }
 
     pub(crate) fn view(&self) -> Element<'_, Message> {
-        let tabs = Tabs::new(Message::TabSelected)
-            .push(0, self.stdout_tab.tab_label(), self.stdout_tab.view())
-            .push(1, self.stderr_tab.tab_label(), self.stderr_tab.view())
-            .push(2, self.stdin_tab.tab_label(), self.stdin_tab.view())
-            .push(3, self.images_tab.tab_label(), self.images_tab.view())
-            .push(4, self.fileio_tab.tab_label(), self.fileio_tab.view());
+        let mut tab_labels: Vec<(usize, String)> = vec![
+            (0, self.stdout_tab.label_text()),
+            (1, self.stderr_tab.label_text()),
+            (2, self.stdin_tab.label_text()),
+            (3, self.images_tab.label_text()),
+            (4, self.fileio_tab.label_text()),
+        ];
         #[cfg(feature = "debugger")]
-        let tabs = tabs.push(5, self.debug_tab.tab_label(), self.debug_tab.view());
-        tabs.set_active_tab(&self.active_tab).into()
+        tab_labels.push((5, self.debug_tab.label_text()));
+
+        let tab_bar = Row::with_children(
+            tab_labels
+                .into_iter()
+                .map(|(idx, label)| {
+                    let is_active = self.active_tab == idx;
+                    let btn = Button::new(Text::new(label).size(crate::theme::FONT_MD))
+                        .padding([6, 16])
+                        .on_press(Message::TabSelected(idx))
+                        .style(move |theme: &iced::Theme, status| {
+                            tab_button_style(theme, status, is_active)
+                        });
+                    Element::from(btn)
+                })
+                .collect::<Vec<Element<'_, Message>>>(),
+        );
+
+        let content: Element<'_, Message> = match self.active_tab {
+            0 => self.stdout_tab.view(),
+            1 => self.stderr_tab.view(),
+            2 => self.stdin_tab.view(),
+            3 => self.images_tab.view(),
+            4 => self.fileio_tab.view(),
+            #[cfg(feature = "debugger")]
+            5 => self.debug_tab.view(),
+            _ => text("").into(),
+        };
+
+        let content_panel = Container::new(content)
+            .width(Length::Fill)
+            .height(Length::Fill)
+            .style(|theme: &iced::Theme| {
+                let palette = theme.palette();
+                iced::widget::container::Style {
+                    background: Some(Background::Color(iced::Color {
+                        a: 0.05,
+                        ..palette.text
+                    })),
+                    border: Border {
+                        color: iced::Color {
+                            a: 0.15,
+                            ..palette.text
+                        },
+                        width: 1.0,
+                        radius: 4.0.into(),
+                    },
+                    ..Default::default()
+                }
+            });
+
+        Column::new().push(tab_bar).push(content_panel).into()
     }
 
     pub(crate) fn clear(&mut self) {
@@ -210,11 +260,63 @@ impl TabSet {
 pub trait Tab {
     type Message;
 
-    fn tab_label(&self) -> TabLabel;
+    fn label_text(&self) -> String;
 
     fn view(&self) -> Element<'_, Self::Message>;
 
     fn clear(&mut self);
+}
+
+fn tab_button_style(
+    theme: &iced::Theme,
+    status: iced::widget::button::Status,
+    is_active: bool,
+) -> iced::widget::button::Style {
+    let palette = theme.palette();
+    let active_bg = iced::Color {
+        a: 0.05,
+        ..palette.text
+    };
+    let base = iced::widget::button::Style {
+        border: Border {
+            radius: 4.0.into(),
+            width: 0.0,
+            color: iced::Color::TRANSPARENT,
+        },
+        ..Default::default()
+    };
+
+    if is_active {
+        iced::widget::button::Style {
+            background: Some(Background::Color(active_bg)),
+            text_color: palette.text,
+            border: Border {
+                radius: 4.0.into(),
+                width: 0.0,
+                color: iced::Color::TRANSPARENT,
+            },
+            ..base
+        }
+    } else {
+        match status {
+            iced::widget::button::Status::Hovered => iced::widget::button::Style {
+                background: Some(Background::Color(iced::Color {
+                    a: 0.03,
+                    ..palette.text
+                })),
+                text_color: palette.text,
+                ..base
+            },
+            _ => iced::widget::button::Style {
+                background: None,
+                text_color: iced::Color {
+                    a: 0.6,
+                    ..palette.text
+                },
+                ..base
+            },
+        }
+    }
 }
 
 pub(crate) struct StdOutTab {
@@ -228,11 +330,11 @@ pub(crate) struct StdOutTab {
 impl Tab for StdOutTab {
     type Message = Message;
 
-    fn tab_label(&self) -> TabLabel {
+    fn label_text(&self) -> String {
         if self.unread_count > 0 {
-            TabLabel::Text(format!("{} ({})", self.name, self.unread_count))
+            format!("{} ({})", self.name, self.unread_count)
         } else {
-            TabLabel::Text(self.name.clone())
+            self.name.clone()
         }
     }
 
@@ -332,11 +434,11 @@ fn scale_image(image_ref: &ImageReference, min_width: u32) -> (u32, u32, Vec<u8>
 impl Tab for ImageTab {
     type Message = Message;
 
-    fn tab_label(&self) -> TabLabel {
+    fn label_text(&self) -> String {
         if self.new_activity {
-            TabLabel::Text(format!("{} *", self.name))
+            format!("{} *", self.name)
         } else {
-            TabLabel::Text(self.name.clone())
+            self.name.clone()
         }
     }
 
@@ -448,11 +550,11 @@ impl StdInTab {
 impl Tab for StdInTab {
     type Message = Message;
 
-    fn tab_label(&self) -> TabLabel {
+    fn label_text(&self) -> String {
         if self.waiting_for_input {
-            TabLabel::Text(format!("{} (waiting)", self.name))
+            format!("{} (waiting)", self.name)
         } else {
-            TabLabel::Text(self.name.clone())
+            self.name.clone()
         }
     }
 
@@ -556,11 +658,11 @@ impl DebugTab {
 impl Tab for DebugTab {
     type Message = Message;
 
-    fn tab_label(&self) -> TabLabel {
+    fn label_text(&self) -> String {
         if self.unread_count > 0 {
-            TabLabel::Text(format!("{} ({})", self.name, self.unread_count))
+            format!("{} ({})", self.name, self.unread_count)
         } else {
-            TabLabel::Text(self.name.clone())
+            self.name.clone()
         }
     }
 
@@ -789,13 +891,6 @@ mod test {
         assert!(tab.content.is_empty());
     }
 
-    fn tab_label_text(label: TabLabel) -> String {
-        match label {
-            TabLabel::Text(s) => s,
-            _ => panic!("Expected TabLabel::Text"),
-        }
-    }
-
     #[test]
     fn stdout_tab_label_no_unread() {
         let tab = StdOutTab {
@@ -805,7 +900,7 @@ mod test {
             auto_scroll: true,
             unread_count: 0,
         };
-        assert_eq!(tab_label_text(tab.tab_label()), "Stdout");
+        assert_eq!(tab.label_text(), "Stdout");
     }
 
     #[test]
@@ -817,7 +912,7 @@ mod test {
             auto_scroll: true,
             unread_count: 3,
         };
-        assert_eq!(tab_label_text(tab.tab_label()), "Stdout (3)");
+        assert_eq!(tab.label_text(), "Stdout (3)");
     }
 
     #[test]
@@ -837,27 +932,27 @@ mod test {
     #[test]
     fn image_tab_label_no_activity() {
         let tab = ImageTab::new("Images");
-        assert_eq!(tab_label_text(tab.tab_label()), "Images");
+        assert_eq!(tab.label_text(), "Images");
     }
 
     #[test]
     fn image_tab_label_with_activity() {
         let mut tab = ImageTab::new("Images");
         tab.new_activity = true;
-        assert_eq!(tab_label_text(tab.tab_label()), "Images *");
+        assert_eq!(tab.label_text(), "Images *");
     }
 
     #[test]
     fn stdin_tab_label_not_waiting() {
         let tab = StdInTab::new("Stdin");
-        assert_eq!(tab_label_text(tab.tab_label()), "Stdin");
+        assert_eq!(tab.label_text(), "Stdin");
     }
 
     #[test]
     fn stdin_tab_label_waiting() {
         let mut tab = StdInTab::new("Stdin");
         tab.waiting_for_input = true;
-        assert_eq!(tab_label_text(tab.tab_label()), "Stdin (waiting)");
+        assert_eq!(tab.label_text(), "Stdin (waiting)");
     }
 
     #[test]
