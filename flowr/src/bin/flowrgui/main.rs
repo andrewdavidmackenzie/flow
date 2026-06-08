@@ -596,8 +596,8 @@ pub struct CachedFunction {
     pub name: String,
     /// Function route
     pub route: String,
-    /// Input names (index, name)
-    pub inputs: Vec<(usize, String)>,
+    /// Input info (index, name, `is_generic`)
+    pub inputs: Vec<(usize, String, bool)>,
     /// Output routes
     pub outputs: Vec<String>,
 }
@@ -733,6 +733,8 @@ struct FlowrGui {
     run_input_values: Vec<String>,
     #[cfg(feature = "debugger")]
     run_input_names: Vec<String>,
+    #[cfg(feature = "debugger")]
+    run_input_types: Vec<String>,
     show_coordinator_picker: bool,
     discovered_services: Vec<(String, String)>,
     discovering: bool,
@@ -789,6 +791,8 @@ impl FlowrGui {
             run_input_values: Vec::new(),
             #[cfg(feature = "debugger")]
             run_input_names: Vec::new(),
+            #[cfg(feature = "debugger")]
+            run_input_types: Vec::new(),
             show_coordinator_picker: false,
             discovered_services: Vec::new(),
             discovering: false,
@@ -1484,6 +1488,7 @@ impl FlowrGui {
             ))
             .push(Self::tip(step_btn, "Execute the next job(s) then pause"))
             .push(Self::tip(step_count, "Number of jobs to step"))
+            .push(Self::tip(pause_btn, "Pause execution and enter debugger"))
             .push(Self::tip(
                 reset_btn,
                 if has_run_target {
@@ -1492,8 +1497,6 @@ impl FlowrGui {
                     "Reset flow state and re-run from start"
                 },
             ))
-            .push(Self::tip(pause_btn, "Pause execution and enter debugger"))
-            .push(Self::tip(exit_btn, "Stop execution and exit debugger"))
             .push(Self::tip(
                 spec_input,
                 "Enter spec: breakpoint (3, 3+, 1:0) or run target (ID, /route, name [args])",
@@ -1508,6 +1511,8 @@ impl FlowrGui {
             .push(Self::tip(funcs_btn, "List all functions"))
             .push(Self::tip(procs_btn, "Show flow/function hierarchy"))
             .push(Self::tip(validate_btn, "Validate flow state for deadlocks"))
+            .push(iced::widget::container(iced::widget::text("")).width(iced::Length::Fill))
+            .push(Self::tip(exit_btn, "Stop execution and exit debugger"))
     }
 
     #[cfg(feature = "debugger")]
@@ -1628,7 +1633,7 @@ impl FlowrGui {
                         btn = btn.on_press(Message::BpCycleFunction(f.id));
                         items = items.push(btn);
 
-                        for (idx, input_name) in &f.inputs {
+                        for (idx, input_name, _generic) in &f.inputs {
                             let input_spec = format!("{}:{idx}", f.id);
                             let name_part = if input_name.is_empty() {
                                 String::new()
@@ -1669,7 +1674,7 @@ impl FlowrGui {
                 }
                 BpTab::Input => {
                     for f in &self.cached_functions {
-                        for (idx, input_name) in &f.inputs {
+                        for (idx, input_name, _generic) in &f.inputs {
                             let spec = format!("{}:{idx}", f.id);
                             let marker = bp_marker(&spec);
                             let name_part = if input_name.is_empty() {
@@ -1779,7 +1784,7 @@ impl FlowrGui {
             }
             InspectTab::Input => {
                 for f in &self.cached_functions {
-                    for (idx, input_name) in &f.inputs {
+                    for (idx, input_name, _generic) in &f.inputs {
                         let name_part = if input_name.is_empty() {
                             String::new()
                         } else {
@@ -2277,11 +2282,22 @@ impl FlowrGui {
                                 .inputs
                                 .iter()
                                 .enumerate()
-                                .map(|(i, (_, name))| {
+                                .map(|(i, (_, name, _))| {
                                     if name.is_empty() {
                                         format!("input_{i}")
                                     } else {
                                         name.clone()
+                                    }
+                                })
+                                .collect();
+                            self.run_input_types = func
+                                .inputs
+                                .iter()
+                                .map(|(_, _, generic)| {
+                                    if *generic {
+                                        "Generic".to_string()
+                                    } else {
+                                        "Value".to_string()
                                     }
                                 })
                                 .collect();
@@ -2928,6 +2944,8 @@ mod test {
             run_input_values: Vec::new(),
             #[cfg(feature = "debugger")]
             run_input_names: Vec::new(),
+            #[cfg(feature = "debugger")]
+            run_input_types: Vec::new(),
             show_coordinator_picker: false,
             discovered_services: Vec::new(),
             discovering: false,
