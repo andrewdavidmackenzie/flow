@@ -410,6 +410,9 @@ pub enum Message {
     /// User clicked Run/Reset in the debug controls
     #[cfg(feature = "debugger")]
     DebugReset,
+    /// User clicked Run Process — runs a specific process using the spec field
+    #[cfg(feature = "debugger")]
+    DebugRunProcess,
     /// User clicked Exit Debugger in the debug controls
     #[cfg(feature = "debugger")]
     DebugExit,
@@ -956,6 +959,7 @@ impl FlowrGui {
             | Message::DebugContinue
             | Message::DebugStep
             | Message::DebugReset
+            | Message::DebugRunProcess
             | Message::DebugExit
             | Message::DebugStepCountChanged(_)
             | Message::DebugSpecChanged(_)
@@ -1348,6 +1352,13 @@ impl FlowrGui {
             reset_btn = reset_btn.on_press(Message::DebugReset);
         }
 
+        let mut run_btn = Button::new(Text::new("\u{25B6} Run"))
+            .style(theme::styled_button)
+            .padding([4, 10]);
+        if can_cmd && !self.debug_spec_text.is_empty() {
+            run_btn = run_btn.on_press(Message::DebugRunProcess);
+        }
+
         let mut exit_btn = Button::new(Text::new("\u{23F9} Exit"))
             .style(theme::styled_button)
             .padding([4, 10]);
@@ -1431,7 +1442,11 @@ impl FlowrGui {
             .push(Text::new("|").size(13))
             .push(Self::tip(
                 spec_input,
-                "Enter breakpoint spec (e.g. 3, 3+, 1:0, 1/sum)",
+                "Enter spec: breakpoint (3, 3+, 1:0) or run target (ID, /route, name [args])",
+            ))
+            .push(Self::tip(
+                run_btn,
+                "Run a specific process (enter ID, /route, or name in spec field)",
             ))
             .push(Self::tip(bp_btn, "Open breakpoint picker"))
             .push(Self::tip(del_btn, "Delete all breakpoints"))
@@ -2147,6 +2162,32 @@ impl FlowrGui {
                 self.debug_waiting = false;
                 self.debug_separator("Run / Reset");
                 connection_manager::send_debug_command(DebugCommand::RunReset(None, vec![]));
+            }
+            Message::DebugRunProcess => {
+                if self.debug_spec_text.is_empty() {
+                    return iced::Task::none();
+                }
+                self.debug_waiting = false;
+                let parts: Vec<String> = self
+                    .debug_spec_text
+                    .split_whitespace()
+                    .map(String::from)
+                    .collect();
+                if let Some(target_str) = parts.first() {
+                    let args: Vec<String> = parts.get(1..).unwrap_or_default().to_vec();
+                    let target = if let Ok(id) = target_str.parse::<usize>() {
+                        flowcore::model::debug_command::ProcessTarget::Id(id)
+                    } else if target_str.starts_with('/') {
+                        flowcore::model::debug_command::ProcessTarget::Route(target_str.clone())
+                    } else {
+                        flowcore::model::debug_command::ProcessTarget::Name(target_str.clone())
+                    };
+                    self.debug_separator(&format!("Run process: {target_str}"));
+                    connection_manager::send_debug_command(DebugCommand::RunReset(
+                        Some(target),
+                        args,
+                    ));
+                }
             }
             Message::DebugExit => {
                 self.debug_waiting = false;
