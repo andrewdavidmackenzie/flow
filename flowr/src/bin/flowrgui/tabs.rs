@@ -616,6 +616,20 @@ impl Tab for StdInTab {
 }
 
 #[cfg(feature = "debugger")]
+fn chip_color_for(link_type: crate::LinkType) -> iced::Color {
+    use crate::theme::entity_colors;
+    match link_type {
+        crate::LinkType::Function | crate::LinkType::Route => entity_colors::FUNCTION,
+        crate::LinkType::Flow => entity_colors::FLOW,
+        crate::LinkType::Job => entity_colors::JOB,
+        crate::LinkType::Input => entity_colors::INPUT,
+        crate::LinkType::Output => entity_colors::OUTPUT,
+        crate::LinkType::State => crate::theme::TEXT_SECONDARY,
+        crate::LinkType::Other => crate::theme::TEXT_LINK,
+    }
+}
+
+#[cfg(feature = "debugger")]
 pub(crate) struct DebugTab {
     pub name: String,
     pub id: Id,
@@ -729,7 +743,6 @@ impl Tab for DebugTab {
                         Element::from(t)
                     } else {
                         let base_color = line.color;
-                        let link_color = crate::theme::TEXT_LINK;
                         let mut spans: Vec<iced::widget::text::Span<'_, String>> = Vec::new();
                         let mut pos = 0;
                         for link in &line.links {
@@ -741,12 +754,26 @@ impl Tab for DebugTab {
                                 }
                                 spans.push(s);
                             }
+                            let chip_color = chip_color_for(link.link_type);
+                            spans.push(iced::widget::span(" ".to_string()));
                             spans.push(
-                                iced::widget::span(line.text[link.start..link.end].to_string())
-                                    .color(link_color)
-                                    .underline(true)
-                                    .link(link.spec.clone()),
+                                iced::widget::span(format!(
+                                    " {} ",
+                                    &line.text[link.start..link.end]
+                                ))
+                                .color(iced::Color::WHITE)
+                                .background(iced::Background::Color(iced::Color {
+                                    a: 0.4,
+                                    ..chip_color
+                                }))
+                                .border(iced::Border {
+                                    radius: 8.0.into(),
+                                    ..Default::default()
+                                })
+                                .padding([2, 4])
+                                .link(link.spec.clone()),
                             );
+                            spans.push(iced::widget::span(" ".to_string()));
                             pos = link.end;
                         }
                         if pos < line.text.len() {
