@@ -136,10 +136,10 @@ pub mod debug_colors {
 
 // ── Spacing scale ───────────────────────────────────────────────────────────
 
-pub const SPACE_XS: u16 = 2;
-pub const SPACE_SM: u16 = 4;
-pub const SPACE_MD: u16 = 8;
-pub const SPACE_LG: u16 = 16;
+pub const SPACE_XS: f32 = 2.0;
+pub const SPACE_SM: f32 = 4.0;
+pub const SPACE_MD: f32 = 8.0;
+pub const SPACE_LG: f32 = 16.0;
 
 // ── Font sizes ──────────────────────────────────────────────────────────────
 
@@ -153,8 +153,8 @@ pub const RADIUS_MD: f32 = 8.0;
 
 // ── Button padding ─────────────────────────────────────────────────────────
 
-pub const BUTTON_PAD: [u16; 2] = [3, 6];
-pub const BUTTON_PAD_SM: [u16; 2] = [3, 5];
+pub const BUTTON_PAD: [f32; 2] = [3.0, 6.0];
+pub const BUTTON_PAD_SM: [f32; 2] = [3.0, 5.0];
 
 // ── Button styles ───────────────────────────────────────────────────────────
 
