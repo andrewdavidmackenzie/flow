@@ -13,6 +13,7 @@ use crate::debug_command::DebugCommand::{
     InspectBlock, InspectFunction, InspectInput, InspectOutput, List, Modify, RunReset, Step,
     Validate,
 };
+use crate::debug_command::ProcessTarget;
 use crate::run_state::RunState;
 use flowcore::errors::Result;
 use flowcore::model::runtime_function::RuntimeFunction;
@@ -53,7 +54,9 @@ const HELP_STRING: &str = "Debugger commands:
 'm' | 'modify' [name]=[value] - Modify a debugger or runtime variable named 'name' to value 'value'
 'p' | 'processes'             - Show flows and functions in a hierarchical tree
 'q' | 'quit'                  - Stop flow execution and exit debugger
-'r' | 'reset' or 'run'        - Reset the state and re-run the flow
+'r' | 'reset' or 'run' [target] [args] - No args: reset/run root flow
+                                 target: function ID, /route, or name
+                                 args: space-separated input values
 's' | 'step' [n]              - Step over the next 'n' jobs (default = 1) then break
 'v' | 'validate'              - Validate the state of the flow by running a series of checks
 ";
@@ -281,7 +284,29 @@ impl DebugClient {
             "l" | "list" => Some(List),
             "p" | "processes" => Some(DebugCommand::ProcessList),
             "m" | "modify" => Some(Modify(params)),
-            "r" | "run" | "reset" => Some(RunReset),
+            "r" | "run" | "reset" => {
+                let parts: Vec<String> = params
+                    .unwrap_or_default()
+                    .into_iter()
+                    .filter(|s| !s.is_empty())
+                    .collect();
+                if parts.is_empty() {
+                    Some(RunReset(None, vec![]))
+                } else {
+                    let Some(target_str) = parts.first() else {
+                        return Some(RunReset(None, vec![]));
+                    };
+                    let args = parts.get(1..).unwrap_or_default().to_vec();
+                    let target = if let Ok(id) = target_str.parse::<usize>() {
+                        ProcessTarget::Id(id)
+                    } else if target_str.starts_with('/') {
+                        ProcessTarget::Route(target_str.clone())
+                    } else {
+                        ProcessTarget::Name(target_str.clone())
+                    };
+                    Some(RunReset(Some(target), args))
+                }
+            }
             "s" | "step" => Some(Step(Self::parse_optional_int(params))),
             "v" | "validate" => Some(Validate),
             _ => {

@@ -18,6 +18,7 @@ use crate::debug_command::DebugCommand::{
     InspectBlock, InspectFunction, InspectInput, InspectOutput, Invalid, List, Modify, RunReset,
     Step, Validate,
 };
+use crate::debug_command::ProcessTarget;
 use crate::debugger_handler::DebuggerHandler;
 use crate::job::Job;
 use crate::run_state::{RunState, State};
@@ -391,7 +392,7 @@ impl<'a> Debugger<'a> {
                         return Ok((false, false));
                     }
                 }
-                Ok(RunReset) => {
+                Ok(RunReset(None, _)) => {
                     return if state.get_number_of_jobs_created() > 0 {
                         self.reset();
                         self.debug_server.debugger_resetting();
@@ -400,6 +401,22 @@ impl<'a> Debugger<'a> {
                         self.debug_server.execution_starting();
                         Ok((false, false))
                     };
+                }
+                Ok(RunReset(Some(target), args)) => {
+                    if state.get_number_of_jobs_created() > 0 {
+                        self.reset();
+                        state.reset();
+                    }
+                    match Self::resolve_target(state, &target) {
+                        Ok(process_id) => match self.run_process(state, process_id, &args) {
+                            Ok(()) => {
+                                self.debug_server.execution_starting();
+                                return Ok((false, false));
+                            }
+                            Err(e) => self.debug_server.debugger_error(e.to_string()),
+                        },
+                        Err(e) => self.debug_server.debugger_error(e.to_string()),
+                    }
                 }
                 Ok(Step(param)) => {
                     self.step(state, param);
@@ -673,6 +690,124 @@ impl<'a> Debugger<'a> {
             .values()
             .find(|f| f.route() == route)
             .map(RuntimeFunction::id)
+    }
+
+    fn resolve_target(state: &RunState, target: &ProcessTarget) -> Result<usize> {
+        match target {
+            ProcessTarget::Id(id) => {
+                if state.get_function(*id).is_some()
+                    || state.submission.manifest.flows().contains_key(id)
+                {
+                    Ok(*id)
+                } else {
+                    bail!("No process found matching '#{id}'")
+                }
+            }
+            ProcessTarget::Route(route) => Self::find_by_route(state, route)
+                .ok_or_else(|| format!("No process found matching '{route}'").into()),
+            ProcessTarget::Name(name) => {
+                let matches: Vec<usize> = state
+                    .get_functions()
+                    .values()
+                    .filter(|f| f.name() == name)
+                    .map(RuntimeFunction::id)
+                    .collect();
+                match matches.as_slice() {
+                    [] => bail!("No process found matching '{name}'"),
+                    [id] => Ok(*id),
+                    _ => {
+                        let mut msg =
+                            format!("Multiple processes match '{name}'. Use ID or route:\n");
+                        for id in &matches {
+                            if let Some(f) = state.get_function(*id) {
+                                use std::fmt::Write;
+                                let _ = writeln!(msg, "  #{} @ '{}'", f.id(), f.route());
+                            }
+                        }
+                        bail!(msg)
+                    }
+                }
+            }
+        }
+    }
+
+    #[allow(clippy::unused_self)]
+    fn run_process(
+        &mut self,
+        state: &mut RunState,
+        process_id: usize,
+        inline_args: &[String],
+    ) -> Result<()> {
+        if state.submission.manifest.flows().contains_key(&process_id) {
+            bail!(
+                "Sub-flow execution is not yet implemented. \
+                 Use a function ID or route to run individual functions."
+            );
+        }
+
+        let function = state
+            .get_function(process_id)
+            .ok_or("Could not get function")?;
+        let num_inputs = function.inputs().len();
+        let parent_id = function.get_parent_id();
+
+        if inline_args.len() > num_inputs {
+            bail!(
+                "Process has {num_inputs} inputs but {} values were provided",
+                inline_args.len()
+            );
+        }
+
+        let mut input_info: Vec<(String, bool, Option<String>)> = Vec::new();
+        for (i, input) in function.inputs().iter().enumerate() {
+            let name = if input.name().is_empty() {
+                format!("input_{i}")
+            } else {
+                input.name().to_string()
+            };
+            let generic = input.is_generic();
+            let default = if i < inline_args.len() {
+                Some(inline_args.get(i).ok_or("Could not get arg")?.clone())
+            } else {
+                input
+                    .initializer()
+                    .as_ref()
+                    .map(|init| init.get_value().to_string())
+                    .or_else(|| {
+                        input
+                            .flow_initializer()
+                            .as_ref()
+                            .map(|init| init.get_value().to_string())
+                    })
+            };
+            input_info.push((name, generic, default));
+        }
+
+        let missing: Vec<&str> = input_info
+            .iter()
+            .filter(|(_, _, default)| default.is_none())
+            .map(|(name, _, _)| name.as_str())
+            .collect();
+        if !missing.is_empty() {
+            bail!(
+                "Missing values for inputs: {}. Supply them as arguments: r <target> <val1> <val2> ...",
+                missing.join(", ")
+            );
+        }
+
+        let mut coerced_values = Vec::new();
+        for (_name, _generic, default) in &input_info {
+            let raw = default.as_ref().ok_or("Missing input value")?;
+            coerced_values.push(crate::coerce_value::coerce_generic(raw));
+        }
+
+        let func = state.get_mut(process_id).ok_or("Could not get function")?;
+        for (i, value) in coerced_values.into_iter().enumerate() {
+            func.send(i, value)?;
+        }
+
+        state.create_jobs(process_id, parent_id)?;
+        Ok(())
     }
 
     fn inspect_flow(state: &RunState, flow_id: usize) -> String {

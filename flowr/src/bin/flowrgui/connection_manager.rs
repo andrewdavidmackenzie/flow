@@ -436,6 +436,22 @@ fn rewrite_for_gui(msg: &str) -> String {
         "State variables that can be modified are:",
         "Modifiable state variables:",
     )
+    .replace(
+        "Cannot run a process mid-execution. Reset first with 'r'.",
+        "Cannot run a process mid-execution. Click Reset first.",
+    )
+    .replace(
+        "'break' command must specify a breakpoint",
+        "A breakpoint target must be specified",
+    )
+    .replace(
+        "To break on every Function, you can just single step using 's' command",
+        "To break on every Function, use the Step button",
+    )
+    .replace(
+        "Supply them as arguments: r <target> <val1> <val2> ...",
+        "Fill in values in the input panel and click Execute.",
+    )
 }
 
 /// Format a `DebugServerMessage` into colored lines for the debug tab
@@ -539,7 +555,7 @@ fn format_debug_event(message: &DebugServerMessage) -> Vec<crate::DebugEventLine
             format!("Function #{source_id} sending '{value}' to {dest_id}:{input_number}"),
             Some(debug_colors::DATA_FLOW),
         ),
-        DebugServerMessage::Error(msg) => line(msg.clone(), Some(debug_colors::ERROR)),
+        DebugServerMessage::Error(ref msg) => line(rewrite_for_gui(msg), Some(debug_colors::ERROR)),
         DebugServerMessage::Message(msg) => line(rewrite_for_gui(msg), None),
         DebugServerMessage::Resetting => line("Resetting state".into(), Some(debug_colors::STATUS)),
         DebugServerMessage::FunctionStates((function, states)) => {
@@ -723,11 +739,11 @@ fn debug_client_stream(address: String) -> impl iced::futures::Stream<Item = Mes
                         let func_data: Vec<crate::CachedFunction> = functions
                             .iter()
                             .map(|f| {
-                                let inputs: Vec<(usize, String)> = f
+                                let inputs: Vec<(usize, String, bool)> = f
                                     .inputs()
                                     .iter()
                                     .enumerate()
-                                    .map(|(i, inp)| (i, inp.name().to_string()))
+                                    .map(|(i, inp)| (i, inp.name().to_string(), inp.is_generic()))
                                     .collect();
                                 let mut outputs: Vec<String> = Vec::new();
                                 for conn in f.get_output_connections() {

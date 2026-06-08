@@ -203,9 +203,8 @@ impl RunState {
         self.submission.manifest.functions()
     }
 
-    // Reset all values back to initial ones to enable debugging to restart from the initial state
     #[cfg(feature = "debugger")]
-    fn reset(&mut self) {
+    pub(crate) fn reset(&mut self) {
         debug!("Resetting RunState");
         for function in self.submission.manifest.get_functions().values_mut() {
             function.reset();
@@ -290,8 +289,7 @@ impl RunState {
         self.submission.manifest.functions().get(&id)
     }
 
-    // Get a mutable reference to the function with `id`
-    fn get_mut(&mut self, id: usize) -> Option<&mut RuntimeFunction> {
+    pub(crate) fn get_mut(&mut self, id: usize) -> Option<&mut RuntimeFunction> {
         self.submission.manifest.get_functions().get_mut(&id)
     }
 

@@ -410,9 +410,24 @@ pub enum Message {
     /// User clicked Run/Reset in the debug controls
     #[cfg(feature = "debugger")]
     DebugReset,
+    /// User clicked Run Process — runs a specific process using the spec field
+    #[cfg(feature = "debugger")]
+    DebugRunProcess,
     /// User clicked Exit Debugger in the debug controls
     #[cfg(feature = "debugger")]
     DebugExit,
+    /// User clicked Pause to break into the debugger mid-execution
+    #[cfg(feature = "debugger")]
+    DebugPause,
+    /// User changed a value in the run input panel
+    #[cfg(feature = "debugger")]
+    RunInputChanged(usize, String),
+    /// User clicked Execute in the run input panel
+    #[cfg(feature = "debugger")]
+    RunInputExecute,
+    /// User cancelled the run input panel
+    #[cfg(feature = "debugger")]
+    RunInputCancel,
     /// The step count text input changed
     #[cfg(feature = "debugger")]
     DebugStepCountChanged(String),
@@ -433,7 +448,7 @@ pub enum Message {
     DebugInspect,
     /// User clicked Functions list
     #[cfg(feature = "debugger")]
-    DebugFunctions,
+    DebugFunctions(bool),
     /// User clicked Processes tree
     #[cfg(feature = "debugger")]
     DebugProcesses,
@@ -581,8 +596,8 @@ pub struct CachedFunction {
     pub name: String,
     /// Function route
     pub route: String,
-    /// Input names (index, name)
-    pub inputs: Vec<(usize, String)>,
+    /// Input info (index, name, `is_generic`)
+    pub inputs: Vec<(usize, String, bool)>,
     /// Output routes
     pub outputs: Vec<String>,
 }
@@ -710,6 +725,16 @@ struct FlowrGui {
     suppress_next_output: bool,
     #[cfg(feature = "debugger")]
     inspect_tab: InspectTab,
+    #[cfg(feature = "debugger")]
+    show_run_inputs: bool,
+    #[cfg(feature = "debugger")]
+    run_target_id: Option<usize>,
+    #[cfg(feature = "debugger")]
+    run_input_values: Vec<String>,
+    #[cfg(feature = "debugger")]
+    run_input_names: Vec<String>,
+    #[cfg(feature = "debugger")]
+    run_input_types: Vec<String>,
     show_coordinator_picker: bool,
     discovered_services: Vec<(String, String)>,
     discovering: bool,
@@ -758,6 +783,16 @@ impl FlowrGui {
             suppress_next_output: false,
             #[cfg(feature = "debugger")]
             inspect_tab: InspectTab::Function,
+            #[cfg(feature = "debugger")]
+            show_run_inputs: false,
+            #[cfg(feature = "debugger")]
+            run_target_id: None,
+            #[cfg(feature = "debugger")]
+            run_input_values: Vec::new(),
+            #[cfg(feature = "debugger")]
+            run_input_names: Vec::new(),
+            #[cfg(feature = "debugger")]
+            run_input_types: Vec::new(),
             show_coordinator_picker: false,
             discovered_services: Vec::new(),
             discovering: false,
@@ -956,14 +991,19 @@ impl FlowrGui {
             | Message::DebugContinue
             | Message::DebugStep
             | Message::DebugReset
+            | Message::DebugRunProcess
             | Message::DebugExit
+            | Message::DebugPause
+            | Message::RunInputChanged(_, _)
+            | Message::RunInputExecute
+            | Message::RunInputCancel
             | Message::DebugStepCountChanged(_)
             | Message::DebugSpecChanged(_)
             | Message::DebugSetBreakpoint
             | Message::DebugDeleteBreakpoints
             | Message::DebugListBreakpoints
             | Message::DebugInspect
-            | Message::DebugFunctions
+            | Message::DebugFunctions(_)
             | Message::DebugProcesses
             | Message::DebugValidate
             | Message::ShowBpPopup
@@ -1023,6 +1063,9 @@ impl FlowrGui {
         #[cfg(feature = "debugger")]
         if self.submission_settings.debug_this_flow && self.debug_client_active {
             main_content = main_content.push(self.debug_row());
+            if self.show_run_inputs {
+                main_content = main_content.push(self.run_input_row());
+            }
         }
 
         let main_content = main_content
@@ -1323,67 +1366,89 @@ impl FlowrGui {
     fn debug_row(&self) -> Row<'_, Message> {
         let can_cmd = self.debug_waiting;
 
+        let jobs_started = connection_manager::get_job_count() > 0;
+        let bp = [3, 6]; // button padding for execution controls
+        let sp = [3, 5]; // button padding for smaller controls
+
         let mut continue_btn = Button::new(Text::new("\u{25B6} Continue"))
             .style(theme::styled_button)
-            .padding([4, 10]);
-        if can_cmd {
+            .padding(bp);
+        if can_cmd && jobs_started {
             continue_btn = continue_btn.on_press(Message::DebugContinue);
         }
 
         let mut step_btn = Button::new(Text::new("\u{23ED} Step"))
             .style(theme::styled_button)
-            .padding([4, 10]);
+            .padding(bp);
         if can_cmd {
             step_btn = step_btn.on_press(Message::DebugStep);
         }
 
         let step_count = text_input("n", &self.debug_step_count)
             .on_input(Message::DebugStepCountChanged)
-            .width(40);
+            .width(35);
 
-        let mut reset_btn = Button::new(Text::new("\u{21BB} Reset"))
+        let has_run_target = !self.debug_spec_text.trim().is_empty();
+        let is_run = has_run_target || !jobs_started;
+        let reset_label = if is_run {
+            "\u{25B6} Run"
+        } else {
+            "\u{21BB} Reset"
+        };
+        let mut reset_btn = Button::new(Text::new(reset_label))
             .style(theme::styled_button)
-            .padding([4, 10]);
-        if can_cmd {
-            reset_btn = reset_btn.on_press(Message::DebugReset);
+            .padding(bp);
+        if self.debug_client_active {
+            reset_btn = reset_btn.on_press(if has_run_target {
+                Message::DebugRunProcess
+            } else {
+                Message::DebugReset
+            });
+        }
+
+        let mut pause_btn = Button::new(Text::new("\u{23F8} Pause"))
+            .style(theme::styled_button)
+            .padding(bp);
+        if self.debug_client_active && !can_cmd && jobs_started {
+            pause_btn = pause_btn.on_press(Message::DebugPause);
         }
 
         let mut exit_btn = Button::new(Text::new("\u{23F9} Exit"))
             .style(theme::styled_button)
-            .padding([4, 10]);
+            .padding(bp);
         if can_cmd {
             exit_btn = exit_btn.on_press(Message::DebugExit);
         }
 
-        let spec_input = text_input("breakpoint spec", &self.debug_spec_text)
+        let spec_input = text_input("spec", &self.debug_spec_text)
             .on_input(Message::DebugSpecChanged)
             .on_submit(Message::DebugSetBreakpoint)
-            .width(120);
+            .width(100);
 
         let mut bp_btn = Button::new(Text::new("Set BP"))
             .style(theme::styled_button)
-            .padding([4, 8]);
+            .padding(sp);
         if can_cmd {
             bp_btn = bp_btn.on_press(Message::ShowBpPopup);
         }
 
         let mut del_btn = Button::new(Text::new("Del All"))
             .style(theme::styled_button)
-            .padding([4, 8]);
+            .padding(sp);
         if can_cmd {
             del_btn = del_btn.on_press(Message::DebugDeleteBreakpoints);
         }
 
         let mut list_btn = Button::new(Text::new("List BPs"))
             .style(theme::styled_button)
-            .padding([4, 8]);
+            .padding(sp);
         if can_cmd {
             list_btn = list_btn.on_press(Message::DebugListBreakpoints);
         }
 
         let mut inspect_btn = Button::new(Text::new("Inspect"))
             .style(theme::styled_button)
-            .padding([4, 8]);
+            .padding(sp);
         if can_cmd {
             inspect_btn = inspect_btn.on_press(if self.debug_spec_text.is_empty() {
                 Message::ShowInspectPopup
@@ -1394,28 +1459,28 @@ impl FlowrGui {
 
         let mut funcs_btn = Button::new(Text::new("Functions"))
             .style(theme::styled_button)
-            .padding([4, 8]);
+            .padding(sp);
         if can_cmd {
-            funcs_btn = funcs_btn.on_press(Message::DebugFunctions);
+            funcs_btn = funcs_btn.on_press(Message::DebugFunctions(true));
         }
 
         let mut procs_btn = Button::new(Text::new("Processes"))
             .style(theme::styled_button)
-            .padding([4, 8]);
+            .padding(sp);
         if can_cmd {
             procs_btn = procs_btn.on_press(Message::DebugProcesses);
         }
 
         let mut validate_btn = Button::new(Text::new("Validate"))
             .style(theme::styled_button)
-            .padding([4, 8]);
+            .padding(sp);
         if can_cmd {
             validate_btn = validate_btn.on_press(Message::DebugValidate);
         }
 
         Row::new()
-            .spacing(6)
-            .padding(5)
+            .spacing(4)
+            .padding(4)
             .align_y(iced::alignment::Vertical::Center)
             .push(Self::tip(
                 continue_btn,
@@ -1423,20 +1488,22 @@ impl FlowrGui {
             ))
             .push(Self::tip(step_btn, "Execute the next job(s) then pause"))
             .push(Self::tip(step_count, "Number of jobs to step"))
+            .push(Self::tip(pause_btn, "Pause execution and enter debugger"))
             .push(Self::tip(
                 reset_btn,
-                "Reset flow state and re-run from start",
+                if has_run_target {
+                    "Run a specific process (spec field has target)"
+                } else {
+                    "Reset flow state and re-run from start"
+                },
             ))
-            .push(Self::tip(exit_btn, "Stop execution and exit debugger"))
-            .push(Text::new("|").size(13))
             .push(Self::tip(
                 spec_input,
-                "Enter breakpoint spec (e.g. 3, 3+, 1:0, 1/sum)",
+                "Enter spec: breakpoint (3, 3+, 1:0) or run target (ID, /route, name [args])",
             ))
             .push(Self::tip(bp_btn, "Open breakpoint picker"))
             .push(Self::tip(del_btn, "Delete all breakpoints"))
             .push(Self::tip(list_btn, "List active breakpoints"))
-            .push(Text::new("|").size(13))
             .push(Self::tip(
                 inspect_btn,
                 "Inspect state (use spec field for specific target)",
@@ -1444,6 +1511,43 @@ impl FlowrGui {
             .push(Self::tip(funcs_btn, "List all functions"))
             .push(Self::tip(procs_btn, "Show flow/function hierarchy"))
             .push(Self::tip(validate_btn, "Validate flow state for deadlocks"))
+            .push(iced::widget::container(iced::widget::text("")).width(iced::Length::Fill))
+            .push(Self::tip(exit_btn, "Stop execution and exit debugger"))
+    }
+
+    #[cfg(feature = "debugger")]
+    fn run_input_row(&self) -> Row<'_, Message> {
+        let mut row = Row::new()
+            .spacing(6)
+            .padding([4, 8])
+            .align_y(iced::alignment::Vertical::Center);
+
+        for (i, name) in self.run_input_names.iter().enumerate() {
+            let value = self.run_input_values.get(i).cloned().unwrap_or_default();
+            let type_hint = self.run_input_types.get(i).map_or("Value", String::as_str);
+            let tooltip = type_hint.to_string();
+            let idx = i;
+            let input = Self::tip(
+                text_input(name, &value)
+                    .on_input(move |v| Message::RunInputChanged(idx, v))
+                    .on_submit(Message::RunInputExecute)
+                    .width(100),
+                &tooltip,
+            );
+            row = row.push(input);
+        }
+
+        let exec_btn = Button::new(Text::new("Execute"))
+            .style(theme::styled_button)
+            .padding([3, 8])
+            .on_press(Message::RunInputExecute);
+        let cancel_btn = Button::new(Text::new("Cancel"))
+            .style(theme::styled_button)
+            .padding([3, 8])
+            .on_press(Message::RunInputCancel);
+
+        row = row.push(exec_btn).push(cancel_btn);
+        row
     }
 
     #[cfg(feature = "debugger")]
@@ -1531,7 +1635,7 @@ impl FlowrGui {
                         btn = btn.on_press(Message::BpCycleFunction(f.id));
                         items = items.push(btn);
 
-                        for (idx, input_name) in &f.inputs {
+                        for (idx, input_name, _generic) in &f.inputs {
                             let input_spec = format!("{}:{idx}", f.id);
                             let name_part = if input_name.is_empty() {
                                 String::new()
@@ -1572,7 +1676,7 @@ impl FlowrGui {
                 }
                 BpTab::Input => {
                     for f in &self.cached_functions {
-                        for (idx, input_name) in &f.inputs {
+                        for (idx, input_name, _generic) in &f.inputs {
                             let spec = format!("{}:{idx}", f.id);
                             let marker = bp_marker(&spec);
                             let name_part = if input_name.is_empty() {
@@ -1682,7 +1786,7 @@ impl FlowrGui {
             }
             InspectTab::Input => {
                 for f in &self.cached_functions {
-                    for (idx, input_name) in &f.inputs {
+                    for (idx, input_name, _generic) in &f.inputs {
                         let name_part = if input_name.is_empty() {
                             String::new()
                         } else {
@@ -1750,7 +1854,18 @@ impl FlowrGui {
             }
             CoordinatorState::Connected(_) => match (self.submitted, self.running) {
                 (false, false) => ("\u{1F7E2}", "Ready".to_string()),
-                (_, true) => ("\u{1F535}", "Running".to_string()),
+                (_, true) => {
+                    #[cfg(feature = "debugger")]
+                    if self.debug_waiting {
+                        ("\u{1F7E3}", "Debugging".to_string())
+                    } else {
+                        ("\u{1F535}", "Running".to_string())
+                    }
+                    #[cfg(not(feature = "debugger"))]
+                    {
+                        ("\u{1F535}", "Running".to_string())
+                    }
+                }
                 (true, false) => {
                     #[cfg(feature = "debugger")]
                     if self.debug_client_active {
@@ -1782,7 +1897,7 @@ impl FlowrGui {
         }
 
         #[cfg(feature = "debugger")]
-        if self.submission_settings.debug_this_flow {
+        if self.submission_settings.debug_mode == DebugMode::External && !self.debug_client_active {
             let debug_port = connection_manager::get_debug_port();
             if debug_port > 0 {
                 row = row.push(
@@ -2108,6 +2223,9 @@ impl FlowrGui {
             }
             Message::DebugWaiting => {
                 self.debug_waiting = true;
+                if self.cached_functions.is_empty() {
+                    return self.process_debug_message(Message::DebugFunctions(false));
+                }
             }
             Message::DebugConnected => {
                 self.tab_set
@@ -2145,8 +2263,117 @@ impl FlowrGui {
             }
             Message::DebugReset => {
                 self.debug_waiting = false;
+                connection_manager::set_job_count(0);
                 self.debug_separator("Run / Reset");
-                connection_manager::send_debug_command(DebugCommand::RunReset);
+                connection_manager::send_debug_command(DebugCommand::RunReset(None, vec![]));
+            }
+            Message::DebugRunProcess => {
+                if self.debug_spec_text.trim().is_empty() {
+                    return iced::Task::none();
+                }
+                let parts: Vec<String> = self
+                    .debug_spec_text
+                    .split_whitespace()
+                    .map(String::from)
+                    .collect();
+                if let Some(target_str) = parts.first() {
+                    let target_id = if let Ok(id) = target_str.parse::<usize>() {
+                        Some(id)
+                    } else if target_str.starts_with('/') {
+                        self.cached_functions
+                            .iter()
+                            .find(|f| f.route == *target_str)
+                            .map(|f| f.id)
+                    } else {
+                        self.cached_functions
+                            .iter()
+                            .find(|f| f.name == *target_str)
+                            .map(|f| f.id)
+                    };
+                    if let Some(id) = target_id {
+                        if let Some(func) = self.cached_functions.iter().find(|f| f.id == id) {
+                            let inline_args: Vec<String> =
+                                parts.get(1..).unwrap_or_default().to_vec();
+                            self.run_input_names = func
+                                .inputs
+                                .iter()
+                                .enumerate()
+                                .map(|(i, (_, name, _))| {
+                                    if name.is_empty() {
+                                        format!("input_{i}")
+                                    } else {
+                                        name.clone()
+                                    }
+                                })
+                                .collect();
+                            self.run_input_types = func
+                                .inputs
+                                .iter()
+                                .map(|(_, _, generic)| {
+                                    if *generic {
+                                        "Generic".to_string()
+                                    } else {
+                                        "Value".to_string()
+                                    }
+                                })
+                                .collect();
+                            self.run_input_values = (0..func.inputs.len())
+                                .map(|i| inline_args.get(i).cloned().unwrap_or_default())
+                                .collect();
+                            self.run_target_id = Some(id);
+                            self.show_run_inputs = true;
+                        } else {
+                            let args: Vec<String> = parts.get(1..).unwrap_or_default().to_vec();
+                            self.debug_waiting = false;
+                            self.debug_spec_text.clear();
+                            self.debug_separator(&format!("Run process #{id}"));
+                            connection_manager::send_debug_command(DebugCommand::RunReset(
+                                Some(flowcore::model::debug_command::ProcessTarget::Id(id)),
+                                args,
+                            ));
+                        }
+                    } else {
+                        self.debug_waiting = false;
+                        let target = if target_str.starts_with('/') {
+                            flowcore::model::debug_command::ProcessTarget::Route(target_str.clone())
+                        } else {
+                            flowcore::model::debug_command::ProcessTarget::Name(target_str.clone())
+                        };
+                        self.debug_separator(&format!("Run process: {target_str}"));
+                        connection_manager::send_debug_command(DebugCommand::RunReset(
+                            Some(target),
+                            vec![],
+                        ));
+                    }
+                }
+            }
+            Message::RunInputChanged(index, value) => {
+                if let Some(v) = self.run_input_values.get_mut(index) {
+                    *v = value;
+                }
+            }
+            Message::RunInputExecute => {
+                self.show_run_inputs = false;
+                if let Some(id) = self.run_target_id.take() {
+                    let args = self.run_input_values.clone();
+                    self.debug_waiting = false;
+                    self.debug_spec_text.clear();
+                    self.debug_separator(&format!("Run process #{id}"));
+                    connection_manager::send_debug_command(DebugCommand::RunReset(
+                        Some(flowcore::model::debug_command::ProcessTarget::Id(id)),
+                        args,
+                    ));
+                }
+            }
+            Message::RunInputCancel => {
+                self.show_run_inputs = false;
+                self.run_target_id = None;
+                self.run_input_values.clear();
+                self.run_input_names.clear();
+            }
+            Message::DebugPause => {
+                self.debug_separator("Pause");
+                self.send(ClientMessage::EnterDebugger);
             }
             Message::DebugExit => {
                 self.debug_waiting = false;
@@ -2206,9 +2433,12 @@ impl FlowrGui {
                     self.debug_waiting = true;
                 }
             }
-            Message::DebugFunctions => {
-                self.debug_waiting = false;
-                self.debug_separator("Functions List");
+            Message::DebugFunctions(display) => {
+                if display {
+                    self.debug_waiting = false;
+                    self.debug_separator("Functions List");
+                }
+                self.suppress_next_output = !display;
                 connection_manager::send_debug_command(DebugCommand::FunctionList);
             }
             Message::DebugProcesses => {
@@ -2735,6 +2965,16 @@ mod test {
             suppress_next_output: false,
             #[cfg(feature = "debugger")]
             inspect_tab: InspectTab::Function,
+            #[cfg(feature = "debugger")]
+            show_run_inputs: false,
+            #[cfg(feature = "debugger")]
+            run_target_id: None,
+            #[cfg(feature = "debugger")]
+            run_input_values: Vec::new(),
+            #[cfg(feature = "debugger")]
+            run_input_names: Vec::new(),
+            #[cfg(feature = "debugger")]
+            run_input_types: Vec::new(),
             show_coordinator_picker: false,
             discovered_services: Vec::new(),
             discovering: false,
@@ -2841,5 +3081,109 @@ mod test {
         gui.submission_settings.flow_manifest_url = "manifest.json".into();
         drop(gui.update(Message::Submitted));
         assert!(gui.tab_set.flow_name.is_empty());
+    }
+
+    // ---- iced_test view rendering tests ----
+
+    #[test]
+    fn main_view_renders_without_panic() {
+        use iced_test::simulator::simulator;
+        let gui = test_gui();
+        let view = gui.view();
+        let _ui = simulator(view);
+    }
+
+    #[cfg(feature = "debugger")]
+    #[test]
+    fn debug_view_renders_when_active() {
+        use iced_test::simulator::simulator;
+        let mut gui = test_gui();
+        gui.debug_client_active = true;
+        gui.debug_waiting = true;
+        let view = gui.view();
+        let _ui = simulator(view);
+    }
+
+    #[cfg(feature = "debugger")]
+    #[test]
+    fn debug_view_renders_when_not_waiting() {
+        use iced_test::simulator::simulator;
+        let mut gui = test_gui();
+        gui.debug_client_active = true;
+        gui.debug_waiting = false;
+        let view = gui.view();
+        let _ui = simulator(view);
+    }
+
+    #[cfg(feature = "debugger")]
+    #[test]
+    fn debug_reset_clears_waiting() {
+        let mut gui = test_gui();
+        gui.debug_client_active = true;
+        gui.debug_waiting = true;
+        drop(gui.update(Message::DebugReset));
+        assert!(!gui.debug_waiting);
+    }
+
+    #[test]
+    fn view_renders_after_submitted() {
+        use iced_test::simulator::simulator;
+        let mut gui = test_gui();
+        gui.submission_settings.flow_manifest_url = "flowr/examples/fibonacci/manifest.json".into();
+        drop(gui.update(Message::Submitted));
+        let view = gui.view();
+        let _ui = simulator(view);
+    }
+
+    #[test]
+    fn view_renders_with_error_modal() {
+        use iced_test::simulator::simulator;
+        let mut gui = test_gui();
+        drop(gui.update(Message::SubmitError("test error".into())));
+        assert!(gui.show_modal);
+        let view = gui.view();
+        let _ui = simulator(view);
+    }
+
+    #[test]
+    fn view_renders_after_tab_switch() {
+        use iced_test::simulator::simulator;
+        let mut gui = test_gui();
+        drop(gui.update(Message::TabSelected(1)));
+        let view = gui.view();
+        let _ui = simulator(view);
+    }
+
+    #[cfg(feature = "debugger")]
+    #[test]
+    fn view_renders_with_breakpoint_popup() {
+        use iced_test::simulator::simulator;
+        let mut gui = test_gui();
+        gui.debug_client_active = true;
+        gui.debug_waiting = true;
+        gui.show_bp_popup = true;
+        let view = gui.view();
+        let _ui = simulator(view);
+    }
+
+    #[cfg(feature = "debugger")]
+    #[test]
+    fn view_renders_with_inspect_popup() {
+        use iced_test::simulator::simulator;
+        let mut gui = test_gui();
+        gui.debug_client_active = true;
+        gui.debug_waiting = true;
+        gui.show_inspect_popup = true;
+        let view = gui.view();
+        let _ui = simulator(view);
+    }
+
+    #[test]
+    fn view_renders_with_coordinator_picker() {
+        use iced_test::simulator::simulator;
+        let mut gui = test_gui();
+        gui.show_coordinator_picker = true;
+        let view = gui.view();
+        let _ui = simulator(view);
     }
 }
