@@ -1327,10 +1327,11 @@ impl FlowrGui {
     fn debug_row(&self) -> Row<'_, Message> {
         let can_cmd = self.debug_waiting;
 
-        let mut continue_btn = Button::new(Text::new("\u{25B6} Continue"))
+        let jobs_started = connection_manager::get_job_count() > 0;
+        let mut continue_btn = Button::new(Text::new("\u{23E9} Continue"))
             .style(theme::styled_button)
             .padding([4, 10]);
-        if can_cmd {
+        if can_cmd && jobs_started {
             continue_btn = continue_btn.on_press(Message::DebugContinue);
         }
 
@@ -1345,18 +1346,21 @@ impl FlowrGui {
             .on_input(Message::DebugStepCountChanged)
             .width(40);
 
-        let mut reset_btn = Button::new(Text::new("\u{21BB} Reset"))
+        let has_run_target = !self.debug_spec_text.is_empty();
+        let reset_label = if has_run_target {
+            "\u{25B6} Run"
+        } else {
+            "\u{21BB} Reset"
+        };
+        let mut reset_btn = Button::new(Text::new(reset_label))
             .style(theme::styled_button)
             .padding([4, 10]);
         if can_cmd {
-            reset_btn = reset_btn.on_press(Message::DebugReset);
-        }
-
-        let mut run_btn = Button::new(Text::new("\u{25B6} Run"))
-            .style(theme::styled_button)
-            .padding([4, 10]);
-        if can_cmd && !self.debug_spec_text.is_empty() {
-            run_btn = run_btn.on_press(Message::DebugRunProcess);
+            reset_btn = reset_btn.on_press(if has_run_target {
+                Message::DebugRunProcess
+            } else {
+                Message::DebugReset
+            });
         }
 
         let mut exit_btn = Button::new(Text::new("\u{23F9} Exit"))
@@ -1436,17 +1440,17 @@ impl FlowrGui {
             .push(Self::tip(step_count, "Number of jobs to step"))
             .push(Self::tip(
                 reset_btn,
-                "Reset flow state and re-run from start",
+                if has_run_target {
+                    "Run a specific process (spec field has target)"
+                } else {
+                    "Reset flow state and re-run from start"
+                },
             ))
             .push(Self::tip(exit_btn, "Stop execution and exit debugger"))
             .push(Text::new("|").size(13))
             .push(Self::tip(
                 spec_input,
                 "Enter spec: breakpoint (3, 3+, 1:0) or run target (ID, /route, name [args])",
-            ))
-            .push(Self::tip(
-                run_btn,
-                "Run a specific process (enter ID, /route, or name in spec field)",
             ))
             .push(Self::tip(bp_btn, "Open breakpoint picker"))
             .push(Self::tip(del_btn, "Delete all breakpoints"))
