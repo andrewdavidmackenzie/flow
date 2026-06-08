@@ -1060,7 +1060,7 @@ impl FlowrGui {
     }
 
     fn view(&self) -> Element<'_, Message> {
-        let mut main_content = Column::new().spacing(12).push(self.command_row());
+        let mut main_content = Column::new().spacing(4).push(self.command_row());
 
         #[cfg(feature = "debugger")]
         if self.submission_settings.debug_this_flow && self.debug_client_active {
@@ -1073,7 +1073,7 @@ impl FlowrGui {
         let main_content = main_content
             .push(self.tab_set.view())
             .push(self.status_bar())
-            .padding([theme::SPACE_SM, theme::SPACE_MD]);
+            .padding([theme::SPACE_XS, theme::SPACE_SM]);
 
         #[cfg(feature = "debugger")]
         if self.show_bp_popup {
