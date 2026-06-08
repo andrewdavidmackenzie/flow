@@ -259,6 +259,22 @@ pub fn pill_button_active(theme: &Theme, status: button::Status) -> button::Styl
     }
 }
 
+pub fn ghost_button(theme: &Theme, status: button::Status) -> button::Style {
+    let palette = theme.palette();
+    match status {
+        button::Status::Hovered => button::Style {
+            background: None,
+            text_color: ACCENT,
+            ..button::Style::default()
+        },
+        _ => button::Style {
+            background: None,
+            text_color: palette.text,
+            ..button::Style::default()
+        },
+    }
+}
+
 pub(crate) fn list_button(theme: &Theme, status: button::Status) -> button::Style {
     let palette = theme.palette();
     match status {

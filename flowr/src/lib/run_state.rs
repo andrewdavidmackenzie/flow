@@ -785,7 +785,7 @@ impl fmt::Display for RunState {
                 .collect::<Vec<usize>>()
         )?;
         writeln!(f, "   Functions Completed: {:?}", self.completed)?;
-        write!(f, "            Busy Count: {:?}", self.busy_count)
+        write!(f, "            Busy Functions: {:?}", self.busy_count)
     }
 }
 

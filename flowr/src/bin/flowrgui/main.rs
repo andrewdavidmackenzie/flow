@@ -346,8 +346,8 @@ impl DebugEventLine {
             }
         }
 
-        // Match Busy Count entries like "1: 1, 0: 1" — the keys are function IDs
-        if let Some(after_colon) = text.strip_prefix("Busy Count:") {
+        // Match Busy Functions entries like "1: 1, 0: 1" — the keys are function IDs
+        if let Some(after_colon) = text.strip_prefix("Busy Functions:") {
             for part in after_colon.split(',') {
                 let part = part.trim().trim_start_matches(['{', ' ']);
                 if let Some(colon_pos) = part.find(':') {
@@ -811,7 +811,7 @@ impl FlowrGui {
             #[cfg(feature = "debugger")]
             suppress_next_output: false,
             #[cfg(feature = "debugger")]
-            inspect_tab: InspectTab::Function,
+            inspect_tab: InspectTab::State,
             #[cfg(feature = "debugger")]
             show_run_inputs: false,
             #[cfg(feature = "debugger")]
@@ -3060,7 +3060,7 @@ mod test {
             #[cfg(feature = "debugger")]
             suppress_next_output: false,
             #[cfg(feature = "debugger")]
-            inspect_tab: InspectTab::Function,
+            inspect_tab: InspectTab::State,
             #[cfg(feature = "debugger")]
             show_run_inputs: false,
             #[cfg(feature = "debugger")]

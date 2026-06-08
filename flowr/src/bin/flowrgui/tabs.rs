@@ -716,7 +716,7 @@ impl Tab for DebugTab {
                                 .shaping(iced::widget::text::Shaping::Advanced),
                         )
                         .on_press(Message::DebugToggleSection(section_id))
-                        .style(crate::theme::list_button)
+                        .style(crate::theme::ghost_button)
                         .padding([2, 6]);
                         let rule_left = iced::widget::rule::horizontal(1);
                         let rule_right = iced::widget::rule::horizontal(1);
@@ -767,10 +767,10 @@ impl Tab for DebugTab {
                                     ..chip_color
                                 }))
                                 .border(iced::Border {
-                                    radius: 8.0.into(),
+                                    radius: 99.0.into(),
                                     ..Default::default()
                                 })
-                                .padding([2, 4])
+                                .padding([2, 6])
                                 .link(link.spec.clone()),
                             );
                             spans.push(iced::widget::span(" ".to_string()));
@@ -790,6 +790,7 @@ impl Tab for DebugTab {
                 }),
         )
         .width(Length::Fill)
+        .spacing(6)
         .padding(1);
 
         let scrollable = Scrollable::new(text_column)
