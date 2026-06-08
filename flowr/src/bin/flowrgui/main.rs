@@ -1274,20 +1274,20 @@ impl FlowrGui {
             items = items.push(
                 Text::new("Discovering services...")
                     .size(14)
-                    .color(iced::Color::from_rgb(0.6, 0.6, 0.6)),
+                    .color(crate::theme::TEXT_SECONDARY),
             );
         } else if self.discovered_services.is_empty() {
             items = items.push(
                 Text::new("No services found on the network")
                     .size(14)
-                    .color(iced::Color::from_rgb(0.8, 0.4, 0.4)),
+                    .color(crate::theme::TEXT_ERROR),
             );
         } else {
             if self.submission_settings.debug_this_flow {
                 items = items.push(
                     Text::new("Select a coordinator, then a debug server")
                         .size(12)
-                        .color(iced::Color::from_rgb(0.6, 0.6, 0.6)),
+                        .color(crate::theme::TEXT_SECONDARY),
                 );
             }
             for (service_type, address) in &self.discovered_services {
@@ -1329,29 +1329,25 @@ impl FlowrGui {
 
     #[cfg(feature = "debugger")]
     fn tip<'a>(content: impl Into<Element<'a, Message>>, hint: &str) -> Element<'a, Message> {
-        let tip_content = iced::widget::Container::new(Text::new(hint.to_string()).size(13))
-            .padding([4, 8])
-            .style(|theme: &iced::Theme| {
-                let palette = theme.palette();
-                iced::widget::container::Style {
-                    background: Some(iced::Background::Color(iced::Color {
-                        r: 0.15,
-                        g: 0.15,
-                        b: 0.2,
-                        a: 0.95,
-                    })),
-                    border: iced::Border {
-                        color: iced::Color {
-                            a: 0.3,
-                            ..palette.text
+        let tip_content =
+            iced::widget::Container::new(Text::new(hint.to_string()).size(theme::FONT_SM))
+                .padding([theme::SPACE_SM, theme::SPACE_MD])
+                .style(|theme: &iced::Theme| {
+                    let palette = theme.palette();
+                    iced::widget::container::Style {
+                        background: Some(iced::Background::Color(theme::SURFACE_TOOLTIP)),
+                        border: iced::Border {
+                            color: iced::Color {
+                                a: 0.3,
+                                ..palette.text
+                            },
+                            width: 1.0,
+                            radius: theme::RADIUS_SM.into(),
                         },
-                        width: 1.0,
-                        radius: 6.0.into(),
-                    },
-                    text_color: Some(palette.text),
-                    ..Default::default()
-                }
-            });
+                        text_color: Some(palette.text),
+                        ..Default::default()
+                    }
+                });
         iced::widget::tooltip(
             content,
             tip_content,
@@ -1367,8 +1363,8 @@ impl FlowrGui {
         let can_cmd = self.debug_waiting;
 
         let jobs_started = connection_manager::get_job_count() > 0;
-        let bp = [3, 6]; // button padding for execution controls
-        let sp = [3, 5]; // button padding for smaller controls
+        let bp = theme::BUTTON_PAD;
+        let sp = theme::BUTTON_PAD_SM;
 
         let mut continue_btn = Button::new(Text::new("\u{25B6} Continue"))
             .style(theme::styled_button)
@@ -1575,7 +1571,7 @@ impl FlowrGui {
             items = items.push(
                 Text::new("Loading function list...")
                     .size(13)
-                    .color(iced::Color::from_rgb(0.6, 0.6, 0.6)),
+                    .color(crate::theme::TEXT_SECONDARY),
             );
         } else {
             let bp_marker = |spec: &str| -> &str {
@@ -1903,7 +1899,7 @@ impl FlowrGui {
                 row = row.push(
                     Text::new(format!("flowrdb --address localhost:{debug_port}"))
                         .size(13)
-                        .color(iced::Color::from_rgb(0.4, 0.6, 1.0)),
+                        .color(crate::theme::TEXT_LINK),
                 );
             }
         }

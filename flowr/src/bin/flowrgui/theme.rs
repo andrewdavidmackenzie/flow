@@ -1,102 +1,97 @@
-//! Custom styling for flowrgui widgets.
+//! Design system for flowrgui — centralized colors, spacing, typography, and styling.
+#![allow(dead_code)]
 
 use iced::widget::button;
 use iced::{Background, Border, Color, Shadow, Theme, Vector};
 
-/// Accent color used for active/hover states
-const ACCENT: Color = Color {
+// ── Surface colors ──────────────────────────────────────────────────────────
+
+pub const SURFACE_BUTTON: Color = Color {
+    r: 0.25,
+    g: 0.25,
+    b: 0.35,
+    a: 1.0,
+};
+
+pub const SURFACE_TOOLTIP: Color = Color {
+    r: 0.15,
+    g: 0.15,
+    b: 0.2,
+    a: 0.95,
+};
+
+// ── Text colors ─────────────────────────────────────────────────────────────
+
+pub const TEXT_SECONDARY: Color = Color {
+    r: 0.6,
+    g: 0.6,
+    b: 0.6,
+    a: 1.0,
+};
+
+pub const TEXT_LINK: Color = Color {
+    r: 0.3,
+    g: 0.6,
+    b: 1.0,
+    a: 1.0,
+};
+
+pub const TEXT_ERROR: Color = Color {
+    r: 0.8,
+    g: 0.4,
+    b: 0.4,
+    a: 1.0,
+};
+
+// ── Accent ───────────────────────────────────────────────────────────────────
+
+pub const ACCENT: Color = Color {
     r: 0.424,
     g: 0.361,
     b: 0.906,
     a: 1.0,
 };
 
-/// Border radius for buttons and tabs
-const RADIUS: f32 = 8.0;
+// ── Entity type colors (consistent across the app) ──────────────────────────
 
-/// Border width for hover highlight
-const BORDER_WIDTH: f32 = 2.0;
+#[allow(dead_code)]
+pub mod entity_colors {
+    use iced::Color;
 
-/// Custom button style with rounded corners and hover border highlight.
-pub fn styled_button(theme: &Theme, status: button::Status) -> button::Style {
-    let palette = theme.palette();
-    let base = button::Style {
-        border: Border {
-            radius: RADIUS.into(),
-            width: 0.0,
-            color: Color::TRANSPARENT,
-        },
-        shadow: Shadow {
-            color: Color::BLACK,
-            offset: Vector::new(0.0, 1.0),
-            blur_radius: 3.0,
-        },
-        snap: true,
-        ..button::Style::default()
+    pub const FUNCTION: Color = Color {
+        r: 0.3,
+        g: 0.6,
+        b: 1.0,
+        a: 1.0,
     };
-
-    match status {
-        button::Status::Active => button::Style {
-            background: Some(Background::Color(Color {
-                r: 0.25,
-                g: 0.25,
-                b: 0.35,
-                a: 1.0,
-            })),
-            text_color: palette.text,
-            ..base
-        },
-        button::Status::Hovered => button::Style {
-            background: Some(Background::Color(ACCENT)),
-            text_color: Color::WHITE,
-            border: Border {
-                radius: RADIUS.into(),
-                width: BORDER_WIDTH,
-                color: lighten(ACCENT, 0.3),
-            },
-            ..base
-        },
-        button::Status::Pressed => button::Style {
-            background: Some(Background::Color(darken(ACCENT, 0.2))),
-            text_color: Color::WHITE,
-            ..base
-        },
-        button::Status::Disabled => button::Style {
-            background: Some(Background::Color(Color {
-                a: 0.3,
-                ..palette.primary
-            })),
-            text_color: Color {
-                a: 0.5,
-                ..palette.text
-            },
-            ..base
-        },
-    }
+    pub const FLOW: Color = Color {
+        r: 0.6,
+        g: 0.4,
+        b: 0.9,
+        a: 1.0,
+    };
+    pub const JOB: Color = Color {
+        r: 0.4,
+        g: 0.8,
+        b: 0.4,
+        a: 1.0,
+    };
+    pub const INPUT: Color = Color {
+        r: 0.9,
+        g: 0.6,
+        b: 0.3,
+        a: 1.0,
+    };
+    pub const OUTPUT: Color = Color {
+        r: 0.3,
+        g: 0.8,
+        b: 0.7,
+        a: 1.0,
+    };
 }
 
-/// Transparent button style for list items — no background, hover highlight only.
-pub(crate) fn list_button(theme: &Theme, status: button::Status) -> button::Style {
-    let palette = theme.palette();
-    match status {
-        button::Status::Active => button::Style {
-            background: None,
-            text_color: palette.text,
-            ..button::Style::default()
-        },
-        button::Status::Hovered => button::Style {
-            background: Some(Background::Color(Color {
-                a: 0.1,
-                ..palette.text
-            })),
-            text_color: palette.text,
-            ..button::Style::default()
-        },
-        _ => styled_button(theme, status),
-    }
-}
+// ── Debug event colors ──────────────────────────────────────────────────────
 
-/// Debug event colors
 #[cfg(feature = "debugger")]
 pub mod debug_colors {
     use iced::Color;
@@ -139,7 +134,105 @@ pub mod debug_colors {
     };
 }
 
-fn lighten(c: Color, amount: f32) -> Color {
+// ── Spacing scale ───────────────────────────────────────────────────────────
+
+pub const SPACE_XS: u16 = 2;
+pub const SPACE_SM: u16 = 4;
+pub const SPACE_MD: u16 = 8;
+pub const SPACE_LG: u16 = 16;
+
+// ── Font sizes ──────────────────────────────────────────────────────────────
+
+pub const FONT_SM: f32 = 12.0;
+pub const FONT_MD: f32 = 14.0;
+
+// ── Border radii ────────────────────────────────────────────────────────────
+
+pub const RADIUS_SM: f32 = 4.0;
+pub const RADIUS_MD: f32 = 8.0;
+
+// ── Button padding ─────────────────────────────────────────────────────────
+
+pub const BUTTON_PAD: [u16; 2] = [3, 6];
+pub const BUTTON_PAD_SM: [u16; 2] = [3, 5];
+
+// ── Button styles ───────────────────────────────────────────────────────────
+
+pub fn styled_button(theme: &Theme, status: button::Status) -> button::Style {
+    let palette = theme.palette();
+    let base = button::Style {
+        border: Border {
+            radius: RADIUS_MD.into(),
+            width: 0.0,
+            color: Color::TRANSPARENT,
+        },
+        shadow: Shadow {
+            color: Color::BLACK,
+            offset: Vector::new(0.0, 1.0),
+            blur_radius: 3.0,
+        },
+        snap: true,
+        ..button::Style::default()
+    };
+
+    match status {
+        button::Status::Active => button::Style {
+            background: Some(Background::Color(SURFACE_BUTTON)),
+            text_color: palette.text,
+            ..base
+        },
+        button::Status::Hovered => button::Style {
+            background: Some(Background::Color(ACCENT)),
+            text_color: Color::WHITE,
+            border: Border {
+                radius: RADIUS_MD.into(),
+                width: 2.0,
+                color: lighten(ACCENT, 0.3),
+            },
+            ..base
+        },
+        button::Status::Pressed => button::Style {
+            background: Some(Background::Color(darken(ACCENT, 0.2))),
+            text_color: Color::WHITE,
+            ..base
+        },
+        button::Status::Disabled => button::Style {
+            background: Some(Background::Color(Color {
+                a: 0.3,
+                ..palette.primary
+            })),
+            text_color: Color {
+                a: 0.5,
+                ..palette.text
+            },
+            ..base
+        },
+    }
+}
+
+pub(crate) fn list_button(theme: &Theme, status: button::Status) -> button::Style {
+    let palette = theme.palette();
+    match status {
+        button::Status::Active => button::Style {
+            background: None,
+            text_color: palette.text,
+            ..button::Style::default()
+        },
+        button::Status::Hovered => button::Style {
+            background: Some(Background::Color(Color {
+                a: 0.1,
+                ..palette.text
+            })),
+            text_color: palette.text,
+            ..button::Style::default()
+        },
+        _ => styled_button(theme, status),
+    }
+}
+
+// ── Helpers ─────────────────────────────────────────────────────────────────
+
+pub fn lighten(c: Color, amount: f32) -> Color {
     Color {
         r: (c.r + amount).min(1.0),
         g: (c.g + amount).min(1.0),
@@ -148,7 +241,7 @@ fn lighten(c: Color, amount: f32) -> Color {
     }
 }
 
-fn darken(c: Color, amount: f32) -> Color {
+pub fn darken(c: Color, amount: f32) -> Color {
     Color {
         r: (c.r - amount).max(0.0),
         g: (c.g - amount).max(0.0),

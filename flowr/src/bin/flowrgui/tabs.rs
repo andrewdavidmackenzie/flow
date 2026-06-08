@@ -609,7 +609,7 @@ impl Tab for DebugTab {
                         Element::from(t)
                     } else {
                         let base_color = line.color;
-                        let link_color = iced::Color::from_rgb(0.3, 0.6, 1.0);
+                        let link_color = crate::theme::TEXT_LINK;
                         let mut spans: Vec<iced::widget::text::Span<'_, String>> = Vec::new();
                         let mut pos = 0;
                         for link in &line.links {
