@@ -1115,9 +1115,11 @@ impl FlowrGui {
                 Row::new().spacing(10).padding(5).width(Fill).push(
                     Button::new(Text::new("OK").align_x(Center))
                         .width(Fill)
+                        .style(theme::pill_button)
                         .on_press(Message::CloseModal),
                 ),
             )
+            .style(theme::popup_card)
             .max_width(300.0);
 
             stack![
@@ -1340,9 +1342,10 @@ impl FlowrGui {
                 Button::new(Text::new("Close").align_x(Center))
                     .width(Fill)
                     .on_press(Message::CloseCoordinatorPicker)
-                    .style(theme::styled_button)
-                    .padding([4, 8]),
+                    .style(theme::pill_button)
+                    .padding([4.0, 8.0]),
             )
+            .style(theme::popup_card)
             .max_width(450.0)
     }
 
@@ -1590,10 +1593,19 @@ impl FlowrGui {
             .spacing(4)
             .align_y(iced::alignment::Vertical::Center);
         let type_row = BP_TABS.iter().fold(type_row, |row, &bt| {
-            let mut btn = Button::new(Text::new(bt.to_string()).size(13)).padding([3, 6]);
-            if bt == self.bp_tab {
-                btn = btn.style(theme::styled_button);
-            } else {
+            let is_active = bt == self.bp_tab;
+            let mut btn = Button::new(Text::new(bt.to_string()).size(theme::FONT_MD))
+                .padding(theme::BUTTON_PAD)
+                .style(if is_active {
+                    theme::pill_button_active
+                        as fn(
+                            &iced::Theme,
+                            iced::widget::button::Status,
+                        ) -> iced::widget::button::Style
+                } else {
+                    theme::pill_button
+                });
+            if !is_active {
                 btn = btn.on_press(Message::BpTabChanged(bt));
             }
             row.push(btn)
@@ -1758,8 +1770,23 @@ impl FlowrGui {
 
         let body = Column::new().spacing(8).push(type_row).push(list);
 
-        Card::new(Text::new("Breakpoints"), body)
-            .on_close(Message::CloseBpPopup)
+        let bp_header = Row::new()
+            .push(Text::new("Breakpoints"))
+            .push(iced::widget::container(Text::new("")).width(iced::Length::Fill))
+            .push(
+                Button::new(
+                    Text::new("\u{2715}")
+                        .font(iced::Font::with_name("icons"))
+                        .size(theme::FONT_MD),
+                )
+                .on_press(Message::CloseBpPopup)
+                .style(theme::list_button)
+                .padding(theme::BUTTON_PAD_SM),
+            )
+            .align_y(iced::alignment::Vertical::Center);
+
+        Card::new(bp_header, body)
+            .style(theme::popup_card)
             .max_width(500.0)
     }
 
@@ -1773,10 +1800,19 @@ impl FlowrGui {
             .spacing(4)
             .align_y(iced::alignment::Vertical::Center);
         let tab_row = INSPECT_TABS.iter().fold(tab_row, |row, &tab| {
-            let mut btn = Button::new(Text::new(tab.to_string()).size(13)).padding([3, 6]);
-            if tab == self.inspect_tab {
-                btn = btn.style(theme::styled_button);
-            } else {
+            let is_active = tab == self.inspect_tab;
+            let mut btn = Button::new(Text::new(tab.to_string()).size(theme::FONT_MD))
+                .padding(theme::BUTTON_PAD)
+                .style(if is_active {
+                    theme::pill_button_active
+                        as fn(
+                            &iced::Theme,
+                            iced::widget::button::Status,
+                        ) -> iced::widget::button::Style
+                } else {
+                    theme::pill_button
+                });
+            if !is_active {
                 btn = btn.on_press(Message::InspectTabChanged(tab));
             }
             row.push(btn)
@@ -1872,8 +1908,23 @@ impl FlowrGui {
 
         let body = Column::new().spacing(8).push(tab_row).push(list);
 
-        Card::new(Text::new("Inspect"), body)
-            .on_close(Message::CloseInspectPopup)
+        let inspect_header = Row::new()
+            .push(Text::new("Inspect"))
+            .push(iced::widget::container(Text::new("")).width(iced::Length::Fill))
+            .push(
+                Button::new(
+                    Text::new("\u{2715}")
+                        .font(iced::Font::with_name("icons"))
+                        .size(theme::FONT_MD),
+                )
+                .on_press(Message::CloseInspectPopup)
+                .style(theme::list_button)
+                .padding(theme::BUTTON_PAD_SM),
+            )
+            .align_y(iced::alignment::Vertical::Center);
+
+        Card::new(inspect_header, body)
+            .style(theme::popup_card)
             .max_width(500.0)
     }
 
