@@ -285,7 +285,11 @@ impl DebugClient {
             "p" | "processes" => Some(DebugCommand::ProcessList),
             "m" | "modify" => Some(Modify(params)),
             "r" | "run" | "reset" => {
-                let parts = params.unwrap_or_default();
+                let parts: Vec<String> = params
+                    .unwrap_or_default()
+                    .into_iter()
+                    .filter(|s| !s.is_empty())
+                    .collect();
                 if parts.is_empty() {
                     Some(RunReset(None, vec![]))
                 } else {

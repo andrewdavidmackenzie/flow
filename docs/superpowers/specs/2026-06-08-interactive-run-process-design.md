@@ -92,9 +92,10 @@ flow is automatically reset back to init state.
 4. Apply type coercion; error on failure
 5. **Function:** create a Job with coerced inputs, push to head of ready queue,
    execute one job, capture result
-6. **Sub-flow:** fill entry-point inputs of the sub-flow's internal functions,
-   run the coordinator loop over the sub-flow's internal graph to completion
-   (auto-run). Breakpoints inside the sub-flow are honored if set.
+6. **Sub-flow:** *(deferred — not implemented in the initial version)* fill
+   entry-point inputs of the sub-flow's internal functions, run the coordinator
+   loop over the sub-flow's internal graph to completion (auto-run). Breakpoints
+   inside the sub-flow are honored if set.
 7. Capture outputs
 8. Display outputs
 9. Reset back to init state

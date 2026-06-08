@@ -1353,7 +1353,7 @@ impl FlowrGui {
             .on_input(Message::DebugStepCountChanged)
             .width(35);
 
-        let has_run_target = !self.debug_spec_text.is_empty();
+        let has_run_target = !self.debug_spec_text.trim().is_empty();
         let is_run = has_run_target || !jobs_started;
         let reset_label = if is_run {
             "\u{25B6} Run"
@@ -2183,7 +2183,7 @@ impl FlowrGui {
                 connection_manager::send_debug_command(DebugCommand::RunReset(None, vec![]));
             }
             Message::DebugRunProcess => {
-                if self.debug_spec_text.is_empty() {
+                if self.debug_spec_text.trim().is_empty() {
                     return iced::Task::none();
                 }
                 self.debug_waiting = false;
