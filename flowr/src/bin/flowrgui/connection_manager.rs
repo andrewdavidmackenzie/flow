@@ -555,7 +555,7 @@ fn format_debug_event(message: &DebugServerMessage) -> Vec<crate::DebugEventLine
             format!("Function #{source_id} sending '{value}' to {dest_id}:{input_number}"),
             Some(debug_colors::DATA_FLOW),
         ),
-        DebugServerMessage::Error(msg) => line(msg.clone(), Some(debug_colors::ERROR)),
+        DebugServerMessage::Error(ref msg) => line(rewrite_for_gui(msg), Some(debug_colors::ERROR)),
         DebugServerMessage::Message(msg) => line(rewrite_for_gui(msg), None),
         DebugServerMessage::Resetting => line("Resetting state".into(), Some(debug_colors::STATUS)),
         DebugServerMessage::FunctionStates((function, states)) => {

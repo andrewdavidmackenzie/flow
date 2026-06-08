@@ -404,20 +404,18 @@ impl<'a> Debugger<'a> {
                 }
                 Ok(RunReset(Some(target), args)) => {
                     if state.get_number_of_jobs_created() > 0 {
-                        self.debug_server.debugger_error(
-                            "Cannot run a process mid-execution. Reset first with 'r'.".into(),
-                        );
-                    } else {
-                        match Self::resolve_target(state, &target) {
-                            Ok(process_id) => match self.run_process(state, process_id, &args) {
-                                Ok(()) => {
-                                    self.debug_server.execution_starting();
-                                    return Ok((false, false));
-                                }
-                                Err(e) => self.debug_server.debugger_error(e.to_string()),
-                            },
+                        self.reset();
+                        state.init()?;
+                    }
+                    match Self::resolve_target(state, &target) {
+                        Ok(process_id) => match self.run_process(state, process_id, &args) {
+                            Ok(()) => {
+                                self.debug_server.execution_starting();
+                                return Ok((false, false));
+                            }
                             Err(e) => self.debug_server.debugger_error(e.to_string()),
-                        }
+                        },
+                        Err(e) => self.debug_server.debugger_error(e.to_string()),
                     }
                 }
                 Ok(Step(param)) => {

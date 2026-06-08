@@ -2306,6 +2306,14 @@ impl FlowrGui {
                                 .collect();
                             self.run_target_id = Some(id);
                             self.show_run_inputs = true;
+                        } else {
+                            let args: Vec<String> = parts.get(1..).unwrap_or_default().to_vec();
+                            self.debug_waiting = false;
+                            self.debug_separator(&format!("Run process #{id}"));
+                            connection_manager::send_debug_command(DebugCommand::RunReset(
+                                Some(flowcore::model::debug_command::ProcessTarget::Id(id)),
+                                args,
+                            ));
                         }
                     } else {
                         self.debug_waiting = false;
