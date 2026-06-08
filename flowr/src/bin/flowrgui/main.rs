@@ -1332,34 +1332,37 @@ impl FlowrGui {
         let can_cmd = self.debug_waiting;
 
         let jobs_started = connection_manager::get_job_count() > 0;
-        let mut continue_btn = Button::new(Text::new("\u{23E9} Continue"))
+        let bp = [3, 6]; // button padding for execution controls
+        let sp = [3, 5]; // button padding for smaller controls
+
+        let mut continue_btn = Button::new(Text::new("\u{25B6} Continue"))
             .style(theme::styled_button)
-            .padding([4, 10]);
+            .padding(bp);
         if can_cmd && jobs_started {
             continue_btn = continue_btn.on_press(Message::DebugContinue);
         }
 
-        let mut step_btn =
-            Button::new(Text::new("\u{2BA9} Step").shaping(iced::widget::text::Shaping::Advanced))
-                .style(theme::styled_button)
-                .padding([4, 10]);
+        let mut step_btn = Button::new(Text::new("\u{23ED} Step"))
+            .style(theme::styled_button)
+            .padding(bp);
         if can_cmd {
             step_btn = step_btn.on_press(Message::DebugStep);
         }
 
         let step_count = text_input("n", &self.debug_step_count)
             .on_input(Message::DebugStepCountChanged)
-            .width(40);
+            .width(35);
 
         let has_run_target = !self.debug_spec_text.is_empty();
-        let reset_label = if has_run_target {
+        let is_run = has_run_target || !jobs_started;
+        let reset_label = if is_run {
             "\u{25B6} Run"
         } else {
             "\u{21BB} Reset"
         };
         let mut reset_btn = Button::new(Text::new(reset_label))
             .style(theme::styled_button)
-            .padding([4, 10]);
+            .padding(bp);
         if can_cmd {
             reset_btn = reset_btn.on_press(if has_run_target {
                 Message::DebugRunProcess
@@ -1368,48 +1371,49 @@ impl FlowrGui {
             });
         }
 
-        let (exit_label, exit_msg): (&str, Message) = if can_cmd {
-            ("\u{23F9} Exit", Message::DebugExit)
-        } else {
-            ("\u{23F8} Pause", Message::DebugPause)
-        };
-        let mut exit_btn =
-            Button::new(Text::new(exit_label).shaping(iced::widget::text::Shaping::Advanced))
-                .style(theme::styled_button)
-                .padding([4, 10]);
-        if can_cmd || self.running {
-            exit_btn = exit_btn.on_press(exit_msg);
+        let mut pause_btn = Button::new(Text::new("\u{23F8} Pause"))
+            .style(theme::styled_button)
+            .padding(bp);
+        if self.debug_client_active && !can_cmd && jobs_started {
+            pause_btn = pause_btn.on_press(Message::DebugPause);
         }
 
-        let spec_input = text_input("breakpoint spec", &self.debug_spec_text)
+        let mut exit_btn = Button::new(Text::new("\u{23F9} Exit"))
+            .style(theme::styled_button)
+            .padding(bp);
+        if can_cmd {
+            exit_btn = exit_btn.on_press(Message::DebugExit);
+        }
+
+        let spec_input = text_input("spec", &self.debug_spec_text)
             .on_input(Message::DebugSpecChanged)
             .on_submit(Message::DebugSetBreakpoint)
-            .width(120);
+            .width(100);
 
         let mut bp_btn = Button::new(Text::new("Set BP"))
             .style(theme::styled_button)
-            .padding([4, 8]);
+            .padding(sp);
         if can_cmd {
             bp_btn = bp_btn.on_press(Message::ShowBpPopup);
         }
 
         let mut del_btn = Button::new(Text::new("Del All"))
             .style(theme::styled_button)
-            .padding([4, 8]);
+            .padding(sp);
         if can_cmd {
             del_btn = del_btn.on_press(Message::DebugDeleteBreakpoints);
         }
 
         let mut list_btn = Button::new(Text::new("List BPs"))
             .style(theme::styled_button)
-            .padding([4, 8]);
+            .padding(sp);
         if can_cmd {
             list_btn = list_btn.on_press(Message::DebugListBreakpoints);
         }
 
         let mut inspect_btn = Button::new(Text::new("Inspect"))
             .style(theme::styled_button)
-            .padding([4, 8]);
+            .padding(sp);
         if can_cmd {
             inspect_btn = inspect_btn.on_press(if self.debug_spec_text.is_empty() {
                 Message::ShowInspectPopup
@@ -1420,28 +1424,28 @@ impl FlowrGui {
 
         let mut funcs_btn = Button::new(Text::new("Functions"))
             .style(theme::styled_button)
-            .padding([4, 8]);
+            .padding(sp);
         if can_cmd {
             funcs_btn = funcs_btn.on_press(Message::DebugFunctions);
         }
 
         let mut procs_btn = Button::new(Text::new("Processes"))
             .style(theme::styled_button)
-            .padding([4, 8]);
+            .padding(sp);
         if can_cmd {
             procs_btn = procs_btn.on_press(Message::DebugProcesses);
         }
 
         let mut validate_btn = Button::new(Text::new("Validate"))
             .style(theme::styled_button)
-            .padding([4, 8]);
+            .padding(sp);
         if can_cmd {
             validate_btn = validate_btn.on_press(Message::DebugValidate);
         }
 
         Row::new()
-            .spacing(6)
-            .padding(5)
+            .spacing(4)
+            .padding(4)
             .align_y(iced::alignment::Vertical::Center)
             .push(Self::tip(
                 continue_btn,
@@ -1457,15 +1461,8 @@ impl FlowrGui {
                     "Reset flow state and re-run from start"
                 },
             ))
-            .push(Self::tip(
-                exit_btn,
-                if can_cmd {
-                    "Stop execution and exit debugger"
-                } else {
-                    "Pause execution and enter debugger"
-                },
-            ))
-            .push(Text::new("|").size(13))
+            .push(Self::tip(pause_btn, "Pause execution and enter debugger"))
+            .push(Self::tip(exit_btn, "Stop execution and exit debugger"))
             .push(Self::tip(
                 spec_input,
                 "Enter spec: breakpoint (3, 3+, 1:0) or run target (ID, /route, name [args])",
@@ -1473,7 +1470,6 @@ impl FlowrGui {
             .push(Self::tip(bp_btn, "Open breakpoint picker"))
             .push(Self::tip(del_btn, "Delete all breakpoints"))
             .push(Self::tip(list_btn, "List active breakpoints"))
-            .push(Text::new("|").size(13))
             .push(Self::tip(
                 inspect_btn,
                 "Inspect state (use spec field for specific target)",
@@ -1819,7 +1815,7 @@ impl FlowrGui {
         }
 
         #[cfg(feature = "debugger")]
-        if self.submission_settings.debug_this_flow {
+        if self.submission_settings.debug_mode == DebugMode::External && !self.debug_client_active {
             let debug_port = connection_manager::get_debug_port();
             if debug_port > 0 {
                 row = row.push(
@@ -2182,6 +2178,7 @@ impl FlowrGui {
             }
             Message::DebugReset => {
                 self.debug_waiting = false;
+                connection_manager::set_job_count(0);
                 self.debug_separator("Run / Reset");
                 connection_manager::send_debug_command(DebugCommand::RunReset(None, vec![]));
             }
