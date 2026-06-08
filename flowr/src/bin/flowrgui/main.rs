@@ -78,6 +78,21 @@ mod theme;
 
 /// A clickable link in debug output
 #[cfg(feature = "debugger")]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[allow(missing_docs)]
+pub enum LinkType {
+    Function,
+    Flow,
+    Job,
+    Input,
+    Output,
+    Route,
+    State,
+    Other,
+}
+
+/// A clickable link in debug output
+#[cfg(feature = "debugger")]
 #[derive(Debug, Clone)]
 pub struct DebugLink {
     /// Byte range in the text
@@ -86,6 +101,8 @@ pub struct DebugLink {
     pub end: usize,
     /// Inspect spec to trigger on click
     pub spec: String,
+    /// Entity type for color coding
+    pub link_type: LinkType,
 }
 
 /// A line of debug output with optional color and clickable links
@@ -155,6 +172,7 @@ impl DebugEventLine {
                     start: abs_pos,
                     end: digit_end,
                     spec: id_str.to_string(),
+                    link_type: LinkType::Function,
                 });
             }
             search_from = digit_end;
@@ -175,6 +193,7 @@ impl DebugEventLine {
                         start: hash_pos,
                         end: digit_end,
                         spec: id_str.to_string(),
+                        link_type: LinkType::Function,
                     });
                 }
             }
@@ -194,6 +213,7 @@ impl DebugEventLine {
                     start: abs_pos,
                     end: digit_end,
                     spec: id_str.to_string(),
+                    link_type: LinkType::Flow,
                 });
             }
             search_from = digit_end;
@@ -223,6 +243,7 @@ impl DebugEventLine {
                         start: abs_pos,
                         end: digit_end,
                         spec: func_id.to_string(),
+                        link_type: LinkType::Job,
                     });
                 }
             }
@@ -244,6 +265,7 @@ impl DebugEventLine {
                         start: abs_pos,
                         end: digit_end,
                         spec: format!("{func_id}:{input_num}"),
+                        link_type: LinkType::Input,
                     });
                 }
             }
@@ -262,6 +284,7 @@ impl DebugEventLine {
                     start: abs_pos,
                     end: output_text_end.min(abs_pos + 20),
                     spec: format!("{func_id}/"),
+                    link_type: LinkType::Output,
                 });
             }
             search_from = output_text_end;
@@ -283,6 +306,7 @@ impl DebugEventLine {
                     start: abs_pos,
                     end: abs_pos + keyword.len(),
                     spec: state_name.to_lowercase(),
+                    link_type: LinkType::State,
                 });
                 kw_from = abs_pos + keyword.len();
             }
@@ -298,6 +322,7 @@ impl DebugEventLine {
                     start: abs_pos,
                     end: abs_pos + end_quote,
                     spec: route.to_string(),
+                    link_type: LinkType::Route,
                 });
                 search_from = abs_pos + end_quote;
             } else {
@@ -316,12 +341,13 @@ impl DebugEventLine {
                     start: pos,
                     end: pos + label.len(),
                     spec: (*spec).to_string(),
+                    link_type: LinkType::Other,
                 });
             }
         }
 
-        // Match Busy Count entries like "1: 1, 0: 1" — the keys are function IDs
-        if let Some(after_colon) = text.strip_prefix("Busy Count:") {
+        // Match Busy Functions entries like "1: 1, 0: 1" — the keys are function IDs
+        if let Some(after_colon) = text.strip_prefix("Busy Functions:") {
             for part in after_colon.split(',') {
                 let part = part.trim().trim_start_matches(['{', ' ']);
                 if let Some(colon_pos) = part.find(':') {
@@ -332,6 +358,7 @@ impl DebugEventLine {
                                 start: abs_pos,
                                 end: abs_pos + key.len(),
                                 spec: key.to_string(),
+                                link_type: LinkType::Function,
                             });
                         }
                     }
@@ -784,7 +811,7 @@ impl FlowrGui {
             #[cfg(feature = "debugger")]
             suppress_next_output: false,
             #[cfg(feature = "debugger")]
-            inspect_tab: InspectTab::Function,
+            inspect_tab: InspectTab::State,
             #[cfg(feature = "debugger")]
             show_run_inputs: false,
             #[cfg(feature = "debugger")]
@@ -3033,7 +3060,7 @@ mod test {
             #[cfg(feature = "debugger")]
             suppress_next_output: false,
             #[cfg(feature = "debugger")]
-            inspect_tab: InspectTab::Function,
+            inspect_tab: InspectTab::State,
             #[cfg(feature = "debugger")]
             show_run_inputs: false,
             #[cfg(feature = "debugger")]

@@ -59,33 +59,33 @@ pub mod entity_colors {
     use iced::Color;
 
     pub const FUNCTION: Color = Color {
-        r: 0.3,
-        g: 0.6,
+        r: 0.2,
+        g: 0.55,
         b: 1.0,
         a: 1.0,
     };
     pub const FLOW: Color = Color {
-        r: 0.6,
-        g: 0.4,
-        b: 0.9,
+        r: 0.65,
+        g: 0.35,
+        b: 1.0,
         a: 1.0,
     };
     pub const JOB: Color = Color {
-        r: 0.4,
-        g: 0.8,
-        b: 0.4,
+        r: 0.2,
+        g: 0.85,
+        b: 0.35,
         a: 1.0,
     };
     pub const INPUT: Color = Color {
-        r: 0.9,
-        g: 0.6,
-        b: 0.3,
+        r: 1.0,
+        g: 0.55,
+        b: 0.15,
         a: 1.0,
     };
     pub const OUTPUT: Color = Color {
-        r: 0.3,
-        g: 0.8,
-        b: 0.7,
+        r: 0.1,
+        g: 0.85,
+        b: 0.75,
         a: 1.0,
     };
 }
@@ -256,6 +256,22 @@ pub fn pill_button_active(theme: &Theme, status: button::Status) -> button::Styl
             ..button::Style::default()
         },
         _ => pill_button(theme, status),
+    }
+}
+
+pub fn ghost_button(theme: &Theme, status: button::Status) -> button::Style {
+    let palette = theme.palette();
+    match status {
+        button::Status::Hovered => button::Style {
+            background: None,
+            text_color: ACCENT,
+            ..button::Style::default()
+        },
+        _ => button::Style {
+            background: None,
+            text_color: palette.text,
+            ..button::Style::default()
+        },
     }
 }
 
