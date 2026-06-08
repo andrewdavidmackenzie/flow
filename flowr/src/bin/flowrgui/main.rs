@@ -416,6 +416,9 @@ pub enum Message {
     /// User clicked Exit Debugger in the debug controls
     #[cfg(feature = "debugger")]
     DebugExit,
+    /// User clicked Pause to break into the debugger mid-execution
+    #[cfg(feature = "debugger")]
+    DebugPause,
     /// The step count text input changed
     #[cfg(feature = "debugger")]
     DebugStepCountChanged(String),
@@ -961,6 +964,7 @@ impl FlowrGui {
             | Message::DebugReset
             | Message::DebugRunProcess
             | Message::DebugExit
+            | Message::DebugPause
             | Message::DebugStepCountChanged(_)
             | Message::DebugSpecChanged(_)
             | Message::DebugSetBreakpoint
@@ -1364,11 +1368,17 @@ impl FlowrGui {
             });
         }
 
-        let mut exit_btn = Button::new(Text::new("\u{23F9} Exit"))
-            .style(theme::styled_button)
-            .padding([4, 10]);
-        if can_cmd {
-            exit_btn = exit_btn.on_press(Message::DebugExit);
+        let (exit_label, exit_msg): (&str, Message) = if can_cmd {
+            ("\u{23F9} Exit", Message::DebugExit)
+        } else {
+            ("\u{23F8} Pause", Message::DebugPause)
+        };
+        let mut exit_btn =
+            Button::new(Text::new(exit_label).shaping(iced::widget::text::Shaping::Advanced))
+                .style(theme::styled_button)
+                .padding([4, 10]);
+        if can_cmd || self.running {
+            exit_btn = exit_btn.on_press(exit_msg);
         }
 
         let spec_input = text_input("breakpoint spec", &self.debug_spec_text)
@@ -1447,7 +1457,14 @@ impl FlowrGui {
                     "Reset flow state and re-run from start"
                 },
             ))
-            .push(Self::tip(exit_btn, "Stop execution and exit debugger"))
+            .push(Self::tip(
+                exit_btn,
+                if can_cmd {
+                    "Stop execution and exit debugger"
+                } else {
+                    "Pause execution and enter debugger"
+                },
+            ))
             .push(Text::new("|").size(13))
             .push(Self::tip(
                 spec_input,
@@ -2193,6 +2210,10 @@ impl FlowrGui {
                         args,
                     ));
                 }
+            }
+            Message::DebugPause => {
+                self.debug_separator("Pause");
+                self.send(ClientMessage::EnterDebugger);
             }
             Message::DebugExit => {
                 self.debug_waiting = false;
