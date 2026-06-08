@@ -1213,7 +1213,9 @@ impl FlowrGui {
             &self.submission_settings.flow_manifest_url,
         )
         .on_input(Message::UrlChanged)
-        .on_submit(Message::SubmitFlow);
+        .on_submit(Message::SubmitFlow)
+        .style(theme::pill_input)
+        .width(iced::Length::FillPortion(7));
 
         let args = text_input(
             "Space separated flow arguments",
@@ -1221,10 +1223,13 @@ impl FlowrGui {
         )
         .on_submit(Message::SubmitFlow)
         .on_input(Message::FlowArgsChanged)
-        .on_paste(Message::FlowArgsChanged);
+        .on_paste(Message::FlowArgsChanged)
+        .style(theme::pill_input)
+        .width(iced::Length::FillPortion(3));
 
         let max_jobs = text_input("Max jobs", &self.submission_settings.max_jobs_text)
             .on_input(Message::MaxJobsChanged)
+            .style(theme::pill_input)
             .width(80);
 
         let is_client_mode = matches!(self.coordinator_settings, CoordinatorSettings::ClientOnly);
@@ -1408,6 +1413,8 @@ impl FlowrGui {
 
         let step_count = text_input("n", &self.debug_step_count)
             .on_input(Message::DebugStepCountChanged)
+            .style(theme::pill_input)
+            .padding(theme::BUTTON_PAD)
             .width(35);
 
         let has_run_target = !self.debug_spec_text.trim().is_empty();
@@ -1434,7 +1441,7 @@ impl FlowrGui {
             pause_btn = pause_btn.on_press(Message::DebugPause);
         }
 
-        let mut exit_btn = Button::new(icon_btn("\u{25AA}", "Exit"))
+        let mut exit_btn = Button::new(icon_btn("\u{E741}", "Exit"))
             .style(theme::styled_button)
             .padding(bp);
         if can_cmd {
@@ -1444,6 +1451,7 @@ impl FlowrGui {
         let spec_input = text_input("spec", &self.debug_spec_text)
             .on_input(Message::DebugSpecChanged)
             .on_submit(Message::DebugSetBreakpoint)
+            .style(theme::pill_input)
             .width(100);
 
         let mut bp_btn = Button::new(Text::new("Set BP"))
@@ -1552,6 +1560,7 @@ impl FlowrGui {
                 text_input(name, &value)
                     .on_input(move |v| Message::RunInputChanged(idx, v))
                     .on_submit(Message::RunInputExecute)
+                    .style(theme::pill_input)
                     .width(100),
                 &tooltip,
             );
@@ -1933,12 +1942,12 @@ impl FlowrGui {
 
         Column::new().push(rule).push(
             iced::widget::Container::new(row)
-                .padding(4)
+                .padding([theme::SPACE_SM, theme::SPACE_MD])
                 .style(|theme: &iced::Theme| {
                     let palette = theme.palette();
                     iced::widget::container::Style {
                         background: Some(iced::Background::Color(iced::Color {
-                            a: 0.08,
+                            a: 0.12,
                             ..palette.text
                         })),
                         ..Default::default()

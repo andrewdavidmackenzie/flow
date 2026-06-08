@@ -356,20 +356,20 @@ impl Tab for StdOutTab {
             .id(self.id.clone());
 
         let toggler = toggler(self.auto_scroll)
-            .label(format!("Auto-scroll {}", self.name))
+            .label("Auto-scroll")
             .on_toggle(|v| Message::StdioAutoScrollTogglerChanged(self.id.clone(), v))
             .size(14.0)
-            .text_size(crate::theme::FONT_MD)
+            .text_size(crate::theme::FONT_DEFAULT)
             .width(Length::Shrink);
 
-        let save_button = Button::new(Text::new("Save").size(crate::theme::FONT_MD))
+        let save_button = Button::new(Text::new("Save").size(crate::theme::FONT_DEFAULT))
             .on_press(Message::SaveTabContent(self.name.clone()))
-            .style(crate::theme::list_button)
-            .padding(crate::theme::BUTTON_PAD_SM);
-        let clear_button = Button::new(Text::new("Clear").size(crate::theme::FONT_MD))
+            .style(crate::theme::pill_button)
+            .padding([4.0, 12.0]);
+        let clear_button = Button::new(Text::new("Clear").size(crate::theme::FONT_DEFAULT))
             .on_press(Message::ClearTab(self.name.clone()))
-            .style(crate::theme::list_button)
-            .padding(crate::theme::BUTTON_PAD_SM);
+            .style(crate::theme::pill_button)
+            .padding([4.0, 12.0]);
 
         let toolbar = Row::new()
             .push(toggler)
@@ -467,10 +467,10 @@ impl Tab for ImageTab {
                     u16::try_from(display_height.min(300)).unwrap_or(300),
                 )));
             let label = format!("{name} ({}x{})", image_ref.width, image_ref.height);
-            let save_button = Button::new(Text::new("Save"))
+            let save_button = Button::new(Text::new("Save").size(crate::theme::FONT_DEFAULT))
                 .on_press(Message::SaveImage(name.clone()))
-                .style(crate::theme::styled_button)
-                .padding([4, 12]);
+                .style(crate::theme::pill_button)
+                .padding([4.0, 12.0]);
             let header = Row::new()
                 .push(Text::new(label))
                 .push(save_button)
@@ -568,23 +568,31 @@ impl Tab for StdInTab {
                 .width(Length::Fill)
                 .padding(1);
 
-        let save_button = Button::new(Text::new("Save"))
+        let save_button = Button::new(Text::new("Save").size(crate::theme::FONT_DEFAULT))
             .on_press(Message::SaveTabContent(self.name.clone()))
-            .style(crate::theme::styled_button)
-            .padding([4, 12]);
-        let toolbar = Row::new().push(save_button).spacing(10).padding(4);
+            .style(crate::theme::pill_button)
+            .padding([4.0, 12.0]);
+        let toolbar = Row::new()
+            .push(save_button)
+            .spacing(crate::theme::SPACE_MD)
+            .padding(crate::theme::SPACE_XS);
 
         let text_input = TextInput::new("Enter new line of Standard input", &self.text)
             .on_input(Message::NewStdin)
             .on_paste(Message::NewStdin)
             .on_submit(Message::LineOfStdin(self.text.clone()))
+            .style(crate::theme::pill_input)
             .width(Length::Fill)
             .padding(10);
-        let eof_button = Button::new(Text::new("EOF"))
+        let eof_button = Button::new(Text::new("EOF").size(crate::theme::FONT_DEFAULT))
             .on_press(Message::SendEof)
-            .style(crate::theme::styled_button)
-            .padding([4, 12]);
-        let input_row = Row::new().push(text_input).push(eof_button).spacing(5);
+            .style(crate::theme::pill_button)
+            .padding([4.0, 12.0]);
+        let input_row = Row::new()
+            .push(text_input)
+            .push(eof_button)
+            .spacing(crate::theme::SPACE_MD)
+            .align_y(iced::alignment::Vertical::Center);
         let scrollable = Scrollable::new(text_column)
             .height(Length::Fill)
             .id(self.id.clone());
@@ -756,20 +764,20 @@ impl Tab for DebugTab {
             .id(self.id.clone());
 
         let toggler = toggler(self.auto_scroll)
-            .label(format!("Auto-scroll {}", self.name))
+            .label("Auto-scroll")
             .on_toggle(|v| Message::StdioAutoScrollTogglerChanged(self.id.clone(), v))
             .size(14.0)
-            .text_size(crate::theme::FONT_MD)
+            .text_size(crate::theme::FONT_DEFAULT)
             .width(Length::Shrink);
 
-        let save_button = Button::new(Text::new("Save").size(crate::theme::FONT_MD))
+        let save_button = Button::new(Text::new("Save").size(crate::theme::FONT_DEFAULT))
             .on_press(Message::SaveTabContent(self.name.clone()))
-            .style(crate::theme::list_button)
-            .padding(crate::theme::BUTTON_PAD_SM);
-        let clear_button = Button::new(Text::new("Clear").size(crate::theme::FONT_MD))
+            .style(crate::theme::pill_button)
+            .padding([4.0, 12.0]);
+        let clear_button = Button::new(Text::new("Clear").size(crate::theme::FONT_DEFAULT))
             .on_press(Message::ClearTab(self.name.clone()))
-            .style(crate::theme::list_button)
-            .padding(crate::theme::BUTTON_PAD_SM);
+            .style(crate::theme::pill_button)
+            .padding([4.0, 12.0]);
 
         let toolbar = Row::new()
             .push(toggler)

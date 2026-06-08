@@ -145,6 +145,7 @@ pub const SPACE_LG: f32 = 16.0;
 
 pub const FONT_SM: f32 = 12.0;
 pub const FONT_MD: f32 = 14.0;
+pub const FONT_DEFAULT: f32 = 16.0;
 
 // ── Border radii ────────────────────────────────────────────────────────────
 
@@ -210,6 +211,36 @@ pub fn styled_button(theme: &Theme, status: button::Status) -> button::Style {
     }
 }
 
+pub fn pill_button(theme: &Theme, status: button::Status) -> button::Style {
+    let palette = theme.palette();
+    let border = Border {
+        radius: 12.0.into(),
+        width: 1.0,
+        color: Color {
+            a: 0.3,
+            ..palette.text
+        },
+    };
+    match status {
+        button::Status::Active => button::Style {
+            background: None,
+            text_color: palette.text,
+            border,
+            ..button::Style::default()
+        },
+        button::Status::Hovered => button::Style {
+            background: Some(Background::Color(ACCENT)),
+            text_color: Color::WHITE,
+            border: Border {
+                color: lighten(ACCENT, 0.3),
+                ..border
+            },
+            ..button::Style::default()
+        },
+        _ => styled_button(theme, status),
+    }
+}
+
 pub(crate) fn list_button(theme: &Theme, status: button::Status) -> button::Style {
     let palette = theme.palette();
     match status {
@@ -227,6 +258,54 @@ pub(crate) fn list_button(theme: &Theme, status: button::Status) -> button::Styl
             ..button::Style::default()
         },
         _ => styled_button(theme, status),
+    }
+}
+
+// ── Text input style ────────────────────────────────────────────────────────
+
+pub fn pill_input(
+    theme: &Theme,
+    status: iced::widget::text_input::Status,
+) -> iced::widget::text_input::Style {
+    let palette = theme.palette();
+    let base = iced::widget::text_input::Style {
+        background: iced::Background::Color(Color::TRANSPARENT),
+        border: Border {
+            radius: 12.0.into(),
+            width: 1.0,
+            color: Color {
+                a: 0.3,
+                ..palette.text
+            },
+        },
+        icon: palette.text,
+        placeholder: Color {
+            a: 0.4,
+            ..palette.text
+        },
+        value: palette.text,
+        selection: Color { a: 0.3, ..ACCENT },
+    };
+
+    match status {
+        iced::widget::text_input::Status::Focused { .. } => iced::widget::text_input::Style {
+            border: Border {
+                color: ACCENT,
+                ..base.border
+            },
+            ..base
+        },
+        iced::widget::text_input::Status::Hovered => iced::widget::text_input::Style {
+            border: Border {
+                color: Color {
+                    a: 0.5,
+                    ..palette.text
+                },
+                ..base.border
+            },
+            ..base
+        },
+        _ => base,
     }
 }
 

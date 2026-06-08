@@ -11,8 +11,16 @@ pub fn bug<'a>() -> Text<'a> {
     icon("\u{F188}")
 }
 
+pub fn cancel<'a>() -> Text<'a> {
+    icon("\u{2715}")
+}
+
 pub fn cog<'a>() -> Text<'a> {
     icon("\u{2699}")
+}
+
+pub fn export<'a>() -> Text<'a> {
+    icon("\u{E715}")
 }
 
 pub fn forward<'a>() -> Text<'a> {
@@ -25,6 +33,10 @@ pub fn level_down<'a>() -> Text<'a> {
 
 pub fn list<'a>() -> Text<'a> {
     icon("\u{E782}")
+}
+
+pub fn logout<'a>() -> Text<'a> {
+    icon("\u{E741}")
 }
 
 pub fn pause<'a>() -> Text<'a> {
