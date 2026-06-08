@@ -405,7 +405,7 @@ impl<'a> Debugger<'a> {
                 Ok(RunReset(Some(target), args)) => {
                     if state.get_number_of_jobs_created() > 0 {
                         self.reset();
-                        state.init()?;
+                        state.reset();
                     }
                     match Self::resolve_target(state, &target) {
                         Ok(process_id) => match self.run_process(state, process_id, &args) {

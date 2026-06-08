@@ -448,7 +448,7 @@ pub enum Message {
     DebugInspect,
     /// User clicked Functions list
     #[cfg(feature = "debugger")]
-    DebugFunctions,
+    DebugFunctions(bool),
     /// User clicked Processes tree
     #[cfg(feature = "debugger")]
     DebugProcesses,
@@ -1003,7 +1003,7 @@ impl FlowrGui {
             | Message::DebugDeleteBreakpoints
             | Message::DebugListBreakpoints
             | Message::DebugInspect
-            | Message::DebugFunctions
+            | Message::DebugFunctions(_)
             | Message::DebugProcesses
             | Message::DebugValidate
             | Message::ShowBpPopup
@@ -1398,7 +1398,7 @@ impl FlowrGui {
         let mut reset_btn = Button::new(Text::new(reset_label))
             .style(theme::styled_button)
             .padding(bp);
-        if can_cmd {
+        if self.debug_client_active {
             reset_btn = reset_btn.on_press(if has_run_target {
                 Message::DebugRunProcess
             } else {
@@ -1461,7 +1461,7 @@ impl FlowrGui {
             .style(theme::styled_button)
             .padding(sp);
         if can_cmd {
-            funcs_btn = funcs_btn.on_press(Message::DebugFunctions);
+            funcs_btn = funcs_btn.on_press(Message::DebugFunctions(true));
         }
 
         let mut procs_btn = Button::new(Text::new("Processes"))
@@ -1524,13 +1524,18 @@ impl FlowrGui {
 
         for (i, name) in self.run_input_names.iter().enumerate() {
             let value = self.run_input_values.get(i).cloned().unwrap_or_default();
+            let type_hint = self
+                .run_input_types
+                .get(i)
+                .map_or("Value", String::as_str);
+            let tooltip = type_hint.to_string();
             let idx = i;
             let input = Self::tip(
                 text_input(name, &value)
                     .on_input(move |v| Message::RunInputChanged(idx, v))
                     .on_submit(Message::RunInputExecute)
                     .width(100),
-                name,
+                &tooltip,
             );
             row = row.push(input);
         }
@@ -1852,7 +1857,18 @@ impl FlowrGui {
             }
             CoordinatorState::Connected(_) => match (self.submitted, self.running) {
                 (false, false) => ("\u{1F7E2}", "Ready".to_string()),
-                (_, true) => ("\u{1F535}", "Running".to_string()),
+                (_, true) => {
+                    #[cfg(feature = "debugger")]
+                    if self.debug_waiting {
+                        ("\u{1F7E3}", "Debugging".to_string())
+                    } else {
+                        ("\u{1F535}", "Running".to_string())
+                    }
+                    #[cfg(not(feature = "debugger"))]
+                    {
+                        ("\u{1F535}", "Running".to_string())
+                    }
+                }
                 (true, false) => {
                     #[cfg(feature = "debugger")]
                     if self.debug_client_active {
@@ -2210,6 +2226,9 @@ impl FlowrGui {
             }
             Message::DebugWaiting => {
                 self.debug_waiting = true;
+                if self.cached_functions.is_empty() {
+                    return self.process_debug_message(Message::DebugFunctions(false));
+                }
             }
             Message::DebugConnected => {
                 self.tab_set
@@ -2415,9 +2434,12 @@ impl FlowrGui {
                     self.debug_waiting = true;
                 }
             }
-            Message::DebugFunctions => {
-                self.debug_waiting = false;
-                self.debug_separator("Functions List");
+            Message::DebugFunctions(display) => {
+                if display {
+                    self.debug_waiting = false;
+                    self.debug_separator("Functions List");
+                }
+                self.suppress_next_output = !display;
                 connection_manager::send_debug_command(DebugCommand::FunctionList);
             }
             Message::DebugProcesses => {
