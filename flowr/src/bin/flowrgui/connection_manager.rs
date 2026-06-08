@@ -49,6 +49,30 @@ pub enum CoordinatorState {
 /// Global storage for coordinator settings, initialized once and read by the subscription
 static COORDINATOR_SETTINGS: OnceLock<CoordinatorSettings> = OnceLock::new();
 
+/// Global storage for a user-selected coordinator address (from the picker)
+static DISCOVERED_ADDRESS: std::sync::RwLock<Option<String>> = std::sync::RwLock::new(None);
+
+/// Set a discovered coordinator address for the subscription to pick up
+pub fn set_discovered_address(address: String) {
+    if let Ok(mut guard) = DISCOVERED_ADDRESS.write() {
+        *guard = Some(address);
+    }
+}
+
+/// Check if a discovered address has been set
+pub fn has_discovered_address() -> bool {
+    DISCOVERED_ADDRESS.read().is_ok_and(|guard| guard.is_some())
+}
+
+/// Take the discovered address (consumes it)
+fn take_discovered_address() -> Option<String> {
+    if let Ok(mut guard) = DISCOVERED_ADDRESS.write() {
+        guard.take()
+    } else {
+        None
+    }
+}
+
 /// Global flag for requesting flow stop from the GUI
 static STOP_REQUESTED: AtomicBool = AtomicBool::new(false);
 
@@ -100,9 +124,10 @@ fn coordinator_stream() -> impl iced::futures::Stream<Item = CoordinatorMessage>
     iced::stream::channel(
         100,
         move |mut app_sender: iced::futures::channel::mpsc::Sender<CoordinatorMessage>| async move {
+            let is_client_only = matches!(settings, CoordinatorSettings::ClientOnly);
             let mut state = match settings {
                 CoordinatorSettings::Server(sett) => CoordinatorState::Init(sett.clone()),
-                CoordinatorSettings::ClientOnly(_) => CoordinatorState::Discovery,
+                CoordinatorSettings::ClientOnly => CoordinatorState::Discovery,
             };
 
             let mut running = false;
@@ -121,15 +146,21 @@ fn coordinator_stream() -> impl iced::futures::Stream<Item = CoordinatorMessage>
                     },
 
                     CoordinatorState::Discovery => {
-                        match discover_service(COORDINATOR_SERVICE_NAME) {
-                            Ok(address) => state = CoordinatorState::Discovered(address),
-                            Err(e) => {
-                                let _ = app_sender
-                                    .send(CoordinatorMessage::Disconnected(format!(
-                                        "Could not discover coordinator: {e}"
-                                    )))
-                                    .await;
-                                break;
+                        if let Some(address) = take_discovered_address() {
+                            state = CoordinatorState::Discovered(address);
+                        } else if is_client_only {
+                            tokio::time::sleep(std::time::Duration::from_millis(500)).await;
+                        } else {
+                            match discover_service(COORDINATOR_SERVICE_NAME) {
+                                Ok(address) => state = CoordinatorState::Discovered(address),
+                                Err(e) => {
+                                    let _ = app_sender
+                                        .send(CoordinatorMessage::Disconnected(format!(
+                                            "Could not discover coordinator: {e}"
+                                        )))
+                                        .await;
+                                    break;
+                                }
                             }
                         }
                     }

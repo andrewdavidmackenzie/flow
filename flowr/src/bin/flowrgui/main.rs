@@ -470,6 +470,14 @@ pub enum Message {
     /// Breakpoint list received from debug server
     #[cfg(feature = "debugger")]
     DebugBreakpointListReceived(Vec<String>),
+    /// Discover coordinators on the network
+    DiscoverCoordinators,
+    /// Services discovered (label, address)
+    ServicesDiscovered(Vec<(String, String)>),
+    /// User selected a service from the picker
+    ServiceSelected(String, String),
+    /// Close the coordinator picker
+    CloseCoordinatorPicker,
     /// Show the inspect helper popup
     #[cfg(feature = "debugger")]
     ShowInspectPopup,
@@ -552,7 +560,7 @@ pub enum CoordinatorSettings {
     /// Start a server coordinator using the settings supplied
     Server(ServerSettings),
     /// Don't start a coordinator server, just discover existing one on this port
-    ClientOnly(u16),
+    ClientOnly,
 }
 
 #[cfg(feature = "debugger")]
@@ -560,7 +568,6 @@ pub enum CoordinatorSettings {
 enum DebugMode {
     Off,
     GuiLocal,
-    GuiRemote(String),
     External,
 }
 
@@ -703,6 +710,10 @@ struct FlowrGui {
     suppress_next_output: bool,
     #[cfg(feature = "debugger")]
     inspect_tab: InspectTab,
+    show_coordinator_picker: bool,
+    discovered_services: Vec<(String, String)>,
+    discovering: bool,
+    selected_debug_address: Option<String>,
 }
 
 impl FlowrGui {
@@ -747,6 +758,10 @@ impl FlowrGui {
             suppress_next_output: false,
             #[cfg(feature = "debugger")]
             inspect_tab: InspectTab::Function,
+            show_coordinator_picker: false,
+            discovered_services: Vec::new(),
+            discovering: false,
+            selected_debug_address: None,
         };
 
         (flowrgui, Task::none())
@@ -780,6 +795,11 @@ impl FlowrGui {
                 }
             }
             Message::SubmitFlow => {
+                if matches!(self.coordinator_state, CoordinatorState::Disconnected(_))
+                    && matches!(self.coordinator_settings, CoordinatorSettings::ClientOnly)
+                {
+                    return Task::done(Message::DiscoverCoordinators);
+                }
                 if let CoordinatorState::Connected(sender) = &self.coordinator_state {
                     return Task::perform(
                         Self::submit(sender.clone(), self.submission_settings.clone()),
@@ -821,6 +841,11 @@ impl FlowrGui {
                 self.submission_settings.max_jobs_text = value;
             }
             Message::DebugSubmitFlow => {
+                if matches!(self.coordinator_state, CoordinatorState::Disconnected(_))
+                    && matches!(self.coordinator_settings, CoordinatorSettings::ClientOnly)
+                {
+                    return Task::done(Message::DiscoverCoordinators);
+                }
                 if let CoordinatorState::Connected(sender) = &self.coordinator_state {
                     let mut settings = self.submission_settings.clone();
                     settings.debug_this_flow = true;
@@ -839,6 +864,79 @@ impl FlowrGui {
                 }
             }
             Message::UrlChanged(value) => self.submission_settings.flow_manifest_url = value,
+            Message::DiscoverCoordinators => {
+                self.show_coordinator_picker = true;
+                self.discovering = true;
+                self.discovered_services.clear();
+                let discover_debug = self.submission_settings.debug_this_flow;
+                return Task::perform(
+                    async move {
+                        tokio::task::spawn_blocking(move || {
+                            let mut results = Vec::new();
+                            let timeout = std::time::Duration::from_secs(5);
+                            match flowcore::discovery::discover_services(
+                                flowrlib::services::COORDINATOR_SERVICE_NAME,
+                                timeout,
+                            ) {
+                                Ok(coords) => {
+                                    for (addr, _port) in coords {
+                                        results.push(("Coordinator".to_string(), addr));
+                                    }
+                                }
+                                Err(e) => {
+                                    log::error!("Coordinator discovery failed: {e}");
+                                }
+                            }
+                            #[cfg(feature = "debugger")]
+                            if discover_debug {
+                                if let Ok(debugs) = flowcore::discovery::discover_services(
+                                    flowrlib::services::DEBUG_SERVICE_NAME,
+                                    timeout,
+                                ) {
+                                    for (addr, _port) in debugs {
+                                        results.push(("Debug Server".to_string(), addr));
+                                    }
+                                }
+                            }
+                            results
+                        })
+                        .await
+                        .unwrap_or_default()
+                    },
+                    Message::ServicesDiscovered,
+                );
+            }
+            Message::ServicesDiscovered(services) => {
+                self.discovered_services = services;
+                self.discovering = false;
+            }
+            Message::ServiceSelected(service_type, address) => {
+                info!("User selected {service_type} at {address}");
+                if service_type == "Coordinator" {
+                    connection_manager::set_discovered_address(address);
+                    if !self.submission_settings.debug_this_flow
+                        || self
+                            .discovered_services
+                            .iter()
+                            .all(|(t, _)| t != "Debug Server")
+                    {
+                        self.show_coordinator_picker = false;
+                        self.ui_settings.auto_start = true;
+                    }
+                } else if service_type == "Debug Server" {
+                    #[cfg(feature = "debugger")]
+                    {
+                        self.selected_debug_address = Some(address);
+                        self.debug_client_active = true;
+                        self.submission_settings.debug_this_flow = true;
+                    }
+                    self.show_coordinator_picker = false;
+                    self.ui_settings.auto_start = true;
+                }
+            }
+            Message::CloseCoordinatorPicker => {
+                self.show_coordinator_picker = false;
+            }
             Message::TabSelected(_)
             | Message::StdioAutoScrollTogglerChanged(_, _)
             | Message::ClearTab(_)
@@ -952,6 +1050,17 @@ impl FlowrGui {
             .into();
         }
 
+        if self.show_coordinator_picker {
+            let picker = self.coordinator_picker_card();
+            return stack![
+                main_content,
+                opaque(
+                    mouse_area(center(opaque(picker))).on_press(Message::CloseCoordinatorPicker)
+                )
+            ]
+            .into();
+        }
+
         if self.show_modal {
             let modal_card = Card::new(
                 Text::new(self.modal_content.clone().0),
@@ -982,17 +1091,20 @@ impl FlowrGui {
 
         #[cfg(feature = "debugger")]
         if self.debug_client_active {
-            let address = match &self.submission_settings.debug_mode {
-                DebugMode::GuiRemote(addr) => Some(addr.clone()),
-                DebugMode::GuiLocal => {
-                    let port = connection_manager::get_debug_port();
-                    if port > 0 {
-                        Some(format!("localhost:{port}"))
-                    } else {
-                        None
+            let address = if let Some(ref addr) = self.selected_debug_address {
+                Some(addr.clone())
+            } else {
+                match &self.submission_settings.debug_mode {
+                    DebugMode::GuiLocal => {
+                        let port = connection_manager::get_debug_port();
+                        if port > 0 {
+                            Some(format!("localhost:{port}"))
+                        } else {
+                            None
+                        }
                     }
+                    _ => None,
                 }
-                _ => None,
             };
             if let Some(addr) = address {
                 return Subscription::batch([
@@ -1070,7 +1182,9 @@ impl FlowrGui {
             .on_input(Message::MaxJobsChanged)
             .width(80);
 
-        let can_run = matches!(self.coordinator_state, CoordinatorState::Connected(_))
+        let is_client_mode = matches!(self.coordinator_settings, CoordinatorSettings::ClientOnly);
+        let can_run = (matches!(self.coordinator_state, CoordinatorState::Connected(_))
+            || is_client_mode)
             && !self.running
             && !self.submitted;
 
@@ -1105,6 +1219,69 @@ impl FlowrGui {
             .push(max_jobs)
             .push(play)
             .push(debug_play)
+    }
+
+    fn coordinator_picker_card(&self) -> Card<'_, Message> {
+        use iced::widget::scrollable::Scrollable;
+        use iced::Length;
+
+        let mut items = Column::new().spacing(4);
+
+        if self.discovering {
+            items = items.push(
+                Text::new("Discovering services...")
+                    .size(14)
+                    .color(iced::Color::from_rgb(0.6, 0.6, 0.6)),
+            );
+        } else if self.discovered_services.is_empty() {
+            items = items.push(
+                Text::new("No services found on the network")
+                    .size(14)
+                    .color(iced::Color::from_rgb(0.8, 0.4, 0.4)),
+            );
+        } else {
+            if self.submission_settings.debug_this_flow {
+                items = items.push(
+                    Text::new("Select a coordinator, then a debug server")
+                        .size(12)
+                        .color(iced::Color::from_rgb(0.6, 0.6, 0.6)),
+                );
+            }
+            for (service_type, address) in &self.discovered_services {
+                let is_coord_selected =
+                    service_type == "Coordinator" && connection_manager::has_discovered_address();
+                let label = if is_coord_selected {
+                    format!("\u{2714} {service_type}: {address}")
+                } else {
+                    format!("{service_type}: {address}")
+                };
+                let btn = Button::new(Text::new(label).size(14))
+                    .width(Length::Fill)
+                    .padding([6, 10])
+                    .style(theme::list_button)
+                    .on_press(Message::ServiceSelected(
+                        service_type.clone(),
+                        address.clone(),
+                    ));
+                items = items.push(btn);
+            }
+        }
+
+        let list = Scrollable::new(items)
+            .height(Length::Fixed(200.0))
+            .width(Length::Fill);
+
+        let body = Column::new().spacing(8).push(list);
+
+        Card::new(Text::new("Discover Coordinators"), body)
+            .foot(
+                Button::new(Text::new("Close").align_x(Center))
+                    .width(Fill)
+                    .on_press(Message::CloseCoordinatorPicker)
+                    .style(theme::styled_button)
+                    .padding([4, 8]),
+            )
+            .max_width(450.0)
     }
 
     #[cfg(feature = "debugger")]
@@ -1676,12 +1853,8 @@ impl FlowrGui {
         #[cfg(feature = "debugger")]
         let debug_mode = if matches.get_flag("external-debugger") {
             DebugMode::External
-        } else if let Some(val) = matches.get_one::<String>("debugger") {
-            if val.is_empty() {
-                DebugMode::GuiLocal
-            } else {
-                DebugMode::GuiRemote(val.clone())
-            }
+        } else if matches.get_flag("debugger") {
+            DebugMode::GuiLocal
         } else {
             DebugMode::Off
         };
@@ -1690,8 +1863,8 @@ impl FlowrGui {
         #[cfg(not(feature = "debugger"))]
         let debug_this_flow = false;
 
-        let coordinator_settings = if let Some(port) = matches.get_one::<u16>("client") {
-            CoordinatorSettings::ClientOnly(*port)
+        let coordinator_settings = if matches.get_flag("client") {
+            CoordinatorSettings::ClientOnly
         } else {
             let lib_dirs = if matches.contains_id("lib_dir") {
                 if let Some(dirs) = matches.get_many::<String>("lib_dir") {
@@ -1721,7 +1894,9 @@ impl FlowrGui {
         let auto = matches.get_flag("auto");
         let mut auto_start = auto || matches.get_flag("auto-start");
         #[cfg(feature = "debugger")]
-        if debug_mode != DebugMode::Off {
+        if debug_mode != DebugMode::Off
+            && !matches!(coordinator_settings, CoordinatorSettings::ClientOnly)
+        {
             auto_start = true;
         }
 
@@ -1753,10 +1928,8 @@ impl FlowrGui {
                 Arg::new("debugger")
                     .short('d')
                     .long("debugger")
-                    .num_args(0..=1)
-                    .default_missing_value("")
-                    .value_name("HOST:PORT")
-                    .help("Debug with GUI debugger. No value: local. With HOST:PORT: remote"),
+                    .action(clap::ArgAction::SetTrue)
+                    .help("Enable debugging (use with -c for remote, or alone for local)"),
             )
             .arg(
                 Arg::new("external-debugger")
@@ -1778,9 +1951,8 @@ impl FlowrGui {
             Arg::new("client")
                 .short('c')
                 .long("client")
-                .number_of_values(1)
-                .value_parser(clap::value_parser!(u16))
-                .help("Launch only a client (no coordinator) to connect to a remote coordinator"),
+                .action(clap::ArgAction::SetTrue)
+                .help("Client only — discover and connect to a remote coordinator"),
         );
 
         let app = app.arg(
@@ -2527,7 +2699,7 @@ mod test {
                 #[cfg(feature = "debugger")]
                 debug_mode: DebugMode::Off,
             },
-            coordinator_settings: CoordinatorSettings::ClientOnly(0),
+            coordinator_settings: CoordinatorSettings::ClientOnly,
             ui_settings: UiSettings {
                 auto_start: false,
                 auto_exit: false,
@@ -2563,6 +2735,10 @@ mod test {
             suppress_next_output: false,
             #[cfg(feature = "debugger")]
             inspect_tab: InspectTab::Function,
+            show_coordinator_picker: false,
+            discovered_services: Vec::new(),
+            discovering: false,
+            selected_debug_address: None,
         }
     }
 

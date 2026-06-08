@@ -94,3 +94,52 @@ pub fn discover_service(name: &str) -> Result<String> {
         }
     }
 }
+
+/// Discover all instances of a service by name using mDNS-SD.
+///
+/// Scans for the given timeout and returns all matching services found as
+/// `(address, port)` pairs.
+///
+/// # Errors
+/// - Cannot create `ServiceDaemon`
+/// - Cannot get receiver for discovery messages
+pub fn discover_services(name: &str, timeout: Duration) -> Result<Vec<(String, u16)>> {
+    let mdns = ServiceDaemon::new().map_err(|e| format!("Could not create mDNS daemon: {e}"))?;
+
+    let receiver = mdns
+        .browse(FLOW_SERVICE_TYPE)
+        .map_err(|e| format!("Could not browse for mDNS services: {e}"))?;
+
+    let full_name_suffix = format!(".{FLOW_SERVICE_TYPE}");
+    let start = Instant::now();
+    let mut results = Vec::new();
+
+    loop {
+        if start.elapsed() > timeout {
+            break;
+        }
+
+        if let Ok(ServiceEvent::ServiceResolved(info)) =
+            receiver.recv_timeout(Duration::from_millis(500))
+        {
+            let instance = info
+                .get_fullname()
+                .strip_suffix(&full_name_suffix)
+                .unwrap_or(info.get_fullname());
+
+            if instance == name {
+                let port = info.get_port();
+                if let Some(addr) = info.get_addresses_v4().into_iter().next() {
+                    let address = format!("{addr}:{port}");
+                    if !results.iter().any(|(a, _): &(String, u16)| *a == address) {
+                        info!("Discovered mDNS service '{name}' at {address}");
+                        results.push((address, port));
+                    }
+                }
+            }
+        }
+    }
+
+    mdns.shutdown().ok();
+    Ok(results)
+}
