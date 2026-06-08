@@ -228,22 +228,23 @@ impl TabSet {
                 let palette = theme.palette();
                 iced::widget::container::Style {
                     background: Some(Background::Color(iced::Color {
-                        a: 0.05,
+                        a: 0.08,
                         ..palette.text
                     })),
                     border: Border {
-                        color: iced::Color {
-                            a: 0.15,
-                            ..palette.text
-                        },
-                        width: 1.0,
-                        radius: 4.0.into(),
+                        color: iced::Color::TRANSPARENT,
+                        width: 0.0,
+                        radius: 0.0.into(),
                     },
                     ..Default::default()
                 }
             });
 
-        Column::new().push(tab_bar).push(content_panel).into()
+        Column::new()
+            .spacing(0)
+            .push(tab_bar)
+            .push(content_panel)
+            .into()
     }
 
     pub(crate) fn clear(&mut self) {
@@ -274,12 +275,18 @@ fn tab_button_style(
 ) -> iced::widget::button::Style {
     let palette = theme.palette();
     let active_bg = iced::Color {
-        a: 0.05,
+        a: 0.08,
         ..palette.text
+    };
+    let top_only = iced::border::Radius {
+        top_left: 4.0,
+        top_right: 4.0,
+        bottom_right: 0.0,
+        bottom_left: 0.0,
     };
     let base = iced::widget::button::Style {
         border: Border {
-            radius: 4.0.into(),
+            radius: top_only,
             width: 0.0,
             color: iced::Color::TRANSPARENT,
         },
@@ -290,11 +297,6 @@ fn tab_button_style(
         iced::widget::button::Style {
             background: Some(Background::Color(active_bg)),
             text_color: palette.text,
-            border: Border {
-                radius: 4.0.into(),
-                width: 0.0,
-                color: iced::Color::TRANSPARENT,
-            },
             ..base
         }
     } else {

@@ -1071,7 +1071,7 @@ impl FlowrGui {
         let main_content = main_content
             .push(self.tab_set.view())
             .push(self.status_bar())
-            .padding(16);
+            .padding([theme::SPACE_SM, theme::SPACE_MD]);
 
         #[cfg(feature = "debugger")]
         if self.show_bp_popup {
