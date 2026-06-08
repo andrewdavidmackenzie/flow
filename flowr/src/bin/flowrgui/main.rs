@@ -2842,4 +2842,108 @@ mod test {
         drop(gui.update(Message::Submitted));
         assert!(gui.tab_set.flow_name.is_empty());
     }
+
+    // ---- iced_test view rendering tests ----
+
+    #[test]
+    fn main_view_renders_without_panic() {
+        use iced_test::simulator::simulator;
+        let gui = test_gui();
+        let view = gui.view();
+        let _ui = simulator(view);
+    }
+
+    #[cfg(feature = "debugger")]
+    #[test]
+    fn debug_view_renders_when_active() {
+        use iced_test::simulator::simulator;
+        let mut gui = test_gui();
+        gui.debug_client_active = true;
+        gui.debug_waiting = true;
+        let view = gui.view();
+        let _ui = simulator(view);
+    }
+
+    #[cfg(feature = "debugger")]
+    #[test]
+    fn debug_view_renders_when_not_waiting() {
+        use iced_test::simulator::simulator;
+        let mut gui = test_gui();
+        gui.debug_client_active = true;
+        gui.debug_waiting = false;
+        let view = gui.view();
+        let _ui = simulator(view);
+    }
+
+    #[cfg(feature = "debugger")]
+    #[test]
+    fn debug_reset_clears_waiting() {
+        let mut gui = test_gui();
+        gui.debug_client_active = true;
+        gui.debug_waiting = true;
+        drop(gui.update(Message::DebugReset));
+        assert!(!gui.debug_waiting);
+    }
+
+    #[test]
+    fn view_renders_after_submitted() {
+        use iced_test::simulator::simulator;
+        let mut gui = test_gui();
+        gui.submission_settings.flow_manifest_url = "flowr/examples/fibonacci/manifest.json".into();
+        drop(gui.update(Message::Submitted));
+        let view = gui.view();
+        let _ui = simulator(view);
+    }
+
+    #[test]
+    fn view_renders_with_error_modal() {
+        use iced_test::simulator::simulator;
+        let mut gui = test_gui();
+        drop(gui.update(Message::SubmitError("test error".into())));
+        assert!(gui.show_modal);
+        let view = gui.view();
+        let _ui = simulator(view);
+    }
+
+    #[test]
+    fn view_renders_after_tab_switch() {
+        use iced_test::simulator::simulator;
+        let mut gui = test_gui();
+        drop(gui.update(Message::TabSelected(1)));
+        let view = gui.view();
+        let _ui = simulator(view);
+    }
+
+    #[cfg(feature = "debugger")]
+    #[test]
+    fn view_renders_with_breakpoint_popup() {
+        use iced_test::simulator::simulator;
+        let mut gui = test_gui();
+        gui.debug_client_active = true;
+        gui.debug_waiting = true;
+        gui.show_bp_popup = true;
+        let view = gui.view();
+        let _ui = simulator(view);
+    }
+
+    #[cfg(feature = "debugger")]
+    #[test]
+    fn view_renders_with_inspect_popup() {
+        use iced_test::simulator::simulator;
+        let mut gui = test_gui();
+        gui.debug_client_active = true;
+        gui.debug_waiting = true;
+        gui.show_inspect_popup = true;
+        let view = gui.view();
+        let _ui = simulator(view);
+    }
+
+    #[test]
+    fn view_renders_with_coordinator_picker() {
+        use iced_test::simulator::simulator;
+        let mut gui = test_gui();
+        gui.show_coordinator_picker = true;
+        let view = gui.view();
+        let _ui = simulator(view);
+    }
 }
