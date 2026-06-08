@@ -1938,21 +1938,9 @@ impl FlowrGui {
             }
         }
 
-        let rule = iced::widget::rule::horizontal(1);
-
-        Column::new().push(rule).push(
+        Column::new().push(
             iced::widget::Container::new(row)
-                .padding([theme::SPACE_SM, theme::SPACE_MD])
-                .style(|theme: &iced::Theme| {
-                    let palette = theme.palette();
-                    iced::widget::container::Style {
-                        background: Some(iced::Background::Color(iced::Color {
-                            a: 0.12,
-                            ..palette.text
-                        })),
-                        ..Default::default()
-                    }
-                })
+                .padding([theme::SPACE_XS, theme::SPACE_MD])
                 .width(iced::Length::Fill),
         )
     }

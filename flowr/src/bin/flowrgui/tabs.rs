@@ -234,7 +234,12 @@ impl TabSet {
                     border: Border {
                         color: iced::Color::TRANSPARENT,
                         width: 0.0,
-                        radius: 0.0.into(),
+                        radius: iced::border::Radius {
+                            top_left: 0.0,
+                            top_right: 0.0,
+                            bottom_left: 6.0,
+                            bottom_right: 6.0,
+                        },
                     },
                     ..Default::default()
                 }
@@ -360,6 +365,7 @@ impl Tab for StdOutTab {
             .on_toggle(|v| Message::StdioAutoScrollTogglerChanged(self.id.clone(), v))
             .size(14.0)
             .text_size(crate::theme::FONT_DEFAULT)
+            .style(crate::theme::accent_toggler)
             .width(Length::Shrink);
 
         let save_button = Button::new(Text::new("Save").size(crate::theme::FONT_DEFAULT))
@@ -768,6 +774,7 @@ impl Tab for DebugTab {
             .on_toggle(|v| Message::StdioAutoScrollTogglerChanged(self.id.clone(), v))
             .size(14.0)
             .text_size(crate::theme::FONT_DEFAULT)
+            .style(crate::theme::accent_toggler)
             .width(Length::Shrink);
 
         let save_button = Button::new(Text::new("Save").size(crate::theme::FONT_DEFAULT))

@@ -261,6 +261,65 @@ pub(crate) fn list_button(theme: &Theme, status: button::Status) -> button::Styl
     }
 }
 
+// ── Toggler style ───────────────────────────────────────────────────────────
+
+pub fn accent_toggler(
+    theme: &Theme,
+    status: iced::widget::toggler::Status,
+) -> iced::widget::toggler::Style {
+    let palette = theme.palette();
+    let make_style = |bg: Color, fg: Color| iced::widget::toggler::Style {
+        background: Background::Color(bg),
+        foreground: Background::Color(fg),
+        foreground_border_width: 0.0,
+        foreground_border_color: Color::TRANSPARENT,
+        background_border_width: 0.0,
+        background_border_color: Color::TRANSPARENT,
+        text_color: Some(palette.text),
+        border_radius: None,
+        padding_ratio: 0.1,
+    };
+
+    match status {
+        iced::widget::toggler::Status::Active { is_toggled } => {
+            if is_toggled {
+                make_style(ACCENT, palette.text)
+            } else {
+                make_style(
+                    Color {
+                        a: 0.2,
+                        ..palette.text
+                    },
+                    palette.text,
+                )
+            }
+        }
+        iced::widget::toggler::Status::Hovered { is_toggled } => {
+            if is_toggled {
+                make_style(lighten(ACCENT, 0.15), Color::WHITE)
+            } else {
+                make_style(
+                    Color {
+                        a: 0.3,
+                        ..palette.text
+                    },
+                    Color::WHITE,
+                )
+            }
+        }
+        iced::widget::toggler::Status::Disabled { .. } => make_style(
+            Color {
+                a: 0.1,
+                ..palette.text
+            },
+            Color {
+                a: 0.3,
+                ..palette.text
+            },
+        ),
+    }
+}
+
 // ── Text input style ────────────────────────────────────────────────────────
 
 pub fn pill_input(
