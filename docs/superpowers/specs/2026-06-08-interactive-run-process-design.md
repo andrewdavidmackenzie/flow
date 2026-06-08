@@ -42,7 +42,7 @@ Prompt for every input, one at a time. Pre-fill with defaults where available:
 - Else no default (user must provide a value)
 
 Prompt format:
-```
+```text
 input_name (Type) [default_value]: _
 input_name: _                          # generic, no default
 ```
@@ -105,7 +105,7 @@ flow is automatically reset back to init state.
 ### CLI
 
 Print each output prefixed with its route:
-```
+```text
 /flow/add/output: 42
 /flow/add/remainder: 2
 ```
@@ -127,17 +127,17 @@ Panel has a close/dismiss button. Disappears on close or next command.
 
 ## DebugCommand Changes
 
-`RunReset` changes from a unit variant to:
+`RunReset` changes from a unit variant to a tuple variant:
 
 ```rust
-RunReset {
-    target: Option<ProcessTarget>,  // None = root flow
-    args: Vec<String>,              // inline input values
-}
+RunReset(Option<ProcessTarget>, Vec<String>)
 ```
+
+Where the first field is the optional target (`None` = root flow) and the second
+is inline input values (empty vec when none provided).
 
 ## Scope
 
-- Both functions and sub-flows supported
+- Functions supported; sub-flow execution deferred to a follow-up
 - Both CLI (flowrdb) and GUI (flowrgui)
 - Sandboxed execution via init-state requirement + auto-reset

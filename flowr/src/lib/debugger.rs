@@ -796,14 +796,9 @@ impl<'a> Debugger<'a> {
         }
 
         let mut coerced_values = Vec::new();
-        for (name, generic, default) in &input_info {
+        for (_name, _generic, default) in &input_info {
             let raw = default.as_ref().ok_or("Missing input value")?;
-            let value = if *generic {
-                crate::coerce_value::coerce_generic(raw)
-            } else {
-                crate::coerce_value::coerce_typed(raw, "Value", name)?
-            };
-            coerced_values.push(value);
+            coerced_values.push(crate::coerce_value::coerce_generic(raw));
         }
 
         let func = state.get_mut(process_id).ok_or("Could not get function")?;

@@ -10,7 +10,7 @@
 
 ---
 
-### Task 1: Add `ProcessTarget` enum and extend `DebugCommand::RunReset`
+## Task 1: Add `ProcessTarget` enum and extend `DebugCommand::RunReset`
 
 **Files:**
 - Modify: `flowcore/src/model/debug_command.rs`
@@ -84,7 +84,7 @@ Add `ProcessTarget` to the imports at top of file.
 
 In `debug_client.rs`, update the `'r'` line in `HELP_STRING`:
 
-```
+```text
 'r' | 'reset' or 'run' [target] [args]  - Reset/run: no args runs root flow,
                                  target can be function ID, /route, or name
                                  args are space-separated input values
@@ -109,7 +109,7 @@ git commit -m "feat: extend RunReset command with optional process target and ar
 
 ---
 
-### Task 2: Add `Input::is_generic()` accessor
+## Task 2: Add `Input::is_generic()` accessor
 
 **Files:**
 - Modify: `flowcore/src/model/input.rs`
@@ -137,7 +137,7 @@ git commit -m "feat: add Input::is_generic() accessor for debugger input prompts
 
 ---
 
-### Task 3: Add `coerce_value` module for type conversion
+## Task 3: Add `coerce_value` module for type conversion
 
 **Files:**
 - Create: `flowr/src/lib/coerce_value.rs`
@@ -327,7 +327,7 @@ git commit -m "feat: add coerce_value module for input type conversion (#2021)"
 
 ---
 
-### Task 4: Add target resolution in the debugger
+## Task 4: Add target resolution in the debugger
 
 **Files:**
 - Modify: `flowr/src/lib/debugger.rs`
@@ -435,7 +435,7 @@ git commit -m "feat: add process target resolution for run command (#2021)"
 
 ---
 
-### Task 5: Implement CLI input gathering and execution
+## Task 5: Implement CLI input gathering and execution
 
 **Files:**
 - Modify: `flowr/src/lib/debugger.rs`
@@ -850,7 +850,7 @@ git commit -m "feat: implement CLI input gathering and process execution (#2021)
 
 ---
 
-### Task 6: Handle sub-flow execution
+## Task 6: Handle sub-flow execution
 
 **Files:**
 - Modify: `flowr/src/lib/debugger.rs`
@@ -907,7 +907,7 @@ git commit -m "feat: add sub-flow execution stub with informative message (#2021
 
 ---
 
-### Task 7: Add GUI input panel (stub)
+## Task 7: Add GUI input panel (stub)
 
 **Files:**
 - Modify: `flowr/src/bin/flowrgui/main.rs`
@@ -939,7 +939,7 @@ git commit -m "feat: wire up GUI for RunReset with target, stub input panel (#20
 
 ---
 
-### Task 8: Final integration testing and PR
+## Task 8: Final integration testing and PR
 
 - [ ] **Step 1: Run full test suite**
 
