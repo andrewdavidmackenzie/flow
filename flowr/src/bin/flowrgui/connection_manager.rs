@@ -1245,6 +1245,16 @@ fn format_inspect_flow(
 
     if let Some(func) = functions.get(&flow_id) {
         lines.push(entity_line(func, "", LinkType::Flow, ""));
+    } else {
+        lines.push(
+            DebugLineBuilder::new()
+                .chip(
+                    &format!("flow #{flow_id}"),
+                    &flow_id.to_string(),
+                    LinkType::Flow,
+                )
+                .finish(),
+        );
     }
 
     if let Some(flow_info) = manifest.flows().get(&flow_id) {
