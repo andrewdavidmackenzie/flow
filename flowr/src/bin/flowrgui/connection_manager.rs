@@ -1028,7 +1028,6 @@ fn format_run_state(run_state: &flowrlib::run_state::RunState) -> Vec<crate::Deb
     let manifest = &run_state.get_submission().manifest;
 
     // Process tree — flows as collapsible nodes containing their functions
-    lines.push(DebugEventLine::new("Process Tree:".into(), None));
     let functions = run_state.get_functions();
     let mut by_parent: BTreeMap<usize, Vec<&flowcore::model::runtime_function::RuntimeFunction>> =
         BTreeMap::new();
