@@ -622,7 +622,7 @@ fn format_debug_event(message: &DebugServerMessage) -> Vec<crate::DebugEventLine
             format!("Waiting for command (Job #{job_id})"),
             Some(debug_colors::STATUS),
         ),
-        DebugServerMessage::ProcessTree(ref state) => format_process_tree(state),
+        DebugServerMessage::ProcessTree(ref state) => format_run_state(state),
         DebugServerMessage::InspectByState(ref state_name, ref state) => {
             format_inspect_by_state(state_name, state)
         }
@@ -1075,100 +1075,6 @@ fn format_run_state(run_state: &flowrlib::run_state::RunState) -> Vec<crate::Deb
         lines.push(b.finish());
     }
 
-    lines
-}
-
-// Return addresses and ports to be used for each of the three queues
-#[cfg(feature = "debugger")]
-fn format_process_tree(run_state: &flowrlib::run_state::RunState) -> Vec<crate::DebugEventLine> {
-    use crate::DebugEventLine;
-    use std::collections::BTreeMap;
-
-    fn add_tree(
-        lines: &mut Vec<crate::DebugEventLine>,
-        by_parent: &BTreeMap<usize, Vec<&flowcore::model::runtime_function::RuntimeFunction>>,
-        run_state: &flowrlib::run_state::RunState,
-        parent_id: usize,
-        depth: usize,
-    ) {
-        if let Some(children) = by_parent.get(&parent_id) {
-            for child in children {
-                if child.id() == parent_id {
-                    continue;
-                }
-                let indent = "  ".repeat(depth);
-                let states = run_state.get_function_states(child.id());
-                let is_flow = run_state
-                    .get_submission()
-                    .manifest
-                    .flows()
-                    .contains_key(&child.id());
-                let link_type = if is_flow {
-                    crate::LinkType::Flow
-                } else {
-                    crate::LinkType::Function
-                };
-                lines.push(entity_line(
-                    child,
-                    &indent,
-                    link_type,
-                    &format!(" {states:?}"),
-                ));
-                if by_parent.contains_key(&child.id()) {
-                    add_tree(lines, by_parent, run_state, child.id(), depth + 1);
-                }
-            }
-        }
-    }
-
-    let mut lines = Vec::new();
-    let functions = run_state.get_functions();
-    let mut by_parent: BTreeMap<usize, Vec<&flowcore::model::runtime_function::RuntimeFunction>> =
-        BTreeMap::new();
-    for func in functions.values() {
-        by_parent
-            .entry(func.get_parent_id())
-            .or_default()
-            .push(func);
-    }
-    for children in by_parent.values_mut() {
-        children.sort_by_key(|f| f.id());
-    }
-
-    let root_parents: Vec<usize> = by_parent
-        .keys()
-        .filter(|pid| !functions.contains_key(pid))
-        .copied()
-        .collect();
-    for root_id in root_parents {
-        if let Some(func) = functions.get(&root_id) {
-            let states = run_state.get_function_states(root_id);
-            lines.push(entity_line(
-                func,
-                "",
-                crate::LinkType::Flow,
-                &format!(" {states:?}"),
-            ));
-        } else {
-            lines.push(DebugEventLine::new(format!("Flow #{root_id}"), None));
-        }
-        add_tree(&mut lines, &by_parent, run_state, root_id, 1);
-    }
-    let mut self_roots: Vec<_> = functions
-        .values()
-        .filter(|func| func.get_parent_id() == func.id())
-        .collect();
-    self_roots.sort_by_key(|f| f.id());
-    for func in self_roots {
-        let states = run_state.get_function_states(func.id());
-        lines.push(entity_line(
-            func,
-            "",
-            crate::LinkType::Flow,
-            &format!(" {states:?}"),
-        ));
-        add_tree(&mut lines, &by_parent, run_state, func.id(), 1);
-    }
     lines
 }
 
