@@ -843,7 +843,7 @@ impl<'a> Debugger<'a> {
             if let Some(parent) = flow_info.parent_id {
                 let _ = writeln!(response, "Parent: Flow #{parent}");
             } else {
-                let _ = writeln!(response, "Parent: root");
+                let _ = writeln!(response, "Parent: (none — this is the root flow)");
             }
             if !flow_info.sub_flow_ids.is_empty() {
                 let subs: Vec<String> = flow_info

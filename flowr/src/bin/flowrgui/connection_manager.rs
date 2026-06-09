@@ -456,7 +456,6 @@ fn rewrite_for_gui(msg: &str) -> String {
 
 /// Format a `DebugServerMessage` into colored lines for the debug tab
 #[cfg(feature = "debugger")]
-#[cfg(feature = "debugger")]
 fn entity_line(
     func: &flowcore::model::runtime_function::RuntimeFunction,
     indent: &str,
@@ -480,6 +479,7 @@ fn entity_line(
         .finish()
 }
 
+#[cfg(feature = "debugger")]
 #[allow(clippy::too_many_lines)]
 fn format_debug_event(message: &DebugServerMessage) -> Vec<crate::DebugEventLine> {
     use crate::theme::debug_colors;
@@ -946,7 +946,7 @@ fn format_run_state(run_state: &flowrlib::run_state::RunState) -> Vec<crate::Deb
                 b = flow_chip_short(b, parent);
                 b = b.text(")");
             } else {
-                b = b.text(" (root)");
+                b = b.text(" (root flow)");
             }
             if !flow.sub_flow_ids.is_empty() {
                 b = b.text(" sub-flows: [");
