@@ -1003,65 +1003,54 @@ fn format_run_state(run_state: &flowrlib::run_state::RunState) -> Vec<crate::Deb
 
     // Running jobs
     let running = run_state.get_running();
-    let mut b = DebugLineBuilder::new()
-        .text("  ")
-        .chip("Jobs Running:", "running", LinkType::State)
-        .text(&format!(" {} ", running.len()));
+    let mut b = DebugLineBuilder::new().text("  ").chip(
+        &format!("Jobs Running ({}):", running.len()),
+        "running",
+        LinkType::State,
+    );
     if !running.is_empty() {
-        b = b.text("[");
         let mut sorted_running: Vec<_> = running.iter().collect();
         sorted_running.sort_by_key(|(id, _)| *id);
-        for (i, (job_id, job)) in sorted_running.iter().enumerate() {
-            if i > 0 {
-                b = b.text(", ");
-            }
-            b = b.chip(
+        for (job_id, job) in &sorted_running {
+            b = b.text(" ").chip(
                 &format!("Job #{job_id}"),
                 &job.process_id.to_string(),
                 LinkType::Job,
             );
         }
-        b = b.text("]");
     }
     lines.push(b.finish());
 
     // Ready jobs
     let ready = run_state.get_ready_jobs();
-    let mut b = DebugLineBuilder::new()
-        .text("  ")
-        .chip("Jobs Ready:", "ready", LinkType::State)
-        .text(&format!(" {} ", ready.len()));
-    if !ready.is_empty() {
-        b = b.text("[");
-        for (i, job) in ready.iter().enumerate() {
-            if i > 0 {
-                b = b.text(", ");
-            }
-            b = b.chip(
-                &format!("Job #{}", job.payload.job_id),
-                &job.process_id.to_string(),
-                LinkType::Job,
-            );
-        }
-        b = b.text("]");
+    let mut b = DebugLineBuilder::new().text("  ").chip(
+        &format!("Jobs Ready ({}):", ready.len()),
+        "ready",
+        LinkType::State,
+    );
+    for job in ready {
+        b = b.text(" ").chip(
+            &format!("Job #{}", job.payload.job_id),
+            &job.process_id.to_string(),
+            LinkType::Job,
+        );
     }
     lines.push(b.finish());
 
     // Completed functions
     let completed = run_state.get_completed();
-    let mut b = DebugLineBuilder::new()
-        .text("  ")
-        .chip("Functions Completed:", "completed", LinkType::State)
-        .text(&format!(" {} ", completed.len()));
+    let mut b = DebugLineBuilder::new().text("  ").chip(
+        &format!("Functions Completed ({}):", completed.len()),
+        "completed",
+        LinkType::State,
+    );
     if !completed.is_empty() {
-        b = b.text("[");
         let mut sorted: Vec<_> = completed.iter().collect();
         sorted.sort();
-        for (i, id) in sorted.iter().enumerate() {
-            if i > 0 {
-                b = b.text(", ");
-            }
-            b = b.chip(&format!("#{id}"), &id.to_string(), LinkType::Function);
+        for id in &sorted {
+            b = b
+                .text(" ")
+                .chip(&format!("#{id}"), &id.to_string(), LinkType::Function);
         }
         b = b.text("]");
     }
