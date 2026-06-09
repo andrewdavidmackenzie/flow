@@ -262,6 +262,13 @@ impl RunState {
             states.push(State::Completed);
         }
 
+        for job in self.running_jobs.values() {
+            if job.process_id == function_id {
+                states.push(State::Running);
+                break;
+            }
+        }
+
         for ready_job in &self.ready_jobs {
             if ready_job.process_id == function_id {
                 states.push(State::Ready);

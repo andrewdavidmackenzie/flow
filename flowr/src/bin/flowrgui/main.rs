@@ -2383,9 +2383,6 @@ impl FlowrGui {
             }
             Message::DebugWaiting => {
                 self.debug_waiting = true;
-                if self.cached_functions.is_empty() {
-                    return self.process_debug_message(Message::DebugFunctions(false));
-                }
             }
             Message::DebugConnected => {
                 self.tab_set
