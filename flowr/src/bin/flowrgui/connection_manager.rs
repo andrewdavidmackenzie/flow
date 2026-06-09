@@ -922,18 +922,17 @@ fn format_run_state(run_state: &flowrlib::run_state::RunState) -> Vec<crate::Deb
         by_parent: &BTreeMap<usize, Vec<&flowcore::model::runtime_function::RuntimeFunction>>,
         run_state: &flowrlib::run_state::RunState,
         flow_id: usize,
-        depth: usize,
+        continuation: &str,
+        connector: &str,
     ) {
         let manifest = &run_state.get_submission().manifest;
         let functions = run_state.get_functions();
-        let indent = "    ".repeat(depth + 1);
 
         // Emit the flow node itself as a collapsible separator
         let mut flow_line = if let Some(func) = functions.get(&flow_id) {
-            entity_line(func, &indent, crate::LinkType::Flow, "")
+            entity_line(func, "", crate::LinkType::Flow, "")
         } else {
             crate::DebugLineBuilder::new()
-                .text(&indent)
                 .chip(
                     &format!("flow #{flow_id}"),
                     &flow_id.to_string(),
@@ -942,33 +941,58 @@ fn format_run_state(run_state: &flowrlib::run_state::RunState) -> Vec<crate::Deb
                 .finish()
         };
         flow_line.separator = true;
+        flow_line.tree_prefix = format!("{continuation}{connector}");
         lines.push(flow_line);
 
-        // Add sub-flows first
-        if let Some(flow_info) = manifest.flows().get(&flow_id) {
-            let mut sub_ids = flow_info.sub_flow_ids.clone();
-            sub_ids.sort();
-            for sub_id in sub_ids {
-                add_flow_tree(lines, by_parent, run_state, sub_id, depth + 1);
-            }
+        // Build child continuation prefix: if this node used ├─ there are more
+        // siblings so draw │, if └─ this is the last so use blank space
+        let child_cont = if connector == "└─" {
+            format!("{continuation}   ")
+        } else if connector == "├─" {
+            format!("{continuation}│  ")
+        } else {
+            continuation.to_string()
+        };
+
+        // Collect all children: sub-flows first, then functions
+        let mut sub_ids = manifest
+            .flows()
+            .get(&flow_id)
+            .map(|fi| {
+                let mut ids = fi.sub_flow_ids.clone();
+                ids.sort();
+                ids
+            })
+            .unwrap_or_default();
+        let func_children: Vec<_> = by_parent
+            .get(&flow_id)
+            .map(|children| children.iter().filter(|c| c.id() != flow_id).collect())
+            .unwrap_or_default();
+        let total_children = sub_ids.len() + func_children.len();
+
+        // Emit sub-flows
+        let mut child_idx = 0;
+        for sub_id in sub_ids.drain(..) {
+            child_idx += 1;
+            let is_last = child_idx == total_children;
+            let conn = if is_last { "└─" } else { "├─" };
+            add_flow_tree(lines, by_parent, run_state, sub_id, &child_cont, conn);
         }
 
-        // Add direct function children
-        if let Some(children) = by_parent.get(&flow_id) {
-            for child in children {
-                if child.id() == flow_id {
-                    continue;
-                }
-                let child_indent = "    ".repeat(depth + 2);
-                let states = run_state.get_function_states(child.id());
-                let line = entity_line(
-                    child,
-                    &child_indent,
-                    crate::LinkType::Function,
-                    &format!(" {states:?}"),
-                );
-                lines.push(line);
-            }
+        // Emit direct function children
+        for child in &func_children {
+            child_idx += 1;
+            let is_last = child_idx == total_children;
+            let conn = if is_last { "└─" } else { "├─" };
+            let states = run_state.get_function_states(child.id());
+            let mut line = entity_line(
+                child,
+                "",
+                crate::LinkType::Function,
+                &format!(" {states:?}"),
+            );
+            line.tree_prefix = format!("{child_cont}{conn}");
+            lines.push(line);
         }
     }
 
@@ -994,14 +1018,15 @@ fn format_run_state(run_state: &flowrlib::run_state::RunState) -> Vec<crate::Deb
     }
 
     // Find root flow(s) and walk the hierarchy
-    let root_flows: Vec<usize> = manifest
+    let mut root_flows: Vec<usize> = manifest
         .flows()
         .iter()
         .filter(|(_, info)| info.parent_id.is_none())
         .map(|(id, _)| *id)
         .collect();
-    for root_id in root_flows {
-        add_flow_tree(&mut lines, &by_parent, run_state, root_id, 0);
+    root_flows.sort();
+    for root_id in &root_flows {
+        add_flow_tree(&mut lines, &by_parent, run_state, *root_id, "", "");
     }
 
     // RunState stats

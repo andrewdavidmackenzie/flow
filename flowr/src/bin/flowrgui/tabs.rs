@@ -687,6 +687,7 @@ impl DebugTab {
             separator: false,
             links: Vec::new(),
             section_id: 0,
+            tree_prefix: String::new(),
         });
     }
 
@@ -721,8 +722,22 @@ impl Tab for DebugTab {
                     if line.separator {
                         let color = line.color.unwrap_or(iced::Color::WHITE);
                         let is_collapsed = self.collapsed.contains(&line.section_id);
-                        let indicator = if is_collapsed { "\u{25B6}" } else { "\u{25BC}" };
                         let section_id = line.section_id;
+                        let has_chips = !line.links.is_empty();
+                        let has_tree = !line.tree_prefix.is_empty();
+
+                        // Tree nodes use [+]/[-], section headers use ▶/▼
+                        let indicator = if has_tree || has_chips {
+                            if is_collapsed {
+                                "[+]"
+                            } else {
+                                "[-]"
+                            }
+                        } else if is_collapsed {
+                            "\u{25B6}"
+                        } else {
+                            "\u{25BC}"
+                        };
                         let toggle_btn = Button::new(
                             Text::new(indicator)
                                 .size(14)
@@ -730,10 +745,9 @@ impl Tab for DebugTab {
                         )
                         .on_press(Message::DebugToggleSection(section_id))
                         .style(crate::theme::ghost_button)
-                        .padding([2, 6]);
-                        let has_chips = !line.links.is_empty();
+                        .padding([2, 4]);
                         if has_chips {
-                            // Tree node separator — toggle + chips, no rules
+                            // Tree node separator — prefix + toggle + chips
                             let base_color = line.color;
                             let mut spans: Vec<iced::widget::text::Span<'_, String>> = Vec::new();
                             let mut pos = 0;
@@ -780,15 +794,22 @@ impl Tab for DebugTab {
                                 }
                                 spans.push(s);
                             }
+                            let mut row = Row::new()
+                                .align_y(iced::alignment::Vertical::Center)
+                                .spacing(0);
+                            if has_tree {
+                                row = row.push(
+                                    Text::new(line.tree_prefix.clone())
+                                        .size(14)
+                                        .color(crate::theme::TEXT_SECONDARY)
+                                        .font(iced::Font::MONOSPACE),
+                                );
+                            }
                             Element::from(
-                                Row::new()
-                                    .align_y(iced::alignment::Vertical::Center)
-                                    .spacing(4)
-                                    .push(toggle_btn)
-                                    .push(
-                                        iced::widget::rich_text(spans)
-                                            .on_link_click(Message::DebugInspectLink),
-                                    ),
+                                row.push(toggle_btn).push(
+                                    iced::widget::rich_text(spans)
+                                        .on_link_click(Message::DebugInspectLink),
+                                ),
                             )
                         } else {
                             // Regular separator — toggle + rules + label
@@ -820,7 +841,22 @@ impl Tab for DebugTab {
                         if let Some(color) = line.color {
                             t = t.color(color);
                         }
-                        Element::from(t)
+                        if line.tree_prefix.is_empty() {
+                            Element::from(t)
+                        } else {
+                            Element::from(
+                                Row::new()
+                                    .align_y(iced::alignment::Vertical::Center)
+                                    .spacing(0)
+                                    .push(
+                                        Text::new(line.tree_prefix.clone())
+                                            .size(14)
+                                            .color(crate::theme::TEXT_SECONDARY)
+                                            .font(iced::Font::MONOSPACE),
+                                    )
+                                    .push(t),
+                            )
+                        }
                     } else {
                         let base_color = line.color;
                         let mut spans: Vec<iced::widget::text::Span<'_, String>> = Vec::new();
@@ -868,9 +904,24 @@ impl Tab for DebugTab {
                             }
                             spans.push(s);
                         }
-                        Element::from(
-                            iced::widget::rich_text(spans).on_link_click(Message::DebugInspectLink),
-                        )
+                        let rich =
+                            iced::widget::rich_text(spans).on_link_click(Message::DebugInspectLink);
+                        if line.tree_prefix.is_empty() {
+                            Element::from(rich)
+                        } else {
+                            Element::from(
+                                Row::new()
+                                    .align_y(iced::alignment::Vertical::Center)
+                                    .spacing(0)
+                                    .push(
+                                        Text::new(line.tree_prefix.clone())
+                                            .size(14)
+                                            .color(crate::theme::TEXT_SECONDARY)
+                                            .font(iced::Font::MONOSPACE),
+                                    )
+                                    .push(rich),
+                            )
+                        }
                     }
                 }),
         )

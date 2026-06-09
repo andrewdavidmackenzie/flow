@@ -119,6 +119,8 @@ pub struct DebugEventLine {
     pub links: Vec<DebugLink>,
     /// Section ID for collapsible grouping (set by `DebugTab` on push)
     pub section_id: usize,
+    /// Tree connector prefix (e.g. "│  ├─") rendered before toggle/content
+    pub tree_prefix: String,
 }
 
 #[cfg(feature = "debugger")]
@@ -131,6 +133,7 @@ impl DebugEventLine {
             separator: false,
             links,
             section_id: 0,
+            tree_prefix: String::new(),
         }
     }
 
@@ -149,6 +152,7 @@ impl DebugEventLine {
             separator: false,
             links,
             section_id: 0,
+            tree_prefix: String::new(),
         }
     }
 
@@ -159,6 +163,7 @@ impl DebugEventLine {
             separator: true,
             links: Vec::new(),
             section_id: 0,
+            tree_prefix: String::new(),
         }
     }
 
