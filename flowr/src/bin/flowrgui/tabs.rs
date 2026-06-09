@@ -731,27 +731,89 @@ impl Tab for DebugTab {
                         .on_press(Message::DebugToggleSection(section_id))
                         .style(crate::theme::ghost_button)
                         .padding([2, 6]);
-                        let rule_left = iced::widget::rule::horizontal(1);
-                        let rule_right = iced::widget::rule::horizontal(1);
-                        let label = Button::new(
-                            text(line.text.clone())
-                                .shaping(iced::widget::text::Shaping::Advanced)
-                                .size(13)
-                                .color(color),
-                        )
-                        .on_press(Message::DebugToggleSection(section_id))
-                        .style(crate::theme::ghost_button)
-                        .padding(0);
-                        Element::from(
-                            Row::new()
-                                .align_y(iced::alignment::Vertical::Center)
-                                .spacing(6)
-                                .push(toggle_btn)
-                                .push(rule_left)
-                                .push(label)
-                                .push(rule_right)
-                                .padding([4, 0]),
-                        )
+                        let has_chips = !line.links.is_empty();
+                        if has_chips {
+                            // Tree node separator — toggle + chips, no rules
+                            let base_color = line.color;
+                            let mut spans: Vec<iced::widget::text::Span<'_, String>> = Vec::new();
+                            let mut pos = 0;
+                            for link in &line.links {
+                                if link.start > pos {
+                                    let mut s =
+                                        iced::widget::span(line.text[pos..link.start].to_string());
+                                    if let Some(c) = base_color {
+                                        s = s.color(c);
+                                    }
+                                    spans.push(s);
+                                }
+                                let chip_color = chip_color_for(link.link_type);
+                                spans.push(iced::widget::span(" ".to_string()));
+                                spans.push(
+                                    iced::widget::span(format!(
+                                        " {} ",
+                                        line.text[link.start..link.end].to_lowercase()
+                                    ))
+                                    .color(iced::Color::WHITE)
+                                    .size(crate::theme::FONT_MD)
+                                    .font(iced::Font {
+                                        weight: iced::font::Weight::Bold,
+                                        ..iced::Font::DEFAULT
+                                    })
+                                    .background(iced::Background::Color(iced::Color {
+                                        a: 0.4,
+                                        ..chip_color
+                                    }))
+                                    .border(iced::Border {
+                                        radius: 99.0.into(),
+                                        ..Default::default()
+                                    })
+                                    .padding([2, 6])
+                                    .link(link.spec.clone()),
+                                );
+                                spans.push(iced::widget::span(" ".to_string()));
+                                pos = link.end;
+                            }
+                            if pos < line.text.len() {
+                                let mut s = iced::widget::span(line.text[pos..].to_string());
+                                if let Some(c) = base_color {
+                                    s = s.color(c);
+                                }
+                                spans.push(s);
+                            }
+                            Element::from(
+                                Row::new()
+                                    .align_y(iced::alignment::Vertical::Center)
+                                    .spacing(4)
+                                    .push(toggle_btn)
+                                    .push(
+                                        iced::widget::rich_text(spans)
+                                            .on_link_click(Message::DebugInspectLink),
+                                    ),
+                            )
+                        } else {
+                            // Regular separator — toggle + rules + label
+                            let rule_left = iced::widget::rule::horizontal(1);
+                            let rule_right = iced::widget::rule::horizontal(1);
+                            let label = Button::new(
+                                text(line.text.clone())
+                                    .shaping(iced::widget::text::Shaping::Advanced)
+                                    .size(13)
+                                    .color(color),
+                            )
+                            .on_press(Message::DebugToggleSection(section_id))
+                            .style(crate::theme::ghost_button)
+                            .padding(0);
+                            Element::from(
+                                Row::new()
+                                    .align_y(iced::alignment::Vertical::Center)
+                                    .spacing(6)
+                                    .push(toggle_btn)
+                                    .push(rule_left)
+                                    .push(label)
+                                    .push(rule_right)
+                                    .padding([4, 0]),
+                            )
+                        }
                     } else if line.links.is_empty() {
                         let mut t =
                             text(line.text.clone()).shaping(iced::widget::text::Shaping::Advanced);

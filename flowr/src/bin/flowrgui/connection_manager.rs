@@ -904,19 +904,19 @@ fn format_run_state(run_state: &flowrlib::run_state::RunState) -> Vec<crate::Deb
                     .manifest
                     .flows()
                     .contains_key(&child.id());
+                let has_children = by_parent.contains_key(&child.id());
                 let link_type = if is_flow {
                     crate::LinkType::Flow
                 } else {
                     crate::LinkType::Function
                 };
-                lines.push(entity_line(
-                    child,
-                    &indent,
-                    link_type,
-                    &format!(" {states:?}"),
-                ));
+                let mut line = entity_line(child, &indent, link_type, &format!(" {states:?}"));
+                if has_children {
+                    line.separator = true;
+                }
+                lines.push(line);
 
-                if by_parent.contains_key(&child.id()) {
+                if has_children {
                     add_tree_lines(lines, by_parent, run_state, child.id(), depth + 1);
                 }
             }
