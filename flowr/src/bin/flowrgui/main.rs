@@ -1490,7 +1490,7 @@ impl FlowrGui {
 
     #[cfg(feature = "debugger")]
     #[allow(clippy::too_many_lines)]
-    fn debug_row(&self) -> Row<'_, Message> {
+    fn debug_row(&self) -> Element<'_, Message> {
         let can_cmd = self.debug_waiting;
 
         let jobs_started = connection_manager::get_job_count() > 0;
@@ -1633,7 +1633,7 @@ impl FlowrGui {
             validate_btn = validate_btn.on_press(Message::DebugValidate);
         }
 
-        Row::new()
+        let row = Row::new()
             .spacing(4)
             .padding(4)
             .align_y(iced::alignment::Vertical::Center)
@@ -1672,7 +1672,9 @@ impl FlowrGui {
             ))
             .push(Self::tip(validate_btn, "Validate flow state for deadlocks"))
             .push(iced::widget::container(iced::widget::text("")).width(iced::Length::Fill))
-            .push(Self::tip(exit_btn, "Stop execution and exit debugger"))
+            .push(Self::tip(exit_btn, "Stop execution and exit debugger"));
+
+        iced::widget::Scrollable::new(row).horizontal().into()
     }
 
     #[cfg(feature = "debugger")]
