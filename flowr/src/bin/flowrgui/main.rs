@@ -2111,10 +2111,14 @@ impl FlowrGui {
             .spacing(8)
             .align_y(iced::alignment::Vertical::Center)
             .push(Text::new(indicator))
-            .push(Text::new(status).size(13));
-        if self.running {
-            row = row
-                .push(Text::new(format!("Jobs: {}", connection_manager::get_job_count())).size(13));
+            .push(Text::new(status).size(theme::FONT_SM));
+        let job_count = connection_manager::get_job_count();
+        if job_count > 0 {
+            row = row.push(
+                Text::new(format!("Jobs: {job_count}"))
+                    .size(theme::FONT_SM)
+                    .color(theme::TEXT_SECONDARY),
+            );
         }
 
         #[cfg(feature = "debugger")]
