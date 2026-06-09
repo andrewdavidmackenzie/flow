@@ -202,7 +202,7 @@ impl TabSet {
                 .into_iter()
                 .map(|(idx, label)| {
                     let is_active = self.active_tab == idx;
-                    let btn = Button::new(Text::new(label).size(crate::theme::FONT_MD))
+                    let btn = Button::new(Text::new(label).size(crate::theme::FONT_DEFAULT))
                         .padding([6, 16])
                         .on_press(Message::TabSelected(idx))
                         .style(move |theme: &iced::Theme, status| {
