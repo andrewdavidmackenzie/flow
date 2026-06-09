@@ -12,7 +12,6 @@ use flowcore::model::input::Input;
 use flowcore::model::output_connection::OutputConnection;
 use flowcore::model::runtime_function::RuntimeFunction;
 
-use crate::block::Block;
 use crate::debug_command::DebugCommand;
 use crate::debug_server_message::DebugServerMessage;
 use crate::debugger_handler::DebuggerHandler;
@@ -56,10 +55,6 @@ impl DebuggerHandler for DebugGuiHandler {
         )));
     }
 
-    fn block_breakpoint(&mut self, block: &Block) {
-        self.send_event(DebugServerMessage::BlockBreakpoint(block.clone()));
-    }
-
     fn flow_unblock_breakpoint(&mut self, flow_id: usize) {
         self.send_event(DebugServerMessage::FlowUnblockBreakpoint(flow_id));
     }
@@ -95,10 +90,6 @@ impl DebuggerHandler for DebugGuiHandler {
         self.send_event(DebugServerMessage::JobCompleted(job.clone()));
     }
 
-    fn blocks(&mut self, blocks: Vec<Block>) {
-        self.send_event(DebugServerMessage::BlockState(blocks));
-    }
-
     fn outputs(&mut self, output_connections: Vec<OutputConnection>) {
         self.send_event(DebugServerMessage::OutputState(output_connections));
     }
@@ -128,6 +119,21 @@ impl DebuggerHandler for DebugGuiHandler {
 
     fn breakpoint_list(&mut self, breakpoints: Vec<crate::debug_command::BreakpointSpec>) {
         self.send_event(DebugServerMessage::BreakpointList(breakpoints));
+    }
+
+    fn process_tree(&mut self, state: &RunState) {
+        self.send_event(DebugServerMessage::ProcessTree(state.clone()));
+    }
+
+    fn inspect_by_state(&mut self, state_name: &str, state: &RunState) {
+        self.send_event(DebugServerMessage::InspectByState(
+            state_name.to_string(),
+            state.clone(),
+        ));
+    }
+
+    fn inspect_flow(&mut self, flow_id: usize, state: &RunState) {
+        self.send_event(DebugServerMessage::InspectFlow(flow_id, state.clone()));
     }
 
     fn panic(&mut self, state: &RunState, error_message: String) {

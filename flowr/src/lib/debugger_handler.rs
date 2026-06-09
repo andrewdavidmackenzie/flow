@@ -5,7 +5,6 @@ use flowcore::model::input::Input;
 use flowcore::model::output_connection::OutputConnection;
 use flowcore::model::runtime_function::RuntimeFunction;
 
-use crate::block::Block;
 use crate::debug_command::BreakpointSpec;
 use crate::debug_command::DebugCommand;
 use crate::job::Job;
@@ -22,8 +21,6 @@ pub trait DebuggerHandler {
     fn start(&mut self);
     /// a breakpoint has been hit on a Job being created
     fn job_breakpoint(&mut self, job: &Job, function: &RuntimeFunction, states: Vec<State>);
-    /// A breakpoint set on creation of a `Block` matching `block` has been hit
-    fn block_breakpoint(&mut self, block: &Block);
     /// A breakpoint set on the unblocking of a flow has been hit
     fn flow_unblock_breakpoint(&mut self, flow_id: usize);
     /// A breakpoint on sending a value from a specific function or to a specific function was hit
@@ -43,8 +40,6 @@ pub trait DebuggerHandler {
     fn job_error(&mut self, job: &Job);
     /// A specific job completed
     fn job_completed(&mut self, job: &Job);
-    /// returns a set of blocks
-    fn blocks(&mut self, blocks: Vec<Block>);
     /// returns an output's connections
     fn outputs(&mut self, output: Vec<OutputConnection>);
     /// returns an inputs state
@@ -71,6 +66,12 @@ pub trait DebuggerHandler {
     fn execution_ended(&mut self);
     /// The list of active breakpoints
     fn breakpoint_list(&mut self, breakpoints: Vec<BreakpointSpec>);
+    /// Process tree — structured data for rendering
+    fn process_tree(&mut self, state: &RunState);
+    /// Inspect functions by state — structured data for rendering
+    fn inspect_by_state(&mut self, state_name: &str, state: &RunState);
+    /// Inspect a flow — structured data for rendering
+    fn inspect_flow(&mut self, flow_id: usize, state: &RunState);
     /// Get a command for the debugger to perform
     ///
     /// # Errors

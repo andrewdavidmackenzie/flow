@@ -11,18 +11,17 @@ use flowrlib::debug_command::BreakpointSpec;
 use flowrlib::debug_command::DebugCommand;
 use flowrlib::debug_command::DebugCommand::{
     Ack, Breakpoint, Continue, DebugClientStarting, Delete, ExitDebugger, FunctionList, Inspect,
-    InspectBlock, InspectFunction, InspectInput, InspectOutput, List, Modify, RunReset, Step,
-    Validate,
+    InspectFunction, InspectInput, InspectOutput, List, Modify, RunReset, Step, Validate,
 };
 use flowrlib::run_state::RunState;
 
 use flowrlib::connections::ClientConnection;
 use crate::cli::debug_message::DebugServerMessage;
 use DebugServerMessage::{
-    BlockBreakpoint, BlockState, DataBreakpoint, Deadlock, EnteringDebugger, ExecutionEnded,
-    ExecutionStarted, ExitingDebugger, FlowUnblockBreakpoint, FunctionStates, Functions,
-    InputState, JobCompleted, JobError, Message, OutputState, OverallState, Panic,
-    PriorToSendingJob, Resetting, SendingValue, WaitingForCommand,
+    DataBreakpoint, Deadlock, EnteringDebugger, ExecutionEnded, ExecutionStarted, ExitingDebugger,
+    FlowUnblockBreakpoint, FunctionStates, Functions, InputState, JobCompleted, JobError, Message,
+    OutputState, OverallState, Panic, PriorToSendingJob, Resetting, SendingValue,
+    WaitingForCommand,
 };
 
 const FLOWR_HISTORY_FILENAME: &str = ".flowr_history";
@@ -32,7 +31,6 @@ const HELP_STRING: &str = "Debugger commands:
                                  - on a function by function_id (integer)
                                  - on an output by source_id/output_route ('source_id/' for default output)
                                  - on an input by destination_id:input_number
-                                 - on block creation by blocked_process_id->blocking_process_id
 'c' | 'continue'              - Continue execution after a breakpoint
 'd' | 'delete' {spec} or '*'  - Delete the breakpoint matching {spec} or all with '*'
 'e' | 'exit'                  - Stop flow execution and exit debugger
@@ -171,12 +169,6 @@ impl CliDebugClient {
                             destination_input_number,
                         )));
                     }
-                } else if spec.first()?.contains("->") {
-                    // is a block specifier
-                    let sub_parts: Vec<&str> = spec.first()?.split("->").collect();
-                    let source = sub_parts.first()?.parse::<usize>().ok();
-                    let destination = sub_parts.get(1)?.parse::<usize>().ok();
-                    return Some(BreakpointSpec::Block((source, destination)));
                 }
             }
         }
@@ -193,9 +185,6 @@ impl CliDebugClient {
             }
             Some(BreakpointSpec::Output((function_id, sub_route))) => {
                 Some(InspectOutput(function_id, sub_route))
-            }
-            Some(BreakpointSpec::Block((source_function_id, destination_function_id))) => {
-                Some(InspectBlock(source_function_id, destination_function_id))
             }
             _ => {
                 println!(
@@ -294,7 +283,6 @@ impl CliDebugClient {
                 println!("About to send Job #{} to Function #{}", job.payload.job_id, job.process_id);
                 println!("\tInputs: {:?}", job.payload.input_set);
             }
-            BlockBreakpoint(block) => println!("Block breakpoint: {block:?}"),
             DataBreakpoint(
                 source_function_name,
                 source_function_id,
@@ -345,14 +333,6 @@ impl CliDebugClient {
                     for connection in output_connections {
                         println!("{connection}");
                     }
-                }
-            }
-            BlockState(blocks) => {
-                if blocks.is_empty() {
-                    println!("No blocks between functions matching the specification were found");
-                }
-                for block in blocks {
-                    println!("{block}");
                 }
             }
             FlowUnblockBreakpoint(flow_id) => {

@@ -4,9 +4,6 @@
 /// Definition of `RuntimeFunction` structure
 pub mod runtime_function;
 
-/// `block` represents a block imposed on a function due to destination being busy
-pub mod block;
-
 /// `connection` defines the connection between one process output to another process's input
 pub mod connection;
 

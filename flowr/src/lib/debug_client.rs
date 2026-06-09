@@ -10,10 +10,10 @@ use crate::debug_command::BreakpointSpec;
 use crate::debug_command::DebugCommand;
 use crate::debug_command::DebugCommand::{
     Ack, Breakpoint, Continue, DebugClientStarting, Delete, ExitDebugger, FunctionList, Inspect,
-    InspectBlock, InspectFunction, InspectInput, InspectOutput, List, Modify, RunReset, Step,
-    Validate,
+    InspectFunction, InspectInput, InspectOutput, List, Modify, RunReset, Step, Validate,
 };
 use crate::debug_command::ProcessTarget;
+use crate::debugger::Debugger;
 use crate::run_state::RunState;
 use flowcore::errors::Result;
 use flowcore::model::runtime_function::RuntimeFunction;
@@ -21,10 +21,10 @@ use flowcore::model::runtime_function::RuntimeFunction;
 use crate::connections::ClientConnection;
 use crate::debug_server_message::DebugServerMessage;
 use DebugServerMessage::{
-    BlockBreakpoint, BlockState, DataBreakpoint, Deadlock, EnteringDebugger, ExecutionEnded,
-    ExecutionStarted, ExitingDebugger, FlowUnblockBreakpoint, FunctionStates, Functions,
-    InputState, JobCompleted, JobError, Message, OutputState, OverallState, Panic,
-    PriorToSendingJob, Resetting, SendingValue, WaitingForCommand,
+    DataBreakpoint, Deadlock, EnteringDebugger, ExecutionEnded, ExecutionStarted, ExitingDebugger,
+    FlowUnblockBreakpoint, FunctionStates, Functions, InputState, JobCompleted, JobError, Message,
+    OutputState, OverallState, Panic, PriorToSendingJob, Resetting, SendingValue,
+    WaitingForCommand,
 };
 
 const FLOWDB_HISTORY_FILENAME: &str = ".flowrdb_history";
@@ -35,19 +35,17 @@ const HELP_STRING: &str = "Debugger commands:
                                  - on job completion by function_id+ (e.g. '3+')
                                  - on an output by source_id/output_route ('source_id/' for default output)
                                  - on an input by destination_id:input_number
-                                 - on block creation by blocked_process_id->blocking_process_id
                                  - on a function by route path (e.g. '/my-flow/add')
 'c' | 'continue'              - Continue execution after a breakpoint
 'd' | 'delete' {spec} or '*'  - Delete the breakpoint matching {spec} or all with '*'
 'e' | 'exit'                  - Stop flow execution and exit debugger
 'f' | 'functions'             - Show the list of functions
 'h' | 'help' | '?'            - Display this help message
-'i' | 'inspect' [spec]        - Inspect overall state, a function, input, output, or block
+'i' | 'inspect' [spec]        - Inspect overall state, a function, input, or output
                                  - 'i' with no args shows overall state
                                  - 'i <id>' inspects function by ID
                                  - 'i <id>:<input>' inspects an input
                                  - 'i <id>/<route>' inspects output connections
-                                 - 'i <id>-><id>' inspects blocks between functions
                                  - 'i ready|waiting|running|completed|blocked' filters by state
                                  - 'i /route/path' inspects function or flow at that route
 'l' | 'list'                  - List all breakpoints
@@ -194,11 +192,6 @@ impl DebugClient {
                             destination_input_number,
                         )));
                     }
-                } else if spec.first()?.contains("->") {
-                    let sub_parts: Vec<&str> = spec.first()?.split("->").collect();
-                    let source = sub_parts.first()?.parse::<usize>().ok();
-                    let destination = sub_parts.get(1)?.parse::<usize>().ok();
-                    return Some(BreakpointSpec::Block((source, destination)));
                 }
             }
         }
@@ -227,9 +220,6 @@ impl DebugClient {
             }
             Some(BreakpointSpec::Output((function_id, sub_route))) => {
                 Some(InspectOutput(function_id, sub_route))
-            }
-            Some(BreakpointSpec::Block((source_function_id, destination_function_id))) => {
-                Some(InspectBlock(source_function_id, destination_function_id))
             }
             Some(BreakpointSpec::Route(route)) => Some(DebugCommand::InspectRoute(route)),
             _ => {
@@ -334,7 +324,6 @@ impl DebugClient {
                 );
                 println!("\tInputs: {:?}", job.payload.input_set);
             }
-            BlockBreakpoint(block) => println!("Block breakpoint: {block:?}"),
             DataBreakpoint(
                 source_function_name,
                 source_function_id,
@@ -388,14 +377,6 @@ impl DebugClient {
                     }
                 }
             }
-            BlockState(blocks) => {
-                if blocks.is_empty() {
-                    println!("No blocks between functions matching the specification were found");
-                }
-                for block in blocks {
-                    println!("{block}");
-                }
-            }
             FlowUnblockBreakpoint(flow_id) => {
                 println!(
                     "Flow #{flow_id} was busy and has now gone idle, unblocking senders to \
@@ -404,6 +385,15 @@ impl DebugClient {
             }
             DebugServerMessage::BreakpointList(specs) => {
                 Self::print_breakpoint_list(&specs);
+            }
+            DebugServerMessage::ProcessTree(ref state) => {
+                println!("{}", Debugger::process_tree(state));
+            }
+            DebugServerMessage::InspectByState(ref state_name, ref state) => {
+                println!("{}", Debugger::inspect_by_state(state, state_name));
+            }
+            DebugServerMessage::InspectFlow(flow_id, ref state) => {
+                println!("{}", Debugger::inspect_flow(state, flow_id));
             }
         }
 
@@ -424,7 +414,6 @@ impl DebugClient {
                 BreakpointSpec::Completed(id) => println!("\tFunction #{id}+ (completion)"),
                 BreakpointSpec::Input((id, num)) => println!("\tInput #{id}:{num}"),
                 BreakpointSpec::Output((id, route)) => println!("\tOutput #{id}{route}"),
-                BreakpointSpec::Block((src, dst)) => println!("\tBlock {src:?}->{dst:?}"),
                 BreakpointSpec::Route(route) => println!("\tRoute {route}"),
                 BreakpointSpec::All => {}
             }
@@ -594,15 +583,6 @@ mod test {
     }
 
     #[test]
-    fn parse_breakpoint_spec_block() {
-        use crate::debug_command::BreakpointSpec;
-        assert_eq!(
-            DebugClient::parse_breakpoint_spec(specs("1->2")),
-            Some(BreakpointSpec::Block((Some(1), Some(2))))
-        );
-    }
-
-    #[test]
     fn parse_breakpoint_spec_route() {
         use crate::debug_command::BreakpointSpec;
         assert_eq!(
@@ -699,15 +679,6 @@ mod test {
         assert_eq!(
             DebugClient::parse_inspect_spec(specs("2/result")),
             Some(DebugCommand::InspectOutput(2, "/result".to_string()))
-        );
-    }
-
-    #[test]
-    fn parse_inspect_spec_block() {
-        use crate::debug_command::DebugCommand;
-        assert_eq!(
-            DebugClient::parse_inspect_spec(specs("1->2")),
-            Some(DebugCommand::InspectBlock(Some(1), Some(2)))
         );
     }
 

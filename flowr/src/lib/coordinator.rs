@@ -356,8 +356,6 @@ mod test {
     use crate::submission_handler::SubmissionHandler;
 
     #[cfg(feature = "debugger")]
-    use crate::block::Block;
-    #[cfg(feature = "debugger")]
     use crate::debug_command::DebugCommand;
     #[cfg(feature = "debugger")]
     use crate::debugger_handler::DebuggerHandler;
@@ -427,7 +425,6 @@ mod test {
         fn start(&mut self) {}
         fn job_breakpoint(&mut self, _job: &Job, _function: &RuntimeFunction, _states: Vec<State>) {
         }
-        fn block_breakpoint(&mut self, _block: &Block) {}
         fn flow_unblock_breakpoint(&mut self, _flow_id: usize) {}
         fn send_breakpoint(
             &mut self,
@@ -443,7 +440,6 @@ mod test {
         }
         fn job_error(&mut self, _job: &Job) {}
         fn job_completed(&mut self, _job: &Job) {}
-        fn blocks(&mut self, _blocks: Vec<Block>) {}
         fn outputs(&mut self, _output: Vec<OutputConnection>) {}
         fn input(&mut self, _input: Input) {}
         fn function_list(&mut self, _functions: &[RuntimeFunction]) {}
@@ -457,6 +453,9 @@ mod test {
         fn debugger_error(&mut self, _error: String) {}
         fn execution_starting(&mut self) {}
         fn execution_ended(&mut self) {}
+        fn process_tree(&mut self, _: &RunState) {}
+        fn inspect_by_state(&mut self, _: &str, _: &RunState) {}
+        fn inspect_flow(&mut self, _: usize, _: &RunState) {}
         fn get_command(&mut self, _state: &RunState) -> flowcore::errors::Result<DebugCommand> {
             Ok(DebugCommand::Continue)
         }
