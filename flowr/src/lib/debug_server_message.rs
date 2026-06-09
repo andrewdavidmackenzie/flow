@@ -61,6 +61,12 @@ pub enum DebugServerMessage {
     BlockState(Vec<Block>),
     /// A message for display to the user
     Message(String),
+    /// Process tree — carries `RunState` for structured rendering
+    ProcessTree(RunState),
+    /// Inspect by state — carries state name and `RunState`
+    InspectByState(String, RunState),
+    /// Inspect a flow — carries flow ID and `RunState`
+    InspectFlow(usize, RunState),
     /// The list of active breakpoints
     BreakpointList(Vec<BreakpointSpec>),
     /// The run-time is resetting the status back to the initial state
@@ -102,6 +108,9 @@ impl fmt::Display for DebugServerMessage {
                 DebugServerMessage::Invalid => "Invalid",
                 DebugServerMessage::FlowUnblockBreakpoint(_) => "FlowUnblockBreakpoint",
                 DebugServerMessage::BreakpointList(_) => "BreakpointList",
+                DebugServerMessage::ProcessTree(_) => "ProcessTree",
+                DebugServerMessage::InspectByState(_, _) => "InspectByState",
+                DebugServerMessage::InspectFlow(_, _) => "InspectFlow",
             }
         )
     }

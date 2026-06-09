@@ -14,6 +14,7 @@ use crate::debug_command::DebugCommand::{
     Validate,
 };
 use crate::debug_command::ProcessTarget;
+use crate::debugger::Debugger;
 use crate::run_state::RunState;
 use flowcore::errors::Result;
 use flowcore::model::runtime_function::RuntimeFunction;
@@ -404,6 +405,15 @@ impl DebugClient {
             }
             DebugServerMessage::BreakpointList(specs) => {
                 Self::print_breakpoint_list(&specs);
+            }
+            DebugServerMessage::ProcessTree(ref state) => {
+                println!("{}", Debugger::process_tree(state));
+            }
+            DebugServerMessage::InspectByState(ref state_name, ref state) => {
+                println!("{}", Debugger::inspect_by_state(state, state_name));
+            }
+            DebugServerMessage::InspectFlow(flow_id, ref state) => {
+                println!("{}", Debugger::inspect_flow(state, flow_id));
             }
         }
 

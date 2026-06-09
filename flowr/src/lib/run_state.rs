@@ -545,8 +545,11 @@ impl RunState {
 
     /// An input blocker is another function that is the only function connected to an empty input
     /// of the target function, and which is not ready to run, hence the target function cannot run.
+    ///
+    /// # Errors
+    /// Returns an error if the target function does not exist.
     #[cfg(feature = "debugger")]
-    pub(crate) fn get_input_blockers(&self, target_id: usize) -> Result<Vec<usize>> {
+    pub fn get_input_blockers(&self, target_id: usize) -> Result<Vec<usize>> {
         let mut input_blockers = vec![];
         let target_function = self.get_function(target_id).ok_or("No such function")?;
 
@@ -1018,6 +1021,9 @@ mod test {
         fn debugger_error(&mut self, _error: String) {}
         fn execution_starting(&mut self) {}
         fn execution_ended(&mut self) {}
+        fn process_tree(&mut self, _: &RunState) {}
+        fn inspect_by_state(&mut self, _: &str, _: &RunState) {}
+        fn inspect_flow(&mut self, _: usize, _: &RunState) {}
         fn get_command(&mut self, _state: &RunState) -> Result<DebugCommand> {
             unimplemented!();
         }

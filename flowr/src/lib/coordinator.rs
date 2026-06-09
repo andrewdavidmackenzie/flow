@@ -457,6 +457,9 @@ mod test {
         fn debugger_error(&mut self, _error: String) {}
         fn execution_starting(&mut self) {}
         fn execution_ended(&mut self) {}
+        fn process_tree(&mut self, _: &RunState) {}
+        fn inspect_by_state(&mut self, _: &str, _: &RunState) {}
+        fn inspect_flow(&mut self, _: usize, _: &RunState) {}
         fn get_command(&mut self, _state: &RunState) -> flowcore::errors::Result<DebugCommand> {
             Ok(DebugCommand::Continue)
         }

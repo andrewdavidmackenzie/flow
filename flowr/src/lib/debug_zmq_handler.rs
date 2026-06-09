@@ -144,6 +144,25 @@ impl DebuggerHandler for DebugZmqHandler {
             .send_and_receive_response(DebugServerMessage::BreakpointList(breakpoints));
     }
 
+    fn process_tree(&mut self, state: &RunState) {
+        let _: flowcore::errors::Result<DebugCommand> = self
+            .debug_server_connection
+            .send_and_receive_response(DebugServerMessage::ProcessTree(state.clone()));
+    }
+
+    fn inspect_by_state(&mut self, state_name: &str, state: &RunState) {
+        let _: flowcore::errors::Result<DebugCommand> =
+            self.debug_server_connection.send_and_receive_response(
+                DebugServerMessage::InspectByState(state_name.to_string(), state.clone()),
+            );
+    }
+
+    fn inspect_flow(&mut self, flow_id: usize, state: &RunState) {
+        let _: flowcore::errors::Result<DebugCommand> = self
+            .debug_server_connection
+            .send_and_receive_response(DebugServerMessage::InspectFlow(flow_id, state.clone()));
+    }
+
     fn panic(&mut self, state: &RunState, error_message: String) {
         let _: flowcore::errors::Result<DebugCommand> = self
             .debug_server_connection

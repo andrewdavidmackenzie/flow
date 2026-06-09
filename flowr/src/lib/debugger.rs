@@ -293,19 +293,16 @@ impl<'a> Debugger<'a> {
                     self.debug_server.function_list(&functions);
                 }
                 Ok(DebugCommand::ProcessList) => {
-                    let message = Self::process_tree(state);
-                    self.debug_server.message(message);
+                    self.debug_server.process_tree(state);
                 }
                 Ok(Inspect) => self.debug_server.run_state(state),
                 Ok(DebugCommand::InspectState(ref state_name)) => {
-                    let message = Self::inspect_by_state(state, state_name);
-                    self.debug_server.message(message);
+                    self.debug_server.inspect_by_state(state_name, state);
                 }
                 Ok(DebugCommand::InspectRoute(ref route)) => {
                     if let Some(func_id) = Self::find_by_route(state, route) {
                         if state.submission.manifest.flows().contains_key(&func_id) {
-                            let message = Self::inspect_flow(state, func_id);
-                            self.debug_server.message(message);
+                            self.debug_server.inspect_flow(func_id, state);
                         } else if state.get_function(func_id).is_some() {
                             self.debug_server.function_states(
                                 state
@@ -331,8 +328,7 @@ impl<'a> Debugger<'a> {
                             state.get_function_states(function_id),
                         );
                     } else if state.submission.manifest.flows().contains_key(&function_id) {
-                        let message = Self::inspect_flow(state, function_id);
-                        self.debug_server.message(message);
+                        self.debug_server.inspect_flow(function_id, state);
                     } else {
                         self.debug_server
                             .debugger_error(format!("No function or flow with id = {function_id}"));
@@ -836,7 +832,7 @@ impl<'a> Debugger<'a> {
         )
     }
 
-    fn inspect_flow(state: &RunState, flow_id: usize) -> String {
+    pub fn inspect_flow(state: &RunState, flow_id: usize) -> String {
         let mut response = String::new();
         let _ = writeln!(response, "Flow #{flow_id}");
         if let Some(flow_info) = state.submission.manifest.flows().get(&flow_id) {
@@ -918,7 +914,7 @@ impl<'a> Debugger<'a> {
         response
     }
 
-    fn inspect_by_state(state: &RunState, state_name: &str) -> String {
+    pub fn inspect_by_state(state: &RunState, state_name: &str) -> String {
         let target_state = match state_name {
             "ready" => Some(State::Ready),
             "waiting" => Some(State::Waiting),
@@ -986,7 +982,7 @@ impl<'a> Debugger<'a> {
         response
     }
 
-    fn process_tree(state: &RunState) -> String {
+    pub fn process_tree(state: &RunState) -> String {
         use std::collections::BTreeMap;
 
         let functions = state.get_functions();
@@ -1315,6 +1311,9 @@ mod test {
         fn debugger_error(&mut self, _error: String) {}
         fn execution_starting(&mut self) {}
         fn execution_ended(&mut self) {}
+        fn process_tree(&mut self, _: &RunState) {}
+        fn inspect_by_state(&mut self, _: &str, _: &RunState) {}
+        fn inspect_flow(&mut self, _: usize, _: &RunState) {}
         fn get_command(&mut self, _state: &RunState) -> Result<DebugCommand> {
             Ok(DebugCommand::Step(None))
         }

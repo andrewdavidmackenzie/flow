@@ -71,6 +71,12 @@ pub trait DebuggerHandler {
     fn execution_ended(&mut self);
     /// The list of active breakpoints
     fn breakpoint_list(&mut self, breakpoints: Vec<BreakpointSpec>);
+    /// Process tree — structured data for rendering
+    fn process_tree(&mut self, state: &RunState);
+    /// Inspect functions by state — structured data for rendering
+    fn inspect_by_state(&mut self, state_name: &str, state: &RunState);
+    /// Inspect a flow — structured data for rendering
+    fn inspect_flow(&mut self, flow_id: usize, state: &RunState);
     /// Get a command for the debugger to perform
     ///
     /// # Errors

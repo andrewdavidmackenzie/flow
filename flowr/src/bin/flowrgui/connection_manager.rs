@@ -639,6 +639,11 @@ fn format_debug_event(message: &DebugServerMessage) -> Vec<crate::DebugEventLine
             format!("Waiting for command (Job #{job_id})"),
             Some(debug_colors::STATUS),
         ),
+        DebugServerMessage::ProcessTree(ref state) => format_process_tree(state),
+        DebugServerMessage::InspectByState(ref state_name, ref state) => {
+            format_inspect_by_state(state_name, state)
+        }
+        DebugServerMessage::InspectFlow(flow_id, ref state) => format_inspect_flow(*flow_id, state),
         DebugServerMessage::Invalid => line(
             "Invalid message from debug server".into(),
             Some(debug_colors::ERROR),
@@ -1102,6 +1107,253 @@ fn format_run_state(run_state: &flowrlib::run_state::RunState) -> Vec<crate::Deb
 }
 
 // Return addresses and ports to be used for each of the three queues
+#[cfg(feature = "debugger")]
+fn format_process_tree(run_state: &flowrlib::run_state::RunState) -> Vec<crate::DebugEventLine> {
+    use crate::DebugEventLine;
+    use std::collections::BTreeMap;
+
+    fn add_tree(
+        lines: &mut Vec<crate::DebugEventLine>,
+        by_parent: &BTreeMap<usize, Vec<&flowcore::model::runtime_function::RuntimeFunction>>,
+        run_state: &flowrlib::run_state::RunState,
+        parent_id: usize,
+        depth: usize,
+    ) {
+        if let Some(children) = by_parent.get(&parent_id) {
+            for child in children {
+                if child.id() == parent_id {
+                    continue;
+                }
+                let indent = "  ".repeat(depth);
+                let states = run_state.get_function_states(child.id());
+                let is_flow = run_state
+                    .get_submission()
+                    .manifest
+                    .flows()
+                    .contains_key(&child.id());
+                let link_type = if is_flow {
+                    crate::LinkType::Flow
+                } else {
+                    crate::LinkType::Function
+                };
+                lines.push(entity_line(
+                    child,
+                    &indent,
+                    link_type,
+                    &format!(" {states:?}"),
+                ));
+                if by_parent.contains_key(&child.id()) {
+                    add_tree(lines, by_parent, run_state, child.id(), depth + 1);
+                }
+            }
+        }
+    }
+
+    let mut lines = Vec::new();
+    let functions = run_state.get_functions();
+    let mut by_parent: BTreeMap<usize, Vec<&flowcore::model::runtime_function::RuntimeFunction>> =
+        BTreeMap::new();
+    for func in functions.values() {
+        by_parent
+            .entry(func.get_parent_id())
+            .or_default()
+            .push(func);
+    }
+    for children in by_parent.values_mut() {
+        children.sort_by_key(|f| f.id());
+    }
+
+    let root_parents: Vec<usize> = by_parent
+        .keys()
+        .filter(|pid| !functions.contains_key(pid))
+        .copied()
+        .collect();
+    for root_id in root_parents {
+        if let Some(func) = functions.get(&root_id) {
+            let states = run_state.get_function_states(root_id);
+            lines.push(entity_line(
+                func,
+                "",
+                crate::LinkType::Flow,
+                &format!(" {states:?}"),
+            ));
+        } else {
+            lines.push(DebugEventLine::new(format!("Flow #{root_id}"), None));
+        }
+        add_tree(&mut lines, &by_parent, run_state, root_id, 1);
+    }
+    let mut self_roots: Vec<_> = functions
+        .values()
+        .filter(|func| func.get_parent_id() == func.id())
+        .collect();
+    self_roots.sort_by_key(|f| f.id());
+    for func in self_roots {
+        let states = run_state.get_function_states(func.id());
+        lines.push(entity_line(
+            func,
+            "",
+            crate::LinkType::Flow,
+            &format!(" {states:?}"),
+        ));
+        add_tree(&mut lines, &by_parent, run_state, func.id(), 1);
+    }
+    lines
+}
+
+#[cfg(feature = "debugger")]
+fn format_inspect_by_state(
+    state_name: &str,
+    run_state: &flowrlib::run_state::RunState,
+) -> Vec<crate::DebugEventLine> {
+    use crate::DebugEventLine;
+
+    let target_state = match state_name {
+        "ready" => Some(flowrlib::run_state::State::Ready),
+        "waiting" => Some(flowrlib::run_state::State::Waiting),
+        "running" => Some(flowrlib::run_state::State::Running),
+        "completed" => Some(flowrlib::run_state::State::Completed),
+        "blocked" => None,
+        _ => {
+            return vec![DebugEventLine::new(
+                format!("Unknown state '{state_name}'"),
+                Some(crate::theme::debug_colors::ERROR),
+            )];
+        }
+    };
+
+    let mut lines = Vec::new();
+    let functions = run_state.get_functions();
+    let mut sorted: Vec<_> = functions.values().collect();
+    sorted.sort_by_key(|f| f.id());
+
+    if let Some(ref target) = target_state {
+        lines.push(DebugEventLine::new(
+            format!("Functions in '{state_name}' state:"),
+            None,
+        ));
+        let mut count = 0;
+        for func in &sorted {
+            let states = run_state.get_function_states(func.id());
+            if states.contains(target) {
+                count += 1;
+                lines.push(entity_line(
+                    func,
+                    "  ",
+                    crate::LinkType::Function,
+                    &format!(" {states:?}"),
+                ));
+            }
+        }
+        if count == 0 {
+            lines.push(DebugEventLine::new("  (none)".into(), None));
+        }
+    } else {
+        lines.push(DebugEventLine::new("Blocked functions:".into(), None));
+        let mut count = 0;
+        for func in &sorted {
+            let states = run_state.get_function_states(func.id());
+            if states.contains(&flowrlib::run_state::State::Waiting) {
+                if let Ok(blockers) = run_state.get_input_blockers(func.id()) {
+                    if !blockers.is_empty() {
+                        count += 1;
+                        lines.push(entity_line(
+                            func,
+                            "  ",
+                            crate::LinkType::Function,
+                            &format!(" — blocked by: {blockers:?}"),
+                        ));
+                    }
+                }
+            }
+        }
+        if count == 0 {
+            lines.push(DebugEventLine::new("  (none)".into(), None));
+        }
+    }
+    lines
+}
+
+#[cfg(feature = "debugger")]
+fn format_inspect_flow(
+    flow_id: usize,
+    run_state: &flowrlib::run_state::RunState,
+) -> Vec<crate::DebugEventLine> {
+    use crate::{DebugEventLine, DebugLineBuilder, LinkType};
+
+    let mut lines = Vec::new();
+    let functions = run_state.get_functions();
+    let manifest = &run_state.get_submission().manifest;
+
+    if let Some(func) = functions.get(&flow_id) {
+        lines.push(entity_line(func, "", LinkType::Flow, ""));
+    }
+
+    if let Some(flow_info) = manifest.flows().get(&flow_id) {
+        if let Some(parent) = flow_info.parent_id {
+            let mut b = DebugLineBuilder::new().text("  Parent: ");
+            if let Some(pf) = functions.get(&parent) {
+                b = b.chip(
+                    &format!("Flow #{parent} '{}'", pf.name()),
+                    &parent.to_string(),
+                    LinkType::Flow,
+                );
+            } else {
+                b = b.chip(
+                    &format!("Flow #{parent}"),
+                    &parent.to_string(),
+                    LinkType::Flow,
+                );
+            }
+            lines.push(b.finish());
+        } else {
+            lines.push(DebugEventLine::new("  (root flow)".into(), None));
+        }
+
+        if !flow_info.sub_flow_ids.is_empty() {
+            let mut b = DebugLineBuilder::new().text("  Sub-flows: ");
+            for (i, sf) in flow_info.sub_flow_ids.iter().enumerate() {
+                if i > 0 {
+                    b = b.text(", ");
+                }
+                if let Some(sf_func) = functions.get(sf) {
+                    b = b.chip(
+                        &format!("Flow #{sf} '{}'", sf_func.name()),
+                        &sf.to_string(),
+                        LinkType::Flow,
+                    );
+                } else {
+                    b = b.chip(&format!("Flow #{sf}"), &sf.to_string(), LinkType::Flow);
+                }
+            }
+            lines.push(b.finish());
+        }
+    }
+
+    let mut funcs: Vec<_> = functions
+        .values()
+        .filter(|f| {
+            f.get_parent_id() == flow_id
+                && f.id() != flow_id
+                && !manifest.flows().contains_key(&f.id())
+        })
+        .collect();
+    funcs.sort_by_key(|f| f.id());
+    if !funcs.is_empty() {
+        lines.push(DebugEventLine::new("  Functions:".into(), None));
+        for func in funcs {
+            let states = run_state.get_function_states(func.id());
+            lines.push(entity_line(
+                func,
+                "    ",
+                LinkType::Function,
+                &format!(" {states:?}"),
+            ));
+        }
+    }
+
+    lines
+}
+
 // - (general) job source
 // - context job source
 // - results sink
