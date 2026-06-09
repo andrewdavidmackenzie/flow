@@ -1635,7 +1635,12 @@ impl FlowrGui {
 
         let row = Row::new()
             .spacing(4)
-            .padding(4)
+            .padding(iced::Padding {
+                top: 4.0,
+                right: 4.0,
+                bottom: 10.0,
+                left: 4.0,
+            })
             .align_y(iced::alignment::Vertical::Center)
             .push(Self::tip(
                 continue_btn,
