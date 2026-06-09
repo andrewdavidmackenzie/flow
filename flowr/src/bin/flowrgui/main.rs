@@ -2362,7 +2362,7 @@ impl FlowrGui {
     }
 
     #[cfg(feature = "debugger")]
-    #[allow(clippy::too_many_lines)]
+    #[cfg(feature = "debugger")]
     fn ensure_functions_cached(&mut self, action: Message) -> bool {
         if self.cached_functions.is_empty() {
             self.pending_action = Some(action);
