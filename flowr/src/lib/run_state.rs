@@ -523,6 +523,13 @@ impl RunState {
         self.ready_jobs.len()
     }
 
+    /// Return the ready jobs queue
+    #[cfg(feature = "debugger")]
+    #[must_use]
+    pub fn get_ready_jobs(&self) -> &VecDeque<Job> {
+        &self.ready_jobs
+    }
+
     /// An input blocker is another function that is the only function connected to an empty input
     /// of the target function, and which is not ready to run, hence the target function cannot run.
     #[cfg(feature = "debugger")]

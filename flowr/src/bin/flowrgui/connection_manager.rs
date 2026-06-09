@@ -984,7 +984,10 @@ fn format_run_state(run_state: &flowrlib::run_state::RunState) -> Vec<crate::Deb
 
     // Running jobs
     let running = run_state.get_running();
-    let mut b = DebugLineBuilder::new().text(&format!("  Jobs Running: {} ", running.len()));
+    let mut b = DebugLineBuilder::new()
+        .text("  ")
+        .chip("Jobs Running:", "running", LinkType::State)
+        .text(&format!(" {} ", running.len()));
     if !running.is_empty() {
         b = b.text("[");
         for (i, (job_id, job)) in running.iter().enumerate() {
@@ -1002,15 +1005,33 @@ fn format_run_state(run_state: &flowrlib::run_state::RunState) -> Vec<crate::Deb
     lines.push(b.finish());
 
     // Ready jobs
-    lines.push(DebugEventLine::new(
-        format!("  Jobs Ready: {}", run_state.number_jobs_ready()),
-        None,
-    ));
+    let ready = run_state.get_ready_jobs();
+    let mut b = DebugLineBuilder::new()
+        .text("  ")
+        .chip("Jobs Ready:", "ready", LinkType::State)
+        .text(&format!(" {} ", ready.len()));
+    if !ready.is_empty() {
+        b = b.text("[");
+        for (i, job) in ready.iter().enumerate() {
+            if i > 0 {
+                b = b.text(", ");
+            }
+            b = b.chip(
+                &format!("Job #{}", job.payload.job_id),
+                &job.process_id.to_string(),
+                LinkType::Job,
+            );
+        }
+        b = b.text("]");
+    }
+    lines.push(b.finish());
 
     // Completed functions
     let completed = run_state.get_completed();
-    let mut b =
-        DebugLineBuilder::new().text(&format!("  Functions Completed: {} ", completed.len()));
+    let mut b = DebugLineBuilder::new()
+        .text("  ")
+        .chip("Functions Completed:", "completed", LinkType::State)
+        .text(&format!(" {} ", completed.len()));
     if !completed.is_empty() {
         b = b.text("[");
         let mut sorted: Vec<_> = completed.iter().collect();
@@ -1040,30 +1061,26 @@ fn format_run_state(run_state: &flowrlib::run_state::RunState) -> Vec<crate::Deb
 
     if !busy_flows.is_empty() {
         let mut b = DebugLineBuilder::new().text("  Busy Flows: ");
-        for (i, (id, count)) in busy_flows.iter().enumerate() {
+        for (i, (id, _count)) in busy_flows.iter().enumerate() {
             if i > 0 {
                 b = b.text(", ");
             }
-            b = b
-                .chip(&format!("Flow #{id}"), &id.to_string(), LinkType::Flow)
-                .text(&format!(": {count}"));
+            b = b.chip(&format!("Flow #{id}"), &id.to_string(), LinkType::Flow);
         }
         lines.push(b.finish());
     }
 
     if !busy_funcs.is_empty() {
         let mut b = DebugLineBuilder::new().text("  Busy Functions: ");
-        for (i, (id, count)) in busy_funcs.iter().enumerate() {
+        for (i, (id, _count)) in busy_funcs.iter().enumerate() {
             if i > 0 {
                 b = b.text(", ");
             }
-            b = b
-                .chip(
-                    &format!("Function #{id}"),
-                    &id.to_string(),
-                    LinkType::Function,
-                )
-                .text(&format!(": {count}"));
+            b = b.chip(
+                &format!("Function #{id}"),
+                &id.to_string(),
+                LinkType::Function,
+            );
         }
         lines.push(b.finish());
     }
