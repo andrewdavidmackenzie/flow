@@ -99,6 +99,9 @@ impl TabSet {
                 if id == self.stderr_tab.id {
                     self.stderr_tab.auto_scroll = value;
                 }
+                if id == self.stdin_tab.id {
+                    self.stdin_tab.auto_scroll = value;
+                }
 
                 if value {
                     return operation::snap_to(id, RelativeOffset::END);
@@ -503,6 +506,7 @@ pub(crate) struct StdInTab {
     pub text: String,
     pub eof_signaled: bool,
     pub waiting_for_input: bool,
+    pub auto_scroll: bool,
 }
 
 impl StdInTab {
@@ -515,6 +519,7 @@ impl StdInTab {
             text: String::new(),
             eof_signaled: false,
             waiting_for_input: false,
+            auto_scroll: true,
         }
     }
 
@@ -574,11 +579,19 @@ impl Tab for StdInTab {
                 .width(Length::Fill)
                 .padding(1);
 
+        let toggler = toggler(self.auto_scroll)
+            .label("Auto-scroll")
+            .on_toggle(|v| Message::StdioAutoScrollTogglerChanged(self.id.clone(), v))
+            .size(14.0)
+            .text_size(crate::theme::FONT_DEFAULT)
+            .style(crate::theme::accent_toggler)
+            .width(Length::Shrink);
         let save_button = Button::new(Text::new("Save").size(crate::theme::FONT_DEFAULT))
             .on_press(Message::SaveTabContent(self.name.clone()))
             .style(crate::theme::pill_button)
             .padding([4.0, 12.0]);
         let toolbar = Row::new()
+            .push(toggler)
             .push(save_button)
             .spacing(crate::theme::SPACE_MD)
             .padding(crate::theme::SPACE_XS);
