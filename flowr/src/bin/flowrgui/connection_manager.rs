@@ -577,24 +577,7 @@ fn format_debug_event(message: &DebugServerMessage) -> Vec<crate::DebugEventLine
             lines.push(DebugEventLine::new(format!("  State: {states:?}"), None));
             lines
         }
-        DebugServerMessage::OverallState(run_state) => {
-            let mut lines = Vec::new();
-            for l in format!("{run_state}").lines() {
-                let trimmed = l.trim_start();
-                if trimmed.is_empty() {
-                    continue;
-                }
-                let is_header =
-                    trimmed.starts_with("Submission:") || trimmed.starts_with("RunState:");
-                let text = if is_header {
-                    trimmed.to_string()
-                } else {
-                    format!("  {trimmed}")
-                };
-                lines.push(DebugEventLine::new(text, None));
-            }
-            lines
-        }
+        DebugServerMessage::OverallState(ref run_state) => format_run_state(run_state),
         DebugServerMessage::InputState(input) => {
             let name = input.name();
             let name_label = if name.is_empty() {
@@ -860,6 +843,232 @@ fn debug_client_stream(address: String) -> impl iced::futures::Stream<Item = Mes
             std::future::pending::<()>().await;
         },
     )
+}
+
+#[cfg(feature = "debugger")]
+#[allow(clippy::too_many_lines)]
+fn format_run_state(run_state: &flowrlib::run_state::RunState) -> Vec<crate::DebugEventLine> {
+    use crate::{DebugEventLine, DebugLineBuilder, LinkType};
+    use std::collections::BTreeMap;
+
+    fn add_tree_lines(
+        lines: &mut Vec<crate::DebugEventLine>,
+        by_parent: &BTreeMap<usize, Vec<&flowcore::model::runtime_function::RuntimeFunction>>,
+        run_state: &flowrlib::run_state::RunState,
+        parent_id: usize,
+        depth: usize,
+    ) {
+        if let Some(children) = by_parent.get(&parent_id) {
+            for child in children {
+                if child.id() == parent_id {
+                    continue;
+                }
+                let indent = "  ".repeat(depth + 1);
+                let states = run_state.get_function_states(child.id());
+                let is_flow = run_state
+                    .submission
+                    .manifest
+                    .flows()
+                    .contains_key(&child.id());
+                let (chip_label, link_type) = if is_flow {
+                    (format!("Flow #{}", child.id()), crate::LinkType::Flow)
+                } else {
+                    (
+                        format!("Function #{}", child.id()),
+                        crate::LinkType::Function,
+                    )
+                };
+                let b = crate::DebugLineBuilder::new()
+                    .text(&indent)
+                    .chip(&chip_label, &child.id().to_string(), link_type)
+                    .text(&format!(" '{}' @ ", child.name()))
+                    .chip(child.route(), child.route(), crate::LinkType::Route)
+                    .text(&format!(" {states:?}"));
+                lines.push(b.finish());
+
+                if by_parent.contains_key(&child.id()) {
+                    add_tree_lines(lines, by_parent, run_state, child.id(), depth + 1);
+                }
+            }
+        }
+    }
+
+    let mut lines = Vec::new();
+    let manifest = &run_state.submission.manifest;
+
+    // Submission info
+    if let Some(limit) = run_state.submission.max_parallel_jobs {
+        lines.push(DebugEventLine::new(
+            format!("Max Parallel Jobs: {limit}"),
+            None,
+        ));
+    }
+    lines.push(DebugEventLine::new(
+        format!("Job Timeout: {:?}", run_state.submission.job_timeout),
+        None,
+    ));
+
+    // Flow hierarchy
+    if !manifest.flows().is_empty() {
+        lines.push(DebugEventLine::new("Flows:".into(), None));
+        for (id, flow) in manifest.flows() {
+            let mut b = DebugLineBuilder::new().text("  ").chip(
+                &format!("Flow #{id}"),
+                &id.to_string(),
+                LinkType::Flow,
+            );
+            if let Some(parent) = flow.parent_id {
+                b = b
+                    .text(" (parent: ")
+                    .chip(
+                        &format!("Flow #{parent}"),
+                        &parent.to_string(),
+                        LinkType::Flow,
+                    )
+                    .text(")");
+            } else {
+                b = b.text(" (root)");
+            }
+            if !flow.sub_flow_ids.is_empty() {
+                b = b.text(" sub-flows: [");
+                for (i, sf) in flow.sub_flow_ids.iter().enumerate() {
+                    if i > 0 {
+                        b = b.text(", ");
+                    }
+                    b = b.chip(&format!("#{sf}"), &sf.to_string(), LinkType::Flow);
+                }
+                b = b.text("]");
+            }
+            lines.push(b.finish());
+        }
+    }
+
+    // Functions as hierarchical tree
+    lines.push(DebugEventLine::new("Functions:".into(), None));
+    let functions = run_state.get_functions();
+    let mut by_parent: BTreeMap<usize, Vec<&flowcore::model::runtime_function::RuntimeFunction>> =
+        BTreeMap::new();
+    for func in functions.values() {
+        by_parent
+            .entry(func.get_parent_id())
+            .or_default()
+            .push(func);
+    }
+    for children in by_parent.values_mut() {
+        children.sort_by_key(|f| f.id());
+    }
+
+    let root_parents: Vec<usize> = by_parent
+        .keys()
+        .filter(|pid| !functions.contains_key(pid))
+        .copied()
+        .collect();
+    for root_id in root_parents {
+        add_tree_lines(&mut lines, &by_parent, run_state, root_id, 0);
+    }
+    let mut self_roots: Vec<_> = functions
+        .values()
+        .filter(|func| func.get_parent_id() == func.id())
+        .collect();
+    self_roots.sort_by_key(|f| f.id());
+    for func in self_roots {
+        add_tree_lines(&mut lines, &by_parent, run_state, func.id(), 0);
+    }
+
+    // RunState stats
+    lines.push(DebugEventLine::new("RunState:".into(), None));
+    lines.push(DebugEventLine::new(
+        format!("  Jobs Created: {}", run_state.get_number_of_jobs_created()),
+        None,
+    ));
+
+    // Running jobs
+    let running = run_state.get_running();
+    let mut b = DebugLineBuilder::new().text(&format!("  Jobs Running: {} ", running.len()));
+    if !running.is_empty() {
+        b = b.text("[");
+        for (i, (job_id, job)) in running.iter().enumerate() {
+            if i > 0 {
+                b = b.text(", ");
+            }
+            b = b.chip(
+                &format!("Job #{job_id}"),
+                &job.process_id.to_string(),
+                LinkType::Job,
+            );
+        }
+        b = b.text("]");
+    }
+    lines.push(b.finish());
+
+    // Ready jobs
+    lines.push(DebugEventLine::new(
+        format!("  Jobs Ready: {}", run_state.number_jobs_ready()),
+        None,
+    ));
+
+    // Completed functions
+    let completed = run_state.get_completed();
+    let mut b =
+        DebugLineBuilder::new().text(&format!("  Functions Completed: {} ", completed.len()));
+    if !completed.is_empty() {
+        b = b.text("[");
+        let mut sorted: Vec<_> = completed.iter().collect();
+        sorted.sort();
+        for (i, id) in sorted.iter().enumerate() {
+            if i > 0 {
+                b = b.text(", ");
+            }
+            b = b.chip(&format!("#{id}"), &id.to_string(), LinkType::Function);
+        }
+        b = b.text("]");
+    }
+    lines.push(b.finish());
+
+    // Busy functions and flows (separated)
+    let busy = run_state.get_busy_count();
+    let flows_map = manifest.flows();
+    let mut busy_flows = Vec::new();
+    let mut busy_funcs = Vec::new();
+    for (id, count) in busy {
+        if flows_map.contains_key(id) {
+            busy_flows.push((*id, *count));
+        } else {
+            busy_funcs.push((*id, *count));
+        }
+    }
+
+    if !busy_flows.is_empty() {
+        let mut b = DebugLineBuilder::new().text("  Busy Flows: ");
+        for (i, (id, count)) in busy_flows.iter().enumerate() {
+            if i > 0 {
+                b = b.text(", ");
+            }
+            b = b
+                .chip(&format!("Flow #{id}"), &id.to_string(), LinkType::Flow)
+                .text(&format!(": {count}"));
+        }
+        lines.push(b.finish());
+    }
+
+    if !busy_funcs.is_empty() {
+        let mut b = DebugLineBuilder::new().text("  Busy Functions: ");
+        for (i, (id, count)) in busy_funcs.iter().enumerate() {
+            if i > 0 {
+                b = b.text(", ");
+            }
+            b = b
+                .chip(
+                    &format!("Function #{id}"),
+                    &id.to_string(),
+                    LinkType::Function,
+                )
+                .text(&format!(": {count}"));
+        }
+        lines.push(b.finish());
+    }
+
+    lines
 }
 
 // Return addresses and ports to be used for each of the three queues

@@ -242,7 +242,6 @@ pub fn pill_button(theme: &Theme, status: button::Status) -> button::Style {
 }
 
 pub fn pill_button_active(theme: &Theme, status: button::Status) -> button::Style {
-    let _palette = theme.palette();
     let border = Border {
         radius: 12.0.into(),
         width: 1.0,
@@ -261,17 +260,15 @@ pub fn pill_button_active(theme: &Theme, status: button::Status) -> button::Styl
 
 pub fn ghost_button(theme: &Theme, status: button::Status) -> button::Style {
     let palette = theme.palette();
-    match status {
-        button::Status::Hovered => button::Style {
-            background: None,
-            text_color: lighten(ACCENT, 0.3),
-            ..button::Style::default()
-        },
-        _ => button::Style {
-            background: None,
-            text_color: palette.text,
-            ..button::Style::default()
-        },
+    let text_color = if matches!(status, button::Status::Hovered) {
+        lighten(ACCENT, 0.3)
+    } else {
+        palette.text
+    };
+    button::Style {
+        background: None,
+        text_color,
+        ..button::Style::default()
     }
 }
 
@@ -381,15 +378,8 @@ pub fn pill_input(
     };
 
     match status {
-        iced::widget::text_input::Status::Focused { .. } => iced::widget::text_input::Style {
-            border: Border {
-                color: lighten(ACCENT, 0.3),
-                width: 2.0,
-                ..base.border
-            },
-            ..base
-        },
-        iced::widget::text_input::Status::Hovered => iced::widget::text_input::Style {
+        iced::widget::text_input::Status::Focused { .. }
+        | iced::widget::text_input::Status::Hovered => iced::widget::text_input::Style {
             border: Border {
                 color: lighten(ACCENT, 0.3),
                 width: 2.0,

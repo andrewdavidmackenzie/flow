@@ -134,6 +134,24 @@ impl DebugEventLine {
         }
     }
 
+    /// Create a builder for constructing lines with chip links
+    #[must_use]
+    pub fn build() -> DebugLineBuilder {
+        DebugLineBuilder::new()
+    }
+
+    /// Create a line with pre-built links (skipping text extraction)
+    #[must_use]
+    pub fn with_links(text: String, color: Option<iced::Color>, links: Vec<DebugLink>) -> Self {
+        Self {
+            text,
+            color,
+            separator: false,
+            links,
+            section_id: 0,
+        }
+    }
+
     fn with_context(text: String, color: Option<iced::Color>, context_func_id: usize) -> Self {
         let links = Self::extract_links(&text, Some(context_func_id));
         Self {
@@ -370,6 +388,63 @@ impl DebugEventLine {
         // Remove overlapping links
         links.dedup_by(|b, a| b.start < a.end);
         links
+    }
+}
+
+/// Builder for constructing debug lines with embedded entity-typed chip links
+#[cfg(feature = "debugger")]
+#[derive(Default)]
+pub struct DebugLineBuilder {
+    text: String,
+    links: Vec<DebugLink>,
+    color: Option<iced::Color>,
+}
+
+#[cfg(feature = "debugger")]
+impl DebugLineBuilder {
+    /// Create a new empty builder
+    #[must_use]
+    pub fn new() -> Self {
+        Self {
+            text: String::new(),
+            links: Vec::new(),
+            color: None,
+        }
+    }
+
+    /// Append plain text
+    #[must_use]
+    pub fn text(mut self, s: &str) -> Self {
+        self.text.push_str(s);
+        self
+    }
+
+    /// Append a clickable chip with entity type coloring
+    #[must_use]
+    pub fn chip(mut self, label: &str, spec: &str, link_type: LinkType) -> Self {
+        let start = self.text.len();
+        self.text.push_str(label);
+        let end = self.text.len();
+        self.links.push(DebugLink {
+            start,
+            end,
+            spec: spec.to_string(),
+            link_type,
+        });
+        self
+    }
+
+    /// Set the line color
+    #[must_use]
+    pub fn color(mut self, c: iced::Color) -> Self {
+        self.color = Some(c);
+        self
+    }
+
+    /// Build the final `DebugEventLine`
+    #[must_use]
+    pub fn finish(self) -> DebugEventLine {
+        DebugEventLine::with_links(self.text, self.color, self.links)
     }
 }
 
