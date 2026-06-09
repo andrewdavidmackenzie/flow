@@ -580,7 +580,7 @@ fn format_debug_event(message: &DebugServerMessage) -> Vec<crate::DebugEventLine
                 &format!(" {states:?}"),
             )]
         }
-        DebugServerMessage::OverallState(ref run_state) => format_run_state(run_state),
+        DebugServerMessage::OverallState(ref run_state) => format_state_only(run_state),
         DebugServerMessage::InputState(input) => {
             let name = input.name();
             let name_label = if name.is_empty() {
@@ -836,6 +836,16 @@ fn format_tree_only(run_state: &flowrlib::run_state::RunState) -> Vec<crate::Deb
         lines.truncate(pos);
     }
     lines
+}
+
+#[cfg(feature = "debugger")]
+fn format_state_only(run_state: &flowrlib::run_state::RunState) -> Vec<crate::DebugEventLine> {
+    let lines = format_run_state(run_state);
+    if let Some(pos) = lines.iter().position(|l| l.text == "RunState:") {
+        lines.into_iter().skip(pos).collect()
+    } else {
+        vec![]
+    }
 }
 
 #[cfg(feature = "debugger")]
