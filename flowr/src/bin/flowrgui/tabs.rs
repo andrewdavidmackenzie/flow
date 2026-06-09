@@ -14,6 +14,97 @@ use once_cell::sync::Lazy;
 use crate::DebugEventLine;
 use crate::{ImageReference, Message};
 
+#[cfg(feature = "debugger")]
+const TREE_CELL_W: f32 = 20.0;
+#[cfg(feature = "debugger")]
+const TREE_LINE_H: f32 = 28.0;
+#[cfg(feature = "debugger")]
+const TREE_LINE_WIDTH: f32 = 1.5;
+
+#[cfg(feature = "debugger")]
+fn tree_connector_canvas(segments: &[crate::TreeSegment]) -> Element<'static, Message> {
+    use crate::TreeSegment;
+    use iced::widget::canvas::{self, Path, Stroke};
+    use iced::{Color, Point, Renderer, Theme};
+
+    let segs: Vec<TreeSegment> = segments.to_vec();
+    let width = segs.len() as f32 * TREE_CELL_W;
+
+    struct TreeDraw(Vec<TreeSegment>);
+
+    impl canvas::Program<Message> for TreeDraw {
+        type State = ();
+
+        fn draw(
+            &self,
+            _state: &(),
+            renderer: &Renderer,
+            _theme: &Theme,
+            bounds: iced::Rectangle,
+            _cursor: iced::mouse::Cursor,
+        ) -> Vec<canvas::Geometry> {
+            let mut frame = canvas::Frame::new(renderer, bounds.size());
+            let line_color = Color {
+                r: 0.4,
+                g: 0.4,
+                b: 0.55,
+                a: 0.7,
+            };
+            let s = || {
+                Stroke::default()
+                    .with_width(TREE_LINE_WIDTH)
+                    .with_color(line_color)
+            };
+            let h = bounds.height;
+            let mid_y = h / 2.0;
+
+            for (i, seg) in self.0.iter().enumerate() {
+                let x = i as f32 * TREE_CELL_W;
+                let mid_x = x + TREE_CELL_W / 2.0;
+                let right = x + TREE_CELL_W;
+
+                match seg {
+                    TreeSegment::Pipe => {
+                        frame.stroke(
+                            &Path::line(Point::new(mid_x, 0.0), Point::new(mid_x, h)),
+                            s(),
+                        );
+                    }
+                    TreeSegment::Branch => {
+                        frame.stroke(
+                            &Path::line(Point::new(mid_x, 0.0), Point::new(mid_x, h)),
+                            s(),
+                        );
+                        frame.stroke(
+                            &Path::line(Point::new(mid_x, mid_y), Point::new(right, mid_y)),
+                            s(),
+                        );
+                    }
+                    TreeSegment::End => {
+                        frame.stroke(
+                            &Path::line(Point::new(mid_x, 0.0), Point::new(mid_x, mid_y)),
+                            s(),
+                        );
+                        frame.stroke(
+                            &Path::line(Point::new(mid_x, mid_y), Point::new(right, mid_y)),
+                            s(),
+                        );
+                    }
+                    TreeSegment::Space => {}
+                }
+            }
+
+            vec![frame.into_geometry()]
+        }
+    }
+
+    Element::from(
+        iced::widget::canvas(TreeDraw(segs))
+            .width(Length::Fixed(width))
+            .height(Length::Fixed(TREE_LINE_H)),
+    )
+}
+
 #[allow(clippy::struct_field_names)]
 pub(crate) struct TabSet {
     pub active_tab: usize,
@@ -687,7 +778,7 @@ impl DebugTab {
             separator: false,
             links: Vec::new(),
             section_id: 0,
-            tree_prefix: String::new(),
+            tree_prefix: Vec::new(),
         });
     }
 
@@ -798,12 +889,7 @@ impl Tab for DebugTab {
                                 .align_y(iced::alignment::Vertical::Center)
                                 .spacing(0);
                             if has_tree {
-                                row = row.push(
-                                    Text::new(line.tree_prefix.clone())
-                                        .size(14)
-                                        .color(crate::theme::TEXT_SECONDARY)
-                                        .font(iced::Font::MONOSPACE),
-                                );
+                                row = row.push(tree_connector_canvas(&line.tree_prefix));
                             }
                             Element::from(
                                 row.push(toggle_btn).push(
@@ -848,12 +934,7 @@ impl Tab for DebugTab {
                                 Row::new()
                                     .align_y(iced::alignment::Vertical::Center)
                                     .spacing(0)
-                                    .push(
-                                        Text::new(line.tree_prefix.clone())
-                                            .size(14)
-                                            .color(crate::theme::TEXT_SECONDARY)
-                                            .font(iced::Font::MONOSPACE),
-                                    )
+                                    .push(tree_connector_canvas(&line.tree_prefix))
                                     .push(t),
                             )
                         }
@@ -913,12 +994,7 @@ impl Tab for DebugTab {
                                 Row::new()
                                     .align_y(iced::alignment::Vertical::Center)
                                     .spacing(0)
-                                    .push(
-                                        Text::new(line.tree_prefix.clone())
-                                            .size(14)
-                                            .color(crate::theme::TEXT_SECONDARY)
-                                            .font(iced::Font::MONOSPACE),
-                                    )
+                                    .push(tree_connector_canvas(&line.tree_prefix))
                                     .push(rich),
                             )
                         }

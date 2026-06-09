@@ -105,6 +105,20 @@ pub struct DebugLink {
     pub link_type: LinkType,
 }
 
+/// Describes one column-width segment of a tree connector prefix
+#[cfg(feature = "debugger")]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum TreeSegment {
+    /// Vertical line continuing down (ancestor has more siblings)
+    Pipe,
+    /// Empty spacer (ancestor was the last child)
+    Space,
+    /// ├─ branch connector (this node has more siblings)
+    Branch,
+    /// └─ end connector (this node is the last sibling)
+    End,
+}
+
 /// A line of debug output with optional color and clickable links
 #[cfg(feature = "debugger")]
 #[derive(Debug, Clone)]
@@ -119,8 +133,8 @@ pub struct DebugEventLine {
     pub links: Vec<DebugLink>,
     /// Section ID for collapsible grouping (set by `DebugTab` on push)
     pub section_id: usize,
-    /// Tree connector prefix (e.g. "│  ├─") rendered before toggle/content
-    pub tree_prefix: String,
+    /// Graphical tree connector segments rendered before toggle/content
+    pub tree_prefix: Vec<TreeSegment>,
 }
 
 #[cfg(feature = "debugger")]
@@ -133,7 +147,7 @@ impl DebugEventLine {
             separator: false,
             links,
             section_id: 0,
-            tree_prefix: String::new(),
+            tree_prefix: Vec::new(),
         }
     }
 
@@ -152,7 +166,7 @@ impl DebugEventLine {
             separator: false,
             links,
             section_id: 0,
-            tree_prefix: String::new(),
+            tree_prefix: Vec::new(),
         }
     }
 
@@ -163,7 +177,7 @@ impl DebugEventLine {
             separator: true,
             links: Vec::new(),
             section_id: 0,
-            tree_prefix: String::new(),
+            tree_prefix: Vec::new(),
         }
     }
 
