@@ -720,10 +720,15 @@ impl Tab for DebugTab {
                         .padding([2, 6]);
                         let rule_left = iced::widget::rule::horizontal(1);
                         let rule_right = iced::widget::rule::horizontal(1);
-                        let label = text(line.text.clone())
-                            .shaping(iced::widget::text::Shaping::Advanced)
-                            .size(13)
-                            .color(color);
+                        let label = Button::new(
+                            text(line.text.clone())
+                                .shaping(iced::widget::text::Shaping::Advanced)
+                                .size(13)
+                                .color(color),
+                        )
+                        .on_press(Message::DebugToggleSection(section_id))
+                        .style(crate::theme::ghost_button)
+                        .padding(0);
                         Element::from(
                             Row::new()
                                 .align_y(iced::alignment::Vertical::Center)
@@ -796,7 +801,12 @@ impl Tab for DebugTab {
         )
         .width(Length::Fill)
         .spacing(12)
-        .padding(1);
+        .padding(iced::Padding {
+            top: 1.0,
+            right: 1.0,
+            bottom: 16.0,
+            left: 1.0,
+        });
 
         let scrollable = Scrollable::new(text_column)
             .height(Length::Fill)

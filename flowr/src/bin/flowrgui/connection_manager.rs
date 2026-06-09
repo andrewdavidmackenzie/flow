@@ -96,6 +96,16 @@ pub fn get_debug_port() -> u16 {
     DEBUG_PORT.load(Ordering::Relaxed)
 }
 
+/// Flag: show only flows in next `ProcessTree` response
+#[cfg(feature = "debugger")]
+static FLOWS_ONLY: AtomicBool = AtomicBool::new(false);
+
+#[cfg(feature = "debugger")]
+/// Set whether next `ProcessTree` should show flows only
+pub fn set_flows_only(v: bool) {
+    FLOWS_ONLY.store(v, Ordering::Relaxed);
+}
+
 /// Global counter for jobs created, updated by the coordinator thread
 static JOB_COUNT: AtomicUsize = AtomicUsize::new(0);
 
@@ -622,7 +632,13 @@ fn format_debug_event(message: &DebugServerMessage) -> Vec<crate::DebugEventLine
             format!("Waiting for command (Job #{job_id})"),
             Some(debug_colors::STATUS),
         ),
-        DebugServerMessage::ProcessTree(ref state) => format_tree_only(state),
+        DebugServerMessage::ProcessTree(ref state) => {
+            if FLOWS_ONLY.swap(false, Ordering::Relaxed) {
+                format_flows_only(state)
+            } else {
+                format_tree_only(state)
+            }
+        }
         DebugServerMessage::InspectByState(ref state_name, ref state) => {
             format_inspect_by_state(state_name, state)
         }
@@ -839,10 +855,24 @@ fn format_tree_only(run_state: &flowrlib::run_state::RunState) -> Vec<crate::Deb
 }
 
 #[cfg(feature = "debugger")]
+fn format_flows_only(run_state: &flowrlib::run_state::RunState) -> Vec<crate::DebugEventLine> {
+    let lines = format_run_state(run_state);
+    if let Some(start) = lines.iter().position(|l| l.text == "Flows:") {
+        if let Some(end) = lines.iter().position(|l| l.text == "Functions:") {
+            lines.into_iter().skip(start).take(end - start).collect()
+        } else {
+            lines.into_iter().skip(start).collect()
+        }
+    } else {
+        vec![crate::DebugEventLine::new("No flows".into(), None)]
+    }
+}
+
+#[cfg(feature = "debugger")]
 fn format_state_only(run_state: &flowrlib::run_state::RunState) -> Vec<crate::DebugEventLine> {
     let lines = format_run_state(run_state);
     if let Some(pos) = lines.iter().position(|l| l.text == "RunState:") {
-        lines.into_iter().skip(pos).collect()
+        lines.into_iter().skip(pos + 1).collect()
     } else {
         vec![]
     }
@@ -930,7 +960,7 @@ fn format_run_state(run_state: &flowrlib::run_state::RunState) -> Vec<crate::Deb
                 b = flow_chip_short(b, parent);
                 b = b.text(")");
             } else {
-                b = b.text(" (root flow)");
+                b = b.text(" (root)");
             }
             if !flow.sub_flow_ids.is_empty() {
                 b = b.text(" sub-flows: [");

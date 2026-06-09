@@ -2642,6 +2642,7 @@ impl FlowrGui {
             }
             Message::DebugFlows => {
                 self.debug_waiting = false;
+                connection_manager::set_flows_only(true);
                 self.debug_separator("Flows");
                 connection_manager::send_debug_command(DebugCommand::ProcessList);
             }
