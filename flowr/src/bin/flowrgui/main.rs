@@ -828,6 +828,8 @@ struct FlowrGui {
     run_input_names: Vec<String>,
     #[cfg(feature = "debugger")]
     run_input_types: Vec<String>,
+    #[cfg(feature = "debugger")]
+    pending_action: Option<Message>,
     show_coordinator_picker: bool,
     discovered_services: Vec<(String, String)>,
     discovering: bool,
@@ -886,6 +888,8 @@ impl FlowrGui {
             run_input_names: Vec::new(),
             #[cfg(feature = "debugger")]
             run_input_types: Vec::new(),
+            #[cfg(feature = "debugger")]
+            pending_action: None,
             show_coordinator_picker: false,
             discovered_services: Vec::new(),
             discovering: false,
@@ -2359,6 +2363,20 @@ impl FlowrGui {
 
     #[cfg(feature = "debugger")]
     #[allow(clippy::too_many_lines)]
+    fn ensure_functions_cached(&mut self, action: Message) -> bool {
+        if self.cached_functions.is_empty() {
+            self.pending_action = Some(action);
+            self.suppress_next_output = true;
+            connection_manager::send_debug_command(
+                flowcore::model::debug_command::DebugCommand::FunctionList,
+            );
+            false
+        } else {
+            true
+        }
+    }
+
+    #[allow(clippy::too_many_lines)]
     fn process_debug_message(&mut self, message: Message) -> Task<Message> {
         use flowcore::model::debug_command::{BreakpointSpec, DebugCommand};
 
@@ -2426,6 +2444,9 @@ impl FlowrGui {
             }
             Message::DebugRunProcess => {
                 if self.debug_spec_text.trim().is_empty() {
+                    return iced::Task::none();
+                }
+                if !self.ensure_functions_cached(Message::DebugRunProcess) {
                     return iced::Task::none();
                 }
                 let parts: Vec<String> = self
@@ -2610,6 +2631,9 @@ impl FlowrGui {
             }
             Message::DebugFunctionListReceived(functions) => {
                 self.cached_functions = functions;
+                if let Some(action) = self.pending_action.take() {
+                    return self.process_debug_message(action);
+                }
             }
             Message::DebugBreakpointListReceived(specs) => {
                 self.active_breakpoints = specs.into_iter().collect();
@@ -2639,14 +2663,10 @@ impl FlowrGui {
                 self.tab_set.debug_tab.toggle_section(section_id);
             }
             Message::ShowInspectPopup => {
-                self.show_inspect_popup = true;
-                if self.cached_functions.is_empty() && self.debug_waiting {
-                    self.debug_waiting = false;
-                    self.suppress_next_output = true;
-                    connection_manager::send_debug_command(
-                        flowcore::model::debug_command::DebugCommand::FunctionList,
-                    );
+                if !self.ensure_functions_cached(Message::ShowInspectPopup) {
+                    return iced::Task::none();
                 }
+                self.show_inspect_popup = true;
             }
             Message::CloseInspectPopup => self.show_inspect_popup = false,
             Message::InspectTabChanged(tab) => self.inspect_tab = tab,
@@ -2680,16 +2700,15 @@ impl FlowrGui {
                 }
             }
             Message::ShowBpPopup => {
+                if !self.ensure_functions_cached(Message::ShowBpPopup) {
+                    return iced::Task::none();
+                }
                 self.show_bp_popup = true;
                 self.bp_target.clear();
                 if self.debug_waiting {
                     self.debug_waiting = false;
                     self.suppress_next_output = true;
-                    if self.cached_functions.is_empty() {
-                        connection_manager::send_debug_command(DebugCommand::FunctionList);
-                    } else {
-                        connection_manager::send_debug_command(DebugCommand::List);
-                    }
+                    connection_manager::send_debug_command(DebugCommand::List);
                 }
             }
             Message::CloseBpPopup => self.show_bp_popup = false,
@@ -3132,6 +3151,8 @@ mod test {
             run_input_names: Vec::new(),
             #[cfg(feature = "debugger")]
             run_input_types: Vec::new(),
+            #[cfg(feature = "debugger")]
+            pending_action: None,
             show_coordinator_picker: false,
             discovered_services: Vec::new(),
             discovering: false,
