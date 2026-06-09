@@ -517,10 +517,6 @@ fn format_debug_event(message: &DebugServerMessage) -> Vec<crate::DebugEventLine
                 Some(debug_colors::DATA_FLOW),
             ),
         ],
-        DebugServerMessage::BlockBreakpoint(block) => line(
-            format!("Block breakpoint: {block:?}"),
-            Some(debug_colors::BREAKPOINT),
-        ),
         DebugServerMessage::DataBreakpoint(
             source_name,
             source_id,
@@ -618,19 +614,6 @@ fn format_debug_event(message: &DebugServerMessage) -> Vec<crate::DebugEventLine
                     .collect()
             }
         }
-        DebugServerMessage::BlockState(blocks) => {
-            if blocks.is_empty() {
-                line(
-                    "No blocks matching the specification were found".into(),
-                    None,
-                )
-            } else {
-                blocks
-                    .iter()
-                    .map(|b| DebugEventLine::new(format!("{b}"), None))
-                    .collect()
-            }
-        }
         DebugServerMessage::FlowUnblockBreakpoint(flow_id) => line(
             format!("Flow #{flow_id} was busy and has now gone idle, unblocking senders"),
             Some(debug_colors::STATUS),
@@ -666,9 +649,6 @@ fn format_debug_event(message: &DebugServerMessage) -> Vec<crate::DebugEventLine
                         }
                         flowcore::model::debug_command::BreakpointSpec::Output((id, route)) => {
                             format!("  Output #{id}{route}")
-                        }
-                        flowcore::model::debug_command::BreakpointSpec::Block((src, dst)) => {
-                            format!("  Block {src:?}->{dst:?}")
                         }
                         flowcore::model::debug_command::BreakpointSpec::Route(route) => {
                             format!("  Route {route}")
@@ -789,14 +769,6 @@ fn debug_client_stream(address: String) -> impl iced::futures::Stream<Item = Mes
                                     id,
                                     route,
                                 )) => format!("{id}{route}"),
-                                flowcore::model::debug_command::BreakpointSpec::Block((
-                                    src,
-                                    dst,
-                                )) => {
-                                    let s = src.map_or(String::new(), |v| v.to_string());
-                                    let d = dst.map_or(String::new(), |v| v.to_string());
-                                    format!("{s}->{d}")
-                                }
                                 flowcore::model::debug_command::BreakpointSpec::Route(route) => {
                                     route.clone()
                                 }

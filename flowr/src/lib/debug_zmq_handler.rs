@@ -10,15 +10,13 @@ use flowcore::model::input::Input;
 use flowcore::model::output_connection::OutputConnection;
 use flowcore::model::runtime_function::RuntimeFunction;
 
-use crate::block::Block;
 use crate::connections::{CoordinatorConnection, WAIT};
 use crate::debug_command::{BreakpointSpec, DebugCommand};
 use crate::debug_server_message::DebugServerMessage;
 use crate::debug_server_message::DebugServerMessage::{
-    BlockBreakpoint, BlockState, DataBreakpoint, EnteringDebugger, Error, ExecutionEnded,
-    ExecutionStarted, ExitingDebugger, FlowUnblockBreakpoint, FunctionStates, Functions,
-    InputState, JobCompleted, JobError, Message, OutputState, OverallState, Panic,
-    PriorToSendingJob, Resetting, WaitingForCommand,
+    DataBreakpoint, EnteringDebugger, Error, ExecutionEnded, ExecutionStarted, ExitingDebugger,
+    FlowUnblockBreakpoint, FunctionStates, Functions, InputState, JobCompleted, JobError, Message,
+    OutputState, OverallState, Panic, PriorToSendingJob, Resetting, WaitingForCommand,
 };
 use crate::debugger_handler::DebuggerHandler;
 use crate::job::Job;
@@ -45,12 +43,6 @@ impl DebuggerHandler for DebugZmqHandler {
         let _: flowcore::errors::Result<DebugCommand> = self
             .debug_server_connection
             .send_and_receive_response(FunctionStates((function.clone(), states)));
-    }
-
-    fn block_breakpoint(&mut self, block: &Block) {
-        let _: flowcore::errors::Result<DebugCommand> = self
-            .debug_server_connection
-            .send_and_receive_response(BlockBreakpoint(block.clone()));
     }
 
     fn flow_unblock_breakpoint(&mut self, flow_id: usize) {
@@ -94,12 +86,6 @@ impl DebuggerHandler for DebugZmqHandler {
         let _: flowcore::errors::Result<DebugCommand> = self
             .debug_server_connection
             .send_and_receive_response(JobCompleted(job.clone()));
-    }
-
-    fn blocks(&mut self, blocks: Vec<Block>) {
-        let _: flowcore::errors::Result<DebugCommand> = self
-            .debug_server_connection
-            .send_and_receive_response(BlockState(blocks));
     }
 
     fn outputs(&mut self, output_connections: Vec<OutputConnection>) {

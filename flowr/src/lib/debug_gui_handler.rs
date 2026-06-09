@@ -12,7 +12,6 @@ use flowcore::model::input::Input;
 use flowcore::model::output_connection::OutputConnection;
 use flowcore::model::runtime_function::RuntimeFunction;
 
-use crate::block::Block;
 use crate::debug_command::DebugCommand;
 use crate::debug_server_message::DebugServerMessage;
 use crate::debugger_handler::DebuggerHandler;
@@ -56,10 +55,6 @@ impl DebuggerHandler for DebugGuiHandler {
         )));
     }
 
-    fn block_breakpoint(&mut self, block: &Block) {
-        self.send_event(DebugServerMessage::BlockBreakpoint(block.clone()));
-    }
-
     fn flow_unblock_breakpoint(&mut self, flow_id: usize) {
         self.send_event(DebugServerMessage::FlowUnblockBreakpoint(flow_id));
     }
@@ -93,10 +88,6 @@ impl DebuggerHandler for DebugGuiHandler {
 
     fn job_completed(&mut self, job: &Job) {
         self.send_event(DebugServerMessage::JobCompleted(job.clone()));
-    }
-
-    fn blocks(&mut self, blocks: Vec<Block>) {
-        self.send_event(DebugServerMessage::BlockState(blocks));
     }
 
     fn outputs(&mut self, output_connections: Vec<OutputConnection>) {

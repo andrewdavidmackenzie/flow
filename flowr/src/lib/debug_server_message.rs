@@ -11,7 +11,6 @@ use flowcore::model::input::Input;
 use flowcore::model::output_connection::OutputConnection;
 use flowcore::model::runtime_function::RuntimeFunction;
 
-use crate::block::Block;
 use crate::job::Job;
 use crate::run_state::{RunState, State};
 
@@ -27,8 +26,6 @@ pub enum DebugServerMessage {
     ExitingDebugger,
     /// The run-time is about to send a `Job` for execution
     PriorToSendingJob(Job),
-    /// A breakpoint on a `Block` between two functions was encountered
-    BlockBreakpoint(Block),
     /// A breakpoint on a `Flow` going idle (unblocking senders) was hit
     FlowUnblockBreakpoint(usize),
     /// A breakpoint on a `Value` being sent between two functions was encountered
@@ -57,8 +54,6 @@ pub enum DebugServerMessage {
     InputState(Input),
     /// The state of an Output - list of connections
     OutputState(Vec<OutputConnection>),
-    /// One or more Blocks
-    BlockState(Vec<Block>),
     /// A message for display to the user
     Message(String),
     /// Process tree — carries `RunState` for structured rendering
@@ -87,7 +82,6 @@ impl fmt::Display for DebugServerMessage {
                 DebugServerMessage::EnteringDebugger => "EnteringDebugger",
                 DebugServerMessage::ExitingDebugger => "ExitingDebugger",
                 DebugServerMessage::PriorToSendingJob(_) => "PriorToSendingJob",
-                DebugServerMessage::BlockBreakpoint(_) => "BlockBreakpoint",
                 DebugServerMessage::DataBreakpoint(_, _, _, _, _, _, _, _) => "DataBreakpoint",
                 DebugServerMessage::Deadlock(_) => "Deadlock",
                 DebugServerMessage::Error(_) => "Error",
@@ -101,7 +95,6 @@ impl fmt::Display for DebugServerMessage {
                 DebugServerMessage::Panic(_, _) => "Panic",
                 DebugServerMessage::InputState(_) => "InputState",
                 DebugServerMessage::OutputState(_) => "OutputState",
-                DebugServerMessage::BlockState(_) => "BlockState",
                 DebugServerMessage::Message(_) => "Message",
                 DebugServerMessage::Resetting => "Resetting",
                 DebugServerMessage::WaitingForCommand(_) => "WaitingForCommand",

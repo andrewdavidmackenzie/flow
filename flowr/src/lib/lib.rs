@@ -10,9 +10,6 @@
 //! gathering the Result and passing the output value to other connected functions in the
 //! [flow graph][flowcore::model::flow_manifest::FlowManifest]
 
-/// Re-export [Block][block::Block] from flowcore
-pub use flowcore::model::block;
-
 /// Provides [Coordinator][coordinator::Coordinator] responsible for coordinating the execution of flows submitted to it
 pub mod coordinator;
 

@@ -1,5 +1,4 @@
 use std::collections::HashSet;
-use std::fmt;
 use std::fmt::Write;
 
 use error_chain::bail;
@@ -10,13 +9,11 @@ use flowcore::errors::Result;
 use flowcore::model::output_connection::Source::{Input, Output};
 use flowcore::model::runtime_function::RuntimeFunction;
 
-use crate::block::Block;
 use crate::debug_command::BreakpointSpec;
 use crate::debug_command::DebugCommand;
 use crate::debug_command::DebugCommand::{
     Ack, Breakpoint, Continue, DebugClientStarting, Delete, Error, ExitDebugger, Inspect,
-    InspectBlock, InspectFunction, InspectInput, InspectOutput, Invalid, List, Modify, RunReset,
-    Step, Validate,
+    InspectFunction, InspectInput, InspectOutput, Invalid, List, Modify, RunReset, Step, Validate,
 };
 use crate::debug_command::ProcessTarget;
 use crate::debugger_handler::DebuggerHandler;
@@ -28,8 +25,6 @@ use crate::run_state::{RunState, State};
 pub struct Debugger<'a> {
     debug_server: &'a mut dyn DebuggerHandler,
     input_breakpoints: HashSet<(usize, usize)>,
-    block_breakpoints: HashSet<(usize, usize)>,
-    /* blocked_id -> blocking_id */
     output_breakpoints: HashSet<(usize, String)>,
     break_at_job: usize,
     function_breakpoints: HashSet<usize>,
@@ -37,48 +32,11 @@ pub struct Debugger<'a> {
     flow_unblock_breakpoints: HashSet<usize>,
 }
 
-#[allow(dead_code)]
-#[derive(Debug, Clone)]
-enum BlockType {
-    OutputBlocked,
-    // Cannot run and send it's Output as a destination Input is full
-    UnreadySender, // Has to send output to an empty Input for other process to be able to run
-}
-
-#[allow(dead_code)]
-#[derive(Debug, Clone)]
-struct BlockerNode {
-    function_id: usize,
-    block_type: BlockType,
-    blockers: Vec<BlockerNode>,
-}
-
-#[allow(dead_code)]
-impl BlockerNode {
-    fn new(process_id: usize, block_type: BlockType) -> Self {
-        BlockerNode {
-            function_id: process_id,
-            block_type,
-            blockers: vec![],
-        }
-    }
-}
-
-impl fmt::Display for BlockerNode {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        match self.block_type {
-            BlockType::OutputBlocked => write!(f, " -> #{}", self.function_id),
-            BlockType::UnreadySender => write!(f, " <- #{}", self.function_id),
-        }
-    }
-}
-
 impl<'a> Debugger<'a> {
     pub fn new(debug_server: &'a mut dyn DebuggerHandler) -> Self {
         Debugger {
             debug_server,
             input_breakpoints: HashSet::<(usize, usize)>::new(),
-            block_breakpoints: HashSet::<(usize, usize)>::new(),
             output_breakpoints: HashSet::<(usize, String)>::new(),
             break_at_job: usize::MAX,
             function_breakpoints: HashSet::<usize>::new(),
@@ -105,28 +63,6 @@ impl<'a> Debugger<'a> {
                     .ok_or("Could not get function")?,
                 state.get_function_states(job.process_id),
             );
-            return self.wait_for_command(state);
-        }
-
-        Ok((false, false))
-    }
-
-    /// Called from flowrlib during execution when it is about to create a block on one function
-    /// due to not being able to send outputs to another function.
-    ///
-    /// This allows the debugger to check if we have a breakpoint set on that block. If we do
-    /// then enter the debugger client and wait for a command.
-    #[allow(dead_code)]
-    pub fn check_on_block_creation(
-        &mut self,
-        state: &mut RunState,
-        block: &Block,
-    ) -> Result<(bool, bool)> {
-        if self
-            .block_breakpoints
-            .contains(&(block.blocked_function_id, block.blocking_function_id))
-        {
-            self.debug_server.block_breakpoint(block);
             return self.wait_for_command(state);
         }
 
@@ -386,10 +322,6 @@ impl<'a> Debugger<'a> {
                             .debugger_error(format!("No function with id = {function_id}"));
                     }
                 }
-                Ok(InspectBlock(from_function_id, to_function_id)) => {
-                    let blocks = Self::inspect_blocks(state, from_function_id, to_function_id);
-                    self.debug_server.blocks(blocks);
-                }
                 Ok(Modify(specs)) => self.modify_variables(state, &specs),
                 Ok(DebugClientStarting) => {
                     // TODO remove
@@ -440,19 +372,6 @@ impl<'a> Debugger<'a> {
                 }
             }
         }
-    }
-
-    /*
-       Find current blocks that match the spec.
-       Blocking has been removed, so this always returns an empty list.
-    */
-    #[allow(dead_code)]
-    fn inspect_blocks(
-        _run_state: &RunState,
-        _from: Option<usize>,
-        _to: Option<usize>,
-    ) -> Vec<Block> {
-        vec![]
     }
 
     /****************************** Implementations of Debugger Commands *************************/
@@ -507,22 +426,6 @@ impl<'a> Debugger<'a> {
                 Ok(format!(
                     "Data breakpoint set on Function #{destination_id}:{input_number} '{}' receiving data on input '{io_name}'",
                     function.name()))
-            }
-            Some(BreakpointSpec::Block((Some(blocked_id), Some(blocking_id)))) => {
-                if state.get_function(blocked_id).is_none() {
-                    bail!("There is no Function #{blocked_id} to set a Block breakpoint on");
-                }
-
-                if state.get_function(blocking_id).is_none() {
-                    bail!("There is no Function #{blocking_id} to set a Block breakpoint on");
-                }
-
-                self.block_breakpoints.insert((blocked_id, blocking_id));
-                Ok(format!(
-                    "Block breakpoint set on Function #{blocked_id} being blocked by Function #{blocking_id}"))
-            }
-            Some(BreakpointSpec::Block(_)) => {
-                bail!("Invalid format to set a breakpoint on a block\n")
             }
             Some(BreakpointSpec::Output((source_id, source_output_route))) => {
                 if state.get_function(source_id).is_none() {
@@ -619,19 +522,6 @@ impl<'a> Debugger<'a> {
                     .remove(&(destination_id, input_number));
                 Ok("Inputs breakpoint removed\n".into())
             }
-            Some(BreakpointSpec::Block((Some(blocked_id), Some(blocking_id)))) => {
-                if state.get_function(blocked_id).is_none() {
-                    bail!("There is no Function #{blocked_id} to delete a Block breakpoint from");
-                }
-
-                if state.get_function(blocking_id).is_none() {
-                    bail!("There is no Function #{blocking_id} to delete a Block breakpoint from");
-                }
-
-                self.input_breakpoints.remove(&(blocked_id, blocking_id));
-                Ok("Inputs breakpoint removed\n".into())
-            }
-            Some(BreakpointSpec::Block(_)) => bail!("Invalid format to remove breakpoint\n"),
             Some(BreakpointSpec::Output((source_id, source_output_route))) => {
                 if state.get_function(source_id).is_none() {
                     bail!("There is no Function #{source_id} to delete a Output breakpoint from");
@@ -689,9 +579,6 @@ impl<'a> Debugger<'a> {
         }
         for (func_id, route) in &self.output_breakpoints {
             specs.push(BreakpointSpec::Output((*func_id, route.clone())));
-        }
-        for &(blocked, blocking) in &self.block_breakpoints {
-            specs.push(BreakpointSpec::Block((Some(blocked), Some(blocking))));
         }
         specs
     }
@@ -1150,70 +1037,6 @@ impl<'a> Debugger<'a> {
         }
     }
 
-    /*
-        Return a vector of all the processes preventing process_id from running, which can be:
-        - other process has input full and hence is blocking running of this process
-        - other process is the only process that sends to an empty input of this process
-    */
-    #[allow(dead_code)]
-    fn find_blockers(state: &RunState, process_id: usize) -> Result<Vec<BlockerNode>> {
-        let input_blockers: Vec<BlockerNode> = state
-            .get_input_blockers(process_id)?
-            .iter()
-            .map(|id| BlockerNode::new(*id, BlockType::UnreadySender))
-            .collect();
-
-        Ok(input_blockers)
-    }
-
-    /*
-        Traverse the tree of processes blocking this process from running, either because:
-        - this process wants to send to the other, but the input is full
-        - this process needs an input from the other
-
-        Return true if a loop was detected, false if done without detecting a loop
-    */
-    #[allow(dead_code)]
-    fn traverse_blocker_tree(
-        state: &RunState,
-        visited_nodes: &mut Vec<usize>,
-        root_node_id: usize,
-        node: &mut BlockerNode,
-    ) -> Result<Vec<BlockerNode>> {
-        visited_nodes.push(node.function_id);
-        node.blockers = Self::find_blockers(state, node.function_id)?;
-
-        for blocker in &mut node.blockers {
-            if blocker.function_id == root_node_id {
-                return Ok(vec![blocker.clone()]); // add the last node in the loop to end of trail
-            }
-
-            // if we've visited this blocking node before, then we've detected a loop
-            if !visited_nodes.contains(&blocker.function_id) {
-                let mut blocker_subtree =
-                    Self::traverse_blocker_tree(state, visited_nodes, root_node_id, blocker)?;
-                if !blocker_subtree.is_empty() {
-                    // insert this node at the head of the list of blocking nodes
-                    blocker_subtree.insert(0, blocker.clone());
-                    return Ok(blocker_subtree);
-                }
-            }
-        }
-
-        // no loop found
-        Ok(vec![])
-    }
-
-    #[allow(dead_code)]
-    fn display_set(root_node: &BlockerNode, node_set: Vec<BlockerNode>) -> String {
-        let mut display_string = String::new();
-        let _ = write!(display_string, "#{}", root_node.function_id);
-        for node in node_set {
-            let _ = write!(display_string, "{node}");
-        }
-        display_string
-    }
-
     fn deadlock_check() -> String {
         " No deadlocks found\n".to_string()
     }
@@ -1234,16 +1057,14 @@ mod test {
     use flowcore::model::runtime_function::RuntimeFunction;
     use flowcore::model::submission::Submission;
 
-    use crate::block::Block;
     use crate::debug_command::{BreakpointSpec, DebugCommand};
-    use crate::debugger::{BlockType, BlockerNode, Debugger};
+    use crate::debugger::Debugger;
     use crate::debugger_handler::DebuggerHandler;
     use crate::job::{Job, Payload};
     use crate::run_state::{RunState, State};
 
     struct DummyServer {
         job_breakpoint: usize,
-        block_breakpoint: usize,
         send_breakpoint: (usize, usize), // (from id, to id)
         flow_unblock_breakpoint: usize,
         job_completed: bool,
@@ -1255,7 +1076,6 @@ mod test {
         fn new() -> Self {
             DummyServer {
                 job_breakpoint: usize::MAX,
-                block_breakpoint: usize::MAX,
                 send_breakpoint: (0, 0),
                 flow_unblock_breakpoint: usize::MAX,
                 job_completed: false,
@@ -1269,9 +1089,6 @@ mod test {
         fn start(&mut self) {}
         fn job_breakpoint(&mut self, job: &Job, _function: &RuntimeFunction, _states: Vec<State>) {
             self.job_breakpoint = job.payload.job_id;
-        }
-        fn block_breakpoint(&mut self, block: &Block) {
-            self.block_breakpoint = block.blocked_function_id;
         }
         fn flow_unblock_breakpoint(&mut self, flow_id: usize) {
             self.flow_unblock_breakpoint = flow_id;
@@ -1295,7 +1112,6 @@ mod test {
         fn job_completed(&mut self, _job: &Job) {
             self.job_completed = true;
         }
-        fn blocks(&mut self, _blocks: Vec<Block>) {}
         fn outputs(&mut self, _output: Vec<OutputConnection>) {}
         fn input(&mut self, _input: Input) {}
         fn function_list(&mut self, _functions: &[RuntimeFunction]) {}
@@ -1385,14 +1201,6 @@ mod test {
     }
 
     #[test]
-    fn test_display_blocker_node() {
-        let node = BlockerNode::new(0, BlockType::OutputBlocked);
-        println!("{node}");
-        let node = BlockerNode::new(0, BlockType::UnreadySender);
-        println!("{node}");
-    }
-
-    #[test]
     fn test_check_prior_to_job() {
         let mut state = RunState::new(test_submission(vec![test_function(0)]));
         let mut server = DummyServer::new();
@@ -1407,21 +1215,6 @@ mod test {
 
         // check the breakpoint triggered at this job_id as expected
         assert_eq!(server.job_breakpoint, job.payload.job_id);
-    }
-
-    #[test]
-    fn test_check_on_block_creation() {
-        let mut state = RunState::new(test_submission(vec![test_function(0)]));
-        let mut server = DummyServer::new();
-        let mut debugger = Debugger::new(&mut server);
-
-        // configure a break on block creation from function #0 to function #1
-        debugger.block_breakpoints.insert((0, 1));
-        let block = Block::new(0, 1, 0, 0, 0);
-        let _ = debugger.check_on_block_creation(&mut state, &block);
-
-        // check the breakpoint triggered at this blocked function as expected
-        assert_eq!(server.block_breakpoint, 0);
     }
 
     #[test]
@@ -1478,7 +1271,6 @@ mod test {
 
         // configure the debugger to break at this job via it's ID
         debugger.break_at_job = job.payload.job_id;
-        debugger.block_breakpoints.insert((0, 1));
         debugger.output_breakpoints.insert((0, String::new()));
         debugger.input_breakpoints.insert((0, 0));
         debugger.flow_unblock_breakpoints.insert(0);
@@ -1486,7 +1278,6 @@ mod test {
         debugger.reset();
 
         assert_eq!(debugger.break_at_job, usize::MAX);
-        assert_eq!(debugger.block_breakpoints.len(), 1);
         assert_eq!(debugger.output_breakpoints.len(), 1);
         assert_eq!(debugger.input_breakpoints.len(), 1);
         assert_eq!(debugger.flow_unblock_breakpoints.len(), 1);
@@ -1529,15 +1320,6 @@ mod test {
     }
 
     #[test]
-    fn test_inspect_blocks_returns_empty() {
-        let state = RunState::new(test_submission(vec![test_function(0)]));
-
-        // Blocking has been removed, so inspect_blocks always returns empty
-        assert!(Debugger::inspect_blocks(&state, Some(0), None).is_empty());
-        assert!(Debugger::inspect_blocks(&state, None, None).is_empty());
-    }
-
-    #[test]
     fn test_none_breakpoint_spec_fails() {
         let state = RunState::new(test_submission(vec![test_function(0)]));
         let mut server = DummyServer::new();
@@ -1553,32 +1335,6 @@ mod test {
         assert!(debugger
             .add_breakpoint(&state, Some(BreakpointSpec::All))
             .is_err());
-    }
-
-    #[test]
-    fn test_non_specific_block_breakpoint_spec_fails() {
-        let state = RunState::new(test_submission(vec![test_function(0)]));
-        let mut server = DummyServer::new();
-        let mut debugger = Debugger::new(&mut server);
-        assert!(debugger
-            .add_breakpoint(&state, Some(BreakpointSpec::Block((None, None))))
-            .is_err());
-        assert!(debugger
-            .add_breakpoint(&state, Some(BreakpointSpec::Block((None, Some(0)))))
-            .is_err());
-        assert!(debugger
-            .add_breakpoint(&state, Some(BreakpointSpec::Block((Some(0), None))))
-            .is_err());
-    }
-
-    #[test]
-    fn test_specific_block_breakpoint_spec_passes() {
-        let state = RunState::new(test_submission(vec![test_function(0), test_function(1)]));
-        let mut server = DummyServer::new();
-        let mut debugger = Debugger::new(&mut server);
-        assert!(debugger
-            .add_breakpoint(&state, Some(BreakpointSpec::Block((Some(0), Some(1)))))
-            .is_ok());
     }
 
     #[test]
@@ -1632,26 +1388,6 @@ mod test {
     }
 
     #[test]
-    fn test_block_breakpoint_no_such_source_function_fails() {
-        let state = RunState::new(test_submission(vec![test_function(0)]));
-        let mut server = DummyServer::new();
-        let mut debugger = Debugger::new(&mut server);
-        assert!(debugger
-            .add_breakpoint(&state, Some(BreakpointSpec::Block((Some(1), Some(0)))))
-            .is_err());
-    }
-
-    #[test]
-    fn test_block_breakpoint_no_such_destination_function_fails() {
-        let state = RunState::new(test_submission(vec![test_function(0)]));
-        let mut server = DummyServer::new();
-        let mut debugger = Debugger::new(&mut server);
-        assert!(debugger
-            .add_breakpoint(&state, Some(BreakpointSpec::Block((Some(0), Some(1)))))
-            .is_err());
-    }
-
-    #[test]
     fn test_output_breakpoint_no_such_function_fails() {
         let state = RunState::new(test_submission(vec![test_function(0)]));
         let mut server = DummyServer::new();
@@ -1686,35 +1422,6 @@ mod test {
         let mut debugger = Debugger::new(&mut server);
         assert!(debugger
             .delete_breakpoint(&state, Some(BreakpointSpec::All))
-            .is_ok());
-    }
-
-    #[test]
-    fn test_delete_non_specific_block_breakpoint_spec_fails() {
-        let state = RunState::new(test_submission(vec![test_function(0)]));
-        let mut server = DummyServer::new();
-        let mut debugger = Debugger::new(&mut server);
-        assert!(debugger
-            .delete_breakpoint(&state, Some(BreakpointSpec::Block((None, None))))
-            .is_err());
-        assert!(debugger
-            .delete_breakpoint(&state, Some(BreakpointSpec::Block((None, Some(0)))))
-            .is_err());
-        assert!(debugger
-            .delete_breakpoint(&state, Some(BreakpointSpec::Block((Some(0), None))))
-            .is_err());
-    }
-
-    #[test]
-    fn test_delete_specific_block_breakpoint_spec_passes() {
-        let state = RunState::new(test_submission(vec![test_function(0), test_function(1)]));
-        let mut server = DummyServer::new();
-        let mut debugger = Debugger::new(&mut server);
-        debugger
-            .add_breakpoint(&state, Some(BreakpointSpec::Block((Some(0), Some(1)))))
-            .expect("Couldn't add breakpoint");
-        assert!(debugger
-            .delete_breakpoint(&state, Some(BreakpointSpec::Block((Some(0), Some(1)))))
             .is_ok());
     }
 
@@ -1772,26 +1479,6 @@ mod test {
         assert!(debugger
             .delete_breakpoint(&state, Some(BreakpointSpec::Input((0, 0))))
             .is_ok());
-    }
-
-    #[test]
-    fn test_delete_block_breakpoint_no_such_source_function_fails() {
-        let state = RunState::new(test_submission(vec![test_function(0)]));
-        let mut server = DummyServer::new();
-        let mut debugger = Debugger::new(&mut server);
-        assert!(debugger
-            .delete_breakpoint(&state, Some(BreakpointSpec::Block((Some(1), Some(0)))))
-            .is_err());
-    }
-
-    #[test]
-    fn test_delete_block_breakpoint_no_such_destination_function_fails() {
-        let state = RunState::new(test_submission(vec![test_function(0)]));
-        let mut server = DummyServer::new();
-        let mut debugger = Debugger::new(&mut server);
-        assert!(debugger
-            .delete_breakpoint(&state, Some(BreakpointSpec::Block((Some(0), Some(1)))))
-            .is_err());
     }
 
     #[test]

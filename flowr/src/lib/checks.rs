@@ -114,30 +114,6 @@ fn completed_check(
     Ok(())
 }
 
-/*
-fn destination_block_state_check(state: &RunState, job_id: usize, block: &Block,
-                                 functions: &[RuntimeFunction]) -> Result<()> {
-    // For each block on a destination function, then either that input should be full or
-    // the function should be running in parallel with the one that just completed,
-    // or it's flow should be busy and there should be a pending unblock on it
-    if let Some(function) = functions.get(block.blocking_function_id) {
-        if !(function.input_count(block.blocking_io_number) > 0
-            || (state.get_busy_flows().contains_key(&block.blocking_flow_id)
-            && state.get_flow_blocks().contains_key(&block.blocking_flow_id)))
-        {
-            return runtime_error(
-                state,
-                job_id,
-                &format!("Block {block} exists for function #{}, but Function #{}:{} input is not full",
-                         block.blocking_function_id, block.blocking_function_id, block.blocking_io_number),
-                file!(), line!());
-        }
-    }
-
-    Ok(())
-}
- */
-
 fn function_state_checks(state: &RunState, job_id: usize) -> Result<()> {
     for function in state.get_functions().values() {
         running_check(state, job_id, function)?;

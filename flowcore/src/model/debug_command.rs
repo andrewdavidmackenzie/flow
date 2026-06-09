@@ -24,8 +24,6 @@ pub enum BreakpointSpec {
     Output((usize, String)),
     /// A descriptor for the `Inout` of a `Function` was specified
     Input((usize, usize)),
-    /// A description of a "block" (when one function is blocked from running by another) was specified
-    Block((Option<usize>, Option<usize>)),
     /// A breakpoint on job completion for a specific function
     Completed(usize),
     /// A function or flow specified by route path
@@ -59,8 +57,6 @@ pub enum DebugCommand {
     InspectInput(usize, usize),
     /// Inspect an Output (`function_id`, `sub_path`)
     InspectOutput(usize, String),
-    /// Inspect a Block (optional source `function_id`, optional `destination_function_id`)
-    InspectBlock(Option<usize>, Option<usize>),
     /// Inspect functions filtered by state (ready, waiting, running, completed, blocked)
     InspectState(String),
     /// Inspect a function or flow by its route path
@@ -127,7 +123,6 @@ mod test {
         println!("{}", DebugCommand::Inspect);
         println!("{}", DebugCommand::InspectInput(0, 0));
         println!("{}", DebugCommand::InspectOutput(0, "Hello".into()));
-        println!("{}", DebugCommand::InspectBlock(None, None));
         println!("{}", DebugCommand::Invalid);
         println!("{}", DebugCommand::List);
         println!("{}", DebugCommand::RunReset(None, vec![]));

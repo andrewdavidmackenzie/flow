@@ -836,8 +836,6 @@ mod test {
     use flowcore::model::submission::Submission;
 
     #[cfg(feature = "debugger")]
-    use crate::block::Block;
-    #[cfg(feature = "debugger")]
     use crate::debug_command::DebugCommand;
     #[cfg(feature = "debugger")]
     use crate::debugger::Debugger;
@@ -991,7 +989,6 @@ mod test {
         fn start(&mut self) {}
         fn job_breakpoint(&mut self, _job: &Job, _function: &RuntimeFunction, _states: Vec<State>) {
         }
-        fn block_breakpoint(&mut self, _block: &Block) {}
         fn flow_unblock_breakpoint(&mut self, _flow_id: usize) {}
         fn send_breakpoint(
             &mut self,
@@ -1007,7 +1004,6 @@ mod test {
         }
         fn job_error(&mut self, _job: &Job) {}
         fn job_completed(&mut self, _job: &Job) {}
-        fn blocks(&mut self, _blocks: Vec<Block>) {}
         fn outputs(&mut self, _output: Vec<OutputConnection>) {}
         fn input(&mut self, _input: Input) {}
         fn function_list(&mut self, _functions: &[RuntimeFunction]) {}
