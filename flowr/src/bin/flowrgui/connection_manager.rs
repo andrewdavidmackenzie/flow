@@ -648,6 +648,7 @@ fn format_debug_event(message: &DebugServerMessage) -> Vec<crate::DebugEventLine
             "Invalid message from debug server".into(),
             Some(debug_colors::ERROR),
         ),
+        DebugServerMessage::FlowList(_) => vec![],
         DebugServerMessage::BreakpointList(specs) => {
             if specs.is_empty() {
                 line("No breakpoints set".into(), None)
@@ -765,6 +766,21 @@ fn debug_client_stream(address: String) -> impl iced::futures::Stream<Item = Mes
                             .collect();
                         let _ =
                             blocking_sender.try_send(Message::DebugFunctionListReceived(func_data));
+                    }
+
+                    if let DebugServerMessage::FlowList(ref flows) = message {
+                        let flow_data: Vec<crate::CachedFunction> = flows
+                            .iter()
+                            .map(|(id, name, route)| crate::CachedFunction {
+                                id: *id,
+                                name: name.clone(),
+                                route: route.clone(),
+                                inputs: Vec::new(),
+                                outputs: Vec::new(),
+                                is_flow: true,
+                            })
+                            .collect();
+                        let _ = blocking_sender.try_send(Message::DebugFlowsReceived(flow_data));
                     }
 
                     if let DebugServerMessage::BreakpointList(ref specs) = message {

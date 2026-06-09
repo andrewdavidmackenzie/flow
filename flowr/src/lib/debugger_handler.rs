@@ -46,6 +46,8 @@ pub trait DebuggerHandler {
     fn input(&mut self, input: Input);
     /// lists all functions
     fn function_list(&mut self, functions: &[RuntimeFunction]);
+    /// Lists flow IDs with access to `RunState` for names/routes
+    fn flow_list(&mut self, flow_ids: &[usize], state: &RunState);
     /// returns the state of a function
     fn function_states(&mut self, function: RuntimeFunction, function_states: Vec<State>);
     /// returns the global run state

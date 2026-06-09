@@ -106,6 +106,23 @@ impl DebuggerHandler for DebugZmqHandler {
             .send_and_receive_response(Functions(functions.to_vec()));
     }
 
+    fn flow_list(&mut self, flow_ids: &[usize], state: &RunState) {
+        let functions = state.get_functions();
+        let flows: Vec<(usize, String, String)> = flow_ids
+            .iter()
+            .map(|id| {
+                if let Some(f) = functions.get(id) {
+                    (*id, f.name().to_string(), f.route().to_string())
+                } else {
+                    (*id, String::new(), String::new())
+                }
+            })
+            .collect();
+        let _: flowcore::errors::Result<DebugCommand> = self
+            .debug_server_connection
+            .send_and_receive_response(DebugServerMessage::FlowList(flows));
+    }
+
     fn function_states(&mut self, function: RuntimeFunction, function_states: Vec<State>) {
         let _: flowcore::errors::Result<DebugCommand> = self
             .debug_server_connection

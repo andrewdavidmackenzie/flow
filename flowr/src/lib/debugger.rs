@@ -228,6 +228,9 @@ impl<'a> Debugger<'a> {
                         state.get_functions().values().cloned().collect();
                     functions.sort_by_key(RuntimeFunction::id);
                     self.debug_server.function_list(&functions);
+                    let flow_ids: Vec<usize> =
+                        state.submission.manifest.flows().keys().copied().collect();
+                    self.debug_server.flow_list(&flow_ids, state);
                 }
                 Ok(DebugCommand::ProcessList) => {
                     self.debug_server.process_tree(state);
@@ -1146,6 +1149,7 @@ mod test {
         fn inspect_by_state(&mut self, _: &str, _: &RunState) {}
         fn inspect_flow(&mut self, _: usize, _: &RunState) {}
         fn job_inspect(&mut self, _: Job) {}
+        fn flow_list(&mut self, _: &[usize], _: &RunState) {}
         fn get_command(&mut self, _state: &RunState) -> Result<DebugCommand> {
             Ok(DebugCommand::Step(None))
         }

@@ -140,6 +140,21 @@ impl DebuggerHandler for DebugGuiHandler {
         self.send_event(DebugServerMessage::JobInspect(job));
     }
 
+    fn flow_list(&mut self, flow_ids: &[usize], state: &RunState) {
+        let functions = state.get_functions();
+        let flows: Vec<(usize, String, String)> = flow_ids
+            .iter()
+            .map(|id| {
+                if let Some(f) = functions.get(id) {
+                    (*id, f.name().to_string(), f.route().to_string())
+                } else {
+                    (*id, String::new(), String::new())
+                }
+            })
+            .collect();
+        self.send_event(DebugServerMessage::FlowList(flows));
+    }
+
     fn panic(&mut self, state: &RunState, error_message: String) {
         self.send_event(DebugServerMessage::Panic(
             error_message,

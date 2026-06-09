@@ -2740,10 +2740,6 @@ impl FlowrGui {
                     }
                 }
                 self.cached_functions.sort_by_key(|f| f.id);
-                if !self.cached_functions.iter().any(|f| f.is_flow) {
-                    self.suppress_next_output = true;
-                    connection_manager::send_debug_command(DebugCommand::ProcessList);
-                }
                 if let Some(action) = self.pending_action.take() {
                     return self.process_debug_message(action);
                 }
