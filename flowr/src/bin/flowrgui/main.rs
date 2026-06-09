@@ -541,6 +541,9 @@ pub enum Message {
     /// User clicked Functions list
     #[cfg(feature = "debugger")]
     DebugFunctions(bool),
+    /// User clicked Flows list
+    #[cfg(feature = "debugger")]
+    DebugFlows,
     /// User clicked Processes tree
     #[cfg(feature = "debugger")]
     DebugProcesses,
@@ -1101,6 +1104,7 @@ impl FlowrGui {
             | Message::DebugListBreakpoints
             | Message::DebugInspect
             | Message::DebugFunctions(_)
+            | Message::DebugFlows
             | Message::DebugProcesses
             | Message::DebugValidate
             | Message::ShowBpPopup
@@ -1591,6 +1595,13 @@ impl FlowrGui {
             funcs_btn = funcs_btn.on_press(Message::DebugFunctions(true));
         }
 
+        let mut flows_btn = Button::new(Text::new("Flows"))
+            .style(theme::styled_button)
+            .padding(sp);
+        if can_cmd {
+            flows_btn = flows_btn.on_press(Message::DebugFlows);
+        }
+
         let mut procs_btn = Button::new(Text::new("Processes"))
             .style(theme::styled_button)
             .padding(sp);
@@ -1636,6 +1647,7 @@ impl FlowrGui {
                 "Inspect state (use spec field for specific target)",
             ))
             .push(Self::tip(funcs_btn, "List all functions"))
+            .push(Self::tip(flows_btn, "List all flows"))
             .push(Self::tip(procs_btn, "Show flow/function hierarchy"))
             .push(Self::tip(validate_btn, "Validate flow state for deadlocks"))
             .push(iced::widget::container(iced::widget::text("")).width(iced::Length::Fill))
@@ -2619,6 +2631,11 @@ impl FlowrGui {
                 }
                 self.suppress_next_output = !display;
                 connection_manager::send_debug_command(DebugCommand::FunctionList);
+            }
+            Message::DebugFlows => {
+                self.debug_waiting = false;
+                self.debug_separator("Flows");
+                connection_manager::send_debug_command(DebugCommand::ProcessList);
             }
             Message::DebugProcesses => {
                 self.debug_waiting = false;
