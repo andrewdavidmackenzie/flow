@@ -817,21 +817,11 @@ impl Tab for DebugTab {
                         let has_chips = !line.links.is_empty();
                         let has_tree = !line.tree_prefix.is_empty();
 
-                        // Tree nodes use [+]/[-], section headers use ▶/▼
-                        let indicator = if has_tree || has_chips {
-                            if is_collapsed {
-                                "[+]"
-                            } else {
-                                "[-]"
-                            }
-                        } else if is_collapsed {
-                            "\u{25B6}"
-                        } else {
-                            "\u{25BC}"
-                        };
+                        let indicator = if is_collapsed { "\u{25B6}" } else { "\u{25BC}" };
+                        let toggle_size = if has_tree { 10.0 } else { 14.0 };
                         let toggle_btn = Button::new(
                             Text::new(indicator)
-                                .size(14)
+                                .size(toggle_size)
                                 .shaping(iced::widget::text::Shaping::Advanced),
                         )
                         .on_press(Message::DebugToggleSection(section_id))
@@ -1002,7 +992,7 @@ impl Tab for DebugTab {
                 }),
         )
         .width(Length::Fill)
-        .spacing(12)
+        .spacing(1)
         .padding(iced::Padding {
             top: 1.0,
             right: 1.0,
