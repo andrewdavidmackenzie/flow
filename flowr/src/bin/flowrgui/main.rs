@@ -2450,7 +2450,7 @@ impl FlowrGui {
     #[cfg(feature = "debugger")]
     #[cfg(feature = "debugger")]
     fn ensure_functions_cached(&mut self, action: Message) -> bool {
-        if self.cached_functions.is_empty() {
+        if self.cached_functions.iter().all(|f| f.is_flow) {
             self.pending_action = Some(action);
             self.suppress_next_output = true;
             connection_manager::send_debug_command(

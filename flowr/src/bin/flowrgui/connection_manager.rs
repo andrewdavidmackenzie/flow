@@ -1310,9 +1310,31 @@ fn format_inspect_job(job: &flowcore::model::job::Job) -> Vec<crate::DebugEventL
 
     if !job.connections.is_empty() {
         lines.push(crate::DebugEventLine::new(
-            format!("  Connections: {}", job.connections.len()),
+            format!("  Connections ({}):", job.connections.len()),
             None,
         ));
+        for conn in &job.connections {
+            let source_label = match &conn.source {
+                flowcore::model::output_connection::Source::Output(route) => {
+                    format!("output {route}")
+                }
+                flowcore::model::output_connection::Source::Input(n) => format!("input #{n}"),
+            };
+            let mut b = DebugLineBuilder::new()
+                .text(&format!("    {source_label} \u{2192} "))
+                .chip(
+                    &format!("function #{}", conn.destination_id),
+                    &conn.destination_id.to_string(),
+                    LinkType::Function,
+                );
+            if !conn.destination.is_empty() {
+                b = b
+                    .text(" @ ")
+                    .chip(&conn.destination, &conn.destination, LinkType::Route);
+            }
+            b = b.text(&format!(" input:{}", conn.destination_io_number));
+            lines.push(b.finish());
+        }
     }
 
     lines
