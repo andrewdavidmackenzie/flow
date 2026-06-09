@@ -2728,7 +2728,18 @@ impl FlowrGui {
                 connection_manager::send_debug_command(DebugCommand::Validate);
             }
             Message::DebugFunctionListReceived(functions) => {
+                let flows: Vec<_> = self
+                    .cached_functions
+                    .drain(..)
+                    .filter(|f| f.is_flow)
+                    .collect();
                 self.cached_functions = functions;
+                for flow in flows {
+                    if !self.cached_functions.iter().any(|f| f.id == flow.id) {
+                        self.cached_functions.push(flow);
+                    }
+                }
+                self.cached_functions.sort_by_key(|f| f.id);
                 if let Some(action) = self.pending_action.take() {
                     return self.process_debug_message(action);
                 }
