@@ -699,6 +699,8 @@ pub struct CachedFunction {
     pub inputs: Vec<(usize, String, bool)>,
     /// Output routes
     pub outputs: Vec<String>,
+    /// Whether this is a flow (not a leaf function)
+    pub is_flow: bool,
 }
 
 /// Tabs in the breakpoint popup
@@ -747,6 +749,8 @@ pub enum InspectTab {
     State,
     /// Inspect a function
     Function,
+    /// Inspect a flow
+    Flow,
     /// Inspect an input
     Input,
     /// Inspect an output
@@ -761,6 +765,7 @@ impl std::fmt::Display for InspectTab {
         match self {
             Self::State => write!(f, "State"),
             Self::Function => write!(f, "Function"),
+            Self::Flow => write!(f, "Flow"),
             Self::Input => write!(f, "Input"),
             Self::Output => write!(f, "Output"),
             Self::Route => write!(f, "Route"),
@@ -769,9 +774,10 @@ impl std::fmt::Display for InspectTab {
 }
 
 #[cfg(feature = "debugger")]
-const INSPECT_TABS: [InspectTab; 5] = [
+const INSPECT_TABS: [InspectTab; 6] = [
     InspectTab::State,
     InspectTab::Function,
+    InspectTab::Flow,
     InspectTab::Input,
     InspectTab::Output,
     InspectTab::Route,
@@ -1957,6 +1963,18 @@ impl FlowrGui {
                 for f in &self.cached_functions {
                     let btn = Button::new(
                         Text::new(format!("#{} '{}' @ '{}'", f.id, f.name, f.route)).size(13),
+                    )
+                    .width(Length::Fill)
+                    .padding([3, 8])
+                    .style(theme::list_button)
+                    .on_press(Message::InspectPopupSelect(format!("{}", f.id)));
+                    items = items.push(btn);
+                }
+            }
+            InspectTab::Flow => {
+                for f in &self.cached_functions {
+                    let btn = Button::new(
+                        Text::new(format!("#{} '{}' @ {}", f.id, f.name, f.route)).size(13),
                     )
                     .width(Length::Fill)
                     .padding([3, 8])
