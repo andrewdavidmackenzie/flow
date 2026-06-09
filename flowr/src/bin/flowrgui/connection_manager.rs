@@ -758,6 +758,7 @@ fn debug_client_stream(address: String) -> impl iced::futures::Stream<Item = Mes
                                     route: f.route().to_string(),
                                     inputs,
                                     outputs,
+                                    is_flow: false,
                                 }
                             })
                             .collect();
