@@ -1151,12 +1151,7 @@ fn format_inspect_by_state(
             let states = run_state.get_function_states(func.id());
             if states.contains(target) {
                 count += 1;
-                lines.push(entity_line(
-                    func,
-                    "  ",
-                    crate::LinkType::Function,
-                    &format!(" {states:?}"),
-                ));
+                lines.push(entity_line(func, "  ", crate::LinkType::Function, ""));
             }
         }
         if count == 0 {
@@ -1220,8 +1215,6 @@ fn format_inspect_flow(
                 );
             }
             lines.push(b.finish());
-        } else {
-            lines.push(DebugEventLine::new("  (root flow)".into(), None));
         }
 
         if !flow_info.sub_flow_ids.is_empty() {
