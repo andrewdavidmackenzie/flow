@@ -1164,6 +1164,12 @@ impl FlowrGui {
             Message::LineOfStdin(line) => {
                 debug!("LineOfStdin: user entered line ({} chars)", line.len());
                 self.tab_set.stdin_tab.new_line(line);
+                if self.tab_set.stdin_tab.auto_scroll && !self.pending_getline {
+                    return operation::snap_to(
+                        self.tab_set.stdin_tab.id.clone(),
+                        RelativeOffset::END,
+                    );
+                }
                 if self.pending_getline {
                     if let Some(line) = self.tab_set.stdin_tab.get_line() {
                         debug!(

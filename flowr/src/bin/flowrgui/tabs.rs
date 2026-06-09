@@ -598,7 +598,7 @@ pub(crate) struct StdInTab {
     pub text: String,
     pub eof_signaled: bool,
     pub waiting_for_input: bool,
-    pub auto_scroll: bool,
+    pub(crate) auto_scroll: bool,
 }
 
 impl StdInTab {
