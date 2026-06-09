@@ -814,7 +814,7 @@ fn debug_client_stream(address: String) -> impl iced::futures::Stream<Item = Mes
                                 let (name, route) = if let Some(f) = functions.get(id) {
                                     (f.name().to_string(), f.route().to_string())
                                 } else {
-                                    (format!("flow_{id}"), format!("/flow/{id}"))
+                                    (String::new(), String::new())
                                 };
                                 crate::CachedFunction {
                                     id: *id,

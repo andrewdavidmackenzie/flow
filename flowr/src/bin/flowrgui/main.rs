@@ -2013,13 +2013,16 @@ impl FlowrGui {
             }
             InspectTab::Flow => {
                 for f in self.cached_functions.iter().filter(|f| f.is_flow) {
-                    let btn = Button::new(
-                        Text::new(format!("Flow #{} '{}' @ {}", f.id, f.name, f.route)).size(13),
-                    )
-                    .width(Length::Fill)
-                    .padding([3, 8])
-                    .style(theme::list_button)
-                    .on_press(Message::InspectPopupSelect(format!("{}", f.id)));
+                    let label = if f.name.is_empty() {
+                        format!("Flow #{}", f.id)
+                    } else {
+                        format!("Flow #{} '{}' @ {}", f.id, f.name, f.route)
+                    };
+                    let btn = Button::new(Text::new(label).size(13))
+                        .width(Length::Fill)
+                        .padding([3, 8])
+                        .style(theme::list_button)
+                        .on_press(Message::InspectPopupSelect(format!("{}", f.id)));
                     items = items.push(btn);
                 }
             }
