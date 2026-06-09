@@ -2723,7 +2723,7 @@ impl FlowrGui {
             Message::DebugBreakpointListReceived(specs) => {
                 self.active_breakpoints = specs.into_iter().collect();
             }
-            Message::DebugInspectLink(ref spec) if self.debug_waiting => {
+            Message::DebugInspectLink(ref spec) => {
                 self.debug_waiting = false;
                 let label = if spec.parse::<usize>().is_ok() {
                     format!("Inspect #{spec}")
