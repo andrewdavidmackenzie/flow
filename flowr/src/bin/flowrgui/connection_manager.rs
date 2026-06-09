@@ -857,16 +857,48 @@ fn format_tree_only(run_state: &flowrlib::run_state::RunState) -> Vec<crate::Deb
 
 #[cfg(feature = "debugger")]
 fn format_flows_only(run_state: &flowrlib::run_state::RunState) -> Vec<crate::DebugEventLine> {
-    let lines = format_run_state(run_state);
-    if let Some(start) = lines.iter().position(|l| l.text == "Flows:") {
-        if let Some(end) = lines.iter().position(|l| l.text == "Process Tree:") {
-            lines.into_iter().skip(start).take(end - start).collect()
-        } else {
-            lines.into_iter().skip(start).collect()
-        }
-    } else {
-        vec![crate::DebugEventLine::new("No flows".into(), None)]
+    use crate::{DebugLineBuilder, LinkType};
+    let manifest = &run_state.get_submission().manifest;
+    let functions = run_state.get_functions();
+    if manifest.flows().is_empty() {
+        return vec![crate::DebugEventLine::new("No flows".into(), None)];
     }
+    let mut lines = Vec::new();
+    let mut sorted_flows: Vec<_> = manifest.flows().iter().collect();
+    sorted_flows.sort_by_key(|(id, _)| *id);
+    for (id, flow) in sorted_flows {
+        let mut b = DebugLineBuilder::new().text("  ");
+        b = if let Some(func) = functions.get(id) {
+            b.chip(&format!("flow #{id}"), &id.to_string(), LinkType::Flow)
+                .text(&format!(" '{}' @ ", func.name()))
+                .chip(func.route(), func.route(), LinkType::Route)
+        } else {
+            b.chip(&format!("flow #{id}"), &id.to_string(), LinkType::Flow)
+        };
+        if flow.parent_id.is_none() {
+            b = b.text(" (root)");
+        }
+        if !flow.sub_flow_ids.is_empty() {
+            b = b.text(" sub-flows: [");
+            for (i, sf) in flow.sub_flow_ids.iter().enumerate() {
+                if i > 0 {
+                    b = b.text(", ");
+                }
+                b = if let Some(func) = functions.get(sf) {
+                    b.chip(
+                        &format!("flow #{sf} '{}'", func.name()),
+                        &sf.to_string(),
+                        LinkType::Flow,
+                    )
+                } else {
+                    b.chip(&format!("flow #{sf}"), &sf.to_string(), LinkType::Flow)
+                };
+            }
+            b = b.text("]");
+        }
+        lines.push(b.finish());
+    }
+    lines
 }
 
 #[cfg(feature = "debugger")]
@@ -894,7 +926,7 @@ fn format_run_state(run_state: &flowrlib::run_state::RunState) -> Vec<crate::Deb
     ) {
         let manifest = &run_state.get_submission().manifest;
         let functions = run_state.get_functions();
-        let indent = "  ".repeat(depth + 1);
+        let indent = "    ".repeat(depth + 1);
 
         // Emit the flow node itself as a collapsible separator
         let mut flow_line = if let Some(func) = functions.get(&flow_id) {
@@ -927,7 +959,7 @@ fn format_run_state(run_state: &flowrlib::run_state::RunState) -> Vec<crate::Deb
                 if child.id() == flow_id {
                     continue;
                 }
-                let child_indent = "  ".repeat(depth + 2);
+                let child_indent = "    ".repeat(depth + 2);
                 let states = run_state.get_function_states(child.id());
                 let line = entity_line(
                     child,
@@ -942,57 +974,6 @@ fn format_run_state(run_state: &flowrlib::run_state::RunState) -> Vec<crate::Deb
 
     let mut lines = Vec::new();
     let manifest = &run_state.get_submission().manifest;
-
-    // Flow hierarchy
-    let functions = run_state.get_functions();
-
-    let flow_chip = |b: DebugLineBuilder, id: usize| -> DebugLineBuilder {
-        if let Some(func) = functions.get(&id) {
-            b.chip(&format!("Flow #{id}"), &id.to_string(), LinkType::Flow)
-                .text(&format!(" '{}' @ ", func.name()))
-                .chip(func.route(), func.route(), LinkType::Route)
-        } else {
-            b.chip(&format!("Flow #{id}"), &id.to_string(), LinkType::Flow)
-        }
-    };
-
-    let flow_chip_short = |b: DebugLineBuilder, id: usize| -> DebugLineBuilder {
-        if let Some(func) = functions.get(&id) {
-            b.chip(
-                &format!("Flow #{id} '{}'", func.name()),
-                &id.to_string(),
-                LinkType::Flow,
-            )
-        } else {
-            b.chip(&format!("Flow #{id}"), &id.to_string(), LinkType::Flow)
-        }
-    };
-
-    if !manifest.flows().is_empty() {
-        lines.push(DebugEventLine::new("Flows:".into(), None));
-        for (id, flow) in manifest.flows() {
-            let mut b = DebugLineBuilder::new().text("  ");
-            b = flow_chip(b, *id);
-            if let Some(parent) = flow.parent_id {
-                b = b.text(" (parent: ");
-                b = flow_chip_short(b, parent);
-                b = b.text(")");
-            } else {
-                b = b.text(" (root)");
-            }
-            if !flow.sub_flow_ids.is_empty() {
-                b = b.text(" sub-flows: [");
-                for (i, sf) in flow.sub_flow_ids.iter().enumerate() {
-                    if i > 0 {
-                        b = b.text(", ");
-                    }
-                    b = flow_chip_short(b, *sf);
-                }
-                b = b.text("]");
-            }
-            lines.push(b.finish());
-        }
-    }
 
     // Process tree — flows as collapsible nodes containing their functions
     lines.push(DebugEventLine::new("Process Tree:".into(), None));
