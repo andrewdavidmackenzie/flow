@@ -936,7 +936,7 @@ fn format_run_state(run_state: &flowrlib::run_state::RunState) -> Vec<crate::Deb
             prefix.push(conn);
         }
 
-        // Emit the flow node itself as a collapsible separator
+        // Emit the flow node — collapsible only if it has a connector (not root)
         let mut flow_line = if let Some(func) = functions.get(&flow_id) {
             entity_line(func, "", crate::LinkType::Flow, "")
         } else {
@@ -948,7 +948,7 @@ fn format_run_state(run_state: &flowrlib::run_state::RunState) -> Vec<crate::Deb
                 )
                 .finish()
         };
-        flow_line.separator = true;
+        flow_line.separator = connector.is_some();
         flow_line.tree_prefix = prefix;
         flow_line.tree_depth = depth;
         lines.push(flow_line);
