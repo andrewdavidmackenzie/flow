@@ -909,23 +909,39 @@ fn format_run_state(run_state: &flowrlib::run_state::RunState) -> Vec<crate::Deb
     ));
 
     // Flow hierarchy
+    let functions = run_state.get_functions();
+
+    let flow_chip = |b: DebugLineBuilder, id: usize| -> DebugLineBuilder {
+        if let Some(func) = functions.get(&id) {
+            b.chip(&format!("Flow #{id}"), &id.to_string(), LinkType::Flow)
+                .text(&format!(" '{}' @ ", func.name()))
+                .chip(func.route(), func.route(), LinkType::Route)
+        } else {
+            b.chip(&format!("Flow #{id}"), &id.to_string(), LinkType::Flow)
+        }
+    };
+
+    let flow_chip_short = |b: DebugLineBuilder, id: usize| -> DebugLineBuilder {
+        if let Some(func) = functions.get(&id) {
+            b.chip(
+                &format!("Flow #{id} '{}'", func.name()),
+                &id.to_string(),
+                LinkType::Flow,
+            )
+        } else {
+            b.chip(&format!("Flow #{id}"), &id.to_string(), LinkType::Flow)
+        }
+    };
+
     if !manifest.flows().is_empty() {
         lines.push(DebugEventLine::new("Flows:".into(), None));
         for (id, flow) in manifest.flows() {
-            let mut b = DebugLineBuilder::new().text("  ").chip(
-                &format!("Flow #{id}"),
-                &id.to_string(),
-                LinkType::Flow,
-            );
+            let mut b = DebugLineBuilder::new().text("  ");
+            b = flow_chip(b, *id);
             if let Some(parent) = flow.parent_id {
-                b = b
-                    .text(" (parent: ")
-                    .chip(
-                        &format!("Flow #{parent}"),
-                        &parent.to_string(),
-                        LinkType::Flow,
-                    )
-                    .text(")");
+                b = b.text(" (parent: ");
+                b = flow_chip_short(b, parent);
+                b = b.text(")");
             } else {
                 b = b.text(" (root)");
             }
@@ -935,7 +951,7 @@ fn format_run_state(run_state: &flowrlib::run_state::RunState) -> Vec<crate::Deb
                     if i > 0 {
                         b = b.text(", ");
                     }
-                    b = b.chip(&format!("#{sf}"), &sf.to_string(), LinkType::Flow);
+                    b = flow_chip_short(b, *sf);
                 }
                 b = b.text("]");
             }

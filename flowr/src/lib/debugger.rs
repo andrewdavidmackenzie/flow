@@ -721,7 +721,7 @@ impl<'a> Debugger<'a> {
                         for id in &matches {
                             if let Some(f) = state.get_function(*id) {
                                 use std::fmt::Write;
-                                let _ = writeln!(msg, "  Function #{} @ {}", f.id(), f.route());
+                                let _ = writeln!(msg, "  {}", Self::entity_long(f, false));
                             }
                         }
                         bail!(msg)
@@ -810,6 +810,16 @@ impl<'a> Debugger<'a> {
         Ok(())
     }
 
+    fn entity_long(func: &RuntimeFunction, is_flow: bool) -> String {
+        let entity = if is_flow { "Flow" } else { "Function" };
+        format!(
+            "{entity} #{} '{}' @ {}",
+            func.id(),
+            func.name(),
+            func.route()
+        )
+    }
+
     fn inspect_flow(state: &RunState, flow_id: usize) -> String {
         let mut response = String::new();
         let _ = writeln!(response, "Flow #{flow_id}");
@@ -842,14 +852,7 @@ impl<'a> Debugger<'a> {
             let _ = writeln!(response, "Functions:");
             for func in functions {
                 let states = state.get_function_states(func.id());
-                let _ = writeln!(
-                    response,
-                    "  Function #{} '{}' @ {} {:?}",
-                    func.id(),
-                    func.name(),
-                    func.route(),
-                    states
-                );
+                let _ = writeln!(response, "  {} {states:?}", Self::entity_long(func, false));
             }
         }
         response
@@ -866,14 +869,8 @@ impl<'a> Debugger<'a> {
 
         if is_flow {
             let function = state.get_functions().get(&func_id).cloned();
-            if let Some(func) = function {
-                let _ = writeln!(
-                    response,
-                    "Flow #{} '{}' @ {}",
-                    func.id(),
-                    func.name(),
-                    func.route()
-                );
+            if let Some(ref func) = function {
+                let _ = writeln!(response, "{}", Self::entity_long(func, true));
             }
             let _ = writeln!(response, "Children:");
             let mut children: Vec<_> = state
@@ -889,22 +886,14 @@ impl<'a> Debugger<'a> {
                     let states = state.get_function_states(child.id());
                     let _ = writeln!(
                         response,
-                        "  Function #{} '{}' @ {} {:?}",
-                        child.id(),
-                        child.name(),
-                        child.route(),
+                        "  {} {:?}",
+                        Self::entity_long(child, false),
                         states
                     );
                 }
             }
         } else if let Some(function) = state.get_function(func_id) {
-            let _ = writeln!(
-                response,
-                "Function #{} '{}' @ {}",
-                function.id(),
-                function.name(),
-                function.route()
-            );
+            let _ = writeln!(response, "{}", Self::entity_long(function, false));
             let states = state.get_function_states(func_id);
             let _ = writeln!(response, "  State: {states:?}");
         }
@@ -942,10 +931,8 @@ impl<'a> Debugger<'a> {
                             count += 1;
                             let _ = writeln!(
                                 response,
-                                "  Function #{} '{}' @ {} — blocked by: {:?}",
-                                func.id(),
-                                func.name(),
-                                func.route(),
+                                "  {} — blocked by: {:?}",
+                                Self::entity_long(func, false),
                                 blockers
                             );
                         }
@@ -958,13 +945,7 @@ impl<'a> Debugger<'a> {
                 let states = state.get_function_states(func.id());
                 if states.contains(target) {
                     count += 1;
-                    let _ = write!(
-                        response,
-                        "  Function #{} '{}' @ {}",
-                        func.id(),
-                        func.name(),
-                        func.route()
-                    );
+                    let _ = write!(response, "  {}", Self::entity_long(func, false));
                     if state_name == "running" {
                         let running_jobs: Vec<_> = state
                             .get_running()
@@ -1035,13 +1016,12 @@ impl<'a> Debugger<'a> {
     ) {
         let indent = "  ".repeat(depth);
         if let Some(parent) = all_functions.get(&parent_id) {
+            let is_flow = state.submission.manifest.flows().contains_key(&parent_id);
             let states = state.get_function_states(parent.id());
             let _ = writeln!(
                 response,
-                "{indent}Function #{} '{}' @ {} {:?}",
-                parent.id(),
-                parent.name(),
-                parent.route(),
+                "{indent}{} {:?}",
+                Self::entity_long(parent, is_flow),
                 states
             );
         } else {
@@ -1067,10 +1047,8 @@ impl<'a> Debugger<'a> {
                     let states = state.get_function_states(child.id());
                     let _ = writeln!(
                         response,
-                        "{child_indent}Function #{} '{}' @ {} {:?}",
-                        child.id(),
-                        child.name(),
-                        child.route(),
+                        "{child_indent}{} {:?}",
+                        Self::entity_long(child, false),
                         states
                     );
                 }

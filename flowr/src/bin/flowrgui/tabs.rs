@@ -790,7 +790,7 @@ impl Tab for DebugTab {
                 }),
         )
         .width(Length::Fill)
-        .spacing(10)
+        .spacing(12)
         .padding(1);
 
         let scrollable = Scrollable::new(text_column)
