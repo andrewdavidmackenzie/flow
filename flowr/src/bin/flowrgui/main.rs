@@ -135,6 +135,8 @@ pub struct DebugEventLine {
     pub section_id: usize,
     /// Graphical tree connector segments rendered before toggle/content
     pub tree_prefix: Vec<TreeSegment>,
+    /// Tree nesting depth (0 = root flow, 1 = child, etc.) for section tracking
+    pub tree_depth: usize,
 }
 
 #[cfg(feature = "debugger")]
@@ -148,6 +150,7 @@ impl DebugEventLine {
             links,
             section_id: 0,
             tree_prefix: Vec::new(),
+            tree_depth: 0,
         }
     }
 
@@ -167,6 +170,7 @@ impl DebugEventLine {
             links,
             section_id: 0,
             tree_prefix: Vec::new(),
+            tree_depth: 0,
         }
     }
 
@@ -178,6 +182,7 @@ impl DebugEventLine {
             links: Vec::new(),
             section_id: 0,
             tree_prefix: Vec::new(),
+            tree_depth: 0,
         }
     }
 
@@ -2719,6 +2724,7 @@ impl FlowrGui {
                 self.active_breakpoints = specs.into_iter().collect();
             }
             Message::DebugInspectLink(ref spec) if self.debug_waiting => {
+                log::info!("DebugInspectLink: spec={spec}, waiting was true");
                 self.debug_waiting = false;
                 let label = if spec.parse::<usize>().is_ok() {
                     format!("Inspect #{spec}")

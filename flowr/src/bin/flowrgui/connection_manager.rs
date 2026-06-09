@@ -924,6 +924,7 @@ fn format_run_state(run_state: &flowrlib::run_state::RunState) -> Vec<crate::Deb
         flow_id: usize,
         ancestors: &[crate::TreeSegment],
         connector: Option<crate::TreeSegment>,
+        depth: usize,
     ) {
         use crate::TreeSegment;
         let manifest = &run_state.get_submission().manifest;
@@ -949,6 +950,7 @@ fn format_run_state(run_state: &flowrlib::run_state::RunState) -> Vec<crate::Deb
         };
         flow_line.separator = true;
         flow_line.tree_prefix = prefix;
+        flow_line.tree_depth = depth;
         lines.push(flow_line);
 
         // Build child ancestor prefix: Branch → Pipe, End → Space
@@ -994,6 +996,7 @@ fn format_run_state(run_state: &flowrlib::run_state::RunState) -> Vec<crate::Deb
                 *sub_id,
                 &child_ancestors,
                 Some(conn),
+                depth + 1,
             );
         }
 
@@ -1016,6 +1019,7 @@ fn format_run_state(run_state: &flowrlib::run_state::RunState) -> Vec<crate::Deb
             let mut child_prefix = child_ancestors.clone();
             child_prefix.push(conn);
             line.tree_prefix = child_prefix;
+            line.tree_depth = depth + 1;
             lines.push(line);
         }
     }
@@ -1050,7 +1054,7 @@ fn format_run_state(run_state: &flowrlib::run_state::RunState) -> Vec<crate::Deb
         .collect();
     root_flows.sort();
     for root_id in &root_flows {
-        add_flow_tree(&mut lines, &by_parent, run_state, *root_id, &[], None);
+        add_flow_tree(&mut lines, &by_parent, run_state, *root_id, &[], None, 0);
     }
 
     // RunState stats

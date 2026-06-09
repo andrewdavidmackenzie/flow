@@ -786,22 +786,26 @@ impl DebugTab {
             // depth_stack[i] = section_id of most recent node at tree depth i
             // Root flow (depth 0) is at depth_stack[0]
             // A depth-D node's parent is at depth_stack[D-1]
-            let depth = line.tree_prefix.len();
-            if depth > 0 {
-                let parent = self
-                    .depth_stack
-                    .get(depth - 1)
-                    .copied()
-                    .unwrap_or(self.current_section_id);
+            let depth = line.tree_depth;
+            if depth > 0 || !line.tree_prefix.is_empty() {
+                let parent = if depth > 0 {
+                    self.depth_stack
+                        .get(depth - 1)
+                        .copied()
+                        .unwrap_or(self.current_section_id)
+                } else {
+                    self.current_section_id
+                };
                 self.section_parent.insert(new_id, parent);
 
-                // Store this node at its depth level
+                // Ensure depth_stack[depth] = new_id
+                while self.depth_stack.len() <= depth {
+                    self.depth_stack.push(0);
+                }
                 if let Some(slot) = self.depth_stack.get_mut(depth) {
                     *slot = new_id;
-                    self.depth_stack.truncate(depth + 1);
-                } else {
-                    self.depth_stack.push(new_id);
                 }
+                self.depth_stack.truncate(depth + 1);
             } else {
                 // Non-tree separator (root flow or section header)
                 if self.current_section_id != 0 {
@@ -814,7 +818,16 @@ impl DebugTab {
             self.current_section_id = new_id;
             line.section_id = new_id;
         } else {
-            line.section_id = self.current_section_id;
+            let depth = line.tree_depth;
+            if depth > 0 {
+                line.section_id = self
+                    .depth_stack
+                    .get(depth - 1)
+                    .copied()
+                    .unwrap_or(self.current_section_id);
+            } else {
+                line.section_id = self.current_section_id;
+            }
         }
         self.content.push(line);
     }
@@ -827,6 +840,7 @@ impl DebugTab {
             links: Vec::new(),
             section_id: 0,
             tree_prefix: Vec::new(),
+            tree_depth: 0,
         });
     }
 
