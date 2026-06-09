@@ -22,6 +22,7 @@ const TREE_LINE_H: f32 = 28.0;
 const TREE_LINE_WIDTH: f32 = 1.5;
 
 #[cfg(feature = "debugger")]
+#[allow(clippy::items_after_statements, clippy::cast_precision_loss)]
 fn tree_connector_canvas(segments: &[crate::TreeSegment]) -> Element<'static, Message> {
     use crate::TreeSegment;
     use iced::widget::canvas::{self, Path, Stroke};

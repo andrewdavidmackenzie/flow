@@ -969,7 +969,7 @@ fn format_run_state(run_state: &flowrlib::run_state::RunState) -> Vec<crate::Deb
             .get(&flow_id)
             .map(|fi| {
                 let mut ids = fi.sub_flow_ids.clone();
-                ids.sort();
+                ids.sort_unstable();
                 ids
             })
             .unwrap_or_default();
@@ -1051,7 +1051,7 @@ fn format_run_state(run_state: &flowrlib::run_state::RunState) -> Vec<crate::Deb
         .filter(|(_, info)| info.parent_id.is_none())
         .map(|(id, _)| *id)
         .collect();
-    root_flows.sort();
+    root_flows.sort_unstable();
     for root_id in &root_flows {
         add_flow_tree(&mut lines, &by_parent, run_state, *root_id, &[], None, 0);
     }
