@@ -743,6 +743,9 @@ pub(crate) struct DebugTab {
     next_section_id: usize,
     current_section_id: usize,
     collapsed: std::collections::HashSet<usize>,
+    section_parent: HashMap<usize, usize>,
+    /// Stack of section IDs by tree depth for proper parent tracking
+    depth_stack: Vec<usize>,
 }
 
 #[cfg(feature = "debugger")]
@@ -757,14 +760,65 @@ impl DebugTab {
             next_section_id: 1,
             current_section_id: 0,
             collapsed: std::collections::HashSet::new(),
+            section_parent: HashMap::new(),
+            depth_stack: Vec::new(),
         }
+    }
+
+    fn is_ancestor_collapsed(&self, section_id: usize) -> bool {
+        if self.collapsed.contains(&section_id) {
+            return true;
+        }
+        if let Some(&parent) = self.section_parent.get(&section_id) {
+            if parent != 0 {
+                return self.is_ancestor_collapsed(parent);
+            }
+        }
+        false
     }
 
     pub fn push(&mut self, mut line: DebugEventLine) {
         if line.separator {
-            self.current_section_id = self.next_section_id;
+            let new_id = self.next_section_id;
             self.next_section_id += 1;
-            line.section_id = self.current_section_id;
+
+            // Use tree_prefix depth to find the correct parent section
+            let depth = line.tree_prefix.len();
+            if depth > 0 {
+                // Tree separator: parent is the section at depth - 1
+                let parent = if depth > 1 {
+                    self.depth_stack
+                        .get(depth - 2)
+                        .copied()
+                        .unwrap_or(self.current_section_id)
+                } else {
+                    // Depth 1 means direct child of whichever non-tree separator is active
+                    self.depth_stack
+                        .first()
+                        .copied()
+                        .unwrap_or(self.current_section_id)
+                };
+                self.section_parent.insert(new_id, parent);
+
+                // Update or grow the depth stack
+                if let Some(slot) = self.depth_stack.get_mut(depth - 1) {
+                    *slot = new_id;
+                    self.depth_stack.truncate(depth);
+                } else {
+                    self.depth_stack.push(new_id);
+                }
+            } else {
+                // Non-tree separator: parent is current
+                if self.current_section_id != 0 {
+                    self.section_parent.insert(new_id, self.current_section_id);
+                }
+                self.depth_stack.clear();
+                // Root of a new tree section — push onto depth stack
+                self.depth_stack.push(new_id);
+            }
+
+            self.current_section_id = new_id;
+            line.section_id = new_id;
         } else {
             line.section_id = self.current_section_id;
         }
@@ -808,7 +862,17 @@ impl Tab for DebugTab {
         let text_column = Column::with_children(
             self.content
                 .iter()
-                .filter(|line| line.separator || !self.collapsed.contains(&line.section_id))
+                .filter(|line| {
+                    if line.section_id == 0 {
+                        return true;
+                    }
+                    if let Some(&parent) = self.section_parent.get(&line.section_id) {
+                        if self.is_ancestor_collapsed(parent) {
+                            return false;
+                        }
+                    }
+                    line.separator || !self.is_ancestor_collapsed(line.section_id)
+                })
                 .map(|line| {
                     if line.separator {
                         let color = line.color.unwrap_or(iced::Color::WHITE);
@@ -1036,6 +1100,8 @@ impl Tab for DebugTab {
         self.content.clear();
         self.unread_count = 0;
         self.collapsed.clear();
+        self.section_parent.clear();
+        self.depth_stack.clear();
         self.next_section_id = 1;
         self.current_section_id = 0;
     }
