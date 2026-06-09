@@ -2428,6 +2428,7 @@ impl FlowrGui {
 
     #[cfg(feature = "debugger")]
     fn debug_separator(&mut self, label: &str) {
+        self.tab_set.debug_tab.mark_top_level();
         self.tab_set.debug_tab.push(DebugEventLine::separator(
             label.to_string(),
             crate::theme::debug_colors::SEPARATOR,

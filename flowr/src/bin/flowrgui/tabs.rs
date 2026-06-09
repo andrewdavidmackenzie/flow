@@ -746,6 +746,8 @@ pub(crate) struct DebugTab {
     section_parent: HashMap<usize, usize>,
     /// Stack of section IDs by tree depth for proper parent tracking
     depth_stack: Vec<usize>,
+    /// Next separator pushed will be top-level (no parent)
+    top_level_next: bool,
 }
 
 #[cfg(feature = "debugger")]
@@ -762,6 +764,7 @@ impl DebugTab {
             collapsed: std::collections::HashSet::new(),
             section_parent: HashMap::new(),
             depth_stack: Vec::new(),
+            top_level_next: false,
         }
     }
 
@@ -806,8 +809,13 @@ impl DebugTab {
                     *slot = new_id;
                 }
                 self.depth_stack.truncate(depth + 1);
+            } else if self.top_level_next {
+                // Explicitly marked as top-level (from debug_separator)
+                self.top_level_next = false;
+                self.depth_stack.clear();
+                self.depth_stack.push(new_id);
             } else {
-                // Non-tree separator (root flow or section header)
+                // Root tree node — parented to current section
                 if self.current_section_id != 0 {
                     self.section_parent.insert(new_id, self.current_section_id);
                 }
@@ -842,6 +850,10 @@ impl DebugTab {
             tree_prefix: Vec::new(),
             tree_depth: 0,
         });
+    }
+
+    pub fn mark_top_level(&mut self) {
+        self.top_level_next = true;
     }
 
     pub fn toggle_section(&mut self, section_id: usize) {
@@ -1121,6 +1133,7 @@ impl Tab for DebugTab {
         self.collapsed.clear();
         self.section_parent.clear();
         self.depth_stack.clear();
+        self.top_level_next = false;
         self.next_section_id = 1;
         self.current_section_id = 0;
     }

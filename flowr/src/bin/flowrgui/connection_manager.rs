@@ -948,7 +948,7 @@ fn format_run_state(run_state: &flowrlib::run_state::RunState) -> Vec<crate::Deb
                 )
                 .finish()
         };
-        flow_line.separator = connector.is_some();
+        flow_line.separator = true;
         flow_line.tree_prefix = prefix;
         flow_line.tree_depth = depth;
         lines.push(flow_line);
