@@ -541,9 +541,15 @@ pub enum Message {
     /// User clicked Functions list
     #[cfg(feature = "debugger")]
     DebugFunctions(bool),
+    /// User clicked Flows list
+    #[cfg(feature = "debugger")]
+    DebugFlows,
     /// User clicked Processes tree
     #[cfg(feature = "debugger")]
     DebugProcesses,
+    /// User clicked State button — show `RunState` stats only
+    #[cfg(feature = "debugger")]
+    DebugState,
     /// User clicked Validate
     #[cfg(feature = "debugger")]
     DebugValidate,
@@ -1101,7 +1107,9 @@ impl FlowrGui {
             | Message::DebugListBreakpoints
             | Message::DebugInspect
             | Message::DebugFunctions(_)
+            | Message::DebugFlows
             | Message::DebugProcesses
+            | Message::DebugState
             | Message::DebugValidate
             | Message::ShowBpPopup
             | Message::CloseBpPopup
@@ -1591,11 +1599,25 @@ impl FlowrGui {
             funcs_btn = funcs_btn.on_press(Message::DebugFunctions(true));
         }
 
+        let mut flows_btn = Button::new(Text::new("Flows"))
+            .style(theme::styled_button)
+            .padding(sp);
+        if can_cmd {
+            flows_btn = flows_btn.on_press(Message::DebugFlows);
+        }
+
         let mut procs_btn = Button::new(Text::new("Processes"))
             .style(theme::styled_button)
             .padding(sp);
         if can_cmd {
             procs_btn = procs_btn.on_press(Message::DebugProcesses);
+        }
+
+        let mut state_btn = Button::new(Text::new("State"))
+            .style(theme::styled_button)
+            .padding(sp);
+        if can_cmd {
+            state_btn = state_btn.on_press(Message::DebugState);
         }
 
         let mut validate_btn = Button::new(Text::new("Validate"))
@@ -1636,7 +1658,12 @@ impl FlowrGui {
                 "Inspect state (use spec field for specific target)",
             ))
             .push(Self::tip(funcs_btn, "List all functions"))
+            .push(Self::tip(flows_btn, "List all flows"))
             .push(Self::tip(procs_btn, "Show flow/function hierarchy"))
+            .push(Self::tip(
+                state_btn,
+                "Show runtime state (jobs, completed, busy)",
+            ))
             .push(Self::tip(validate_btn, "Validate flow state for deadlocks"))
             .push(iced::widget::container(iced::widget::text("")).width(iced::Length::Fill))
             .push(Self::tip(exit_btn, "Stop execution and exit debugger"))
@@ -1917,13 +1944,6 @@ impl FlowrGui {
 
         match self.inspect_tab {
             InspectTab::State => {
-                let global_btn =
-                    Button::new(Text::new("Overall State (global inspection)").size(13))
-                        .width(Length::Fill)
-                        .padding([3, 8])
-                        .style(theme::styled_button)
-                        .on_press(Message::InspectPopupSelect(String::new()));
-                items = items.push(global_btn);
                 for state_name in &["ready", "waiting", "running", "completed", "blocked"] {
                     let btn = Button::new(Text::new(format!("  {state_name}")).size(13))
                         .width(Length::Fill)
@@ -2619,6 +2639,17 @@ impl FlowrGui {
                 }
                 self.suppress_next_output = !display;
                 connection_manager::send_debug_command(DebugCommand::FunctionList);
+            }
+            Message::DebugFlows => {
+                self.debug_waiting = false;
+                connection_manager::set_flows_only(true);
+                self.debug_separator("Flows");
+                connection_manager::send_debug_command(DebugCommand::ProcessList);
+            }
+            Message::DebugState => {
+                self.debug_waiting = false;
+                self.debug_separator("Runtime State");
+                connection_manager::send_debug_command(DebugCommand::Inspect);
             }
             Message::DebugProcesses => {
                 self.debug_waiting = false;

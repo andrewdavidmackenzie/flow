@@ -96,6 +96,16 @@ pub fn get_debug_port() -> u16 {
     DEBUG_PORT.load(Ordering::Relaxed)
 }
 
+/// Flag: show only flows in next `ProcessTree` response
+#[cfg(feature = "debugger")]
+static FLOWS_ONLY: AtomicBool = AtomicBool::new(false);
+
+#[cfg(feature = "debugger")]
+/// Set whether next `ProcessTree` should show flows only
+pub fn set_flows_only(v: bool) {
+    FLOWS_ONLY.store(v, Ordering::Relaxed);
+}
+
 /// Global counter for jobs created, updated by the coordinator thread
 static JOB_COUNT: AtomicUsize = AtomicUsize::new(0);
 
@@ -580,7 +590,7 @@ fn format_debug_event(message: &DebugServerMessage) -> Vec<crate::DebugEventLine
                 &format!(" {states:?}"),
             )]
         }
-        DebugServerMessage::OverallState(ref run_state) => format_run_state(run_state),
+        DebugServerMessage::OverallState(ref run_state) => format_state_only(run_state),
         DebugServerMessage::InputState(input) => {
             let name = input.name();
             let name_label = if name.is_empty() {
@@ -622,7 +632,13 @@ fn format_debug_event(message: &DebugServerMessage) -> Vec<crate::DebugEventLine
             format!("Waiting for command (Job #{job_id})"),
             Some(debug_colors::STATUS),
         ),
-        DebugServerMessage::ProcessTree(ref state) => format_process_tree(state),
+        DebugServerMessage::ProcessTree(ref state) => {
+            if FLOWS_ONLY.swap(false, Ordering::Relaxed) {
+                format_flows_only(state)
+            } else {
+                format_tree_only(state)
+            }
+        }
         DebugServerMessage::InspectByState(ref state_name, ref state) => {
             format_inspect_by_state(state_name, state)
         }
@@ -830,6 +846,39 @@ fn debug_client_stream(address: String) -> impl iced::futures::Stream<Item = Mes
 }
 
 #[cfg(feature = "debugger")]
+fn format_tree_only(run_state: &flowrlib::run_state::RunState) -> Vec<crate::DebugEventLine> {
+    let mut lines = format_run_state(run_state);
+    if let Some(pos) = lines.iter().position(|l| l.text == "RunState:") {
+        lines.truncate(pos);
+    }
+    lines
+}
+
+#[cfg(feature = "debugger")]
+fn format_flows_only(run_state: &flowrlib::run_state::RunState) -> Vec<crate::DebugEventLine> {
+    let lines = format_run_state(run_state);
+    if let Some(start) = lines.iter().position(|l| l.text == "Flows:") {
+        if let Some(end) = lines.iter().position(|l| l.text == "Functions:") {
+            lines.into_iter().skip(start).take(end - start).collect()
+        } else {
+            lines.into_iter().skip(start).collect()
+        }
+    } else {
+        vec![crate::DebugEventLine::new("No flows".into(), None)]
+    }
+}
+
+#[cfg(feature = "debugger")]
+fn format_state_only(run_state: &flowrlib::run_state::RunState) -> Vec<crate::DebugEventLine> {
+    let lines = format_run_state(run_state);
+    if let Some(pos) = lines.iter().position(|l| l.text == "RunState:") {
+        lines.into_iter().skip(pos + 1).collect()
+    } else {
+        vec![]
+    }
+}
+
+#[cfg(feature = "debugger")]
 #[allow(clippy::too_many_lines)]
 fn format_run_state(run_state: &flowrlib::run_state::RunState) -> Vec<crate::DebugEventLine> {
     use crate::{DebugEventLine, DebugLineBuilder, LinkType};
@@ -876,18 +925,6 @@ fn format_run_state(run_state: &flowrlib::run_state::RunState) -> Vec<crate::Deb
     let mut lines = Vec::new();
     let manifest = &run_state.get_submission().manifest;
 
-    // Submission info
-    if let Some(limit) = run_state.get_submission().max_parallel_jobs {
-        lines.push(DebugEventLine::new(
-            format!("Max Parallel Jobs: {limit}"),
-            None,
-        ));
-    }
-    lines.push(DebugEventLine::new(
-        format!("Job Timeout: {:?}", run_state.get_submission().job_timeout),
-        None,
-    ));
-
     // Flow hierarchy
     let functions = run_state.get_functions();
 
@@ -923,7 +960,7 @@ fn format_run_state(run_state: &flowrlib::run_state::RunState) -> Vec<crate::Deb
                 b = flow_chip_short(b, parent);
                 b = b.text(")");
             } else {
-                b = b.text(" (root flow)");
+                b = b.text(" (root)");
             }
             if !flow.sub_flow_ids.is_empty() {
                 b = b.text(" sub-flows: [");
@@ -1078,100 +1115,6 @@ fn format_run_state(run_state: &flowrlib::run_state::RunState) -> Vec<crate::Deb
     lines
 }
 
-// Return addresses and ports to be used for each of the three queues
-#[cfg(feature = "debugger")]
-fn format_process_tree(run_state: &flowrlib::run_state::RunState) -> Vec<crate::DebugEventLine> {
-    use crate::DebugEventLine;
-    use std::collections::BTreeMap;
-
-    fn add_tree(
-        lines: &mut Vec<crate::DebugEventLine>,
-        by_parent: &BTreeMap<usize, Vec<&flowcore::model::runtime_function::RuntimeFunction>>,
-        run_state: &flowrlib::run_state::RunState,
-        parent_id: usize,
-        depth: usize,
-    ) {
-        if let Some(children) = by_parent.get(&parent_id) {
-            for child in children {
-                if child.id() == parent_id {
-                    continue;
-                }
-                let indent = "  ".repeat(depth);
-                let states = run_state.get_function_states(child.id());
-                let is_flow = run_state
-                    .get_submission()
-                    .manifest
-                    .flows()
-                    .contains_key(&child.id());
-                let link_type = if is_flow {
-                    crate::LinkType::Flow
-                } else {
-                    crate::LinkType::Function
-                };
-                lines.push(entity_line(
-                    child,
-                    &indent,
-                    link_type,
-                    &format!(" {states:?}"),
-                ));
-                if by_parent.contains_key(&child.id()) {
-                    add_tree(lines, by_parent, run_state, child.id(), depth + 1);
-                }
-            }
-        }
-    }
-
-    let mut lines = Vec::new();
-    let functions = run_state.get_functions();
-    let mut by_parent: BTreeMap<usize, Vec<&flowcore::model::runtime_function::RuntimeFunction>> =
-        BTreeMap::new();
-    for func in functions.values() {
-        by_parent
-            .entry(func.get_parent_id())
-            .or_default()
-            .push(func);
-    }
-    for children in by_parent.values_mut() {
-        children.sort_by_key(|f| f.id());
-    }
-
-    let root_parents: Vec<usize> = by_parent
-        .keys()
-        .filter(|pid| !functions.contains_key(pid))
-        .copied()
-        .collect();
-    for root_id in root_parents {
-        if let Some(func) = functions.get(&root_id) {
-            let states = run_state.get_function_states(root_id);
-            lines.push(entity_line(
-                func,
-                "",
-                crate::LinkType::Flow,
-                &format!(" {states:?}"),
-            ));
-        } else {
-            lines.push(DebugEventLine::new(format!("Flow #{root_id}"), None));
-        }
-        add_tree(&mut lines, &by_parent, run_state, root_id, 1);
-    }
-    let mut self_roots: Vec<_> = functions
-        .values()
-        .filter(|func| func.get_parent_id() == func.id())
-        .collect();
-    self_roots.sort_by_key(|f| f.id());
-    for func in self_roots {
-        let states = run_state.get_function_states(func.id());
-        lines.push(entity_line(
-            func,
-            "",
-            crate::LinkType::Flow,
-            &format!(" {states:?}"),
-        ));
-        add_tree(&mut lines, &by_parent, run_state, func.id(), 1);
-    }
-    lines
-}
-
 #[cfg(feature = "debugger")]
 fn format_inspect_by_state(
     state_name: &str,
@@ -1208,12 +1151,7 @@ fn format_inspect_by_state(
             let states = run_state.get_function_states(func.id());
             if states.contains(target) {
                 count += 1;
-                lines.push(entity_line(
-                    func,
-                    "  ",
-                    crate::LinkType::Function,
-                    &format!(" {states:?}"),
-                ));
+                lines.push(entity_line(func, "  ", crate::LinkType::Function, ""));
             }
         }
         if count == 0 {
@@ -1277,8 +1215,6 @@ fn format_inspect_flow(
                 );
             }
             lines.push(b.finish());
-        } else {
-            lines.push(DebugEventLine::new("  (root flow)".into(), None));
         }
 
         if !flow_info.sub_flow_ids.is_empty() {
