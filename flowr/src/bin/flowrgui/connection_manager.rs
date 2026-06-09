@@ -799,6 +799,24 @@ fn debug_client_stream(address: String) -> impl iced::futures::Stream<Item = Mes
                             .try_send(Message::DebugBreakpointListReceived(spec_strings));
                     }
 
+                    if let DebugServerMessage::ProcessTree(ref state)
+                    | DebugServerMessage::InspectByState(_, ref state)
+                    | DebugServerMessage::InspectFlow(_, ref state)
+                    | DebugServerMessage::OverallState(ref state) = message
+                    {
+                        let flow_ids: Vec<usize> = state
+                            .get_submission()
+                            .manifest
+                            .flows()
+                            .keys()
+                            .copied()
+                            .collect();
+                        if !flow_ids.is_empty() {
+                            let _ =
+                                blocking_sender.try_send(Message::DebugFlowIdsReceived(flow_ids));
+                        }
+                    }
+
                     if !is_waiting {
                         let _ = blocking_sender
                             .try_send(Message::DebugEvent(format_debug_event(&message)));

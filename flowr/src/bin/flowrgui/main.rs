@@ -604,6 +604,8 @@ pub enum Message {
     /// Function list received from debug server
     #[cfg(feature = "debugger")]
     DebugFunctionListReceived(Vec<CachedFunction>),
+    /// Flow IDs received from a RunState-carrying message
+    DebugFlowIdsReceived(Vec<usize>),
     /// Breakpoint list received from debug server
     #[cfg(feature = "debugger")]
     DebugBreakpointListReceived(Vec<String>),
@@ -1148,6 +1150,7 @@ impl FlowrGui {
             | Message::BpPopupConfirm
             | Message::BpCycleFunction(_)
             | Message::DebugFunctionListReceived(_)
+            | Message::DebugFlowIdsReceived(_)
             | Message::DebugBreakpointListReceived(_)
             | Message::DebugInspectLink(_)
             | Message::DebugToggleSection(_)
@@ -1997,7 +2000,7 @@ impl FlowrGui {
                 }
             }
             InspectTab::Function => {
-                for f in &self.cached_functions {
+                for f in self.cached_functions.iter().filter(|f| !f.is_flow) {
                     let btn = Button::new(
                         Text::new(format!("#{} '{}' @ '{}'", f.id, f.name, f.route)).size(13),
                     )
@@ -2009,9 +2012,9 @@ impl FlowrGui {
                 }
             }
             InspectTab::Flow => {
-                for f in &self.cached_functions {
+                for f in self.cached_functions.iter().filter(|f| f.is_flow) {
                     let btn = Button::new(
-                        Text::new(format!("#{} '{}' @ {}", f.id, f.name, f.route)).size(13),
+                        Text::new(format!("Flow #{} '{}' @ {}", f.id, f.name, f.route)).size(13),
                     )
                     .width(Length::Fill)
                     .padding([3, 8])
@@ -2725,6 +2728,13 @@ impl FlowrGui {
                 self.cached_functions = functions;
                 if let Some(action) = self.pending_action.take() {
                     return self.process_debug_message(action);
+                }
+            }
+            Message::DebugFlowIdsReceived(flow_ids) => {
+                for f in &mut self.cached_functions {
+                    if flow_ids.contains(&f.id) {
+                        f.is_flow = true;
+                    }
                 }
             }
             Message::DebugBreakpointListReceived(specs) => {
