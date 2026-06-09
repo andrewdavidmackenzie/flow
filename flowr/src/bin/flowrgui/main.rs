@@ -124,7 +124,7 @@ pub struct DebugEventLine {
 #[cfg(feature = "debugger")]
 impl DebugEventLine {
     fn new(text: String, color: Option<iced::Color>) -> Self {
-        let links = Self::extract_links(&text, None);
+        let links = Self::extract_links(&text);
         Self {
             text,
             color,
@@ -152,17 +152,6 @@ impl DebugEventLine {
         }
     }
 
-    fn with_context(text: String, color: Option<iced::Color>, context_func_id: usize) -> Self {
-        let links = Self::extract_links(&text, Some(context_func_id));
-        Self {
-            text,
-            color,
-            separator: false,
-            links,
-            section_id: 0,
-        }
-    }
-
     fn separator(label: String, color: iced::Color) -> Self {
         Self {
             text: label,
@@ -174,7 +163,7 @@ impl DebugEventLine {
     }
 
     #[allow(clippy::too_many_lines)]
-    fn extract_links(text: &str, override_func_id: Option<usize>) -> Vec<DebugLink> {
+    fn extract_links(text: &str) -> Vec<DebugLink> {
         let mut links = Vec::new();
         let mut search_from = 0;
 
@@ -237,7 +226,7 @@ impl DebugEventLine {
             search_from = digit_end;
         }
 
-        let context_func_id = override_func_id.or_else(|| {
+        let context_func_id = None::<usize>.or_else(|| {
             text.find("Function #").and_then(|pos| {
                 let after = pos + "Function #".len();
                 let end = text[after..]

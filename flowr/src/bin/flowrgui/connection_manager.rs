@@ -456,6 +456,30 @@ fn rewrite_for_gui(msg: &str) -> String {
 
 /// Format a `DebugServerMessage` into colored lines for the debug tab
 #[cfg(feature = "debugger")]
+#[cfg(feature = "debugger")]
+fn entity_line(
+    func: &flowcore::model::runtime_function::RuntimeFunction,
+    indent: &str,
+    link_type: crate::LinkType,
+    suffix: &str,
+) -> crate::DebugEventLine {
+    let entity = match link_type {
+        crate::LinkType::Flow => "Flow",
+        _ => "Function",
+    };
+    crate::DebugLineBuilder::new()
+        .text(indent)
+        .chip(
+            &format!("{entity} #{}", func.id()),
+            &func.id().to_string(),
+            link_type,
+        )
+        .text(&format!(" '{}' @ ", func.name()))
+        .chip(func.route(), func.route(), crate::LinkType::Route)
+        .text(suffix)
+        .finish()
+}
+
 #[allow(clippy::too_many_lines)]
 fn format_debug_event(message: &DebugServerMessage) -> Vec<crate::DebugEventLine> {
     use crate::theme::debug_colors;
@@ -541,16 +565,10 @@ fn format_debug_event(message: &DebugServerMessage) -> Vec<crate::DebugEventLine
         DebugServerMessage::ExecutionEnded => {
             line("Flow has completed".into(), Some(debug_colors::COMPLETION))
         }
-        DebugServerMessage::Functions(functions) => {
-            let mut lines = Vec::new();
-            for f in functions {
-                lines.push(DebugEventLine::new(
-                    format!("  #{} '{}' @ '{}'", f.id(), f.name(), f.route()),
-                    None,
-                ));
-            }
-            lines
-        }
+        DebugServerMessage::Functions(ref functions) => functions
+            .iter()
+            .map(|f| entity_line(f, "  ", crate::LinkType::Function, ""))
+            .collect(),
         DebugServerMessage::SendingValue(source_id, value, dest_id, input_number) => line(
             format!("Function #{source_id} sending '{value}' to {dest_id}:{input_number}"),
             Some(debug_colors::DATA_FLOW),
@@ -559,23 +577,12 @@ fn format_debug_event(message: &DebugServerMessage) -> Vec<crate::DebugEventLine
         DebugServerMessage::Message(msg) => line(rewrite_for_gui(msg), None),
         DebugServerMessage::Resetting => line("Resetting state".into(), Some(debug_colors::STATUS)),
         DebugServerMessage::FunctionStates((function, states)) => {
-            let func_id = function.id();
-            let mut first = true;
-            let mut lines: Vec<DebugEventLine> = format!("{function}")
-                .lines()
-                .map(|l| {
-                    let trimmed = l.trim_start();
-                    let text = if first {
-                        first = false;
-                        trimmed.to_string()
-                    } else {
-                        format!("  {trimmed}")
-                    };
-                    DebugEventLine::with_context(text, None, func_id)
-                })
-                .collect();
-            lines.push(DebugEventLine::new(format!("  State: {states:?}"), None));
-            lines
+            vec![entity_line(
+                function,
+                "",
+                crate::LinkType::Function,
+                &format!(" {states:?}"),
+            )]
         }
         DebugServerMessage::OverallState(ref run_state) => format_run_state(run_state),
         DebugServerMessage::InputState(input) => {
@@ -870,21 +877,17 @@ fn format_run_state(run_state: &flowrlib::run_state::RunState) -> Vec<crate::Deb
                     .manifest
                     .flows()
                     .contains_key(&child.id());
-                let (chip_label, link_type) = if is_flow {
-                    (format!("Flow #{}", child.id()), crate::LinkType::Flow)
+                let link_type = if is_flow {
+                    crate::LinkType::Flow
                 } else {
-                    (
-                        format!("Function #{}", child.id()),
-                        crate::LinkType::Function,
-                    )
+                    crate::LinkType::Function
                 };
-                let b = crate::DebugLineBuilder::new()
-                    .text(&indent)
-                    .chip(&chip_label, &child.id().to_string(), link_type)
-                    .text(&format!(" '{}' @ ", child.name()))
-                    .chip(child.route(), child.route(), crate::LinkType::Route)
-                    .text(&format!(" {states:?}"));
-                lines.push(b.finish());
+                lines.push(entity_line(
+                    child,
+                    &indent,
+                    link_type,
+                    &format!(" {states:?}"),
+                ));
 
                 if by_parent.contains_key(&child.id()) {
                     add_tree_lines(lines, by_parent, run_state, child.id(), depth + 1);

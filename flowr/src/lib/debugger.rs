@@ -302,8 +302,24 @@ impl<'a> Debugger<'a> {
                     self.debug_server.message(message);
                 }
                 Ok(DebugCommand::InspectRoute(ref route)) => {
-                    let message = Self::inspect_by_route(state, route);
-                    self.debug_server.message(message);
+                    if let Some(func_id) = Self::find_by_route(state, route) {
+                        if state.get_function(func_id).is_some() {
+                            self.debug_server.function_states(
+                                state
+                                    .get_function(func_id)
+                                    .ok_or("Could not get function")?
+                                    .clone(),
+                                state.get_function_states(func_id),
+                            );
+                        } else if state.submission.manifest.flows().contains_key(&func_id) {
+                            let message = Self::inspect_flow(state, func_id);
+                            self.debug_server.message(message);
+                        }
+                    } else {
+                        self.debug_server.debugger_error(format!(
+                            "No function or flow found at route '{route}'"
+                        ));
+                    }
                 }
                 Ok(InspectFunction(function_id)) => {
                     if state.get_function(function_id).is_some() {
@@ -858,6 +874,7 @@ impl<'a> Debugger<'a> {
         response
     }
 
+    #[cfg(test)]
     fn inspect_by_route(state: &RunState, route: &str) -> String {
         let Some(func_id) = Self::find_by_route(state, route) else {
             return format!("No function or flow found at route '{route}'");

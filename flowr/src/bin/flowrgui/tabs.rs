@@ -228,7 +228,7 @@ impl TabSet {
                 let palette = theme.palette();
                 iced::widget::container::Style {
                     background: Some(Background::Color(iced::Color {
-                        a: 0.08,
+                        a: 0.04,
                         ..palette.text
                     })),
                     border: Border {
@@ -280,7 +280,7 @@ fn tab_button_style(
 ) -> iced::widget::button::Style {
     let palette = theme.palette();
     let active_bg = iced::Color {
-        a: 0.08,
+        a: 0.04,
         ..palette.text
     };
     let top_only = iced::border::Radius {
