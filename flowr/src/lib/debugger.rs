@@ -721,7 +721,7 @@ impl<'a> Debugger<'a> {
                         for id in &matches {
                             if let Some(f) = state.get_function(*id) {
                                 use std::fmt::Write;
-                                let _ = writeln!(msg, "  #{} @ '{}'", f.id(), f.route());
+                                let _ = writeln!(msg, "  Function #{} @ {}", f.id(), f.route());
                             }
                         }
                         bail!(msg)
@@ -820,27 +820,34 @@ impl<'a> Debugger<'a> {
                 let _ = writeln!(response, "Parent: root");
             }
             if !flow_info.sub_flow_ids.is_empty() {
-                let _ = writeln!(response, "Sub-flows: {:?}", flow_info.sub_flow_ids);
+                let subs: Vec<String> = flow_info
+                    .sub_flow_ids
+                    .iter()
+                    .map(|id| format!("Flow #{id}"))
+                    .collect();
+                let _ = writeln!(response, "Sub-flows: {}", subs.join(", "));
             }
         }
-        let _ = writeln!(response, "Children:");
-        let mut children: Vec<_> = state
+        let mut functions: Vec<_> = state
             .get_functions()
             .values()
-            .filter(|f| f.get_parent_id() == flow_id && f.id() != flow_id)
+            .filter(|f| {
+                f.get_parent_id() == flow_id
+                    && f.id() != flow_id
+                    && !state.submission.manifest.flows().contains_key(&f.id())
+            })
             .collect();
-        children.sort_by_key(|f| f.id());
-        if children.is_empty() {
-            let _ = writeln!(response, "  (none)");
-        } else {
-            for child in children {
-                let states = state.get_function_states(child.id());
+        functions.sort_by_key(|f| f.id());
+        if !functions.is_empty() {
+            let _ = writeln!(response, "Functions:");
+            for func in functions {
+                let states = state.get_function_states(func.id());
                 let _ = writeln!(
                     response,
-                    "  Function #{} '{}' @ '{}' {:?}",
-                    child.id(),
-                    child.name(),
-                    child.route(),
+                    "  Function #{} '{}' @ {} {:?}",
+                    func.id(),
+                    func.name(),
+                    func.route(),
                     states
                 );
             }
@@ -862,7 +869,7 @@ impl<'a> Debugger<'a> {
             if let Some(func) = function {
                 let _ = writeln!(
                     response,
-                    "Flow #{} '{}' @ '{}'",
+                    "Flow #{} '{}' @ {}",
                     func.id(),
                     func.name(),
                     func.route()
@@ -882,7 +889,7 @@ impl<'a> Debugger<'a> {
                     let states = state.get_function_states(child.id());
                     let _ = writeln!(
                         response,
-                        "  #{} '{}' @ '{}' {:?}",
+                        "  Function #{} '{}' @ {} {:?}",
                         child.id(),
                         child.name(),
                         child.route(),
@@ -893,7 +900,7 @@ impl<'a> Debugger<'a> {
         } else if let Some(function) = state.get_function(func_id) {
             let _ = writeln!(
                 response,
-                "Function #{} '{}' @ '{}'",
+                "Function #{} '{}' @ {}",
                 function.id(),
                 function.name(),
                 function.route()
@@ -935,7 +942,7 @@ impl<'a> Debugger<'a> {
                             count += 1;
                             let _ = writeln!(
                                 response,
-                                "  #{} '{}' @ '{}' — blocked by: {:?}",
+                                "  Function #{} '{}' @ {} — blocked by: {:?}",
                                 func.id(),
                                 func.name(),
                                 func.route(),
@@ -953,7 +960,7 @@ impl<'a> Debugger<'a> {
                     count += 1;
                     let _ = write!(
                         response,
-                        "  #{} '{}' @ '{}'",
+                        "  Function #{} '{}' @ {}",
                         func.id(),
                         func.name(),
                         func.route()
@@ -1031,7 +1038,7 @@ impl<'a> Debugger<'a> {
             let states = state.get_function_states(parent.id());
             let _ = writeln!(
                 response,
-                "{indent}#{} '{}' @ '{}' {:?}",
+                "{indent}Function #{} '{}' @ {} {:?}",
                 parent.id(),
                 parent.name(),
                 parent.route(),
@@ -1060,7 +1067,7 @@ impl<'a> Debugger<'a> {
                     let states = state.get_function_states(child.id());
                     let _ = writeln!(
                         response,
-                        "{child_indent}#{} '{}' @ '{}' {:?}",
+                        "{child_indent}Function #{} '{}' @ {} {:?}",
                         child.id(),
                         child.name(),
                         child.route(),
