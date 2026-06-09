@@ -874,7 +874,7 @@ impl Tab for DebugTab {
                     line.separator || !self.is_ancestor_collapsed(line.section_id)
                 })
                 .map(|line| {
-                    if line.separator {
+                    let el: Element<'_, Message> = if line.separator {
                         let color = line.color.unwrap_or(iced::Color::WHITE);
                         let is_collapsed = self.collapsed.contains(&line.section_id);
                         let section_id = line.section_id;
@@ -1052,11 +1052,22 @@ impl Tab for DebugTab {
                                     .push(rich),
                             )
                         }
+                    };
+
+                    if line.tree_prefix.is_empty() {
+                        Element::from(Container::new(el).padding(iced::Padding {
+                            top: 6.0,
+                            bottom: 6.0,
+                            left: 0.0,
+                            right: 0.0,
+                        }))
+                    } else {
+                        el
                     }
                 }),
         )
         .width(Length::Fill)
-        .spacing(1)
+        .spacing(0)
         .padding(iced::Padding {
             top: 1.0,
             right: 1.0,
