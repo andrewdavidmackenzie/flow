@@ -124,7 +124,7 @@ pub struct DebugEventLine {
 #[cfg(feature = "debugger")]
 impl DebugEventLine {
     fn new(text: String, color: Option<iced::Color>) -> Self {
-        let links = Self::extract_links(&text, None);
+        let links = Self::extract_links(&text);
         Self {
             text,
             color,
@@ -134,8 +134,15 @@ impl DebugEventLine {
         }
     }
 
-    fn with_context(text: String, color: Option<iced::Color>, context_func_id: usize) -> Self {
-        let links = Self::extract_links(&text, Some(context_func_id));
+    /// Create a builder for constructing lines with chip links
+    #[must_use]
+    pub fn build() -> DebugLineBuilder {
+        DebugLineBuilder::new()
+    }
+
+    /// Create a line with pre-built links (skipping text extraction)
+    #[must_use]
+    pub fn with_links(text: String, color: Option<iced::Color>, links: Vec<DebugLink>) -> Self {
         Self {
             text,
             color,
@@ -156,7 +163,7 @@ impl DebugEventLine {
     }
 
     #[allow(clippy::too_many_lines)]
-    fn extract_links(text: &str, override_func_id: Option<usize>) -> Vec<DebugLink> {
+    fn extract_links(text: &str) -> Vec<DebugLink> {
         let mut links = Vec::new();
         let mut search_from = 0;
 
@@ -219,7 +226,7 @@ impl DebugEventLine {
             search_from = digit_end;
         }
 
-        let context_func_id = override_func_id.or_else(|| {
+        let context_func_id = None::<usize>.or_else(|| {
             text.find("Function #").and_then(|pos| {
                 let after = pos + "Function #".len();
                 let end = text[after..]
@@ -370,6 +377,63 @@ impl DebugEventLine {
         // Remove overlapping links
         links.dedup_by(|b, a| b.start < a.end);
         links
+    }
+}
+
+/// Builder for constructing debug lines with embedded entity-typed chip links
+#[cfg(feature = "debugger")]
+#[derive(Default)]
+pub struct DebugLineBuilder {
+    text: String,
+    links: Vec<DebugLink>,
+    color: Option<iced::Color>,
+}
+
+#[cfg(feature = "debugger")]
+impl DebugLineBuilder {
+    /// Create a new empty builder
+    #[must_use]
+    pub fn new() -> Self {
+        Self {
+            text: String::new(),
+            links: Vec::new(),
+            color: None,
+        }
+    }
+
+    /// Append plain text
+    #[must_use]
+    pub fn text(mut self, s: &str) -> Self {
+        self.text.push_str(s);
+        self
+    }
+
+    /// Append a clickable chip with entity type coloring
+    #[must_use]
+    pub fn chip(mut self, label: &str, spec: &str, link_type: LinkType) -> Self {
+        let start = self.text.len();
+        self.text.push_str(label);
+        let end = self.text.len();
+        self.links.push(DebugLink {
+            start,
+            end,
+            spec: spec.to_string(),
+            link_type,
+        });
+        self
+    }
+
+    /// Set the line color
+    #[must_use]
+    pub fn color(mut self, c: iced::Color) -> Self {
+        self.color = Some(c);
+        self
+    }
+
+    /// Build the final `DebugEventLine`
+    #[must_use]
+    pub fn finish(self) -> DebugEventLine {
+        DebugEventLine::with_links(self.text, self.color, self.links)
     }
 }
 
@@ -764,6 +828,8 @@ struct FlowrGui {
     run_input_names: Vec<String>,
     #[cfg(feature = "debugger")]
     run_input_types: Vec<String>,
+    #[cfg(feature = "debugger")]
+    pending_action: Option<Message>,
     show_coordinator_picker: bool,
     discovered_services: Vec<(String, String)>,
     discovering: bool,
@@ -822,6 +888,8 @@ impl FlowrGui {
             run_input_names: Vec::new(),
             #[cfg(feature = "debugger")]
             run_input_types: Vec::new(),
+            #[cfg(feature = "debugger")]
+            pending_action: None,
             show_coordinator_picker: false,
             discovered_services: Vec::new(),
             discovering: false,
@@ -2294,6 +2362,21 @@ impl FlowrGui {
     }
 
     #[cfg(feature = "debugger")]
+    #[cfg(feature = "debugger")]
+    fn ensure_functions_cached(&mut self, action: Message) -> bool {
+        if self.cached_functions.is_empty() {
+            self.pending_action = Some(action);
+            self.suppress_next_output = true;
+            connection_manager::send_debug_command(
+                flowcore::model::debug_command::DebugCommand::FunctionList,
+            );
+            false
+        } else {
+            true
+        }
+    }
+
+    #[cfg(feature = "debugger")]
     #[allow(clippy::too_many_lines)]
     fn process_debug_message(&mut self, message: Message) -> Task<Message> {
         use flowcore::model::debug_command::{BreakpointSpec, DebugCommand};
@@ -2319,9 +2402,6 @@ impl FlowrGui {
             }
             Message::DebugWaiting => {
                 self.debug_waiting = true;
-                if self.cached_functions.is_empty() {
-                    return self.process_debug_message(Message::DebugFunctions(false));
-                }
             }
             Message::DebugConnected => {
                 self.tab_set
@@ -2365,6 +2445,9 @@ impl FlowrGui {
             }
             Message::DebugRunProcess => {
                 if self.debug_spec_text.trim().is_empty() {
+                    return iced::Task::none();
+                }
+                if !self.ensure_functions_cached(Message::DebugRunProcess) {
                     return iced::Task::none();
                 }
                 let parts: Vec<String> = self
@@ -2549,6 +2632,9 @@ impl FlowrGui {
             }
             Message::DebugFunctionListReceived(functions) => {
                 self.cached_functions = functions;
+                if let Some(action) = self.pending_action.take() {
+                    return self.process_debug_message(action);
+                }
             }
             Message::DebugBreakpointListReceived(specs) => {
                 self.active_breakpoints = specs.into_iter().collect();
@@ -2578,14 +2664,10 @@ impl FlowrGui {
                 self.tab_set.debug_tab.toggle_section(section_id);
             }
             Message::ShowInspectPopup => {
-                self.show_inspect_popup = true;
-                if self.cached_functions.is_empty() && self.debug_waiting {
-                    self.debug_waiting = false;
-                    self.suppress_next_output = true;
-                    connection_manager::send_debug_command(
-                        flowcore::model::debug_command::DebugCommand::FunctionList,
-                    );
+                if !self.ensure_functions_cached(Message::ShowInspectPopup) {
+                    return iced::Task::none();
                 }
+                self.show_inspect_popup = true;
             }
             Message::CloseInspectPopup => self.show_inspect_popup = false,
             Message::InspectTabChanged(tab) => self.inspect_tab = tab,
@@ -2619,16 +2701,15 @@ impl FlowrGui {
                 }
             }
             Message::ShowBpPopup => {
+                if !self.ensure_functions_cached(Message::ShowBpPopup) {
+                    return iced::Task::none();
+                }
                 self.show_bp_popup = true;
                 self.bp_target.clear();
                 if self.debug_waiting {
                     self.debug_waiting = false;
                     self.suppress_next_output = true;
-                    if self.cached_functions.is_empty() {
-                        connection_manager::send_debug_command(DebugCommand::FunctionList);
-                    } else {
-                        connection_manager::send_debug_command(DebugCommand::List);
-                    }
+                    connection_manager::send_debug_command(DebugCommand::List);
                 }
             }
             Message::CloseBpPopup => self.show_bp_popup = false,
@@ -3071,6 +3152,8 @@ mod test {
             run_input_names: Vec::new(),
             #[cfg(feature = "debugger")]
             run_input_types: Vec::new(),
+            #[cfg(feature = "debugger")]
+            pending_action: None,
             show_coordinator_picker: false,
             discovered_services: Vec::new(),
             discovering: false,

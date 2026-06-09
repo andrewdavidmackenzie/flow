@@ -197,9 +197,16 @@ impl RunState {
         }
     }
 
+    /// Get a reference to the submission
+    #[must_use]
+    pub fn get_submission(&self) -> &Submission {
+        &self.submission
+    }
+
     #[cfg(any(debug_assertions, feature = "debugger"))]
     /// Get a reference to the map of all functions
-    pub(crate) fn get_functions(&self) -> &HashMap<usize, RuntimeFunction> {
+    #[must_use]
+    pub fn get_functions(&self) -> &HashMap<usize, RuntimeFunction> {
         self.submission.manifest.functions()
     }
 
@@ -255,6 +262,13 @@ impl RunState {
             states.push(State::Completed);
         }
 
+        for job in self.running_jobs.values() {
+            if job.process_id == function_id {
+                states.push(State::Running);
+                break;
+            }
+        }
+
         for ready_job in &self.ready_jobs {
             if ready_job.process_id == function_id {
                 states.push(State::Ready);
@@ -293,11 +307,18 @@ impl RunState {
         self.submission.manifest.get_functions().get_mut(&id)
     }
 
-    #[cfg(debug_assertions)]
+    #[cfg(any(debug_assertions, feature = "debugger"))]
     /// Return the busy count map (`process_id` -> count of busy entries)
     #[must_use]
     pub fn get_busy_count(&self) -> &HashMap<usize, usize> {
         &self.busy_count
+    }
+
+    /// Return the set of completed function IDs
+    #[cfg(feature = "debugger")]
+    #[must_use]
+    pub fn get_completed(&self) -> &HashSet<usize> {
+        &self.completed
     }
 
     // Return a new job to run if there is one and there are not too many jobs already running
@@ -513,6 +534,13 @@ impl RunState {
     #[must_use]
     pub fn number_jobs_ready(&self) -> usize {
         self.ready_jobs.len()
+    }
+
+    /// Return the ready jobs queue
+    #[cfg(feature = "debugger")]
+    #[must_use]
+    pub fn get_ready_jobs(&self) -> &VecDeque<Job> {
+        &self.ready_jobs
     }
 
     /// An input blocker is another function that is the only function connected to an empty input

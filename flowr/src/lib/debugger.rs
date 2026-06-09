@@ -302,8 +302,24 @@ impl<'a> Debugger<'a> {
                     self.debug_server.message(message);
                 }
                 Ok(DebugCommand::InspectRoute(ref route)) => {
-                    let message = Self::inspect_by_route(state, route);
-                    self.debug_server.message(message);
+                    if let Some(func_id) = Self::find_by_route(state, route) {
+                        if state.submission.manifest.flows().contains_key(&func_id) {
+                            let message = Self::inspect_flow(state, func_id);
+                            self.debug_server.message(message);
+                        } else if state.get_function(func_id).is_some() {
+                            self.debug_server.function_states(
+                                state
+                                    .get_function(func_id)
+                                    .ok_or("Could not get function")?
+                                    .clone(),
+                                state.get_function_states(func_id),
+                            );
+                        }
+                    } else {
+                        self.debug_server.debugger_error(format!(
+                            "No function or flow found at route '{route}'"
+                        ));
+                    }
                 }
                 Ok(InspectFunction(function_id)) => {
                     if state.get_function(function_id).is_some() {
@@ -721,7 +737,7 @@ impl<'a> Debugger<'a> {
                         for id in &matches {
                             if let Some(f) = state.get_function(*id) {
                                 use std::fmt::Write;
-                                let _ = writeln!(msg, "  #{} @ '{}'", f.id(), f.route());
+                                let _ = writeln!(msg, "  {}", Self::entity_long(f, false));
                             }
                         }
                         bail!(msg)
@@ -810,6 +826,16 @@ impl<'a> Debugger<'a> {
         Ok(())
     }
 
+    fn entity_long(func: &RuntimeFunction, is_flow: bool) -> String {
+        let entity = if is_flow { "Flow" } else { "Function" };
+        format!(
+            "{entity} #{} '{}' @ {}",
+            func.id(),
+            func.name(),
+            func.route()
+        )
+    }
+
     fn inspect_flow(state: &RunState, flow_id: usize) -> String {
         let mut response = String::new();
         let _ = writeln!(response, "Flow #{flow_id}");
@@ -817,37 +843,38 @@ impl<'a> Debugger<'a> {
             if let Some(parent) = flow_info.parent_id {
                 let _ = writeln!(response, "Parent: Flow #{parent}");
             } else {
-                let _ = writeln!(response, "Parent: root");
+                let _ = writeln!(response, "Parent: (none — this is the root flow)");
             }
             if !flow_info.sub_flow_ids.is_empty() {
-                let _ = writeln!(response, "Sub-flows: {:?}", flow_info.sub_flow_ids);
+                let subs: Vec<String> = flow_info
+                    .sub_flow_ids
+                    .iter()
+                    .map(|id| format!("Flow #{id}"))
+                    .collect();
+                let _ = writeln!(response, "Sub-flows: {}", subs.join(", "));
             }
         }
-        let _ = writeln!(response, "Children:");
-        let mut children: Vec<_> = state
+        let mut functions: Vec<_> = state
             .get_functions()
             .values()
-            .filter(|f| f.get_parent_id() == flow_id && f.id() != flow_id)
+            .filter(|f| {
+                f.get_parent_id() == flow_id
+                    && f.id() != flow_id
+                    && !state.submission.manifest.flows().contains_key(&f.id())
+            })
             .collect();
-        children.sort_by_key(|f| f.id());
-        if children.is_empty() {
-            let _ = writeln!(response, "  (none)");
-        } else {
-            for child in children {
-                let states = state.get_function_states(child.id());
-                let _ = writeln!(
-                    response,
-                    "  Function #{} '{}' @ '{}' {:?}",
-                    child.id(),
-                    child.name(),
-                    child.route(),
-                    states
-                );
+        functions.sort_by_key(|f| f.id());
+        if !functions.is_empty() {
+            let _ = writeln!(response, "Functions:");
+            for func in functions {
+                let states = state.get_function_states(func.id());
+                let _ = writeln!(response, "  {} {states:?}", Self::entity_long(func, false));
             }
         }
         response
     }
 
+    #[cfg(test)]
     fn inspect_by_route(state: &RunState, route: &str) -> String {
         let Some(func_id) = Self::find_by_route(state, route) else {
             return format!("No function or flow found at route '{route}'");
@@ -859,14 +886,8 @@ impl<'a> Debugger<'a> {
 
         if is_flow {
             let function = state.get_functions().get(&func_id).cloned();
-            if let Some(func) = function {
-                let _ = writeln!(
-                    response,
-                    "Flow #{} '{}' @ '{}'",
-                    func.id(),
-                    func.name(),
-                    func.route()
-                );
+            if let Some(ref func) = function {
+                let _ = writeln!(response, "{}", Self::entity_long(func, true));
             }
             let _ = writeln!(response, "Children:");
             let mut children: Vec<_> = state
@@ -882,22 +903,14 @@ impl<'a> Debugger<'a> {
                     let states = state.get_function_states(child.id());
                     let _ = writeln!(
                         response,
-                        "  #{} '{}' @ '{}' {:?}",
-                        child.id(),
-                        child.name(),
-                        child.route(),
+                        "  {} {:?}",
+                        Self::entity_long(child, false),
                         states
                     );
                 }
             }
         } else if let Some(function) = state.get_function(func_id) {
-            let _ = writeln!(
-                response,
-                "Function #{} '{}' @ '{}'",
-                function.id(),
-                function.name(),
-                function.route()
-            );
+            let _ = writeln!(response, "{}", Self::entity_long(function, false));
             let states = state.get_function_states(func_id);
             let _ = writeln!(response, "  State: {states:?}");
         }
@@ -935,10 +948,8 @@ impl<'a> Debugger<'a> {
                             count += 1;
                             let _ = writeln!(
                                 response,
-                                "  #{} '{}' @ '{}' — blocked by: {:?}",
-                                func.id(),
-                                func.name(),
-                                func.route(),
+                                "  {} — blocked by: {:?}",
+                                Self::entity_long(func, false),
                                 blockers
                             );
                         }
@@ -951,13 +962,7 @@ impl<'a> Debugger<'a> {
                 let states = state.get_function_states(func.id());
                 if states.contains(target) {
                     count += 1;
-                    let _ = write!(
-                        response,
-                        "  #{} '{}' @ '{}'",
-                        func.id(),
-                        func.name(),
-                        func.route()
-                    );
+                    let _ = write!(response, "  {}", Self::entity_long(func, false));
                     if state_name == "running" {
                         let running_jobs: Vec<_> = state
                             .get_running()
@@ -1028,13 +1033,12 @@ impl<'a> Debugger<'a> {
     ) {
         let indent = "  ".repeat(depth);
         if let Some(parent) = all_functions.get(&parent_id) {
+            let is_flow = state.submission.manifest.flows().contains_key(&parent_id);
             let states = state.get_function_states(parent.id());
             let _ = writeln!(
                 response,
-                "{indent}#{} '{}' @ '{}' {:?}",
-                parent.id(),
-                parent.name(),
-                parent.route(),
+                "{indent}{} {:?}",
+                Self::entity_long(parent, is_flow),
                 states
             );
         } else {
@@ -1060,10 +1064,8 @@ impl<'a> Debugger<'a> {
                     let states = state.get_function_states(child.id());
                     let _ = writeln!(
                         response,
-                        "{child_indent}#{} '{}' @ '{}' {:?}",
-                        child.id(),
-                        child.name(),
-                        child.route(),
+                        "{child_indent}{} {:?}",
+                        Self::entity_long(child, false),
                         states
                     );
                 }
