@@ -303,7 +303,10 @@ impl<'a> Debugger<'a> {
                 }
                 Ok(DebugCommand::InspectRoute(ref route)) => {
                     if let Some(func_id) = Self::find_by_route(state, route) {
-                        if state.get_function(func_id).is_some() {
+                        if state.submission.manifest.flows().contains_key(&func_id) {
+                            let message = Self::inspect_flow(state, func_id);
+                            self.debug_server.message(message);
+                        } else if state.get_function(func_id).is_some() {
                             self.debug_server.function_states(
                                 state
                                     .get_function(func_id)
@@ -311,9 +314,6 @@ impl<'a> Debugger<'a> {
                                     .clone(),
                                 state.get_function_states(func_id),
                             );
-                        } else if state.submission.manifest.flows().contains_key(&func_id) {
-                            let message = Self::inspect_flow(state, func_id);
-                            self.debug_server.message(message);
                         }
                     } else {
                         self.debug_server.debugger_error(format!(
