@@ -759,9 +759,13 @@ impl Tab for DebugTab {
                             spans.push(
                                 iced::widget::span(format!(
                                     " {} ",
-                                    &line.text[link.start..link.end]
+                                    line.text[link.start..link.end].to_lowercase()
                                 ))
                                 .color(iced::Color::WHITE)
+                                .font(iced::Font {
+                                    weight: iced::font::Weight::Bold,
+                                    ..iced::Font::DEFAULT
+                                })
                                 .background(iced::Background::Color(iced::Color {
                                     a: 0.4,
                                     ..chip_color
