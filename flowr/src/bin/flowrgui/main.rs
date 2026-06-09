@@ -605,6 +605,7 @@ pub enum Message {
     #[cfg(feature = "debugger")]
     DebugFunctionListReceived(Vec<CachedFunction>),
     /// Flow entries received from a RunState-carrying message
+    #[cfg(feature = "debugger")]
     DebugFlowsReceived(Vec<CachedFunction>),
     /// Breakpoint list received from debug server
     #[cfg(feature = "debugger")]

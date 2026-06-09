@@ -977,7 +977,6 @@ fn format_run_state(run_state: &flowrlib::run_state::RunState) -> Vec<crate::Deb
     ) {
         use crate::TreeSegment;
         let manifest = &run_state.get_submission().manifest;
-        let functions = run_state.get_functions();
 
         // Build this node's prefix: ancestors + own connector
         let mut prefix: Vec<TreeSegment> = ancestors.to_vec();
@@ -986,8 +985,17 @@ fn format_run_state(run_state: &flowrlib::run_state::RunState) -> Vec<crate::Deb
         }
 
         // Emit the flow node — collapsible only if it has a connector (not root)
-        let mut flow_line = if let Some(func) = functions.get(&flow_id) {
-            entity_line(func, "", crate::LinkType::Flow, "")
+        let mut flow_line = if let Some(fi) = manifest.flows().get(&flow_id) {
+            let mut b = crate::DebugLineBuilder::new().chip(
+                &format!("flow #{flow_id}"),
+                &flow_id.to_string(),
+                crate::LinkType::Flow,
+            );
+            if !fi.name.is_empty() {
+                b = b.text(&format!(" '{}' @ ", fi.name));
+                b = b.chip(&fi.route, &fi.route, crate::LinkType::Route);
+            }
+            b.finish()
         } else {
             crate::DebugLineBuilder::new()
                 .chip(
@@ -1367,19 +1375,18 @@ fn format_inspect_flow(
     let functions = run_state.get_functions();
     let manifest = &run_state.get_submission().manifest;
 
-    if let Some(func) = functions.get(&flow_id) {
-        lines.push(entity_line(func, "", LinkType::Flow, ""));
-    } else {
-        lines.push(
-            DebugLineBuilder::new()
-                .chip(
-                    &format!("flow #{flow_id}"),
-                    &flow_id.to_string(),
-                    LinkType::Flow,
-                )
-                .finish(),
-        );
+    let mut b = DebugLineBuilder::new().chip(
+        &format!("flow #{flow_id}"),
+        &flow_id.to_string(),
+        LinkType::Flow,
+    );
+    if let Some(fi) = manifest.flows().get(&flow_id) {
+        if !fi.name.is_empty() {
+            b = b.text(&format!(" '{}' @ ", fi.name));
+            b = b.chip(&fi.route, &fi.route, LinkType::Route);
+        }
     }
+    lines.push(b.finish());
 
     if let Some(flow_info) = manifest.flows().get(&flow_id) {
         if let Some(parent) = flow_info.parent_id {

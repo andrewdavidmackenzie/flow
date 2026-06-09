@@ -80,6 +80,10 @@ fn emit_flow_hierarchy(
         process_id: flow.id,
         parent_id,
         sub_flow_ids,
+        #[cfg(feature = "debugger")]
+        name: flow.name.clone(),
+        #[cfg(feature = "debugger")]
+        route: flow.route.to_string(),
     });
 }
 
