@@ -622,7 +622,7 @@ fn format_debug_event(message: &DebugServerMessage) -> Vec<crate::DebugEventLine
             format!("Waiting for command (Job #{job_id})"),
             Some(debug_colors::STATUS),
         ),
-        DebugServerMessage::ProcessTree(ref state) => format_run_state(state),
+        DebugServerMessage::ProcessTree(ref state) => format_tree_only(state),
         DebugServerMessage::InspectByState(ref state_name, ref state) => {
             format_inspect_by_state(state_name, state)
         }
@@ -827,6 +827,15 @@ fn debug_client_stream(address: String) -> impl iced::futures::Stream<Item = Mes
             std::future::pending::<()>().await;
         },
     )
+}
+
+#[cfg(feature = "debugger")]
+fn format_tree_only(run_state: &flowrlib::run_state::RunState) -> Vec<crate::DebugEventLine> {
+    let mut lines = format_run_state(run_state);
+    if let Some(pos) = lines.iter().position(|l| l.text == "RunState:") {
+        lines.truncate(pos);
+    }
+    lines
 }
 
 #[cfg(feature = "debugger")]

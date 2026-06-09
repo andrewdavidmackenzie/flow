@@ -762,6 +762,7 @@ impl Tab for DebugTab {
                                     line.text[link.start..link.end].to_lowercase()
                                 ))
                                 .color(iced::Color::WHITE)
+                                .size(crate::theme::FONT_MD)
                                 .font(iced::Font {
                                     weight: iced::font::Weight::Bold,
                                     ..iced::Font::DEFAULT
