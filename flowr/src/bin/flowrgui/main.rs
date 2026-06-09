@@ -2376,6 +2376,7 @@ impl FlowrGui {
         }
     }
 
+    #[cfg(feature = "debugger")]
     #[allow(clippy::too_many_lines)]
     fn process_debug_message(&mut self, message: Message) -> Task<Message> {
         use flowcore::model::debug_command::{BreakpointSpec, DebugCommand};
