@@ -604,8 +604,8 @@ pub enum Message {
     /// Function list received from debug server
     #[cfg(feature = "debugger")]
     DebugFunctionListReceived(Vec<CachedFunction>),
-    /// Flow IDs received from a RunState-carrying message
-    DebugFlowIdsReceived(Vec<usize>),
+    /// Flow entries received from a RunState-carrying message
+    DebugFlowsReceived(Vec<CachedFunction>),
     /// Breakpoint list received from debug server
     #[cfg(feature = "debugger")]
     DebugBreakpointListReceived(Vec<String>),
@@ -1150,7 +1150,7 @@ impl FlowrGui {
             | Message::BpPopupConfirm
             | Message::BpCycleFunction(_)
             | Message::DebugFunctionListReceived(_)
-            | Message::DebugFlowIdsReceived(_)
+            | Message::DebugFlowsReceived(_)
             | Message::DebugBreakpointListReceived(_)
             | Message::DebugInspectLink(_)
             | Message::DebugToggleSection(_)
@@ -2730,12 +2730,13 @@ impl FlowrGui {
                     return self.process_debug_message(action);
                 }
             }
-            Message::DebugFlowIdsReceived(flow_ids) => {
-                for f in &mut self.cached_functions {
-                    if flow_ids.contains(&f.id) {
-                        f.is_flow = true;
+            Message::DebugFlowsReceived(flows) => {
+                for flow in flows {
+                    if !self.cached_functions.iter().any(|f| f.id == flow.id) {
+                        self.cached_functions.push(flow);
                     }
                 }
+                self.cached_functions.sort_by_key(|f| f.id);
             }
             Message::DebugBreakpointListReceived(specs) => {
                 self.active_breakpoints = specs.into_iter().collect();

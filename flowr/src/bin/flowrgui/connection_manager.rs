@@ -804,16 +804,30 @@ fn debug_client_stream(address: String) -> impl iced::futures::Stream<Item = Mes
                     | DebugServerMessage::InspectFlow(_, ref state)
                     | DebugServerMessage::OverallState(ref state) = message
                     {
-                        let flow_ids: Vec<usize> = state
+                        let functions = state.get_functions();
+                        let flows: Vec<crate::CachedFunction> = state
                             .get_submission()
                             .manifest
                             .flows()
                             .keys()
-                            .copied()
+                            .map(|id| {
+                                let (name, route) = if let Some(f) = functions.get(id) {
+                                    (f.name().to_string(), f.route().to_string())
+                                } else {
+                                    (format!("flow_{id}"), format!("/flow/{id}"))
+                                };
+                                crate::CachedFunction {
+                                    id: *id,
+                                    name,
+                                    route,
+                                    inputs: Vec::new(),
+                                    outputs: Vec::new(),
+                                    is_flow: true,
+                                }
+                            })
                             .collect();
-                        if !flow_ids.is_empty() {
-                            let _ =
-                                blocking_sender.try_send(Message::DebugFlowIdsReceived(flow_ids));
+                        if !flows.is_empty() {
+                            let _ = blocking_sender.try_send(Message::DebugFlowsReceived(flows));
                         }
                     }
 
