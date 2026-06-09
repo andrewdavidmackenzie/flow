@@ -2746,23 +2746,32 @@ impl FlowrGui {
             }
             Message::DebugInspectLink(ref spec) => {
                 self.debug_waiting = false;
-                let label = if spec.parse::<usize>().is_ok() {
-                    format!("Inspect #{spec}")
-                } else if spec.contains(':') {
-                    format!("Inspect Input ({spec})")
-                } else if spec.starts_with('/') {
-                    format!("Inspect Route ({spec})")
-                } else if spec.contains('/') {
-                    format!("Inspect Output ({spec})")
+                if let Some(job_id_str) = spec.strip_prefix("job:") {
+                    if let Ok(job_id) = job_id_str.parse::<usize>() {
+                        self.debug_separator(&format!("Inspect Job #{job_id}"));
+                        connection_manager::send_debug_command(
+                            flowcore::model::debug_command::DebugCommand::InspectJob(job_id),
+                        );
+                    }
                 } else {
-                    format!("Inspect {spec}")
-                };
-                let params = Some(vec![spec.clone()]);
-                if let Some(cmd) = DebugClient::parse_inspect_spec(params) {
-                    self.debug_separator(&label);
-                    connection_manager::send_debug_command(cmd);
-                } else {
-                    self.debug_waiting = true;
+                    let label = if spec.parse::<usize>().is_ok() {
+                        format!("Inspect #{spec}")
+                    } else if spec.contains(':') {
+                        format!("Inspect Input ({spec})")
+                    } else if spec.starts_with('/') {
+                        format!("Inspect Route ({spec})")
+                    } else if spec.contains('/') {
+                        format!("Inspect Output ({spec})")
+                    } else {
+                        format!("Inspect {spec}")
+                    };
+                    let params = Some(vec![spec.clone()]);
+                    if let Some(cmd) = DebugClient::parse_inspect_spec(params) {
+                        self.debug_separator(&label);
+                        connection_manager::send_debug_command(cmd);
+                    } else {
+                        self.debug_waiting = true;
+                    }
                 }
             }
             Message::DebugToggleSection(section_id) => {

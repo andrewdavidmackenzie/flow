@@ -1020,6 +1020,7 @@ mod test {
         fn process_tree(&mut self, _: &RunState) {}
         fn inspect_by_state(&mut self, _: &str, _: &RunState) {}
         fn inspect_flow(&mut self, _: usize, _: &RunState) {}
+        fn job_inspect(&mut self, _: Job) {}
         fn get_command(&mut self, _state: &RunState) -> Result<DebugCommand> {
             unimplemented!();
         }

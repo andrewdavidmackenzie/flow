@@ -72,6 +72,8 @@ pub trait DebuggerHandler {
     fn inspect_by_state(&mut self, state_name: &str, state: &RunState);
     /// Inspect a flow — structured data for rendering
     fn inspect_flow(&mut self, flow_id: usize, state: &RunState);
+    /// Inspect a job — structured data for rendering
+    fn job_inspect(&mut self, job: Job);
     /// Get a command for the debugger to perform
     ///
     /// # Errors

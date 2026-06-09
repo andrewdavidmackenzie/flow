@@ -13,7 +13,8 @@ use crate::debug_command::BreakpointSpec;
 use crate::debug_command::DebugCommand;
 use crate::debug_command::DebugCommand::{
     Ack, Breakpoint, Continue, DebugClientStarting, Delete, Error, ExitDebugger, Inspect,
-    InspectFunction, InspectInput, InspectOutput, Invalid, List, Modify, RunReset, Step, Validate,
+    InspectFunction, InspectInput, InspectJob, InspectOutput, Invalid, List, Modify, RunReset,
+    Step, Validate,
 };
 use crate::debug_command::ProcessTarget;
 use crate::debugger_handler::DebuggerHandler;
@@ -252,6 +253,20 @@ impl<'a> Debugger<'a> {
                         self.debug_server.debugger_error(format!(
                             "No function or flow found at route '{route}'"
                         ));
+                    }
+                }
+                Ok(InspectJob(job_id)) => {
+                    if let Some(job) = state.get_running().get(&job_id) {
+                        self.debug_server.job_inspect(job.clone());
+                    } else if let Some(job) = state
+                        .get_ready_jobs()
+                        .iter()
+                        .find(|j| j.payload.job_id == job_id)
+                    {
+                        self.debug_server.job_inspect(job.clone());
+                    } else {
+                        self.debug_server
+                            .debugger_error(format!("No job with id = {job_id}"));
                     }
                 }
                 Ok(InspectFunction(function_id)) => {
@@ -1130,6 +1145,7 @@ mod test {
         fn process_tree(&mut self, _: &RunState) {}
         fn inspect_by_state(&mut self, _: &str, _: &RunState) {}
         fn inspect_flow(&mut self, _: usize, _: &RunState) {}
+        fn job_inspect(&mut self, _: Job) {}
         fn get_command(&mut self, _state: &RunState) -> Result<DebugCommand> {
             Ok(DebugCommand::Step(None))
         }

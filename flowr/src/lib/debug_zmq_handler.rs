@@ -149,6 +149,12 @@ impl DebuggerHandler for DebugZmqHandler {
             .send_and_receive_response(DebugServerMessage::InspectFlow(flow_id, state.clone()));
     }
 
+    fn job_inspect(&mut self, job: Job) {
+        let _: flowcore::errors::Result<DebugCommand> = self
+            .debug_server_connection
+            .send_and_receive_response(DebugServerMessage::JobInspect(job));
+    }
+
     fn panic(&mut self, state: &RunState, error_message: String) {
         let _: flowcore::errors::Result<DebugCommand> = self
             .debug_server_connection

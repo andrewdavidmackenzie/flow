@@ -643,6 +643,7 @@ fn format_debug_event(message: &DebugServerMessage) -> Vec<crate::DebugEventLine
             format_inspect_by_state(state_name, state)
         }
         DebugServerMessage::InspectFlow(flow_id, ref state) => format_inspect_flow(*flow_id, state),
+        DebugServerMessage::JobInspect(ref job) => format_inspect_job(job),
         DebugServerMessage::Invalid => line(
             "Invalid message from debug server".into(),
             Some(debug_colors::ERROR),
@@ -1107,8 +1108,8 @@ fn format_run_state(run_state: &flowrlib::run_state::RunState) -> Vec<crate::Deb
         sorted_running.sort_by_key(|(id, _)| *id);
         for (job_id, job) in &sorted_running {
             b = b.text(" ").chip(
-                &format!("Job #{job_id}"),
-                &job.process_id.to_string(),
+                &format!("Job #{job_id} ({})", job.function_name),
+                &format!("job:{job_id}"),
                 LinkType::Job,
             );
         }
@@ -1124,8 +1125,8 @@ fn format_run_state(run_state: &flowrlib::run_state::RunState) -> Vec<crate::Deb
     );
     for job in ready {
         b = b.text(" ").chip(
-            &format!("Job #{}", job.payload.job_id),
-            &job.process_id.to_string(),
+            &format!("Job #{} ({})", job.payload.job_id, job.function_name),
+            &format!("job:{}", job.payload.job_id),
             LinkType::Job,
         );
     }
@@ -1260,6 +1261,60 @@ fn format_inspect_by_state(
             lines.push(DebugEventLine::new("  (none)".into(), None));
         }
     }
+    lines
+}
+
+#[cfg(feature = "debugger")]
+#[cfg(feature = "debugger")]
+fn format_inspect_job(job: &flowcore::model::job::Job) -> Vec<crate::DebugEventLine> {
+    use crate::{DebugLineBuilder, LinkType};
+
+    let mut lines = Vec::new();
+
+    lines.push(
+        DebugLineBuilder::new()
+            .chip(
+                &format!("job #{}", job.payload.job_id),
+                &format!("job:{}", job.payload.job_id),
+                LinkType::Job,
+            )
+            .finish(),
+    );
+
+    lines.push(
+        DebugLineBuilder::new()
+            .text("  Function: ")
+            .chip(
+                &format!("function #{} '{}'", job.process_id, job.function_name),
+                &job.process_id.to_string(),
+                LinkType::Function,
+            )
+            .finish(),
+    );
+
+    lines.push(
+        DebugLineBuilder::new()
+            .text("  Parent: ")
+            .chip(
+                &format!("flow #{}", job.parent_id),
+                &job.parent_id.to_string(),
+                LinkType::Flow,
+            )
+            .finish(),
+    );
+
+    lines.push(crate::DebugEventLine::new(
+        format!("  Inputs: {:?}", job.payload.input_set),
+        None,
+    ));
+
+    if !job.connections.is_empty() {
+        lines.push(crate::DebugEventLine::new(
+            format!("  Connections: {}", job.connections.len()),
+            None,
+        ));
+    }
+
     lines
 }
 
