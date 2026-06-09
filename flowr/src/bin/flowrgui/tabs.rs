@@ -783,37 +783,31 @@ impl DebugTab {
             self.next_section_id += 1;
 
             // Use tree_prefix depth to find the correct parent section
+            // depth_stack[i] = section_id of most recent node at tree depth i
+            // Root flow (depth 0) is at depth_stack[0]
+            // A depth-D node's parent is at depth_stack[D-1]
             let depth = line.tree_prefix.len();
             if depth > 0 {
-                // Tree separator: parent is the section at depth - 1
-                let parent = if depth > 1 {
-                    self.depth_stack
-                        .get(depth - 2)
-                        .copied()
-                        .unwrap_or(self.current_section_id)
-                } else {
-                    // Depth 1 means direct child of whichever non-tree separator is active
-                    self.depth_stack
-                        .first()
-                        .copied()
-                        .unwrap_or(self.current_section_id)
-                };
+                let parent = self
+                    .depth_stack
+                    .get(depth - 1)
+                    .copied()
+                    .unwrap_or(self.current_section_id);
                 self.section_parent.insert(new_id, parent);
 
-                // Update or grow the depth stack
-                if let Some(slot) = self.depth_stack.get_mut(depth - 1) {
+                // Store this node at its depth level
+                if let Some(slot) = self.depth_stack.get_mut(depth) {
                     *slot = new_id;
-                    self.depth_stack.truncate(depth);
+                    self.depth_stack.truncate(depth + 1);
                 } else {
                     self.depth_stack.push(new_id);
                 }
             } else {
-                // Non-tree separator: parent is current
+                // Non-tree separator (root flow or section header)
                 if self.current_section_id != 0 {
                     self.section_parent.insert(new_id, self.current_section_id);
                 }
                 self.depth_stack.clear();
-                // Root of a new tree section — push onto depth stack
                 self.depth_stack.push(new_id);
             }
 
