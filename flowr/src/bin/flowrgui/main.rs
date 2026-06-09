@@ -105,6 +105,20 @@ pub struct DebugLink {
     pub link_type: LinkType,
 }
 
+/// Describes one column-width segment of a tree connector prefix
+#[cfg(feature = "debugger")]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum TreeSegment {
+    /// Vertical line continuing down (ancestor has more siblings)
+    Pipe,
+    /// Empty spacer (ancestor was the last child)
+    Space,
+    /// ├─ branch connector (this node has more siblings)
+    Branch,
+    /// └─ end connector (this node is the last sibling)
+    End,
+}
+
 /// A line of debug output with optional color and clickable links
 #[cfg(feature = "debugger")]
 #[derive(Debug, Clone)]
@@ -119,6 +133,10 @@ pub struct DebugEventLine {
     pub links: Vec<DebugLink>,
     /// Section ID for collapsible grouping (set by `DebugTab` on push)
     pub section_id: usize,
+    /// Graphical tree connector segments rendered before toggle/content
+    pub tree_prefix: Vec<TreeSegment>,
+    /// Tree nesting depth (0 = root flow, 1 = child, etc.) for section tracking
+    pub tree_depth: usize,
 }
 
 #[cfg(feature = "debugger")]
@@ -131,6 +149,8 @@ impl DebugEventLine {
             separator: false,
             links,
             section_id: 0,
+            tree_prefix: Vec::new(),
+            tree_depth: 0,
         }
     }
 
@@ -149,6 +169,8 @@ impl DebugEventLine {
             separator: false,
             links,
             section_id: 0,
+            tree_prefix: Vec::new(),
+            tree_depth: 0,
         }
     }
 
@@ -159,6 +181,8 @@ impl DebugEventLine {
             separator: true,
             links: Vec::new(),
             section_id: 0,
+            tree_prefix: Vec::new(),
+            tree_depth: 0,
         }
     }
 
@@ -1140,6 +1164,12 @@ impl FlowrGui {
             Message::LineOfStdin(line) => {
                 debug!("LineOfStdin: user entered line ({} chars)", line.len());
                 self.tab_set.stdin_tab.new_line(line);
+                if self.tab_set.stdin_tab.auto_scroll && !self.pending_getline {
+                    return operation::snap_to(
+                        self.tab_set.stdin_tab.id.clone(),
+                        RelativeOffset::END,
+                    );
+                }
                 if self.pending_getline {
                     if let Some(line) = self.tab_set.stdin_tab.get_line() {
                         debug!(
@@ -1490,7 +1520,7 @@ impl FlowrGui {
 
     #[cfg(feature = "debugger")]
     #[allow(clippy::too_many_lines)]
-    fn debug_row(&self) -> Row<'_, Message> {
+    fn debug_row(&self) -> Element<'_, Message> {
         let can_cmd = self.debug_waiting;
 
         let jobs_started = connection_manager::get_job_count() > 0;
@@ -1633,9 +1663,14 @@ impl FlowrGui {
             validate_btn = validate_btn.on_press(Message::DebugValidate);
         }
 
-        Row::new()
+        let row = Row::new()
             .spacing(4)
-            .padding(4)
+            .padding(iced::Padding {
+                top: 4.0,
+                right: 4.0,
+                bottom: 10.0,
+                left: 4.0,
+            })
             .align_y(iced::alignment::Vertical::Center)
             .push(Self::tip(
                 continue_btn,
@@ -1672,7 +1707,9 @@ impl FlowrGui {
             ))
             .push(Self::tip(validate_btn, "Validate flow state for deadlocks"))
             .push(iced::widget::container(iced::widget::text("")).width(iced::Length::Fill))
-            .push(Self::tip(exit_btn, "Stop execution and exit debugger"))
+            .push(Self::tip(exit_btn, "Stop execution and exit debugger"));
+
+        iced::widget::Scrollable::new(row).horizontal().into()
     }
 
     #[cfg(feature = "debugger")]
@@ -2104,10 +2141,14 @@ impl FlowrGui {
             .spacing(8)
             .align_y(iced::alignment::Vertical::Center)
             .push(Text::new(indicator))
-            .push(Text::new(status).size(13));
-        if self.running {
-            row = row
-                .push(Text::new(format!("Jobs: {}", connection_manager::get_job_count())).size(13));
+            .push(Text::new(status).size(theme::FONT_SM));
+        let job_count = connection_manager::get_job_count();
+        if job_count > 0 {
+            row = row.push(
+                Text::new(format!("Jobs: {job_count}"))
+                    .size(theme::FONT_SM)
+                    .color(theme::TEXT_SECONDARY),
+            );
         }
 
         #[cfg(feature = "debugger")]
@@ -2393,6 +2434,7 @@ impl FlowrGui {
 
     #[cfg(feature = "debugger")]
     fn debug_separator(&mut self, label: &str) {
+        self.tab_set.debug_tab.mark_top_level();
         self.tab_set.debug_tab.push(DebugEventLine::separator(
             label.to_string(),
             crate::theme::debug_colors::SEPARATOR,
@@ -2688,7 +2730,7 @@ impl FlowrGui {
             Message::DebugBreakpointListReceived(specs) => {
                 self.active_breakpoints = specs.into_iter().collect();
             }
-            Message::DebugInspectLink(ref spec) if self.debug_waiting => {
+            Message::DebugInspectLink(ref spec) => {
                 self.debug_waiting = false;
                 let label = if spec.parse::<usize>().is_ok() {
                     format!("Inspect #{spec}")

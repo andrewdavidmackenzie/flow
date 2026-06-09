@@ -14,6 +14,98 @@ use once_cell::sync::Lazy;
 use crate::DebugEventLine;
 use crate::{ImageReference, Message};
 
+#[cfg(feature = "debugger")]
+const TREE_CELL_W: f32 = 20.0;
+#[cfg(feature = "debugger")]
+const TREE_LINE_H: f32 = 28.0;
+#[cfg(feature = "debugger")]
+const TREE_LINE_WIDTH: f32 = 1.5;
+
+#[cfg(feature = "debugger")]
+#[allow(clippy::items_after_statements, clippy::cast_precision_loss)]
+fn tree_connector_canvas(segments: &[crate::TreeSegment]) -> Element<'static, Message> {
+    use crate::TreeSegment;
+    use iced::widget::canvas::{self, Path, Stroke};
+    use iced::{Color, Point, Renderer, Theme};
+
+    let segs: Vec<TreeSegment> = segments.to_vec();
+    let width = segs.len() as f32 * TREE_CELL_W;
+
+    struct TreeDraw(Vec<TreeSegment>);
+
+    impl canvas::Program<Message> for TreeDraw {
+        type State = ();
+
+        fn draw(
+            &self,
+            _state: &(),
+            renderer: &Renderer,
+            _theme: &Theme,
+            bounds: iced::Rectangle,
+            _cursor: iced::mouse::Cursor,
+        ) -> Vec<canvas::Geometry> {
+            let mut frame = canvas::Frame::new(renderer, bounds.size());
+            let line_color = Color {
+                r: 0.4,
+                g: 0.4,
+                b: 0.55,
+                a: 0.7,
+            };
+            let s = || {
+                Stroke::default()
+                    .with_width(TREE_LINE_WIDTH)
+                    .with_color(line_color)
+            };
+            let h = bounds.height;
+            let mid_y = h / 2.0;
+
+            for (i, seg) in self.0.iter().enumerate() {
+                let x = i as f32 * TREE_CELL_W;
+                let mid_x = x + TREE_CELL_W / 2.0;
+                let right = x + TREE_CELL_W;
+
+                match seg {
+                    TreeSegment::Pipe => {
+                        frame.stroke(
+                            &Path::line(Point::new(mid_x, 0.0), Point::new(mid_x, h)),
+                            s(),
+                        );
+                    }
+                    TreeSegment::Branch => {
+                        frame.stroke(
+                            &Path::line(Point::new(mid_x, 0.0), Point::new(mid_x, h)),
+                            s(),
+                        );
+                        frame.stroke(
+                            &Path::line(Point::new(mid_x, mid_y), Point::new(right, mid_y)),
+                            s(),
+                        );
+                    }
+                    TreeSegment::End => {
+                        frame.stroke(
+                            &Path::line(Point::new(mid_x, 0.0), Point::new(mid_x, mid_y)),
+                            s(),
+                        );
+                        frame.stroke(
+                            &Path::line(Point::new(mid_x, mid_y), Point::new(right, mid_y)),
+                            s(),
+                        );
+                    }
+                    TreeSegment::Space => {}
+                }
+            }
+
+            vec![frame.into_geometry()]
+        }
+    }
+
+    Element::from(
+        iced::widget::canvas(TreeDraw(segs))
+            .width(Length::Fixed(width))
+            .height(Length::Fixed(TREE_LINE_H)),
+    )
+}
+
 #[allow(clippy::struct_field_names)]
 pub(crate) struct TabSet {
     pub active_tab: usize,
@@ -98,6 +190,9 @@ impl TabSet {
                 }
                 if id == self.stderr_tab.id {
                     self.stderr_tab.auto_scroll = value;
+                }
+                if id == self.stdin_tab.id {
+                    self.stdin_tab.auto_scroll = value;
                 }
 
                 if value {
@@ -199,7 +294,7 @@ impl TabSet {
                 .into_iter()
                 .map(|(idx, label)| {
                     let is_active = self.active_tab == idx;
-                    let btn = Button::new(Text::new(label).size(crate::theme::FONT_MD))
+                    let btn = Button::new(Text::new(label).size(crate::theme::FONT_DEFAULT))
                         .padding([6, 16])
                         .on_press(Message::TabSelected(idx))
                         .style(move |theme: &iced::Theme, status| {
@@ -503,6 +598,7 @@ pub(crate) struct StdInTab {
     pub text: String,
     pub eof_signaled: bool,
     pub waiting_for_input: bool,
+    pub(crate) auto_scroll: bool,
 }
 
 impl StdInTab {
@@ -515,6 +611,7 @@ impl StdInTab {
             text: String::new(),
             eof_signaled: false,
             waiting_for_input: false,
+            auto_scroll: true,
         }
     }
 
@@ -574,11 +671,19 @@ impl Tab for StdInTab {
                 .width(Length::Fill)
                 .padding(1);
 
+        let toggler = toggler(self.auto_scroll)
+            .label("Auto-scroll")
+            .on_toggle(|v| Message::StdioAutoScrollTogglerChanged(self.id.clone(), v))
+            .size(14.0)
+            .text_size(crate::theme::FONT_DEFAULT)
+            .style(crate::theme::accent_toggler)
+            .width(Length::Shrink);
         let save_button = Button::new(Text::new("Save").size(crate::theme::FONT_DEFAULT))
             .on_press(Message::SaveTabContent(self.name.clone()))
             .style(crate::theme::pill_button)
             .padding([4.0, 12.0]);
         let toolbar = Row::new()
+            .push(toggler)
             .push(save_button)
             .spacing(crate::theme::SPACE_MD)
             .padding(crate::theme::SPACE_XS);
@@ -639,6 +744,11 @@ pub(crate) struct DebugTab {
     next_section_id: usize,
     current_section_id: usize,
     collapsed: std::collections::HashSet<usize>,
+    section_parent: HashMap<usize, usize>,
+    /// Stack of section IDs by tree depth for proper parent tracking
+    depth_stack: Vec<usize>,
+    /// Next separator pushed will be top-level (no parent)
+    top_level_next: bool,
 }
 
 #[cfg(feature = "debugger")]
@@ -653,16 +763,80 @@ impl DebugTab {
             next_section_id: 1,
             current_section_id: 0,
             collapsed: std::collections::HashSet::new(),
+            section_parent: HashMap::new(),
+            depth_stack: Vec::new(),
+            top_level_next: false,
         }
+    }
+
+    fn is_ancestor_collapsed(&self, section_id: usize) -> bool {
+        if self.collapsed.contains(&section_id) {
+            return true;
+        }
+        if let Some(&parent) = self.section_parent.get(&section_id) {
+            if parent != 0 {
+                return self.is_ancestor_collapsed(parent);
+            }
+        }
+        false
     }
 
     pub fn push(&mut self, mut line: DebugEventLine) {
         if line.separator {
-            self.current_section_id = self.next_section_id;
+            let new_id = self.next_section_id;
             self.next_section_id += 1;
-            line.section_id = self.current_section_id;
+
+            // Use tree_prefix depth to find the correct parent section
+            // depth_stack[i] = section_id of most recent node at tree depth i
+            // Root flow (depth 0) is at depth_stack[0]
+            // A depth-D node's parent is at depth_stack[D-1]
+            let depth = line.tree_depth;
+            if depth > 0 || !line.tree_prefix.is_empty() {
+                let parent = if depth > 0 {
+                    self.depth_stack
+                        .get(depth - 1)
+                        .copied()
+                        .unwrap_or(self.current_section_id)
+                } else {
+                    self.current_section_id
+                };
+                self.section_parent.insert(new_id, parent);
+
+                // Ensure depth_stack[depth] = new_id
+                while self.depth_stack.len() <= depth {
+                    self.depth_stack.push(0);
+                }
+                if let Some(slot) = self.depth_stack.get_mut(depth) {
+                    *slot = new_id;
+                }
+                self.depth_stack.truncate(depth + 1);
+            } else if self.top_level_next {
+                // Explicitly marked as top-level (from debug_separator)
+                self.top_level_next = false;
+                self.depth_stack.clear();
+                self.depth_stack.push(new_id);
+            } else {
+                // Root tree node — parented to current section
+                if self.current_section_id != 0 {
+                    self.section_parent.insert(new_id, self.current_section_id);
+                }
+                self.depth_stack.clear();
+                self.depth_stack.push(new_id);
+            }
+
+            self.current_section_id = new_id;
+            line.section_id = new_id;
         } else {
-            line.section_id = self.current_section_id;
+            let depth = line.tree_depth;
+            if depth > 0 {
+                line.section_id = self
+                    .depth_stack
+                    .get(depth - 1)
+                    .copied()
+                    .unwrap_or(self.current_section_id);
+            } else {
+                line.section_id = self.current_section_id;
+            }
         }
         self.content.push(line);
     }
@@ -674,7 +848,13 @@ impl DebugTab {
             separator: false,
             links: Vec::new(),
             section_id: 0,
+            tree_prefix: Vec::new(),
+            tree_depth: 0,
         });
+    }
+
+    pub fn mark_top_level(&mut self) {
+        self.top_level_next = true;
     }
 
     pub fn toggle_section(&mut self, section_id: usize) {
@@ -703,49 +883,136 @@ impl Tab for DebugTab {
         let text_column = Column::with_children(
             self.content
                 .iter()
-                .filter(|line| line.separator || !self.collapsed.contains(&line.section_id))
+                .filter(|line| {
+                    if line.section_id == 0 {
+                        return true;
+                    }
+                    if let Some(&parent) = self.section_parent.get(&line.section_id) {
+                        if self.is_ancestor_collapsed(parent) {
+                            return false;
+                        }
+                    }
+                    line.separator || !self.is_ancestor_collapsed(line.section_id)
+                })
                 .map(|line| {
-                    if line.separator {
+                    let el: Element<'_, Message> = if line.separator {
                         let color = line.color.unwrap_or(iced::Color::WHITE);
                         let is_collapsed = self.collapsed.contains(&line.section_id);
-                        let indicator = if is_collapsed { "\u{25B6}" } else { "\u{25BC}" };
                         let section_id = line.section_id;
+                        let has_chips = !line.links.is_empty();
+                        let has_tree = !line.tree_prefix.is_empty();
+
+                        let indicator = if is_collapsed { "\u{25B6}" } else { "\u{25BC}" };
+                        let toggle_size = if has_tree { 10.0 } else { 14.0 };
                         let toggle_btn = Button::new(
                             Text::new(indicator)
-                                .size(14)
+                                .size(toggle_size)
                                 .shaping(iced::widget::text::Shaping::Advanced),
                         )
                         .on_press(Message::DebugToggleSection(section_id))
                         .style(crate::theme::ghost_button)
-                        .padding([2, 6]);
-                        let rule_left = iced::widget::rule::horizontal(1);
-                        let rule_right = iced::widget::rule::horizontal(1);
-                        let label = Button::new(
-                            text(line.text.clone())
-                                .shaping(iced::widget::text::Shaping::Advanced)
-                                .size(13)
-                                .color(color),
-                        )
-                        .on_press(Message::DebugToggleSection(section_id))
-                        .style(crate::theme::ghost_button)
-                        .padding(0);
-                        Element::from(
-                            Row::new()
+                        .padding([2, 4]);
+                        if has_chips {
+                            // Tree node separator — prefix + toggle + chips
+                            let base_color = line.color;
+                            let mut spans: Vec<iced::widget::text::Span<'_, String>> = Vec::new();
+                            let mut pos = 0;
+                            for link in &line.links {
+                                if link.start > pos {
+                                    let mut s =
+                                        iced::widget::span(line.text[pos..link.start].to_string());
+                                    if let Some(c) = base_color {
+                                        s = s.color(c);
+                                    }
+                                    spans.push(s);
+                                }
+                                let chip_color = chip_color_for(link.link_type);
+                                spans.push(iced::widget::span(" ".to_string()));
+                                spans.push(
+                                    iced::widget::span(format!(
+                                        " {} ",
+                                        line.text[link.start..link.end].to_lowercase()
+                                    ))
+                                    .color(iced::Color::WHITE)
+                                    .size(crate::theme::FONT_MD)
+                                    .font(iced::Font {
+                                        weight: iced::font::Weight::Bold,
+                                        ..iced::Font::DEFAULT
+                                    })
+                                    .background(iced::Background::Color(iced::Color {
+                                        a: 0.4,
+                                        ..chip_color
+                                    }))
+                                    .border(iced::Border {
+                                        radius: 99.0.into(),
+                                        ..Default::default()
+                                    })
+                                    .padding([2, 6])
+                                    .link(link.spec.clone()),
+                                );
+                                spans.push(iced::widget::span(" ".to_string()));
+                                pos = link.end;
+                            }
+                            if pos < line.text.len() {
+                                let mut s = iced::widget::span(line.text[pos..].to_string());
+                                if let Some(c) = base_color {
+                                    s = s.color(c);
+                                }
+                                spans.push(s);
+                            }
+                            let mut row = Row::new()
                                 .align_y(iced::alignment::Vertical::Center)
-                                .spacing(6)
-                                .push(toggle_btn)
-                                .push(rule_left)
-                                .push(label)
-                                .push(rule_right)
-                                .padding([4, 0]),
-                        )
+                                .spacing(0);
+                            if has_tree {
+                                row = row.push(tree_connector_canvas(&line.tree_prefix));
+                            }
+                            Element::from(
+                                row.push(toggle_btn).push(
+                                    iced::widget::rich_text(spans)
+                                        .on_link_click(Message::DebugInspectLink),
+                                ),
+                            )
+                        } else {
+                            // Regular separator — toggle + rules + label
+                            let rule_left = iced::widget::rule::horizontal(1);
+                            let rule_right = iced::widget::rule::horizontal(1);
+                            let label = Button::new(
+                                text(line.text.clone())
+                                    .shaping(iced::widget::text::Shaping::Advanced)
+                                    .size(13)
+                                    .color(color),
+                            )
+                            .on_press(Message::DebugToggleSection(section_id))
+                            .style(crate::theme::ghost_button)
+                            .padding(0);
+                            Element::from(
+                                Row::new()
+                                    .align_y(iced::alignment::Vertical::Center)
+                                    .spacing(6)
+                                    .push(toggle_btn)
+                                    .push(rule_left)
+                                    .push(label)
+                                    .push(rule_right)
+                                    .padding([4, 0]),
+                            )
+                        }
                     } else if line.links.is_empty() {
                         let mut t =
                             text(line.text.clone()).shaping(iced::widget::text::Shaping::Advanced);
                         if let Some(color) = line.color {
                             t = t.color(color);
                         }
-                        Element::from(t)
+                        if line.tree_prefix.is_empty() {
+                            Element::from(t)
+                        } else {
+                            Element::from(
+                                Row::new()
+                                    .align_y(iced::alignment::Vertical::Center)
+                                    .spacing(0)
+                                    .push(tree_connector_canvas(&line.tree_prefix))
+                                    .push(t),
+                            )
+                        }
                     } else {
                         let base_color = line.color;
                         let mut spans: Vec<iced::widget::text::Span<'_, String>> = Vec::new();
@@ -793,14 +1060,35 @@ impl Tab for DebugTab {
                             }
                             spans.push(s);
                         }
-                        Element::from(
-                            iced::widget::rich_text(spans).on_link_click(Message::DebugInspectLink),
-                        )
+                        let rich =
+                            iced::widget::rich_text(spans).on_link_click(Message::DebugInspectLink);
+                        if line.tree_prefix.is_empty() {
+                            Element::from(rich)
+                        } else {
+                            Element::from(
+                                Row::new()
+                                    .align_y(iced::alignment::Vertical::Center)
+                                    .spacing(0)
+                                    .push(tree_connector_canvas(&line.tree_prefix))
+                                    .push(rich),
+                            )
+                        }
+                    };
+
+                    if line.tree_prefix.is_empty() {
+                        Element::from(Container::new(el).padding(iced::Padding {
+                            top: 6.0,
+                            bottom: 6.0,
+                            left: 0.0,
+                            right: 0.0,
+                        }))
+                    } else {
+                        el
                     }
                 }),
         )
         .width(Length::Fill)
-        .spacing(12)
+        .spacing(0)
         .padding(iced::Padding {
             top: 1.0,
             right: 1.0,
@@ -844,6 +1132,9 @@ impl Tab for DebugTab {
         self.content.clear();
         self.unread_count = 0;
         self.collapsed.clear();
+        self.section_parent.clear();
+        self.depth_stack.clear();
+        self.top_level_next = false;
         self.next_section_id = 1;
         self.current_section_id = 0;
     }

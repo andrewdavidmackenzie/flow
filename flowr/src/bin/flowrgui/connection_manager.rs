@@ -857,16 +857,48 @@ fn format_tree_only(run_state: &flowrlib::run_state::RunState) -> Vec<crate::Deb
 
 #[cfg(feature = "debugger")]
 fn format_flows_only(run_state: &flowrlib::run_state::RunState) -> Vec<crate::DebugEventLine> {
-    let lines = format_run_state(run_state);
-    if let Some(start) = lines.iter().position(|l| l.text == "Flows:") {
-        if let Some(end) = lines.iter().position(|l| l.text == "Functions:") {
-            lines.into_iter().skip(start).take(end - start).collect()
-        } else {
-            lines.into_iter().skip(start).collect()
-        }
-    } else {
-        vec![crate::DebugEventLine::new("No flows".into(), None)]
+    use crate::{DebugLineBuilder, LinkType};
+    let manifest = &run_state.get_submission().manifest;
+    let functions = run_state.get_functions();
+    if manifest.flows().is_empty() {
+        return vec![crate::DebugEventLine::new("No flows".into(), None)];
     }
+    let mut lines = Vec::new();
+    let mut sorted_flows: Vec<_> = manifest.flows().iter().collect();
+    sorted_flows.sort_by_key(|(id, _)| *id);
+    for (id, flow) in sorted_flows {
+        let mut b = DebugLineBuilder::new().text("  ");
+        b = if let Some(func) = functions.get(id) {
+            b.chip(&format!("flow #{id}"), &id.to_string(), LinkType::Flow)
+                .text(&format!(" '{}' @ ", func.name()))
+                .chip(func.route(), func.route(), LinkType::Route)
+        } else {
+            b.chip(&format!("flow #{id}"), &id.to_string(), LinkType::Flow)
+        };
+        if flow.parent_id.is_none() {
+            b = b.text(" (root)");
+        }
+        if !flow.sub_flow_ids.is_empty() {
+            b = b.text(" sub-flows: [");
+            for (i, sf) in flow.sub_flow_ids.iter().enumerate() {
+                if i > 0 {
+                    b = b.text(", ");
+                }
+                b = if let Some(func) = functions.get(sf) {
+                    b.chip(
+                        &format!("flow #{sf} '{}'", func.name()),
+                        &sf.to_string(),
+                        LinkType::Flow,
+                    )
+                } else {
+                    b.chip(&format!("flow #{sf}"), &sf.to_string(), LinkType::Flow)
+                };
+            }
+            b = b.text("]");
+        }
+        lines.push(b.finish());
+    }
+    lines
 }
 
 #[cfg(feature = "debugger")]
@@ -885,128 +917,143 @@ fn format_run_state(run_state: &flowrlib::run_state::RunState) -> Vec<crate::Deb
     use crate::{DebugEventLine, DebugLineBuilder, LinkType};
     use std::collections::BTreeMap;
 
-    fn add_tree_lines(
+    fn add_flow_tree(
         lines: &mut Vec<crate::DebugEventLine>,
         by_parent: &BTreeMap<usize, Vec<&flowcore::model::runtime_function::RuntimeFunction>>,
         run_state: &flowrlib::run_state::RunState,
-        parent_id: usize,
+        flow_id: usize,
+        ancestors: &[crate::TreeSegment],
+        connector: Option<crate::TreeSegment>,
         depth: usize,
     ) {
-        if let Some(children) = by_parent.get(&parent_id) {
-            for child in children {
-                if child.id() == parent_id {
-                    continue;
-                }
-                let indent = "  ".repeat(depth + 1);
-                let states = run_state.get_function_states(child.id());
-                let is_flow = run_state
-                    .get_submission()
-                    .manifest
-                    .flows()
-                    .contains_key(&child.id());
-                let link_type = if is_flow {
-                    crate::LinkType::Flow
-                } else {
-                    crate::LinkType::Function
-                };
-                lines.push(entity_line(
-                    child,
-                    &indent,
-                    link_type,
-                    &format!(" {states:?}"),
-                ));
+        use crate::TreeSegment;
+        let manifest = &run_state.get_submission().manifest;
+        let functions = run_state.get_functions();
 
-                if by_parent.contains_key(&child.id()) {
-                    add_tree_lines(lines, by_parent, run_state, child.id(), depth + 1);
-                }
-            }
+        // Build this node's prefix: ancestors + own connector
+        let mut prefix: Vec<TreeSegment> = ancestors.to_vec();
+        if let Some(conn) = connector {
+            prefix.push(conn);
+        }
+
+        // Emit the flow node — collapsible only if it has a connector (not root)
+        let mut flow_line = if let Some(func) = functions.get(&flow_id) {
+            entity_line(func, "", crate::LinkType::Flow, "")
+        } else {
+            crate::DebugLineBuilder::new()
+                .chip(
+                    &format!("flow #{flow_id}"),
+                    &flow_id.to_string(),
+                    crate::LinkType::Flow,
+                )
+                .finish()
+        };
+        flow_line.separator = true;
+        flow_line.tree_prefix = prefix;
+        flow_line.tree_depth = depth;
+        lines.push(flow_line);
+
+        // Build child ancestor prefix: Branch → Pipe, End → Space
+        let mut child_ancestors: Vec<TreeSegment> = ancestors.to_vec();
+        if let Some(conn) = connector {
+            child_ancestors.push(match conn {
+                TreeSegment::Branch => TreeSegment::Pipe,
+                TreeSegment::End => TreeSegment::Space,
+                other => other,
+            });
+        }
+
+        // Collect all children: sub-flows first, then functions
+        let sub_ids = manifest
+            .flows()
+            .get(&flow_id)
+            .map(|fi| {
+                let mut ids = fi.sub_flow_ids.clone();
+                ids.sort_unstable();
+                ids
+            })
+            .unwrap_or_default();
+        let func_children: Vec<_> = by_parent
+            .get(&flow_id)
+            .map(|children| children.iter().filter(|c| c.id() != flow_id).collect())
+            .unwrap_or_default();
+        let total_children = sub_ids.len() + func_children.len();
+
+        // Emit sub-flows
+        let mut child_idx = 0;
+        for sub_id in &sub_ids {
+            child_idx += 1;
+            let is_last = child_idx == total_children;
+            let conn = if is_last {
+                TreeSegment::End
+            } else {
+                TreeSegment::Branch
+            };
+            add_flow_tree(
+                lines,
+                by_parent,
+                run_state,
+                *sub_id,
+                &child_ancestors,
+                Some(conn),
+                depth + 1,
+            );
+        }
+
+        // Emit direct function children
+        for child in &func_children {
+            child_idx += 1;
+            let is_last = child_idx == total_children;
+            let conn = if is_last {
+                TreeSegment::End
+            } else {
+                TreeSegment::Branch
+            };
+            let states = run_state.get_function_states(child.id());
+            let mut line = entity_line(
+                child,
+                "",
+                crate::LinkType::Function,
+                &format!(" {states:?}"),
+            );
+            let mut child_prefix = child_ancestors.clone();
+            child_prefix.push(conn);
+            line.tree_prefix = child_prefix;
+            line.tree_depth = depth + 1;
+            lines.push(line);
         }
     }
 
     let mut lines = Vec::new();
     let manifest = &run_state.get_submission().manifest;
 
-    // Flow hierarchy
-    let functions = run_state.get_functions();
-
-    let flow_chip = |b: DebugLineBuilder, id: usize| -> DebugLineBuilder {
-        if let Some(func) = functions.get(&id) {
-            b.chip(&format!("Flow #{id}"), &id.to_string(), LinkType::Flow)
-                .text(&format!(" '{}' @ ", func.name()))
-                .chip(func.route(), func.route(), LinkType::Route)
-        } else {
-            b.chip(&format!("Flow #{id}"), &id.to_string(), LinkType::Flow)
-        }
-    };
-
-    let flow_chip_short = |b: DebugLineBuilder, id: usize| -> DebugLineBuilder {
-        if let Some(func) = functions.get(&id) {
-            b.chip(
-                &format!("Flow #{id} '{}'", func.name()),
-                &id.to_string(),
-                LinkType::Flow,
-            )
-        } else {
-            b.chip(&format!("Flow #{id}"), &id.to_string(), LinkType::Flow)
-        }
-    };
-
-    if !manifest.flows().is_empty() {
-        lines.push(DebugEventLine::new("Flows:".into(), None));
-        for (id, flow) in manifest.flows() {
-            let mut b = DebugLineBuilder::new().text("  ");
-            b = flow_chip(b, *id);
-            if let Some(parent) = flow.parent_id {
-                b = b.text(" (parent: ");
-                b = flow_chip_short(b, parent);
-                b = b.text(")");
-            } else {
-                b = b.text(" (root)");
-            }
-            if !flow.sub_flow_ids.is_empty() {
-                b = b.text(" sub-flows: [");
-                for (i, sf) in flow.sub_flow_ids.iter().enumerate() {
-                    if i > 0 {
-                        b = b.text(", ");
-                    }
-                    b = flow_chip_short(b, *sf);
-                }
-                b = b.text("]");
-            }
-            lines.push(b.finish());
-        }
-    }
-
-    // Functions as hierarchical tree
-    lines.push(DebugEventLine::new("Functions:".into(), None));
+    // Process tree — flows as collapsible nodes containing their functions
     let functions = run_state.get_functions();
     let mut by_parent: BTreeMap<usize, Vec<&flowcore::model::runtime_function::RuntimeFunction>> =
         BTreeMap::new();
     for func in functions.values() {
-        by_parent
-            .entry(func.get_parent_id())
-            .or_default()
-            .push(func);
+        // Skip functions that are also flows — they appear as flow nodes
+        if !manifest.flows().contains_key(&func.id()) {
+            by_parent
+                .entry(func.get_parent_id())
+                .or_default()
+                .push(func);
+        }
     }
     for children in by_parent.values_mut() {
         children.sort_by_key(|f| f.id());
     }
 
-    let root_parents: Vec<usize> = by_parent
-        .keys()
-        .filter(|pid| !functions.contains_key(pid))
-        .copied()
+    // Find root flow(s) and walk the hierarchy
+    let mut root_flows: Vec<usize> = manifest
+        .flows()
+        .iter()
+        .filter(|(_, info)| info.parent_id.is_none())
+        .map(|(id, _)| *id)
         .collect();
-    for root_id in root_parents {
-        add_tree_lines(&mut lines, &by_parent, run_state, root_id, 0);
-    }
-    let mut self_roots: Vec<_> = functions
-        .values()
-        .filter(|func| func.get_parent_id() == func.id())
-        .collect();
-    self_roots.sort_by_key(|f| f.id());
-    for func in self_roots {
-        add_tree_lines(&mut lines, &by_parent, run_state, func.id(), 0);
+    root_flows.sort_unstable();
+    for root_id in &root_flows {
+        add_flow_tree(&mut lines, &by_parent, run_state, *root_id, &[], None, 0);
     }
 
     // RunState stats
@@ -1197,6 +1244,16 @@ fn format_inspect_flow(
 
     if let Some(func) = functions.get(&flow_id) {
         lines.push(entity_line(func, "", LinkType::Flow, ""));
+    } else {
+        lines.push(
+            DebugLineBuilder::new()
+                .chip(
+                    &format!("flow #{flow_id}"),
+                    &flow_id.to_string(),
+                    LinkType::Flow,
+                )
+                .finish(),
+        );
     }
 
     if let Some(flow_info) = manifest.flows().get(&flow_id) {
