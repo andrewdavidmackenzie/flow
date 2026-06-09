@@ -873,7 +873,7 @@ fn format_run_state(run_state: &flowrlib::run_state::RunState) -> Vec<crate::Deb
                 let indent = "  ".repeat(depth + 1);
                 let states = run_state.get_function_states(child.id());
                 let is_flow = run_state
-                    .submission
+                    .get_submission()
                     .manifest
                     .flows()
                     .contains_key(&child.id());
@@ -897,17 +897,17 @@ fn format_run_state(run_state: &flowrlib::run_state::RunState) -> Vec<crate::Deb
     }
 
     let mut lines = Vec::new();
-    let manifest = &run_state.submission.manifest;
+    let manifest = &run_state.get_submission().manifest;
 
     // Submission info
-    if let Some(limit) = run_state.submission.max_parallel_jobs {
+    if let Some(limit) = run_state.get_submission().max_parallel_jobs {
         lines.push(DebugEventLine::new(
             format!("Max Parallel Jobs: {limit}"),
             None,
         ));
     }
     lines.push(DebugEventLine::new(
-        format!("Job Timeout: {:?}", run_state.submission.job_timeout),
+        format!("Job Timeout: {:?}", run_state.get_submission().job_timeout),
         None,
     ));
 
@@ -1009,7 +1009,9 @@ fn format_run_state(run_state: &flowrlib::run_state::RunState) -> Vec<crate::Deb
         .text(&format!(" {} ", running.len()));
     if !running.is_empty() {
         b = b.text("[");
-        for (i, (job_id, job)) in running.iter().enumerate() {
+        let mut sorted_running: Vec<_> = running.iter().collect();
+        sorted_running.sort_by_key(|(id, _)| *id);
+        for (i, (job_id, job)) in sorted_running.iter().enumerate() {
             if i > 0 {
                 b = b.text(", ");
             }
@@ -1077,6 +1079,9 @@ fn format_run_state(run_state: &flowrlib::run_state::RunState) -> Vec<crate::Deb
             busy_funcs.push((*id, *count));
         }
     }
+
+    busy_flows.sort_by_key(|(id, _)| *id);
+    busy_funcs.sort_by_key(|(id, _)| *id);
 
     if !busy_flows.is_empty() {
         let mut b = DebugLineBuilder::new().text("  Busy Flows: ");

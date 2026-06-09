@@ -157,7 +157,7 @@ pub enum State {
 #[derive(Deserialize, Serialize, Clone)]
 pub struct RunState {
     /// The `Submission` that lead to this `RunState` object being created
-    pub submission: Submission,
+    pub(crate) submission: Submission,
     /// `ready_jobs`: A queue of [Jobs][crate::job::Job] ready to run
     ready_jobs: VecDeque<Job>,
     /// `running_jobs`: set of [Jobs][crate::job::Job] that are running
@@ -195,6 +195,12 @@ impl RunState {
             busy_count: HashMap::<usize, usize>::new(),
             functions_by_flow,
         }
+    }
+
+    /// Get a reference to the submission
+    #[must_use]
+    pub fn get_submission(&self) -> &Submission {
+        &self.submission
     }
 
     #[cfg(any(debug_assertions, feature = "debugger"))]
@@ -294,7 +300,7 @@ impl RunState {
         self.submission.manifest.get_functions().get_mut(&id)
     }
 
-    #[cfg(debug_assertions)]
+    #[cfg(any(debug_assertions, feature = "debugger"))]
     /// Return the busy count map (`process_id` -> count of busy entries)
     #[must_use]
     pub fn get_busy_count(&self) -> &HashMap<usize, usize> {
