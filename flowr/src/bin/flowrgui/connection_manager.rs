@@ -885,18 +885,6 @@ fn format_run_state(run_state: &flowrlib::run_state::RunState) -> Vec<crate::Deb
     let mut lines = Vec::new();
     let manifest = &run_state.get_submission().manifest;
 
-    // Submission info
-    if let Some(limit) = run_state.get_submission().max_parallel_jobs {
-        lines.push(DebugEventLine::new(
-            format!("Max Parallel Jobs: {limit}"),
-            None,
-        ));
-    }
-    lines.push(DebugEventLine::new(
-        format!("Job Timeout: {:?}", run_state.get_submission().job_timeout),
-        None,
-    ));
-
     // Flow hierarchy
     let functions = run_state.get_functions();
 
