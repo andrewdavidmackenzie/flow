@@ -125,6 +125,15 @@ impl<'a> Coordinator<'a> {
 
                 #[cfg(feature = "submission")]
                 if self.submission_handler.should_stop()? {
+                    #[cfg(feature = "metrics")]
+                    {
+                        metrics.stop_timer();
+                        metrics.set_jobs_created(state.get_number_of_jobs_created());
+                        self.submission_handler
+                            .flow_execution_ended(&state, metrics.clone())?;
+                    }
+                    #[cfg(not(feature = "metrics"))]
+                    self.submission_handler.flow_execution_ended(&state)?;
                     break 'flow_execution;
                 }
 

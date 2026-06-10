@@ -690,7 +690,6 @@ struct SubmissionSettings {
     max_jobs_text: String,
     job_timeout_text: String,
     debug_this_flow: bool,
-    _display_metrics: bool,
     parallel_jobs_limit: Option<usize>,
     #[cfg(feature = "debugger")]
     debug_mode: DebugMode,
@@ -981,6 +980,8 @@ impl FlowrGui {
                 }
             }
             Message::SubmitFlow => {
+                self.last_metrics = None;
+                self.show_metrics = false;
                 if matches!(self.coordinator_state, CoordinatorState::Disconnected(_))
                     && matches!(self.coordinator_settings, CoordinatorSettings::ClientOnly)
                 {
@@ -2528,7 +2529,6 @@ impl FlowrGui {
                 max_jobs_text: parallel_jobs_limit.map_or(String::new(), |n| n.to_string()),
                 job_timeout_text: String::new(),
                 debug_this_flow,
-                _display_metrics: matches.get_flag("metrics"),
                 parallel_jobs_limit,
                 #[cfg(feature = "debugger")]
                 debug_mode,
@@ -3509,7 +3509,6 @@ mod test {
                 max_jobs_text: String::new(),
                 job_timeout_text: String::new(),
                 debug_this_flow: false,
-                _display_metrics: false,
                 parallel_jobs_limit: None,
                 #[cfg(feature = "debugger")]
                 debug_mode: DebugMode::Off,

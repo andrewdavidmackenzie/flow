@@ -666,7 +666,7 @@ fn format_debug_event(message: &DebugServerMessage) -> Vec<crate::DebugEventLine
             format!("Deadlock detected: {message}"),
             Some(debug_colors::ERROR),
         ),
-        DebugServerMessage::EnteringDebugger => vec![],
+        DebugServerMessage::EnteringDebugger | DebugServerMessage::FlowList(_) => vec![],
         DebugServerMessage::ExitingDebugger => {
             line("Debugger is exiting".into(), Some(debug_colors::STATUS))
         }
@@ -802,7 +802,6 @@ fn format_debug_event(message: &DebugServerMessage) -> Vec<crate::DebugEventLine
             "Invalid message from debug server".into(),
             Some(debug_colors::ERROR),
         ),
-        DebugServerMessage::FlowList(_) => vec![],
         DebugServerMessage::BreakpointList(specs) => {
             if specs.is_empty() {
                 vec![]
