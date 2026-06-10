@@ -510,6 +510,8 @@ pub enum Message {
     SaveError(String),
     /// closing of the Modal was requested
     CloseModal,
+    /// Toggle settings panel
+    ToggleSettings,
     /// Formatted debug event lines from the debug server
     #[cfg(feature = "debugger")]
     DebugEvent(Vec<DebugEventLine>),
@@ -835,6 +837,7 @@ struct FlowrGui {
     running: bool,
     submitted: bool,
     show_modal: bool,
+    show_settings: bool,
     modal_content: (String, String),
     pending_getline: bool,
     #[cfg(feature = "debugger")]
@@ -894,6 +897,7 @@ impl FlowrGui {
             submitted: false,
             running: false,
             show_modal: false,
+            show_settings: false,
             modal_content: (String::new(), String::new()),
             pending_getline: false,
             #[cfg(feature = "debugger")]
@@ -1121,6 +1125,14 @@ impl FlowrGui {
                 return self.process_coordinator_message(coord_msg);
             }
             Message::CloseModal => self.show_modal = false,
+            Message::ToggleSettings => {
+                self.show_settings = !self.show_settings;
+                #[cfg(feature = "debugger")]
+                {
+                    self.show_inspect_popup = false;
+                    self.show_bp_popup = false;
+                }
+            }
             #[cfg(feature = "debugger")]
             msg @ (Message::DebugEvent(_)
             | Message::DebugWaiting
@@ -1238,6 +1250,18 @@ impl FlowrGui {
         };
         #[cfg(not(feature = "debugger"))]
         let tab_area = tab_content;
+
+        let tab_area: Element<'_, Message> = if self.show_settings {
+            let panel = self.settings_panel();
+            Row::new()
+                .push(iced::widget::container(tab_area).width(iced::Length::Fill))
+                .push(panel)
+                .spacing(2)
+                .height(iced::Length::Fill)
+                .into()
+        } else {
+            tab_area
+        };
 
         let main_content = main_content
             .push(tab_area)
@@ -1380,10 +1404,14 @@ impl FlowrGui {
         .style(theme::pill_input)
         .width(iced::Length::FillPortion(3));
 
-        let max_jobs = text_input("Max jobs", &self.submission_settings.max_jobs_text)
-            .on_input(Message::MaxJobsChanged)
-            .style(theme::pill_input)
-            .width(80);
+        let settings_btn = Button::new(
+            Text::new("\u{2699}")
+                .size(18.0)
+                .shaping(iced::widget::text::Shaping::Advanced),
+        )
+        .on_press(Message::ToggleSettings)
+        .style(theme::styled_button)
+        .padding(theme::BUTTON_PAD);
 
         let is_client_mode = matches!(self.coordinator_settings, CoordinatorSettings::ClientOnly);
         let can_run = (matches!(self.coordinator_state, CoordinatorState::Connected(_))
@@ -1431,7 +1459,7 @@ impl FlowrGui {
             .align_y(iced::alignment::Vertical::Center)
             .push(url)
             .push(args)
-            .push(max_jobs)
+            .push(settings_btn)
             .push(play)
             .push(debug_play)
     }
@@ -2142,6 +2170,63 @@ impl FlowrGui {
 
         Container::new(panel_content)
             .width(Length::Fixed(380.0))
+            .padding(theme::SPACE_LG)
+            .style(|_: &iced::Theme| iced::widget::container::Style {
+                background: Some(iced::Background::Color(theme::SURFACE_BUTTON)),
+                border: iced::Border {
+                    radius: 0.0.into(),
+                    width: 0.0,
+                    color: iced::Color::TRANSPARENT,
+                },
+                ..Default::default()
+            })
+            .into()
+    }
+
+    fn settings_panel(&self) -> Element<'_, Message> {
+        use iced::widget::Container;
+        use iced::Length;
+
+        let header = Row::new()
+            .push(Text::new("Settings").size(theme::FONT_DEFAULT))
+            .push(Container::new(iced::widget::text("")).width(Length::Fill))
+            .push(
+                Button::new(
+                    Text::new("\u{00BB}")
+                        .size(20.0)
+                        .shaping(iced::widget::text::Shaping::Advanced),
+                )
+                .on_press(Message::ToggleSettings)
+                .style(theme::ghost_button)
+                .padding(theme::BUTTON_PAD_SM),
+            )
+            .align_y(iced::alignment::Vertical::Center)
+            .padding(iced::Padding {
+                top: 0.0,
+                right: 0.0,
+                bottom: theme::SPACE_SM,
+                left: 0.0,
+            });
+
+        let max_jobs_input =
+            iced::widget::text_input("Max jobs", &self.submission_settings.max_jobs_text)
+                .on_input(Message::MaxJobsChanged)
+                .style(theme::pill_input)
+                .width(Length::Fill);
+
+        let max_jobs_row = Row::new()
+            .spacing(theme::SPACE_MD)
+            .align_y(iced::alignment::Vertical::Center)
+            .push(Text::new("Max parallel jobs:").size(theme::FONT_MD))
+            .push(max_jobs_input);
+
+        let panel_content = Column::new()
+            .spacing(theme::SPACE_LG)
+            .push(header)
+            .push(max_jobs_row);
+
+        Container::new(panel_content)
+            .width(Length::Fixed(300.0))
             .padding(theme::SPACE_LG)
             .style(|_: &iced::Theme| iced::widget::container::Style {
                 background: Some(iced::Background::Color(theme::SURFACE_BUTTON)),
@@ -3319,6 +3404,7 @@ mod test {
             submitted: false,
             running: false,
             show_modal: false,
+            show_settings: false,
             modal_content: (String::new(), String::new()),
             pending_getline: false,
             #[cfg(feature = "debugger")]
