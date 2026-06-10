@@ -1829,7 +1829,7 @@ impl FlowrGui {
                     }
                 }
                 BpTab::Route => {
-                    for f in &self.cached_functions {
+                    for f in self.cached_functions.iter().filter(|f| !f.is_flow) {
                         let before_spec = format!("{}", f.id);
                         let after_spec = format!("{}+", f.id);
                         let has_before = self.active_breakpoints.contains(&before_spec);
