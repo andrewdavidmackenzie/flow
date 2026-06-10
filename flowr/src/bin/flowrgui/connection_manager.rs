@@ -1390,6 +1390,22 @@ fn format_inspect_by_state(
     use crate::DebugEventLine;
 
     let target_state = match state_name {
+        "all" => {
+            let mut lines = Vec::new();
+            let functions = run_state.get_functions();
+            let mut sorted: Vec<_> = functions.values().collect();
+            sorted.sort_by_key(|f| f.id());
+            for func in &sorted {
+                let states = run_state.get_function_states(func.id());
+                lines.push(entity_line_with_states(
+                    func,
+                    "  ",
+                    crate::LinkType::Function,
+                    &states,
+                ));
+            }
+            return lines;
+        }
         "ready" => Some(flowrlib::run_state::State::Ready),
         "waiting" => Some(flowrlib::run_state::State::Waiting),
         "running" => Some(flowrlib::run_state::State::Running),
@@ -1421,7 +1437,12 @@ fn format_inspect_by_state(
             let states = run_state.get_function_states(func.id());
             if states.contains(target) {
                 count += 1;
-                lines.push(entity_line(func, "  ", crate::LinkType::Function, ""));
+                lines.push(entity_line_with_states(
+                    func,
+                    "  ",
+                    crate::LinkType::Function,
+                    &states,
+                ));
             }
         }
         if count == 0 {
@@ -1436,12 +1457,24 @@ fn format_inspect_by_state(
                 if let Ok(blockers) = run_state.get_input_blockers(func.id()) {
                     if !blockers.is_empty() {
                         count += 1;
-                        lines.push(entity_line(
-                            func,
-                            "  ",
+                        let mut b = crate::DebugLineBuilder::new().text("  ");
+                        b = b.chip(
+                            &format!("function #{}", func.id()),
+                            &func.id().to_string(),
                             crate::LinkType::Function,
-                            &format!(" — blocked by: {blockers:?}"),
-                        ));
+                        );
+                        b = b.text(" — blocked by: ");
+                        for (j, bid) in blockers.iter().enumerate() {
+                            if j > 0 {
+                                b = b.text(", ");
+                            }
+                            b = b.chip(
+                                &format!("function #{bid}"),
+                                &bid.to_string(),
+                                crate::LinkType::Function,
+                            );
+                        }
+                        lines.push(b.finish());
                     }
                 }
             }
@@ -1530,7 +1563,6 @@ fn format_inspect_job(job: &flowcore::model::job::Job) -> Vec<crate::DebugEventL
 }
 
 #[cfg(feature = "debugger")]
-#[cfg(feature = "debugger")]
 fn format_inspect_function(
     func_id: usize,
     run_state: &flowrlib::run_state::RunState,
@@ -1556,11 +1588,12 @@ fn format_inspect_function(
     ));
 
     for (i, input) in func.inputs().iter().enumerate() {
-        let name = if input.name().is_empty() {
+        let input_label = if input.name().is_empty() {
             format!("input:{i}")
         } else {
             format!("input:{i} '{}'", input.name())
         };
+        let input_spec = format!("{func_id}:{i}");
 
         if input.is_empty() {
             let mut senders: Vec<usize> = Vec::new();
@@ -1576,10 +1609,13 @@ fn format_inspect_function(
             }
             senders.sort_unstable();
 
-            let mut b = DebugLineBuilder::new().text(&format!("  {name} — empty, waiting for: "));
+            let mut b = DebugLineBuilder::new()
+                .text("  ")
+                .chip(&input_label, &input_spec, LinkType::Input)
+                .text(" — empty, waiting for: ");
             for (j, sid) in senders.iter().enumerate() {
                 if j > 0 {
-                    b = b.text(", ");
+                    b = b.text(" or ");
                 }
                 b = b.chip(
                     &format!("function #{sid}"),
@@ -1594,14 +1630,17 @@ fn format_inspect_function(
         } else {
             let vals = input.received_values();
             let val_str: Vec<String> = vals.iter().map(|v| format!("{v}")).collect();
-            lines.push(DebugEventLine::new(
-                format!(
-                    "  {name} — {} value(s): [{}]",
-                    vals.len(),
-                    val_str.join(", ")
-                ),
-                None,
-            ));
+            lines.push(
+                DebugLineBuilder::new()
+                    .text("  ")
+                    .chip(&input_label, &input_spec, LinkType::Input)
+                    .text(&format!(
+                        " — {} value(s): [{}]",
+                        vals.len(),
+                        val_str.join(", ")
+                    ))
+                    .finish(),
+            );
         }
 
         if let Some(init) = input.initializer() {

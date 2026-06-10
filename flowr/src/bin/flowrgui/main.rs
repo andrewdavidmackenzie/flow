@@ -2705,12 +2705,16 @@ impl FlowrGui {
                 }
             }
             Message::DebugFunctions(display) => {
+                self.debug_waiting = false;
                 if display {
-                    self.debug_waiting = false;
                     self.debug_separator("Functions List");
+                    connection_manager::send_debug_command(DebugCommand::InspectState(
+                        "all".to_string(),
+                    ));
+                } else {
+                    self.suppress_next_output = true;
+                    connection_manager::send_debug_command(DebugCommand::FunctionList);
                 }
-                self.suppress_next_output = !display;
-                connection_manager::send_debug_command(DebugCommand::FunctionList);
             }
             Message::DebugFlows => {
                 self.debug_waiting = false;
