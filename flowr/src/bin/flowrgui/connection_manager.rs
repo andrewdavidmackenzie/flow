@@ -516,7 +516,7 @@ fn entity_line(
             link_type,
         )
         .text(&format!(" '{}' @ ", func.name()))
-        .chip(func.route(), func.route(), crate::LinkType::Route)
+        .chip(func.route(), func.route(), link_type)
         .text(suffix)
         .finish()
 }
@@ -540,7 +540,7 @@ fn entity_line_with_states(
             link_type,
         )
         .text(&format!(" '{}' @ ", func.name()))
-        .chip(func.route(), func.route(), crate::LinkType::Route);
+        .chip(func.route(), func.route(), link_type);
     append_state_chips(b, states).finish()
 }
 
@@ -1088,7 +1088,7 @@ fn format_flows_only(run_state: &flowrlib::run_state::RunState) -> Vec<crate::De
         b = if let Some(func) = functions.get(id) {
             b.chip(&format!("flow #{id}"), &id.to_string(), LinkType::Flow)
                 .text(&format!(" '{}' @ ", func.name()))
-                .chip(func.route(), func.route(), LinkType::Route)
+                .chip(func.route(), func.route(), LinkType::Flow)
         } else {
             b.chip(&format!("flow #{id}"), &id.to_string(), LinkType::Flow)
         };
@@ -1161,7 +1161,7 @@ fn format_run_state(run_state: &flowrlib::run_state::RunState) -> Vec<crate::Deb
             );
             if !fi.name.is_empty() {
                 b = b.text(&format!(" '{}' @ ", fi.name));
-                b = b.chip(&fi.route, &fi.route, crate::LinkType::Route);
+                b = b.chip(&fi.route, &fi.route, crate::LinkType::Flow);
             }
             b.finish()
         } else {
@@ -1520,7 +1520,7 @@ fn format_inspect_job(job: &flowcore::model::job::Job) -> Vec<crate::DebugEventL
             if !conn.destination.is_empty() {
                 b = b
                     .text(" @ ")
-                    .chip(&conn.destination, &conn.destination, LinkType::Route);
+                    .chip(&conn.destination, &conn.destination, LinkType::Function);
             }
             b = b.text(&format!(" input:{}", conn.destination_io_number));
             lines.push(b.finish());
@@ -1549,7 +1549,7 @@ fn format_inspect_flow(
     if let Some(fi) = manifest.flows().get(&flow_id) {
         if !fi.name.is_empty() {
             b = b.text(&format!(" '{}' @ ", fi.name));
-            b = b.chip(&fi.route, &fi.route, LinkType::Route);
+            b = b.chip(&fi.route, &fi.route, LinkType::Flow);
         }
     }
     lines.push(b.finish());
