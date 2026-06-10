@@ -1621,7 +1621,11 @@ fn format_inspect_job(job: &flowcore::model::job::Job) -> Vec<crate::DebugEventL
         for conn in &job.connections {
             let source_label = match &conn.source {
                 flowcore::model::output_connection::Source::Output(route) => {
-                    format!("output '{route}'")
+                    if route.is_empty() {
+                        "output".to_string()
+                    } else {
+                        format!("output '{route}'")
+                    }
                 }
                 flowcore::model::output_connection::Source::Input(n) => {
                     format!("input #{n}")
