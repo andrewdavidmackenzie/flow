@@ -514,6 +514,8 @@ pub enum Message {
     CloseModal,
     /// Toggle settings panel
     ToggleSettings,
+    /// Toggle metrics panel
+    ToggleMetrics,
     /// Formatted debug event lines from the debug server
     #[cfg(feature = "debugger")]
     DebugEvent(Vec<DebugEventLine>),
@@ -688,7 +690,7 @@ struct SubmissionSettings {
     max_jobs_text: String,
     job_timeout_text: String,
     debug_this_flow: bool,
-    display_metrics: bool,
+    _display_metrics: bool,
     parallel_jobs_limit: Option<usize>,
     #[cfg(feature = "debugger")]
     debug_mode: DebugMode,
@@ -841,6 +843,8 @@ struct FlowrGui {
     submitted: bool,
     show_modal: bool,
     show_settings: bool,
+    last_metrics: Option<flowcore::model::metrics::Metrics>,
+    show_metrics: bool,
     modal_content: (String, String),
     pending_getline: bool,
     #[cfg(feature = "debugger")]
@@ -901,6 +905,8 @@ impl FlowrGui {
             running: false,
             show_modal: false,
             show_settings: false,
+            last_metrics: None,
+            show_metrics: false,
             modal_content: (String::new(), String::new()),
             pending_getline: false,
             #[cfg(feature = "debugger")]
@@ -1131,6 +1137,17 @@ impl FlowrGui {
                 return self.process_coordinator_message(coord_msg);
             }
             Message::CloseModal => self.show_modal = false,
+            Message::ToggleMetrics => {
+                self.show_metrics = !self.show_metrics;
+                if self.show_metrics {
+                    self.show_settings = false;
+                    #[cfg(feature = "debugger")]
+                    {
+                        self.show_inspect_popup = false;
+                        self.show_bp_popup = false;
+                    }
+                }
+            }
             Message::ToggleSettings => {
                 self.show_settings = !self.show_settings;
                 #[cfg(feature = "debugger")]
@@ -1259,6 +1276,14 @@ impl FlowrGui {
 
         let tab_area: Element<'_, Message> = if self.show_settings {
             let panel = self.settings_panel();
+            Row::new()
+                .push(iced::widget::container(tab_area).width(iced::Length::Fill))
+                .push(panel)
+                .spacing(2)
+                .height(iced::Length::Fill)
+                .into()
+        } else if self.show_metrics {
+            let panel = self.metrics_panel();
             Row::new()
                 .push(iced::widget::container(tab_area).width(iced::Length::Fill))
                 .push(panel)
@@ -2195,6 +2220,66 @@ impl FlowrGui {
             .into()
     }
 
+    fn metrics_panel(&self) -> Element<'_, Message> {
+        use iced::widget::Container;
+        use iced::Length;
+
+        let header = Row::new()
+            .push(Text::new("Metrics").size(theme::FONT_DEFAULT))
+            .push(Container::new(iced::widget::text("")).width(Length::Fill))
+            .push(
+                Button::new(
+                    Text::new("\u{00BB}")
+                        .size(20.0)
+                        .shaping(iced::widget::text::Shaping::Advanced),
+                )
+                .on_press(Message::ToggleMetrics)
+                .style(theme::ghost_button)
+                .padding(theme::BUTTON_PAD_SM),
+            )
+            .align_y(iced::alignment::Vertical::Center)
+            .padding(iced::Padding {
+                top: 0.0,
+                right: 0.0,
+                bottom: theme::SPACE_SM,
+                left: 0.0,
+            });
+
+        let content = if let Some(ref metrics) = self.last_metrics {
+            let text = format!("{metrics}");
+            let mut col = Column::new().spacing(theme::SPACE_SM);
+            for line in text.lines() {
+                col = col.push(Text::new(line.to_string()).size(theme::FONT_MD));
+            }
+            col
+        } else {
+            Column::new().push(
+                Text::new("No metrics available yet")
+                    .size(theme::FONT_MD)
+                    .color(theme::TEXT_SECONDARY),
+            )
+        };
+
+        let panel_content = Column::new()
+            .spacing(theme::SPACE_MD)
+            .push(header)
+            .push(content);
+
+        Container::new(panel_content)
+            .width(Length::Fixed(300.0))
+            .padding(theme::SPACE_LG)
+            .style(|_: &iced::Theme| iced::widget::container::Style {
+                background: Some(iced::Background::Color(theme::SURFACE_BUTTON)),
+                border: iced::Border {
+                    radius: 0.0.into(),
+                    width: 0.0,
+                    color: iced::Color::TRANSPARENT,
+                },
+                ..Default::default()
+            })
+            .into()
+    }
+
     fn settings_panel(&self) -> Element<'_, Message> {
         use iced::widget::Container;
         use iced::Length;
@@ -2330,6 +2415,16 @@ impl FlowrGui {
             }
         }
 
+        if self.last_metrics.is_some() {
+            row = row.push(iced::widget::container(Text::new("")).width(iced::Length::Fill));
+            row = row.push(
+                Button::new(Text::new("Metrics").size(theme::FONT_SM))
+                    .on_press(Message::ToggleMetrics)
+                    .style(theme::pill_button)
+                    .padding([2, 8]),
+            );
+        }
+
         Column::new().push(
             iced::widget::Container::new(row)
                 .padding([theme::SPACE_XS, theme::SPACE_MD])
@@ -2432,7 +2527,7 @@ impl FlowrGui {
                 max_jobs_text: parallel_jobs_limit.map_or(String::new(), |n| n.to_string()),
                 job_timeout_text: String::new(),
                 debug_this_flow,
-                display_metrics: matches.get_flag("metrics"),
+                _display_metrics: matches.get_flag("metrics"),
                 parallel_jobs_limit,
                 #[cfg(feature = "debugger")]
                 debug_mode,
@@ -3114,10 +3209,8 @@ impl FlowrGui {
                 self.pending_getline = false;
                 connection_manager::set_job_count(0);
                 self.tab_set.stdin_tab.waiting_for_input = false;
-                if self.submission_settings.display_metrics {
-                    self.show_modal = true;
-                    self.modal_content = ("Flow Ended - Metrics".into(), format!("{metrics}"));
-                }
+                self.last_metrics = Some(metrics);
+                self.show_metrics = true;
                 // NO response - so we can use next request sent to submit another flow
                 if self.ui_settings.auto_exit {
                     self.info("Auto exiting on flow completion");
@@ -3416,7 +3509,7 @@ mod test {
                 max_jobs_text: String::new(),
                 job_timeout_text: String::new(),
                 debug_this_flow: false,
-                display_metrics: false,
+                _display_metrics: false,
                 parallel_jobs_limit: None,
                 #[cfg(feature = "debugger")]
                 debug_mode: DebugMode::Off,
@@ -3432,6 +3525,8 @@ mod test {
             running: false,
             show_modal: false,
             show_settings: false,
+            last_metrics: None,
+            show_metrics: false,
             modal_content: (String::new(), String::new()),
             pending_getline: false,
             #[cfg(feature = "debugger")]
