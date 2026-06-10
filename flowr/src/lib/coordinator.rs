@@ -184,10 +184,11 @@ impl<'a> Coordinator<'a> {
             if !restart {
                 {
                     if state.submission.debug_enabled {
-                        #[cfg(feature = "metrics")]
-                        self.debugger.send_metrics(&metrics);
-                        (display_next_output, restart) =
-                            self.debugger.execution_ended(&mut state)?;
+                        (display_next_output, restart) = self.debugger.execution_ended(
+                            &mut state,
+                            #[cfg(feature = "metrics")]
+                            Some(&metrics),
+                        )?;
                     }
                 }
             }

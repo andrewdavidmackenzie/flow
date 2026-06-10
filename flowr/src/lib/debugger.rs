@@ -185,16 +185,18 @@ impl<'a> Debugger<'a> {
         self.wait_for_command(state)
     }
 
-    /// Send execution metrics via the debug channel
-    #[cfg(feature = "metrics")]
-    pub fn send_metrics(&mut self, metrics: &flowcore::model::metrics::Metrics) {
-        self.debug_server.execution_metrics(metrics.clone());
-    }
-
     /// Execution of the flow ended, report it and wait for command
     /// Return values are (display next output, reset execution)
-    pub fn execution_ended(&mut self, state: &mut RunState) -> Result<(bool, bool)> {
+    pub fn execution_ended(
+        &mut self,
+        state: &mut RunState,
+        #[cfg(feature = "metrics")] metrics: Option<&flowcore::model::metrics::Metrics>,
+    ) -> Result<(bool, bool)> {
         self.debug_server.execution_ended();
+        #[cfg(feature = "metrics")]
+        if let Some(m) = metrics {
+            self.debug_server.execution_metrics(m.clone());
+        }
         self.wait_for_command(state)
     }
 
