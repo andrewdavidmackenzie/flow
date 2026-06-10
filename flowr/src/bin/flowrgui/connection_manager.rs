@@ -1587,22 +1587,45 @@ fn format_inspect_job(job: &flowcore::model::job::Job) -> Vec<crate::DebugEventL
             .finish(),
     );
 
-    lines.push(crate::DebugEventLine::new(
-        format!("  Inputs: {:?}", job.payload.input_set),
-        None,
-    ));
+    // Input values — show each value with index
+    if job.payload.input_set.is_empty() {
+        lines.push(crate::DebugEventLine::new(
+            "  Input values: (none)".into(),
+            None,
+        ));
+    } else {
+        lines.push(crate::DebugEventLine::new(
+            format!("  Input values ({}):", job.payload.input_set.len()),
+            None,
+        ));
+        for (i, val) in job.payload.input_set.iter().enumerate() {
+            lines.push(
+                DebugLineBuilder::new()
+                    .text("    ")
+                    .chip(
+                        &format!("input:{i}"),
+                        &format!("{}:{i}", job.process_id),
+                        LinkType::Input,
+                    )
+                    .text(&format!(" = {val}"))
+                    .finish(),
+            );
+        }
+    }
 
     if !job.connections.is_empty() {
         lines.push(crate::DebugEventLine::new(
-            format!("  Connections ({}):", job.connections.len()),
+            format!("  Output connections ({}):", job.connections.len()),
             None,
         ));
         for conn in &job.connections {
             let source_label = match &conn.source {
                 flowcore::model::output_connection::Source::Output(route) => {
-                    format!("output {route}")
+                    format!("output '{route}'")
                 }
-                flowcore::model::output_connection::Source::Input(n) => format!("input #{n}"),
+                flowcore::model::output_connection::Source::Input(n) => {
+                    format!("input #{n}")
+                }
             };
             let mut b = DebugLineBuilder::new()
                 .text(&format!("    {source_label} \u{2192} "))
@@ -1616,7 +1639,11 @@ fn format_inspect_job(job: &flowcore::model::job::Job) -> Vec<crate::DebugEventL
                     .text(" @ ")
                     .chip(&conn.destination, &conn.destination, LinkType::Function);
             }
-            b = b.text(&format!(" input:{}", conn.destination_io_number));
+            b = b.text(" ").chip(
+                &format!("input:{}", conn.destination_io_number),
+                &format!("{}:{}", conn.destination_id, conn.destination_io_number),
+                LinkType::Input,
+            );
             lines.push(b.finish());
         }
     }
