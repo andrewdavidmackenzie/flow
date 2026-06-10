@@ -1278,24 +1278,20 @@ fn format_run_state(run_state: &flowrlib::run_state::RunState) -> Vec<crate::Deb
 
     // RunState stats
     lines.push(DebugEventLine::new("RunState:".into(), None));
-    lines.push(DebugEventLine::new(
-        format!("  Jobs Created: {}", run_state.get_number_of_jobs_created()),
-        None,
-    ));
 
     // Running jobs
     let running = run_state.get_running();
     let mut b = DebugLineBuilder::new().text("  ").chip(
-        &format!("Jobs Running ({}):", running.len()),
+        &format!("jobs running ({}):", running.len()),
         "running",
-        LinkType::State,
+        LinkType::StateRunning,
     );
     if !running.is_empty() {
         let mut sorted_running: Vec<_> = running.iter().collect();
         sorted_running.sort_by_key(|(id, _)| *id);
         for (job_id, job) in &sorted_running {
             b = b.text(" ").chip(
-                &format!("Job #{job_id} ({})", job.function_name),
+                &format!("job #{job_id} ({})", job.function_name),
                 &format!("job:{job_id}"),
                 LinkType::Job,
             );
@@ -1306,13 +1302,13 @@ fn format_run_state(run_state: &flowrlib::run_state::RunState) -> Vec<crate::Deb
     // Ready jobs
     let ready = run_state.get_ready_jobs();
     let mut b = DebugLineBuilder::new().text("  ").chip(
-        &format!("Jobs Ready ({}):", ready.len()),
+        &format!("jobs ready ({}):", ready.len()),
         "ready",
-        LinkType::State,
+        LinkType::StateReady,
     );
     for job in ready {
         b = b.text(" ").chip(
-            &format!("Job #{} ({})", job.payload.job_id, job.function_name),
+            &format!("job #{} ({})", job.payload.job_id, job.function_name),
             &format!("job:{}", job.payload.job_id),
             LinkType::Job,
         );
@@ -1322,9 +1318,9 @@ fn format_run_state(run_state: &flowrlib::run_state::RunState) -> Vec<crate::Deb
     // Completed functions
     let completed = run_state.get_completed();
     let mut b = DebugLineBuilder::new().text("  ").chip(
-        &format!("Functions Completed ({}):", completed.len()),
+        &format!("functions completed ({}):", completed.len()),
         "completed",
-        LinkType::State,
+        LinkType::StateCompleted,
     );
     if !completed.is_empty() {
         let mut sorted: Vec<_> = completed.iter().collect();
@@ -1334,48 +1330,28 @@ fn format_run_state(run_state: &flowrlib::run_state::RunState) -> Vec<crate::Deb
                 .text(" ")
                 .chip(&format!("#{id}"), &id.to_string(), LinkType::Function);
         }
-        b = b.text("]");
     }
     lines.push(b.finish());
 
-    // Busy functions and flows (separated)
+    // Busy — combined flows and functions
     let busy = run_state.get_busy_count();
-    let flows_map = manifest.flows();
-    let mut busy_flows = Vec::new();
-    let mut busy_funcs = Vec::new();
-    for (id, count) in busy {
-        if flows_map.contains_key(id) {
-            busy_flows.push((*id, *count));
-        } else {
-            busy_funcs.push((*id, *count));
-        }
-    }
-
-    busy_flows.sort_by_key(|(id, _)| *id);
-    busy_funcs.sort_by_key(|(id, _)| *id);
-
-    if !busy_flows.is_empty() {
-        let mut b = DebugLineBuilder::new().text("  Busy Flows: ");
-        for (i, (id, _count)) in busy_flows.iter().enumerate() {
-            if i > 0 {
-                b = b.text(", ");
-            }
-            b = b.chip(&format!("flow #{id}"), &id.to_string(), LinkType::Flow);
-        }
-        lines.push(b.finish());
-    }
-
-    if !busy_funcs.is_empty() {
-        let mut b = DebugLineBuilder::new().text("  Busy Functions: ");
-        for (i, (id, _count)) in busy_funcs.iter().enumerate() {
-            if i > 0 {
-                b = b.text(", ");
-            }
-            b = b.chip(
-                &format!("function #{id}"),
-                &id.to_string(),
-                LinkType::Function,
-            );
+    if !busy.is_empty() {
+        let flows_map = manifest.flows();
+        let mut sorted_busy: Vec<_> = busy.iter().collect();
+        sorted_busy.sort_by_key(|(id, _)| *id);
+        let mut b = DebugLineBuilder::new().text(&format!("  Busy ({}):", busy.len()));
+        for (id, _count) in &sorted_busy {
+            let lt = if flows_map.contains_key(id) {
+                LinkType::Flow
+            } else {
+                LinkType::Function
+            };
+            let label = if flows_map.contains_key(id) {
+                format!("flow #{id}")
+            } else {
+                format!("function #{id}")
+            };
+            b = b.text(" ").chip(&label, &id.to_string(), lt);
         }
         lines.push(b.finish());
     }
