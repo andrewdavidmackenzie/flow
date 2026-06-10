@@ -1215,8 +1215,24 @@ impl FlowrGui {
             }
         }
 
+        let tab_content = self.tab_set.view(&self.cached_functions);
+        #[cfg(feature = "debugger")]
+        let tab_area: Element<'_, Message> = if self.show_inspect_popup {
+            let panel = self.inspect_panel();
+            Row::new()
+                .push(iced::widget::container(tab_content).width(iced::Length::FillPortion(7)))
+                .push(panel)
+                .spacing(2)
+                .height(iced::Length::Fill)
+                .into()
+        } else {
+            tab_content
+        };
+        #[cfg(not(feature = "debugger"))]
+        let tab_area = tab_content;
+
         let main_content = main_content
-            .push(self.tab_set.view(&self.cached_functions))
+            .push(tab_area)
             .push(self.status_bar())
             .padding([theme::SPACE_XS, theme::SPACE_SM]);
 
@@ -1226,32 +1242,6 @@ impl FlowrGui {
             return stack![
                 main_content,
                 opaque(mouse_area(center(opaque(bp_popup))).on_press(Message::CloseBpPopup))
-            ]
-            .into();
-        }
-
-        #[cfg(feature = "debugger")]
-        if self.show_inspect_popup {
-            use iced::widget::Container;
-            use iced::Length;
-            let panel = self.inspect_panel();
-            let dismiss = mouse_area(
-                Container::new(iced::widget::text(""))
-                    .width(Length::Fill)
-                    .height(Length::Fill),
-            )
-            .on_press(Message::CloseInspectPopup);
-            return stack![
-                main_content,
-                Column::new()
-                    .push(Container::new(iced::widget::text("")).height(Length::Fixed(100.0)))
-                    .push(
-                        Row::new()
-                            .push(dismiss)
-                            .push(Container::new(panel).align_y(iced::alignment::Vertical::Top))
-                    )
-                    .width(Length::Fill)
-                    .height(Length::Fill)
             ]
             .into();
         }
@@ -2130,7 +2120,7 @@ impl FlowrGui {
             .push(list);
 
         Container::new(panel_content)
-            .width(Length::Fixed(450.0))
+            .width(Length::FillPortion(3))
             .padding(theme::SPACE_LG)
             .style(|_: &iced::Theme| iced::widget::container::Style {
                 background: Some(iced::Background::Color(theme::SURFACE_BUTTON)),
