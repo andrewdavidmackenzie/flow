@@ -484,6 +484,8 @@ pub enum Message {
     UrlChanged(String),
     /// The arguments to send to the flow when executed have been edited by the UI
     FlowArgsChanged(String),
+    /// The job timeout setting has been edited
+    JobTimeoutChanged(String),
     /// The max parallel jobs setting has been edited by the UI
     MaxJobsChanged(String),
     /// The UI has requested to submit the flow in debug mode
@@ -684,6 +686,7 @@ struct SubmissionSettings {
     flow_manifest_url: String,
     flow_args: String,
     max_jobs_text: String,
+    job_timeout_text: String,
     debug_this_flow: bool,
     display_metrics: bool,
     parallel_jobs_limit: Option<usize>,
@@ -1016,6 +1019,9 @@ impl FlowrGui {
             Message::MaxJobsChanged(value) => {
                 self.submission_settings.parallel_jobs_limit = value.trim().parse::<usize>().ok();
                 self.submission_settings.max_jobs_text = value;
+            }
+            Message::JobTimeoutChanged(value) => {
+                self.submission_settings.job_timeout_text = value;
             }
             Message::DebugSubmitFlow => {
                 if matches!(self.coordinator_state, CoordinatorState::Disconnected(_))
@@ -1359,10 +1365,16 @@ impl FlowrGui {
         let (flow_manifest, _) = FlowManifest::load(provider, &url)
             .map_err(|e| format!("Could not load flow manifest: {e}"))?;
 
+        let job_timeout = settings
+            .job_timeout_text
+            .trim()
+            .parse::<u64>()
+            .ok()
+            .map(std::time::Duration::from_secs);
         let submission = Submission::new(
             flow_manifest,
             settings.parallel_jobs_limit,
-            None,
+            job_timeout,
             #[cfg(feature = "debugger")]
             settings.debug_this_flow,
         );
@@ -2220,10 +2232,23 @@ impl FlowrGui {
             .push(Text::new("Max parallel jobs:").size(theme::FONT_MD))
             .push(max_jobs_input);
 
+        let timeout_input =
+            iced::widget::text_input("seconds", &self.submission_settings.job_timeout_text)
+                .on_input(Message::JobTimeoutChanged)
+                .style(theme::pill_input)
+                .width(Length::Fill);
+
+        let timeout_row = Row::new()
+            .spacing(theme::SPACE_MD)
+            .align_y(iced::alignment::Vertical::Center)
+            .push(Text::new("Job timeout (s):").size(theme::FONT_MD))
+            .push(timeout_input);
+
         let panel_content = Column::new()
             .spacing(theme::SPACE_LG)
             .push(header)
-            .push(max_jobs_row);
+            .push(max_jobs_row)
+            .push(timeout_row);
 
         Container::new(panel_content)
             .width(Length::Fixed(300.0))
@@ -2405,6 +2430,7 @@ impl FlowrGui {
                 flow_manifest_url,
                 flow_args,
                 max_jobs_text: parallel_jobs_limit.map_or(String::new(), |n| n.to_string()),
+                job_timeout_text: String::new(),
                 debug_this_flow,
                 display_metrics: matches.get_flag("metrics"),
                 parallel_jobs_limit,
@@ -3388,6 +3414,7 @@ mod test {
                 flow_manifest_url: String::new(),
                 flow_args: String::new(),
                 max_jobs_text: String::new(),
+                job_timeout_text: String::new(),
                 debug_this_flow: false,
                 display_metrics: false,
                 parallel_jobs_limit: None,
