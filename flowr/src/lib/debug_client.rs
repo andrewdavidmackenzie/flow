@@ -199,7 +199,8 @@ impl DebugClient {
         None
     }
 
-    const STATE_KEYWORDS: &[&str] = &["ready", "waiting", "running", "completed", "blocked"];
+    /// Valid state keywords for inspect-by-state commands
+    pub const STATE_KEYWORDS: &[&str] = &["ready", "waiting", "running", "completed", "blocked"];
 
     /// Parse an inspect specification into a [`DebugCommand`]
     #[must_use]

@@ -2799,7 +2799,7 @@ impl FlowrGui {
                         );
                     }
                 } else {
-                    let state_keywords = ["ready", "waiting", "running", "completed", "blocked"];
+                    let state_keywords = DebugClient::STATE_KEYWORDS;
                     let label = if let Ok(id) = spec.parse::<usize>() {
                         let is_flow = self
                             .cached_functions
