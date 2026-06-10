@@ -45,7 +45,7 @@ pub enum DebugServerMessage {
     /// A list of all functions
     Functions(Vec<RuntimeFunction>),
     /// The state of a function
-    FunctionStates((RuntimeFunction, Vec<State>)),
+    FunctionStates((RuntimeFunction, Vec<State>, Vec<usize>)),
     /// A value is being sent from one function to another
     SendingValue(usize, Value, usize, usize),
     /// The overall state

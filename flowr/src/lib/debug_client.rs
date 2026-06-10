@@ -306,6 +306,7 @@ impl DebugClient {
         }
     }
 
+    #[allow(clippy::too_many_lines)]
     fn process_server_message(&mut self, message: DebugServerMessage) -> Result<DebugCommand> {
         match message {
             JobCompleted(job) => {
@@ -362,9 +363,14 @@ impl DebugClient {
             Resetting => println!("Resetting state"),
             WaitingForCommand(job_id) => return self.get_user_command(job_id),
             DebugServerMessage::Invalid => println!("Invalid message received from debug server"),
-            FunctionStates((function, state)) => {
+            FunctionStates((function, state, blockers)) => {
                 print!("{function}");
                 println!("\tState: {state:?}");
+                if !blockers.is_empty() {
+                    let blocker_list: Vec<String> =
+                        blockers.iter().map(|id| format!("#{id}")).collect();
+                    println!("\tWaiting for: {}", blocker_list.join(", "));
+                }
             }
             OverallState(run_state) => Self::display_state(&run_state),
             InputState(input) => println!("{input}"),

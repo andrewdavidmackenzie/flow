@@ -42,7 +42,7 @@ impl DebuggerHandler for DebugZmqHandler {
             .send_and_receive_response(PriorToSendingJob(job.clone()));
         let _: flowcore::errors::Result<DebugCommand> = self
             .debug_server_connection
-            .send_and_receive_response(FunctionStates((function.clone(), states)));
+            .send_and_receive_response(FunctionStates((function.clone(), states, vec![])));
     }
 
     fn flow_unblock_breakpoint(&mut self, flow_id: usize) {
@@ -118,10 +118,15 @@ impl DebuggerHandler for DebugZmqHandler {
             .send_and_receive_response(DebugServerMessage::FlowList(flows));
     }
 
-    fn function_states(&mut self, function: RuntimeFunction, function_states: Vec<State>) {
+    fn function_states(
+        &mut self,
+        function: RuntimeFunction,
+        function_states: Vec<State>,
+        input_blockers: Vec<usize>,
+    ) {
         let _: flowcore::errors::Result<DebugCommand> = self
             .debug_server_connection
-            .send_and_receive_response(FunctionStates((function, function_states)));
+            .send_and_receive_response(FunctionStates((function, function_states, input_blockers)));
     }
 
     fn run_state(&mut self, run_state: &RunState) {

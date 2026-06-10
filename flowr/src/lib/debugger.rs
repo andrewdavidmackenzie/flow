@@ -244,12 +244,14 @@ impl<'a> Debugger<'a> {
                         if state.submission.manifest.flows().contains_key(&func_id) {
                             self.debug_server.inspect_flow(func_id, state);
                         } else if state.get_function(func_id).is_some() {
+                            let blockers = state.get_input_blockers(func_id).unwrap_or_default();
                             self.debug_server.function_states(
                                 state
                                     .get_function(func_id)
                                     .ok_or("Could not get function")?
                                     .clone(),
                                 state.get_function_states(func_id),
+                                blockers,
                             );
                         }
                     } else {
@@ -274,12 +276,14 @@ impl<'a> Debugger<'a> {
                 }
                 Ok(InspectFunction(function_id)) => {
                     if state.get_function(function_id).is_some() {
+                        let blockers = state.get_input_blockers(function_id).unwrap_or_default();
                         self.debug_server.function_states(
                             state
                                 .get_function(function_id)
                                 .ok_or("Could not get function")?
                                 .clone(),
                             state.get_function_states(function_id),
+                            blockers,
                         );
                     } else if state.submission.manifest.flows().contains_key(&function_id) {
                         self.debug_server.inspect_flow(function_id, state);
@@ -1133,7 +1137,7 @@ mod test {
         fn outputs(&mut self, _output: Vec<OutputConnection>) {}
         fn input(&mut self, _input: Input) {}
         fn function_list(&mut self, _functions: &[RuntimeFunction]) {}
-        fn function_states(&mut self, _function: RuntimeFunction, _function_states: Vec<State>) {}
+        fn function_states(&mut self, _: RuntimeFunction, _: Vec<State>, _: Vec<usize>) {}
         fn run_state(&mut self, _run_state: &RunState) {}
         fn message(&mut self, _message: String) {}
         fn breakpoint_list(&mut self, _breakpoints: Vec<BreakpointSpec>) {}

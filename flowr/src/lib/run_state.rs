@@ -1007,7 +1007,7 @@ mod test {
         fn outputs(&mut self, _output: Vec<OutputConnection>) {}
         fn input(&mut self, _input: Input) {}
         fn function_list(&mut self, _functions: &[RuntimeFunction]) {}
-        fn function_states(&mut self, _function: RuntimeFunction, _function_states: Vec<State>) {}
+        fn function_states(&mut self, _: RuntimeFunction, _: Vec<State>, _: Vec<usize>) {}
         fn run_state(&mut self, _run_state: &RunState) {}
         fn message(&mut self, _message: String) {}
         fn breakpoint_list(&mut self, _breakpoints: Vec<crate::debug_command::BreakpointSpec>) {}

@@ -52,6 +52,7 @@ impl DebuggerHandler for DebugGuiHandler {
         self.send_event(DebugServerMessage::FunctionStates((
             function.clone(),
             states,
+            vec![],
         )));
     }
 
@@ -102,10 +103,16 @@ impl DebuggerHandler for DebugGuiHandler {
         self.send_event(DebugServerMessage::Functions(functions.to_vec()));
     }
 
-    fn function_states(&mut self, function: RuntimeFunction, function_states: Vec<State>) {
+    fn function_states(
+        &mut self,
+        function: RuntimeFunction,
+        function_states: Vec<State>,
+        input_blockers: Vec<usize>,
+    ) {
         self.send_event(DebugServerMessage::FunctionStates((
             function,
             function_states,
+            input_blockers,
         )));
     }
 

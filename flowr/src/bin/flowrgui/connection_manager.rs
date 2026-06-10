@@ -703,13 +703,28 @@ fn format_debug_event(message: &DebugServerMessage) -> Vec<crate::DebugEventLine
         DebugServerMessage::Error(ref msg) => line(rewrite_for_gui(msg), Some(debug_colors::ERROR)),
         DebugServerMessage::Message(msg) => line(rewrite_for_gui(msg), None),
         DebugServerMessage::Resetting => line("Resetting state".into(), Some(debug_colors::STATUS)),
-        DebugServerMessage::FunctionStates((function, states)) => {
-            vec![entity_line_with_states(
+        DebugServerMessage::FunctionStates((function, states, blockers)) => {
+            let mut lines = vec![entity_line_with_states(
                 function,
                 "",
                 crate::LinkType::Function,
                 states,
-            )]
+            )];
+            if !blockers.is_empty() {
+                let mut b = crate::DebugLineBuilder::new().text("  Waiting for: ");
+                for (i, id) in blockers.iter().enumerate() {
+                    if i > 0 {
+                        b = b.text(", ");
+                    }
+                    b = b.chip(
+                        &format!("function #{id}"),
+                        &id.to_string(),
+                        crate::LinkType::Function,
+                    );
+                }
+                lines.push(b.finish());
+            }
+            lines
         }
         DebugServerMessage::OverallState(ref run_state) => format_state_only(run_state),
         DebugServerMessage::InputState(input) => {
