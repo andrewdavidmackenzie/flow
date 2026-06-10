@@ -717,8 +717,7 @@ enum DebugMode {
     External,
 }
 
-/// Cached function info for the breakpoint popup
-#[cfg(feature = "debugger")]
+/// Cached function info for the inspect/breakpoint dialogs
 #[derive(Debug, Clone)]
 pub struct CachedFunction {
     /// Function ID
@@ -852,7 +851,6 @@ struct FlowrGui {
     bp_tab: BpTab,
     #[cfg(feature = "debugger")]
     bp_target: String,
-    #[cfg(feature = "debugger")]
     cached_functions: Vec<CachedFunction>,
     #[cfg(feature = "debugger")]
     active_breakpoints: std::collections::HashSet<String>,
@@ -912,7 +910,6 @@ impl FlowrGui {
             bp_tab: BpTab::Before,
             #[cfg(feature = "debugger")]
             bp_target: String::new(),
-            #[cfg(feature = "debugger")]
             cached_functions: Vec::new(),
             #[cfg(feature = "debugger")]
             active_breakpoints: std::collections::HashSet::new(),
@@ -1219,7 +1216,7 @@ impl FlowrGui {
         }
 
         let main_content = main_content
-            .push(self.tab_set.view())
+            .push(self.tab_set.view(&self.cached_functions))
             .push(self.status_bar())
             .padding([theme::SPACE_XS, theme::SPACE_SM]);
 
@@ -3267,7 +3264,6 @@ mod test {
             bp_tab: BpTab::Before,
             #[cfg(feature = "debugger")]
             bp_target: String::new(),
-            #[cfg(feature = "debugger")]
             cached_functions: Vec::new(),
             #[cfg(feature = "debugger")]
             active_breakpoints: std::collections::HashSet::new(),
