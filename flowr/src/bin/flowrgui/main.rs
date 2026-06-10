@@ -92,6 +92,7 @@ pub enum LinkType {
     StateWaiting,
     StateRunning,
     StateCompleted,
+    StateBusy,
     Other,
 }
 

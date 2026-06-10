@@ -1339,7 +1339,11 @@ fn format_run_state(run_state: &flowrlib::run_state::RunState) -> Vec<crate::Deb
         let flows_map = manifest.flows();
         let mut sorted_busy: Vec<_> = busy.iter().collect();
         sorted_busy.sort_by_key(|(id, _)| *id);
-        let mut b = DebugLineBuilder::new().text(&format!("  Busy ({}):", busy.len()));
+        let mut b = DebugLineBuilder::new().text("  ").chip(
+            &format!("busy ({}):", busy.len()),
+            "busy",
+            LinkType::StateBusy,
+        );
         for (id, _count) in &sorted_busy {
             let lt = if flows_map.contains_key(id) {
                 LinkType::Flow

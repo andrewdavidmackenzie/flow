@@ -112,6 +112,12 @@ pub mod entity_colors {
         b: 1.0,
         a: 1.0,
     };
+    pub const STATE_BUSY: Color = Color {
+        r: 0.9,
+        g: 0.4,
+        b: 0.4,
+        a: 1.0,
+    };
 }
 
 // ── Debug event colors ──────────────────────────────────────────────────────
