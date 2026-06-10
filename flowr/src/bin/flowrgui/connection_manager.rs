@@ -264,7 +264,6 @@ async fn handle_running(
 
     if is_flow_end {
         *running = false;
-        return Ok(());
     }
 
     if let Some(client_message) = app_receiver.recv().await {
