@@ -172,7 +172,16 @@ impl<'a> Coordinator<'a> {
                 }
             } // jobs loop end
 
-            // flow execution has ended
+            // flow execution has ended — send metrics before entering post-mortem debugger
+            #[cfg(feature = "metrics")]
+            if !restart {
+                metrics.stop_timer();
+                metrics.set_jobs_created(state.get_number_of_jobs_created());
+                #[cfg(feature = "submission")]
+                self.submission_handler
+                    .flow_execution_ended(&state, metrics.clone())?;
+            }
+
             #[allow(clippy::collapsible_if)]
             #[cfg(feature = "debugger")]
             if !restart {
@@ -190,15 +199,12 @@ impl<'a> Coordinator<'a> {
             if !restart {
                 break 'flow_execution;
             }
+
+            #[cfg(feature = "metrics")]
+            metrics.reset();
         }
 
-        #[cfg(feature = "metrics")]
-        metrics.stop_timer();
-        #[cfg(feature = "metrics")]
-        metrics.set_jobs_created(state.get_number_of_jobs_created());
-        #[cfg(all(feature = "submission", feature = "metrics"))]
-        self.submission_handler
-            .flow_execution_ended(&state, metrics)?;
+        // Send final metrics for non-debug or non-metrics builds
         #[cfg(all(feature = "submission", not(feature = "metrics")))]
         self.submission_handler.flow_execution_ended(&state)?;
 
