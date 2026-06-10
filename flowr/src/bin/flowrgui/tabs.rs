@@ -420,11 +420,12 @@ impl TabSet {
                 .align_y(iced::alignment::Vertical::Center);
 
             // Auto-scroll toggle for scrollable tabs
-            let has_auto_scroll = matches!(self.active_tab, 0 | 1 | 4 | 5);
+            let has_auto_scroll = matches!(self.active_tab, 0 | 1 | 2 | 4 | 5);
             if has_auto_scroll {
                 let (is_on, id) = match self.active_tab {
                     0 => (self.stdout_tab.auto_scroll, self.stdout_tab.id.clone()),
                     1 => (self.stderr_tab.auto_scroll, self.stderr_tab.id.clone()),
+                    2 => (self.stdin_tab.auto_scroll, self.stdin_tab.id.clone()),
                     4 => (self.fileio_tab.auto_scroll, self.fileio_tab.id.clone()),
                     #[cfg(feature = "debugger")]
                     5 => (self.debug_tab.auto_scroll, self.debug_tab.id.clone()),
