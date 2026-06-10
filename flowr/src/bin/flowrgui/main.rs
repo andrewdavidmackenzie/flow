@@ -1220,7 +1220,7 @@ impl FlowrGui {
         let tab_area: Element<'_, Message> = if self.show_inspect_popup {
             let panel = self.inspect_panel();
             Row::new()
-                .push(iced::widget::container(tab_content).width(iced::Length::FillPortion(7)))
+                .push(iced::widget::container(tab_content).width(iced::Length::Fill))
                 .push(panel)
                 .spacing(2)
                 .height(iced::Length::Fill)
@@ -2120,7 +2120,7 @@ impl FlowrGui {
             .push(list);
 
         Container::new(panel_content)
-            .width(Length::FillPortion(3))
+            .width(Length::Fixed(380.0))
             .padding(theme::SPACE_LG)
             .style(|_: &iced::Theme| iced::widget::container::Style {
                 background: Some(iced::Background::Color(theme::SURFACE_BUTTON)),
