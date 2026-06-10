@@ -1282,16 +1282,13 @@ impl FlowrGui {
         #[cfg(not(feature = "debugger"))]
         let tab_area = tab_content;
 
-        let tab_area: Element<'_, Message> = if self.show_settings {
-            let panel = self.settings_panel();
-            Row::new()
-                .push(iced::widget::container(tab_area).width(iced::Length::Fill))
-                .push(panel)
-                .spacing(2)
-                .height(iced::Length::Fill)
-                .into()
-        } else if self.show_metrics {
-            let panel = self.metrics_panel();
+        let has_panel = self.show_settings || self.show_metrics;
+        let tab_area: Element<'_, Message> = if has_panel {
+            let panel = if self.show_settings {
+                self.settings_panel()
+            } else {
+                self.metrics_panel()
+            };
             Row::new()
                 .push(iced::widget::container(tab_area).width(iced::Length::Fill))
                 .push(panel)
