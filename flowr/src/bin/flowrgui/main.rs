@@ -2799,6 +2799,7 @@ impl FlowrGui {
                         );
                     }
                 } else {
+                    let state_keywords = ["ready", "waiting", "running", "completed", "blocked"];
                     let label = if spec.parse::<usize>().is_ok() {
                         format!("Inspect #{spec}")
                     } else if spec.contains(':') {
@@ -2807,6 +2808,8 @@ impl FlowrGui {
                         format!("Inspect Route ({spec})")
                     } else if spec.contains('/') {
                         format!("Inspect Output ({spec})")
+                    } else if state_keywords.contains(&spec.as_str()) {
+                        format!("Functions in {spec} state")
                     } else {
                         format!("Inspect {spec}")
                     };
