@@ -1808,7 +1808,7 @@ impl FlowrGui {
 
             match self.bp_tab {
                 BpTab::Before | BpTab::After => {
-                    for f in &self.cached_functions {
+                    for f in self.cached_functions.iter().filter(|f| !f.is_flow) {
                         let spec = match self.bp_tab {
                             BpTab::Before => format!("{}", f.id),
                             BpTab::After => format!("{}+", f.id),

@@ -397,7 +397,7 @@ impl<'a> Debugger<'a> {
             }
             Some(BreakpointSpec::Numeric(process_id)) => {
                 if state.get_function(process_id).is_none() {
-                    bail!("There is no Function with id '{process_id}' to set a breakpoint on");
+                    bail!("There is no Function with id {process_id} to set a breakpoint on");
                 }
 
                 self.function_breakpoints.insert(process_id);
@@ -446,9 +446,7 @@ impl<'a> Debugger<'a> {
             }
             Some(BreakpointSpec::Completed(process_id)) => {
                 if state.get_function(process_id).is_none() {
-                    bail!(format!(
-                        "There is no Function with id '{process_id}' to set a completion breakpoint on"
-                    ));
+                    bail!("There is no Function with id {process_id} to set a completion breakpoint on");
                 }
 
                 self.completed_breakpoints.insert(process_id);
