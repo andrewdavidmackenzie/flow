@@ -1022,6 +1022,8 @@ mod test {
         fn inspect_by_state(&mut self, _: &str, _: &RunState) {}
         fn inspect_flow(&mut self, _: usize, _: &RunState) {}
         fn job_inspect(&mut self, _: Job) {}
+        #[cfg(feature = "metrics")]
+        fn execution_metrics(&mut self, _: flowcore::model::metrics::Metrics) {}
         fn flow_list(&mut self, _: &[usize], _: &RunState) {}
         fn get_command(&mut self, _state: &RunState) -> Result<DebugCommand> {
             unimplemented!();

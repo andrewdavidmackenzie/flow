@@ -46,6 +46,9 @@ pub trait DebuggerHandler {
     fn input(&mut self, input: Input);
     /// lists all functions
     fn function_list(&mut self, functions: &[RuntimeFunction]);
+    /// Send execution metrics
+    #[cfg(feature = "metrics")]
+    fn execution_metrics(&mut self, metrics: flowcore::model::metrics::Metrics);
     /// Lists flow IDs with access to `RunState` for names/routes
     fn flow_list(&mut self, flow_ids: &[usize], state: &RunState);
     /// returns the state of a function

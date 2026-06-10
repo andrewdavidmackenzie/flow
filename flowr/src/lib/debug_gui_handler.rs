@@ -47,13 +47,8 @@ impl DebuggerHandler for DebugGuiHandler {
         self.send_event(DebugServerMessage::EnteringDebugger);
     }
 
-    fn job_breakpoint(&mut self, job: &Job, function: &RuntimeFunction, states: Vec<State>) {
+    fn job_breakpoint(&mut self, job: &Job, _function: &RuntimeFunction, _states: Vec<State>) {
         self.send_event(DebugServerMessage::PriorToSendingJob(job.clone()));
-        self.send_event(DebugServerMessage::FunctionStates((
-            function.clone(),
-            states,
-            vec![],
-        )));
     }
 
     fn flow_unblock_breakpoint(&mut self, flow_id: usize) {
@@ -152,6 +147,11 @@ impl DebuggerHandler for DebugGuiHandler {
 
     fn job_inspect(&mut self, job: Job) {
         self.send_event(DebugServerMessage::JobInspect(job));
+    }
+
+    #[cfg(feature = "metrics")]
+    fn execution_metrics(&mut self, metrics: flowcore::model::metrics::Metrics) {
+        self.send_event(DebugServerMessage::ExecutionMetrics(metrics));
     }
 
     fn flow_list(&mut self, _flow_ids: &[usize], state: &RunState) {

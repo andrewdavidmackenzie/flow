@@ -424,6 +424,10 @@ impl DebugClient {
                     }
                 }
             }
+            #[cfg(feature = "metrics")]
+            DebugServerMessage::ExecutionMetrics(ref metrics) => {
+                println!("\nMetrics:\n{metrics}");
+            }
             DebugServerMessage::FlowList(_) => {}
             DebugServerMessage::JobInspect(ref job) => {
                 println!("Job #{}", job.payload.job_id);

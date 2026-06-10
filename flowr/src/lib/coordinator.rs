@@ -173,12 +173,19 @@ impl<'a> Coordinator<'a> {
             } // jobs loop end
 
             // flow execution has ended
+            #[cfg(feature = "metrics")]
+            if !restart {
+                metrics.stop_timer();
+                metrics.set_jobs_created(state.get_number_of_jobs_created());
+            }
+
             #[allow(clippy::collapsible_if)]
             #[cfg(feature = "debugger")]
             if !restart {
                 {
-                    // If debugging then enter the debugger for a final time before ending flow execution
                     if state.submission.debug_enabled {
+                        #[cfg(feature = "metrics")]
+                        self.debugger.send_metrics(&metrics);
                         (display_next_output, restart) =
                             self.debugger.execution_ended(&mut state)?;
                     }
@@ -458,6 +465,8 @@ mod test {
         fn inspect_by_state(&mut self, _: &str, _: &RunState) {}
         fn inspect_flow(&mut self, _: usize, _: &RunState) {}
         fn job_inspect(&mut self, _: Job) {}
+        #[cfg(feature = "metrics")]
+        fn execution_metrics(&mut self, _: flowcore::model::metrics::Metrics) {}
         fn flow_list(&mut self, _: &[usize], _: &RunState) {}
         fn get_command(&mut self, _state: &RunState) -> flowcore::errors::Result<DebugCommand> {
             Ok(DebugCommand::Continue)
