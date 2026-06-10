@@ -666,10 +666,7 @@ fn format_debug_event(message: &DebugServerMessage) -> Vec<crate::DebugEventLine
             format!("Deadlock detected: {message}"),
             Some(debug_colors::ERROR),
         ),
-        DebugServerMessage::EnteringDebugger => line(
-            "Entering debugger. Use the controls above to debug.".into(),
-            Some(debug_colors::STATUS),
-        ),
+        DebugServerMessage::EnteringDebugger => vec![],
         DebugServerMessage::ExitingDebugger => {
             line("Debugger is exiting".into(), Some(debug_colors::STATUS))
         }
