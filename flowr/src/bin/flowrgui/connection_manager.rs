@@ -466,6 +466,38 @@ fn rewrite_for_gui(msg: &str) -> String {
 
 /// Format a `DebugServerMessage` into colored lines for the debug tab
 #[cfg(feature = "debugger")]
+fn state_link_type(state: &flowrlib::run_state::State) -> crate::LinkType {
+    match state {
+        flowrlib::run_state::State::Ready => crate::LinkType::StateReady,
+        flowrlib::run_state::State::Waiting => crate::LinkType::StateWaiting,
+        flowrlib::run_state::State::Running => crate::LinkType::StateRunning,
+        flowrlib::run_state::State::Completed => crate::LinkType::StateCompleted,
+    }
+}
+
+#[cfg(feature = "debugger")]
+fn state_label(state: &flowrlib::run_state::State) -> &'static str {
+    match state {
+        flowrlib::run_state::State::Ready => "ready",
+        flowrlib::run_state::State::Waiting => "waiting",
+        flowrlib::run_state::State::Running => "running",
+        flowrlib::run_state::State::Completed => "completed",
+    }
+}
+
+#[cfg(feature = "debugger")]
+fn append_state_chips(
+    mut b: crate::DebugLineBuilder,
+    states: &[flowrlib::run_state::State],
+) -> crate::DebugLineBuilder {
+    for s in states {
+        let label = state_label(s);
+        b = b.text(" ").chip(label, label, state_link_type(s));
+    }
+    b
+}
+
+#[cfg(feature = "debugger")]
 fn entity_line(
     func: &flowcore::model::runtime_function::RuntimeFunction,
     indent: &str,
@@ -487,6 +519,29 @@ fn entity_line(
         .chip(func.route(), func.route(), crate::LinkType::Route)
         .text(suffix)
         .finish()
+}
+
+#[cfg(feature = "debugger")]
+fn entity_line_with_states(
+    func: &flowcore::model::runtime_function::RuntimeFunction,
+    indent: &str,
+    link_type: crate::LinkType,
+    states: &[flowrlib::run_state::State],
+) -> crate::DebugEventLine {
+    let entity = match link_type {
+        crate::LinkType::Flow => "flow",
+        _ => "function",
+    };
+    let b = crate::DebugLineBuilder::new()
+        .text(indent)
+        .chip(
+            &format!("{entity} #{}", func.id()),
+            &func.id().to_string(),
+            link_type,
+        )
+        .text(&format!(" '{}' @ ", func.name()))
+        .chip(func.route(), func.route(), crate::LinkType::Route);
+    append_state_chips(b, states).finish()
 }
 
 #[cfg(feature = "debugger")]
@@ -649,11 +704,11 @@ fn format_debug_event(message: &DebugServerMessage) -> Vec<crate::DebugEventLine
         DebugServerMessage::Message(msg) => line(rewrite_for_gui(msg), None),
         DebugServerMessage::Resetting => line("Resetting state".into(), Some(debug_colors::STATUS)),
         DebugServerMessage::FunctionStates((function, states)) => {
-            vec![entity_line(
+            vec![entity_line_with_states(
                 function,
                 "",
                 crate::LinkType::Function,
-                &format!(" {states:?}"),
+                states,
             )]
         }
         DebugServerMessage::OverallState(ref run_state) => format_state_only(run_state),
@@ -1180,12 +1235,7 @@ fn format_run_state(run_state: &flowrlib::run_state::RunState) -> Vec<crate::Deb
                 TreeSegment::Branch
             };
             let states = run_state.get_function_states(child.id());
-            let mut line = entity_line(
-                child,
-                "",
-                crate::LinkType::Function,
-                &format!(" {states:?}"),
-            );
+            let mut line = entity_line_with_states(child, "", crate::LinkType::Function, &states);
             let mut child_prefix = child_ancestors.clone();
             child_prefix.push(conn);
             line.tree_prefix = child_prefix;
@@ -1360,10 +1410,13 @@ fn format_inspect_by_state(
     sorted.sort_by_key(|f| f.id());
 
     if let Some(ref target) = target_state {
-        lines.push(DebugEventLine::new(
-            format!("Functions in '{state_name}' state:"),
-            None,
-        ));
+        lines.push(
+            crate::DebugLineBuilder::new()
+                .text("Functions in ")
+                .chip(state_name, state_name, state_link_type(target))
+                .text(" state:")
+                .finish(),
+        );
         let mut count = 0;
         for func in &sorted {
             let states = run_state.get_function_states(func.id());
@@ -1553,11 +1606,11 @@ fn format_inspect_flow(
         lines.push(DebugEventLine::new("  Functions:".into(), None));
         for func in funcs {
             let states = run_state.get_function_states(func.id());
-            lines.push(entity_line(
+            lines.push(entity_line_with_states(
                 func,
                 "    ",
                 LinkType::Function,
-                &format!(" {states:?}"),
+                &states,
             ));
         }
     }

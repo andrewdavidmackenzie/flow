@@ -88,6 +88,10 @@ pub enum LinkType {
     Output,
     Route,
     State,
+    StateReady,
+    StateWaiting,
+    StateRunning,
+    StateCompleted,
     Other,
 }
 
