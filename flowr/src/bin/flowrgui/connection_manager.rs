@@ -667,6 +667,8 @@ fn format_debug_event(message: &DebugServerMessage) -> Vec<crate::DebugEventLine
             Some(debug_colors::ERROR),
         ),
         DebugServerMessage::EnteringDebugger | DebugServerMessage::FlowList(_) => vec![],
+        #[cfg(feature = "metrics")]
+        DebugServerMessage::ExecutionMetrics(_) => vec![],
         DebugServerMessage::ExitingDebugger => {
             line("Debugger is exiting".into(), Some(debug_colors::STATUS))
         }
@@ -970,6 +972,12 @@ fn debug_client_stream(address: String) -> impl iced::futures::Stream<Item = Mes
                             })
                             .collect();
                         let _ = blocking_sender.try_send(Message::DebugFlowsReceived(flow_data));
+                    }
+
+                    #[cfg(feature = "metrics")]
+                    if let DebugServerMessage::ExecutionMetrics(ref metrics) = message {
+                        let _ = blocking_sender
+                            .try_send(Message::DebugMetricsReceived(metrics.clone()));
                     }
 
                     if let DebugServerMessage::BreakpointList(ref specs) = message {

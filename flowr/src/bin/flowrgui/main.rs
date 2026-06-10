@@ -516,6 +516,9 @@ pub enum Message {
     ToggleSettings,
     /// Toggle metrics panel
     ToggleMetrics,
+    /// Metrics received from debug channel
+    #[cfg(feature = "metrics")]
+    DebugMetricsReceived(flowcore::model::metrics::Metrics),
     /// Formatted debug event lines from the debug server
     #[cfg(feature = "debugger")]
     DebugEvent(Vec<DebugEventLine>),
@@ -1138,6 +1141,10 @@ impl FlowrGui {
                 return self.process_coordinator_message(coord_msg);
             }
             Message::CloseModal => self.show_modal = false,
+            #[cfg(feature = "metrics")]
+            Message::DebugMetricsReceived(metrics) => {
+                self.last_metrics = Some(metrics);
+            }
             Message::ToggleMetrics => {
                 self.show_metrics = !self.show_metrics;
                 if self.show_metrics {

@@ -66,6 +66,9 @@ pub enum DebugServerMessage {
     InspectFlow(usize, RunState),
     /// Inspect a job — carries the Job
     JobInspect(Job),
+    /// Execution metrics snapshot
+    #[cfg(feature = "metrics")]
+    ExecutionMetrics(flowcore::model::metrics::Metrics),
     /// List of flows with names and routes
     FlowList(Vec<(usize, String, String)>),
     /// The list of active breakpoints
@@ -112,6 +115,8 @@ impl fmt::Display for DebugServerMessage {
                 DebugServerMessage::InspectFlow(_, _) => "InspectFlow",
                 DebugServerMessage::InspectFunction(_, _) => "InspectFunction",
                 DebugServerMessage::JobInspect(_) => "JobInspect",
+                #[cfg(feature = "metrics")]
+                DebugServerMessage::ExecutionMetrics(_) => "ExecutionMetrics",
                 DebugServerMessage::FlowList(_) => "FlowList",
             }
         )

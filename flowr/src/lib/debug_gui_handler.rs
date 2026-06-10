@@ -154,6 +154,11 @@ impl DebuggerHandler for DebugGuiHandler {
         self.send_event(DebugServerMessage::JobInspect(job));
     }
 
+    #[cfg(feature = "metrics")]
+    fn execution_metrics(&mut self, metrics: flowcore::model::metrics::Metrics) {
+        self.send_event(DebugServerMessage::ExecutionMetrics(metrics));
+    }
+
     fn flow_list(&mut self, _flow_ids: &[usize], state: &RunState) {
         let manifest = &state.get_submission().manifest;
         let flows: Vec<(usize, String, String)> = manifest

@@ -185,6 +185,12 @@ impl<'a> Debugger<'a> {
         self.wait_for_command(state)
     }
 
+    /// Send execution metrics via the debug channel
+    #[cfg(feature = "metrics")]
+    pub fn send_metrics(&mut self, metrics: &flowcore::model::metrics::Metrics) {
+        self.debug_server.execution_metrics(metrics.clone());
+    }
+
     /// Execution of the flow ended, report it and wait for command
     /// Return values are (display next output, reset execution)
     pub fn execution_ended(&mut self, state: &mut RunState) -> Result<(bool, bool)> {
@@ -1136,6 +1142,8 @@ mod test {
         fn inspect_by_state(&mut self, _: &str, _: &RunState) {}
         fn inspect_flow(&mut self, _: usize, _: &RunState) {}
         fn job_inspect(&mut self, _: Job) {}
+        #[cfg(feature = "metrics")]
+        fn execution_metrics(&mut self, _: flowcore::model::metrics::Metrics) {}
         fn flow_list(&mut self, _: &[usize], _: &RunState) {}
         fn get_command(&mut self, _state: &RunState) -> Result<DebugCommand> {
             Ok(DebugCommand::Step(None))

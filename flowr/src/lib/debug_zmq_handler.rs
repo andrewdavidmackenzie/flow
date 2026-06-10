@@ -106,6 +106,13 @@ impl DebuggerHandler for DebugZmqHandler {
             .send_and_receive_response(Functions(functions.to_vec()));
     }
 
+    #[cfg(feature = "metrics")]
+    fn execution_metrics(&mut self, metrics: flowcore::model::metrics::Metrics) {
+        let _: flowcore::errors::Result<DebugCommand> = self
+            .debug_server_connection
+            .send_and_receive_response(DebugServerMessage::ExecutionMetrics(metrics));
+    }
+
     fn flow_list(&mut self, _flow_ids: &[usize], state: &RunState) {
         let manifest = &state.get_submission().manifest;
         let flows: Vec<(usize, String, String)> = manifest
