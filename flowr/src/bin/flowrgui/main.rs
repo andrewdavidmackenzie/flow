@@ -2267,6 +2267,7 @@ impl FlowrGui {
 
         Container::new(panel_content)
             .width(Length::Fixed(300.0))
+            .height(Length::Fill)
             .padding(theme::SPACE_LG)
             .style(|_: &iced::Theme| iced::widget::container::Style {
                 background: Some(iced::Background::Color(theme::SURFACE_BUTTON)),
@@ -3210,9 +3211,6 @@ impl FlowrGui {
                 connection_manager::set_job_count(0);
                 self.tab_set.stdin_tab.waiting_for_input = false;
                 self.last_metrics = Some(metrics);
-                if !self.show_settings {
-                    self.show_metrics = true;
-                }
                 // NO response - so we can use next request sent to submit another flow
                 if self.ui_settings.auto_exit {
                     self.info("Auto exiting on flow completion");
