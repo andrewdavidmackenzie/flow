@@ -36,13 +36,10 @@ impl DebuggerHandler for DebugZmqHandler {
             .send_and_receive_response(EnteringDebugger);
     }
 
-    fn job_breakpoint(&mut self, job: &Job, function: &RuntimeFunction, states: Vec<State>) {
+    fn job_breakpoint(&mut self, job: &Job, _function: &RuntimeFunction, _states: Vec<State>) {
         let _: flowcore::errors::Result<DebugCommand> = self
             .debug_server_connection
             .send_and_receive_response(PriorToSendingJob(job.clone()));
-        let _: flowcore::errors::Result<DebugCommand> = self
-            .debug_server_connection
-            .send_and_receive_response(FunctionStates((function.clone(), states, vec![])));
     }
 
     fn flow_unblock_breakpoint(&mut self, flow_id: usize) {
