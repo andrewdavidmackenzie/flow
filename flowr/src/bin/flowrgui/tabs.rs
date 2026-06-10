@@ -932,7 +932,7 @@ impl Tab for DebugTab {
                                     spans.push(s);
                                 }
                                 let chip_color = chip_color_for(link.link_type);
-                                spans.push(iced::widget::span("  ".to_string()));
+                                spans.push(iced::widget::span(" ".to_string()).padding([0, 4]));
                                 spans.push(
                                     iced::widget::span(format!(
                                         " {} ",
@@ -955,7 +955,7 @@ impl Tab for DebugTab {
                                     .padding([2, 6])
                                     .link(link.spec.clone()),
                                 );
-                                spans.push(iced::widget::span("  ".to_string()));
+                                spans.push(iced::widget::span(" ".to_string()).padding([0, 4]));
                                 pos = link.end;
                             }
                             if pos < line.text.len() {
