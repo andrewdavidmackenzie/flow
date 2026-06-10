@@ -2793,21 +2793,37 @@ impl FlowrGui {
                 self.debug_waiting = false;
                 if let Some(job_id_str) = spec.strip_prefix("job:") {
                     if let Ok(job_id) = job_id_str.parse::<usize>() {
-                        self.debug_separator(&format!("Inspect Job #{job_id}"));
+                        self.debug_separator(&format!("Job #{job_id}"));
                         connection_manager::send_debug_command(
                             flowcore::model::debug_command::DebugCommand::InspectJob(job_id),
                         );
                     }
                 } else {
                     let state_keywords = ["ready", "waiting", "running", "completed", "blocked"];
-                    let label = if spec.parse::<usize>().is_ok() {
-                        format!("Inspect #{spec}")
+                    let label = if let Ok(id) = spec.parse::<usize>() {
+                        let is_flow = self
+                            .cached_functions
+                            .iter()
+                            .any(|f| f.id == id && f.is_flow);
+                        if is_flow {
+                            format!("Flow #{id}")
+                        } else {
+                            format!("Function #{id}")
+                        }
                     } else if spec.contains(':') {
-                        format!("Inspect Input ({spec})")
+                        format!("Input ({spec})")
                     } else if spec.starts_with('/') {
-                        format!("Inspect Route ({spec})")
+                        let is_flow = self
+                            .cached_functions
+                            .iter()
+                            .any(|f| f.is_flow && f.route == *spec);
+                        if is_flow {
+                            format!("Flow @ {spec}")
+                        } else {
+                            format!("Function @ {spec}")
+                        }
                     } else if spec.contains('/') {
-                        format!("Inspect Output ({spec})")
+                        format!("Output ({spec})")
                     } else if state_keywords.contains(&spec.as_str()) {
                         format!("Functions in {spec} state")
                     } else {
