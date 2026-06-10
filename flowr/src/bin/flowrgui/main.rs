@@ -1232,10 +1232,31 @@ impl FlowrGui {
 
         #[cfg(feature = "debugger")]
         if self.show_inspect_popup {
-            let popup = self.inspect_popup_card();
+            use iced::widget::Container;
+            use iced::Length;
+            let panel = self.inspect_panel();
+            let dismiss = mouse_area(
+                Container::new(iced::widget::text(""))
+                    .style(|_: &iced::Theme| iced::widget::container::Style {
+                        background: Some(iced::Background::Color(iced::Color {
+                            r: 0.0,
+                            g: 0.0,
+                            b: 0.0,
+                            a: 0.3,
+                        })),
+                        ..Default::default()
+                    })
+                    .width(Length::Fill)
+                    .height(Length::Fill),
+            )
+            .on_press(Message::CloseInspectPopup);
             return stack![
                 main_content,
-                opaque(mouse_area(center(opaque(popup))).on_press(Message::CloseInspectPopup))
+                Row::new()
+                    .push(dismiss)
+                    .push(panel)
+                    .width(Length::Fill)
+                    .height(Length::Fill)
             ]
             .into();
         }
@@ -1963,8 +1984,9 @@ impl FlowrGui {
 
     #[cfg(feature = "debugger")]
     #[allow(clippy::too_many_lines)]
-    fn inspect_popup_card(&self) -> Card<'_, Message> {
+    fn inspect_panel(&self) -> Element<'_, Message> {
         use iced::widget::scrollable::Scrollable;
+        use iced::widget::Container;
         use iced::Length;
 
         let tab_row = Row::new()
@@ -2082,14 +2104,12 @@ impl FlowrGui {
         }
 
         let list = Scrollable::new(items)
-            .height(Length::Fixed(200.0))
+            .height(Length::Fill)
             .width(Length::Fill);
 
-        let body = Column::new().spacing(8).push(tab_row).push(list);
-
-        let inspect_header = Row::new()
-            .push(Text::new("Inspect"))
-            .push(iced::widget::container(Text::new("")).width(iced::Length::Fill))
+        let header = Row::new()
+            .push(Text::new("Inspect").size(theme::FONT_DEFAULT))
+            .push(Container::new(iced::widget::text("")).width(Length::Fill))
             .push(
                 Button::new(
                     Text::new("\u{2715}")
@@ -2097,14 +2117,40 @@ impl FlowrGui {
                         .size(theme::FONT_MD),
                 )
                 .on_press(Message::CloseInspectPopup)
-                .style(theme::list_button)
+                .style(theme::ghost_button)
                 .padding(theme::BUTTON_PAD_SM),
             )
-            .align_y(iced::alignment::Vertical::Center);
+            .align_y(iced::alignment::Vertical::Center)
+            .padding(iced::Padding {
+                top: 0.0,
+                right: 0.0,
+                bottom: theme::SPACE_SM,
+                left: 0.0,
+            });
 
-        Card::new(inspect_header, body)
-            .style(theme::popup_card)
-            .max_width(500.0)
+        let panel_content = Column::new()
+            .spacing(theme::SPACE_MD)
+            .push(header)
+            .push(tab_row)
+            .push(list);
+
+        Container::new(panel_content)
+            .width(Length::FillPortion(3))
+            .height(Length::Fill)
+            .padding(theme::SPACE_LG)
+            .style(|_: &iced::Theme| iced::widget::container::Style {
+                background: Some(iced::Background::Color(theme::SURFACE_BUTTON)),
+                border: iced::Border {
+                    radius: 0.0.into(),
+                    width: 2.0,
+                    color: iced::Color {
+                        a: 0.5,
+                        ..theme::ACCENT
+                    },
+                },
+                ..Default::default()
+            })
+            .into()
     }
 
     fn status_bar(&self) -> Column<'_, Message> {
