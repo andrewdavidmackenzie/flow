@@ -847,7 +847,6 @@ struct FlowrGui {
     show_settings: bool,
     last_metrics: Option<flowcore::model::metrics::Metrics>,
     show_metrics: bool,
-    panel_animation: iced::Animation<bool>,
     modal_content: (String, String),
     pending_getline: bool,
     #[cfg(feature = "debugger")]
@@ -910,7 +909,6 @@ impl FlowrGui {
             show_settings: false,
             last_metrics: None,
             show_metrics: false,
-            panel_animation: iced::Animation::new(false).quick(),
             modal_content: (String::new(), String::new()),
             pending_getline: false,
             #[cfg(feature = "debugger")]
@@ -1157,8 +1155,6 @@ impl FlowrGui {
                         self.show_bp_popup = false;
                     }
                 }
-                self.panel_animation
-                    .go_mut(self.show_metrics, iced::time::Instant::now());
             }
             Message::ToggleSettings => {
                 self.show_settings = !self.show_settings;
@@ -1167,8 +1163,6 @@ impl FlowrGui {
                     self.show_inspect_popup = false;
                     self.show_bp_popup = false;
                 }
-                self.panel_animation
-                    .go_mut(self.show_settings, iced::time::Instant::now());
             }
             #[cfg(feature = "debugger")]
             msg @ (Message::DebugEvent(_)
@@ -1288,19 +1282,16 @@ impl FlowrGui {
         #[cfg(not(feature = "debugger"))]
         let tab_area = tab_content;
 
-        let now = iced::time::Instant::now();
-        let panel_width = self.panel_animation.interpolate(0.0_f32, 380.0_f32, now);
-        let any_panel = self.show_settings || self.show_metrics;
-        let tab_area: Element<'_, Message> = if any_panel || panel_width > 1.0 {
-            let panel: Element<'_, Message> = if self.show_settings {
-                self.settings_panel()
-            } else if self.show_metrics {
-                self.metrics_panel()
-            } else {
-                iced::widget::container(iced::widget::text(""))
-                    .width(iced::Length::Fixed(panel_width))
-                    .into()
-            };
+        let tab_area: Element<'_, Message> = if self.show_settings {
+            let panel = self.settings_panel();
+            Row::new()
+                .push(iced::widget::container(tab_area).width(iced::Length::Fill))
+                .push(panel)
+                .spacing(2)
+                .height(iced::Length::Fill)
+                .into()
+        } else if self.show_metrics {
+            let panel = self.metrics_panel();
             Row::new()
                 .push(iced::widget::container(tab_area).width(iced::Length::Fill))
                 .push(panel)
@@ -3542,7 +3533,6 @@ mod test {
             show_settings: false,
             last_metrics: None,
             show_metrics: false,
-            panel_animation: iced::Animation::new(false).quick(),
             modal_content: (String::new(), String::new()),
             pending_getline: false,
             #[cfg(feature = "debugger")]
