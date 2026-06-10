@@ -106,6 +106,60 @@ fn tree_connector_canvas(segments: &[crate::TreeSegment]) -> Element<'static, Me
     )
 }
 
+#[cfg(feature = "debugger")]
+fn chip_row<'a>(line: &crate::DebugEventLine) -> Row<'a, Message> {
+    let base_color = line.color;
+    let mut row = Row::new()
+        .align_y(iced::alignment::Vertical::Center)
+        .spacing(4);
+    let mut pos = 0;
+    for link in &line.links {
+        if link.start > pos {
+            let segment = line.text[pos..link.start].to_string();
+            if !segment.is_empty() {
+                let mut t = Text::new(segment)
+                    .size(crate::theme::FONT_DEFAULT)
+                    .shaping(iced::widget::text::Shaping::Advanced);
+                if let Some(c) = base_color {
+                    t = t.color(c);
+                }
+                row = row.push(t);
+            }
+        }
+        let chip_color = chip_color_for(link.link_type);
+        let label = line.text[link.start..link.end].to_lowercase();
+        let spec = link.spec.clone();
+        row = row.push(
+            Button::new(
+                Text::new(label)
+                    .size(crate::theme::FONT_MD)
+                    .color(iced::Color::WHITE)
+                    .font(iced::Font {
+                        weight: iced::font::Weight::Bold,
+                        ..iced::Font::DEFAULT
+                    }),
+            )
+            .on_press(Message::DebugInspectLink(spec))
+            .style(crate::theme::chip_button(chip_color))
+            .padding([3, 10]),
+        );
+        pos = link.end;
+    }
+    if pos < line.text.len() {
+        let segment = line.text[pos..].to_string();
+        if !segment.is_empty() {
+            let mut t = Text::new(segment)
+                .size(crate::theme::FONT_DEFAULT)
+                .shaping(iced::widget::text::Shaping::Advanced);
+            if let Some(c) = base_color {
+                t = t.color(c);
+            }
+            row = row.push(t);
+        }
+    }
+    row
+}
+
 #[allow(clippy::struct_field_names)]
 pub(crate) struct TabSet {
     pub active_tab: usize,
@@ -919,63 +973,15 @@ impl Tab for DebugTab {
                         .padding([2, 4]);
                         if has_chips {
                             // Tree node separator — prefix + toggle + chips
-                            let base_color = line.color;
-                            let mut spans: Vec<iced::widget::text::Span<'_, String>> = Vec::new();
-                            let mut pos = 0;
-                            for link in &line.links {
-                                if link.start > pos {
-                                    let mut s =
-                                        iced::widget::span(line.text[pos..link.start].to_string());
-                                    if let Some(c) = base_color {
-                                        s = s.color(c);
-                                    }
-                                    spans.push(s);
-                                }
-                                let chip_color = chip_color_for(link.link_type);
-                                spans.push(
-                                    iced::widget::span(format!(
-                                        "  {}  ",
-                                        line.text[link.start..link.end].to_lowercase()
-                                    ))
-                                    .color(iced::Color::WHITE)
-                                    .size(crate::theme::FONT_MD)
-                                    .font(iced::Font {
-                                        weight: iced::font::Weight::Bold,
-                                        ..iced::Font::DEFAULT
-                                    })
-                                    .background(iced::Background::Color(iced::Color {
-                                        a: 0.4,
-                                        ..chip_color
-                                    }))
-                                    .border(iced::Border {
-                                        radius: 99.0.into(),
-                                        ..Default::default()
-                                    })
-                                    .padding([2, 0])
-                                    .link(link.spec.clone()),
-                                );
-                                spans.push(iced::widget::span(" ".to_string()));
-                                pos = link.end;
-                            }
-                            if pos < line.text.len() {
-                                let mut s = iced::widget::span(line.text[pos..].to_string());
-                                if let Some(c) = base_color {
-                                    s = s.color(c);
-                                }
-                                spans.push(s);
-                            }
                             let mut row = Row::new()
                                 .align_y(iced::alignment::Vertical::Center)
                                 .spacing(0);
                             if has_tree {
                                 row = row.push(tree_connector_canvas(&line.tree_prefix));
                             }
-                            Element::from(
-                                row.push(toggle_btn).push(
-                                    iced::widget::rich_text(spans)
-                                        .on_link_click(Message::DebugInspectLink),
-                                ),
-                            )
+                            row = row.push(toggle_btn);
+                            let chips = chip_row(line);
+                            Element::from(row.push(chips))
                         } else {
                             // Regular separator — toggle + rules + label
                             let rule_left = iced::widget::rule::horizontal(1);
@@ -1018,63 +1024,16 @@ impl Tab for DebugTab {
                             )
                         }
                     } else {
-                        let base_color = line.color;
-                        let mut spans: Vec<iced::widget::text::Span<'_, String>> = Vec::new();
-                        let mut pos = 0;
-                        for link in &line.links {
-                            if link.start > pos {
-                                let mut s =
-                                    iced::widget::span(line.text[pos..link.start].to_string());
-                                if let Some(c) = base_color {
-                                    s = s.color(c);
-                                }
-                                spans.push(s);
-                            }
-                            let chip_color = chip_color_for(link.link_type);
-                            spans.push(iced::widget::span(" ".to_string()));
-                            spans.push(
-                                iced::widget::span(format!(
-                                    " {} ",
-                                    line.text[link.start..link.end].to_lowercase()
-                                ))
-                                .color(iced::Color::WHITE)
-                                .size(crate::theme::FONT_MD)
-                                .font(iced::Font {
-                                    weight: iced::font::Weight::Bold,
-                                    ..iced::Font::DEFAULT
-                                })
-                                .background(iced::Background::Color(iced::Color {
-                                    a: 0.4,
-                                    ..chip_color
-                                }))
-                                .border(iced::Border {
-                                    radius: 99.0.into(),
-                                    ..Default::default()
-                                })
-                                .padding([2, 6])
-                                .link(link.spec.clone()),
-                            );
-                            spans.push(iced::widget::span(" ".to_string()));
-                            pos = link.end;
-                        }
-                        if pos < line.text.len() {
-                            let mut s = iced::widget::span(line.text[pos..].to_string());
-                            if let Some(c) = base_color {
-                                s = s.color(c);
-                            }
-                            spans.push(s);
-                        }
-                        let rich =
-                            iced::widget::rich_text(spans).on_link_click(Message::DebugInspectLink);
+                        let chips = chip_row(line);
                         if line.tree_prefix.is_empty() {
-                            Element::from(rich)
+                            Element::from(chips)
                         } else {
                             Element::from(
                                 Row::new()
                                     .align_y(iced::alignment::Vertical::Center)
                                     .spacing(0)
                                     .push(tree_connector_canvas(&line.tree_prefix))
-                                    .push(rich),
+                                    .push(chips),
                             )
                         }
                     };

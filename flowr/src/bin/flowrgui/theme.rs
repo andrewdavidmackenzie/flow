@@ -271,6 +271,44 @@ pub fn pill_button(theme: &Theme, status: button::Status) -> button::Style {
     }
 }
 
+pub fn chip_button(chip_color: Color) -> impl Fn(&Theme, button::Status) -> button::Style {
+    move |_theme: &Theme, status: button::Status| {
+        let bg = Color {
+            a: 0.4,
+            ..chip_color
+        };
+        let base = button::Style {
+            background: Some(Background::Color(bg)),
+            text_color: Color::WHITE,
+            border: Border {
+                radius: 99.0.into(),
+                width: 0.0,
+                color: Color::TRANSPARENT,
+            },
+            ..button::Style::default()
+        };
+        match status {
+            button::Status::Hovered => button::Style {
+                background: Some(Background::Color(Color {
+                    a: 0.7,
+                    ..chip_color
+                })),
+                border: Border {
+                    radius: 99.0.into(),
+                    width: 1.5,
+                    color: lighten(chip_color, 0.2),
+                },
+                ..base
+            },
+            button::Status::Pressed => button::Style {
+                background: Some(Background::Color(chip_color)),
+                ..base
+            },
+            _ => base,
+        }
+    }
+}
+
 pub fn pill_button_active(theme: &Theme, status: button::Status) -> button::Style {
     let border = Border {
         radius: 12.0.into(),
