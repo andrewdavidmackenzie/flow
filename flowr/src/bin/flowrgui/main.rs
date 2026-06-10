@@ -1225,6 +1225,14 @@ impl FlowrGui {
                 .spacing(2)
                 .height(iced::Length::Fill)
                 .into()
+        } else if self.show_bp_popup {
+            let panel = self.bp_panel();
+            Row::new()
+                .push(iced::widget::container(tab_content).width(iced::Length::Fill))
+                .push(panel)
+                .spacing(2)
+                .height(iced::Length::Fill)
+                .into()
         } else {
             tab_content
         };
@@ -1236,15 +1244,7 @@ impl FlowrGui {
             .push(self.status_bar())
             .padding([theme::SPACE_XS, theme::SPACE_SM]);
 
-        #[cfg(feature = "debugger")]
-        if self.show_bp_popup {
-            let bp_popup = self.bp_popup_card();
-            return stack![
-                main_content,
-                opaque(mouse_area(center(opaque(bp_popup))).on_press(Message::CloseBpPopup))
-            ]
-            .into();
-        }
+        // BP popup handled as split pane in tab area above
 
         if self.show_coordinator_picker {
             let picker = self.coordinator_picker_card();
@@ -1762,8 +1762,9 @@ impl FlowrGui {
 
     #[cfg(feature = "debugger")]
     #[allow(clippy::too_many_lines)]
-    fn bp_popup_card(&self) -> Card<'_, Message> {
+    fn bp_panel(&self) -> Element<'_, Message> {
         use iced::widget::scrollable::Scrollable;
+        use iced::widget::Container;
         use iced::Length;
 
         let type_row = Row::new()
@@ -1942,29 +1943,49 @@ impl FlowrGui {
         }
 
         let list = Scrollable::new(items)
-            .height(Length::Fixed(200.0))
+            .height(Length::Fill)
             .width(Length::Fill);
 
-        let body = Column::new().spacing(8).push(type_row).push(list);
-
-        let bp_header = Row::new()
-            .push(Text::new("Breakpoints"))
-            .push(iced::widget::container(Text::new("")).width(iced::Length::Fill))
+        let header = Row::new()
+            .push(Text::new("Breakpoints").size(theme::FONT_DEFAULT))
+            .push(iced::widget::container(iced::widget::text("")).width(Length::Fill))
             .push(
                 Button::new(
-                    Text::new("\u{2715}")
-                        .font(iced::Font::with_name("icons"))
-                        .size(theme::FONT_MD),
+                    Text::new("\u{00BB}")
+                        .size(20.0)
+                        .shaping(iced::widget::text::Shaping::Advanced),
                 )
                 .on_press(Message::CloseBpPopup)
-                .style(theme::list_button)
+                .style(theme::ghost_button)
                 .padding(theme::BUTTON_PAD_SM),
             )
-            .align_y(iced::alignment::Vertical::Center);
+            .align_y(iced::alignment::Vertical::Center)
+            .padding(iced::Padding {
+                top: 0.0,
+                right: 0.0,
+                bottom: theme::SPACE_SM,
+                left: 0.0,
+            });
 
-        Card::new(bp_header, body)
-            .style(theme::popup_card)
-            .max_width(500.0)
+        let panel_content = Column::new()
+            .spacing(theme::SPACE_MD)
+            .push(header)
+            .push(type_row)
+            .push(list);
+
+        Container::new(panel_content)
+            .width(Length::Fixed(380.0))
+            .padding(theme::SPACE_LG)
+            .style(|_: &iced::Theme| iced::widget::container::Style {
+                background: Some(iced::Background::Color(theme::SURFACE_BUTTON)),
+                border: iced::Border {
+                    radius: 0.0.into(),
+                    width: 0.0,
+                    color: iced::Color::TRANSPARENT,
+                },
+                ..Default::default()
+            })
+            .into()
     }
 
     #[cfg(feature = "debugger")]
@@ -2846,6 +2867,7 @@ impl FlowrGui {
                     return iced::Task::none();
                 }
                 self.show_inspect_popup = true;
+                self.show_bp_popup = false;
             }
             Message::CloseInspectPopup => self.show_inspect_popup = false,
             Message::InspectTabChanged(tab) => self.inspect_tab = tab,
@@ -2883,6 +2905,7 @@ impl FlowrGui {
                     return iced::Task::none();
                 }
                 self.show_bp_popup = true;
+                self.show_inspect_popup = false;
                 self.bp_target.clear();
                 if self.debug_waiting {
                     self.debug_waiting = false;
