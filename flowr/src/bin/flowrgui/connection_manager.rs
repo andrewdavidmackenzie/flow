@@ -740,14 +740,21 @@ fn format_debug_event(message: &DebugServerMessage) -> Vec<crate::DebugEventLine
                     None,
                 )]
             } else {
-                vec![DebugEventLine::new(
-                    format!(
-                        "Input {name_label}— {} value(s) queued: {}",
-                        input.values_available(),
-                        format!("{input}").trim()
-                    ),
-                    None,
-                )]
+                {
+                    let vals: Vec<String> = input
+                        .received_values()
+                        .iter()
+                        .map(|v| format!("{v}"))
+                        .collect();
+                    vec![DebugEventLine::new(
+                        format!(
+                            "Input {name_label}— {} value(s) queued: [{}]",
+                            input.values_available(),
+                            vals.join(", ")
+                        ),
+                        None,
+                    )]
+                }
             }
         }
         DebugServerMessage::OutputState(connections) => {
