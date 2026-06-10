@@ -643,10 +643,12 @@ fn format_debug_event(message: &DebugServerMessage) -> Vec<crate::DebugEventLine
             format_inspect_by_state(state_name, state)
         }
         DebugServerMessage::InspectFlow(flow_id, ref state) => format_inspect_flow(*flow_id, state),
+        DebugServerMessage::JobInspect(ref job) => format_inspect_job(job),
         DebugServerMessage::Invalid => line(
             "Invalid message from debug server".into(),
             Some(debug_colors::ERROR),
         ),
+        DebugServerMessage::FlowList(_) => vec![],
         DebugServerMessage::BreakpointList(specs) => {
             if specs.is_empty() {
                 line("No breakpoints set".into(), None)
@@ -766,6 +768,21 @@ fn debug_client_stream(address: String) -> impl iced::futures::Stream<Item = Mes
                             blocking_sender.try_send(Message::DebugFunctionListReceived(func_data));
                     }
 
+                    if let DebugServerMessage::FlowList(ref flows) = message {
+                        let flow_data: Vec<crate::CachedFunction> = flows
+                            .iter()
+                            .map(|(id, name, route)| crate::CachedFunction {
+                                id: *id,
+                                name: name.clone(),
+                                route: route.clone(),
+                                inputs: Vec::new(),
+                                outputs: Vec::new(),
+                                is_flow: true,
+                            })
+                            .collect();
+                        let _ = blocking_sender.try_send(Message::DebugFlowsReceived(flow_data));
+                    }
+
                     if let DebugServerMessage::BreakpointList(ref specs) = message {
                         let spec_strings: Vec<String> = specs
                             .iter()
@@ -797,6 +814,38 @@ fn debug_client_stream(address: String) -> impl iced::futures::Stream<Item = Mes
                             .collect();
                         let _ = blocking_sender
                             .try_send(Message::DebugBreakpointListReceived(spec_strings));
+                    }
+
+                    if let DebugServerMessage::ProcessTree(ref state)
+                    | DebugServerMessage::InspectByState(_, ref state)
+                    | DebugServerMessage::InspectFlow(_, ref state)
+                    | DebugServerMessage::OverallState(ref state) = message
+                    {
+                        let functions = state.get_functions();
+                        let flows: Vec<crate::CachedFunction> = state
+                            .get_submission()
+                            .manifest
+                            .flows()
+                            .keys()
+                            .map(|id| {
+                                let (name, route) = if let Some(f) = functions.get(id) {
+                                    (f.name().to_string(), f.route().to_string())
+                                } else {
+                                    (String::new(), String::new())
+                                };
+                                crate::CachedFunction {
+                                    id: *id,
+                                    name,
+                                    route,
+                                    inputs: Vec::new(),
+                                    outputs: Vec::new(),
+                                    is_flow: true,
+                                }
+                            })
+                            .collect();
+                        if !flows.is_empty() {
+                            let _ = blocking_sender.try_send(Message::DebugFlowsReceived(flows));
+                        }
                     }
 
                     if !is_waiting {
@@ -928,7 +977,6 @@ fn format_run_state(run_state: &flowrlib::run_state::RunState) -> Vec<crate::Deb
     ) {
         use crate::TreeSegment;
         let manifest = &run_state.get_submission().manifest;
-        let functions = run_state.get_functions();
 
         // Build this node's prefix: ancestors + own connector
         let mut prefix: Vec<TreeSegment> = ancestors.to_vec();
@@ -937,8 +985,17 @@ fn format_run_state(run_state: &flowrlib::run_state::RunState) -> Vec<crate::Deb
         }
 
         // Emit the flow node — collapsible only if it has a connector (not root)
-        let mut flow_line = if let Some(func) = functions.get(&flow_id) {
-            entity_line(func, "", crate::LinkType::Flow, "")
+        let mut flow_line = if let Some(fi) = manifest.flows().get(&flow_id) {
+            let mut b = crate::DebugLineBuilder::new().chip(
+                &format!("flow #{flow_id}"),
+                &flow_id.to_string(),
+                crate::LinkType::Flow,
+            );
+            if !fi.name.is_empty() {
+                b = b.text(&format!(" '{}' @ ", fi.name));
+                b = b.chip(&fi.route, &fi.route, crate::LinkType::Route);
+            }
+            b.finish()
         } else {
             crate::DebugLineBuilder::new()
                 .chip(
@@ -1075,8 +1132,8 @@ fn format_run_state(run_state: &flowrlib::run_state::RunState) -> Vec<crate::Deb
         sorted_running.sort_by_key(|(id, _)| *id);
         for (job_id, job) in &sorted_running {
             b = b.text(" ").chip(
-                &format!("Job #{job_id}"),
-                &job.process_id.to_string(),
+                &format!("Job #{job_id} ({})", job.function_name),
+                &format!("job:{job_id}"),
                 LinkType::Job,
             );
         }
@@ -1092,8 +1149,8 @@ fn format_run_state(run_state: &flowrlib::run_state::RunState) -> Vec<crate::Deb
     );
     for job in ready {
         b = b.text(" ").chip(
-            &format!("Job #{}", job.payload.job_id),
-            &job.process_id.to_string(),
+            &format!("Job #{} ({})", job.payload.job_id, job.function_name),
+            &format!("job:{}", job.payload.job_id),
             LinkType::Job,
         );
     }
@@ -1232,6 +1289,82 @@ fn format_inspect_by_state(
 }
 
 #[cfg(feature = "debugger")]
+#[cfg(feature = "debugger")]
+fn format_inspect_job(job: &flowcore::model::job::Job) -> Vec<crate::DebugEventLine> {
+    use crate::{DebugLineBuilder, LinkType};
+
+    let mut lines = Vec::new();
+
+    lines.push(
+        DebugLineBuilder::new()
+            .chip(
+                &format!("job #{}", job.payload.job_id),
+                &format!("job:{}", job.payload.job_id),
+                LinkType::Job,
+            )
+            .finish(),
+    );
+
+    lines.push(
+        DebugLineBuilder::new()
+            .text("  Function: ")
+            .chip(
+                &format!("function #{} '{}'", job.process_id, job.function_name),
+                &job.process_id.to_string(),
+                LinkType::Function,
+            )
+            .finish(),
+    );
+
+    lines.push(
+        DebugLineBuilder::new()
+            .text("  Parent: ")
+            .chip(
+                &format!("flow #{}", job.parent_id),
+                &job.parent_id.to_string(),
+                LinkType::Flow,
+            )
+            .finish(),
+    );
+
+    lines.push(crate::DebugEventLine::new(
+        format!("  Inputs: {:?}", job.payload.input_set),
+        None,
+    ));
+
+    if !job.connections.is_empty() {
+        lines.push(crate::DebugEventLine::new(
+            format!("  Connections ({}):", job.connections.len()),
+            None,
+        ));
+        for conn in &job.connections {
+            let source_label = match &conn.source {
+                flowcore::model::output_connection::Source::Output(route) => {
+                    format!("output {route}")
+                }
+                flowcore::model::output_connection::Source::Input(n) => format!("input #{n}"),
+            };
+            let mut b = DebugLineBuilder::new()
+                .text(&format!("    {source_label} \u{2192} "))
+                .chip(
+                    &format!("function #{}", conn.destination_id),
+                    &conn.destination_id.to_string(),
+                    LinkType::Function,
+                );
+            if !conn.destination.is_empty() {
+                b = b
+                    .text(" @ ")
+                    .chip(&conn.destination, &conn.destination, LinkType::Route);
+            }
+            b = b.text(&format!(" input:{}", conn.destination_io_number));
+            lines.push(b.finish());
+        }
+    }
+
+    lines
+}
+
+#[cfg(feature = "debugger")]
 fn format_inspect_flow(
     flow_id: usize,
     run_state: &flowrlib::run_state::RunState,
@@ -1242,19 +1375,18 @@ fn format_inspect_flow(
     let functions = run_state.get_functions();
     let manifest = &run_state.get_submission().manifest;
 
-    if let Some(func) = functions.get(&flow_id) {
-        lines.push(entity_line(func, "", LinkType::Flow, ""));
-    } else {
-        lines.push(
-            DebugLineBuilder::new()
-                .chip(
-                    &format!("flow #{flow_id}"),
-                    &flow_id.to_string(),
-                    LinkType::Flow,
-                )
-                .finish(),
-        );
+    let mut b = DebugLineBuilder::new().chip(
+        &format!("flow #{flow_id}"),
+        &flow_id.to_string(),
+        LinkType::Flow,
+    );
+    if let Some(fi) = manifest.flows().get(&flow_id) {
+        if !fi.name.is_empty() {
+            b = b.text(&format!(" '{}' @ ", fi.name));
+            b = b.chip(&fi.route, &fi.route, LinkType::Route);
+        }
     }
+    lines.push(b.finish());
 
     if let Some(flow_info) = manifest.flows().get(&flow_id) {
         if let Some(parent) = flow_info.parent_id {

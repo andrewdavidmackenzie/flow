@@ -604,6 +604,9 @@ pub enum Message {
     /// Function list received from debug server
     #[cfg(feature = "debugger")]
     DebugFunctionListReceived(Vec<CachedFunction>),
+    /// Flow entries received from a RunState-carrying message
+    #[cfg(feature = "debugger")]
+    DebugFlowsReceived(Vec<CachedFunction>),
     /// Breakpoint list received from debug server
     #[cfg(feature = "debugger")]
     DebugBreakpointListReceived(Vec<String>),
@@ -1148,6 +1151,7 @@ impl FlowrGui {
             | Message::BpPopupConfirm
             | Message::BpCycleFunction(_)
             | Message::DebugFunctionListReceived(_)
+            | Message::DebugFlowsReceived(_)
             | Message::DebugBreakpointListReceived(_)
             | Message::DebugInspectLink(_)
             | Message::DebugToggleSection(_)
@@ -1997,7 +2001,7 @@ impl FlowrGui {
                 }
             }
             InspectTab::Function => {
-                for f in &self.cached_functions {
+                for f in self.cached_functions.iter().filter(|f| !f.is_flow) {
                     let btn = Button::new(
                         Text::new(format!("#{} '{}' @ '{}'", f.id, f.name, f.route)).size(13),
                     )
@@ -2009,14 +2013,17 @@ impl FlowrGui {
                 }
             }
             InspectTab::Flow => {
-                for f in &self.cached_functions {
-                    let btn = Button::new(
-                        Text::new(format!("#{} '{}' @ {}", f.id, f.name, f.route)).size(13),
-                    )
-                    .width(Length::Fill)
-                    .padding([3, 8])
-                    .style(theme::list_button)
-                    .on_press(Message::InspectPopupSelect(format!("{}", f.id)));
+                for f in self.cached_functions.iter().filter(|f| f.is_flow) {
+                    let label = if f.name.is_empty() {
+                        format!("Flow #{}", f.id)
+                    } else {
+                        format!("Flow #{} '{}' @ {}", f.id, f.name, f.route)
+                    };
+                    let btn = Button::new(Text::new(label).size(13))
+                        .width(Length::Fill)
+                        .padding([3, 8])
+                        .style(theme::list_button)
+                        .on_press(Message::InspectPopupSelect(format!("{}", f.id)));
                     items = items.push(btn);
                 }
             }
@@ -2444,7 +2451,7 @@ impl FlowrGui {
     #[cfg(feature = "debugger")]
     #[cfg(feature = "debugger")]
     fn ensure_functions_cached(&mut self, action: Message) -> bool {
-        if self.cached_functions.is_empty() {
+        if self.cached_functions.iter().all(|f| f.is_flow) {
             self.pending_action = Some(action);
             self.suppress_next_output = true;
             connection_manager::send_debug_command(
@@ -2722,33 +2729,61 @@ impl FlowrGui {
                 connection_manager::send_debug_command(DebugCommand::Validate);
             }
             Message::DebugFunctionListReceived(functions) => {
+                let flows: Vec<_> = self
+                    .cached_functions
+                    .drain(..)
+                    .filter(|f| f.is_flow)
+                    .collect();
                 self.cached_functions = functions;
+                for flow in flows {
+                    if !self.cached_functions.iter().any(|f| f.id == flow.id) {
+                        self.cached_functions.push(flow);
+                    }
+                }
+                self.cached_functions.sort_by_key(|f| f.id);
                 if let Some(action) = self.pending_action.take() {
                     return self.process_debug_message(action);
                 }
+            }
+            Message::DebugFlowsReceived(flows) => {
+                for flow in flows {
+                    if !self.cached_functions.iter().any(|f| f.id == flow.id) {
+                        self.cached_functions.push(flow);
+                    }
+                }
+                self.cached_functions.sort_by_key(|f| f.id);
             }
             Message::DebugBreakpointListReceived(specs) => {
                 self.active_breakpoints = specs.into_iter().collect();
             }
             Message::DebugInspectLink(ref spec) => {
                 self.debug_waiting = false;
-                let label = if spec.parse::<usize>().is_ok() {
-                    format!("Inspect #{spec}")
-                } else if spec.contains(':') {
-                    format!("Inspect Input ({spec})")
-                } else if spec.starts_with('/') {
-                    format!("Inspect Route ({spec})")
-                } else if spec.contains('/') {
-                    format!("Inspect Output ({spec})")
+                if let Some(job_id_str) = spec.strip_prefix("job:") {
+                    if let Ok(job_id) = job_id_str.parse::<usize>() {
+                        self.debug_separator(&format!("Inspect Job #{job_id}"));
+                        connection_manager::send_debug_command(
+                            flowcore::model::debug_command::DebugCommand::InspectJob(job_id),
+                        );
+                    }
                 } else {
-                    format!("Inspect {spec}")
-                };
-                let params = Some(vec![spec.clone()]);
-                if let Some(cmd) = DebugClient::parse_inspect_spec(params) {
-                    self.debug_separator(&label);
-                    connection_manager::send_debug_command(cmd);
-                } else {
-                    self.debug_waiting = true;
+                    let label = if spec.parse::<usize>().is_ok() {
+                        format!("Inspect #{spec}")
+                    } else if spec.contains(':') {
+                        format!("Inspect Input ({spec})")
+                    } else if spec.starts_with('/') {
+                        format!("Inspect Route ({spec})")
+                    } else if spec.contains('/') {
+                        format!("Inspect Output ({spec})")
+                    } else {
+                        format!("Inspect {spec}")
+                    };
+                    let params = Some(vec![spec.clone()]);
+                    if let Some(cmd) = DebugClient::parse_inspect_spec(params) {
+                        self.debug_separator(&label);
+                        connection_manager::send_debug_command(cmd);
+                    } else {
+                        self.debug_waiting = true;
+                    }
                 }
             }
             Message::DebugToggleSection(section_id) => {

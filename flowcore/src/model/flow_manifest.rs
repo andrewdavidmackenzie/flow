@@ -40,6 +40,14 @@ pub struct FlowInfo {
     pub parent_id: Option<usize>,
     /// IDs of direct child sub-flows
     pub sub_flow_ids: Vec<usize>,
+    #[cfg(feature = "debugger")]
+    #[serde(default, skip_serializing_if = "String::is_empty")]
+    /// The name of this flow (for debugging display)
+    pub name: String,
+    #[cfg(feature = "debugger")]
+    #[serde(default, skip_serializing_if = "String::is_empty")]
+    /// The route of this flow (for debugging display)
+    pub route: String,
 }
 
 #[derive(Deserialize, Serialize, Clone, PartialEq, Eq, Debug)]

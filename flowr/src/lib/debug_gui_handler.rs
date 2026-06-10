@@ -136,6 +136,20 @@ impl DebuggerHandler for DebugGuiHandler {
         self.send_event(DebugServerMessage::InspectFlow(flow_id, state.clone()));
     }
 
+    fn job_inspect(&mut self, job: Job) {
+        self.send_event(DebugServerMessage::JobInspect(job));
+    }
+
+    fn flow_list(&mut self, _flow_ids: &[usize], state: &RunState) {
+        let manifest = &state.get_submission().manifest;
+        let flows: Vec<(usize, String, String)> = manifest
+            .flows()
+            .values()
+            .map(|fi| (fi.process_id, fi.name.clone(), fi.route.clone()))
+            .collect();
+        self.send_event(DebugServerMessage::FlowList(flows));
+    }
+
     fn panic(&mut self, state: &RunState, error_message: String) {
         self.send_event(DebugServerMessage::Panic(
             error_message,

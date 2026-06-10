@@ -395,6 +395,14 @@ impl DebugClient {
             DebugServerMessage::InspectFlow(flow_id, ref state) => {
                 println!("{}", Debugger::inspect_flow(state, flow_id));
             }
+            DebugServerMessage::FlowList(_) => {}
+            DebugServerMessage::JobInspect(ref job) => {
+                println!("Job #{}", job.payload.job_id);
+                println!("  Function: #{} '{}'", job.process_id, job.function_name);
+                println!("  Parent Flow: #{}", job.parent_id);
+                println!("  Inputs: {:?}", job.payload.input_set);
+                println!("  Connections: {}", job.connections.len());
+            }
         }
 
         Ok(Ack)

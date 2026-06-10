@@ -62,6 +62,10 @@ pub enum DebugServerMessage {
     InspectByState(String, RunState),
     /// Inspect a flow — carries flow ID and `RunState`
     InspectFlow(usize, RunState),
+    /// Inspect a job — carries the Job
+    JobInspect(Job),
+    /// List of flows with names and routes
+    FlowList(Vec<(usize, String, String)>),
     /// The list of active breakpoints
     BreakpointList(Vec<BreakpointSpec>),
     /// The run-time is resetting the status back to the initial state
@@ -104,6 +108,8 @@ impl fmt::Display for DebugServerMessage {
                 DebugServerMessage::ProcessTree(_) => "ProcessTree",
                 DebugServerMessage::InspectByState(_, _) => "InspectByState",
                 DebugServerMessage::InspectFlow(_, _) => "InspectFlow",
+                DebugServerMessage::JobInspect(_) => "JobInspect",
+                DebugServerMessage::FlowList(_) => "FlowList",
             }
         )
     }

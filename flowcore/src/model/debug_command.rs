@@ -51,6 +51,8 @@ pub enum DebugCommand {
     FunctionList,
     /// `inspect` a function
     InspectFunction(usize),
+    /// Inspect a job by `job_id`
+    InspectJob(usize),
     /// Inspect overall state
     Inspect,
     /// Inspect an Input (`function_id`, `input_number`)
