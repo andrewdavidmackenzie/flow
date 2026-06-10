@@ -125,15 +125,6 @@ impl<'a> Coordinator<'a> {
 
                 #[cfg(feature = "submission")]
                 if self.submission_handler.should_stop()? {
-                    #[cfg(feature = "metrics")]
-                    {
-                        metrics.stop_timer();
-                        metrics.set_jobs_created(state.get_number_of_jobs_created());
-                        self.submission_handler
-                            .flow_execution_ended(&state, metrics.clone())?;
-                    }
-                    #[cfg(not(feature = "metrics"))]
-                    self.submission_handler.flow_execution_ended(&state)?;
                     break 'flow_execution;
                 }
 
@@ -181,16 +172,7 @@ impl<'a> Coordinator<'a> {
                 }
             } // jobs loop end
 
-            // flow execution has ended — send metrics before entering post-mortem debugger
-            #[cfg(feature = "metrics")]
-            if !restart {
-                metrics.stop_timer();
-                metrics.set_jobs_created(state.get_number_of_jobs_created());
-                #[cfg(feature = "submission")]
-                self.submission_handler
-                    .flow_execution_ended(&state, metrics.clone())?;
-            }
-
+            // flow execution has ended
             #[allow(clippy::collapsible_if)]
             #[cfg(feature = "debugger")]
             if !restart {
@@ -208,12 +190,15 @@ impl<'a> Coordinator<'a> {
             if !restart {
                 break 'flow_execution;
             }
-
-            #[cfg(feature = "metrics")]
-            metrics.reset();
         }
 
-        // Send final metrics for non-debug or non-metrics builds
+        #[cfg(feature = "metrics")]
+        metrics.stop_timer();
+        #[cfg(feature = "metrics")]
+        metrics.set_jobs_created(state.get_number_of_jobs_created());
+        #[cfg(all(feature = "submission", feature = "metrics"))]
+        self.submission_handler
+            .flow_execution_ended(&state, metrics)?;
         #[cfg(all(feature = "submission", not(feature = "metrics")))]
         self.submission_handler.flow_execution_ended(&state)?;
 
