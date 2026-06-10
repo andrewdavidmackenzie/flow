@@ -107,7 +107,34 @@ fn tree_connector_canvas(segments: &[crate::TreeSegment]) -> Element<'static, Me
 }
 
 #[cfg(feature = "debugger")]
-fn chip_row<'a>(line: &crate::DebugEventLine) -> Row<'a, Message> {
+fn chip_tooltip(
+    spec: &str,
+    link_type: crate::LinkType,
+    cache: &[crate::CachedFunction],
+) -> Option<String> {
+    if !matches!(link_type, crate::LinkType::Function | crate::LinkType::Flow) {
+        return None;
+    }
+    let id: usize = spec.parse().ok()?;
+    let func = cache.iter().find(|f| f.id == id)?;
+    if func.name.is_empty() && func.route.is_empty() {
+        return None;
+    }
+    let mut tip = String::new();
+    if !func.name.is_empty() {
+        tip.push_str(&func.name);
+    }
+    if !func.route.is_empty() {
+        if !tip.is_empty() {
+            tip.push('\n');
+        }
+        tip.push_str(&func.route);
+    }
+    Some(tip)
+}
+
+#[cfg(feature = "debugger")]
+fn chip_row<'a>(line: &crate::DebugEventLine, cache: &[crate::CachedFunction]) -> Row<'a, Message> {
     let base_color = line.color;
     let mut row = Row::new()
         .align_y(iced::alignment::Vertical::Center)
@@ -129,20 +156,45 @@ fn chip_row<'a>(line: &crate::DebugEventLine) -> Row<'a, Message> {
         let chip_color = chip_color_for(link.link_type);
         let label = line.text[link.start..link.end].to_lowercase();
         let spec = link.spec.clone();
-        row = row.push(
-            Button::new(
-                Text::new(label)
-                    .size(crate::theme::FONT_MD)
-                    .color(iced::Color::WHITE)
-                    .font(iced::Font {
-                        weight: iced::font::Weight::Bold,
-                        ..iced::Font::DEFAULT
-                    }),
-            )
-            .on_press(Message::DebugInspectLink(spec))
-            .style(crate::theme::chip_button(chip_color))
-            .padding([3, 10]),
-        );
+        let chip_btn = Button::new(
+            Text::new(label)
+                .size(crate::theme::FONT_MD)
+                .color(iced::Color::WHITE)
+                .font(iced::Font {
+                    weight: iced::font::Weight::Bold,
+                    ..iced::Font::DEFAULT
+                }),
+        )
+        .on_press(Message::DebugInspectLink(spec.clone()))
+        .style(crate::theme::chip_button(chip_color))
+        .padding([3, 10]);
+
+        if let Some(tip) = chip_tooltip(&spec, link.link_type, cache) {
+            row = row.push(
+                iced::widget::tooltip(
+                    chip_btn,
+                    Text::new(tip).size(crate::theme::FONT_SM),
+                    iced::widget::tooltip::Position::Top,
+                )
+                .style(|_: &iced::Theme| iced::widget::container::Style {
+                    background: Some(iced::Background::Color(crate::theme::SURFACE_TOOLTIP)),
+                    text_color: Some(iced::Color::WHITE),
+                    border: iced::Border {
+                        radius: crate::theme::RADIUS_SM.into(),
+                        width: 1.0,
+                        color: iced::Color {
+                            a: 0.3,
+                            ..crate::theme::ACCENT
+                        },
+                    },
+                    ..Default::default()
+                })
+                .padding(6)
+                .gap(4),
+            );
+        } else {
+            row = row.push(chip_btn);
+        }
         pos = link.end;
     }
     if pos < line.text.len() {
@@ -332,7 +384,8 @@ impl TabSet {
         Task::none()
     }
 
-    pub(crate) fn view(&self) -> Element<'_, Message> {
+    #[allow(unused_variables)]
+    pub(crate) fn view(&self, cached_functions: &[crate::CachedFunction]) -> Element<'_, Message> {
         let mut tab_labels: Vec<(usize, String)> = vec![
             (0, self.stdout_tab.label_text()),
             (1, self.stderr_tab.label_text()),
@@ -366,7 +419,7 @@ impl TabSet {
             3 => self.images_tab.view(),
             4 => self.fileio_tab.view(),
             #[cfg(feature = "debugger")]
-            5 => self.debug_tab.view(),
+            5 => self.debug_tab.view_with_cache(cached_functions),
             _ => text("").into(),
         };
 
@@ -937,8 +990,26 @@ impl Tab for DebugTab {
         }
     }
 
-    #[allow(clippy::too_many_lines)]
     fn view(&self) -> Element<'_, Message> {
+        self.view_with_cache(&[])
+    }
+
+    fn clear(&mut self) {
+        self.content.clear();
+        self.unread_count = 0;
+        self.collapsed.clear();
+        self.section_parent.clear();
+        self.depth_stack.clear();
+        self.top_level_next = false;
+        self.next_section_id = 1;
+        self.current_section_id = 0;
+    }
+}
+
+#[cfg(feature = "debugger")]
+impl DebugTab {
+    #[allow(clippy::too_many_lines)]
+    pub fn view_with_cache(&self, cache: &[crate::CachedFunction]) -> Element<'_, Message> {
         let text_column = Column::with_children(
             self.content
                 .iter()
@@ -980,7 +1051,7 @@ impl Tab for DebugTab {
                                 row = row.push(tree_connector_canvas(&line.tree_prefix));
                             }
                             row = row.push(toggle_btn);
-                            let chips = chip_row(line);
+                            let chips = chip_row(line, cache);
                             Element::from(row.push(chips))
                         } else {
                             // Regular separator — toggle + rules + label
@@ -1024,7 +1095,7 @@ impl Tab for DebugTab {
                             )
                         }
                     } else {
-                        let chips = chip_row(line);
+                        let chips = chip_row(line, cache);
                         if line.tree_prefix.is_empty() {
                             Element::from(chips)
                         } else {
@@ -1089,17 +1160,6 @@ impl Tab for DebugTab {
             .align_y(iced::alignment::Vertical::Center);
 
         Column::new().push(toolbar).push(scrollable).into()
-    }
-
-    fn clear(&mut self) {
-        self.content.clear();
-        self.unread_count = 0;
-        self.collapsed.clear();
-        self.section_parent.clear();
-        self.depth_stack.clear();
-        self.top_level_next = false;
-        self.next_section_id = 1;
-        self.current_section_id = 0;
     }
 }
 
