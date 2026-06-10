@@ -1220,7 +1220,7 @@ impl FlowrGui {
         let tab_area: Element<'_, Message> = if self.show_inspect_popup {
             let panel = self.inspect_panel();
             Row::new()
-                .push(iced::widget::container(tab_content).width(iced::Length::FillPortion(7)))
+                .push(iced::widget::container(tab_content).width(iced::Length::FillPortion(6)))
                 .push(panel)
                 .spacing(2)
                 .height(iced::Length::Fill)
@@ -2097,9 +2097,9 @@ impl FlowrGui {
             .push(Container::new(iced::widget::text("")).width(Length::Fill))
             .push(
                 Button::new(
-                    Text::new("\u{2715}")
-                        .font(iced::Font::with_name("icons"))
-                        .size(theme::FONT_MD),
+                    Text::new("\u{00BB}")
+                        .size(20.0)
+                        .shaping(iced::widget::text::Shaping::Advanced),
                 )
                 .on_press(Message::CloseInspectPopup)
                 .style(theme::ghost_button)
@@ -2120,27 +2120,14 @@ impl FlowrGui {
             .push(list);
 
         Container::new(panel_content)
-            .width(Length::FillPortion(3))
+            .width(Length::FillPortion(4))
             .padding(theme::SPACE_LG)
             .style(|_: &iced::Theme| iced::widget::container::Style {
                 background: Some(iced::Background::Color(theme::SURFACE_BUTTON)),
                 border: iced::Border {
-                    radius: iced::border::Radius {
-                        top_left: theme::RADIUS_MD,
-                        bottom_left: theme::RADIUS_MD,
-                        top_right: 0.0,
-                        bottom_right: 0.0,
-                    },
-                    width: 2.0,
-                    color: iced::Color {
-                        a: 0.5,
-                        ..theme::ACCENT
-                    },
-                },
-                shadow: iced::Shadow {
-                    color: iced::Color::BLACK,
-                    offset: iced::Vector::new(-4.0, 2.0),
-                    blur_radius: 12.0,
+                    radius: 0.0.into(),
+                    width: 0.0,
+                    color: iced::Color::TRANSPARENT,
                 },
                 ..Default::default()
             })
