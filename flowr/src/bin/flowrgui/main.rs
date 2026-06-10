@@ -1237,24 +1237,15 @@ impl FlowrGui {
             let panel = self.inspect_panel();
             let dismiss = mouse_area(
                 Container::new(iced::widget::text(""))
-                    .style(|_: &iced::Theme| iced::widget::container::Style {
-                        background: Some(iced::Background::Color(iced::Color {
-                            r: 0.0,
-                            g: 0.0,
-                            b: 0.0,
-                            a: 0.3,
-                        })),
-                        ..Default::default()
-                    })
                     .width(Length::Fill)
                     .height(Length::Fill),
             )
             .on_press(Message::CloseInspectPopup);
             return stack![
                 main_content,
-                Row::new()
-                    .push(dismiss)
-                    .push(panel)
+                Column::new()
+                    .push(iced::widget::text("").height(Length::Fixed(80.0)))
+                    .push(Row::new().push(dismiss).push(panel).height(Length::Fill))
                     .width(Length::Fill)
                     .height(Length::Fill)
             ]
@@ -2135,7 +2126,7 @@ impl FlowrGui {
             .push(list);
 
         Container::new(panel_content)
-            .width(Length::FillPortion(3))
+            .width(Length::Fixed(320.0))
             .height(Length::Fill)
             .padding(theme::SPACE_LG)
             .style(|_: &iced::Theme| iced::widget::container::Style {
