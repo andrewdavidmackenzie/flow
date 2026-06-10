@@ -1244,8 +1244,12 @@ impl FlowrGui {
             return stack![
                 main_content,
                 Column::new()
-                    .push(iced::widget::text("").height(Length::Fixed(80.0)))
-                    .push(Row::new().push(dismiss).push(panel).height(Length::Fill))
+                    .push(Container::new(iced::widget::text("")).height(Length::Fixed(100.0)))
+                    .push(
+                        Row::new()
+                            .push(dismiss)
+                            .push(Container::new(panel).align_y(iced::alignment::Vertical::Top))
+                    )
                     .width(Length::Fill)
                     .height(Length::Fill)
             ]
@@ -2126,18 +2130,27 @@ impl FlowrGui {
             .push(list);
 
         Container::new(panel_content)
-            .width(Length::Fixed(320.0))
-            .height(Length::Fill)
+            .width(Length::Fixed(450.0))
             .padding(theme::SPACE_LG)
             .style(|_: &iced::Theme| iced::widget::container::Style {
                 background: Some(iced::Background::Color(theme::SURFACE_BUTTON)),
                 border: iced::Border {
-                    radius: 0.0.into(),
+                    radius: iced::border::Radius {
+                        top_left: theme::RADIUS_MD,
+                        bottom_left: theme::RADIUS_MD,
+                        top_right: 0.0,
+                        bottom_right: 0.0,
+                    },
                     width: 2.0,
                     color: iced::Color {
                         a: 0.5,
                         ..theme::ACCENT
                     },
+                },
+                shadow: iced::Shadow {
+                    color: iced::Color::BLACK,
+                    offset: iced::Vector::new(-4.0, 2.0),
+                    blur_radius: 12.0,
                 },
                 ..Default::default()
             })
