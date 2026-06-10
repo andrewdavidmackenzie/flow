@@ -444,6 +444,7 @@ mod test {
         fn input(&mut self, _input: Input) {}
         fn function_list(&mut self, _functions: &[RuntimeFunction]) {}
         fn function_states(&mut self, _: RuntimeFunction, _: Vec<State>, _: Vec<usize>) {}
+        fn inspect_function(&mut self, _: usize, _: &RunState) {}
         fn run_state(&mut self, _run_state: &RunState) {}
         fn message(&mut self, _message: String) {}
         fn breakpoint_list(&mut self, _breakpoints: Vec<crate::debug_command::BreakpointSpec>) {}

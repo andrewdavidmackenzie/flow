@@ -389,6 +389,13 @@ impl Input {
         self.values_available() == 0
     }
 
+    /// Get the queued values for inspection
+    #[cfg(feature = "debugger")]
+    #[must_use]
+    pub fn received_values(&self) -> &[Value] {
+        &self.received
+    }
+
     /// Return true if this input has pending internal values
     #[must_use]
     pub fn has_internal(&self) -> bool {

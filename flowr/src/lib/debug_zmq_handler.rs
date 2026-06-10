@@ -160,6 +160,13 @@ impl DebuggerHandler for DebugZmqHandler {
             );
     }
 
+    fn inspect_function(&mut self, function_id: usize, state: &RunState) {
+        let _: flowcore::errors::Result<DebugCommand> =
+            self.debug_server_connection.send_and_receive_response(
+                DebugServerMessage::InspectFunction(function_id, state.clone()),
+            );
+    }
+
     fn inspect_flow(&mut self, flow_id: usize, state: &RunState) {
         let _: flowcore::errors::Result<DebugCommand> = self
             .debug_server_connection

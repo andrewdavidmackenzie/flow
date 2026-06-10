@@ -401,6 +401,28 @@ impl DebugClient {
             DebugServerMessage::InspectFlow(flow_id, ref state) => {
                 println!("{}", Debugger::inspect_flow(state, flow_id));
             }
+            DebugServerMessage::InspectFunction(func_id, ref state) => {
+                if let Some(func) = state.get_function(func_id) {
+                    print!("{func}");
+                    println!("\tState: {:?}", state.get_function_states(func_id));
+                    for (i, input) in func.inputs().iter().enumerate() {
+                        let name = if input.name().is_empty() {
+                            format!("input:{i}")
+                        } else {
+                            format!("input:{i} '{}'", input.name())
+                        };
+                        if input.is_empty() {
+                            println!("\t{name} — empty (waiting)");
+                        } else {
+                            println!(
+                                "\t{name} — {} value(s): {:?}",
+                                input.values_available(),
+                                input.received_values()
+                            );
+                        }
+                    }
+                }
+            }
             DebugServerMessage::FlowList(_) => {}
             DebugServerMessage::JobInspect(ref job) => {
                 println!("Job #{}", job.payload.job_id);

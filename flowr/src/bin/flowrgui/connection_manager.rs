@@ -789,6 +789,9 @@ fn format_debug_event(message: &DebugServerMessage) -> Vec<crate::DebugEventLine
         DebugServerMessage::InspectByState(ref state_name, ref state) => {
             format_inspect_by_state(state_name, state)
         }
+        DebugServerMessage::InspectFunction(func_id, ref state) => {
+            format_inspect_function(*func_id, state)
+        }
         DebugServerMessage::InspectFlow(flow_id, ref state) => format_inspect_flow(*flow_id, state),
         DebugServerMessage::JobInspect(ref job) => format_inspect_job(job),
         DebugServerMessage::Invalid => line(
@@ -1001,6 +1004,7 @@ fn debug_client_stream(address: String) -> impl iced::futures::Stream<Item = Mes
 
                     if let DebugServerMessage::ProcessTree(ref state)
                     | DebugServerMessage::InspectByState(_, ref state)
+                    | DebugServerMessage::InspectFunction(_, ref state)
                     | DebugServerMessage::InspectFlow(_, ref state)
                     | DebugServerMessage::OverallState(ref state) = message
                     {
@@ -1519,6 +1523,106 @@ fn format_inspect_job(job: &flowcore::model::job::Job) -> Vec<crate::DebugEventL
             }
             b = b.text(&format!(" input:{}", conn.destination_io_number));
             lines.push(b.finish());
+        }
+    }
+
+    lines
+}
+
+#[cfg(feature = "debugger")]
+#[cfg(feature = "debugger")]
+fn format_inspect_function(
+    func_id: usize,
+    run_state: &flowrlib::run_state::RunState,
+) -> Vec<crate::DebugEventLine> {
+    use crate::{DebugEventLine, DebugLineBuilder, LinkType};
+
+    let mut lines = Vec::new();
+    let functions = run_state.get_functions();
+
+    let Some(func) = functions.get(&func_id) else {
+        return vec![DebugEventLine::new(
+            format!("Function #{func_id} not found"),
+            Some(crate::theme::debug_colors::ERROR),
+        )];
+    };
+
+    let states = run_state.get_function_states(func_id);
+    lines.push(entity_line_with_states(
+        func,
+        "",
+        LinkType::Function,
+        &states,
+    ));
+
+    for (i, input) in func.inputs().iter().enumerate() {
+        let name = if input.name().is_empty() {
+            format!("input:{i}")
+        } else {
+            format!("input:{i} '{}'", input.name())
+        };
+
+        if input.is_empty() {
+            let mut senders: Vec<usize> = Vec::new();
+            for sender in functions.values() {
+                for conn in sender.get_output_connections() {
+                    if conn.destination_id == func_id
+                        && conn.destination_io_number == i
+                        && !senders.contains(&sender.id())
+                    {
+                        senders.push(sender.id());
+                    }
+                }
+            }
+            senders.sort_unstable();
+
+            let mut b = DebugLineBuilder::new().text(&format!("  {name} — empty, waiting for: "));
+            for (j, sid) in senders.iter().enumerate() {
+                if j > 0 {
+                    b = b.text(", ");
+                }
+                b = b.chip(
+                    &format!("function #{sid}"),
+                    &sid.to_string(),
+                    LinkType::Function,
+                );
+            }
+            if senders.is_empty() {
+                b = b.text("(no senders)");
+            }
+            lines.push(b.finish());
+        } else {
+            let vals = input.received_values();
+            let val_str: Vec<String> = vals.iter().map(|v| format!("{v}")).collect();
+            lines.push(DebugEventLine::new(
+                format!(
+                    "  {name} — {} value(s): [{}]",
+                    vals.len(),
+                    val_str.join(", ")
+                ),
+                None,
+            ));
+        }
+
+        if let Some(init) = input.initializer() {
+            let (kind, val) = match init {
+                flowcore::model::input::InputInitializer::Once(v) => ("once", v),
+                flowcore::model::input::InputInitializer::Always(v) => ("always", v),
+            };
+            lines.push(DebugEventLine::new(
+                format!("    initializer ({kind}): {val}"),
+                Some(crate::theme::TEXT_SECONDARY),
+            ));
+        }
+        if let Some(init) = input.flow_initializer() {
+            let (kind, val) = match init {
+                flowcore::model::input::InputInitializer::Once(v) => ("once", v),
+                flowcore::model::input::InputInitializer::Always(v) => ("always", v),
+            };
+            lines.push(DebugEventLine::new(
+                format!("    flow initializer ({kind}): {val}"),
+                Some(crate::theme::TEXT_SECONDARY),
+            ));
         }
     }
 

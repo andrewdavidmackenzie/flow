@@ -139,6 +139,13 @@ impl DebuggerHandler for DebugGuiHandler {
         ));
     }
 
+    fn inspect_function(&mut self, function_id: usize, state: &RunState) {
+        self.send_event(DebugServerMessage::InspectFunction(
+            function_id,
+            state.clone(),
+        ));
+    }
+
     fn inspect_flow(&mut self, flow_id: usize, state: &RunState) {
         self.send_event(DebugServerMessage::InspectFlow(flow_id, state.clone()));
     }

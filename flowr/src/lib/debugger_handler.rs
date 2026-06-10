@@ -77,6 +77,8 @@ pub trait DebuggerHandler {
     fn process_tree(&mut self, state: &RunState);
     /// Inspect functions by state — structured data for rendering
     fn inspect_by_state(&mut self, state_name: &str, state: &RunState);
+    /// Inspect a function — structured data for detailed rendering
+    fn inspect_function(&mut self, function_id: usize, state: &RunState);
     /// Inspect a flow — structured data for rendering
     fn inspect_flow(&mut self, flow_id: usize, state: &RunState);
     /// Inspect a job — structured data for rendering
