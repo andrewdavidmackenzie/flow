@@ -1298,6 +1298,68 @@ fn format_run_state(run_state: &flowrlib::run_state::RunState) -> Vec<crate::Deb
     // RunState stats
     lines.push(DebugEventLine::new("RunState:".into(), None));
 
+    // Functions by state
+    let all_functions = run_state.get_functions();
+    let mut waiting_funcs = Vec::new();
+    let mut ready_funcs = Vec::new();
+    let mut running_funcs = Vec::new();
+    for func in all_functions.values() {
+        let states = run_state.get_function_states(func.id());
+        if states.contains(&flowrlib::run_state::State::Waiting) {
+            waiting_funcs.push(func.id());
+        }
+        if states.contains(&flowrlib::run_state::State::Ready) {
+            ready_funcs.push(func.id());
+        }
+        if states.contains(&flowrlib::run_state::State::Running) {
+            running_funcs.push(func.id());
+        }
+    }
+    waiting_funcs.sort_unstable();
+    ready_funcs.sort_unstable();
+    running_funcs.sort_unstable();
+
+    // Functions waiting
+    let mut b = DebugLineBuilder::new().text("  ").chip(
+        &format!("functions waiting ({}):", waiting_funcs.len()),
+        "waiting",
+        LinkType::StateWaiting,
+    );
+    for id in &waiting_funcs {
+        b = b
+            .text(" ")
+            .chip(&format!("#{id}"), &id.to_string(), LinkType::Function);
+    }
+    lines.push(b.finish());
+
+    // Functions ready
+    let mut b = DebugLineBuilder::new().text("  ").chip(
+        &format!("functions ready ({}):", ready_funcs.len()),
+        "ready",
+        LinkType::StateReady,
+    );
+    for id in &ready_funcs {
+        b = b
+            .text(" ")
+            .chip(&format!("#{id}"), &id.to_string(), LinkType::Function);
+    }
+    lines.push(b.finish());
+
+    // Functions running
+    if !running_funcs.is_empty() {
+        let mut b = DebugLineBuilder::new().text("  ").chip(
+            &format!("functions running ({}):", running_funcs.len()),
+            "running",
+            LinkType::StateRunning,
+        );
+        for id in &running_funcs {
+            b = b
+                .text(" ")
+                .chip(&format!("#{id}"), &id.to_string(), LinkType::Function);
+        }
+        lines.push(b.finish());
+    }
+
     // Running jobs
     let running = run_state.get_running();
     let mut b = DebugLineBuilder::new().text("  ").chip(
