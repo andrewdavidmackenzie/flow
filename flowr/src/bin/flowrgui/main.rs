@@ -1215,8 +1215,24 @@ impl FlowrGui {
             }
         }
 
+        let tab_content = self.tab_set.view(&self.cached_functions);
+        #[cfg(feature = "debugger")]
+        let tab_area: Element<'_, Message> = if self.show_inspect_popup {
+            let panel = self.inspect_panel();
+            Row::new()
+                .push(iced::widget::container(tab_content).width(iced::Length::Fill))
+                .push(panel)
+                .spacing(2)
+                .height(iced::Length::Fill)
+                .into()
+        } else {
+            tab_content
+        };
+        #[cfg(not(feature = "debugger"))]
+        let tab_area = tab_content;
+
         let main_content = main_content
-            .push(self.tab_set.view(&self.cached_functions))
+            .push(tab_area)
             .push(self.status_bar())
             .padding([theme::SPACE_XS, theme::SPACE_SM]);
 
@@ -1226,16 +1242,6 @@ impl FlowrGui {
             return stack![
                 main_content,
                 opaque(mouse_area(center(opaque(bp_popup))).on_press(Message::CloseBpPopup))
-            ]
-            .into();
-        }
-
-        #[cfg(feature = "debugger")]
-        if self.show_inspect_popup {
-            let popup = self.inspect_popup_card();
-            return stack![
-                main_content,
-                opaque(mouse_area(center(opaque(popup))).on_press(Message::CloseInspectPopup))
             ]
             .into();
         }
@@ -1963,8 +1969,9 @@ impl FlowrGui {
 
     #[cfg(feature = "debugger")]
     #[allow(clippy::too_many_lines)]
-    fn inspect_popup_card(&self) -> Card<'_, Message> {
+    fn inspect_panel(&self) -> Element<'_, Message> {
         use iced::widget::scrollable::Scrollable;
+        use iced::widget::Container;
         use iced::Length;
 
         let tab_row = Row::new()
@@ -2082,29 +2089,49 @@ impl FlowrGui {
         }
 
         let list = Scrollable::new(items)
-            .height(Length::Fixed(200.0))
+            .height(Length::Fill)
             .width(Length::Fill);
 
-        let body = Column::new().spacing(8).push(tab_row).push(list);
-
-        let inspect_header = Row::new()
-            .push(Text::new("Inspect"))
-            .push(iced::widget::container(Text::new("")).width(iced::Length::Fill))
+        let header = Row::new()
+            .push(Text::new("Inspect").size(theme::FONT_DEFAULT))
+            .push(Container::new(iced::widget::text("")).width(Length::Fill))
             .push(
                 Button::new(
-                    Text::new("\u{2715}")
-                        .font(iced::Font::with_name("icons"))
-                        .size(theme::FONT_MD),
+                    Text::new("\u{00BB}")
+                        .size(20.0)
+                        .shaping(iced::widget::text::Shaping::Advanced),
                 )
                 .on_press(Message::CloseInspectPopup)
-                .style(theme::list_button)
+                .style(theme::ghost_button)
                 .padding(theme::BUTTON_PAD_SM),
             )
-            .align_y(iced::alignment::Vertical::Center);
+            .align_y(iced::alignment::Vertical::Center)
+            .padding(iced::Padding {
+                top: 0.0,
+                right: 0.0,
+                bottom: theme::SPACE_SM,
+                left: 0.0,
+            });
 
-        Card::new(inspect_header, body)
-            .style(theme::popup_card)
-            .max_width(500.0)
+        let panel_content = Column::new()
+            .spacing(theme::SPACE_MD)
+            .push(header)
+            .push(tab_row)
+            .push(list);
+
+        Container::new(panel_content)
+            .width(Length::Fixed(380.0))
+            .padding(theme::SPACE_LG)
+            .style(|_: &iced::Theme| iced::widget::container::Style {
+                background: Some(iced::Background::Color(theme::SURFACE_BUTTON)),
+                border: iced::Border {
+                    radius: 0.0.into(),
+                    width: 0.0,
+                    color: iced::Color::TRANSPARENT,
+                },
+                ..Default::default()
+            })
+            .into()
     }
 
     fn status_bar(&self) -> Column<'_, Message> {
@@ -2766,20 +2793,39 @@ impl FlowrGui {
                 self.debug_waiting = false;
                 if let Some(job_id_str) = spec.strip_prefix("job:") {
                     if let Ok(job_id) = job_id_str.parse::<usize>() {
-                        self.debug_separator(&format!("Inspect Job #{job_id}"));
+                        self.debug_separator(&format!("Job #{job_id}"));
                         connection_manager::send_debug_command(
                             flowcore::model::debug_command::DebugCommand::InspectJob(job_id),
                         );
                     }
                 } else {
-                    let label = if spec.parse::<usize>().is_ok() {
-                        format!("Inspect #{spec}")
+                    let state_keywords = DebugClient::STATE_KEYWORDS;
+                    let label = if let Ok(id) = spec.parse::<usize>() {
+                        let is_flow = self
+                            .cached_functions
+                            .iter()
+                            .any(|f| f.id == id && f.is_flow);
+                        if is_flow {
+                            format!("Flow #{id}")
+                        } else {
+                            format!("Function #{id}")
+                        }
                     } else if spec.contains(':') {
-                        format!("Inspect Input ({spec})")
+                        format!("Input ({spec})")
                     } else if spec.starts_with('/') {
-                        format!("Inspect Route ({spec})")
+                        let is_flow = self
+                            .cached_functions
+                            .iter()
+                            .any(|f| f.is_flow && f.route == *spec);
+                        if is_flow {
+                            format!("Flow @ {spec}")
+                        } else {
+                            format!("Function @ {spec}")
+                        }
                     } else if spec.contains('/') {
-                        format!("Inspect Output ({spec})")
+                        format!("Output ({spec})")
+                    } else if state_keywords.contains(&spec.as_str()) {
+                        format!("Functions in {spec} state")
                     } else {
                         format!("Inspect {spec}")
                     };

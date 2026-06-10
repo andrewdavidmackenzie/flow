@@ -740,14 +740,21 @@ fn format_debug_event(message: &DebugServerMessage) -> Vec<crate::DebugEventLine
                     None,
                 )]
             } else {
-                vec![DebugEventLine::new(
-                    format!(
-                        "Input {name_label}— {} value(s) queued: {}",
-                        input.values_available(),
-                        format!("{input}").trim()
-                    ),
-                    None,
-                )]
+                {
+                    let vals: Vec<String> = input
+                        .received_values()
+                        .iter()
+                        .map(|v| format!("{v}"))
+                        .collect();
+                    vec![DebugEventLine::new(
+                        format!(
+                            "Input {name_label}— {} value(s) queued: [{}]",
+                            input.values_available(),
+                            vals.join(", ")
+                        ),
+                        None,
+                    )]
+                }
             }
         }
         DebugServerMessage::OutputState(connections) => {
@@ -1487,13 +1494,6 @@ fn format_inspect_by_state(
     sorted.sort_by_key(|f| f.id());
 
     if let Some(ref target) = target_state {
-        lines.push(
-            crate::DebugLineBuilder::new()
-                .text("Functions in ")
-                .chip(state_name, state_name, state_link_type(target))
-                .text(" state:")
-                .finish(),
-        );
         let mut count = 0;
         for func in &sorted {
             let states = run_state.get_function_states(func.id());
@@ -1511,7 +1511,6 @@ fn format_inspect_by_state(
             lines.push(DebugEventLine::new("  (none)".into(), None));
         }
     } else {
-        lines.push(DebugEventLine::new("Blocked functions:".into(), None));
         let mut count = 0;
         for func in &sorted {
             let states = run_state.get_function_states(func.id());
