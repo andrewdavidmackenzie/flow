@@ -808,7 +808,7 @@ fn format_debug_event(message: &DebugServerMessage) -> Vec<crate::DebugEventLine
         DebugServerMessage::FlowList(_) => vec![],
         DebugServerMessage::BreakpointList(specs) => {
             if specs.is_empty() {
-                line("No breakpoints set".into(), None)
+                vec![]
             } else {
                 let mut lines = Vec::new();
                 for spec in specs {
