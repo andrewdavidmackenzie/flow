@@ -385,6 +385,7 @@ impl TabSet {
     }
 
     #[allow(unused_variables)]
+    #[allow(clippy::too_many_lines)]
     pub(crate) fn view(&self, cached_functions: &[crate::CachedFunction]) -> Element<'_, Message> {
         let mut tab_labels: Vec<(usize, String)> = vec![
             (0, self.stdout_tab.label_text()),
@@ -411,6 +412,87 @@ impl TabSet {
                 })
                 .collect::<Vec<Element<'_, Message>>>(),
         );
+
+        // Build tab controls (right-aligned in tab bar)
+        let tab_controls = {
+            let mut row = Row::new()
+                .spacing(crate::theme::SPACE_MD)
+                .align_y(iced::alignment::Vertical::Center);
+
+            // Auto-scroll toggle for scrollable tabs
+            let has_auto_scroll = matches!(self.active_tab, 0 | 1 | 2 | 4 | 5);
+            if has_auto_scroll {
+                let (is_on, id) = match self.active_tab {
+                    0 => (self.stdout_tab.auto_scroll, self.stdout_tab.id.clone()),
+                    1 => (self.stderr_tab.auto_scroll, self.stderr_tab.id.clone()),
+                    2 => (self.stdin_tab.auto_scroll, self.stdin_tab.id.clone()),
+                    4 => (self.fileio_tab.auto_scroll, self.fileio_tab.id.clone()),
+                    #[cfg(feature = "debugger")]
+                    5 => (self.debug_tab.auto_scroll, self.debug_tab.id.clone()),
+                    _ => (false, Id::unique()),
+                };
+                row = row.push(
+                    toggler(is_on)
+                        .label("Auto-scroll")
+                        .on_toggle(move |v| Message::StdioAutoScrollTogglerChanged(id.clone(), v))
+                        .size(12.0)
+                        .text_size(crate::theme::FONT_SM)
+                        .style(crate::theme::accent_toggler)
+                        .width(Length::Shrink),
+                );
+            }
+
+            // Save/Clear for content tabs (not images)
+            let tab_name = match self.active_tab {
+                0 => Some(self.stdout_tab.name.clone()),
+                1 => Some(self.stderr_tab.name.clone()),
+                2 => Some(self.stdin_tab.name.clone()),
+                4 => Some(self.fileio_tab.name.clone()),
+                #[cfg(feature = "debugger")]
+                5 => Some(self.debug_tab.name.clone()),
+                _ => None,
+            };
+            if let Some(name) = tab_name {
+                row = row.push(
+                    Button::new(Text::new("Save").size(crate::theme::FONT_SM))
+                        .on_press(Message::SaveTabContent(name.clone()))
+                        .style(crate::theme::ghost_button)
+                        .padding([2, 6]),
+                );
+                row = row.push(
+                    Button::new(Text::new("Clear").size(crate::theme::FONT_SM))
+                        .on_press(Message::ClearTab(name))
+                        .style(crate::theme::ghost_button)
+                        .padding([2, 6]),
+                );
+            }
+
+            // Save for images tab
+            if self.active_tab == 3 {
+                if let Some(name) = self.images_tab.images.keys().last() {
+                    row = row.push(
+                        Button::new(Text::new("Save").size(crate::theme::FONT_SM))
+                            .on_press(Message::SaveImage(name.clone()))
+                            .style(crate::theme::ghost_button)
+                            .padding([2, 6]),
+                    );
+                }
+            }
+
+            row
+        };
+
+        let tab_bar = Row::new()
+            .push(tab_bar)
+            .push(Container::new(Text::new("")).width(Length::Fill))
+            .push(tab_controls)
+            .align_y(iced::alignment::Vertical::Center)
+            .padding(iced::Padding {
+                top: 0.0,
+                right: crate::theme::SPACE_SM,
+                bottom: 0.0,
+                left: 0.0,
+            });
 
         let content: Element<'_, Message> = match self.active_tab {
             0 => self.stdout_tab.view(),
@@ -562,32 +644,7 @@ impl Tab for StdOutTab {
             .height(Length::Fill)
             .id(self.id.clone());
 
-        let toggler = toggler(self.auto_scroll)
-            .label("Auto-scroll")
-            .on_toggle(|v| Message::StdioAutoScrollTogglerChanged(self.id.clone(), v))
-            .size(14.0)
-            .text_size(crate::theme::FONT_DEFAULT)
-            .style(crate::theme::accent_toggler)
-            .width(Length::Shrink);
-
-        let save_button = Button::new(Text::new("Save").size(crate::theme::FONT_DEFAULT))
-            .on_press(Message::SaveTabContent(self.name.clone()))
-            .style(crate::theme::pill_button)
-            .padding([4.0, 12.0]);
-        let clear_button = Button::new(Text::new("Clear").size(crate::theme::FONT_DEFAULT))
-            .on_press(Message::ClearTab(self.name.clone()))
-            .style(crate::theme::pill_button)
-            .padding([4.0, 12.0]);
-
-        let toolbar = Row::new()
-            .push(toggler)
-            .push(save_button)
-            .push(clear_button)
-            .spacing(crate::theme::SPACE_MD)
-            .padding(crate::theme::SPACE_XS)
-            .align_y(iced::alignment::Vertical::Center);
-
-        Column::new().push(toolbar).push(scrollable).into()
+        scrollable.into()
     }
 
     fn clear(&mut self) {
@@ -778,23 +835,6 @@ impl Tab for StdInTab {
                 .width(Length::Fill)
                 .padding(1);
 
-        let toggler = toggler(self.auto_scroll)
-            .label("Auto-scroll")
-            .on_toggle(|v| Message::StdioAutoScrollTogglerChanged(self.id.clone(), v))
-            .size(14.0)
-            .text_size(crate::theme::FONT_DEFAULT)
-            .style(crate::theme::accent_toggler)
-            .width(Length::Shrink);
-        let save_button = Button::new(Text::new("Save").size(crate::theme::FONT_DEFAULT))
-            .on_press(Message::SaveTabContent(self.name.clone()))
-            .style(crate::theme::pill_button)
-            .padding([4.0, 12.0]);
-        let toolbar = Row::new()
-            .push(toggler)
-            .push(save_button)
-            .spacing(crate::theme::SPACE_MD)
-            .padding(crate::theme::SPACE_XS);
-
         let text_input = TextInput::new("Enter new line of Standard input", &self.text)
             .on_input(Message::NewStdin)
             .on_paste(Message::NewStdin)
@@ -815,11 +855,7 @@ impl Tab for StdInTab {
             .height(Length::Fill)
             .id(self.id.clone());
 
-        Column::new()
-            .push(toolbar)
-            .push(scrollable)
-            .push(input_row)
-            .into()
+        Column::new().push(scrollable).push(input_row).into()
     }
 
     // Avoid clearing standard input - to allow the user to type in input ahead of the
@@ -1134,32 +1170,7 @@ impl DebugTab {
             .height(Length::Fill)
             .id(self.id.clone());
 
-        let toggler = toggler(self.auto_scroll)
-            .label("Auto-scroll")
-            .on_toggle(|v| Message::StdioAutoScrollTogglerChanged(self.id.clone(), v))
-            .size(14.0)
-            .text_size(crate::theme::FONT_DEFAULT)
-            .style(crate::theme::accent_toggler)
-            .width(Length::Shrink);
-
-        let save_button = Button::new(Text::new("Save").size(crate::theme::FONT_DEFAULT))
-            .on_press(Message::SaveTabContent(self.name.clone()))
-            .style(crate::theme::pill_button)
-            .padding([4.0, 12.0]);
-        let clear_button = Button::new(Text::new("Clear").size(crate::theme::FONT_DEFAULT))
-            .on_press(Message::ClearTab(self.name.clone()))
-            .style(crate::theme::pill_button)
-            .padding([4.0, 12.0]);
-
-        let toolbar = Row::new()
-            .push(toggler)
-            .push(save_button)
-            .push(clear_button)
-            .spacing(crate::theme::SPACE_MD)
-            .padding(crate::theme::SPACE_XS)
-            .align_y(iced::alignment::Vertical::Center);
-
-        Column::new().push(toolbar).push(scrollable).into()
+        scrollable.into()
     }
 }
 
