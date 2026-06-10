@@ -2520,7 +2520,9 @@ impl FlowrGui {
 
         match message {
             Message::DebugEvent(lines) => {
-                if self.suppress_next_output {
+                if lines.is_empty() {
+                    // Skip empty events (e.g. FlowList) without consuming suppress
+                } else if self.suppress_next_output {
                     self.suppress_next_output = false;
                 } else {
                     for line in lines {
