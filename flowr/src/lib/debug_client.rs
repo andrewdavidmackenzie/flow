@@ -306,6 +306,7 @@ impl DebugClient {
         }
     }
 
+    #[allow(clippy::too_many_lines)]
     fn process_server_message(&mut self, message: DebugServerMessage) -> Result<DebugCommand> {
         match message {
             JobCompleted(job) => {
@@ -362,9 +363,14 @@ impl DebugClient {
             Resetting => println!("Resetting state"),
             WaitingForCommand(job_id) => return self.get_user_command(job_id),
             DebugServerMessage::Invalid => println!("Invalid message received from debug server"),
-            FunctionStates((function, state)) => {
+            FunctionStates((function, state, blockers)) => {
                 print!("{function}");
                 println!("\tState: {state:?}");
+                if !blockers.is_empty() {
+                    let blocker_list: Vec<String> =
+                        blockers.iter().map(|id| format!("#{id}")).collect();
+                    println!("\tWaiting for: {}", blocker_list.join(", "));
+                }
             }
             OverallState(run_state) => Self::display_state(&run_state),
             InputState(input) => println!("{input}"),
@@ -394,6 +400,28 @@ impl DebugClient {
             }
             DebugServerMessage::InspectFlow(flow_id, ref state) => {
                 println!("{}", Debugger::inspect_flow(state, flow_id));
+            }
+            DebugServerMessage::InspectFunction(func_id, ref state) => {
+                if let Some(func) = state.get_function(func_id) {
+                    print!("{func}");
+                    println!("\tState: {:?}", state.get_function_states(func_id));
+                    for (i, input) in func.inputs().iter().enumerate() {
+                        let name = if input.name().is_empty() {
+                            format!("input:{i}")
+                        } else {
+                            format!("input:{i} '{}'", input.name())
+                        };
+                        if input.is_empty() {
+                            println!("\t{name} — empty (waiting)");
+                        } else {
+                            println!(
+                                "\t{name} — {} value(s): {:?}",
+                                input.values_available(),
+                                input.received_values()
+                            );
+                        }
+                    }
+                }
             }
             DebugServerMessage::FlowList(_) => {}
             DebugServerMessage::JobInspect(ref job) => {

@@ -730,6 +730,11 @@ fn chip_color_for(link_type: crate::LinkType) -> iced::Color {
         crate::LinkType::Input => entity_colors::INPUT,
         crate::LinkType::Output => entity_colors::OUTPUT,
         crate::LinkType::State => crate::theme::TEXT_SECONDARY,
+        crate::LinkType::StateReady => entity_colors::STATE_READY,
+        crate::LinkType::StateWaiting => entity_colors::STATE_WAITING,
+        crate::LinkType::StateRunning => entity_colors::STATE_RUNNING,
+        crate::LinkType::StateCompleted => entity_colors::STATE_COMPLETED,
+        crate::LinkType::StateBusy => entity_colors::STATE_BUSY,
         crate::LinkType::Other => crate::theme::TEXT_LINK,
     }
 }
@@ -927,10 +932,9 @@ impl Tab for DebugTab {
                                     spans.push(s);
                                 }
                                 let chip_color = chip_color_for(link.link_type);
-                                spans.push(iced::widget::span(" ".to_string()));
                                 spans.push(
                                     iced::widget::span(format!(
-                                        " {} ",
+                                        "  {}  ",
                                         line.text[link.start..link.end].to_lowercase()
                                     ))
                                     .color(iced::Color::WHITE)
@@ -947,7 +951,7 @@ impl Tab for DebugTab {
                                         radius: 99.0.into(),
                                         ..Default::default()
                                     })
-                                    .padding([2, 6])
+                                    .padding([2, 0])
                                     .link(link.spec.clone()),
                                 );
                                 spans.push(iced::widget::span(" ".to_string()));

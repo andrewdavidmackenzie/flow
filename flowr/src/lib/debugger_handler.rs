@@ -49,7 +49,12 @@ pub trait DebuggerHandler {
     /// Lists flow IDs with access to `RunState` for names/routes
     fn flow_list(&mut self, flow_ids: &[usize], state: &RunState);
     /// returns the state of a function
-    fn function_states(&mut self, function: RuntimeFunction, function_states: Vec<State>);
+    fn function_states(
+        &mut self,
+        function: RuntimeFunction,
+        function_states: Vec<State>,
+        input_blockers: Vec<usize>,
+    );
     /// returns the global run state
     fn run_state(&mut self, run_state: &RunState);
     /// a string message from the Debugger
@@ -72,6 +77,8 @@ pub trait DebuggerHandler {
     fn process_tree(&mut self, state: &RunState);
     /// Inspect functions by state — structured data for rendering
     fn inspect_by_state(&mut self, state_name: &str, state: &RunState);
+    /// Inspect a function — structured data for detailed rendering
+    fn inspect_function(&mut self, function_id: usize, state: &RunState);
     /// Inspect a flow — structured data for rendering
     fn inspect_flow(&mut self, flow_id: usize, state: &RunState);
     /// Inspect a job — structured data for rendering

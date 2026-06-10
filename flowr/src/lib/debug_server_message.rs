@@ -45,7 +45,9 @@ pub enum DebugServerMessage {
     /// A list of all functions
     Functions(Vec<RuntimeFunction>),
     /// The state of a function
-    FunctionStates((RuntimeFunction, Vec<State>)),
+    FunctionStates((RuntimeFunction, Vec<State>, Vec<usize>)),
+    /// Inspect a function — carries function ID and `RunState` for detailed view
+    InspectFunction(usize, RunState),
     /// A value is being sent from one function to another
     SendingValue(usize, Value, usize, usize),
     /// The overall state
@@ -108,6 +110,7 @@ impl fmt::Display for DebugServerMessage {
                 DebugServerMessage::ProcessTree(_) => "ProcessTree",
                 DebugServerMessage::InspectByState(_, _) => "InspectByState",
                 DebugServerMessage::InspectFlow(_, _) => "InspectFlow",
+                DebugServerMessage::InspectFunction(_, _) => "InspectFunction",
                 DebugServerMessage::JobInspect(_) => "JobInspect",
                 DebugServerMessage::FlowList(_) => "FlowList",
             }
