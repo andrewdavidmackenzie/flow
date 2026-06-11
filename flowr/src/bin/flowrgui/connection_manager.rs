@@ -106,6 +106,25 @@ pub fn set_flows_only(v: bool) {
     FLOWS_ONLY.store(v, Ordering::Relaxed);
 }
 
+/// Last output-inspect source process ID (set by GUI before sending `InspectOutput`)
+#[cfg(feature = "debugger")]
+static LAST_OUTPUT_INSPECT_PID: AtomicUsize = AtomicUsize::new(usize::MAX);
+
+#[cfg(feature = "debugger")]
+pub fn set_last_output_inspect_pid(pid: usize) {
+    LAST_OUTPUT_INSPECT_PID.store(pid, Ordering::Relaxed);
+}
+
+#[cfg(feature = "debugger")]
+fn take_last_output_inspect_pid() -> Option<usize> {
+    let v = LAST_OUTPUT_INSPECT_PID.swap(usize::MAX, Ordering::Relaxed);
+    if v == usize::MAX {
+        None
+    } else {
+        Some(v)
+    }
+}
+
 /// Global counter for jobs created, updated by the coordinator thread
 static JOB_COUNT: AtomicUsize = AtomicUsize::new(0);
 
@@ -757,42 +776,13 @@ fn format_debug_event(message: &DebugServerMessage) -> Vec<crate::DebugEventLine
             }
         }
         DebugServerMessage::OutputState(connections) => {
+            let source_pid = take_last_output_inspect_pid();
             if connections.is_empty() {
                 line("No output connections from that sub-route".into(), None)
             } else {
                 connections
                     .iter()
-                    .map(|c| {
-                        let source_label = format!("output '{}'", c.source);
-                        let mut b = crate::DebugLineBuilder::new()
-                            .chip(&source_label, "", crate::LinkType::Output)
-                            .text("  ->  ")
-                            .chip(
-                                &format!("function #{}", c.destination_id),
-                                &c.destination_id.to_string(),
-                                crate::LinkType::Function,
-                            )
-                            .text("  (  ")
-                            .chip(
-                                &format!("flow #{}", c.destination_parent_id),
-                                &c.destination_parent_id.to_string(),
-                                crate::LinkType::Flow,
-                            )
-                            .text("  )  ")
-                            .chip(
-                                &format!("input:{}", c.destination_io_number),
-                                &format!("{}:{}", c.destination_id, c.destination_io_number),
-                                crate::LinkType::Input,
-                            );
-                        if !c.destination.is_empty() {
-                            b = b.text(" @ ").chip(
-                                &c.destination,
-                                &c.destination,
-                                crate::LinkType::Function,
-                            );
-                        }
-                        b.finish()
-                    })
+                    .map(|c| format_output_connection(c, source_pid, ""))
                     .collect()
             }
         }
@@ -1598,6 +1588,7 @@ fn format_inspect_by_state(
 
 #[cfg(feature = "debugger")]
 #[cfg(feature = "debugger")]
+#[allow(clippy::too_many_lines)]
 fn format_inspect_job(job: &flowcore::model::job::Job) -> Vec<crate::DebugEventLine> {
     use crate::{DebugLineBuilder, LinkType};
 
@@ -1667,36 +1658,7 @@ fn format_inspect_job(job: &flowcore::model::job::Job) -> Vec<crate::DebugEventL
             None,
         ));
         for conn in &job.connections {
-            let source_label = match &conn.source {
-                flowcore::model::output_connection::Source::Output(route) => {
-                    if route.is_empty() {
-                        "output".to_string()
-                    } else {
-                        format!("output '{route}'")
-                    }
-                }
-                flowcore::model::output_connection::Source::Input(n) => {
-                    format!("input #{n}")
-                }
-            };
-            let mut b = DebugLineBuilder::new()
-                .text(&format!("    {source_label} \u{2192} "))
-                .chip(
-                    &format!("function #{}", conn.destination_id),
-                    &conn.destination_id.to_string(),
-                    LinkType::Function,
-                );
-            if !conn.destination.is_empty() {
-                b = b
-                    .text(" @ ")
-                    .chip(&conn.destination, &conn.destination, LinkType::Function);
-            }
-            b = b.text(" ").chip(
-                &format!("input:{}", conn.destination_io_number),
-                &format!("{}:{}", conn.destination_id, conn.destination_io_number),
-                LinkType::Input,
-            );
-            lines.push(b.finish());
+            lines.push(format_output_connection(conn, Some(job.process_id), "    "));
         }
     }
 
@@ -1932,4 +1894,66 @@ fn get_four_ports() -> Result<(u16, u16, u16, u16)> {
         pick_unused_port().chain_err(|| "No ports free")?,
         pick_unused_port().chain_err(|| "No ports free")?,
     ))
+}
+
+#[cfg(feature = "debugger")]
+fn format_output_connection(
+    c: &flowcore::model::output_connection::OutputConnection,
+    source_process_id: Option<usize>,
+    indent: &str,
+) -> crate::DebugEventLine {
+    use crate::{DebugLineBuilder, LinkType};
+
+    let source_label = match &c.source {
+        flowcore::model::output_connection::Source::Output(route) => {
+            if route.is_empty() {
+                "output (default)".to_string()
+            } else {
+                format!("output '{route}'")
+            }
+        }
+        flowcore::model::output_connection::Source::Input(n) => format!("input #{n}"),
+    };
+
+    let source_spec = match (&c.source, source_process_id) {
+        (flowcore::model::output_connection::Source::Output(route), Some(pid)) => {
+            let r = if route.is_empty() {
+                "/"
+            } else {
+                route.as_str()
+            };
+            format!("{pid}{r}")
+        }
+        _ => String::new(),
+    };
+
+    let mut b =
+        DebugLineBuilder::new()
+            .text(indent)
+            .chip(&source_label, &source_spec, LinkType::Output);
+    b = b
+        .text("  ->  ")
+        .chip(
+            &format!("function #{}", c.destination_id),
+            &c.destination_id.to_string(),
+            LinkType::Function,
+        )
+        .text("  (  ")
+        .chip(
+            &format!("flow #{}", c.destination_parent_id),
+            &c.destination_parent_id.to_string(),
+            LinkType::Flow,
+        )
+        .text("  )  ")
+        .chip(
+            &format!("input:{}", c.destination_io_number),
+            &format!("{}:{}", c.destination_id, c.destination_io_number),
+            LinkType::Input,
+        );
+    if !c.destination.is_empty() {
+        b = b
+            .text(" @ ")
+            .chip(&c.destination, &c.destination, LinkType::Function);
+    }
+    b.finish()
 }

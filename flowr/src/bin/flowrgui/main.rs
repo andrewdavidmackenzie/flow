@@ -579,9 +579,6 @@ pub enum Message {
     /// User clicked List Breakpoints
     #[cfg(feature = "debugger")]
     DebugListBreakpoints,
-    /// User clicked Inspect State
-    #[cfg(feature = "debugger")]
-    DebugInspect,
     /// User clicked Functions list
     #[cfg(feature = "debugger")]
     DebugFunctions(bool),
@@ -1144,7 +1141,6 @@ impl FlowrGui {
             | Message::DebugSetBreakpoint
             | Message::DebugDeleteBreakpoints
             | Message::DebugListBreakpoints
-            | Message::DebugInspect
             | Message::DebugFunctions(_)
             | Message::DebugFlows
             | Message::DebugProcesses
@@ -1696,13 +1692,6 @@ impl FlowrGui {
             list_btn = list_btn.on_press(Message::DebugListBreakpoints);
         }
 
-        let mut inspect_btn = Button::new(Text::new("Inspect"))
-            .style(theme::styled_button)
-            .padding(sp);
-        if can_cmd {
-            inspect_btn = inspect_btn.on_press(Message::DebugInspect);
-        }
-
         let mut funcs_btn = Button::new(Text::new("Functions"))
             .style(theme::styled_button)
             .padding(sp);
@@ -1769,10 +1758,6 @@ impl FlowrGui {
             .push(Self::tip(bp_btn, "Open breakpoint picker"))
             .push(Self::tip(del_btn, "Delete all breakpoints"))
             .push(Self::tip(list_btn, "List active breakpoints"))
-            .push(Self::tip(
-                inspect_btn,
-                "Inspect state (use spec field for specific target)",
-            ))
             .push(Self::tip(funcs_btn, "List all functions"))
             .push(Self::tip(flows_btn, "List all flows"))
             .push(Self::tip(procs_btn, "Show flow/function hierarchy"))
@@ -2223,6 +2208,7 @@ impl FlowrGui {
             funcs: &[CachedFunction],
             collapsed: &std::collections::HashSet<usize>,
             bps: &std::collections::HashSet<String>,
+            can_bp: bool,
             parent: Option<usize>,
             depth: usize,
         ) {
@@ -2241,10 +2227,13 @@ impl FlowrGui {
                 } else {
                     (theme::entity_colors::FUNCTION, "fn")
                 };
-                let bp_dot = if bps.contains(&child.id.to_string()) {
-                    "\u{1F534} "
-                } else {
-                    ""
+                let has_before = bps.contains(&child.id.to_string());
+                let has_after = bps.contains(&format!("{}+", child.id));
+                let bp_symbol = match (has_before, has_after) {
+                    (true, true) => "\u{23FA}",
+                    (true, false) => "\u{1F534}",
+                    (false, true) => "\u{1F7E0}",
+                    (false, false) => "\u{25CB}",
                 };
                 let name_part = if child.name.is_empty() {
                     format!("{prefix} #{}", child.id)
@@ -2284,16 +2273,52 @@ impl FlowrGui {
                     row = row.push(Text::new("  ").size(12.0));
                 }
 
+                // Breakpoint indicator (clickable, cycles: none→before→after→both→none)
+                let mut bp_btn = Button::new(
+                    Text::new(bp_symbol)
+                        .size(10.0)
+                        .shaping(iced::widget::text::Shaping::Advanced),
+                )
+                .style(theme::ghost_button)
+                .padding([1, 2]);
+                if can_bp {
+                    bp_btn = bp_btn.on_press(Message::BpCycleFunction(child.id));
+                }
+                let bp_tooltip_text = match (has_before, has_after) {
+                    (true, true) => "BP: before+after (click to cycle)",
+                    (true, false) => "BP: before (click to cycle)",
+                    (false, true) => "BP: after (click to cycle)",
+                    (false, false) => "Click to set breakpoint",
+                };
+                row = row.push(
+                    iced::widget::tooltip(
+                        bp_btn,
+                        Text::new(bp_tooltip_text).size(theme::FONT_SM),
+                        iced::widget::tooltip::Position::Right,
+                    )
+                    .style(|_: &iced::Theme| iced::widget::container::Style {
+                        background: Some(iced::Background::Color(theme::SURFACE_TOOLTIP)),
+                        text_color: Some(iced::Color::WHITE),
+                        border: iced::Border {
+                            radius: theme::RADIUS_SM.into(),
+                            width: 1.0,
+                            color: iced::Color {
+                                a: 0.3,
+                                ..theme::ACCENT
+                            },
+                        },
+                        ..Default::default()
+                    })
+                    .padding(4)
+                    .gap(4),
+                );
+
                 // Label button
                 row = row.push(
-                    Button::new(
-                        Text::new(format!("{bp_dot}{name_part}"))
-                            .size(theme::FONT_MD)
-                            .color(color),
-                    )
-                    .on_press(Message::DebugInspectLink(child.id.to_string()))
-                    .style(theme::list_button)
-                    .padding([2, 4]),
+                    Button::new(Text::new(name_part).size(theme::FONT_MD).color(color))
+                        .on_press(Message::DebugInspectLink(child.id.to_string()))
+                        .style(theme::list_button)
+                        .padding([2, 4]),
                 );
 
                 *items = std::mem::replace(items, Column::new()).push(Element::from(row));
@@ -2302,7 +2327,15 @@ impl FlowrGui {
                 if !is_collapsed {
                     // Sub-flows and functions
                     if child.is_flow {
-                        add_tree_nodes(items, funcs, collapsed, bps, Some(child.id), depth + 1);
+                        add_tree_nodes(
+                            items,
+                            funcs,
+                            collapsed,
+                            bps,
+                            can_bp,
+                            Some(child.id),
+                            depth + 1,
+                        );
                     }
 
                     // Inputs
@@ -2314,22 +2347,34 @@ impl FlowrGui {
                         };
                         let inp_indent = "  ".repeat(depth + 1);
                         let spec = format!("{}:{idx}", child.id);
-                        let ibp = if bps.contains(&spec) {
-                            "\u{1F534} "
-                        } else {
-                            ""
-                        };
-                        *items = std::mem::replace(items, Column::new()).push(
-                            Button::new(
-                                Text::new(format!("{inp_indent}    {ibp}{iname}"))
-                                    .size(theme::FONT_MD)
-                                    .color(theme::entity_colors::INPUT),
-                            )
-                            .on_press(Message::DebugInspectLink(spec))
-                            .style(theme::list_button)
-                            .padding([1, 8])
-                            .width(iced::Length::Fill),
-                        );
+                        let has_bp = bps.contains(&spec);
+                        let bp_sym = if has_bp { "\u{1F534}" } else { "\u{25CB}" };
+                        let mut bp_btn = Button::new(
+                            Text::new(bp_sym)
+                                .size(10.0)
+                                .shaping(iced::widget::text::Shaping::Advanced),
+                        )
+                        .style(theme::ghost_button)
+                        .padding([1, 2]);
+                        if can_bp {
+                            bp_btn = bp_btn.on_press(Message::BpTargetChanged(spec.clone()));
+                        }
+                        let irow = Row::new()
+                            .spacing(4)
+                            .align_y(iced::alignment::Vertical::Center)
+                            .push(Text::new(format!("{inp_indent}    ")).size(theme::FONT_MD))
+                            .push(bp_btn)
+                            .push(
+                                Button::new(
+                                    Text::new(iname)
+                                        .size(theme::FONT_MD)
+                                        .color(theme::entity_colors::INPUT),
+                                )
+                                .on_press(Message::DebugInspectLink(spec))
+                                .style(theme::list_button)
+                                .padding([1, 4]),
+                            );
+                        *items = std::mem::replace(items, Column::new()).push(Element::from(irow));
                     }
 
                     // Outputs (deduplicated by route)
@@ -2350,34 +2395,48 @@ impl FlowrGui {
                             output_route.as_str()
                         };
                         let spec = format!("{}{route}", child.id);
-                        let obp = if bps.contains(&spec) {
-                            "\u{1F534} "
-                        } else {
-                            ""
-                        };
-                        *items = std::mem::replace(items, Column::new()).push(
-                            Button::new(
-                                Text::new(format!("{out_indent}    {obp}output {display_route}"))
-                                    .size(theme::FONT_MD)
-                                    .color(theme::entity_colors::OUTPUT),
-                            )
-                            .on_press(Message::DebugInspectLink(spec))
-                            .style(theme::list_button)
-                            .padding([1, 8])
-                            .width(iced::Length::Fill),
-                        );
+                        let has_bp = bps.contains(&spec);
+                        let bp_sym = if has_bp { "\u{1F534}" } else { "\u{25CB}" };
+                        let mut bp_btn = Button::new(
+                            Text::new(bp_sym)
+                                .size(10.0)
+                                .shaping(iced::widget::text::Shaping::Advanced),
+                        )
+                        .style(theme::ghost_button)
+                        .padding([1, 2]);
+                        if can_bp {
+                            bp_btn = bp_btn.on_press(Message::BpTargetChanged(spec.clone()));
+                        }
+                        let orow = Row::new()
+                            .spacing(4)
+                            .align_y(iced::alignment::Vertical::Center)
+                            .push(Text::new(format!("{out_indent}    ")).size(theme::FONT_MD))
+                            .push(bp_btn)
+                            .push(
+                                Button::new(
+                                    Text::new(format!("output {display_route}"))
+                                        .size(theme::FONT_MD)
+                                        .color(theme::entity_colors::OUTPUT),
+                                )
+                                .on_press(Message::DebugInspectLink(spec))
+                                .style(theme::list_button)
+                                .padding([1, 4]),
+                            );
+                        *items = std::mem::replace(items, Column::new()).push(Element::from(orow));
                     }
                 }
             }
         }
 
         let has_roots = funcs.iter().any(|f| f.is_flow && f.parent_id.is_none());
+        let can_bp = self.debug_waiting;
         if has_roots {
             add_tree_nodes(
                 &mut tree_items,
                 funcs,
                 &self.browser_collapsed,
                 bps,
+                can_bp,
                 None,
                 0,
             );
@@ -3022,25 +3081,6 @@ impl FlowrGui {
                 self.debug_separator("List Breakpoints");
                 connection_manager::send_debug_command(DebugCommand::List);
             }
-            Message::DebugInspect => {
-                self.debug_waiting = false;
-                let params = if self.debug_spec_text.is_empty() {
-                    None
-                } else {
-                    Some(vec![self.debug_spec_text.clone()])
-                };
-                if let Some(cmd) = DebugClient::parse_inspect_spec(params) {
-                    let label = if self.debug_spec_text.is_empty() {
-                        "Inspect (overall flow state)".to_string()
-                    } else {
-                        format!("Inspect ({})", self.debug_spec_text)
-                    };
-                    self.debug_separator(&label);
-                    connection_manager::send_debug_command(cmd);
-                } else {
-                    self.debug_waiting = true;
-                }
-            }
             Message::DebugFunctions(display) => {
                 self.debug_waiting = false;
                 if display {
@@ -3144,6 +3184,9 @@ impl FlowrGui {
                     };
                     let params = Some(vec![spec.clone()]);
                     if let Some(cmd) = DebugClient::parse_inspect_spec(params) {
+                        if let DebugCommand::InspectOutput(pid, _) = &cmd {
+                            connection_manager::set_last_output_inspect_pid(*pid);
+                        }
                         self.debug_separator(&label);
                         connection_manager::send_debug_command(cmd);
                     } else {
