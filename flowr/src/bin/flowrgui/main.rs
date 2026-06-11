@@ -3061,7 +3061,7 @@ impl FlowrGui {
                 if !self.ensure_functions_cached(Message::ShowInspectPopup) {
                     return iced::Task::none();
                 }
-                self.open_panel(PanelKind::Inspect);
+                self.toggle_panel(PanelKind::Inspect);
             }
             Message::CloseInspectPopup | Message::CloseBpPopup => self.close_panel(),
             Message::InspectTabChanged(tab) => self.inspect_tab = tab,
@@ -3096,6 +3096,10 @@ impl FlowrGui {
             }
             Message::ShowBpPopup => {
                 if !self.ensure_functions_cached(Message::ShowBpPopup) {
+                    return iced::Task::none();
+                }
+                if self.active_panel == Some(PanelKind::Breakpoints) {
+                    self.close_panel();
                     return iced::Task::none();
                 }
                 self.open_panel(PanelKind::Breakpoints);
