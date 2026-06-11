@@ -1941,10 +1941,11 @@ impl FlowrGui {
             funcs: &[CachedFunction],
             collapsed: &std::collections::HashSet<usize>,
             bps: &std::collections::HashSet<String>,
-            can_bp: bool,
+            actions: (bool, bool),
             parent: Option<usize>,
             depth: usize,
         ) {
+            let (can_bp, can_run) = actions;
             let mut children: Vec<_> = funcs.iter().filter(|f| f.parent_id == parent).collect();
             children.sort_by_key(|f| f.id);
 
@@ -2049,18 +2050,18 @@ impl FlowrGui {
                     };
                     row = row.push(bp_tooltip(after_btn, after_tip));
 
-                    // Run button
-                    let mut run_btn = Button::new(
-                        Text::new("\u{25B6}")
-                            .size(10.0)
-                            .shaping(iced::widget::text::Shaping::Advanced),
-                    )
-                    .style(theme::ghost_button)
-                    .padding([1, 3]);
-                    if can_bp {
-                        run_btn = run_btn.on_press(Message::BrowserRunFunction(child.id));
+                    // Run button (only in initial/reset state)
+                    if can_run {
+                        let run_btn = Button::new(
+                            Text::new("\u{25B6}")
+                                .size(10.0)
+                                .shaping(iced::widget::text::Shaping::Advanced),
+                        )
+                        .style(theme::ghost_button)
+                        .padding([1, 3])
+                        .on_press(Message::BrowserRunFunction(child.id));
+                        row = row.push(bp_tooltip(run_btn, "Run this function"));
                     }
-                    row = row.push(bp_tooltip(run_btn, "Run this function"));
                 }
 
                 *items = std::mem::replace(items, Column::new()).push(Element::from(row));
@@ -2074,7 +2075,7 @@ impl FlowrGui {
                             funcs,
                             collapsed,
                             bps,
-                            can_bp,
+                            actions,
                             Some(child.id),
                             depth + 1,
                         );
@@ -2182,13 +2183,14 @@ impl FlowrGui {
 
         let has_roots = funcs.iter().any(|f| f.is_flow && f.parent_id.is_none());
         let can_bp = self.debug_waiting;
+        let can_run = self.debug_waiting && connection_manager::get_job_count() == 0;
         if has_roots {
             add_tree_nodes(
                 &mut tree_items,
                 funcs,
                 &self.browser_collapsed,
                 bps,
-                can_bp,
+                (can_bp, can_run),
                 None,
                 0,
             );
