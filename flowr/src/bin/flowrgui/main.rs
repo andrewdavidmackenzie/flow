@@ -855,7 +855,6 @@ struct FlowrGui {
     submitted: bool,
     show_modal: bool,
     active_panel: Option<PanelKind>,
-    panel_anim: iced::Animation<bool>,
     last_metrics: Option<flowcore::model::metrics::Metrics>,
     modal_content: (String, String),
     pending_getline: bool,
@@ -915,7 +914,6 @@ impl FlowrGui {
             running: false,
             show_modal: false,
             active_panel: None,
-            panel_anim: iced::Animation::new(false).quick(),
             last_metrics: None,
             modal_content: (String::new(), String::new()),
             pending_getline: false,
@@ -1248,37 +1246,19 @@ impl FlowrGui {
         }
 
         let tab_content = self.tab_set.view(&self.cached_functions);
-        let now = iced::time::Instant::now();
-        let panel_width = self.panel_anim.interpolate(0.0_f32, 380.0_f32, now);
-        let tab_area: Element<'_, Message> = if self.active_panel.is_some() || panel_width > 1.0 {
-            let panel: Element<'_, Message> = match self.active_panel {
-                Some(PanelKind::Settings) => self.settings_panel(),
-                Some(PanelKind::Metrics) => self.metrics_panel(),
+        let tab_area: Element<'_, Message> = if let Some(kind) = self.active_panel {
+            let panel: Element<'_, Message> = match kind {
+                PanelKind::Settings => self.settings_panel(),
+                PanelKind::Metrics => self.metrics_panel(),
                 #[cfg(feature = "debugger")]
-                Some(PanelKind::Inspect) => self.inspect_panel(),
+                PanelKind::Inspect => self.inspect_panel(),
                 #[cfg(feature = "debugger")]
-                Some(PanelKind::Breakpoints) => self.bp_panel(),
-                None => iced::widget::container(iced::widget::text(""))
-                    .height(iced::Length::Fill)
-                    .style(|_: &iced::Theme| iced::widget::container::Style {
-                        background: Some(iced::Background::Color(theme::SURFACE_BUTTON)),
-                        ..Default::default()
-                    })
-                    .into(),
+                PanelKind::Breakpoints => self.bp_panel(),
             };
-            // Clear active_panel when close animation finishes
-            if self.active_panel.is_none() && panel_width <= 1.0 {
-                return tab_content;
-            }
             Row::new()
                 .push(iced::widget::container(tab_content).width(iced::Length::Fill))
-                .push(
-                    iced::widget::container(panel)
-                        .width(iced::Length::Fixed(panel_width))
-                        .height(iced::Length::Fill)
-                        .clip(true),
-                )
-                .spacing(0)
+                .push(panel)
+                .spacing(2)
                 .height(iced::Length::Fill)
                 .into()
         } else {
@@ -2344,17 +2324,14 @@ impl FlowrGui {
 
     fn open_panel(&mut self, kind: PanelKind) {
         self.active_panel = Some(kind);
-        self.panel_anim.go_mut(true, iced::time::Instant::now());
     }
 
     fn close_panel(&mut self) {
-        // active_panel stays set so the view can render content during close animation
-        // It gets cleared on next open_panel or when the animation finishes (checked in view)
-        self.panel_anim.go_mut(false, iced::time::Instant::now());
+        self.active_panel = None;
     }
 
     fn toggle_panel(&mut self, kind: PanelKind) {
-        if self.active_panel == Some(kind) && self.panel_anim.value() {
+        if self.active_panel == Some(kind) {
             self.close_panel();
         } else {
             self.open_panel(kind);
@@ -3530,7 +3507,6 @@ mod test {
             running: false,
             show_modal: false,
             active_panel: None,
-            panel_anim: iced::Animation::new(false).quick(),
             last_metrics: None,
             modal_content: (String::new(), String::new()),
             pending_getline: false,
