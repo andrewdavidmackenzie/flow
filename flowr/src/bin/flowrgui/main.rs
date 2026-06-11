@@ -1223,7 +1223,9 @@ impl FlowrGui {
             | Message::ShowInspectPopup
             | Message::CloseInspectPopup
             | Message::InspectTabChanged(_)
-            | Message::InspectPopupSelect(_)) => {
+            | Message::InspectPopupSelect(_)
+            | Message::ToggleFlowBrowser
+            | Message::BrowserToggleNode(_)) => {
                 return self.process_debug_message(msg);
             }
             Message::CoordinatorDisconnected(reason) => {
