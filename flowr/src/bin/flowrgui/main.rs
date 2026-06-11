@@ -823,6 +823,16 @@ const INSPECT_TABS: [InspectTab; 6] = [
     InspectTab::Route,
 ];
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum PanelKind {
+    Settings,
+    Metrics,
+    #[cfg(feature = "debugger")]
+    Inspect,
+    #[cfg(feature = "debugger")]
+    Breakpoints,
+}
+
 struct UiSettings {
     auto_start: bool,
     auto_exit: bool,
@@ -844,9 +854,8 @@ struct FlowrGui {
     running: bool,
     submitted: bool,
     show_modal: bool,
-    show_settings: bool,
+    active_panel: Option<PanelKind>,
     last_metrics: Option<flowcore::model::metrics::Metrics>,
-    show_metrics: bool,
     modal_content: (String, String),
     pending_getline: bool,
     #[cfg(feature = "debugger")]
@@ -858,7 +867,6 @@ struct FlowrGui {
     #[cfg(feature = "debugger")]
     debug_client_active: bool,
     #[cfg(feature = "debugger")]
-    show_bp_popup: bool,
     #[cfg(feature = "debugger")]
     bp_tab: BpTab,
     #[cfg(feature = "debugger")]
@@ -867,7 +875,6 @@ struct FlowrGui {
     #[cfg(feature = "debugger")]
     active_breakpoints: std::collections::HashSet<String>,
     #[cfg(feature = "debugger")]
-    show_inspect_popup: bool,
     #[cfg(feature = "debugger")]
     suppress_next_output: bool,
     #[cfg(feature = "debugger")]
@@ -906,9 +913,8 @@ impl FlowrGui {
             submitted: false,
             running: false,
             show_modal: false,
-            show_settings: false,
+            active_panel: None,
             last_metrics: None,
-            show_metrics: false,
             modal_content: (String::new(), String::new()),
             pending_getline: false,
             #[cfg(feature = "debugger")]
@@ -920,7 +926,6 @@ impl FlowrGui {
             #[cfg(feature = "debugger")]
             debug_client_active: false,
             #[cfg(feature = "debugger")]
-            show_bp_popup: false,
             #[cfg(feature = "debugger")]
             bp_tab: BpTab::Before,
             #[cfg(feature = "debugger")]
@@ -929,7 +934,6 @@ impl FlowrGui {
             #[cfg(feature = "debugger")]
             active_breakpoints: std::collections::HashSet::new(),
             #[cfg(feature = "debugger")]
-            show_inspect_popup: false,
             #[cfg(feature = "debugger")]
             suppress_next_output: false,
             #[cfg(feature = "debugger")]
@@ -984,7 +988,7 @@ impl FlowrGui {
             }
             Message::SubmitFlow => {
                 self.last_metrics = None;
-                self.show_metrics = false;
+                self.active_panel = None;
                 if matches!(self.coordinator_state, CoordinatorState::Disconnected(_))
                     && matches!(self.coordinator_settings, CoordinatorSettings::ClientOnly)
                 {
@@ -1145,25 +1149,8 @@ impl FlowrGui {
             Message::DebugMetricsReceived(metrics) => {
                 self.last_metrics = Some(metrics);
             }
-            Message::ToggleMetrics => {
-                self.show_metrics = !self.show_metrics;
-                if self.show_metrics {
-                    self.show_settings = false;
-                    #[cfg(feature = "debugger")]
-                    {
-                        self.show_inspect_popup = false;
-                        self.show_bp_popup = false;
-                    }
-                }
-            }
-            Message::ToggleSettings => {
-                self.show_settings = !self.show_settings;
-                #[cfg(feature = "debugger")]
-                {
-                    self.show_inspect_popup = false;
-                    self.show_bp_popup = false;
-                }
-            }
+            Message::ToggleMetrics => self.toggle_panel(PanelKind::Metrics),
+            Message::ToggleSettings => self.toggle_panel(PanelKind::Settings),
             #[cfg(feature = "debugger")]
             msg @ (Message::DebugEvent(_)
             | Message::DebugWaiting
@@ -1259,17 +1246,15 @@ impl FlowrGui {
         }
 
         let tab_content = self.tab_set.view(&self.cached_functions);
-        #[cfg(feature = "debugger")]
-        let tab_area: Element<'_, Message> = if self.show_inspect_popup {
-            let panel = self.inspect_panel();
-            Row::new()
-                .push(iced::widget::container(tab_content).width(iced::Length::Fill))
-                .push(panel)
-                .spacing(2)
-                .height(iced::Length::Fill)
-                .into()
-        } else if self.show_bp_popup {
-            let panel = self.bp_panel();
+        let tab_area: Element<'_, Message> = if let Some(kind) = self.active_panel {
+            let panel: Element<'_, Message> = match kind {
+                PanelKind::Settings => self.settings_panel(),
+                PanelKind::Metrics => self.metrics_panel(),
+                #[cfg(feature = "debugger")]
+                PanelKind::Inspect => self.inspect_panel(),
+                #[cfg(feature = "debugger")]
+                PanelKind::Breakpoints => self.bp_panel(),
+            };
             Row::new()
                 .push(iced::widget::container(tab_content).width(iced::Length::Fill))
                 .push(panel)
@@ -1278,28 +1263,6 @@ impl FlowrGui {
                 .into()
         } else {
             tab_content
-        };
-        #[cfg(not(feature = "debugger"))]
-        let tab_area = tab_content;
-
-        let tab_area: Element<'_, Message> = if self.show_settings {
-            let panel = self.settings_panel();
-            Row::new()
-                .push(iced::widget::container(tab_area).width(iced::Length::Fill))
-                .push(panel)
-                .spacing(2)
-                .height(iced::Length::Fill)
-                .into()
-        } else if self.show_metrics {
-            let panel = self.metrics_panel();
-            Row::new()
-                .push(iced::widget::container(tab_area).width(iced::Length::Fill))
-                .push(panel)
-                .spacing(2)
-                .height(iced::Length::Fill)
-                .into()
-        } else {
-            tab_area
         };
 
         let main_content = main_content
@@ -2359,6 +2322,22 @@ impl FlowrGui {
             .into()
     }
 
+    fn open_panel(&mut self, kind: PanelKind) {
+        self.active_panel = Some(kind);
+    }
+
+    fn close_panel(&mut self) {
+        self.active_panel = None;
+    }
+
+    fn toggle_panel(&mut self, kind: PanelKind) {
+        if self.active_panel == Some(kind) {
+            self.close_panel();
+        } else {
+            self.open_panel(kind);
+        }
+    }
+
     fn status_bar(&self) -> Column<'_, Message> {
         let (indicator, status) = match &self.coordinator_state {
             CoordinatorState::Disconnected(reason) => {
@@ -3082,13 +3061,12 @@ impl FlowrGui {
                 if !self.ensure_functions_cached(Message::ShowInspectPopup) {
                     return iced::Task::none();
                 }
-                self.show_inspect_popup = true;
-                self.show_bp_popup = false;
+                self.toggle_panel(PanelKind::Inspect);
             }
-            Message::CloseInspectPopup => self.show_inspect_popup = false,
+            Message::CloseInspectPopup | Message::CloseBpPopup => self.close_panel(),
             Message::InspectTabChanged(tab) => self.inspect_tab = tab,
             Message::InspectPopupSelect(spec) => {
-                self.show_inspect_popup = false;
+                self.close_panel();
                 if self.debug_waiting {
                     self.debug_waiting = false;
                     if spec.is_empty() {
@@ -3120,8 +3098,11 @@ impl FlowrGui {
                 if !self.ensure_functions_cached(Message::ShowBpPopup) {
                     return iced::Task::none();
                 }
-                self.show_bp_popup = true;
-                self.show_inspect_popup = false;
+                if self.active_panel == Some(PanelKind::Breakpoints) {
+                    self.close_panel();
+                    return iced::Task::none();
+                }
+                self.open_panel(PanelKind::Breakpoints);
                 self.bp_target.clear();
                 if self.debug_waiting {
                     self.debug_waiting = false;
@@ -3129,7 +3110,6 @@ impl FlowrGui {
                     connection_manager::send_debug_command(DebugCommand::List);
                 }
             }
-            Message::CloseBpPopup => self.show_bp_popup = false,
             Message::BpTabChanged(tab) => {
                 self.bp_tab = tab;
                 self.bp_target.clear();
@@ -3158,7 +3138,7 @@ impl FlowrGui {
                 self.bp_target = value;
             }
             Message::BpPopupConfirm => {
-                self.show_bp_popup = false;
+                self.close_panel();
             }
             Message::BpCycleFunction(func_id) if self.debug_waiting => {
                 let before_spec = format!("{func_id}");
@@ -3530,9 +3510,8 @@ mod test {
             submitted: false,
             running: false,
             show_modal: false,
-            show_settings: false,
+            active_panel: None,
             last_metrics: None,
-            show_metrics: false,
             modal_content: (String::new(), String::new()),
             pending_getline: false,
             #[cfg(feature = "debugger")]
@@ -3544,7 +3523,6 @@ mod test {
             #[cfg(feature = "debugger")]
             debug_client_active: false,
             #[cfg(feature = "debugger")]
-            show_bp_popup: false,
             #[cfg(feature = "debugger")]
             bp_tab: BpTab::Before,
             #[cfg(feature = "debugger")]
@@ -3553,7 +3531,6 @@ mod test {
             #[cfg(feature = "debugger")]
             active_breakpoints: std::collections::HashSet::new(),
             #[cfg(feature = "debugger")]
-            show_inspect_popup: false,
             #[cfg(feature = "debugger")]
             suppress_next_output: false,
             #[cfg(feature = "debugger")]
@@ -3756,7 +3733,7 @@ mod test {
         let mut gui = test_gui();
         gui.debug_client_active = true;
         gui.debug_waiting = true;
-        gui.show_bp_popup = true;
+        gui.active_panel = Some(PanelKind::Breakpoints);
         let view = gui.view();
         let _ui = simulator(view);
     }
@@ -3768,7 +3745,7 @@ mod test {
         let mut gui = test_gui();
         gui.debug_client_active = true;
         gui.debug_waiting = true;
-        gui.show_inspect_popup = true;
+        gui.active_panel = Some(PanelKind::Inspect);
         let view = gui.view();
         let _ui = simulator(view);
     }
