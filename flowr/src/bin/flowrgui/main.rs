@@ -517,6 +517,9 @@ pub enum Message {
     /// Toggle flow browser panel
     #[cfg(feature = "debugger")]
     ToggleFlowBrowser,
+    /// Toggle fold/unfold in browser tree
+    #[cfg(feature = "debugger")]
+    BrowserToggleNode(usize),
     /// Toggle metrics panel
     ToggleMetrics,
     /// Metrics received from debug channel
@@ -862,6 +865,8 @@ struct FlowrGui {
     submitted: bool,
     show_modal: bool,
     active_panel: Option<PanelKind>,
+    #[cfg(feature = "debugger")]
+    browser_collapsed: std::collections::HashSet<usize>,
     last_metrics: Option<flowcore::model::metrics::Metrics>,
     modal_content: (String, String),
     pending_getline: bool,
@@ -921,6 +926,8 @@ impl FlowrGui {
             running: false,
             show_modal: false,
             active_panel: None,
+            #[cfg(feature = "debugger")]
+            browser_collapsed: std::collections::HashSet::new(),
             last_metrics: None,
             modal_content: (String::new(), String::new()),
             pending_getline: false,
@@ -1157,6 +1164,14 @@ impl FlowrGui {
                 self.last_metrics = Some(metrics);
             }
             Message::ToggleMetrics => self.toggle_panel(PanelKind::Metrics),
+            #[cfg(feature = "debugger")]
+            Message::BrowserToggleNode(id) => {
+                if self.browser_collapsed.contains(&id) {
+                    self.browser_collapsed.remove(&id);
+                } else {
+                    self.browser_collapsed.insert(id);
+                }
+            }
             #[cfg(feature = "debugger")]
             Message::ToggleFlowBrowser => {
                 if !self.ensure_functions_cached(Message::ToggleFlowBrowser) {
@@ -2433,85 +2448,162 @@ impl FlowrGui {
         let funcs = &self.cached_functions;
         let bps = &self.active_breakpoints;
 
-        // Build tree nodes into a vec, then convert to Column
+        // Build tree with fold/unfold triangles and outputs
         #[allow(clippy::items_after_statements)]
-        fn collect_nodes(
-            result: &mut Vec<(String, usize, iced::Color, usize)>,
+        fn add_tree_nodes(
+            items: &mut Column<'_, Message>,
             funcs: &[CachedFunction],
+            collapsed: &std::collections::HashSet<usize>,
+            bps: &std::collections::HashSet<String>,
             parent: Option<usize>,
             depth: usize,
         ) {
             let mut children: Vec<_> = funcs.iter().filter(|f| f.parent_id == parent).collect();
             children.sort_by_key(|f| f.id);
+
             for child in children {
-                let color = if child.is_flow {
-                    theme::entity_colors::FLOW
-                } else {
-                    theme::entity_colors::FUNCTION
-                };
-                let prefix = if child.is_flow { "flow" } else { "fn" };
                 let indent = "  ".repeat(depth);
-                let label = if child.name.is_empty() {
-                    format!("{indent}{prefix} #{}", child.id)
+                let is_collapsed = collapsed.contains(&child.id);
+                let has_children =
+                    child.is_flow || !child.inputs.is_empty() || !child.outputs.is_empty();
+
+                // Build the row: triangle + label
+                let (color, prefix) = if child.is_flow {
+                    (theme::entity_colors::FLOW, "flow")
                 } else {
-                    format!("{indent}{prefix} #{} '{}'", child.id, child.name)
+                    (theme::entity_colors::FUNCTION, "fn")
                 };
-                result.push((label, child.id, color, depth));
-                if child.is_flow {
-                    collect_nodes(result, funcs, Some(child.id), depth + 1);
+                let bp_dot = if bps.contains(&child.id.to_string()) {
+                    "\u{1F534} "
+                } else {
+                    ""
+                };
+                let name_part = if child.name.is_empty() {
+                    format!("{prefix} #{}", child.id)
+                } else {
+                    format!("{prefix} #{} '{}'", child.id, child.name)
+                };
+
+                let mut row = Row::new()
+                    .spacing(4)
+                    .align_y(iced::alignment::Vertical::Center);
+
+                // Indent
+                if depth > 0 {
+                    row = row.push(Text::new(indent).size(theme::FONT_SM));
+                }
+
+                // Triangle toggle
+                if has_children {
+                    let indicator = if is_collapsed { "\u{25B6}" } else { "\u{25BC}" };
+                    row = row.push(
+                        Button::new(
+                            Text::new(indicator)
+                                .size(10.0)
+                                .shaping(iced::widget::text::Shaping::Advanced),
+                        )
+                        .on_press(Message::BrowserToggleNode(child.id))
+                        .style(theme::ghost_button)
+                        .padding([1, 3]),
+                    );
+                } else {
+                    row = row.push(Text::new("  ").size(10.0));
+                }
+
+                // Label button
+                row = row.push(
+                    Button::new(
+                        Text::new(format!("{bp_dot}{name_part}"))
+                            .size(theme::FONT_SM)
+                            .color(color),
+                    )
+                    .on_press(Message::DebugInspectLink(child.id.to_string()))
+                    .style(theme::list_button)
+                    .padding([2, 4]),
+                );
+
+                *items = std::mem::replace(items, Column::new()).push(Element::from(row));
+
+                // Children (if not collapsed)
+                if !is_collapsed {
+                    // Sub-flows and functions
+                    if child.is_flow {
+                        add_tree_nodes(items, funcs, collapsed, bps, Some(child.id), depth + 1);
+                    }
+
+                    // Inputs
+                    for (idx, input_name, _generic) in &child.inputs {
+                        let iname = if input_name.is_empty() {
+                            format!("input:{idx}")
+                        } else {
+                            format!("input:{idx} '{input_name}'")
+                        };
+                        let inp_indent = "  ".repeat(depth + 1);
+                        let spec = format!("{}:{idx}", child.id);
+                        let ibp = if bps.contains(&spec) {
+                            "\u{1F534} "
+                        } else {
+                            ""
+                        };
+                        *items = std::mem::replace(items, Column::new()).push(
+                            Button::new(
+                                Text::new(format!("{inp_indent}    {ibp}{iname}"))
+                                    .size(theme::FONT_SM)
+                                    .color(theme::entity_colors::INPUT),
+                            )
+                            .on_press(Message::DebugInspectLink(spec))
+                            .style(theme::list_button)
+                            .padding([1, 8])
+                            .width(iced::Length::Fill),
+                        );
+                    }
+
+                    // Outputs
+                    for output_route in &child.outputs {
+                        let out_indent = "  ".repeat(depth + 1);
+                        let spec = format!("{}{output_route}", child.id);
+                        let obp = if bps.contains(&spec) {
+                            "\u{1F534} "
+                        } else {
+                            ""
+                        };
+                        *items = std::mem::replace(items, Column::new()).push(
+                            Button::new(
+                                Text::new(format!("{out_indent}    {obp}output '{output_route}'"))
+                                    .size(theme::FONT_SM)
+                                    .color(theme::entity_colors::OUTPUT),
+                            )
+                            .on_press(Message::DebugInspectLink(spec))
+                            .style(theme::list_button)
+                            .padding([1, 8])
+                            .width(iced::Length::Fill),
+                        );
+                    }
                 }
             }
         }
 
-        let mut nodes = Vec::new();
         let has_roots = funcs.iter().any(|f| f.is_flow && f.parent_id.is_none());
         if has_roots {
-            collect_nodes(&mut nodes, funcs, None, 0);
+            add_tree_nodes(
+                &mut tree_items,
+                funcs,
+                &self.browser_collapsed,
+                bps,
+                None,
+                0,
+            );
         } else {
             for f in funcs {
                 let label = format!("#{} '{}'", f.id, f.name);
-                nodes.push((label, f.id, theme::entity_colors::FUNCTION, 0));
+                tree_items = tree_items.push(
+                    Button::new(Text::new(label).size(theme::FONT_SM))
+                        .on_press(Message::DebugInspectLink(f.id.to_string()))
+                        .style(theme::list_button)
+                        .padding([2, 8])
+                        .width(Length::Fill),
+                );
             }
-        }
-
-        for (label, id, color, _depth) in &nodes {
-            let bp_dot = if bps.contains(&id.to_string()) {
-                "\u{1F534} "
-            } else {
-                ""
-            };
-            let btn = Button::new(
-                Text::new(format!("{bp_dot}{label}"))
-                    .size(theme::FONT_SM)
-                    .color(*color),
-            )
-            .on_press(Message::DebugInspectLink(id.to_string()))
-            .style(theme::list_button)
-            .padding([2, 8])
-            .width(Length::Fill);
-
-            tree_items = tree_items.push(
-                iced::widget::tooltip(
-                    btn,
-                    Text::new("Click to inspect").size(theme::FONT_SM),
-                    iced::widget::tooltip::Position::Right,
-                )
-                .style(|_: &iced::Theme| iced::widget::container::Style {
-                    background: Some(iced::Background::Color(theme::SURFACE_TOOLTIP)),
-                    text_color: Some(iced::Color::WHITE),
-                    border: iced::Border {
-                        radius: theme::RADIUS_SM.into(),
-                        width: 1.0,
-                        color: iced::Color {
-                            a: 0.3,
-                            ..theme::ACCENT
-                        },
-                    },
-                    ..Default::default()
-                })
-                .padding(6)
-                .gap(4),
-            );
         }
 
         let list = Scrollable::new(tree_items)
@@ -3728,6 +3820,8 @@ mod test {
             running: false,
             show_modal: false,
             active_panel: None,
+            #[cfg(feature = "debugger")]
+            browser_collapsed: std::collections::HashSet::new(),
             last_metrics: None,
             modal_content: (String::new(), String::new()),
             pending_getline: false,
