@@ -514,6 +514,9 @@ pub enum Message {
     CloseModal,
     /// Toggle settings panel
     ToggleSettings,
+    /// Toggle flow browser panel
+    #[cfg(feature = "debugger")]
+    ToggleFlowBrowser,
     /// Toggle metrics panel
     ToggleMetrics,
     /// Metrics received from debug channel
@@ -831,6 +834,8 @@ enum PanelKind {
     Inspect,
     #[cfg(feature = "debugger")]
     Breakpoints,
+    #[cfg(feature = "debugger")]
+    Browser,
 }
 
 struct UiSettings {
@@ -1150,6 +1155,13 @@ impl FlowrGui {
                 self.last_metrics = Some(metrics);
             }
             Message::ToggleMetrics => self.toggle_panel(PanelKind::Metrics),
+            #[cfg(feature = "debugger")]
+            Message::ToggleFlowBrowser => {
+                if !self.ensure_functions_cached(Message::ToggleFlowBrowser) {
+                    return iced::Task::none();
+                }
+                self.toggle_panel(PanelKind::Browser);
+            }
             Message::ToggleSettings => self.toggle_panel(PanelKind::Settings),
             #[cfg(feature = "debugger")]
             msg @ (Message::DebugEvent(_)
@@ -1234,6 +1246,7 @@ impl FlowrGui {
         Task::none()
     }
 
+    #[allow(clippy::too_many_lines)]
     fn view(&self) -> Element<'_, Message> {
         let mut main_content = Column::new().spacing(4).push(self.command_row());
 
@@ -1246,27 +1259,77 @@ impl FlowrGui {
         }
 
         let tab_content = self.tab_set.view(&self.cached_functions);
+
+        // Left panel (flow browser) or vertical chip
+        #[cfg(feature = "debugger")]
+        let browser_open = self.active_panel == Some(PanelKind::Browser);
+        #[cfg(feature = "debugger")]
+        let left_element: Element<'_, Message> = if browser_open {
+            self.flow_browser_panel()
+        } else if self.debug_client_active {
+            // Vertical "Flow Browser" chip on the left edge
+            iced::widget::container(
+                Button::new(
+                    Text::new("Flow Browser")
+                        .size(theme::FONT_SM)
+                        .color(iced::Color::WHITE)
+                        .font(iced::Font {
+                            weight: iced::font::Weight::Bold,
+                            ..iced::Font::DEFAULT
+                        }),
+                )
+                .on_press(Message::ToggleFlowBrowser)
+                .style(theme::chip_button(theme::ACCENT))
+                .padding([6, 4]),
+            )
+            .height(iced::Length::Fill)
+            .align_y(iced::alignment::Vertical::Center)
+            .into()
+        } else {
+            iced::widget::text("").into()
+        };
+
+        // Right panels (settings, metrics, inspect, breakpoints)
         let tab_area: Element<'_, Message> = if let Some(kind) = self.active_panel {
-            let panel: Element<'_, Message> = match kind {
-                PanelKind::Settings => self.settings_panel(),
-                PanelKind::Metrics => self.metrics_panel(),
+            match kind {
                 #[cfg(feature = "debugger")]
-                PanelKind::Inspect => self.inspect_panel(),
-                #[cfg(feature = "debugger")]
-                PanelKind::Breakpoints => self.bp_panel(),
-            };
-            Row::new()
-                .push(iced::widget::container(tab_content).width(iced::Length::Fill))
-                .push(panel)
-                .spacing(2)
-                .height(iced::Length::Fill)
-                .into()
+                PanelKind::Browser => tab_content,
+                _ => {
+                    let panel: Element<'_, Message> = match kind {
+                        PanelKind::Settings => self.settings_panel(),
+                        PanelKind::Metrics => self.metrics_panel(),
+                        #[cfg(feature = "debugger")]
+                        PanelKind::Inspect => self.inspect_panel(),
+                        #[cfg(feature = "debugger")]
+                        PanelKind::Breakpoints => self.bp_panel(),
+                        #[cfg(feature = "debugger")]
+                        PanelKind::Browser => unreachable!(),
+                    };
+                    Row::new()
+                        .push(iced::widget::container(tab_content).width(iced::Length::Fill))
+                        .push(panel)
+                        .spacing(2)
+                        .height(iced::Length::Fill)
+                        .into()
+                }
+            }
         } else {
             tab_content
         };
 
-        let main_content = main_content
+        // Compose: left browser + tab area
+        #[cfg(feature = "debugger")]
+        let content_row: Element<'_, Message> = Row::new()
+            .push(left_element)
             .push(tab_area)
+            .spacing(2)
+            .height(iced::Length::Fill)
+            .into();
+        #[cfg(not(feature = "debugger"))]
+        let content_row = tab_area;
+
+        let main_content = main_content
+            .push(content_row)
             .push(self.status_bar())
             .padding([theme::SPACE_XS, theme::SPACE_SM]);
 
@@ -2310,6 +2373,138 @@ impl FlowrGui {
         Container::new(panel_content)
             .width(Length::Fixed(300.0))
             .padding(theme::SPACE_LG)
+            .style(|_: &iced::Theme| iced::widget::container::Style {
+                background: Some(iced::Background::Color(theme::SURFACE_BUTTON)),
+                border: iced::Border {
+                    radius: 0.0.into(),
+                    width: 0.0,
+                    color: iced::Color::TRANSPARENT,
+                },
+                ..Default::default()
+            })
+            .into()
+    }
+
+    #[cfg(feature = "debugger")]
+    #[allow(clippy::too_many_lines)]
+    fn flow_browser_panel(&self) -> Element<'_, Message> {
+        use iced::widget::{Container, Scrollable};
+        use iced::Length;
+
+        let header = Row::new()
+            .push(
+                Button::new(
+                    Text::new("Flow Browser")
+                        .size(theme::FONT_DEFAULT)
+                        .color(iced::Color::WHITE)
+                        .font(iced::Font {
+                            weight: iced::font::Weight::Bold,
+                            ..iced::Font::DEFAULT
+                        }),
+                )
+                .on_press(Message::ToggleFlowBrowser)
+                .style(theme::chip_button(theme::ACCENT))
+                .padding([4, 12]),
+            )
+            .align_y(iced::alignment::Vertical::Center)
+            .padding(iced::Padding {
+                top: 0.0,
+                right: 0.0,
+                bottom: theme::SPACE_SM,
+                left: 0.0,
+            });
+
+        // Build tree from cached functions
+        let mut tree_items = Column::new().spacing(2);
+        let mut sorted: Vec<_> = self.cached_functions.iter().collect();
+        sorted.sort_by_key(|f| f.id);
+
+        // Show flows first, then functions under them
+        for f in &sorted {
+            if !f.is_flow {
+                continue;
+            }
+            let bp_dot = if self.active_breakpoints.contains(&f.id.to_string()) {
+                "\u{1F534} "
+            } else {
+                ""
+            };
+            let label = if f.name.is_empty() {
+                format!("{bp_dot}Flow #{}", f.id)
+            } else {
+                format!("{bp_dot}Flow #{} '{}'", f.id, f.name)
+            };
+            tree_items = tree_items.push(
+                Button::new(
+                    Text::new(label)
+                        .size(theme::FONT_MD)
+                        .color(theme::entity_colors::FLOW),
+                )
+                .on_press(Message::DebugInspectLink(f.id.to_string()))
+                .style(theme::list_button)
+                .padding([3, 8])
+                .width(Length::Fill),
+            );
+
+            // Show functions under this flow (indented)
+            for func in &sorted {
+                if func.is_flow {
+                    continue;
+                }
+                // Simple: show all functions (proper parent tracking needs RunState)
+                let fbp_dot = if self.active_breakpoints.contains(&func.id.to_string()) {
+                    "\u{1F534} "
+                } else {
+                    ""
+                };
+                let flabel = format!("  {fbp_dot}#{} '{}'", func.id, func.name);
+                tree_items = tree_items.push(
+                    Button::new(
+                        Text::new(flabel)
+                            .size(theme::FONT_SM)
+                            .color(theme::entity_colors::FUNCTION),
+                    )
+                    .on_press(Message::DebugInspectLink(func.id.to_string()))
+                    .style(theme::list_button)
+                    .padding([2, 16])
+                    .width(Length::Fill),
+                );
+            }
+            break; // Only show root flow for now — proper hierarchy needs FlowInfo
+        }
+
+        // If no flows, just list all functions
+        if !sorted.iter().any(|f| f.is_flow) {
+            for f in &sorted {
+                let bp_dot = if self.active_breakpoints.contains(&f.id.to_string()) {
+                    "\u{1F534} "
+                } else {
+                    ""
+                };
+                let label = format!("{bp_dot}#{} '{}'", f.id, f.name);
+                tree_items = tree_items.push(
+                    Button::new(Text::new(label).size(theme::FONT_MD))
+                        .on_press(Message::DebugInspectLink(f.id.to_string()))
+                        .style(theme::list_button)
+                        .padding([3, 8])
+                        .width(Length::Fill),
+                );
+            }
+        }
+
+        let list = Scrollable::new(tree_items)
+            .height(Length::Fill)
+            .width(Length::Fill);
+
+        let panel_content = Column::new()
+            .spacing(theme::SPACE_MD)
+            .push(header)
+            .push(list);
+
+        Container::new(panel_content)
+            .width(Length::Fixed(280.0))
+            .height(Length::Fill)
+            .padding(theme::SPACE_MD)
             .style(|_: &iced::Theme| iced::widget::container::Style {
                 background: Some(iced::Background::Color(theme::SURFACE_BUTTON)),
                 border: iced::Border {
