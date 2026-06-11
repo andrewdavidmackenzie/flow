@@ -520,6 +520,9 @@ pub enum Message {
     /// Toggle fold/unfold in browser tree
     #[cfg(feature = "debugger")]
     BrowserToggleNode(usize),
+    /// Run a specific function from browser tree
+    #[cfg(feature = "debugger")]
+    BrowserRunFunction(usize),
     /// Toggle metrics panel
     ToggleMetrics,
     /// Metrics received from debug channel
@@ -546,9 +549,6 @@ pub enum Message {
     /// User clicked Run/Reset in the debug controls
     #[cfg(feature = "debugger")]
     DebugReset,
-    /// User clicked Run Process — runs a specific process using the spec field
-    #[cfg(feature = "debugger")]
-    DebugRunProcess,
     /// User clicked Exit Debugger in the debug controls
     #[cfg(feature = "debugger")]
     DebugExit,
@@ -568,11 +568,6 @@ pub enum Message {
     #[cfg(feature = "debugger")]
     DebugStepCountChanged(String),
     /// The breakpoint/inspect spec text input changed
-    #[cfg(feature = "debugger")]
-    DebugSpecChanged(String),
-    /// User clicked Set Breakpoint
-    #[cfg(feature = "debugger")]
-    DebugSetBreakpoint,
     /// User clicked Delete All Breakpoints
     #[cfg(feature = "debugger")]
     DebugDeleteBreakpoints,
@@ -760,8 +755,6 @@ struct FlowrGui {
     #[cfg(feature = "debugger")]
     debug_waiting: bool,
     #[cfg(feature = "debugger")]
-    debug_spec_text: String,
-    #[cfg(feature = "debugger")]
     debug_step_count: String,
     #[cfg(feature = "debugger")]
     debug_client_active: bool,
@@ -813,8 +806,6 @@ impl FlowrGui {
             pending_getline: false,
             #[cfg(feature = "debugger")]
             debug_waiting: false,
-            #[cfg(feature = "debugger")]
-            debug_spec_text: String::new(),
             #[cfg(feature = "debugger")]
             debug_step_count: String::new(),
             #[cfg(feature = "debugger")]
@@ -1046,6 +1037,48 @@ impl FlowrGui {
                 }
             }
             #[cfg(feature = "debugger")]
+            Message::BrowserRunFunction(id) => {
+                if let Some(func) = self.cached_functions.iter().find(|f| f.id == id) {
+                    if func.inputs.is_empty() {
+                        self.debug_waiting = false;
+                        self.debug_separator(&format!("Run #{id} '{}'", func.name));
+                        connection_manager::send_debug_command(
+                            flowcore::model::debug_command::DebugCommand::RunReset(
+                                Some(flowcore::model::debug_command::ProcessTarget::Id(id)),
+                                vec![],
+                            ),
+                        );
+                    } else {
+                        self.run_input_names = func
+                            .inputs
+                            .iter()
+                            .enumerate()
+                            .map(|(i, (_, name, _))| {
+                                if name.is_empty() {
+                                    format!("input_{i}")
+                                } else {
+                                    name.clone()
+                                }
+                            })
+                            .collect();
+                        self.run_input_types = func
+                            .inputs
+                            .iter()
+                            .map(|(_, _, generic)| {
+                                if *generic {
+                                    "Generic".to_string()
+                                } else {
+                                    "Value".to_string()
+                                }
+                            })
+                            .collect();
+                        self.run_input_values = vec![String::new(); func.inputs.len()];
+                        self.run_target_id = Some(id);
+                        self.show_run_inputs = true;
+                    }
+                }
+            }
+            #[cfg(feature = "debugger")]
             Message::ToggleFlowBrowser => {
                 if self.active_panel == Some(PanelKind::Browser) {
                     self.close_panel();
@@ -1065,15 +1098,12 @@ impl FlowrGui {
             | Message::DebugContinue
             | Message::DebugStep
             | Message::DebugReset
-            | Message::DebugRunProcess
             | Message::DebugExit
             | Message::DebugPause
             | Message::RunInputChanged(_, _)
             | Message::RunInputExecute
             | Message::RunInputCancel
             | Message::DebugStepCountChanged(_)
-            | Message::DebugSpecChanged(_)
-            | Message::DebugSetBreakpoint
             | Message::DebugDeleteBreakpoints
             | Message::DebugListBreakpoints
             | Message::DebugFunctions(_)
@@ -1562,21 +1592,15 @@ impl FlowrGui {
             .padding(theme::BUTTON_PAD)
             .width(35);
 
-        let has_run_target = !self.debug_spec_text.trim().is_empty();
-        let is_run = has_run_target || !jobs_started;
-        let mut reset_btn = Button::new(if is_run {
-            icon_btn("\u{25B6}", "Run")
-        } else {
+        let mut reset_btn = Button::new(if jobs_started {
             icon_btn("\u{27F3}", "Reset")
+        } else {
+            icon_btn("\u{25B6}", "Run")
         })
         .style(theme::styled_button)
         .padding(bp);
         if self.debug_client_active {
-            reset_btn = reset_btn.on_press(if has_run_target {
-                Message::DebugRunProcess
-            } else {
-                Message::DebugReset
-            });
+            reset_btn = reset_btn.on_press(Message::DebugReset);
         }
 
         let mut pause_btn = Button::new(icon_btn("\u{2389}", "Pause"))
@@ -1592,12 +1616,6 @@ impl FlowrGui {
         if can_cmd {
             exit_btn = exit_btn.on_press(Message::DebugExit);
         }
-
-        let spec_input = text_input("spec", &self.debug_spec_text)
-            .on_input(Message::DebugSpecChanged)
-            .on_submit(Message::DebugSetBreakpoint)
-            .style(theme::pill_input)
-            .width(100);
 
         let mut del_btn = Button::new(Text::new("Del All"))
             .style(theme::styled_button)
@@ -1666,15 +1684,7 @@ impl FlowrGui {
             .push(Self::tip(pause_btn, "Pause execution and enter debugger"))
             .push(Self::tip(
                 reset_btn,
-                if has_run_target {
-                    "Run a specific process (spec field has target)"
-                } else {
-                    "Reset flow state and re-run from start"
-                },
-            ))
-            .push(Self::tip(
-                spec_input,
-                "Enter spec: breakpoint (3, 3+, 1:0) or run target (ID, /route, name [args])",
+                "Reset flow state and re-run from start",
             ))
             .push(Self::tip(del_btn, "Delete all breakpoints"))
             .push(Self::tip(list_btn, "List active breakpoints"))
@@ -2018,7 +2028,7 @@ impl FlowrGui {
                         .padding([2, 4]),
                 );
 
-                // After-breakpoint indicator
+                // After-breakpoint indicator and run button (functions only)
                 if !child.is_flow {
                     let after_sym = if has_after { "\u{1F7E0}" } else { "\u{25CB}" };
                     let after_spec = format!("{}+", child.id);
@@ -2038,6 +2048,19 @@ impl FlowrGui {
                         "Set breakpoint after executing this function"
                     };
                     row = row.push(bp_tooltip(after_btn, after_tip));
+
+                    // Run button
+                    let mut run_btn = Button::new(
+                        Text::new("\u{25B6}")
+                            .size(10.0)
+                            .shaping(iced::widget::text::Shaping::Advanced),
+                    )
+                    .style(theme::ghost_button)
+                    .padding([1, 3]);
+                    if can_bp {
+                        run_btn = run_btn.on_press(Message::BrowserRunFunction(child.id));
+                    }
+                    row = row.push(bp_tooltip(run_btn, "Run this function"));
                 }
 
                 *items = std::mem::replace(items, Column::new()).push(Element::from(row));
@@ -2660,89 +2683,6 @@ impl FlowrGui {
                 self.debug_separator("Run / Reset");
                 connection_manager::send_debug_command(DebugCommand::RunReset(None, vec![]));
             }
-            Message::DebugRunProcess => {
-                if self.debug_spec_text.trim().is_empty() {
-                    return iced::Task::none();
-                }
-                if !self.ensure_functions_cached(Message::DebugRunProcess) {
-                    return iced::Task::none();
-                }
-                let parts: Vec<String> = self
-                    .debug_spec_text
-                    .split_whitespace()
-                    .map(String::from)
-                    .collect();
-                if let Some(target_str) = parts.first() {
-                    let target_id = if let Ok(id) = target_str.parse::<usize>() {
-                        Some(id)
-                    } else if target_str.starts_with('/') {
-                        self.cached_functions
-                            .iter()
-                            .find(|f| f.route == *target_str)
-                            .map(|f| f.id)
-                    } else {
-                        self.cached_functions
-                            .iter()
-                            .find(|f| f.name == *target_str)
-                            .map(|f| f.id)
-                    };
-                    if let Some(id) = target_id {
-                        if let Some(func) = self.cached_functions.iter().find(|f| f.id == id) {
-                            let inline_args: Vec<String> =
-                                parts.get(1..).unwrap_or_default().to_vec();
-                            self.run_input_names = func
-                                .inputs
-                                .iter()
-                                .enumerate()
-                                .map(|(i, (_, name, _))| {
-                                    if name.is_empty() {
-                                        format!("input_{i}")
-                                    } else {
-                                        name.clone()
-                                    }
-                                })
-                                .collect();
-                            self.run_input_types = func
-                                .inputs
-                                .iter()
-                                .map(|(_, _, generic)| {
-                                    if *generic {
-                                        "Generic".to_string()
-                                    } else {
-                                        "Value".to_string()
-                                    }
-                                })
-                                .collect();
-                            self.run_input_values = (0..func.inputs.len())
-                                .map(|i| inline_args.get(i).cloned().unwrap_or_default())
-                                .collect();
-                            self.run_target_id = Some(id);
-                            self.show_run_inputs = true;
-                        } else {
-                            let args: Vec<String> = parts.get(1..).unwrap_or_default().to_vec();
-                            self.debug_waiting = false;
-                            self.debug_spec_text.clear();
-                            self.debug_separator(&format!("Run process #{id}"));
-                            connection_manager::send_debug_command(DebugCommand::RunReset(
-                                Some(flowcore::model::debug_command::ProcessTarget::Id(id)),
-                                args,
-                            ));
-                        }
-                    } else {
-                        self.debug_waiting = false;
-                        let target = if target_str.starts_with('/') {
-                            flowcore::model::debug_command::ProcessTarget::Route(target_str.clone())
-                        } else {
-                            flowcore::model::debug_command::ProcessTarget::Name(target_str.clone())
-                        };
-                        self.debug_separator(&format!("Run process: {target_str}"));
-                        connection_manager::send_debug_command(DebugCommand::RunReset(
-                            Some(target),
-                            vec![],
-                        ));
-                    }
-                }
-            }
             Message::RunInputChanged(index, value) => {
                 if let Some(v) = self.run_input_values.get_mut(index) {
                     *v = value;
@@ -2753,7 +2693,6 @@ impl FlowrGui {
                 if let Some(id) = self.run_target_id.take() {
                     let args = self.run_input_values.clone();
                     self.debug_waiting = false;
-                    self.debug_spec_text.clear();
                     self.debug_separator(&format!("Run process #{id}"));
                     connection_manager::send_debug_command(DebugCommand::RunReset(
                         Some(flowcore::model::debug_command::ProcessTarget::Id(id)),
@@ -2777,26 +2716,6 @@ impl FlowrGui {
                 connection_manager::send_debug_command(DebugCommand::ExitDebugger);
             }
             Message::DebugStepCountChanged(value) => self.debug_step_count = value,
-            Message::DebugSpecChanged(value) => self.debug_spec_text = value,
-            Message::DebugSetBreakpoint => {
-                self.debug_waiting = false;
-                let params = if self.debug_spec_text.is_empty() {
-                    None
-                } else {
-                    Some(vec![self.debug_spec_text.clone()])
-                };
-                let spec_label = if self.debug_spec_text.is_empty() {
-                    "no spec".to_string()
-                } else {
-                    self.debug_spec_text.clone()
-                };
-                self.debug_separator(&format!("Set Breakpoint ({spec_label})"));
-                if !self.debug_spec_text.is_empty() {
-                    self.active_breakpoints.insert(self.debug_spec_text.clone());
-                }
-                let spec = DebugClient::parse_breakpoint_spec(params);
-                connection_manager::send_debug_command(DebugCommand::Breakpoint(spec));
-            }
             Message::DebugDeleteBreakpoints => {
                 self.debug_waiting = false;
                 self.active_breakpoints.clear();
@@ -3285,8 +3204,6 @@ mod test {
             pending_getline: false,
             #[cfg(feature = "debugger")]
             debug_waiting: false,
-            #[cfg(feature = "debugger")]
-            debug_spec_text: String::new(),
             #[cfg(feature = "debugger")]
             debug_step_count: String::new(),
             #[cfg(feature = "debugger")]
