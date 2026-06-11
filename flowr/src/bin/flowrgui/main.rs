@@ -1269,37 +1269,36 @@ impl FlowrGui {
         let left_element: Element<'_, Message> = if browser_open {
             self.flow_browser_panel()
         } else if self.debug_client_active {
-            // Vertical "Flow Browser" chip on the left edge
-            {
-                let label = Column::with_children(
-                    "\u{00AB} B r o w s e r"
-                        .chars()
-                        .map(|c| {
-                            Element::from(
-                                Text::new(c.to_string())
-                                    .size(theme::FONT_SM)
-                                    .color(iced::Color::WHITE)
-                                    .font(iced::Font {
-                                        weight: iced::font::Weight::Bold,
-                                        ..iced::Font::DEFAULT
-                                    }),
-                            )
-                        })
-                        .collect::<Vec<_>>(),
-                )
-                .align_x(iced::alignment::Horizontal::Center)
-                .spacing(0);
+            let btn = Button::new(crate::icons::list().size(18.0))
+                .on_press(Message::ToggleFlowBrowser)
+                .style(theme::chip_button(theme::ACCENT))
+                .padding([6, 6]);
 
-                iced::widget::container(
-                    Button::new(label)
-                        .on_press(Message::ToggleFlowBrowser)
-                        .style(theme::chip_button(theme::ACCENT))
-                        .padding([8, 4]),
+            iced::widget::container(
+                iced::widget::tooltip(
+                    btn,
+                    Text::new("Flow Browser").size(theme::FONT_SM),
+                    iced::widget::tooltip::Position::Right,
                 )
-                .height(iced::Length::Fill)
-                .align_y(iced::alignment::Vertical::Center)
-                .into()
-            }
+                .style(|_: &iced::Theme| iced::widget::container::Style {
+                    background: Some(iced::Background::Color(theme::SURFACE_TOOLTIP)),
+                    text_color: Some(iced::Color::WHITE),
+                    border: iced::Border {
+                        radius: theme::RADIUS_SM.into(),
+                        width: 1.0,
+                        color: iced::Color {
+                            a: 0.3,
+                            ..theme::ACCENT
+                        },
+                    },
+                    ..Default::default()
+                })
+                .padding(6)
+                .gap(4),
+            )
+            .height(iced::Length::Fill)
+            .align_y(iced::alignment::Vertical::Center)
+            .into()
         } else {
             iced::widget::text("").into()
         };
