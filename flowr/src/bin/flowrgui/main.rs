@@ -744,6 +744,8 @@ pub struct CachedFunction {
     pub outputs: Vec<String>,
     /// Whether this is a flow (not a leaf function)
     pub is_flow: bool,
+    /// Parent flow ID (for hierarchy)
+    pub parent_id: Option<usize>,
 }
 
 /// Tabs in the breakpoint popup
@@ -2427,82 +2429,69 @@ impl FlowrGui {
                 left: 0.0,
             });
 
-        // Build tree from cached functions
-        let mut tree_items = Column::new().spacing(2);
-        let mut sorted: Vec<_> = self.cached_functions.iter().collect();
-        sorted.sort_by_key(|f| f.id);
+        // Build hierarchical tree using parent_id
+        let mut tree_items = Column::new().spacing(1);
+        let funcs = &self.cached_functions;
+        let bps = &self.active_breakpoints;
 
-        // Show flows first, then functions under them
-        for f in &sorted {
-            if !f.is_flow {
-                continue;
+        // Build tree nodes into a vec, then convert to Column
+        #[allow(clippy::items_after_statements)]
+        fn collect_nodes(
+            result: &mut Vec<(String, usize, iced::Color, usize)>,
+            funcs: &[CachedFunction],
+            parent: Option<usize>,
+            depth: usize,
+        ) {
+            let mut children: Vec<_> = funcs.iter().filter(|f| f.parent_id == parent).collect();
+            children.sort_by_key(|f| f.id);
+            for child in children {
+                let color = if child.is_flow {
+                    theme::entity_colors::FLOW
+                } else {
+                    theme::entity_colors::FUNCTION
+                };
+                let prefix = if child.is_flow { "flow" } else { "fn" };
+                let indent = "  ".repeat(depth);
+                let label = if child.name.is_empty() {
+                    format!("{indent}{prefix} #{}", child.id)
+                } else {
+                    format!("{indent}{prefix} #{} '{}'", child.id, child.name)
+                };
+                result.push((label, child.id, color, depth));
+                if child.is_flow {
+                    collect_nodes(result, funcs, Some(child.id), depth + 1);
+                }
             }
-            let bp_dot = if self.active_breakpoints.contains(&f.id.to_string()) {
+        }
+
+        let mut nodes = Vec::new();
+        let has_roots = funcs.iter().any(|f| f.is_flow && f.parent_id.is_none());
+        if has_roots {
+            collect_nodes(&mut nodes, funcs, None, 0);
+        } else {
+            for f in funcs {
+                let label = format!("#{} '{}'", f.id, f.name);
+                nodes.push((label, f.id, theme::entity_colors::FUNCTION, 0));
+            }
+        }
+
+        for (label, id, color, _depth) in &nodes {
+            let bp_dot = if bps.contains(&id.to_string()) {
                 "\u{1F534} "
             } else {
                 ""
             };
-            let label = if f.name.is_empty() {
-                format!("{bp_dot}Flow #{}", f.id)
-            } else {
-                format!("{bp_dot}Flow #{} '{}'", f.id, f.name)
-            };
             tree_items = tree_items.push(
                 Button::new(
-                    Text::new(label)
-                        .size(theme::FONT_MD)
-                        .color(theme::entity_colors::FLOW),
+                    Text::new(format!("{bp_dot}{label}"))
+                        .size(theme::FONT_SM)
+                        .color(*color),
                 )
-                .on_press(Message::DebugInspectLink(f.id.to_string()))
+                .on_press(Message::DebugInspectLink(id.to_string()))
                 .style(theme::list_button)
-                .padding([3, 8])
+                .padding([2, 8])
                 .width(Length::Fill),
             );
-
-            // Show functions under this flow (indented)
-            for func in &sorted {
-                if func.is_flow {
-                    continue;
-                }
-                // Simple: show all functions (proper parent tracking needs RunState)
-                let fbp_dot = if self.active_breakpoints.contains(&func.id.to_string()) {
-                    "\u{1F534} "
-                } else {
-                    ""
-                };
-                let flabel = format!("  {fbp_dot}#{} '{}'", func.id, func.name);
-                tree_items = tree_items.push(
-                    Button::new(
-                        Text::new(flabel)
-                            .size(theme::FONT_SM)
-                            .color(theme::entity_colors::FUNCTION),
-                    )
-                    .on_press(Message::DebugInspectLink(func.id.to_string()))
-                    .style(theme::list_button)
-                    .padding([2, 16])
-                    .width(Length::Fill),
-                );
-            }
-            break; // Only show root flow for now — proper hierarchy needs FlowInfo
-        }
-
-        // If no flows, just list all functions
-        if !sorted.iter().any(|f| f.is_flow) {
-            for f in &sorted {
-                let bp_dot = if self.active_breakpoints.contains(&f.id.to_string()) {
-                    "\u{1F534} "
-                } else {
-                    ""
-                };
-                let label = format!("{bp_dot}#{} '{}'", f.id, f.name);
-                tree_items = tree_items.push(
-                    Button::new(Text::new(label).size(theme::FONT_MD))
-                        .on_press(Message::DebugInspectLink(f.id.to_string()))
-                        .style(theme::list_button)
-                        .padding([3, 8])
-                        .width(Length::Fill),
-                );
-            }
         }
 
         let list = Scrollable::new(tree_items)

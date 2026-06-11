@@ -952,6 +952,7 @@ fn debug_client_stream(address: String) -> impl iced::futures::Stream<Item = Mes
                                     inputs,
                                     outputs,
                                     is_flow: false,
+                                    parent_id: Some(f.get_parent_id()),
                                 }
                             })
                             .collect();
@@ -962,13 +963,14 @@ fn debug_client_stream(address: String) -> impl iced::futures::Stream<Item = Mes
                     if let DebugServerMessage::FlowList(ref flows) = message {
                         let flow_data: Vec<crate::CachedFunction> = flows
                             .iter()
-                            .map(|(id, name, route)| crate::CachedFunction {
+                            .map(|(id, name, route, parent)| crate::CachedFunction {
                                 id: *id,
                                 name: name.clone(),
                                 route: route.clone(),
                                 inputs: Vec::new(),
                                 outputs: Vec::new(),
                                 is_flow: true,
+                                parent_id: *parent,
                             })
                             .collect();
                         let _ = blocking_sender.try_send(Message::DebugFlowsReceived(flow_data));
@@ -1031,6 +1033,12 @@ fn debug_client_stream(address: String) -> impl iced::futures::Stream<Item = Mes
                                 } else {
                                     (String::new(), String::new())
                                 };
+                                let parent = state
+                                    .get_submission()
+                                    .manifest
+                                    .flows()
+                                    .get(id)
+                                    .and_then(|fi| fi.parent_id);
                                 crate::CachedFunction {
                                     id: *id,
                                     name,
@@ -1038,6 +1046,7 @@ fn debug_client_stream(address: String) -> impl iced::futures::Stream<Item = Mes
                                     inputs: Vec::new(),
                                     outputs: Vec::new(),
                                     is_flow: true,
+                                    parent_id: parent,
                                 }
                             })
                             .collect();
