@@ -594,24 +594,9 @@ pub enum Message {
     /// User clicked Validate
     #[cfg(feature = "debugger")]
     DebugValidate,
-    /// Show the breakpoint spec popup
-    #[cfg(feature = "debugger")]
-    ShowBpPopup,
-    /// Close the breakpoint spec popup
-    #[cfg(feature = "debugger")]
-    CloseBpPopup,
-    /// Breakpoint type changed in popup
-    #[cfg(feature = "debugger")]
-    BpTabChanged(BpTab),
-    /// Breakpoint target changed in popup
+    /// Breakpoint target toggled in browser tree
     #[cfg(feature = "debugger")]
     BpTargetChanged(String),
-    /// Confirm and set breakpoint from popup
-    #[cfg(feature = "debugger")]
-    BpPopupConfirm,
-    /// Cycle before/after breakpoint on a function in Route tab
-    #[cfg(feature = "debugger")]
-    BpCycleFunction(usize),
     /// A clickable link in the debug output was clicked (spec to inspect)
     #[cfg(feature = "debugger")]
     DebugInspectLink(String),
@@ -737,50 +722,10 @@ pub struct CachedFunction {
 }
 
 /// Tabs in the breakpoint popup
-#[cfg(feature = "debugger")]
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum BpTab {
-    /// Break before a function executes
-    Before,
-    /// Break after a function completes
-    After,
-    /// Break when data arrives at an input
-    Input,
-    /// Break when data is sent from an output
-    Output,
-    /// Full hierarchical route view
-    Route,
-}
-
-#[cfg(feature = "debugger")]
-impl std::fmt::Display for BpTab {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            Self::Before => write!(f, "Before"),
-            Self::After => write!(f, "After"),
-            Self::Input => write!(f, "Input"),
-            Self::Output => write!(f, "Output"),
-            Self::Route => write!(f, "Route"),
-        }
-    }
-}
-
-#[cfg(feature = "debugger")]
-const BP_TABS: [BpTab; 5] = [
-    BpTab::Before,
-    BpTab::After,
-    BpTab::Input,
-    BpTab::Output,
-    BpTab::Route,
-];
-
-/// Tabs in the inspect popup
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 enum PanelKind {
     Settings,
     Metrics,
-    #[cfg(feature = "debugger")]
-    Breakpoints,
     #[cfg(feature = "debugger")]
     Browser,
 }
@@ -820,11 +765,6 @@ struct FlowrGui {
     debug_step_count: String,
     #[cfg(feature = "debugger")]
     debug_client_active: bool,
-    #[cfg(feature = "debugger")]
-    #[cfg(feature = "debugger")]
-    bp_tab: BpTab,
-    #[cfg(feature = "debugger")]
-    bp_target: String,
     cached_functions: Vec<CachedFunction>,
     #[cfg(feature = "debugger")]
     active_breakpoints: std::collections::HashSet<String>,
@@ -879,11 +819,6 @@ impl FlowrGui {
             debug_step_count: String::new(),
             #[cfg(feature = "debugger")]
             debug_client_active: false,
-            #[cfg(feature = "debugger")]
-            #[cfg(feature = "debugger")]
-            bp_tab: BpTab::Before,
-            #[cfg(feature = "debugger")]
-            bp_target: String::new(),
             cached_functions: Vec::new(),
             #[cfg(feature = "debugger")]
             active_breakpoints: std::collections::HashSet::new(),
@@ -1146,12 +1081,7 @@ impl FlowrGui {
             | Message::DebugProcesses
             | Message::DebugState
             | Message::DebugValidate
-            | Message::ShowBpPopup
-            | Message::CloseBpPopup
-            | Message::BpTabChanged(_)
             | Message::BpTargetChanged(_)
-            | Message::BpPopupConfirm
-            | Message::BpCycleFunction(_)
             | Message::DebugFunctionListReceived(_)
             | Message::DebugFlowsReceived(_)
             | Message::DebugBreakpointListReceived(_)
@@ -1264,8 +1194,6 @@ impl FlowrGui {
                     let panel: Element<'_, Message> = match kind {
                         PanelKind::Settings => self.settings_panel(),
                         PanelKind::Metrics => self.metrics_panel(),
-                        #[cfg(feature = "debugger")]
-                        PanelKind::Breakpoints => self.bp_panel(),
                         #[cfg(feature = "debugger")]
                         PanelKind::Browser => unreachable!(),
                     };
@@ -1671,13 +1599,6 @@ impl FlowrGui {
             .style(theme::pill_input)
             .width(100);
 
-        let mut bp_btn = Button::new(Text::new("Set BP"))
-            .style(theme::styled_button)
-            .padding(sp);
-        if can_cmd {
-            bp_btn = bp_btn.on_press(Message::ShowBpPopup);
-        }
-
         let mut del_btn = Button::new(Text::new("Del All"))
             .style(theme::styled_button)
             .padding(sp);
@@ -1755,7 +1676,6 @@ impl FlowrGui {
                 spec_input,
                 "Enter spec: breakpoint (3, 3+, 1:0) or run target (ID, /route, name [args])",
             ))
-            .push(Self::tip(bp_btn, "Open breakpoint picker"))
             .push(Self::tip(del_btn, "Delete all breakpoints"))
             .push(Self::tip(list_btn, "List active breakpoints"))
             .push(Self::tip(funcs_btn, "List all functions"))
@@ -1806,234 +1726,6 @@ impl FlowrGui {
 
         row = row.push(exec_btn).push(cancel_btn);
         row
-    }
-
-    #[cfg(feature = "debugger")]
-    #[allow(clippy::too_many_lines)]
-    fn bp_panel(&self) -> Element<'_, Message> {
-        use iced::widget::scrollable::Scrollable;
-        use iced::widget::Container;
-        use iced::Length;
-
-        let type_row = Row::new()
-            .spacing(4)
-            .align_y(iced::alignment::Vertical::Center);
-        let type_row = BP_TABS.iter().fold(type_row, |row, &bt| {
-            let is_active = bt == self.bp_tab;
-            let mut btn = Button::new(Text::new(bt.to_string()).size(theme::FONT_MD))
-                .padding(theme::BUTTON_PAD)
-                .style(if is_active {
-                    theme::pill_button_active
-                        as fn(
-                            &iced::Theme,
-                            iced::widget::button::Status,
-                        ) -> iced::widget::button::Style
-                } else {
-                    theme::pill_button
-                });
-            if !is_active {
-                btn = btn.on_press(Message::BpTabChanged(bt));
-            }
-            row.push(btn)
-        });
-
-        let mut items = Column::new().spacing(2);
-
-        if self.cached_functions.is_empty() {
-            items = items.push(
-                Text::new("Loading function list...")
-                    .size(13)
-                    .color(crate::theme::TEXT_SECONDARY),
-            );
-        } else {
-            let bp_marker = |spec: &str| -> &str {
-                if self.active_breakpoints.contains(spec) {
-                    "\u{1F534} "
-                } else {
-                    "  "
-                }
-            };
-
-            match self.bp_tab {
-                BpTab::Before | BpTab::After => {
-                    for f in self.cached_functions.iter().filter(|f| !f.is_flow) {
-                        let spec = match self.bp_tab {
-                            BpTab::Before => format!("{}", f.id),
-                            BpTab::After => format!("{}+", f.id),
-                            _ => unreachable!(),
-                        };
-                        let marker = bp_marker(&spec);
-                        let label = format!("{marker}#{} '{}' @ '{}'", f.id, f.name, f.route);
-                        let mut btn = Button::new(Text::new(label).size(13))
-                            .width(Length::Fill)
-                            .padding([3, 8]);
-                        if self.active_breakpoints.contains(&spec) {
-                            btn = btn.style(theme::styled_button);
-                        } else {
-                            btn = btn.style(theme::list_button);
-                        }
-                        btn = btn.on_press(Message::BpTargetChanged(spec.clone()));
-                        items = items.push(btn);
-                    }
-                }
-                BpTab::Route => {
-                    for f in self.cached_functions.iter().filter(|f| !f.is_flow) {
-                        let before_spec = format!("{}", f.id);
-                        let after_spec = format!("{}+", f.id);
-                        let has_before = self.active_breakpoints.contains(&before_spec);
-                        let has_after = self.active_breakpoints.contains(&after_spec);
-                        let before_dot = if has_before { "\u{1F534}" } else { "  " };
-                        let after_dot = if has_after { " \u{1F534}" } else { "" };
-                        let label = format!(
-                            "{before_dot} {} (#{} '{}'){after_dot}",
-                            f.route, f.id, f.name
-                        );
-                        let mut btn = Button::new(
-                            Text::new(label)
-                                .size(13)
-                                .shaping(iced::widget::text::Shaping::Advanced),
-                        )
-                        .width(Length::Fill)
-                        .padding([3, 8]);
-                        if has_before || has_after {
-                            btn = btn.style(theme::styled_button);
-                        } else {
-                            btn = btn.style(theme::list_button);
-                        }
-                        btn = btn.on_press(Message::BpCycleFunction(f.id));
-                        items = items.push(btn);
-
-                        for (idx, input_name, _generic) in &f.inputs {
-                            let input_spec = format!("{}:{idx}", f.id);
-                            let name_part = if input_name.is_empty() {
-                                String::new()
-                            } else {
-                                format!(" '{input_name}'")
-                            };
-                            let im = bp_marker(&input_spec);
-                            let input_label =
-                                format!("  {im}input:{idx}{name_part} on '{}'", f.route);
-                            let mut ibtn = Button::new(Text::new(input_label).size(12))
-                                .width(Length::Fill)
-                                .padding([2, 16]);
-                            if self.active_breakpoints.contains(&input_spec) {
-                                ibtn = ibtn.style(theme::styled_button);
-                            } else {
-                                ibtn = ibtn.style(theme::list_button);
-                            }
-                            ibtn = ibtn.on_press(Message::BpTargetChanged(input_spec));
-                            items = items.push(ibtn);
-                        }
-                        for (output_route, _dest_id, _dest_io) in &f.outputs {
-                            let out_spec = format!("{}{output_route}", f.id);
-                            let om = bp_marker(&out_spec);
-                            let out_label =
-                                format!("  {om}output:'{output_route}' on '{}'", f.route);
-                            let mut obtn = Button::new(Text::new(out_label).size(12))
-                                .width(Length::Fill)
-                                .padding([2, 16]);
-                            if self.active_breakpoints.contains(&out_spec) {
-                                obtn = obtn.style(theme::styled_button);
-                            } else {
-                                obtn = obtn.style(theme::list_button);
-                            }
-                            obtn = obtn.on_press(Message::BpTargetChanged(out_spec));
-                            items = items.push(obtn);
-                        }
-                    }
-                }
-                BpTab::Input => {
-                    for f in &self.cached_functions {
-                        for (idx, input_name, _generic) in &f.inputs {
-                            let spec = format!("{}:{idx}", f.id);
-                            let marker = bp_marker(&spec);
-                            let name_part = if input_name.is_empty() {
-                                String::new()
-                            } else {
-                                format!(" '{input_name}'")
-                            };
-                            let label =
-                                format!("{marker}#{} '{}' input:{idx}{name_part}", f.id, f.name);
-                            let mut btn = Button::new(Text::new(label).size(13))
-                                .width(Length::Fill)
-                                .padding([3, 8]);
-                            if self.active_breakpoints.contains(&spec) {
-                                btn = btn.style(theme::styled_button);
-                            } else {
-                                btn = btn.style(theme::list_button);
-                            }
-                            btn = btn.on_press(Message::BpTargetChanged(spec));
-                            items = items.push(btn);
-                        }
-                    }
-                }
-                BpTab::Output => {
-                    for f in &self.cached_functions {
-                        for (output_route, _dest_id, _dest_io) in &f.outputs {
-                            let spec = format!("{}{output_route}", f.id);
-                            let marker = bp_marker(&spec);
-                            let label =
-                                format!("{marker}#{} '{}' output:'{output_route}'", f.id, f.name);
-                            let mut btn = Button::new(Text::new(label).size(13))
-                                .width(Length::Fill)
-                                .padding([3, 8]);
-                            if self.active_breakpoints.contains(&spec) {
-                                btn = btn.style(theme::styled_button);
-                            } else {
-                                btn = btn.style(theme::list_button);
-                            }
-                            btn = btn.on_press(Message::BpTargetChanged(spec));
-                            items = items.push(btn);
-                        }
-                    }
-                }
-            }
-        }
-
-        let list = Scrollable::new(items)
-            .height(Length::Fill)
-            .width(Length::Fill);
-
-        let header = Row::new()
-            .push(Text::new("Breakpoints").size(theme::FONT_DEFAULT))
-            .push(iced::widget::container(iced::widget::text("")).width(Length::Fill))
-            .push(
-                Button::new(
-                    Text::new("\u{00BB}")
-                        .size(20.0)
-                        .shaping(iced::widget::text::Shaping::Advanced),
-                )
-                .on_press(Message::CloseBpPopup)
-                .style(theme::ghost_button)
-                .padding(theme::BUTTON_PAD_SM),
-            )
-            .align_y(iced::alignment::Vertical::Center)
-            .padding(iced::Padding {
-                top: 0.0,
-                right: 0.0,
-                bottom: theme::SPACE_SM,
-                left: 0.0,
-            });
-
-        let panel_content = Column::new()
-            .spacing(theme::SPACE_MD)
-            .push(header)
-            .push(type_row)
-            .push(list);
-
-        Container::new(panel_content)
-            .width(Length::Fixed(380.0))
-            .padding(theme::SPACE_LG)
-            .style(|_: &iced::Theme| iced::widget::container::Style {
-                background: Some(iced::Background::Color(theme::SURFACE_BUTTON)),
-                border: iced::Border {
-                    radius: 0.0.into(),
-                    width: 0.0,
-                    color: iced::Color::TRANSPARENT,
-                },
-                ..Default::default()
-            })
-            .into()
     }
 
     fn metrics_panel(&self) -> Element<'_, Message> {
@@ -2176,13 +1868,19 @@ impl FlowrGui {
         let header = Row::new()
             .push(
                 Button::new(
-                    Text::new("Flow Browser")
-                        .size(theme::FONT_DEFAULT)
-                        .color(iced::Color::WHITE)
-                        .font(iced::Font {
-                            weight: iced::font::Weight::Bold,
-                            ..iced::Font::DEFAULT
-                        }),
+                    Row::new()
+                        .spacing(6)
+                        .align_y(iced::alignment::Vertical::Center)
+                        .push(crate::icons::list().size(16.0).color(iced::Color::WHITE))
+                        .push(
+                            Text::new("Flow Browser")
+                                .size(theme::FONT_DEFAULT)
+                                .color(iced::Color::WHITE)
+                                .font(iced::Font {
+                                    weight: iced::font::Weight::Bold,
+                                    ..iced::Font::DEFAULT
+                                }),
+                        ),
                 )
                 .on_press(Message::ToggleFlowBrowser)
                 .style(theme::chip_button(theme::ACCENT))
@@ -2200,6 +1898,31 @@ impl FlowrGui {
         let mut tree_items = Column::new().spacing(1);
         let funcs = &self.cached_functions;
         let bps = &self.active_breakpoints;
+
+        #[allow(clippy::items_after_statements)]
+        fn bp_tooltip<'a>(btn: Button<'a, Message>, tip: &str) -> Element<'a, Message> {
+            iced::widget::tooltip(
+                btn,
+                Text::new(tip.to_string()).size(theme::FONT_SM),
+                iced::widget::tooltip::Position::Top,
+            )
+            .style(|_: &iced::Theme| iced::widget::container::Style {
+                background: Some(iced::Background::Color(theme::SURFACE_TOOLTIP)),
+                text_color: Some(iced::Color::WHITE),
+                border: iced::Border {
+                    radius: theme::RADIUS_SM.into(),
+                    width: 1.0,
+                    color: iced::Color {
+                        a: 0.3,
+                        ..theme::ACCENT
+                    },
+                },
+                ..Default::default()
+            })
+            .padding(4)
+            .gap(4)
+            .into()
+        }
 
         // Build tree with fold/unfold triangles and outputs
         #[allow(clippy::items_after_statements)]
@@ -2229,12 +1952,6 @@ impl FlowrGui {
                 };
                 let has_before = bps.contains(&child.id.to_string());
                 let has_after = bps.contains(&format!("{}+", child.id));
-                let bp_symbol = match (has_before, has_after) {
-                    (true, true) => "\u{23FA}",
-                    (true, false) => "\u{1F534}",
-                    (false, true) => "\u{1F7E0}",
-                    (false, false) => "\u{25CB}",
-                };
                 let name_part = if child.name.is_empty() {
                     format!("{prefix} #{}", child.id)
                 } else {
@@ -2247,7 +1964,7 @@ impl FlowrGui {
 
                 // Indent
                 if depth > 0 {
-                    row = row.push(Text::new(indent).size(theme::FONT_MD));
+                    row = row.push(Text::new(indent).size(theme::FONT_DEFAULT));
                 }
 
                 // Triangle toggle
@@ -2273,53 +1990,55 @@ impl FlowrGui {
                     row = row.push(Text::new("  ").size(12.0));
                 }
 
-                // Breakpoint indicator (clickable, cycles: none→before→after→both→none)
-                let mut bp_btn = Button::new(
-                    Text::new(bp_symbol)
-                        .size(10.0)
+                // Before-breakpoint indicator
+                let before_sym = if has_before { "\u{1F534}" } else { "\u{25CB}" };
+                let before_spec = child.id.to_string();
+                let mut before_btn = Button::new(
+                    Text::new(before_sym)
+                        .size(11.0)
                         .shaping(iced::widget::text::Shaping::Advanced),
                 )
                 .style(theme::ghost_button)
                 .padding([1, 2]);
                 if can_bp {
-                    bp_btn = bp_btn.on_press(Message::BpCycleFunction(child.id));
+                    before_btn = before_btn.on_press(Message::BpTargetChanged(before_spec));
                 }
-                let bp_tooltip_text = match (has_before, has_after) {
-                    (true, true) => "BP: before+after (click to cycle)",
-                    (true, false) => "BP: before (click to cycle)",
-                    (false, true) => "BP: after (click to cycle)",
-                    (false, false) => "Click to set breakpoint",
+                let before_tip = if has_before {
+                    "Remove breakpoint before this function"
+                } else {
+                    "Set breakpoint before executing this function"
                 };
-                row = row.push(
-                    iced::widget::tooltip(
-                        bp_btn,
-                        Text::new(bp_tooltip_text).size(theme::FONT_SM),
-                        iced::widget::tooltip::Position::Right,
-                    )
-                    .style(|_: &iced::Theme| iced::widget::container::Style {
-                        background: Some(iced::Background::Color(theme::SURFACE_TOOLTIP)),
-                        text_color: Some(iced::Color::WHITE),
-                        border: iced::Border {
-                            radius: theme::RADIUS_SM.into(),
-                            width: 1.0,
-                            color: iced::Color {
-                                a: 0.3,
-                                ..theme::ACCENT
-                            },
-                        },
-                        ..Default::default()
-                    })
-                    .padding(4)
-                    .gap(4),
-                );
+                row = row.push(bp_tooltip(before_btn, before_tip));
 
                 // Label button
                 row = row.push(
-                    Button::new(Text::new(name_part).size(theme::FONT_MD).color(color))
+                    Button::new(Text::new(name_part).size(theme::FONT_DEFAULT).color(color))
                         .on_press(Message::DebugInspectLink(child.id.to_string()))
                         .style(theme::list_button)
                         .padding([2, 4]),
                 );
+
+                // After-breakpoint indicator
+                if !child.is_flow {
+                    let after_sym = if has_after { "\u{1F7E0}" } else { "\u{25CB}" };
+                    let after_spec = format!("{}+", child.id);
+                    let mut after_btn = Button::new(
+                        Text::new(after_sym)
+                            .size(11.0)
+                            .shaping(iced::widget::text::Shaping::Advanced),
+                    )
+                    .style(theme::ghost_button)
+                    .padding([1, 2]);
+                    if can_bp {
+                        after_btn = after_btn.on_press(Message::BpTargetChanged(after_spec));
+                    }
+                    let after_tip = if has_after {
+                        "Remove breakpoint after this function"
+                    } else {
+                        "Set breakpoint after executing this function"
+                    };
+                    row = row.push(bp_tooltip(after_btn, after_tip));
+                }
 
                 *items = std::mem::replace(items, Column::new()).push(Element::from(row));
 
@@ -2351,7 +2070,7 @@ impl FlowrGui {
                         let bp_sym = if has_bp { "\u{1F534}" } else { "\u{25CB}" };
                         let mut bp_btn = Button::new(
                             Text::new(bp_sym)
-                                .size(10.0)
+                                .size(11.0)
                                 .shaping(iced::widget::text::Shaping::Advanced),
                         )
                         .style(theme::ghost_button)
@@ -2359,15 +2078,20 @@ impl FlowrGui {
                         if can_bp {
                             bp_btn = bp_btn.on_press(Message::BpTargetChanged(spec.clone()));
                         }
+                        let inp_tip = if has_bp {
+                            "Remove breakpoint on this input"
+                        } else {
+                            "Set breakpoint when data arrives at this input"
+                        };
                         let irow = Row::new()
                             .spacing(4)
                             .align_y(iced::alignment::Vertical::Center)
-                            .push(Text::new(format!("{inp_indent}    ")).size(theme::FONT_MD))
-                            .push(bp_btn)
+                            .push(Text::new(format!("{inp_indent}    ")).size(theme::FONT_DEFAULT))
+                            .push(bp_tooltip(bp_btn, inp_tip))
                             .push(
                                 Button::new(
                                     Text::new(iname)
-                                        .size(theme::FONT_MD)
+                                        .size(theme::FONT_DEFAULT)
                                         .color(theme::entity_colors::INPUT),
                                 )
                                 .on_press(Message::DebugInspectLink(spec))
@@ -2399,7 +2123,7 @@ impl FlowrGui {
                         let bp_sym = if has_bp { "\u{1F534}" } else { "\u{25CB}" };
                         let mut bp_btn = Button::new(
                             Text::new(bp_sym)
-                                .size(10.0)
+                                .size(11.0)
                                 .shaping(iced::widget::text::Shaping::Advanced),
                         )
                         .style(theme::ghost_button)
@@ -2407,15 +2131,20 @@ impl FlowrGui {
                         if can_bp {
                             bp_btn = bp_btn.on_press(Message::BpTargetChanged(spec.clone()));
                         }
+                        let out_tip = if has_bp {
+                            "Remove breakpoint on this output"
+                        } else {
+                            "Set breakpoint when data is sent from this output"
+                        };
                         let orow = Row::new()
                             .spacing(4)
                             .align_y(iced::alignment::Vertical::Center)
-                            .push(Text::new(format!("{out_indent}    ")).size(theme::FONT_MD))
-                            .push(bp_btn)
+                            .push(Text::new(format!("{out_indent}    ")).size(theme::FONT_DEFAULT))
+                            .push(bp_tooltip(bp_btn, out_tip))
                             .push(
                                 Button::new(
                                     Text::new(format!("output {display_route}"))
-                                        .size(theme::FONT_MD)
+                                        .size(theme::FONT_DEFAULT)
                                         .color(theme::entity_colors::OUTPUT),
                                 )
                                 .on_press(Message::DebugInspectLink(spec))
@@ -3197,85 +2926,19 @@ impl FlowrGui {
             Message::DebugToggleSection(section_id) => {
                 self.tab_set.debug_tab.toggle_section(section_id);
             }
-            Message::CloseBpPopup => self.close_panel(),
-            Message::ShowBpPopup => {
-                if !self.ensure_functions_cached(Message::ShowBpPopup) {
-                    return iced::Task::none();
-                }
-                if self.active_panel == Some(PanelKind::Breakpoints) {
-                    self.close_panel();
-                    return iced::Task::none();
-                }
-                self.open_panel(PanelKind::Breakpoints);
-                self.bp_target.clear();
-                if self.debug_waiting {
+            Message::BpTargetChanged(spec_str) if self.debug_waiting => {
+                if self.active_breakpoints.contains(&spec_str) {
+                    self.active_breakpoints.remove(&spec_str);
                     self.debug_waiting = false;
-                    self.suppress_next_output = true;
-                    connection_manager::send_debug_command(DebugCommand::List);
-                }
-            }
-            Message::BpTabChanged(tab) => {
-                self.bp_tab = tab;
-                self.bp_target.clear();
-            }
-            Message::BpTargetChanged(value) => {
-                if self.debug_waiting {
-                    let spec_str = if self.bp_tab == BpTab::After {
-                        format!("{value}+")
-                    } else {
-                        value.clone()
-                    };
-                    if self.active_breakpoints.contains(&spec_str) {
-                        self.active_breakpoints.remove(&spec_str);
-                        self.debug_waiting = false;
-                        let spec = DebugClient::parse_breakpoint_spec(Some(vec![spec_str.clone()]));
-                        self.debug_separator(&format!("Delete Breakpoint ({spec_str})"));
-                        connection_manager::send_debug_command(DebugCommand::Delete(spec));
-                    } else {
-                        self.active_breakpoints.insert(spec_str.clone());
-                        self.debug_waiting = false;
-                        let spec = DebugClient::parse_breakpoint_spec(Some(vec![spec_str.clone()]));
-                        self.debug_separator(&format!("Set Breakpoint ({spec_str})"));
-                        connection_manager::send_debug_command(DebugCommand::Breakpoint(spec));
-                    }
-                }
-                self.bp_target = value;
-            }
-            Message::BpPopupConfirm => {
-                self.close_panel();
-            }
-            Message::BpCycleFunction(func_id) if self.debug_waiting => {
-                let before_spec = format!("{func_id}");
-                let after_spec = format!("{func_id}+");
-                let has_before = self.active_breakpoints.contains(&before_spec);
-                let has_after = self.active_breakpoints.contains(&after_spec);
-
-                self.debug_waiting = false;
-                match (has_before, has_after) {
-                    (true, true) => {
-                        self.active_breakpoints.remove(&before_spec);
-                        let spec = DebugClient::parse_breakpoint_spec(Some(vec![before_spec]));
-                        self.debug_separator("Remove before breakpoint");
-                        connection_manager::send_debug_command(DebugCommand::Delete(spec));
-                    }
-                    (false, true) => {
-                        self.active_breakpoints.remove(&after_spec);
-                        let spec = DebugClient::parse_breakpoint_spec(Some(vec![after_spec]));
-                        self.debug_separator("Remove after breakpoint");
-                        connection_manager::send_debug_command(DebugCommand::Delete(spec));
-                    }
-                    (false, false) => {
-                        self.active_breakpoints.insert(before_spec.clone());
-                        let spec = DebugClient::parse_breakpoint_spec(Some(vec![before_spec]));
-                        self.debug_separator("Set before breakpoint");
-                        connection_manager::send_debug_command(DebugCommand::Breakpoint(spec));
-                    }
-                    (true, false) => {
-                        self.active_breakpoints.insert(after_spec.clone());
-                        let spec = DebugClient::parse_breakpoint_spec(Some(vec![after_spec]));
-                        self.debug_separator("Set after breakpoint");
-                        connection_manager::send_debug_command(DebugCommand::Breakpoint(spec));
-                    }
+                    let spec = DebugClient::parse_breakpoint_spec(Some(vec![spec_str.clone()]));
+                    self.debug_separator(&format!("Delete Breakpoint ({spec_str})"));
+                    connection_manager::send_debug_command(DebugCommand::Delete(spec));
+                } else {
+                    self.active_breakpoints.insert(spec_str.clone());
+                    self.debug_waiting = false;
+                    let spec = DebugClient::parse_breakpoint_spec(Some(vec![spec_str.clone()]));
+                    self.debug_separator(&format!("Set Breakpoint ({spec_str})"));
+                    connection_manager::send_debug_command(DebugCommand::Breakpoint(spec));
                 }
             }
             _ => {}
@@ -3628,11 +3291,6 @@ mod test {
             debug_step_count: String::new(),
             #[cfg(feature = "debugger")]
             debug_client_active: false,
-            #[cfg(feature = "debugger")]
-            #[cfg(feature = "debugger")]
-            bp_tab: BpTab::Before,
-            #[cfg(feature = "debugger")]
-            bp_target: String::new(),
             cached_functions: Vec::new(),
             #[cfg(feature = "debugger")]
             active_breakpoints: std::collections::HashSet::new(),
@@ -3837,7 +3495,7 @@ mod test {
         let mut gui = test_gui();
         gui.debug_client_active = true;
         gui.debug_waiting = true;
-        gui.active_panel = Some(PanelKind::Breakpoints);
+        gui.active_panel = Some(PanelKind::Browser);
         let view = gui.view();
         let _ui = simulator(view);
     }
@@ -3849,7 +3507,7 @@ mod test {
         let mut gui = test_gui();
         gui.debug_client_active = true;
         gui.debug_waiting = true;
-        gui.active_panel = Some(PanelKind::Breakpoints);
+        gui.active_panel = Some(PanelKind::Browser);
         let view = gui.view();
         let _ui = simulator(view);
     }
