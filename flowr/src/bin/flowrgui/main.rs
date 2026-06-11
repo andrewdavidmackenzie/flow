@@ -2348,11 +2348,13 @@ impl FlowrGui {
     }
 
     fn close_panel(&mut self) {
+        // active_panel stays set so the view can render content during close animation
+        // It gets cleared on next open_panel or when the animation finishes (checked in view)
         self.panel_anim.go_mut(false, iced::time::Instant::now());
     }
 
     fn toggle_panel(&mut self, kind: PanelKind) {
-        if self.active_panel == Some(kind) {
+        if self.active_panel == Some(kind) && self.panel_anim.value() {
             self.close_panel();
         } else {
             self.open_panel(kind);
