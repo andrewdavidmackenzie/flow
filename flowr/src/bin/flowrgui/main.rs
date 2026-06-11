@@ -2480,16 +2480,37 @@ impl FlowrGui {
             } else {
                 ""
             };
+            let btn = Button::new(
+                Text::new(format!("{bp_dot}{label}"))
+                    .size(theme::FONT_SM)
+                    .color(*color),
+            )
+            .on_press(Message::DebugInspectLink(id.to_string()))
+            .style(theme::list_button)
+            .padding([2, 8])
+            .width(Length::Fill);
+
             tree_items = tree_items.push(
-                Button::new(
-                    Text::new(format!("{bp_dot}{label}"))
-                        .size(theme::FONT_SM)
-                        .color(*color),
+                iced::widget::tooltip(
+                    btn,
+                    Text::new("Click to inspect").size(theme::FONT_SM),
+                    iced::widget::tooltip::Position::Right,
                 )
-                .on_press(Message::DebugInspectLink(id.to_string()))
-                .style(theme::list_button)
-                .padding([2, 8])
-                .width(Length::Fill),
+                .style(|_: &iced::Theme| iced::widget::container::Style {
+                    background: Some(iced::Background::Color(theme::SURFACE_TOOLTIP)),
+                    text_color: Some(iced::Color::WHITE),
+                    border: iced::Border {
+                        radius: theme::RADIUS_SM.into(),
+                        width: 1.0,
+                        color: iced::Color {
+                            a: 0.3,
+                            ..theme::ACCENT
+                        },
+                    },
+                    ..Default::default()
+                })
+                .padding(6)
+                .gap(4),
             );
         }
 
