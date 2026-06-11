@@ -1079,6 +1079,29 @@ fn debug_client_stream(address: String) -> impl iced::futures::Stream<Item = Mes
                         if !flows.is_empty() {
                             let _ = blocking_sender.try_send(Message::DebugFlowsReceived(flows));
                         }
+
+                        let mut states_map = std::collections::HashMap::new();
+                        for &id in functions.keys() {
+                            let fn_states = state.get_function_states(id);
+                            let chips: Vec<(char, String)> = fn_states
+                                .iter()
+                                .map(|s| match s {
+                                    flowrlib::run_state::State::Ready => ('R', "Ready".into()),
+                                    flowrlib::run_state::State::Waiting => ('W', "Waiting".into()),
+                                    flowrlib::run_state::State::Running => ('X', "Running".into()),
+                                    flowrlib::run_state::State::Completed => {
+                                        ('C', "Completed".into())
+                                    }
+                                })
+                                .collect();
+                            if !chips.is_empty() {
+                                states_map.insert(id, chips);
+                            }
+                        }
+                        if !states_map.is_empty() {
+                            let _ =
+                                blocking_sender.try_send(Message::DebugStatesReceived(states_map));
+                        }
                     }
 
                     if !is_waiting {

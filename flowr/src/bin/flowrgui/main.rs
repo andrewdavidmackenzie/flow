@@ -528,6 +528,9 @@ pub enum Message {
     /// Metrics received from debug channel
     #[cfg(feature = "metrics")]
     DebugMetricsReceived(flowcore::model::metrics::Metrics),
+    /// Cached function states from `RunState` (id to state letters)
+    #[cfg(feature = "debugger")]
+    DebugStatesReceived(std::collections::HashMap<usize, Vec<(char, String)>>),
     /// Formatted debug event lines from the debug server
     #[cfg(feature = "debugger")]
     DebugEvent(Vec<DebugEventLine>),
@@ -760,6 +763,8 @@ struct FlowrGui {
     debug_client_active: bool,
     cached_functions: Vec<CachedFunction>,
     #[cfg(feature = "debugger")]
+    cached_states: std::collections::HashMap<usize, Vec<(char, String)>>,
+    #[cfg(feature = "debugger")]
     active_breakpoints: std::collections::HashSet<String>,
     #[cfg(feature = "debugger")]
     #[cfg(feature = "debugger")]
@@ -811,6 +816,8 @@ impl FlowrGui {
             #[cfg(feature = "debugger")]
             debug_client_active: false,
             cached_functions: Vec::new(),
+            #[cfg(feature = "debugger")]
+            cached_states: std::collections::HashMap::new(),
             #[cfg(feature = "debugger")]
             active_breakpoints: std::collections::HashSet::new(),
             #[cfg(feature = "debugger")]
@@ -1028,6 +1035,8 @@ impl FlowrGui {
                 self.last_metrics = Some(metrics);
             }
             Message::ToggleMetrics => self.toggle_panel(PanelKind::Metrics),
+            #[cfg(feature = "debugger")]
+            Message::DebugStatesReceived(states) => self.cached_states = states,
             #[cfg(feature = "debugger")]
             Message::BrowserToggleNode(id) => {
                 if self.browser_collapsed.contains(&id) {
@@ -1935,17 +1944,21 @@ impl FlowrGui {
         }
 
         // Build tree with fold/unfold triangles and outputs
-        #[allow(clippy::items_after_statements)]
+        #[allow(clippy::items_after_statements, clippy::type_complexity)]
         fn add_tree_nodes(
             items: &mut Column<'_, Message>,
             funcs: &[CachedFunction],
             collapsed: &std::collections::HashSet<usize>,
-            bps: &std::collections::HashSet<String>,
-            actions: (bool, bool),
+            data: (
+                &std::collections::HashSet<String>,
+                &std::collections::HashMap<usize, Vec<(char, String)>>,
+                bool,
+                bool,
+            ),
             parent: Option<usize>,
             depth: usize,
         ) {
-            let (can_bp, can_run) = actions;
+            let (bps, states, can_bp, can_run) = data;
             let mut children: Vec<_> = funcs.iter().filter(|f| f.parent_id == parent).collect();
             children.sort_by_key(|f| f.id);
 
@@ -2064,21 +2077,59 @@ impl FlowrGui {
                     }
                 }
 
+                // State chips
+                if let Some(fn_states) = states.get(&child.id) {
+                    for (letter, full_name) in fn_states {
+                        let state_color = match *letter {
+                            'R' => theme::entity_colors::STATE_READY,
+                            'W' => theme::entity_colors::STATE_WAITING,
+                            'X' => theme::entity_colors::STATE_RUNNING,
+                            'C' => theme::entity_colors::STATE_COMPLETED,
+                            _ => theme::TEXT_SECONDARY,
+                        };
+                        let chip = Button::new(
+                            Text::new(letter.to_string())
+                                .size(theme::FONT_SM)
+                                .color(iced::Color::WHITE)
+                                .font(iced::Font {
+                                    weight: iced::font::Weight::Bold,
+                                    ..iced::Font::DEFAULT
+                                }),
+                        )
+                        .style(theme::chip_button(state_color))
+                        .padding([1, 5]);
+                        row = row.push(
+                            iced::widget::tooltip(
+                                chip,
+                                Text::new(full_name.clone()).size(theme::FONT_SM),
+                                iced::widget::tooltip::Position::Top,
+                            )
+                            .style(|_: &iced::Theme| iced::widget::container::Style {
+                                background: Some(iced::Background::Color(theme::SURFACE_TOOLTIP)),
+                                text_color: Some(iced::Color::WHITE),
+                                border: iced::Border {
+                                    radius: theme::RADIUS_SM.into(),
+                                    width: 1.0,
+                                    color: iced::Color {
+                                        a: 0.3,
+                                        ..theme::ACCENT
+                                    },
+                                },
+                                ..Default::default()
+                            })
+                            .padding(4)
+                            .gap(4),
+                        );
+                    }
+                }
+
                 *items = std::mem::replace(items, Column::new()).push(Element::from(row));
 
                 // Children (if not collapsed)
                 if !is_collapsed {
                     // Sub-flows and functions
                     if child.is_flow {
-                        add_tree_nodes(
-                            items,
-                            funcs,
-                            collapsed,
-                            bps,
-                            actions,
-                            Some(child.id),
-                            depth + 1,
-                        );
+                        add_tree_nodes(items, funcs, collapsed, data, Some(child.id), depth + 1);
                     }
 
                     // Inputs
@@ -2184,13 +2235,13 @@ impl FlowrGui {
         let has_roots = funcs.iter().any(|f| f.is_flow && f.parent_id.is_none());
         let can_bp = self.debug_waiting;
         let can_run = self.debug_waiting && connection_manager::get_job_count() == 0;
+        let fn_states = &self.cached_states;
         if has_roots {
             add_tree_nodes(
                 &mut tree_items,
                 funcs,
                 &self.browser_collapsed,
-                bps,
-                (can_bp, can_run),
+                (bps, fn_states, can_bp, can_run),
                 None,
                 0,
             );
@@ -2644,6 +2695,12 @@ impl FlowrGui {
             }
             Message::DebugWaiting => {
                 self.debug_waiting = true;
+                if self.active_panel == Some(PanelKind::Browser) {
+                    self.suppress_next_output = true;
+                    connection_manager::send_debug_command(
+                        flowcore::model::debug_command::DebugCommand::ProcessList,
+                    );
+                }
             }
             Message::DebugConnected => {
                 self.tab_set
@@ -3211,6 +3268,8 @@ mod test {
             #[cfg(feature = "debugger")]
             debug_client_active: false,
             cached_functions: Vec::new(),
+            #[cfg(feature = "debugger")]
+            cached_states: std::collections::HashMap::new(),
             #[cfg(feature = "debugger")]
             active_breakpoints: std::collections::HashSet::new(),
             #[cfg(feature = "debugger")]
