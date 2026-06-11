@@ -1174,10 +1174,14 @@ impl FlowrGui {
             }
             #[cfg(feature = "debugger")]
             Message::ToggleFlowBrowser => {
-                if !self.ensure_functions_cached(Message::ToggleFlowBrowser) {
-                    return iced::Task::none();
+                if self.active_panel == Some(PanelKind::Browser) {
+                    self.close_panel();
+                } else {
+                    if !self.ensure_functions_cached(Message::ToggleFlowBrowser) {
+                        return iced::Task::none();
+                    }
+                    self.open_panel(PanelKind::Browser);
                 }
-                self.toggle_panel(PanelKind::Browser);
             }
             Message::ToggleSettings => self.toggle_panel(PanelKind::Settings),
             #[cfg(feature = "debugger")]
