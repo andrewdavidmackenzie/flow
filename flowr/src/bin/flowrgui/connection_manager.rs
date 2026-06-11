@@ -762,7 +762,37 @@ fn format_debug_event(message: &DebugServerMessage) -> Vec<crate::DebugEventLine
             } else {
                 connections
                     .iter()
-                    .map(|c| DebugEventLine::new(format!("{c}"), None))
+                    .map(|c| {
+                        let source_label = format!("output '{}'", c.source);
+                        let mut b = crate::DebugLineBuilder::new()
+                            .chip(&source_label, "", crate::LinkType::Output)
+                            .text("  ->  ")
+                            .chip(
+                                &format!("function #{}", c.destination_id),
+                                &c.destination_id.to_string(),
+                                crate::LinkType::Function,
+                            )
+                            .text("  (  ")
+                            .chip(
+                                &format!("flow #{}", c.destination_parent_id),
+                                &c.destination_parent_id.to_string(),
+                                crate::LinkType::Flow,
+                            )
+                            .text("  )  ")
+                            .chip(
+                                &format!("input:{}", c.destination_io_number),
+                                &format!("{}:{}", c.destination_id, c.destination_io_number),
+                                crate::LinkType::Input,
+                            );
+                        if !c.destination.is_empty() {
+                            b = b.text(" @ ").chip(
+                                &c.destination,
+                                &c.destination,
+                                crate::LinkType::Function,
+                            );
+                        }
+                        b.finish()
+                    })
                     .collect()
             }
         }
@@ -929,23 +959,27 @@ fn debug_client_stream(address: String) -> impl iced::futures::Stream<Item = Mes
                                     .enumerate()
                                     .map(|(i, inp)| (i, inp.name().to_string(), inp.is_generic()))
                                     .collect();
-                                let mut outputs: Vec<String> = Vec::new();
+                                let mut outputs: Vec<(String, usize, usize)> = Vec::new();
                                 for conn in f.get_output_connections() {
-                                    if let flowcore::model::output_connection::Source::Output(
-                                        ref route,
-                                    ) = conn.source
-                                    {
-                                        if !route.is_empty() {
-                                            let route = if route.starts_with('/') {
-                                                route.clone()
+                                    let route = match &conn.source {
+                                        flowcore::model::output_connection::Source::Output(r) => {
+                                            if r.is_empty() || r == "/" {
+                                                String::new()
+                                            } else if r.starts_with('/') {
+                                                r.clone()
                                             } else {
-                                                format!("/{route}")
-                                            };
-                                            if !outputs.contains(&route) {
-                                                outputs.push(route);
+                                                format!("/{r}")
                                             }
                                         }
-                                    }
+                                        flowcore::model::output_connection::Source::Input(_) => {
+                                            continue;
+                                        }
+                                    };
+                                    outputs.push((
+                                        route,
+                                        conn.destination_id,
+                                        conn.destination_io_number,
+                                    ));
                                 }
                                 crate::CachedFunction {
                                     id: f.id(),

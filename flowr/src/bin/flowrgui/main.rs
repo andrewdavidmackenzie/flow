@@ -638,18 +638,6 @@ pub enum Message {
     ServiceSelected(String, String),
     /// Close the coordinator picker
     CloseCoordinatorPicker,
-    /// Show the inspect helper popup
-    #[cfg(feature = "debugger")]
-    ShowInspectPopup,
-    /// Close the inspect helper popup
-    #[cfg(feature = "debugger")]
-    CloseInspectPopup,
-    /// Inspect tab changed in popup
-    #[cfg(feature = "debugger")]
-    InspectTabChanged(InspectTab),
-    /// Item selected in inspect popup
-    #[cfg(feature = "debugger")]
-    InspectPopupSelect(String),
 }
 
 #[allow(clippy::ignored_unit_patterns)]
@@ -743,8 +731,8 @@ pub struct CachedFunction {
     pub route: String,
     /// Input info (index, name, `is_generic`)
     pub inputs: Vec<(usize, String, bool)>,
-    /// Output routes
-    pub outputs: Vec<String>,
+    /// Output connections: (`source_route`, `destination_id`, `destination_input_number`)
+    pub outputs: Vec<(String, usize, usize)>,
     /// Whether this is a flow (not a leaf function)
     pub is_flow: bool,
     /// Parent flow ID (for hierarchy)
@@ -790,53 +778,10 @@ const BP_TABS: [BpTab; 5] = [
 ];
 
 /// Tabs in the inspect popup
-#[cfg(feature = "debugger")]
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum InspectTab {
-    /// Inspect by state (ready, waiting, etc.)
-    State,
-    /// Inspect a function
-    Function,
-    /// Inspect a flow
-    Flow,
-    /// Inspect an input
-    Input,
-    /// Inspect an output
-    Output,
-    /// Inspect by route
-    Route,
-}
-
-#[cfg(feature = "debugger")]
-impl std::fmt::Display for InspectTab {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            Self::State => write!(f, "State"),
-            Self::Function => write!(f, "Function"),
-            Self::Flow => write!(f, "Flow"),
-            Self::Input => write!(f, "Input"),
-            Self::Output => write!(f, "Output"),
-            Self::Route => write!(f, "Route"),
-        }
-    }
-}
-
-#[cfg(feature = "debugger")]
-const INSPECT_TABS: [InspectTab; 6] = [
-    InspectTab::State,
-    InspectTab::Function,
-    InspectTab::Flow,
-    InspectTab::Input,
-    InspectTab::Output,
-    InspectTab::Route,
-];
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 enum PanelKind {
     Settings,
     Metrics,
-    #[cfg(feature = "debugger")]
-    Inspect,
     #[cfg(feature = "debugger")]
     Breakpoints,
     #[cfg(feature = "debugger")]
@@ -889,8 +834,6 @@ struct FlowrGui {
     #[cfg(feature = "debugger")]
     #[cfg(feature = "debugger")]
     suppress_next_output: bool,
-    #[cfg(feature = "debugger")]
-    inspect_tab: InspectTab,
     #[cfg(feature = "debugger")]
     show_run_inputs: bool,
     #[cfg(feature = "debugger")]
@@ -950,8 +893,6 @@ impl FlowrGui {
             #[cfg(feature = "debugger")]
             #[cfg(feature = "debugger")]
             suppress_next_output: false,
-            #[cfg(feature = "debugger")]
-            inspect_tab: InspectTab::State,
             #[cfg(feature = "debugger")]
             show_run_inputs: false,
             #[cfg(feature = "debugger")]
@@ -1219,13 +1160,7 @@ impl FlowrGui {
             | Message::DebugFlowsReceived(_)
             | Message::DebugBreakpointListReceived(_)
             | Message::DebugInspectLink(_)
-            | Message::DebugToggleSection(_)
-            | Message::ShowInspectPopup
-            | Message::CloseInspectPopup
-            | Message::InspectTabChanged(_)
-            | Message::InspectPopupSelect(_)
-            | Message::ToggleFlowBrowser
-            | Message::BrowserToggleNode(_)) => {
+            | Message::DebugToggleSection(_)) => {
                 return self.process_debug_message(msg);
             }
             Message::CoordinatorDisconnected(reason) => {
@@ -1333,8 +1268,6 @@ impl FlowrGui {
                     let panel: Element<'_, Message> = match kind {
                         PanelKind::Settings => self.settings_panel(),
                         PanelKind::Metrics => self.metrics_panel(),
-                        #[cfg(feature = "debugger")]
-                        PanelKind::Inspect => self.inspect_panel(),
                         #[cfg(feature = "debugger")]
                         PanelKind::Breakpoints => self.bp_panel(),
                         #[cfg(feature = "debugger")]
@@ -1767,11 +1700,7 @@ impl FlowrGui {
             .style(theme::styled_button)
             .padding(sp);
         if can_cmd {
-            inspect_btn = inspect_btn.on_press(if self.debug_spec_text.is_empty() {
-                Message::ShowInspectPopup
-            } else {
-                Message::DebugInspect
-            });
+            inspect_btn = inspect_btn.on_press(Message::DebugInspect);
         }
 
         let mut funcs_btn = Button::new(Text::new("Functions"))
@@ -2010,7 +1939,7 @@ impl FlowrGui {
                             ibtn = ibtn.on_press(Message::BpTargetChanged(input_spec));
                             items = items.push(ibtn);
                         }
-                        for output_route in &f.outputs {
+                        for (output_route, _dest_id, _dest_io) in &f.outputs {
                             let out_spec = format!("{}{output_route}", f.id);
                             let om = bp_marker(&out_spec);
                             let out_label =
@@ -2055,7 +1984,7 @@ impl FlowrGui {
                 }
                 BpTab::Output => {
                     for f in &self.cached_functions {
-                        for output_route in &f.outputs {
+                        for (output_route, _dest_id, _dest_io) in &f.outputs {
                             let spec = format!("{}{output_route}", f.id);
                             let marker = bp_marker(&spec);
                             let label =
@@ -2105,173 +2034,6 @@ impl FlowrGui {
             .spacing(theme::SPACE_MD)
             .push(header)
             .push(type_row)
-            .push(list);
-
-        Container::new(panel_content)
-            .width(Length::Fixed(380.0))
-            .padding(theme::SPACE_LG)
-            .style(|_: &iced::Theme| iced::widget::container::Style {
-                background: Some(iced::Background::Color(theme::SURFACE_BUTTON)),
-                border: iced::Border {
-                    radius: 0.0.into(),
-                    width: 0.0,
-                    color: iced::Color::TRANSPARENT,
-                },
-                ..Default::default()
-            })
-            .into()
-    }
-
-    #[cfg(feature = "debugger")]
-    #[allow(clippy::too_many_lines)]
-    fn inspect_panel(&self) -> Element<'_, Message> {
-        use iced::widget::scrollable::Scrollable;
-        use iced::widget::Container;
-        use iced::Length;
-
-        let tab_row = Row::new()
-            .spacing(4)
-            .align_y(iced::alignment::Vertical::Center);
-        let tab_row = INSPECT_TABS.iter().fold(tab_row, |row, &tab| {
-            let is_active = tab == self.inspect_tab;
-            let mut btn = Button::new(Text::new(tab.to_string()).size(theme::FONT_MD))
-                .padding(theme::BUTTON_PAD)
-                .style(if is_active {
-                    theme::pill_button_active
-                        as fn(
-                            &iced::Theme,
-                            iced::widget::button::Status,
-                        ) -> iced::widget::button::Style
-                } else {
-                    theme::pill_button
-                });
-            if !is_active {
-                btn = btn.on_press(Message::InspectTabChanged(tab));
-            }
-            row.push(btn)
-        });
-
-        let mut items = Column::new().spacing(2);
-
-        match self.inspect_tab {
-            InspectTab::State => {
-                for state_name in &["ready", "waiting", "running", "completed", "blocked"] {
-                    let btn = Button::new(Text::new(format!("  {state_name}")).size(13))
-                        .width(Length::Fill)
-                        .padding([3, 8])
-                        .style(theme::list_button)
-                        .on_press(Message::InspectPopupSelect((*state_name).to_string()));
-                    items = items.push(btn);
-                }
-            }
-            InspectTab::Function => {
-                for f in self.cached_functions.iter().filter(|f| !f.is_flow) {
-                    let btn = Button::new(
-                        Text::new(format!("#{} '{}' @ '{}'", f.id, f.name, f.route)).size(13),
-                    )
-                    .width(Length::Fill)
-                    .padding([3, 8])
-                    .style(theme::list_button)
-                    .on_press(Message::InspectPopupSelect(format!("{}", f.id)));
-                    items = items.push(btn);
-                }
-            }
-            InspectTab::Flow => {
-                for f in self.cached_functions.iter().filter(|f| f.is_flow) {
-                    let label = if f.name.is_empty() {
-                        format!("Flow #{}", f.id)
-                    } else {
-                        format!("Flow #{} '{}' @ {}", f.id, f.name, f.route)
-                    };
-                    let btn = Button::new(Text::new(label).size(13))
-                        .width(Length::Fill)
-                        .padding([3, 8])
-                        .style(theme::list_button)
-                        .on_press(Message::InspectPopupSelect(format!("{}", f.id)));
-                    items = items.push(btn);
-                }
-            }
-            InspectTab::Input => {
-                for f in &self.cached_functions {
-                    for (idx, input_name, _generic) in &f.inputs {
-                        let name_part = if input_name.is_empty() {
-                            String::new()
-                        } else {
-                            format!(" '{input_name}'")
-                        };
-                        let btn = Button::new(
-                            Text::new(format!("#{} '{}' input:{idx}{name_part}", f.id, f.name))
-                                .size(13),
-                        )
-                        .width(Length::Fill)
-                        .padding([3, 8])
-                        .style(theme::list_button)
-                        .on_press(Message::InspectPopupSelect(format!("{}:{idx}", f.id)));
-                        items = items.push(btn);
-                    }
-                }
-            }
-            InspectTab::Output => {
-                for f in &self.cached_functions {
-                    for output_route in &f.outputs {
-                        let btn = Button::new(
-                            Text::new(format!("#{} '{}' output:'{output_route}'", f.id, f.name))
-                                .size(13),
-                        )
-                        .width(Length::Fill)
-                        .padding([3, 8])
-                        .style(theme::list_button)
-                        .on_press(Message::InspectPopupSelect(format!(
-                            "{}{output_route}",
-                            f.id
-                        )));
-                        items = items.push(btn);
-                    }
-                }
-            }
-            InspectTab::Route => {
-                for f in &self.cached_functions {
-                    let btn = Button::new(
-                        Text::new(format!("{} (#{} '{}')", f.route, f.id, f.name)).size(13),
-                    )
-                    .width(Length::Fill)
-                    .padding([3, 8])
-                    .style(theme::list_button)
-                    .on_press(Message::InspectPopupSelect(f.route.clone()));
-                    items = items.push(btn);
-                }
-            }
-        }
-
-        let list = Scrollable::new(items)
-            .height(Length::Fill)
-            .width(Length::Fill);
-
-        let header = Row::new()
-            .push(Text::new("Inspect").size(theme::FONT_DEFAULT))
-            .push(Container::new(iced::widget::text("")).width(Length::Fill))
-            .push(
-                Button::new(
-                    Text::new("\u{00BB}")
-                        .size(20.0)
-                        .shaping(iced::widget::text::Shaping::Advanced),
-                )
-                .on_press(Message::CloseInspectPopup)
-                .style(theme::ghost_button)
-                .padding(theme::BUTTON_PAD_SM),
-            )
-            .align_y(iced::alignment::Vertical::Center)
-            .padding(iced::Padding {
-                top: 0.0,
-                right: 0.0,
-                bottom: theme::SPACE_SM,
-                left: 0.0,
-            });
-
-        let panel_content = Column::new()
-            .spacing(theme::SPACE_MD)
-            .push(header)
-            .push(tab_row)
             .push(list);
 
         Container::new(panel_content)
@@ -2570,10 +2332,24 @@ impl FlowrGui {
                         );
                     }
 
-                    // Outputs
-                    for output_route in &child.outputs {
+                    // Outputs (deduplicated by route)
+                    let mut seen_routes = std::collections::HashSet::new();
+                    for (output_route, _dest_id, _dest_input) in &child.outputs {
+                        if !seen_routes.insert(output_route.clone()) {
+                            continue;
+                        }
                         let out_indent = "  ".repeat(depth + 1);
-                        let spec = format!("{}{output_route}", child.id);
+                        let display_route = if output_route.is_empty() {
+                            "(default)".to_string()
+                        } else {
+                            format!("'{output_route}'")
+                        };
+                        let route = if output_route.is_empty() {
+                            "/"
+                        } else {
+                            output_route.as_str()
+                        };
+                        let spec = format!("{}{route}", child.id);
                         let obp = if bps.contains(&spec) {
                             "\u{1F534} "
                         } else {
@@ -2581,7 +2357,7 @@ impl FlowrGui {
                         };
                         *items = std::mem::replace(items, Column::new()).push(
                             Button::new(
-                                Text::new(format!("{out_indent}    {obp}output '{output_route}'"))
+                                Text::new(format!("{out_indent}    {obp}output {display_route}"))
                                     .size(theme::FONT_MD)
                                     .color(theme::entity_colors::OUTPUT),
                             )
@@ -3312,7 +3088,7 @@ impl FlowrGui {
                 }
                 self.cached_functions.sort_by_key(|f| f.id);
                 if let Some(action) = self.pending_action.take() {
-                    return self.process_debug_message(action);
+                    return self.update(action);
                 }
             }
             Message::DebugFlowsReceived(flows) => {
@@ -3378,43 +3154,7 @@ impl FlowrGui {
             Message::DebugToggleSection(section_id) => {
                 self.tab_set.debug_tab.toggle_section(section_id);
             }
-            Message::ShowInspectPopup => {
-                if !self.ensure_functions_cached(Message::ShowInspectPopup) {
-                    return iced::Task::none();
-                }
-                self.toggle_panel(PanelKind::Inspect);
-            }
-            Message::CloseInspectPopup | Message::CloseBpPopup => self.close_panel(),
-            Message::InspectTabChanged(tab) => self.inspect_tab = tab,
-            Message::InspectPopupSelect(spec) => {
-                self.close_panel();
-                if self.debug_waiting {
-                    self.debug_waiting = false;
-                    if spec.is_empty() {
-                        self.debug_separator("Inspect (overall flow state)");
-                        connection_manager::send_debug_command(
-                            flowcore::model::debug_command::DebugCommand::Inspect,
-                        );
-                    } else {
-                        let label = if spec.parse::<usize>().is_ok() {
-                            format!("Inspect #{spec}")
-                        } else if spec.starts_with('/') {
-                            format!("Inspect Route ({spec})")
-                        } else if spec.contains(':') {
-                            format!("Inspect Input ({spec})")
-                        } else if spec.contains('/') {
-                            format!("Inspect Output ({spec})")
-                        } else {
-                            format!("Inspect {spec}")
-                        };
-                        let params = Some(vec![spec]);
-                        if let Some(cmd) = DebugClient::parse_inspect_spec(params) {
-                            self.debug_separator(&label);
-                            connection_manager::send_debug_command(cmd);
-                        }
-                    }
-                }
-            }
+            Message::CloseBpPopup => self.close_panel(),
             Message::ShowBpPopup => {
                 if !self.ensure_functions_cached(Message::ShowBpPopup) {
                     return iced::Task::none();
@@ -3857,8 +3597,6 @@ mod test {
             #[cfg(feature = "debugger")]
             suppress_next_output: false,
             #[cfg(feature = "debugger")]
-            inspect_tab: InspectTab::State,
-            #[cfg(feature = "debugger")]
             show_run_inputs: false,
             #[cfg(feature = "debugger")]
             run_target_id: None,
@@ -4068,7 +3806,7 @@ mod test {
         let mut gui = test_gui();
         gui.debug_client_active = true;
         gui.debug_waiting = true;
-        gui.active_panel = Some(PanelKind::Inspect);
+        gui.active_panel = Some(PanelKind::Breakpoints);
         let view = gui.view();
         let _ui = simulator(view);
     }
