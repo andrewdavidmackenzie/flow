@@ -2490,7 +2490,7 @@ impl FlowrGui {
 
                 // Indent
                 if depth > 0 {
-                    row = row.push(Text::new(indent).size(theme::FONT_SM));
+                    row = row.push(Text::new(indent).size(theme::FONT_MD));
                 }
 
                 // Triangle toggle
@@ -2499,22 +2499,28 @@ impl FlowrGui {
                     row = row.push(
                         Button::new(
                             Text::new(indicator)
-                                .size(10.0)
+                                .size(12.0)
                                 .shaping(iced::widget::text::Shaping::Advanced),
                         )
                         .on_press(Message::BrowserToggleNode(child.id))
-                        .style(theme::ghost_button)
+                        .style(|theme: &iced::Theme, status| {
+                            let mut s = theme::ghost_button(theme, status);
+                            if matches!(status, iced::widget::button::Status::Hovered) {
+                                s.text_color = theme::lighten(theme::ACCENT, 0.3);
+                            }
+                            s
+                        })
                         .padding([1, 3]),
                     );
                 } else {
-                    row = row.push(Text::new("  ").size(10.0));
+                    row = row.push(Text::new("  ").size(12.0));
                 }
 
                 // Label button
                 row = row.push(
                     Button::new(
                         Text::new(format!("{bp_dot}{name_part}"))
-                            .size(theme::FONT_SM)
+                            .size(theme::FONT_MD)
                             .color(color),
                     )
                     .on_press(Message::DebugInspectLink(child.id.to_string()))
@@ -2548,7 +2554,7 @@ impl FlowrGui {
                         *items = std::mem::replace(items, Column::new()).push(
                             Button::new(
                                 Text::new(format!("{inp_indent}    {ibp}{iname}"))
-                                    .size(theme::FONT_SM)
+                                    .size(theme::FONT_MD)
                                     .color(theme::entity_colors::INPUT),
                             )
                             .on_press(Message::DebugInspectLink(spec))
@@ -2570,7 +2576,7 @@ impl FlowrGui {
                         *items = std::mem::replace(items, Column::new()).push(
                             Button::new(
                                 Text::new(format!("{out_indent}    {obp}output '{output_route}'"))
-                                    .size(theme::FONT_SM)
+                                    .size(theme::FONT_MD)
                                     .color(theme::entity_colors::OUTPUT),
                             )
                             .on_press(Message::DebugInspectLink(spec))
@@ -2597,7 +2603,7 @@ impl FlowrGui {
             for f in funcs {
                 let label = format!("#{} '{}'", f.id, f.name);
                 tree_items = tree_items.push(
-                    Button::new(Text::new(label).size(theme::FONT_SM))
+                    Button::new(Text::new(label).size(theme::FONT_MD))
                         .on_press(Message::DebugInspectLink(f.id.to_string()))
                         .style(theme::list_button)
                         .padding([2, 8])
