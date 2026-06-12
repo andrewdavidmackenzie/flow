@@ -1098,6 +1098,13 @@ impl FlowrGui {
                         return iced::Task::none();
                     }
                     self.open_panel(PanelKind::StateDiagram);
+                    if self.debug_waiting && !self.states_refresh_pending {
+                        self.states_refresh_pending = true;
+                        connection_manager::set_states_only(true);
+                        connection_manager::send_debug_command(
+                            flowcore::model::debug_command::DebugCommand::ProcessList,
+                        );
+                    }
                 }
             }
             #[cfg(feature = "debugger")]

@@ -64,22 +64,22 @@ impl StateBox {
     }
 }
 
-pub struct StateDiagramData {
-    pub waiting_ids: Vec<usize>,
-    pub ready_ids: Vec<usize>,
-    pub running_ids: Vec<usize>,
-    pub completed_ids: Vec<usize>,
-    pub cached_functions: Vec<CachedFunction>,
+pub(crate) struct StateDiagramData {
+    pub(crate) waiting_ids: Vec<usize>,
+    pub(crate) ready_ids: Vec<usize>,
+    pub(crate) running_ids: Vec<usize>,
+    pub(crate) completed_ids: Vec<usize>,
+    pub(crate) cached_functions: Vec<CachedFunction>,
 }
 
 #[derive(Default)]
-pub struct DiagramState {
+pub(crate) struct DiagramState {
     chip_bounds: Vec<(Rectangle, usize)>,
     hovered: Option<usize>,
 }
 
-pub struct StateDiagramCanvas {
-    pub data: StateDiagramData,
+pub(crate) struct StateDiagramCanvas {
+    pub(crate) data: StateDiagramData,
 }
 
 impl canvas::Program<Message> for StateDiagramCanvas {
@@ -456,7 +456,7 @@ fn rounded_rect(pos: Point, size: Size, radius: f32) -> Path {
     })
 }
 
-pub fn canvas_height(data: &StateDiagramData) -> f32 {
+pub(crate) fn canvas_height(data: &StateDiagramData) -> f32 {
     let boxes = build_boxes(data);
     if let Some(last) = boxes.last() {
         last.bottom() + 20.0
