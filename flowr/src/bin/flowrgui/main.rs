@@ -488,6 +488,12 @@ pub enum Message {
     JobTimeoutChanged(String),
     /// The max parallel jobs setting has been edited by the UI
     MaxJobsChanged(String),
+    /// Native flowstdlib toggle changed
+    NativeFlowstdlibChanged(bool),
+    /// Number of executor threads changed
+    NumThreadsChanged(String),
+    /// Library search path changed
+    LibSearchPathChanged(String),
     /// The UI has requested to submit the flow in debug mode
     DebugSubmitFlow,
     /// A different tab of stdio has been selected
@@ -659,9 +665,6 @@ fn main() -> iced::Result {
 
 #[derive(Clone)]
 struct SubmissionSettings {
-    // TODO make native a UI setting
-    // TODO num threads make a UI setting
-    // TODO make lib search path a UI setting
     flow_manifest_url: String,
     flow_args: String,
     max_jobs_text: String,
@@ -670,6 +673,9 @@ struct SubmissionSettings {
     parallel_jobs_limit: Option<usize>,
     #[cfg(feature = "debugger")]
     debug_mode: DebugMode,
+    native_flowstdlib: bool,
+    num_threads_text: String,
+    lib_search_path_text: String,
 }
 
 /// Settings to use when starting a coordinator server
@@ -918,6 +924,15 @@ impl FlowrGui {
             Message::MaxJobsChanged(value) => {
                 self.submission_settings.parallel_jobs_limit = value.trim().parse::<usize>().ok();
                 self.submission_settings.max_jobs_text = value;
+            }
+            Message::NativeFlowstdlibChanged(value) => {
+                self.submission_settings.native_flowstdlib = value;
+            }
+            Message::NumThreadsChanged(value) => {
+                self.submission_settings.num_threads_text = value;
+            }
+            Message::LibSearchPathChanged(value) => {
+                self.submission_settings.lib_search_path_text = value;
             }
             Message::JobTimeoutChanged(value) => {
                 self.submission_settings.job_timeout_text = value;
@@ -1857,14 +1872,55 @@ impl FlowrGui {
             .push(Text::new("Job timeout (s):").size(theme::FONT_MD))
             .push(timeout_input);
 
+        let coordinator_label = Text::new("Coordinator")
+            .size(theme::FONT_DEFAULT)
+            .color(theme::TEXT_SECONDARY);
+
+        let native_toggle = iced::widget::toggler(self.submission_settings.native_flowstdlib)
+            .on_toggle(Message::NativeFlowstdlibChanged)
+            .size(16.0);
+        let native_row = Row::new()
+            .spacing(theme::SPACE_MD)
+            .align_y(iced::alignment::Vertical::Center)
+            .push(Text::new("Native flowstdlib:").size(theme::FONT_MD))
+            .push(native_toggle);
+
+        let threads_input =
+            iced::widget::text_input("threads", &self.submission_settings.num_threads_text)
+                .on_input(Message::NumThreadsChanged)
+                .style(theme::pill_input)
+                .width(Length::Fill);
+        let threads_row = Row::new()
+            .spacing(theme::SPACE_MD)
+            .align_y(iced::alignment::Vertical::Center)
+            .push(Text::new("Executor threads:").size(theme::FONT_MD))
+            .push(threads_input);
+
+        let lib_path_input = iced::widget::text_input(
+            "colon-separated paths",
+            &self.submission_settings.lib_search_path_text,
+        )
+        .on_input(Message::LibSearchPathChanged)
+        .style(theme::pill_input)
+        .width(Length::Fill);
+        let lib_path_col = Column::new()
+            .spacing(theme::SPACE_XS)
+            .push(Text::new("Lib search path:").size(theme::FONT_MD))
+            .push(lib_path_input);
+
         let panel_content = Column::new()
             .spacing(theme::SPACE_LG)
             .push(header)
             .push(max_jobs_row)
-            .push(timeout_row);
+            .push(timeout_row)
+            .push(iced::widget::rule::horizontal(1))
+            .push(coordinator_label)
+            .push(native_row)
+            .push(threads_row)
+            .push(lib_path_col);
 
         Container::new(panel_content)
-            .width(Length::Fixed(300.0))
+            .width(Length::Fixed(350.0))
             .padding(theme::SPACE_LG)
             .style(|_: &iced::Theme| iced::widget::container::Style {
                 background: Some(iced::Background::Color(theme::SURFACE_BUTTON)),
@@ -2469,6 +2525,15 @@ impl FlowrGui {
             auto_start = true;
         }
 
+        let (native, threads_text, lib_path_text) = match &coordinator_settings {
+            CoordinatorSettings::Server(s) => (
+                s.native_flowstdlib,
+                s.num_threads.to_string(),
+                s.lib_search_path.to_string(),
+            ),
+            CoordinatorSettings::ClientOnly => (false, String::new(), String::new()),
+        };
+
         (
             SubmissionSettings {
                 flow_manifest_url,
@@ -2479,6 +2544,9 @@ impl FlowrGui {
                 parallel_jobs_limit,
                 #[cfg(feature = "debugger")]
                 debug_mode,
+                native_flowstdlib: native,
+                num_threads_text: threads_text,
+                lib_search_path_text: lib_path_text,
             },
             coordinator_settings,
             UiSettings {
@@ -3244,6 +3312,9 @@ mod test {
                 parallel_jobs_limit: None,
                 #[cfg(feature = "debugger")]
                 debug_mode: DebugMode::Off,
+                native_flowstdlib: false,
+                num_threads_text: String::new(),
+                lib_search_path_text: String::new(),
             },
             coordinator_settings: CoordinatorSettings::ClientOnly,
             ui_settings: UiSettings {
