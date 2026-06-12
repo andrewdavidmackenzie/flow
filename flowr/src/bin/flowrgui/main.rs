@@ -527,6 +527,9 @@ pub enum Message {
     BrowserRunFunction(usize),
     /// Toggle metrics panel
     ToggleMetrics,
+    /// Toggle function state diagram panel
+    #[cfg(feature = "debugger")]
+    ToggleStateDiagram,
     /// Metrics received from debug channel
     #[cfg(feature = "metrics")]
     DebugMetricsReceived(flowcore::model::metrics::Metrics),
@@ -727,6 +730,8 @@ pub struct CachedFunction {
 enum PanelKind {
     Settings,
     Metrics,
+    #[cfg(feature = "debugger")]
+    StateDiagram,
 }
 
 struct UiSettings {
@@ -1061,6 +1066,8 @@ impl FlowrGui {
             }
             Message::ToggleMetrics => self.toggle_panel(PanelKind::Metrics),
             #[cfg(feature = "debugger")]
+            Message::ToggleStateDiagram => self.toggle_panel(PanelKind::StateDiagram),
+            #[cfg(feature = "debugger")]
             Message::DebugStatesReceived(states) => self.cached_states = states,
             #[cfg(feature = "debugger")]
             Message::BrowserToggleNode(id) => {
@@ -1254,6 +1261,8 @@ impl FlowrGui {
             match kind {
                 PanelKind::Settings => self.settings_panel(),
                 PanelKind::Metrics => self.metrics_panel(),
+                #[cfg(feature = "debugger")]
+                PanelKind::StateDiagram => self.state_diagram_panel(),
             }
         } else {
             iced::widget::text("").into()
@@ -1724,6 +1733,17 @@ impl FlowrGui {
                 state_btn,
                 "Show runtime state (jobs, completed, busy)",
             ))
+            .push(Self::tip(
+                Button::new(
+                    Text::new("\u{2B21}")
+                        .size(16.0)
+                        .shaping(iced::widget::text::Shaping::Advanced),
+                )
+                .on_press(Message::ToggleStateDiagram)
+                .style(theme::styled_button)
+                .padding(sp),
+                "Function state transition diagram",
+            ))
             .push(Self::tip(validate_btn, "Validate flow state for deadlocks"))
             .push(iced::widget::container(iced::widget::text("")).width(iced::Length::Fill))
             .push(Self::tip(exit_btn, "Stop execution and exit debugger"));
@@ -1814,6 +1834,282 @@ impl FlowrGui {
 
         Container::new(panel_content)
             .width(Length::Fixed(300.0))
+            .height(Length::Fill)
+            .padding(theme::SPACE_MD)
+            .style(|_: &iced::Theme| iced::widget::container::Style {
+                background: Some(iced::Background::Color(theme::SURFACE_BUTTON)),
+                border: iced::Border {
+                    radius: 0.0.into(),
+                    width: 0.0,
+                    color: iced::Color::TRANSPARENT,
+                },
+                ..Default::default()
+            })
+            .into()
+    }
+
+    #[cfg(feature = "debugger")]
+    #[allow(clippy::too_many_lines)]
+    fn state_diagram_panel(&self) -> Element<'_, Message> {
+        use iced::widget::{Container, Scrollable};
+        use iced::Length;
+
+        let header = Row::new()
+            .push(
+                Button::new(
+                    Row::new()
+                        .spacing(6)
+                        .align_y(iced::alignment::Vertical::Center)
+                        .push(
+                            Text::new("\u{2B21}")
+                                .size(16.0)
+                                .shaping(iced::widget::text::Shaping::Advanced)
+                                .color(iced::Color::WHITE),
+                        )
+                        .push(
+                            Text::new("Function States")
+                                .size(theme::FONT_DEFAULT)
+                                .color(iced::Color::WHITE)
+                                .font(iced::Font {
+                                    weight: iced::font::Weight::Bold,
+                                    ..iced::Font::DEFAULT
+                                }),
+                        ),
+                )
+                .on_press(Message::ToggleStateDiagram)
+                .style(theme::chip_button(theme::ACCENT))
+                .padding([4, 12]),
+            )
+            .push(Container::new(iced::widget::text("")).width(Length::Fill))
+            .align_y(iced::alignment::Vertical::Center)
+            .padding(iced::Padding {
+                top: 0.0,
+                right: 0.0,
+                bottom: theme::SPACE_SM,
+                left: 0.0,
+            });
+
+        let max_chips = 30;
+        let mut waiting_ids: Vec<usize> = Vec::new();
+        let mut ready_ids: Vec<usize> = Vec::new();
+        let mut running_ids: Vec<usize> = Vec::new();
+        let mut completed_ids: Vec<usize> = Vec::new();
+
+        for (&id, fn_states) in &self.cached_states {
+            for (letter, _) in fn_states {
+                match letter {
+                    'W' => waiting_ids.push(id),
+                    'R' => ready_ids.push(id),
+                    'X' => running_ids.push(id),
+                    'C' => completed_ids.push(id),
+                    _ => {}
+                }
+            }
+        }
+
+        if waiting_ids.is_empty()
+            && ready_ids.is_empty()
+            && running_ids.is_empty()
+            && completed_ids.is_empty()
+        {
+            for f in &self.cached_functions {
+                if !f.is_flow {
+                    waiting_ids.push(f.id);
+                }
+            }
+        }
+
+        waiting_ids.sort_unstable();
+        ready_ids.sort_unstable();
+        running_ids.sort_unstable();
+        completed_ids.sort_unstable();
+
+        let fn_chips = |ids: &[usize], color: iced::Color| -> Element<'_, Message> {
+            if ids.is_empty() {
+                return iced::widget::text("").into();
+            }
+            let show = ids.len().min(max_chips);
+            let mut children: Vec<Element<'_, Message>> = Vec::new();
+            for &id in ids.iter().take(show) {
+                children.push(
+                    Button::new(
+                        Text::new(id.to_string())
+                            .size(theme::FONT_SM)
+                            .color(iced::Color::WHITE)
+                            .font(iced::Font {
+                                weight: iced::font::Weight::Bold,
+                                ..iced::Font::DEFAULT
+                            }),
+                    )
+                    .on_press(Message::DebugInspectLink(id.to_string()))
+                    .style(theme::chip_button(color))
+                    .padding([1, 5])
+                    .into(),
+                );
+            }
+            if ids.len() > max_chips {
+                children.push(
+                    Text::new(format!("+{}", ids.len() - max_chips))
+                        .size(theme::FONT_SM)
+                        .color(theme::TEXT_SECONDARY)
+                        .into(),
+                );
+            }
+            Row::with_children(children).spacing(3).wrap().into()
+        };
+
+        let state_box =
+            |label: String, ids: &[usize], color: iced::Color| -> Element<'_, Message> {
+                let count = ids.len();
+                let bg = if count > 0 {
+                    color
+                } else {
+                    iced::Color {
+                        r: 0.3,
+                        g: 0.3,
+                        b: 0.35,
+                        a: 1.0,
+                    }
+                };
+                let text_color = if count > 0 {
+                    iced::Color::WHITE
+                } else {
+                    iced::Color {
+                        a: 0.5,
+                        ..iced::Color::WHITE
+                    }
+                };
+                let mut col = Column::new().spacing(2).push(
+                    Row::new()
+                        .spacing(6)
+                        .push(
+                            Text::new(label)
+                                .size(theme::FONT_DEFAULT)
+                                .color(text_color)
+                                .font(iced::Font {
+                                    weight: iced::font::Weight::Bold,
+                                    ..iced::Font::DEFAULT
+                                }),
+                        )
+                        .push(
+                            Text::new(format!("({count})"))
+                                .size(theme::FONT_SM)
+                                .color(text_color),
+                        ),
+                );
+                if count > 0 {
+                    col = col.push(fn_chips(ids, bg));
+                }
+                Container::new(col)
+                    .padding([6, 10])
+                    .width(Length::Fill)
+                    .style(move |_: &iced::Theme| iced::widget::container::Style {
+                        background: Some(iced::Background::Color(iced::Color { a: 0.25, ..bg })),
+                        border: iced::Border {
+                            radius: theme::RADIUS_SM.into(),
+                            width: 1.0,
+                            color: bg,
+                        },
+                        ..Default::default()
+                    })
+                    .into()
+            };
+
+        let fwd_arrow = |label: String| -> Element<'_, Message> {
+            Row::new()
+                .spacing(4)
+                .align_y(iced::alignment::Vertical::Center)
+                .push(Text::new("    ").size(theme::FONT_SM))
+                .push(
+                    Text::new("\u{2193}")
+                        .size(16.0)
+                        .shaping(iced::widget::text::Shaping::Advanced)
+                        .color(theme::ACCENT),
+                )
+                .push(
+                    Text::new(label)
+                        .size(theme::FONT_SM)
+                        .color(theme::TEXT_SECONDARY),
+                )
+                .into()
+        };
+
+        let back_label = |from: String, to: String, label: String| -> Element<'_, Message> {
+            Row::new()
+                .spacing(4)
+                .align_y(iced::alignment::Vertical::Center)
+                .push(
+                    Text::new("\u{21B0}")
+                        .size(14.0)
+                        .shaping(iced::widget::text::Shaping::Advanced)
+                        .color(theme::entity_colors::STATE_RUNNING),
+                )
+                .push(
+                    Text::new(format!("{from} \u{2192} {to}"))
+                        .size(theme::FONT_SM)
+                        .color(theme::TEXT_SECONDARY)
+                        .font(iced::Font {
+                            weight: iced::font::Weight::Bold,
+                            ..iced::Font::DEFAULT
+                        }),
+                )
+                .push(
+                    Text::new(label)
+                        .size(theme::FONT_SM)
+                        .color(theme::TEXT_SECONDARY),
+                )
+                .into()
+        };
+
+        let diagram = Column::new()
+            .spacing(4)
+            .push(state_box(
+                "Waiting".into(),
+                &waiting_ids,
+                theme::entity_colors::STATE_WAITING,
+            ))
+            .push(fwd_arrow("all inputs full".into()))
+            .push(state_box(
+                "Ready".into(),
+                &ready_ids,
+                theme::entity_colors::STATE_READY,
+            ))
+            .push(fwd_arrow("job dispatched".into()))
+            .push(state_box(
+                "Running".into(),
+                &running_ids,
+                theme::entity_colors::STATE_RUNNING,
+            ))
+            .push(fwd_arrow("run_again = false".into()))
+            .push(state_box(
+                "Completed".into(),
+                &completed_ids,
+                theme::entity_colors::STATE_COMPLETED,
+            ))
+            .push(iced::widget::rule::horizontal(1))
+            .push(
+                Text::new("Back transitions:")
+                    .size(theme::FONT_MD)
+                    .color(theme::TEXT_SECONDARY),
+            )
+            .push(back_label(
+                "Running".into(),
+                "Ready".into(),
+                "inputs still full".into(),
+            ))
+            .push(back_label(
+                "Running".into(),
+                "Waiting".into(),
+                "input(s) empty".into(),
+            ));
+
+        let panel_content = Column::new()
+            .spacing(theme::SPACE_MD)
+            .push(header)
+            .push(Scrollable::new(diagram).height(Length::Fill));
+
+        Container::new(panel_content)
+            .width(Length::Fixed(350.0))
             .height(Length::Fill)
             .padding(theme::SPACE_MD)
             .style(|_: &iced::Theme| iced::widget::container::Style {
