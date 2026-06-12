@@ -834,7 +834,7 @@ fn format_debug_event(message: &DebugServerMessage) -> Vec<crate::DebugEventLine
                     let line = match spec {
                         BreakpointSpec::Numeric(id) => Some(
                             DebugLineBuilder::new()
-                                .text("  ")
+                                .text("  \u{1F534} before  ")
                                 .chip(
                                     &format!("function #{id}"),
                                     &id.to_string(),
@@ -844,41 +844,49 @@ fn format_debug_event(message: &DebugServerMessage) -> Vec<crate::DebugEventLine
                         ),
                         BreakpointSpec::Completed(id) => Some(
                             DebugLineBuilder::new()
-                                .text("  ")
+                                .text("  \u{1F7E0} after  ")
                                 .chip(
                                     &format!("function #{id}"),
                                     &id.to_string(),
                                     LinkType::Function,
                                 )
-                                .text(" (completion)")
                                 .finish(),
                         ),
                         BreakpointSpec::Input((id, num)) => Some(
                             DebugLineBuilder::new()
-                                .text("  ")
+                                .text("  \u{1F534} ")
+                                .chip(
+                                    &format!("input:{num}"),
+                                    &format!("{id}:{num}"),
+                                    LinkType::Input,
+                                )
+                                .text("  on  ")
                                 .chip(
                                     &format!("function #{id}"),
                                     &id.to_string(),
                                     LinkType::Function,
                                 )
-                                .text(&format!(" input:{num}"))
                                 .finish(),
                         ),
                         BreakpointSpec::Output((id, route)) => Some(
                             DebugLineBuilder::new()
-                                .text("  ")
+                                .text("  \u{1F534} ")
+                                .chip(
+                                    &format!("output '{route}'"),
+                                    &format!("{id}{route}"),
+                                    LinkType::Output,
+                                )
+                                .text("  on  ")
                                 .chip(
                                     &format!("function #{id}"),
                                     &id.to_string(),
                                     LinkType::Function,
                                 )
-                                .text(" ")
-                                .chip(route, route, LinkType::Route)
                                 .finish(),
                         ),
                         BreakpointSpec::Route(route) => Some(
                             DebugLineBuilder::new()
-                                .text("  ")
+                                .text("  \u{1F534} ")
                                 .chip(route, route, LinkType::Route)
                                 .finish(),
                         ),

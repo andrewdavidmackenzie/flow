@@ -3926,4 +3926,140 @@ mod test {
         let view = gui.view();
         let _ui = simulator(view);
     }
+
+    #[cfg(feature = "debugger")]
+    #[test]
+    fn debug_functions_sets_waiting_false() {
+        let mut gui = test_gui();
+        gui.debug_client_active = true;
+        gui.debug_waiting = true;
+        drop(gui.update(Message::DebugFunctions(true)));
+        assert!(!gui.debug_waiting);
+    }
+
+    #[cfg(feature = "debugger")]
+    #[test]
+    fn debug_state_sets_waiting_false() {
+        let mut gui = test_gui();
+        gui.debug_client_active = true;
+        gui.debug_waiting = true;
+        drop(gui.update(Message::DebugState));
+        assert!(!gui.debug_waiting);
+    }
+
+    #[cfg(feature = "debugger")]
+    #[test]
+    fn debug_processes_sets_waiting_false() {
+        let mut gui = test_gui();
+        gui.debug_client_active = true;
+        gui.debug_waiting = true;
+        drop(gui.update(Message::DebugProcesses));
+        assert!(!gui.debug_waiting);
+    }
+
+    #[cfg(feature = "debugger")]
+    #[test]
+    fn debug_validate_sets_waiting_false() {
+        let mut gui = test_gui();
+        gui.debug_client_active = true;
+        gui.debug_waiting = true;
+        drop(gui.update(Message::DebugValidate));
+        assert!(!gui.debug_waiting);
+    }
+
+    #[cfg(feature = "debugger")]
+    #[test]
+    fn debug_list_breakpoints_sets_waiting_false() {
+        let mut gui = test_gui();
+        gui.debug_client_active = true;
+        gui.debug_waiting = true;
+        drop(gui.update(Message::DebugListBreakpoints));
+        assert!(!gui.debug_waiting);
+    }
+
+    #[cfg(feature = "debugger")]
+    #[test]
+    fn debug_flows_sets_waiting_false() {
+        let mut gui = test_gui();
+        gui.debug_client_active = true;
+        gui.debug_waiting = true;
+        drop(gui.update(Message::DebugFlows));
+        assert!(!gui.debug_waiting);
+    }
+
+    #[cfg(feature = "debugger")]
+    #[test]
+    fn debug_waiting_does_not_auto_send() {
+        let mut gui = test_gui();
+        gui.debug_client_active = true;
+        gui.browser_open = true;
+        drop(gui.update(Message::DebugWaiting));
+        assert!(gui.debug_waiting);
+        assert!(!gui.suppress_next_output);
+    }
+
+    #[cfg(feature = "debugger")]
+    #[test]
+    fn view_renders_with_settings_panel() {
+        use iced_test::simulator::simulator;
+        let mut gui = test_gui();
+        gui.active_panel = Some(PanelKind::Settings);
+        let view = gui.view();
+        let _ui = simulator(view);
+    }
+
+    #[cfg(feature = "debugger")]
+    #[test]
+    fn view_renders_with_metrics_panel() {
+        use iced_test::simulator::simulator;
+        let mut gui = test_gui();
+        gui.active_panel = Some(PanelKind::Metrics);
+        let view = gui.view();
+        let _ui = simulator(view);
+    }
+
+    #[cfg(feature = "debugger")]
+    #[test]
+    fn view_renders_with_state_diagram_panel() {
+        use iced_test::simulator::simulator;
+        let mut gui = test_gui();
+        gui.debug_client_active = true;
+        gui.active_panel = Some(PanelKind::StateDiagram);
+        let view = gui.view();
+        let _ui = simulator(view);
+    }
+
+    #[cfg(feature = "debugger")]
+    #[test]
+    fn browser_and_settings_independent() {
+        let mut gui = test_gui();
+        gui.debug_client_active = true;
+        gui.browser_open = true;
+        gui.active_panel = Some(PanelKind::Settings);
+        assert!(gui.browser_open);
+        assert_eq!(gui.active_panel, Some(PanelKind::Settings));
+    }
+
+    #[cfg(feature = "debugger")]
+    #[test]
+    fn toggle_settings_does_not_close_browser() {
+        let mut gui = test_gui();
+        gui.debug_client_active = true;
+        gui.browser_open = true;
+        drop(gui.update(Message::ToggleSettings));
+        assert!(gui.browser_open);
+        assert_eq!(gui.active_panel, Some(PanelKind::Settings));
+    }
+
+    #[cfg(feature = "debugger")]
+    #[test]
+    fn toggle_browser_does_not_close_settings() {
+        let mut gui = test_gui();
+        gui.debug_client_active = true;
+        gui.active_panel = Some(PanelKind::Settings);
+        gui.browser_open = true;
+        drop(gui.update(Message::ToggleFlowBrowser));
+        assert!(!gui.browser_open);
+        assert_eq!(gui.active_panel, Some(PanelKind::Settings));
+    }
 }
