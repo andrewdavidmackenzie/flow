@@ -3125,12 +3125,6 @@ impl FlowrGui {
             }
             Message::DebugWaiting => {
                 self.debug_waiting = true;
-                if self.browser_open {
-                    self.suppress_next_output = true;
-                    connection_manager::send_debug_command(
-                        flowcore::model::debug_command::DebugCommand::ProcessList,
-                    );
-                }
             }
             Message::DebugConnected => {
                 self.tab_set
@@ -3222,13 +3216,11 @@ impl FlowrGui {
                 self.debug_waiting = false;
                 if display {
                     self.debug_separator("Functions List");
-                    connection_manager::send_debug_command(DebugCommand::InspectState(
-                        "all".to_string(),
-                    ));
-                } else {
-                    self.suppress_next_output = true;
-                    connection_manager::send_debug_command(DebugCommand::FunctionList);
                 }
+                if !display {
+                    self.suppress_next_output = true;
+                }
+                connection_manager::send_debug_command(DebugCommand::FunctionList);
             }
             Message::DebugFlows => {
                 self.debug_waiting = false;
