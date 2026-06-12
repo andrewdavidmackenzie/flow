@@ -101,7 +101,7 @@ impl<'a> Coordinator<'a> {
 
         #[cfg(feature = "metrics")]
         let mut metrics = Metrics::new(state.num_functions(), state.num_processes());
-        #[cfg(feature = "metrics")]
+        #[cfg(all(feature = "metrics", feature = "debugger"))]
         {
             let num_proc = state.num_processes();
             let mut names = vec![(String::new(), String::new()); num_proc];
