@@ -350,9 +350,8 @@ impl RunState {
     // If other functions were blocked trying to send to this one - we can now unblock them
     // as it has consumed its inputs, and they are free to be sent to again.
     //
-    // Then, take the output and send it to all destination IOs on different function it should be
-    // sent to, marking the source function as blocked because those others must consume the output
-    // if those other functions have all their inputs, then mark them accordingly.
+    // Then, take the output and send it to all destination IOs on different functions.
+    // If those other functions have all their inputs, then create jobs for them.
     #[allow(unused_variables, unused_assignments, unused_mut)]
     pub(crate) fn retire_a_job(
         &mut self,
@@ -1487,7 +1486,7 @@ mod test {
         */
         #[test]
         #[serial]
-        fn waiting_to_blocked_on_input() {
+        fn waiting_to_ready_via_output() {
             let f_a = super::test_function_a_to_b_not_init();
             let connection_to_f0 = OutputConnection::new(
                 Source::default(),

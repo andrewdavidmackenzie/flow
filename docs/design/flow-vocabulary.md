@@ -20,7 +20,7 @@
   of each input queue.
 - **Full input**: An input with at least one value in its queue.
 - **Empty input**: An input with no values in its queue.
-- **Ready**: A function is ready when all its inputs have at least one value AND it is not blocked.
+- **Ready**: A function is ready when all its inputs have at least one value.
 
 ## Initializers
 
@@ -53,66 +53,31 @@
   same function).
 - **Send**: Delivering a value from a completed job's output to a destination input queue.
 
-## Blocking
-
-### Function blocking
-
-A function becomes **blocked** when it has all inputs ready (could run) but at least one of its cross-flow
-output destinations already has a value queued. Running the function would produce output that can't be
-delivered, so it is held back.
-
-- **Blocked function**: A function in the `blocked` set. It has a complete input set but cannot be scheduled.
-  It transitions from blocked to ready when all its output destinations have consumed their values (blocks
-  removed).
-- **Output block**: The condition that causes blocking — a cross-flow destination input already has a value.
-  Same-flow sends and loopbacks never create blocks.
-- **Block record**: An entry in the `blocks` set recording the blocked function (sender), the blocking
-  function (destination whose input is full), and which input is full.
-
-### Flow blocking
-
-When a function inside a sub-flow starts a job, external senders (functions in other flows) that send to
-that sub-flow are prevented from sending until the sub-flow goes idle. This prevents values from the parent
-flow arriving while the sub-flow is busy processing.
-
-- **flow_blocks**: A map of `flow_id → set of function_ids`. When a function starts a job, it registers in
-  flow_blocks for its flow. When the flow goes idle, `remove_blocks` is called for each registered function,
-  resolving the output blocks that were holding back external senders.
-
 ## Function State Transitions
 
-A function can be in one of five states: **Waiting**, **Ready**, **Blocked**, **Running**, **Completed**.
+A function can be in one of four states: **Waiting**, **Ready**, **Running**, **Completed**.
 
 ```text
 From      To         Trigger and conditions
 --------  ---------  --------------------------------------------------------
-Init      Ready      All inputs initialized AND no destination input full
-                     OR: no inputs AND no destination input full
-Init      Blocked    All inputs initialized BUT a destination input is full
+Init      Ready      All inputs initialized (or no inputs)
 Init      Waiting    At least one input is not full
 
-Waiting   Ready      A send fills the last empty input, no destination full
-Waiting   Blocked    A send fills the last empty input, but a destination full
+Waiting   Ready      A send fills the last empty input
 
 Ready     Running    Job dispatched for execution
 
-Running   Ready      Job done, all inputs still full, no destination full
+Running   Ready      Job done, all inputs still full (after re-applying
+                     Always initializers)
 Running   Waiting    Job done, at least one input empty
-Running   Blocked    Job done, all inputs full but a destination full
-
-Blocked   Ready      Output block removed (destination consumed its value)
-
-Any       Completed  Function indicates it will not run again (run_again=false)
+Running   Completed  Function indicates it will not run again (run_again=false)
 ```
-
-Notes:
-- Loopback sends (function to itself) never create blocks
-- Same-flow sends never create blocks
-- Only cross-flow sends can cause a function to become blocked
 
 ## Flow State Transitions
 
-A flow can be in one of two states: **Busy** or **Idle**.
+A flow can be in one of two states: **Busy** or **Idle**. These are tracked via a `busy_count`
+per flow — the number of functions in that flow (and descendant sub-flows) that have ready
+or running jobs.
 
 ```text
 From   To     Trigger and conditions
@@ -126,15 +91,16 @@ Idle   Busy   A job is created for a function in this flow
 Busy   Idle   Last busy function in the flow completes and no new jobs
               are created for functions in this flow
               On transition to idle:
-                1. External senders to this flow are unblocked
-                2. Always flow initializers are re-applied
+                1. Always flow initializers are re-applied
+                2. If new jobs are created, flow goes back to Busy
 ```
 
 Notes:
-- A flow with blocked functions but no busy functions is considered idle
 - The root flow (flow_id=0) going idle is normal between job batches
 - A sub-flow going idle signals the end of an iteration, triggering
-  parent flow unblocking and flow initializer re-application
+  flow initializer re-application
+- `busy_count` is incremented for a function AND all its ancestor flows
+  when a job is created, and decremented when a job completes
 
 ## Stale Values
 

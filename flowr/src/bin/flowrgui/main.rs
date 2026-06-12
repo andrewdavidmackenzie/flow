@@ -327,13 +327,7 @@ impl DebugEventLine {
         }
 
         // Match ALL occurrences of state keywords in square brackets
-        for keyword in &[
-            "[Ready]",
-            "[Waiting]",
-            "[Running]",
-            "[Completed]",
-            "[Blocked]",
-        ] {
+        for keyword in &["[Ready]", "[Waiting]", "[Running]", "[Completed]"] {
             let mut kw_from = 0;
             while let Some(pos) = text[kw_from..].find(keyword) {
                 let abs_pos = kw_from + pos;

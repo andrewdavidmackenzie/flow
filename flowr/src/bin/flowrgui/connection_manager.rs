@@ -1541,7 +1541,6 @@ fn format_inspect_by_state(
         "waiting" => Some(flowrlib::run_state::State::Waiting),
         "running" => Some(flowrlib::run_state::State::Running),
         "completed" => Some(flowrlib::run_state::State::Completed),
-        "blocked" => None,
         _ => {
             return vec![DebugEventLine::new(
                 format!("Unknown state '{state_name}'"),
@@ -1567,39 +1566,6 @@ fn format_inspect_by_state(
                     crate::LinkType::Function,
                     &states,
                 ));
-            }
-        }
-        if count == 0 {
-            lines.push(DebugEventLine::new("  (none)".into(), None));
-        }
-    } else {
-        let mut count = 0;
-        for func in &sorted {
-            let states = run_state.get_function_states(func.id());
-            if states.contains(&flowrlib::run_state::State::Waiting) {
-                if let Ok(blockers) = run_state.get_input_blockers(func.id()) {
-                    if !blockers.is_empty() {
-                        count += 1;
-                        let mut b = crate::DebugLineBuilder::new().text("  ");
-                        b = b.chip(
-                            &format!("function #{}", func.id()),
-                            &func.id().to_string(),
-                            crate::LinkType::Function,
-                        );
-                        b = b.text(" — blocked by: ");
-                        for (j, bid) in blockers.iter().enumerate() {
-                            if j > 0 {
-                                b = b.text(", ");
-                            }
-                            b = b.chip(
-                                &format!("function #{bid}"),
-                                &bid.to_string(),
-                                crate::LinkType::Function,
-                            );
-                        }
-                        lines.push(b.finish());
-                    }
-                }
             }
         }
         if count == 0 {
