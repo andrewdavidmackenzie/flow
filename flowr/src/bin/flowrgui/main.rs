@@ -932,6 +932,7 @@ impl FlowrGui {
             }
             Message::NativeFlowstdlibChanged(value) => {
                 self.submission_settings.native_flowstdlib = value;
+                self.sync_coordinator_settings();
             }
             Message::AutoThreadsChanged(value) => {
                 self.submission_settings.auto_threads = value;
@@ -939,12 +940,15 @@ impl FlowrGui {
                     let auto = thread::available_parallelism().map_or(1, std::num::NonZero::get);
                     self.submission_settings.num_threads_text = auto.to_string();
                 }
+                self.sync_coordinator_settings();
             }
             Message::NumThreadsChanged(value) => {
                 self.submission_settings.num_threads_text = value;
+                self.sync_coordinator_settings();
             }
             Message::LibSearchPathChanged(value) => {
                 self.submission_settings.lib_search_path_text = value;
+                self.sync_coordinator_settings();
             }
             Message::JobTimeoutChanged(value) => {
                 self.submission_settings.job_timeout_text = value;
@@ -1894,14 +1898,26 @@ impl FlowrGui {
             .push(Text::new("Job timeout (s):").size(theme::FONT_MD))
             .push(timeout_input);
 
-        let coordinator_label = Text::new("Coordinator")
-            .size(theme::FONT_DEFAULT)
-            .color(theme::TEXT_SECONDARY);
+        let can_edit = !self.running;
+        let coordinator_label = Column::new()
+            .spacing(2)
+            .push(
+                Text::new("Coordinator")
+                    .size(theme::FONT_DEFAULT)
+                    .color(theme::TEXT_SECONDARY),
+            )
+            .push(
+                Text::new("Changes take effect on next app start")
+                    .size(theme::FONT_SM)
+                    .color(theme::TEXT_SECONDARY),
+            );
 
-        let native_toggle = iced::widget::toggler(self.submission_settings.native_flowstdlib)
-            .on_toggle(Message::NativeFlowstdlibChanged)
+        let mut native_toggle = iced::widget::toggler(self.submission_settings.native_flowstdlib)
             .style(theme::accent_toggler)
             .size(16.0);
+        if can_edit {
+            native_toggle = native_toggle.on_toggle(Message::NativeFlowstdlibChanged);
+        }
         let native_row = Row::new()
             .spacing(theme::SPACE_MD)
             .align_y(iced::alignment::Vertical::Center)
@@ -1909,11 +1925,13 @@ impl FlowrGui {
             .push(native_toggle);
 
         let auto_threads = self.submission_settings.auto_threads;
-        let auto_toggle = iced::widget::toggler(auto_threads)
-            .on_toggle(Message::AutoThreadsChanged)
+        let mut auto_toggle = iced::widget::toggler(auto_threads)
             .style(theme::accent_toggler)
             .size(16.0);
-        let threads_input: Element<'_, Message> = if auto_threads {
+        if can_edit {
+            auto_toggle = auto_toggle.on_toggle(Message::AutoThreadsChanged);
+        }
+        let threads_input: Element<'_, Message> = if auto_threads || !can_edit {
             iced::widget::text_input("count", &self.submission_settings.num_threads_text)
                 .style(theme::pill_input)
                 .width(Length::Fixed(60.0))
@@ -1933,13 +1951,15 @@ impl FlowrGui {
             .push(auto_toggle)
             .push(Text::new("auto").size(theme::FONT_SM));
 
-        let lib_path_input = iced::widget::text_input(
+        let mut lib_path_input = iced::widget::text_input(
             "colon-separated paths",
             &self.submission_settings.lib_search_path_text,
         )
-        .on_input(Message::LibSearchPathChanged)
         .style(theme::pill_input)
         .width(Length::Fill);
+        if can_edit {
+            lib_path_input = lib_path_input.on_input(Message::LibSearchPathChanged);
+        }
         let lib_path_col = Column::new()
             .spacing(theme::SPACE_XS)
             .push(Text::new("Lib search path:").size(theme::FONT_MD))
@@ -2375,6 +2395,26 @@ impl FlowrGui {
                 ..Default::default()
             })
             .into()
+    }
+
+    fn sync_coordinator_settings(&mut self) {
+        if let CoordinatorSettings::Server(ref mut s) = self.coordinator_settings {
+            s.native_flowstdlib = self.submission_settings.native_flowstdlib;
+            s.num_threads = self
+                .submission_settings
+                .num_threads_text
+                .trim()
+                .parse()
+                .unwrap_or(1);
+            let mut path = Simpath::new_with_separator("", ',');
+            for entry in self.submission_settings.lib_search_path_text.split(':') {
+                let trimmed = entry.trim();
+                if !trimmed.is_empty() {
+                    path.add(trimmed);
+                }
+            }
+            s.lib_search_path = path;
+        }
     }
 
     fn open_panel(&mut self, kind: PanelKind) {
