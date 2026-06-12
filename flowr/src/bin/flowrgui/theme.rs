@@ -386,10 +386,17 @@ pub fn accent_toggler(
             } else {
                 make_style(
                     Color {
-                        a: 0.2,
-                        ..palette.text
+                        r: 0.35,
+                        g: 0.35,
+                        b: 0.4,
+                        a: 1.0,
                     },
-                    palette.text,
+                    Color {
+                        r: 0.55,
+                        g: 0.55,
+                        b: 0.6,
+                        a: 1.0,
+                    },
                 )
             }
         }
@@ -399,10 +406,17 @@ pub fn accent_toggler(
             } else {
                 make_style(
                     Color {
-                        a: 0.3,
-                        ..palette.text
+                        r: 0.4,
+                        g: 0.4,
+                        b: 0.45,
+                        a: 1.0,
                     },
-                    Color::WHITE,
+                    Color {
+                        r: 0.65,
+                        g: 0.65,
+                        b: 0.7,
+                        a: 1.0,
+                    },
                 )
             }
         }
