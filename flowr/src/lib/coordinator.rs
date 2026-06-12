@@ -88,7 +88,12 @@ impl<'a> Coordinator<'a> {
     ///
     /// Returns an error if the execution of the flow did not complete normally.
     ///
-    #[allow(unused_variables, unused_assignments, unused_mut)]
+    #[allow(
+        unused_variables,
+        unused_assignments,
+        unused_mut,
+        clippy::too_many_lines
+    )]
     pub fn execute_flow(&mut self, submission: Submission) -> Result<()> {
         self.dispatcher
             .set_results_timeout(submission.job_timeout)?;
@@ -96,6 +101,17 @@ impl<'a> Coordinator<'a> {
 
         #[cfg(feature = "metrics")]
         let mut metrics = Metrics::new(state.num_functions(), state.num_processes());
+        #[cfg(feature = "metrics")]
+        {
+            let num_proc = state.num_processes();
+            let mut names = vec![(String::new(), String::new()); num_proc];
+            for (id, func) in state.get_functions() {
+                if let Some(entry) = names.get_mut(*id) {
+                    *entry = (func.name().to_string(), func.route().to_string());
+                }
+            }
+            metrics.set_function_names(names);
+        }
 
         #[cfg(feature = "debugger")]
         if state.submission.debug_enabled {

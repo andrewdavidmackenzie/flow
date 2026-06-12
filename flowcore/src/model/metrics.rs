@@ -17,6 +17,7 @@ pub struct Metrics {
     elapsed_time_seconds: u64,
     max_simultaneous_jobs: usize,
     jobs_per_function: Vec<usize>,
+    function_names: Vec<(String, String)>,
 }
 
 impl Metrics {
@@ -31,7 +32,22 @@ impl Metrics {
             elapsed_time_seconds: 0,
             max_simultaneous_jobs: 0,
             jobs_per_function: vec![0; num_processes],
+            function_names: Vec::new(),
         }
+    }
+
+    /// Set function names (name, route) indexed by `process_id`
+    pub fn set_function_names(&mut self, names: Vec<(String, String)>) {
+        self.function_names = names;
+    }
+
+    /// Get function name and route by `process_id`
+    #[must_use]
+    pub fn function_name(&self, process_id: usize) -> Option<(&str, &str)> {
+        self.function_names
+            .get(process_id)
+            .filter(|(n, _)| !n.is_empty())
+            .map(|(n, r)| (n.as_str(), r.as_str()))
     }
 
     /// Reset the values of a `Metrics` struct back to their initial values
