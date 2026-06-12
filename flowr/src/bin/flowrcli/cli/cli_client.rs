@@ -375,7 +375,7 @@ mod test {
         #[cfg(not(feature = "metrics"))]
         client.process_coordinator_message(CoordinatorMessage::FlowEnd);
         #[cfg(feature = "metrics")]
-        client.process_coordinator_message(CoordinatorMessage::FlowEnd(Metrics::new(1)));
+        client.process_coordinator_message(CoordinatorMessage::FlowEnd(Metrics::new(1, 1)));
 
         assert!(path.exists(), "Image file was not created");
     }

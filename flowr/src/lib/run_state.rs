@@ -169,6 +169,9 @@ pub struct RunState {
     number_of_jobs_created: usize,
     /// Track how many busy entries exist per `process_id` (functions and ancestor flows)
     busy_count: HashMap<usize, usize>,
+    /// Per-function job creation count (index = `process_id`)
+    #[cfg(feature = "metrics")]
+    jobs_per_function: Vec<usize>,
     /// Index: parent flow ID → function IDs in that flow (avoids full-manifest scans)
     functions_by_flow: HashMap<usize, Vec<usize>>,
 }
@@ -186,6 +189,9 @@ impl RunState {
                 .push(*id);
         }
 
+        #[cfg(feature = "metrics")]
+        let num_processes =
+            submission.manifest.functions().len() + submission.manifest.flows().len();
         RunState {
             submission,
             ready_jobs: VecDeque::<Job>::new(),
@@ -193,6 +199,8 @@ impl RunState {
             completed: HashSet::<usize>::new(),
             number_of_jobs_created: 0,
             busy_count: HashMap::<usize, usize>::new(),
+            #[cfg(feature = "metrics")]
+            jobs_per_function: vec![0; num_processes],
             functions_by_flow,
         }
     }
@@ -622,6 +630,10 @@ impl RunState {
                 // avoid getting stuck in a loop generating jobs for a function - generate just one
                 let always_ready = function.is_always_ready();
                 self.ready_jobs.push_back(job);
+                #[cfg(feature = "metrics")]
+                if let Some(count) = self.jobs_per_function.get_mut(process_id) {
+                    *count += 1;
+                }
                 *self.busy_count.entry(process_id).or_insert(0) += 1;
                 for ancestor in self.ancestors(parent_id) {
                     *self.busy_count.entry(ancestor).or_insert(0) += 1;
@@ -644,6 +656,19 @@ impl RunState {
     #[must_use]
     pub fn num_functions(&self) -> usize {
         self.submission.manifest.functions().len()
+    }
+
+    /// Total number of processes (functions + flows) in the manifest
+    #[must_use]
+    pub fn num_processes(&self) -> usize {
+        self.submission.manifest.functions().len() + self.submission.manifest.flows().len()
+    }
+
+    /// Per-function job creation counts (index = `process_id`)
+    #[cfg(feature = "metrics")]
+    #[must_use]
+    pub fn jobs_per_function(&self) -> &[usize] {
+        &self.jobs_per_function
     }
 
     /// Return the ancestor flow ids starting from `parent_id` up to the root
@@ -1323,7 +1348,7 @@ mod test {
 
             let mut state = RunState::new(super::test_submission(vec![f_a]));
             #[cfg(feature = "metrics")]
-            let mut metrics = Metrics::new(1);
+            let mut metrics = Metrics::new(1, 1);
             #[cfg(feature = "debugger")]
             let mut server = super::DummyServer {};
             #[cfg(feature = "debugger")]
@@ -1373,7 +1398,7 @@ mod test {
 
             let mut state = RunState::new(super::test_submission(vec![f_a]));
             #[cfg(feature = "metrics")]
-            let mut metrics = Metrics::new(1);
+            let mut metrics = Metrics::new(1, 1);
             #[cfg(feature = "debugger")]
             let mut server = super::DummyServer {};
             #[cfg(feature = "debugger")]
@@ -1447,7 +1472,7 @@ mod test {
             );
             let mut state = RunState::new(super::test_submission(vec![f_a, f_b]));
             #[cfg(feature = "metrics")]
-            let mut metrics = Metrics::new(1);
+            let mut metrics = Metrics::new(1, 1);
             #[cfg(feature = "debugger")]
             let mut server = super::DummyServer {};
             #[cfg(feature = "debugger")]
@@ -1519,7 +1544,7 @@ mod test {
             );
             let mut state = RunState::new(super::test_submission(vec![f_a, f_b]));
             #[cfg(feature = "metrics")]
-            let mut metrics = Metrics::new(1);
+            let mut metrics = Metrics::new(1, 1);
             #[cfg(feature = "debugger")]
             let mut server = super::DummyServer {};
             #[cfg(feature = "debugger")]
@@ -1709,7 +1734,7 @@ mod test {
 
             let mut state = RunState::new(super::test_submission(vec![f_a]));
             #[cfg(feature = "metrics")]
-            let mut metrics = Metrics::new(1);
+            let mut metrics = Metrics::new(1, 1);
             #[cfg(feature = "debugger")]
             let mut server = super::DummyServer {};
             #[cfg(feature = "debugger")]

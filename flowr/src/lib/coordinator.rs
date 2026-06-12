@@ -95,7 +95,7 @@ impl<'a> Coordinator<'a> {
         let mut state = RunState::new(submission);
 
         #[cfg(feature = "metrics")]
-        let mut metrics = Metrics::new(state.num_functions());
+        let mut metrics = Metrics::new(state.num_functions(), state.num_processes());
 
         #[cfg(feature = "debugger")]
         if state.submission.debug_enabled {
@@ -177,6 +177,7 @@ impl<'a> Coordinator<'a> {
             if !restart {
                 metrics.stop_timer();
                 metrics.set_jobs_created(state.get_number_of_jobs_created());
+                metrics.set_jobs_per_function(state.jobs_per_function());
             }
 
             #[allow(clippy::collapsible_if)]

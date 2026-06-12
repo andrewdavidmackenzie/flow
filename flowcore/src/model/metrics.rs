@@ -16,12 +16,13 @@ pub struct Metrics {
     start_time: Instant,
     elapsed_time_seconds: u64,
     max_simultaneous_jobs: usize,
+    jobs_per_function: Vec<usize>,
 }
 
 impl Metrics {
     /// Create a new `Metrics` struct
     #[must_use]
-    pub fn new(num_functions: usize) -> Self {
+    pub fn new(num_functions: usize, num_processes: usize) -> Self {
         Metrics {
             num_functions,
             jobs_created: 0,
@@ -29,6 +30,7 @@ impl Metrics {
             start_time: Instant::now(),
             elapsed_time_seconds: 0,
             max_simultaneous_jobs: 0,
+            jobs_per_function: vec![0; num_processes],
         }
     }
 
@@ -39,11 +41,30 @@ impl Metrics {
         self.outputs_sent = 0;
         self.start_time = Instant::now();
         self.max_simultaneous_jobs = 0;
+        self.jobs_per_function.fill(0);
     }
 
     /// Set the number of jobs created in `Metrics` to the `jobs` value
     pub fn set_jobs_created(&mut self, jobs: usize) {
         self.jobs_created = jobs;
+    }
+
+    /// Set the per-function job counts from the run state
+    pub fn set_jobs_per_function(&mut self, counts: &[usize]) {
+        self.jobs_per_function = counts.to_vec();
+    }
+
+    /// Increment the job count for a specific function by `process_id`
+    pub fn increment_jobs_for_function(&mut self, process_id: usize) {
+        if let Some(count) = self.jobs_per_function.get_mut(process_id) {
+            *count += 1;
+        }
+    }
+
+    /// Get the per-function job counts
+    #[must_use]
+    pub fn jobs_per_function(&self) -> &[usize] {
+        &self.jobs_per_function
     }
 
     /// Increment the tracker for the number of output values sent between functions
@@ -76,7 +97,14 @@ impl fmt::Display for Metrics {
         writeln!(f, "Number of Jobs Created: {}", self.jobs_created)?;
         writeln!(f, "Values sent: {}", self.outputs_sent)?;
         writeln!(f, "Elapsed time(s): {:.*}", 1, self.elapsed_time_seconds)?;
-        write!(f, "Max Jobs in Parallel: {}", self.max_simultaneous_jobs)
+        writeln!(f, "Max Jobs in Parallel: {}", self.max_simultaneous_jobs)?;
+        write!(f, "Jobs per Function:")?;
+        for (id, &count) in self.jobs_per_function.iter().enumerate() {
+            if count > 0 {
+                write!(f, "  #{id}:{count}")?;
+            }
+        }
+        Ok(())
     }
 }
 
@@ -87,7 +115,7 @@ mod test {
 
     #[test]
     fn test_metrics_reset() {
-        let mut metrics = Metrics::new(10);
+        let mut metrics = Metrics::new(10, 10);
         metrics.jobs_created = 110;
         metrics.outputs_sent = 10;
         metrics.max_simultaneous_jobs = 4;
@@ -100,7 +128,7 @@ mod test {
 
     #[test]
     fn test_max_tracking() {
-        let mut metrics = Metrics::new(10);
+        let mut metrics = Metrics::new(10, 10);
         assert_eq!(metrics.max_simultaneous_jobs, 0);
 
         metrics.track_max_jobs(2);
@@ -112,7 +140,7 @@ mod test {
 
     #[test]
     fn test_metrics_display() {
-        let metrics = Metrics::new(10);
+        let metrics = Metrics::new(10, 10);
         println!("{metrics}");
     }
 }
