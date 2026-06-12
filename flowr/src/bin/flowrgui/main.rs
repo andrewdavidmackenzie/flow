@@ -1885,7 +1885,7 @@ impl FlowrGui {
                 for &(id, count) in &non_zero {
                     let label = format!("{id:>id_width$}");
                     #[allow(clippy::cast_possible_truncation)]
-                    let portion = ((count * 100) / max_count).max(1) as u16;
+                    let portion = (count.saturating_mul(100) / max_count).max(1) as u16;
                     let bar = Container::new(Text::new("").size(1))
                         .width(Length::FillPortion(portion))
                         .height(Length::Fixed(14.0))

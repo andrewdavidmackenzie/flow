@@ -633,6 +633,8 @@ impl RunState {
                 #[cfg(feature = "metrics")]
                 if let Some(count) = self.jobs_per_function.get_mut(process_id) {
                     *count += 1;
+                } else {
+                    debug!("process_id {process_id} out of range for jobs_per_function");
                 }
                 *self.busy_count.entry(process_id).or_insert(0) += 1;
                 for ancestor in self.ancestors(parent_id) {

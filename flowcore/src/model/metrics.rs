@@ -74,6 +74,8 @@ impl Metrics {
     pub fn increment_jobs_for_function(&mut self, process_id: usize) {
         if let Some(count) = self.jobs_per_function.get_mut(process_id) {
             *count += 1;
+        } else {
+            trace!("process_id {process_id} out of range for jobs_per_function");
         }
     }
 
