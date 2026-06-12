@@ -73,6 +73,19 @@ mod tabs;
 /// to get access to everything `error_chain` creates.
 mod errors;
 
+#[cfg(feature = "debugger")]
+#[allow(
+    clippy::cast_possible_truncation,
+    clippy::cast_sign_loss,
+    clippy::cast_precision_loss,
+    clippy::min_ident_chars,
+    clippy::indexing_slicing,
+    clippy::manual_midpoint,
+    clippy::manual_div_ceil,
+    clippy::unnecessary_operation
+)]
+mod state_diagram;
+
 /// custom widget styling
 mod theme;
 
@@ -327,13 +340,7 @@ impl DebugEventLine {
         }
 
         // Match ALL occurrences of state keywords in square brackets
-        for keyword in &[
-            "[Ready]",
-            "[Waiting]",
-            "[Running]",
-            "[Completed]",
-            "[Blocked]",
-        ] {
+        for keyword in &["[Ready]", "[Waiting]", "[Running]", "[Completed]"] {
             let mut kw_from = 0;
             while let Some(pos) = text[kw_from..].find(keyword) {
                 let abs_pos = kw_from + pos;
@@ -533,6 +540,12 @@ pub enum Message {
     BrowserRunFunction(usize),
     /// Toggle metrics panel
     ToggleMetrics,
+    /// Toggle function state diagram panel
+    #[cfg(feature = "debugger")]
+    ToggleStateDiagram,
+    /// Hover info from state diagram canvas (text, x, y) or None to clear
+    #[cfg(feature = "debugger")]
+    DiagramHover(Option<(String, f32, f32)>),
     /// Metrics received from debug channel
     #[cfg(feature = "metrics")]
     DebugMetricsReceived(flowcore::model::metrics::Metrics),
@@ -733,6 +746,8 @@ pub struct CachedFunction {
 enum PanelKind {
     Settings,
     Metrics,
+    #[cfg(feature = "debugger")]
+    StateDiagram,
 }
 
 struct UiSettings {
@@ -759,6 +774,10 @@ struct FlowrGui {
     active_panel: Option<PanelKind>,
     #[cfg(feature = "debugger")]
     browser_open: bool,
+    #[cfg(feature = "debugger")]
+    states_refresh_pending: bool,
+    #[cfg(feature = "debugger")]
+    diagram_hover_info: Option<(String, f32, f32)>,
     #[cfg(feature = "debugger")]
     browser_collapsed: std::collections::HashSet<usize>,
     last_metrics: Option<flowcore::model::metrics::Metrics>,
@@ -815,6 +834,10 @@ impl FlowrGui {
             active_panel: None,
             #[cfg(feature = "debugger")]
             browser_open: false,
+            #[cfg(feature = "debugger")]
+            states_refresh_pending: false,
+            #[cfg(feature = "debugger")]
+            diagram_hover_info: None,
             #[cfg(feature = "debugger")]
             browser_collapsed: std::collections::HashSet::new(),
             last_metrics: None,
@@ -1067,6 +1090,26 @@ impl FlowrGui {
             }
             Message::ToggleMetrics => self.toggle_panel(PanelKind::Metrics),
             #[cfg(feature = "debugger")]
+            Message::ToggleStateDiagram => {
+                if self.active_panel == Some(PanelKind::StateDiagram) {
+                    self.close_panel();
+                } else {
+                    if !self.ensure_functions_cached(Message::ToggleStateDiagram) {
+                        return iced::Task::none();
+                    }
+                    self.open_panel(PanelKind::StateDiagram);
+                    if self.debug_waiting && !self.states_refresh_pending {
+                        self.states_refresh_pending = true;
+                        connection_manager::set_states_only(true);
+                        connection_manager::send_debug_command(
+                            flowcore::model::debug_command::DebugCommand::ProcessList,
+                        );
+                    }
+                }
+            }
+            #[cfg(feature = "debugger")]
+            Message::DiagramHover(data) => self.diagram_hover_info = data,
+            #[cfg(feature = "debugger")]
             Message::DebugStatesReceived(states) => self.cached_states = states,
             #[cfg(feature = "debugger")]
             Message::BrowserToggleNode(id) => {
@@ -1260,6 +1303,8 @@ impl FlowrGui {
             match kind {
                 PanelKind::Settings => self.settings_panel(),
                 PanelKind::Metrics => self.metrics_panel(),
+                #[cfg(feature = "debugger")]
+                PanelKind::StateDiagram => self.state_diagram_panel(),
             }
         } else {
             iced::widget::text("").into()
@@ -1730,6 +1775,17 @@ impl FlowrGui {
                 state_btn,
                 "Show runtime state (jobs, completed, busy)",
             ))
+            .push(Self::tip(
+                Button::new(
+                    Text::new("\u{2B21}")
+                        .size(16.0)
+                        .shaping(iced::widget::text::Shaping::Advanced),
+                )
+                .on_press(Message::ToggleStateDiagram)
+                .style(theme::styled_button)
+                .padding(sp),
+                "Function state transition diagram",
+            ))
             .push(Self::tip(validate_btn, "Validate flow state for deadlocks"))
             .push(iced::widget::container(iced::widget::text("")).width(iced::Length::Fill))
             .push(Self::tip(exit_btn, "Stop execution and exit debugger"));
@@ -1820,6 +1876,154 @@ impl FlowrGui {
 
         Container::new(panel_content)
             .width(Length::Fixed(300.0))
+            .height(Length::Fill)
+            .padding(theme::SPACE_MD)
+            .style(|_: &iced::Theme| iced::widget::container::Style {
+                background: Some(iced::Background::Color(theme::SURFACE_BUTTON)),
+                border: iced::Border {
+                    radius: 0.0.into(),
+                    width: 0.0,
+                    color: iced::Color::TRANSPARENT,
+                },
+                ..Default::default()
+            })
+            .into()
+    }
+
+    #[cfg(feature = "debugger")]
+    #[allow(clippy::too_many_lines)]
+    fn state_diagram_panel(&self) -> Element<'_, Message> {
+        use iced::widget::Container;
+        use iced::Length;
+
+        let header = Row::new()
+            .push(
+                Button::new(
+                    Row::new()
+                        .spacing(6)
+                        .align_y(iced::alignment::Vertical::Center)
+                        .push(
+                            Text::new("\u{2B21}")
+                                .size(16.0)
+                                .shaping(iced::widget::text::Shaping::Advanced)
+                                .color(iced::Color::WHITE),
+                        )
+                        .push(
+                            Text::new("Function States")
+                                .size(theme::FONT_DEFAULT)
+                                .color(iced::Color::WHITE)
+                                .font(iced::Font {
+                                    weight: iced::font::Weight::Bold,
+                                    ..iced::Font::DEFAULT
+                                }),
+                        ),
+                )
+                .on_press(Message::ToggleStateDiagram)
+                .style(theme::chip_button(theme::ACCENT))
+                .padding([4, 12]),
+            )
+            .push(Container::new(iced::widget::text("")).width(Length::Fill))
+            .align_y(iced::alignment::Vertical::Center)
+            .padding(iced::Padding {
+                top: 0.0,
+                right: 0.0,
+                bottom: theme::SPACE_SM,
+                left: 0.0,
+            });
+
+        let mut waiting_ids: Vec<usize> = Vec::new();
+        let mut ready_ids: Vec<usize> = Vec::new();
+        let mut running_ids: Vec<usize> = Vec::new();
+        let mut completed_ids: Vec<usize> = Vec::new();
+
+        for (&id, fn_states) in &self.cached_states {
+            for (letter, _) in fn_states {
+                match letter {
+                    'W' => waiting_ids.push(id),
+                    'R' => ready_ids.push(id),
+                    'X' => running_ids.push(id),
+                    'C' => completed_ids.push(id),
+                    _ => {}
+                }
+            }
+        }
+
+        if waiting_ids.is_empty()
+            && ready_ids.is_empty()
+            && running_ids.is_empty()
+            && completed_ids.is_empty()
+        {
+            for f in &self.cached_functions {
+                if !f.is_flow {
+                    waiting_ids.push(f.id);
+                }
+            }
+        }
+
+        waiting_ids.sort_unstable();
+        ready_ids.sort_unstable();
+        running_ids.sort_unstable();
+        completed_ids.sort_unstable();
+
+        let diagram_data = state_diagram::StateDiagramData {
+            waiting_ids,
+            ready_ids,
+            running_ids,
+            completed_ids,
+            cached_functions: self.cached_functions.clone(),
+        };
+        let canvas_height = state_diagram::canvas_height(&diagram_data);
+        let canvas = state_diagram::StateDiagramCanvas { data: diagram_data };
+
+        let canvas_widget: Element<'_, Message> = iced::widget::canvas(canvas)
+            .width(Length::Fill)
+            .height(Length::Fixed(canvas_height))
+            .into();
+
+        let canvas_area: Element<'_, Message> = if let Some((ref tip_text, tip_x, tip_y)) =
+            self.diagram_hover_info
+        {
+            let tooltip_overlay: iced::widget::Container<'_, Message> = iced::widget::container(
+                iced::widget::container(
+                    Text::new(tip_text.clone())
+                        .size(theme::FONT_MD)
+                        .color(iced::Color::WHITE),
+                )
+                .padding(6)
+                .style(|_: &iced::Theme| iced::widget::container::Style {
+                    background: Some(iced::Background::Color(iced::Color {
+                        r: 0.1,
+                        g: 0.1,
+                        b: 0.15,
+                        a: 0.95,
+                    })),
+                    border: iced::Border {
+                        color: theme::ACCENT,
+                        width: 1.5,
+                        radius: 6.0.into(),
+                    },
+                    ..Default::default()
+                }),
+            )
+            .padding(iced::Padding {
+                top: (tip_y + 20.0).max(0.0),
+                left: (tip_x - 40.0).max(0.0),
+                right: 0.0,
+                bottom: 0.0,
+            });
+            let tip_el: Element<'_, Message> = tooltip_overlay.into();
+            iced::widget::stack![canvas_widget, tip_el].into()
+        } else {
+            canvas_widget
+        };
+
+        let panel_content = Column::new()
+            .spacing(theme::SPACE_MD)
+            .push(header)
+            .push(canvas_area);
+
+        Container::new(panel_content)
+            .width(Length::Fixed(380.0))
             .height(Length::Fill)
             .padding(theme::SPACE_MD)
             .style(|_: &iced::Theme| iced::widget::container::Style {
@@ -2853,12 +3057,17 @@ impl FlowrGui {
                 }
             }
             Message::DebugWaiting => {
-                self.debug_waiting = true;
-                if self.browser_open {
-                    self.suppress_next_output = true;
-                    connection_manager::send_debug_command(
-                        flowcore::model::debug_command::DebugCommand::ProcessList,
-                    );
+                if self.states_refresh_pending {
+                    self.states_refresh_pending = false;
+                } else {
+                    self.debug_waiting = true;
+                    if self.active_panel == Some(PanelKind::StateDiagram) {
+                        self.states_refresh_pending = true;
+                        connection_manager::set_states_only(true);
+                        connection_manager::send_debug_command(
+                            flowcore::model::debug_command::DebugCommand::ProcessList,
+                        );
+                    }
                 }
             }
             Message::DebugConnected => {
@@ -2951,13 +3160,11 @@ impl FlowrGui {
                 self.debug_waiting = false;
                 if display {
                     self.debug_separator("Functions List");
-                    connection_manager::send_debug_command(DebugCommand::InspectState(
-                        "all".to_string(),
-                    ));
-                } else {
-                    self.suppress_next_output = true;
-                    connection_manager::send_debug_command(DebugCommand::FunctionList);
                 }
+                if !display {
+                    self.suppress_next_output = true;
+                }
+                connection_manager::send_debug_command(DebugCommand::FunctionList);
             }
             Message::DebugFlows => {
                 self.debug_waiting = false;
@@ -3422,6 +3629,10 @@ mod test {
             #[cfg(feature = "debugger")]
             browser_open: false,
             #[cfg(feature = "debugger")]
+            states_refresh_pending: false,
+            #[cfg(feature = "debugger")]
+            diagram_hover_info: None,
+            #[cfg(feature = "debugger")]
             browser_collapsed: std::collections::HashSet::new(),
             last_metrics: None,
             modal_content: (String::new(), String::new()),
@@ -3662,5 +3873,141 @@ mod test {
         gui.show_coordinator_picker = true;
         let view = gui.view();
         let _ui = simulator(view);
+    }
+
+    #[cfg(feature = "debugger")]
+    #[test]
+    fn debug_functions_sets_waiting_false() {
+        let mut gui = test_gui();
+        gui.debug_client_active = true;
+        gui.debug_waiting = true;
+        drop(gui.update(Message::DebugFunctions(true)));
+        assert!(!gui.debug_waiting);
+    }
+
+    #[cfg(feature = "debugger")]
+    #[test]
+    fn debug_state_sets_waiting_false() {
+        let mut gui = test_gui();
+        gui.debug_client_active = true;
+        gui.debug_waiting = true;
+        drop(gui.update(Message::DebugState));
+        assert!(!gui.debug_waiting);
+    }
+
+    #[cfg(feature = "debugger")]
+    #[test]
+    fn debug_processes_sets_waiting_false() {
+        let mut gui = test_gui();
+        gui.debug_client_active = true;
+        gui.debug_waiting = true;
+        drop(gui.update(Message::DebugProcesses));
+        assert!(!gui.debug_waiting);
+    }
+
+    #[cfg(feature = "debugger")]
+    #[test]
+    fn debug_validate_sets_waiting_false() {
+        let mut gui = test_gui();
+        gui.debug_client_active = true;
+        gui.debug_waiting = true;
+        drop(gui.update(Message::DebugValidate));
+        assert!(!gui.debug_waiting);
+    }
+
+    #[cfg(feature = "debugger")]
+    #[test]
+    fn debug_list_breakpoints_sets_waiting_false() {
+        let mut gui = test_gui();
+        gui.debug_client_active = true;
+        gui.debug_waiting = true;
+        drop(gui.update(Message::DebugListBreakpoints));
+        assert!(!gui.debug_waiting);
+    }
+
+    #[cfg(feature = "debugger")]
+    #[test]
+    fn debug_flows_sets_waiting_false() {
+        let mut gui = test_gui();
+        gui.debug_client_active = true;
+        gui.debug_waiting = true;
+        drop(gui.update(Message::DebugFlows));
+        assert!(!gui.debug_waiting);
+    }
+
+    #[cfg(feature = "debugger")]
+    #[test]
+    fn debug_waiting_does_not_auto_send() {
+        let mut gui = test_gui();
+        gui.debug_client_active = true;
+        gui.browser_open = true;
+        drop(gui.update(Message::DebugWaiting));
+        assert!(gui.debug_waiting);
+        assert!(!gui.suppress_next_output);
+    }
+
+    #[cfg(feature = "debugger")]
+    #[test]
+    fn view_renders_with_settings_panel() {
+        use iced_test::simulator::simulator;
+        let mut gui = test_gui();
+        gui.active_panel = Some(PanelKind::Settings);
+        let view = gui.view();
+        let _ui = simulator(view);
+    }
+
+    #[cfg(feature = "debugger")]
+    #[test]
+    fn view_renders_with_metrics_panel() {
+        use iced_test::simulator::simulator;
+        let mut gui = test_gui();
+        gui.active_panel = Some(PanelKind::Metrics);
+        let view = gui.view();
+        let _ui = simulator(view);
+    }
+
+    #[cfg(feature = "debugger")]
+    #[test]
+    fn view_renders_with_state_diagram_panel() {
+        use iced_test::simulator::simulator;
+        let mut gui = test_gui();
+        gui.debug_client_active = true;
+        gui.active_panel = Some(PanelKind::StateDiagram);
+        let view = gui.view();
+        let _ui = simulator(view);
+    }
+
+    #[cfg(feature = "debugger")]
+    #[test]
+    fn browser_and_settings_independent() {
+        let mut gui = test_gui();
+        gui.debug_client_active = true;
+        gui.browser_open = true;
+        gui.active_panel = Some(PanelKind::Settings);
+        assert!(gui.browser_open);
+        assert_eq!(gui.active_panel, Some(PanelKind::Settings));
+    }
+
+    #[cfg(feature = "debugger")]
+    #[test]
+    fn toggle_settings_does_not_close_browser() {
+        let mut gui = test_gui();
+        gui.debug_client_active = true;
+        gui.browser_open = true;
+        drop(gui.update(Message::ToggleSettings));
+        assert!(gui.browser_open);
+        assert_eq!(gui.active_panel, Some(PanelKind::Settings));
+    }
+
+    #[cfg(feature = "debugger")]
+    #[test]
+    fn toggle_browser_does_not_close_settings() {
+        let mut gui = test_gui();
+        gui.debug_client_active = true;
+        gui.active_panel = Some(PanelKind::Settings);
+        gui.browser_open = true;
+        drop(gui.update(Message::ToggleFlowBrowser));
+        assert!(!gui.browser_open);
+        assert_eq!(gui.active_panel, Some(PanelKind::Settings));
     }
 }

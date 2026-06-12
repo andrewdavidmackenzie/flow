@@ -106,6 +106,15 @@ pub fn set_flows_only(v: bool) {
     FLOWS_ONLY.store(v, Ordering::Relaxed);
 }
 
+/// Flag: extract states only from next `ProcessTree` (no debug output)
+#[cfg(feature = "debugger")]
+static STATES_ONLY: AtomicBool = AtomicBool::new(false);
+
+#[cfg(feature = "debugger")]
+pub fn set_states_only(v: bool) {
+    STATES_ONLY.store(v, Ordering::Relaxed);
+}
+
 /// Last output-inspect source process ID (set by GUI before sending `InspectOutput`)
 #[cfg(feature = "debugger")]
 static LAST_OUTPUT_INSPECT_PID: AtomicUsize = AtomicUsize::new(usize::MAX);
@@ -806,7 +815,9 @@ fn format_debug_event(message: &DebugServerMessage) -> Vec<crate::DebugEventLine
             .text(")")
             .finish()],
         DebugServerMessage::ProcessTree(ref state) => {
-            if FLOWS_ONLY.swap(false, Ordering::Relaxed) {
+            if STATES_ONLY.swap(false, Ordering::Relaxed) {
+                vec![]
+            } else if FLOWS_ONLY.swap(false, Ordering::Relaxed) {
                 format_flows_only(state)
             } else {
                 format_tree_only(state)
@@ -834,7 +845,7 @@ fn format_debug_event(message: &DebugServerMessage) -> Vec<crate::DebugEventLine
                     let line = match spec {
                         BreakpointSpec::Numeric(id) => Some(
                             DebugLineBuilder::new()
-                                .text("  ")
+                                .text("  \u{1F534} before  ")
                                 .chip(
                                     &format!("function #{id}"),
                                     &id.to_string(),
@@ -844,41 +855,49 @@ fn format_debug_event(message: &DebugServerMessage) -> Vec<crate::DebugEventLine
                         ),
                         BreakpointSpec::Completed(id) => Some(
                             DebugLineBuilder::new()
-                                .text("  ")
+                                .text("  \u{1F7E0} after  ")
                                 .chip(
                                     &format!("function #{id}"),
                                     &id.to_string(),
                                     LinkType::Function,
                                 )
-                                .text(" (completion)")
                                 .finish(),
                         ),
                         BreakpointSpec::Input((id, num)) => Some(
                             DebugLineBuilder::new()
-                                .text("  ")
+                                .text("  \u{1F534} ")
+                                .chip(
+                                    &format!("input:{num}"),
+                                    &format!("{id}:{num}"),
+                                    LinkType::Input,
+                                )
+                                .text("  on  ")
                                 .chip(
                                     &format!("function #{id}"),
                                     &id.to_string(),
                                     LinkType::Function,
                                 )
-                                .text(&format!(" input:{num}"))
                                 .finish(),
                         ),
                         BreakpointSpec::Output((id, route)) => Some(
                             DebugLineBuilder::new()
-                                .text("  ")
+                                .text("  \u{1F534} ")
+                                .chip(
+                                    &format!("output '{route}'"),
+                                    &format!("{id}{route}"),
+                                    LinkType::Output,
+                                )
+                                .text("  on  ")
                                 .chip(
                                     &format!("function #{id}"),
                                     &id.to_string(),
                                     LinkType::Function,
                                 )
-                                .text(" ")
-                                .chip(route, route, LinkType::Route)
                                 .finish(),
                         ),
                         BreakpointSpec::Route(route) => Some(
                             DebugLineBuilder::new()
-                                .text("  ")
+                                .text("  \u{1F534} ")
                                 .chip(route, route, LinkType::Route)
                                 .finish(),
                         ),
@@ -1541,7 +1560,6 @@ fn format_inspect_by_state(
         "waiting" => Some(flowrlib::run_state::State::Waiting),
         "running" => Some(flowrlib::run_state::State::Running),
         "completed" => Some(flowrlib::run_state::State::Completed),
-        "blocked" => None,
         _ => {
             return vec![DebugEventLine::new(
                 format!("Unknown state '{state_name}'"),
@@ -1567,39 +1585,6 @@ fn format_inspect_by_state(
                     crate::LinkType::Function,
                     &states,
                 ));
-            }
-        }
-        if count == 0 {
-            lines.push(DebugEventLine::new("  (none)".into(), None));
-        }
-    } else {
-        let mut count = 0;
-        for func in &sorted {
-            let states = run_state.get_function_states(func.id());
-            if states.contains(&flowrlib::run_state::State::Waiting) {
-                if let Ok(blockers) = run_state.get_input_blockers(func.id()) {
-                    if !blockers.is_empty() {
-                        count += 1;
-                        let mut b = crate::DebugLineBuilder::new().text("  ");
-                        b = b.chip(
-                            &format!("function #{}", func.id()),
-                            &func.id().to_string(),
-                            crate::LinkType::Function,
-                        );
-                        b = b.text(" — blocked by: ");
-                        for (j, bid) in blockers.iter().enumerate() {
-                            if j > 0 {
-                                b = b.text(", ");
-                            }
-                            b = b.chip(
-                                &format!("function #{bid}"),
-                                &bid.to_string(),
-                                crate::LinkType::Function,
-                            );
-                        }
-                        lines.push(b.finish());
-                    }
-                }
             }
         }
         if count == 0 {

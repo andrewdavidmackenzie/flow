@@ -820,11 +820,10 @@ impl<'a> Debugger<'a> {
             "waiting" => Some(State::Waiting),
             "running" => Some(State::Running),
             "completed" => Some(State::Completed),
-            "blocked" => None,
             _ => {
                 return format!(
-                "Unknown state '{state_name}'. Use: ready, waiting, running, completed, blocked"
-            )
+                    "Unknown state '{state_name}'. Use: ready, waiting, running, completed"
+                )
             }
         };
 
@@ -834,25 +833,7 @@ impl<'a> Debugger<'a> {
         sorted.sort_by_key(|f| f.id());
         let mut count = 0;
 
-        if state_name == "blocked" {
-            let _ = writeln!(response, "Blocked functions:");
-            for func in &sorted {
-                let states = state.get_function_states(func.id());
-                if states.contains(&State::Waiting) {
-                    if let Ok(blockers) = state.get_input_blockers(func.id()) {
-                        if !blockers.is_empty() {
-                            count += 1;
-                            let _ = writeln!(
-                                response,
-                                "  {} — blocked by: {:?}",
-                                Self::entity_long(func, false),
-                                blockers
-                            );
-                        }
-                    }
-                }
-            }
-        } else if let Some(ref target) = target_state {
+        if let Some(ref target) = target_state {
             let _ = writeln!(response, "Functions in '{state_name}' state:");
             for func in &sorted {
                 let states = state.get_function_states(func.id());
@@ -1606,13 +1587,6 @@ mod test {
         let state = RunState::new(test_submission(vec![test_function(0)]));
         let result = Debugger::inspect_by_state(&state, "bogus");
         assert!(result.contains("Unknown state"));
-    }
-
-    #[test]
-    fn test_inspect_by_state_blocked() {
-        let state = RunState::new(test_submission(vec![test_function(0)]));
-        let result = Debugger::inspect_by_state(&state, "blocked");
-        assert!(result.contains("Blocked functions:"));
     }
 
     #[test]
