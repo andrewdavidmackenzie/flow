@@ -1854,6 +1854,11 @@ impl FlowrGui {
         use iced::widget::{Container, Scrollable};
         use iced::Length;
 
+        let bold = iced::Font {
+            weight: iced::font::Weight::Bold,
+            ..iced::Font::DEFAULT
+        };
+
         let header = Row::new()
             .push(
                 Button::new(
@@ -1870,10 +1875,7 @@ impl FlowrGui {
                             Text::new("Function States")
                                 .size(theme::FONT_DEFAULT)
                                 .color(iced::Color::WHITE)
-                                .font(iced::Font {
-                                    weight: iced::font::Weight::Bold,
-                                    ..iced::Font::DEFAULT
-                                }),
+                                .font(bold),
                         ),
                 )
                 .on_press(Message::ToggleStateDiagram)
@@ -1936,14 +1938,11 @@ impl FlowrGui {
                         Text::new(id.to_string())
                             .size(theme::FONT_SM)
                             .color(iced::Color::WHITE)
-                            .font(iced::Font {
-                                weight: iced::font::Weight::Bold,
-                                ..iced::Font::DEFAULT
-                            }),
+                            .font(bold),
                     )
                     .on_press(Message::DebugInspectLink(id.to_string()))
                     .style(theme::chip_button(color))
-                    .padding([1, 5])
+                    .padding([2, 6])
                     .into(),
                 );
             }
@@ -1979,82 +1978,53 @@ impl FlowrGui {
                         ..iced::Color::WHITE
                     }
                 };
-                let mut col = Column::new().spacing(2).push(
+                let title = Button::new(
                     Row::new()
                         .spacing(6)
                         .push(
                             Text::new(label)
                                 .size(theme::FONT_DEFAULT)
                                 .color(text_color)
-                                .font(iced::Font {
-                                    weight: iced::font::Weight::Bold,
-                                    ..iced::Font::DEFAULT
-                                }),
+                                .font(bold),
                         )
                         .push(
                             Text::new(format!("({count})"))
                                 .size(theme::FONT_SM)
                                 .color(text_color),
                         ),
-                );
+                )
+                .style(theme::chip_button(bg))
+                .padding([6, 14])
+                .width(Length::Fill);
+                let mut col = Column::new().spacing(4).push(title);
                 if count > 0 {
                     col = col.push(fn_chips(ids, bg));
                 }
-                Container::new(col)
-                    .padding([6, 10])
-                    .width(Length::Fill)
-                    .style(move |_: &iced::Theme| iced::widget::container::Style {
-                        background: Some(iced::Background::Color(iced::Color { a: 0.25, ..bg })),
-                        border: iced::Border {
-                            radius: theme::RADIUS_SM.into(),
-                            width: 1.0,
-                            color: bg,
-                        },
-                        ..Default::default()
-                    })
-                    .into()
+                col.into()
             };
 
-        let fwd_arrow = |label: String| -> Element<'_, Message> {
+        let transition = |arrow: String,
+                          target: String,
+                          condition: String,
+                          color: iced::Color|
+         -> Element<'_, Message> {
             Row::new()
-                .spacing(4)
-                .align_y(iced::alignment::Vertical::Center)
-                .push(Text::new("    ").size(theme::FONT_SM))
-                .push(
-                    Text::new("\u{2193}")
-                        .size(16.0)
-                        .shaping(iced::widget::text::Shaping::Advanced)
-                        .color(theme::ACCENT),
-                )
-                .push(
-                    Text::new(label)
-                        .size(theme::FONT_SM)
-                        .color(theme::TEXT_SECONDARY),
-                )
-                .into()
-        };
-
-        let back_label = |from: String, to: String, label: String| -> Element<'_, Message> {
-            Row::new()
-                .spacing(4)
+                .spacing(6)
                 .align_y(iced::alignment::Vertical::Center)
                 .push(
-                    Text::new("\u{21B0}")
+                    Text::new(arrow)
                         .size(14.0)
                         .shaping(iced::widget::text::Shaping::Advanced)
-                        .color(theme::entity_colors::STATE_RUNNING),
+                        .color(color),
                 )
                 .push(
-                    Text::new(format!("{from} \u{2192} {to}"))
+                    Text::new(target)
                         .size(theme::FONT_SM)
-                        .color(theme::TEXT_SECONDARY)
-                        .font(iced::Font {
-                            weight: iced::font::Weight::Bold,
-                            ..iced::Font::DEFAULT
-                        }),
+                        .color(color)
+                        .font(bold),
                 )
                 .push(
-                    Text::new(label)
+                    Text::new(condition)
                         .size(theme::FONT_SM)
                         .color(theme::TEXT_SECONDARY),
                 )
@@ -2062,45 +2032,56 @@ impl FlowrGui {
         };
 
         let diagram = Column::new()
-            .spacing(4)
+            .spacing(8)
             .push(state_box(
                 "Waiting".into(),
                 &waiting_ids,
                 theme::entity_colors::STATE_WAITING,
             ))
-            .push(fwd_arrow("all inputs full".into()))
+            .push(transition(
+                "\u{2193}".into(),
+                "Ready".into(),
+                "all inputs full".into(),
+                theme::entity_colors::STATE_READY,
+            ))
             .push(state_box(
                 "Ready".into(),
                 &ready_ids,
                 theme::entity_colors::STATE_READY,
             ))
-            .push(fwd_arrow("job dispatched".into()))
+            .push(transition(
+                "\u{2193}".into(),
+                "Running".into(),
+                "job dispatched".into(),
+                theme::entity_colors::STATE_RUNNING,
+            ))
             .push(state_box(
                 "Running".into(),
                 &running_ids,
                 theme::entity_colors::STATE_RUNNING,
             ))
-            .push(fwd_arrow("run_again = false".into()))
+            .push(transition(
+                "\u{2193}".into(),
+                "Completed".into(),
+                "run_again = false".into(),
+                theme::entity_colors::STATE_COMPLETED,
+            ))
+            .push(transition(
+                "\u{21B0}".into(),
+                "Ready".into(),
+                "run_again, inputs full".into(),
+                theme::entity_colors::STATE_READY,
+            ))
+            .push(transition(
+                "\u{21B0}".into(),
+                "Waiting".into(),
+                "run_again, input(s) empty".into(),
+                theme::entity_colors::STATE_WAITING,
+            ))
             .push(state_box(
                 "Completed".into(),
                 &completed_ids,
                 theme::entity_colors::STATE_COMPLETED,
-            ))
-            .push(iced::widget::rule::horizontal(1))
-            .push(
-                Text::new("Back transitions:")
-                    .size(theme::FONT_MD)
-                    .color(theme::TEXT_SECONDARY),
-            )
-            .push(back_label(
-                "Running".into(),
-                "Ready".into(),
-                "inputs still full".into(),
-            ))
-            .push(back_label(
-                "Running".into(),
-                "Waiting".into(),
-                "input(s) empty".into(),
             ));
 
         let panel_content = Column::new()
@@ -2109,7 +2090,7 @@ impl FlowrGui {
             .push(Scrollable::new(diagram).height(Length::Fill));
 
         Container::new(panel_content)
-            .width(Length::Fixed(350.0))
+            .width(Length::Fixed(380.0))
             .height(Length::Fill)
             .padding(theme::SPACE_MD)
             .style(|_: &iced::Theme| iced::widget::container::Style {
