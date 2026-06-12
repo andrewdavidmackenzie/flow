@@ -1262,17 +1262,20 @@ impl FlowrGui {
         };
 
         // Compose: left browser | tabs | right panel
+        let tab_container = iced::widget::container(tab_content)
+            .width(iced::Length::Fill)
+            .clip(true);
         #[cfg(feature = "debugger")]
         let content_row: Element<'_, Message> = Row::new()
             .push(left_element)
-            .push(iced::widget::container(tab_content).width(iced::Length::Fill))
+            .push(tab_container)
             .push(right_element)
             .spacing(2)
             .height(iced::Length::Fill)
             .into();
         #[cfg(not(feature = "debugger"))]
         let content_row: Element<'_, Message> = Row::new()
-            .push(iced::widget::container(tab_content).width(iced::Length::Fill))
+            .push(tab_container)
             .push(right_element)
             .spacing(2)
             .height(iced::Length::Fill)
@@ -1814,7 +1817,7 @@ impl FlowrGui {
         Container::new(panel_content)
             .width(Length::Fixed(300.0))
             .height(Length::Fill)
-            .padding(theme::SPACE_LG)
+            .padding(theme::SPACE_MD)
             .style(|_: &iced::Theme| iced::widget::container::Style {
                 background: Some(iced::Background::Color(theme::SURFACE_BUTTON)),
                 border: iced::Border {
@@ -1956,7 +1959,7 @@ impl FlowrGui {
         Container::new(panel_content)
             .width(Length::Fixed(350.0))
             .height(Length::Fill)
-            .padding(theme::SPACE_LG)
+            .padding(theme::SPACE_MD)
             .style(|_: &iced::Theme| iced::widget::container::Style {
                 background: Some(iced::Background::Color(theme::SURFACE_BUTTON)),
                 border: iced::Border {
