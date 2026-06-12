@@ -543,9 +543,9 @@ pub enum Message {
     /// Toggle function state diagram panel
     #[cfg(feature = "debugger")]
     ToggleStateDiagram,
-    /// Hover info from state diagram canvas
+    /// Hover info from state diagram canvas (text, x, y) or None to clear
     #[cfg(feature = "debugger")]
-    DiagramHover(String),
+    DiagramHover(Option<(String, f32, f32)>),
     /// Metrics received from debug channel
     #[cfg(feature = "metrics")]
     DebugMetricsReceived(flowcore::model::metrics::Metrics),
@@ -777,7 +777,7 @@ struct FlowrGui {
     #[cfg(feature = "debugger")]
     states_refresh_pending: bool,
     #[cfg(feature = "debugger")]
-    diagram_hover_info: String,
+    diagram_hover_info: Option<(String, f32, f32)>,
     #[cfg(feature = "debugger")]
     browser_collapsed: std::collections::HashSet<usize>,
     last_metrics: Option<flowcore::model::metrics::Metrics>,
@@ -837,7 +837,7 @@ impl FlowrGui {
             #[cfg(feature = "debugger")]
             states_refresh_pending: false,
             #[cfg(feature = "debugger")]
-            diagram_hover_info: String::new(),
+            diagram_hover_info: None,
             #[cfg(feature = "debugger")]
             browser_collapsed: std::collections::HashSet::new(),
             last_metrics: None,
@@ -1101,7 +1101,7 @@ impl FlowrGui {
                 }
             }
             #[cfg(feature = "debugger")]
-            Message::DiagramHover(info) => self.diagram_hover_info = info,
+            Message::DiagramHover(data) => self.diagram_hover_info = data,
             #[cfg(feature = "debugger")]
             Message::DebugStatesReceived(states) => self.cached_states = states,
             #[cfg(feature = "debugger")]
@@ -1968,24 +1968,52 @@ impl FlowrGui {
         let canvas_height = state_diagram::canvas_height(&diagram_data);
         let canvas = state_diagram::StateDiagramCanvas { data: diagram_data };
 
-        let hover_text: Element<'_, Message> = if self.diagram_hover_info.is_empty() {
-            Text::new(" ").size(theme::FONT_SM).into()
+        let canvas_widget: Element<'_, Message> = iced::widget::canvas(canvas)
+            .width(Length::Fill)
+            .height(Length::Fixed(canvas_height))
+            .into();
+
+        let canvas_area: Element<'_, Message> = if let Some((ref tip_text, tip_x, tip_y)) =
+            self.diagram_hover_info
+        {
+            let tooltip_overlay: iced::widget::Container<'_, Message> = iced::widget::container(
+                iced::widget::container(
+                    Text::new(tip_text.clone())
+                        .size(theme::FONT_MD)
+                        .color(iced::Color::WHITE),
+                )
+                .padding(6)
+                .style(|_: &iced::Theme| iced::widget::container::Style {
+                    background: Some(iced::Background::Color(iced::Color {
+                        r: 0.1,
+                        g: 0.1,
+                        b: 0.15,
+                        a: 0.95,
+                    })),
+                    border: iced::Border {
+                        color: theme::ACCENT,
+                        width: 1.5,
+                        radius: 6.0.into(),
+                    },
+                    ..Default::default()
+                }),
+            )
+            .padding(iced::Padding {
+                top: (tip_y + 20.0).max(0.0),
+                left: (tip_x - 40.0).max(0.0),
+                right: 0.0,
+                bottom: 0.0,
+            });
+            let tip_el: Element<'_, Message> = tooltip_overlay.into();
+            iced::widget::stack![canvas_widget, tip_el].into()
         } else {
-            Text::new(&self.diagram_hover_info)
-                .size(theme::FONT_MD)
-                .color(iced::Color::WHITE)
-                .into()
+            canvas_widget
         };
 
         let panel_content = Column::new()
             .spacing(theme::SPACE_MD)
             .push(header)
-            .push(
-                iced::widget::canvas(canvas)
-                    .width(Length::Fill)
-                    .height(Length::Fixed(canvas_height)),
-            )
-            .push(hover_text);
+            .push(canvas_area);
 
         Container::new(panel_content)
             .width(Length::Fixed(380.0))
@@ -3596,7 +3624,7 @@ mod test {
             #[cfg(feature = "debugger")]
             states_refresh_pending: false,
             #[cfg(feature = "debugger")]
-            diagram_hover_info: String::new(),
+            diagram_hover_info: None,
             #[cfg(feature = "debugger")]
             browser_collapsed: std::collections::HashSet::new(),
             last_metrics: None,

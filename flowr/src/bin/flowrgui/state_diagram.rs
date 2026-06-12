@@ -119,14 +119,23 @@ impl canvas::Program<Message> for StateDiagramCanvas {
                 }
                 if state.hovered == old {
                     None
+                } else if let Some(pos) = cursor.position_in(bounds) {
+                    let data = state.hovered.and_then(|id| {
+                        self.data
+                            .cached_functions
+                            .iter()
+                            .find(|f| f.id == id)
+                            .map(|f| {
+                                (
+                                    format!("#{} '{}' @ {}", f.id, f.name, f.route),
+                                    pos.x,
+                                    pos.y,
+                                )
+                            })
+                    });
+                    Some(canvas::Action::publish(Message::DiagramHover(data)))
                 } else {
-                    let info = state
-                        .hovered
-                        .and_then(|id| self.data.cached_functions.iter().find(|f| f.id == id))
-                        .map_or_else(String::new, |f| {
-                            format!("#{} '{}' @ {}", f.id, f.name, f.route)
-                        });
-                    Some(canvas::Action::publish(Message::DiagramHover(info)))
+                    Some(canvas::Action::publish(Message::DiagramHover(None)))
                 }
             }
             _ => None,
