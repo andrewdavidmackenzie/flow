@@ -73,6 +73,19 @@ mod tabs;
 /// to get access to everything `error_chain` creates.
 mod errors;
 
+#[cfg(feature = "debugger")]
+#[allow(
+    clippy::cast_possible_truncation,
+    clippy::cast_sign_loss,
+    clippy::cast_precision_loss,
+    clippy::min_ident_chars,
+    clippy::indexing_slicing,
+    clippy::manual_midpoint,
+    clippy::manual_div_ceil,
+    clippy::unnecessary_operation
+)]
+mod state_diagram;
+
 /// custom widget styling
 mod theme;
 
@@ -1849,15 +1862,9 @@ impl FlowrGui {
     }
 
     #[cfg(feature = "debugger")]
-    #[allow(clippy::too_many_lines)]
     fn state_diagram_panel(&self) -> Element<'_, Message> {
-        use iced::widget::{Container, Scrollable};
+        use iced::widget::Container;
         use iced::Length;
-
-        let bold = iced::Font {
-            weight: iced::font::Weight::Bold,
-            ..iced::Font::DEFAULT
-        };
 
         let header = Row::new()
             .push(
@@ -1875,7 +1882,10 @@ impl FlowrGui {
                             Text::new("Function States")
                                 .size(theme::FONT_DEFAULT)
                                 .color(iced::Color::WHITE)
-                                .font(bold),
+                                .font(iced::Font {
+                                    weight: iced::font::Weight::Bold,
+                                    ..iced::Font::DEFAULT
+                                }),
                         ),
                 )
                 .on_press(Message::ToggleStateDiagram)
@@ -1891,7 +1901,6 @@ impl FlowrGui {
                 left: 0.0,
             });
 
-        let max_chips = 30;
         let mut waiting_ids: Vec<usize> = Vec::new();
         let mut ready_ids: Vec<usize> = Vec::new();
         let mut running_ids: Vec<usize> = Vec::new();
@@ -1926,168 +1935,21 @@ impl FlowrGui {
         running_ids.sort_unstable();
         completed_ids.sort_unstable();
 
-        let fn_chips = |ids: &[usize], color: iced::Color| -> Element<'_, Message> {
-            if ids.is_empty() {
-                return iced::widget::text("").into();
-            }
-            let show = ids.len().min(max_chips);
-            let mut children: Vec<Element<'_, Message>> = Vec::new();
-            for &id in ids.iter().take(show) {
-                children.push(
-                    Button::new(
-                        Text::new(id.to_string())
-                            .size(theme::FONT_SM)
-                            .color(iced::Color::WHITE)
-                            .font(bold),
-                    )
-                    .on_press(Message::DebugInspectLink(id.to_string()))
-                    .style(theme::chip_button(color))
-                    .padding([2, 6])
-                    .into(),
-                );
-            }
-            if ids.len() > max_chips {
-                children.push(
-                    Text::new(format!("+{}", ids.len() - max_chips))
-                        .size(theme::FONT_SM)
-                        .color(theme::TEXT_SECONDARY)
-                        .into(),
-                );
-            }
-            Row::with_children(children).spacing(3).wrap().into()
+        let diagram_data = state_diagram::StateDiagramData {
+            waiting_ids,
+            ready_ids,
+            running_ids,
+            completed_ids,
+            cached_functions: self.cached_functions.clone(),
         };
+        let canvas_height = state_diagram::canvas_height(&diagram_data);
+        let canvas = state_diagram::StateDiagramCanvas { data: diagram_data };
 
-        let state_box =
-            |label: String, ids: &[usize], color: iced::Color| -> Element<'_, Message> {
-                let count = ids.len();
-                let bg = if count > 0 {
-                    color
-                } else {
-                    iced::Color {
-                        r: 0.3,
-                        g: 0.3,
-                        b: 0.35,
-                        a: 1.0,
-                    }
-                };
-                let text_color = if count > 0 {
-                    iced::Color::WHITE
-                } else {
-                    iced::Color {
-                        a: 0.5,
-                        ..iced::Color::WHITE
-                    }
-                };
-                let title = Button::new(
-                    Row::new()
-                        .spacing(6)
-                        .push(
-                            Text::new(label)
-                                .size(theme::FONT_DEFAULT)
-                                .color(text_color)
-                                .font(bold),
-                        )
-                        .push(
-                            Text::new(format!("({count})"))
-                                .size(theme::FONT_SM)
-                                .color(text_color),
-                        ),
-                )
-                .style(theme::chip_button(bg))
-                .padding([6, 14])
-                .width(Length::Fill);
-                let mut col = Column::new().spacing(4).push(title);
-                if count > 0 {
-                    col = col.push(fn_chips(ids, bg));
-                }
-                col.into()
-            };
-
-        let transition = |arrow: String,
-                          target: String,
-                          condition: String,
-                          color: iced::Color|
-         -> Element<'_, Message> {
-            Row::new()
-                .spacing(6)
-                .align_y(iced::alignment::Vertical::Center)
-                .push(
-                    Text::new(arrow)
-                        .size(14.0)
-                        .shaping(iced::widget::text::Shaping::Advanced)
-                        .color(color),
-                )
-                .push(
-                    Text::new(target)
-                        .size(theme::FONT_SM)
-                        .color(color)
-                        .font(bold),
-                )
-                .push(
-                    Text::new(condition)
-                        .size(theme::FONT_SM)
-                        .color(theme::TEXT_SECONDARY),
-                )
-                .into()
-        };
-
-        let diagram = Column::new()
-            .spacing(8)
-            .push(state_box(
-                "Waiting".into(),
-                &waiting_ids,
-                theme::entity_colors::STATE_WAITING,
-            ))
-            .push(transition(
-                "\u{2193}".into(),
-                "Ready".into(),
-                "all inputs full".into(),
-                theme::entity_colors::STATE_READY,
-            ))
-            .push(state_box(
-                "Ready".into(),
-                &ready_ids,
-                theme::entity_colors::STATE_READY,
-            ))
-            .push(transition(
-                "\u{2193}".into(),
-                "Running".into(),
-                "job dispatched".into(),
-                theme::entity_colors::STATE_RUNNING,
-            ))
-            .push(state_box(
-                "Running".into(),
-                &running_ids,
-                theme::entity_colors::STATE_RUNNING,
-            ))
-            .push(transition(
-                "\u{2193}".into(),
-                "Completed".into(),
-                "run_again = false".into(),
-                theme::entity_colors::STATE_COMPLETED,
-            ))
-            .push(transition(
-                "\u{21B0}".into(),
-                "Ready".into(),
-                "run_again, inputs full".into(),
-                theme::entity_colors::STATE_READY,
-            ))
-            .push(transition(
-                "\u{21B0}".into(),
-                "Waiting".into(),
-                "run_again, input(s) empty".into(),
-                theme::entity_colors::STATE_WAITING,
-            ))
-            .push(state_box(
-                "Completed".into(),
-                &completed_ids,
-                theme::entity_colors::STATE_COMPLETED,
-            ));
-
-        let panel_content = Column::new()
-            .spacing(theme::SPACE_MD)
-            .push(header)
-            .push(Scrollable::new(diagram).height(Length::Fill));
+        let panel_content = Column::new().spacing(theme::SPACE_MD).push(header).push(
+            iced::widget::canvas(canvas)
+                .width(Length::Fill)
+                .height(Length::Fixed(canvas_height)),
+        );
 
         Container::new(panel_content)
             .width(Length::Fixed(380.0))
