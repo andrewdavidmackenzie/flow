@@ -106,6 +106,25 @@ pub fn set_flows_only(v: bool) {
     FLOWS_ONLY.store(v, Ordering::Relaxed);
 }
 
+/// Last output-inspect source process ID (set by GUI before sending `InspectOutput`)
+#[cfg(feature = "debugger")]
+static LAST_OUTPUT_INSPECT_PID: AtomicUsize = AtomicUsize::new(usize::MAX);
+
+#[cfg(feature = "debugger")]
+pub fn set_last_output_inspect_pid(pid: usize) {
+    LAST_OUTPUT_INSPECT_PID.store(pid, Ordering::Relaxed);
+}
+
+#[cfg(feature = "debugger")]
+fn take_last_output_inspect_pid() -> Option<usize> {
+    let v = LAST_OUTPUT_INSPECT_PID.swap(usize::MAX, Ordering::Relaxed);
+    if v == usize::MAX {
+        None
+    } else {
+        Some(v)
+    }
+}
+
 /// Global counter for jobs created, updated by the coordinator thread
 static JOB_COUNT: AtomicUsize = AtomicUsize::new(0);
 
@@ -757,12 +776,13 @@ fn format_debug_event(message: &DebugServerMessage) -> Vec<crate::DebugEventLine
             }
         }
         DebugServerMessage::OutputState(connections) => {
+            let source_pid = take_last_output_inspect_pid();
             if connections.is_empty() {
                 line("No output connections from that sub-route".into(), None)
             } else {
                 connections
                     .iter()
-                    .map(|c| DebugEventLine::new(format!("{c}"), None))
+                    .map(|c| format_output_connection(c, source_pid, ""))
                     .collect()
             }
         }
@@ -929,21 +949,27 @@ fn debug_client_stream(address: String) -> impl iced::futures::Stream<Item = Mes
                                     .enumerate()
                                     .map(|(i, inp)| (i, inp.name().to_string(), inp.is_generic()))
                                     .collect();
-                                let mut outputs: Vec<String> = Vec::new();
+                                let mut outputs: Vec<(String, usize, usize)> = Vec::new();
                                 for conn in f.get_output_connections() {
-                                    if let flowcore::model::output_connection::Source::Output(
-                                        ref route,
-                                    ) = conn.source
-                                    {
-                                        let route = if route.starts_with('/') {
-                                            route.clone()
-                                        } else {
-                                            format!("/{route}")
-                                        };
-                                        if !outputs.contains(&route) {
-                                            outputs.push(route);
+                                    let route = match &conn.source {
+                                        flowcore::model::output_connection::Source::Output(r) => {
+                                            if r.is_empty() || r == "/" {
+                                                String::new()
+                                            } else if r.starts_with('/') {
+                                                r.clone()
+                                            } else {
+                                                format!("/{r}")
+                                            }
                                         }
-                                    }
+                                        flowcore::model::output_connection::Source::Input(_) => {
+                                            continue;
+                                        }
+                                    };
+                                    outputs.push((
+                                        route,
+                                        conn.destination_id,
+                                        conn.destination_io_number,
+                                    ));
                                 }
                                 crate::CachedFunction {
                                     id: f.id(),
@@ -952,6 +978,7 @@ fn debug_client_stream(address: String) -> impl iced::futures::Stream<Item = Mes
                                     inputs,
                                     outputs,
                                     is_flow: false,
+                                    parent_id: Some(f.get_parent_id()),
                                 }
                             })
                             .collect();
@@ -962,13 +989,14 @@ fn debug_client_stream(address: String) -> impl iced::futures::Stream<Item = Mes
                     if let DebugServerMessage::FlowList(ref flows) = message {
                         let flow_data: Vec<crate::CachedFunction> = flows
                             .iter()
-                            .map(|(id, name, route)| crate::CachedFunction {
+                            .map(|(id, name, route, parent)| crate::CachedFunction {
                                 id: *id,
                                 name: name.clone(),
                                 route: route.clone(),
                                 inputs: Vec::new(),
                                 outputs: Vec::new(),
                                 is_flow: true,
+                                parent_id: *parent,
                             })
                             .collect();
                         let _ = blocking_sender.try_send(Message::DebugFlowsReceived(flow_data));
@@ -1031,6 +1059,12 @@ fn debug_client_stream(address: String) -> impl iced::futures::Stream<Item = Mes
                                 } else {
                                     (String::new(), String::new())
                                 };
+                                let parent = state
+                                    .get_submission()
+                                    .manifest
+                                    .flows()
+                                    .get(id)
+                                    .and_then(|fi| fi.parent_id);
                                 crate::CachedFunction {
                                     id: *id,
                                     name,
@@ -1038,11 +1072,35 @@ fn debug_client_stream(address: String) -> impl iced::futures::Stream<Item = Mes
                                     inputs: Vec::new(),
                                     outputs: Vec::new(),
                                     is_flow: true,
+                                    parent_id: parent,
                                 }
                             })
                             .collect();
                         if !flows.is_empty() {
                             let _ = blocking_sender.try_send(Message::DebugFlowsReceived(flows));
+                        }
+
+                        let mut states_map = std::collections::HashMap::new();
+                        for &id in functions.keys() {
+                            let fn_states = state.get_function_states(id);
+                            let chips: Vec<(char, String)> = fn_states
+                                .iter()
+                                .map(|s| match s {
+                                    flowrlib::run_state::State::Ready => ('R', "Ready".into()),
+                                    flowrlib::run_state::State::Waiting => ('W', "Waiting".into()),
+                                    flowrlib::run_state::State::Running => ('X', "Running".into()),
+                                    flowrlib::run_state::State::Completed => {
+                                        ('C', "Completed".into())
+                                    }
+                                })
+                                .collect();
+                            if !chips.is_empty() {
+                                states_map.insert(id, chips);
+                            }
+                        }
+                        if !states_map.is_empty() {
+                            let _ =
+                                blocking_sender.try_send(Message::DebugStatesReceived(states_map));
                         }
                     }
 
@@ -1553,6 +1611,7 @@ fn format_inspect_by_state(
 
 #[cfg(feature = "debugger")]
 #[cfg(feature = "debugger")]
+#[allow(clippy::too_many_lines)]
 fn format_inspect_job(job: &flowcore::model::job::Job) -> Vec<crate::DebugEventLine> {
     use crate::{DebugLineBuilder, LinkType};
 
@@ -1622,36 +1681,7 @@ fn format_inspect_job(job: &flowcore::model::job::Job) -> Vec<crate::DebugEventL
             None,
         ));
         for conn in &job.connections {
-            let source_label = match &conn.source {
-                flowcore::model::output_connection::Source::Output(route) => {
-                    if route.is_empty() {
-                        "output".to_string()
-                    } else {
-                        format!("output '{route}'")
-                    }
-                }
-                flowcore::model::output_connection::Source::Input(n) => {
-                    format!("input #{n}")
-                }
-            };
-            let mut b = DebugLineBuilder::new()
-                .text(&format!("    {source_label} \u{2192} "))
-                .chip(
-                    &format!("function #{}", conn.destination_id),
-                    &conn.destination_id.to_string(),
-                    LinkType::Function,
-                );
-            if !conn.destination.is_empty() {
-                b = b
-                    .text(" @ ")
-                    .chip(&conn.destination, &conn.destination, LinkType::Function);
-            }
-            b = b.text(" ").chip(
-                &format!("input:{}", conn.destination_io_number),
-                &format!("{}:{}", conn.destination_id, conn.destination_io_number),
-                LinkType::Input,
-            );
-            lines.push(b.finish());
+            lines.push(format_output_connection(conn, Some(job.process_id), "    "));
         }
     }
 
@@ -1887,4 +1917,66 @@ fn get_four_ports() -> Result<(u16, u16, u16, u16)> {
         pick_unused_port().chain_err(|| "No ports free")?,
         pick_unused_port().chain_err(|| "No ports free")?,
     ))
+}
+
+#[cfg(feature = "debugger")]
+fn format_output_connection(
+    c: &flowcore::model::output_connection::OutputConnection,
+    source_process_id: Option<usize>,
+    indent: &str,
+) -> crate::DebugEventLine {
+    use crate::{DebugLineBuilder, LinkType};
+
+    let source_label = match &c.source {
+        flowcore::model::output_connection::Source::Output(route) => {
+            if route.is_empty() {
+                "output (default)".to_string()
+            } else {
+                format!("output '{route}'")
+            }
+        }
+        flowcore::model::output_connection::Source::Input(n) => format!("input #{n}"),
+    };
+
+    let source_spec = match (&c.source, source_process_id) {
+        (flowcore::model::output_connection::Source::Output(route), Some(pid)) => {
+            let r = if route.is_empty() {
+                "/"
+            } else {
+                route.as_str()
+            };
+            format!("{pid}{r}")
+        }
+        _ => String::new(),
+    };
+
+    let mut b =
+        DebugLineBuilder::new()
+            .text(indent)
+            .chip(&source_label, &source_spec, LinkType::Output);
+    b = b
+        .text("  ->  ")
+        .chip(
+            &format!("function #{}", c.destination_id),
+            &c.destination_id.to_string(),
+            LinkType::Function,
+        )
+        .text("  (  ")
+        .chip(
+            &format!("flow #{}", c.destination_parent_id),
+            &c.destination_parent_id.to_string(),
+            LinkType::Flow,
+        )
+        .text("  )  ")
+        .chip(
+            &format!("input:{}", c.destination_io_number),
+            &format!("{}:{}", c.destination_id, c.destination_io_number),
+            LinkType::Input,
+        );
+    if !c.destination.is_empty() {
+        b = b
+            .text(" @ ")
+            .chip(&c.destination, &c.destination, LinkType::Function);
+    }
+    b.finish()
 }

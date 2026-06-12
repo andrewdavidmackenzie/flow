@@ -70,7 +70,7 @@ pub enum DebugServerMessage {
     #[cfg(feature = "metrics")]
     ExecutionMetrics(flowcore::model::metrics::Metrics),
     /// List of flows with names and routes
-    FlowList(Vec<(usize, String, String)>),
+    FlowList(Vec<(usize, String, String, Option<usize>)>),
     /// The list of active breakpoints
     BreakpointList(Vec<BreakpointSpec>),
     /// The run-time is resetting the status back to the initial state

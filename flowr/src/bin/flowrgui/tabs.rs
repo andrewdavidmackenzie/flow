@@ -156,7 +156,7 @@ fn chip_row<'a>(line: &crate::DebugEventLine, cache: &[crate::CachedFunction]) -
         let chip_color = chip_color_for(link.link_type);
         let label = line.text[link.start..link.end].to_lowercase();
         let spec = link.spec.clone();
-        let chip_btn = Button::new(
+        let mut chip_btn = Button::new(
             Text::new(label)
                 .size(crate::theme::FONT_MD)
                 .color(iced::Color::WHITE)
@@ -165,9 +165,11 @@ fn chip_row<'a>(line: &crate::DebugEventLine, cache: &[crate::CachedFunction]) -
                     ..iced::Font::DEFAULT
                 }),
         )
-        .on_press(Message::DebugInspectLink(spec.clone()))
         .style(crate::theme::chip_button(chip_color))
         .padding([3, 10]);
+        if !spec.is_empty() {
+            chip_btn = chip_btn.on_press(Message::DebugInspectLink(spec.clone()));
+        }
 
         if let Some(tip) = chip_tooltip(&spec, link.link_type, cache) {
             row = row.push(

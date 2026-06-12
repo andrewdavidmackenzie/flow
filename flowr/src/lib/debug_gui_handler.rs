@@ -156,10 +156,17 @@ impl DebuggerHandler for DebugGuiHandler {
 
     fn flow_list(&mut self, _flow_ids: &[usize], state: &RunState) {
         let manifest = &state.get_submission().manifest;
-        let flows: Vec<(usize, String, String)> = manifest
+        let flows: Vec<(usize, String, String, Option<usize>)> = manifest
             .flows()
             .values()
-            .map(|fi| (fi.process_id, fi.name.clone(), fi.route.clone()))
+            .map(|fi| {
+                (
+                    fi.process_id,
+                    fi.name.clone(),
+                    fi.route.clone(),
+                    fi.parent_id,
+                )
+            })
             .collect();
         self.send_event(DebugServerMessage::FlowList(flows));
     }

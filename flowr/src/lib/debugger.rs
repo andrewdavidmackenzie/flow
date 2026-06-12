@@ -315,16 +315,17 @@ impl<'a> Debugger<'a> {
 
                         let mut output_connections = vec![];
 
+                        let normalized = if sub_route == "/" { "" } else { &sub_route };
                         for output_connection in function.get_output_connections() {
                             match &output_connection.source {
                                 Output(source_route) => {
-                                    if *source_route == sub_route {
+                                    if *source_route == normalized {
                                         output_connections.push(output_connection.clone());
                                     }
                                 }
                                 // add list of connections from an input to job if path "" is specified
                                 Input(_) => {
-                                    if sub_route.is_empty() {
+                                    if normalized.is_empty() {
                                         output_connections.push(output_connection.clone());
                                     }
                                 }

@@ -174,12 +174,14 @@ impl DebugClient {
                 }
 
                 if spec.first()?.contains('/') {
-                    let sub_parts: Vec<&str> = spec.first()?.split('/').collect();
-                    if let Ok(source_process_id) = sub_parts.first()?.parse::<usize>() {
-                        return Some(BreakpointSpec::Output((
-                            source_process_id,
-                            format!("/{}", sub_parts.get(1)?),
-                        )));
+                    let full = spec.first()?;
+                    if let Some(slash_pos) = full.find('/') {
+                        if let Ok(source_process_id) = full[..slash_pos].parse::<usize>() {
+                            return Some(BreakpointSpec::Output((
+                                source_process_id,
+                                full[slash_pos..].to_string(),
+                            )));
+                        }
                     }
                 } else if spec.first()?.contains(':') {
                     let sub_parts: Vec<&str> = spec.first()?.split(':').collect();
