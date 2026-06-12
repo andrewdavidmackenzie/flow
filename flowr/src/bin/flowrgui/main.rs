@@ -490,6 +490,8 @@ pub enum Message {
     MaxJobsChanged(String),
     /// Native flowstdlib toggle changed
     NativeFlowstdlibChanged(bool),
+    /// Auto threads toggle changed
+    AutoThreadsChanged(bool),
     /// Number of executor threads changed
     NumThreadsChanged(String),
     /// Library search path changed
@@ -674,6 +676,7 @@ struct SubmissionSettings {
     #[cfg(feature = "debugger")]
     debug_mode: DebugMode,
     native_flowstdlib: bool,
+    auto_threads: bool,
     num_threads_text: String,
     lib_search_path_text: String,
 }
@@ -730,8 +733,6 @@ pub struct CachedFunction {
 enum PanelKind {
     Settings,
     Metrics,
-    #[cfg(feature = "debugger")]
-    Browser,
 }
 
 struct UiSettings {
@@ -756,6 +757,8 @@ struct FlowrGui {
     submitted: bool,
     show_modal: bool,
     active_panel: Option<PanelKind>,
+    #[cfg(feature = "debugger")]
+    browser_open: bool,
     #[cfg(feature = "debugger")]
     browser_collapsed: std::collections::HashSet<usize>,
     last_metrics: Option<flowcore::model::metrics::Metrics>,
@@ -810,6 +813,8 @@ impl FlowrGui {
             running: false,
             show_modal: false,
             active_panel: None,
+            #[cfg(feature = "debugger")]
+            browser_open: false,
             #[cfg(feature = "debugger")]
             browser_collapsed: std::collections::HashSet::new(),
             last_metrics: None,
@@ -927,6 +932,13 @@ impl FlowrGui {
             }
             Message::NativeFlowstdlibChanged(value) => {
                 self.submission_settings.native_flowstdlib = value;
+            }
+            Message::AutoThreadsChanged(value) => {
+                self.submission_settings.auto_threads = value;
+                if value {
+                    let auto = thread::available_parallelism().map_or(1, std::num::NonZero::get);
+                    self.submission_settings.num_threads_text = auto.to_string();
+                }
             }
             Message::NumThreadsChanged(value) => {
                 self.submission_settings.num_threads_text = value;
@@ -1104,13 +1116,13 @@ impl FlowrGui {
             }
             #[cfg(feature = "debugger")]
             Message::ToggleFlowBrowser => {
-                if self.active_panel == Some(PanelKind::Browser) {
-                    self.close_panel();
+                if self.browser_open {
+                    self.browser_open = false;
                 } else {
                     if !self.ensure_functions_cached(Message::ToggleFlowBrowser) {
                         return iced::Task::none();
                     }
-                    self.open_panel(PanelKind::Browser);
+                    self.browser_open = true;
                 }
             }
             Message::ToggleSettings => self.toggle_panel(PanelKind::Settings),
@@ -1200,7 +1212,7 @@ impl FlowrGui {
 
         // Left panel (flow browser) or vertical chip
         #[cfg(feature = "debugger")]
-        let browser_open = self.active_panel == Some(PanelKind::Browser);
+        let browser_open = self.browser_open;
         #[cfg(feature = "debugger")]
         let left_element: Element<'_, Message> = if browser_open {
             self.flow_browser_panel()
@@ -1239,40 +1251,32 @@ impl FlowrGui {
             iced::widget::text("").into()
         };
 
-        // Right panels (settings, metrics, inspect, breakpoints)
-        let tab_area: Element<'_, Message> = if let Some(kind) = self.active_panel {
+        // Right panel (settings, metrics)
+        let right_element: Element<'_, Message> = if let Some(kind) = self.active_panel {
             match kind {
-                #[cfg(feature = "debugger")]
-                PanelKind::Browser => tab_content,
-                _ => {
-                    let panel: Element<'_, Message> = match kind {
-                        PanelKind::Settings => self.settings_panel(),
-                        PanelKind::Metrics => self.metrics_panel(),
-                        #[cfg(feature = "debugger")]
-                        PanelKind::Browser => unreachable!(),
-                    };
-                    Row::new()
-                        .push(iced::widget::container(tab_content).width(iced::Length::Fill))
-                        .push(panel)
-                        .spacing(2)
-                        .height(iced::Length::Fill)
-                        .into()
-                }
+                PanelKind::Settings => self.settings_panel(),
+                PanelKind::Metrics => self.metrics_panel(),
             }
         } else {
-            tab_content
+            iced::widget::text("").into()
         };
 
-        // Compose: left browser + tab area
+        // Compose: left browser | tabs | right panel
         #[cfg(feature = "debugger")]
         let content_row: Element<'_, Message> = Row::new()
             .push(left_element)
-            .push(tab_area)
+            .push(iced::widget::container(tab_content).width(iced::Length::Fill))
+            .push(right_element)
             .spacing(2)
             .height(iced::Length::Fill)
             .into();
         #[cfg(not(feature = "debugger"))]
-        let content_row = tab_area;
+        let content_row: Element<'_, Message> = Row::new()
+            .push(iced::widget::container(tab_content).width(iced::Length::Fill))
+            .push(right_element)
+            .spacing(2)
+            .height(iced::Length::Fill)
+            .into();
 
         let main_content = main_content
             .push(content_row)
@@ -1423,7 +1427,7 @@ impl FlowrGui {
 
         let settings_btn = Button::new(
             Text::new("\u{2699}")
-                .size(18.0)
+                .size(22.0)
                 .shaping(iced::widget::text::Shaping::Advanced),
         )
         .on_press(Message::ToggleSettings)
@@ -1823,23 +1827,38 @@ impl FlowrGui {
             .into()
     }
 
+    #[allow(clippy::too_many_lines)]
     fn settings_panel(&self) -> Element<'_, Message> {
         use iced::widget::Container;
         use iced::Length;
 
         let header = Row::new()
-            .push(Text::new("Settings").size(theme::FONT_DEFAULT))
-            .push(Container::new(iced::widget::text("")).width(Length::Fill))
             .push(
                 Button::new(
-                    Text::new("\u{00BB}")
-                        .size(20.0)
-                        .shaping(iced::widget::text::Shaping::Advanced),
+                    Row::new()
+                        .spacing(6)
+                        .align_y(iced::alignment::Vertical::Center)
+                        .push(
+                            Text::new("\u{2699}")
+                                .size(16.0)
+                                .shaping(iced::widget::text::Shaping::Advanced)
+                                .color(iced::Color::WHITE),
+                        )
+                        .push(
+                            Text::new("Settings")
+                                .size(theme::FONT_DEFAULT)
+                                .color(iced::Color::WHITE)
+                                .font(iced::Font {
+                                    weight: iced::font::Weight::Bold,
+                                    ..iced::Font::DEFAULT
+                                }),
+                        ),
                 )
                 .on_press(Message::ToggleSettings)
-                .style(theme::ghost_button)
-                .padding(theme::BUTTON_PAD_SM),
+                .style(theme::chip_button(theme::ACCENT))
+                .padding([4, 12]),
             )
+            .push(Container::new(iced::widget::text("")).width(Length::Fill))
             .align_y(iced::alignment::Vertical::Center)
             .padding(iced::Padding {
                 top: 0.0,
@@ -1878,6 +1897,7 @@ impl FlowrGui {
 
         let native_toggle = iced::widget::toggler(self.submission_settings.native_flowstdlib)
             .on_toggle(Message::NativeFlowstdlibChanged)
+            .style(theme::accent_toggler)
             .size(16.0);
         let native_row = Row::new()
             .spacing(theme::SPACE_MD)
@@ -1885,16 +1905,30 @@ impl FlowrGui {
             .push(Text::new("Native flowstdlib:").size(theme::FONT_MD))
             .push(native_toggle);
 
-        let threads_input =
-            iced::widget::text_input("threads", &self.submission_settings.num_threads_text)
+        let auto_threads = self.submission_settings.auto_threads;
+        let auto_toggle = iced::widget::toggler(auto_threads)
+            .on_toggle(Message::AutoThreadsChanged)
+            .style(theme::accent_toggler)
+            .size(16.0);
+        let threads_input: Element<'_, Message> = if auto_threads {
+            iced::widget::text_input("count", &self.submission_settings.num_threads_text)
+                .style(theme::pill_input)
+                .width(Length::Fixed(60.0))
+                .into()
+        } else {
+            iced::widget::text_input("count", &self.submission_settings.num_threads_text)
                 .on_input(Message::NumThreadsChanged)
                 .style(theme::pill_input)
-                .width(Length::Fill);
+                .width(Length::Fixed(60.0))
+                .into()
+        };
         let threads_row = Row::new()
             .spacing(theme::SPACE_MD)
             .align_y(iced::alignment::Vertical::Center)
-            .push(Text::new("Executor threads:").size(theme::FONT_MD))
-            .push(threads_input);
+            .push(threads_input)
+            .push(Text::new("threads").size(theme::FONT_MD))
+            .push(auto_toggle)
+            .push(Text::new("auto").size(theme::FONT_SM));
 
         let lib_path_input = iced::widget::text_input(
             "colon-separated paths",
@@ -1921,6 +1955,7 @@ impl FlowrGui {
 
         Container::new(panel_content)
             .width(Length::Fixed(350.0))
+            .height(Length::Fill)
             .padding(theme::SPACE_LG)
             .style(|_: &iced::Theme| iced::widget::container::Style {
                 background: Some(iced::Background::Color(theme::SURFACE_BUTTON)),
@@ -2437,7 +2472,7 @@ impl FlowrGui {
         )
     }
 
-    // Create initial Settings structs for Submission and Coordinator from the CLI options
+    #[allow(clippy::too_many_lines)]
     fn initial_settings() -> (SubmissionSettings, CoordinatorSettings, UiSettings) {
         let matches = Self::parse_cli_args();
 
@@ -2525,13 +2560,25 @@ impl FlowrGui {
             auto_start = true;
         }
 
-        let (native, threads_text, lib_path_text) = match &coordinator_settings {
-            CoordinatorSettings::Server(s) => (
-                s.native_flowstdlib,
-                s.num_threads.to_string(),
-                s.lib_search_path.to_string(),
-            ),
-            CoordinatorSettings::ClientOnly => (false, String::new(), String::new()),
+        let threads_from_cli =
+            matches.contains_id("threads") && matches.get_one::<usize>("threads").is_some();
+        let (native, auto_threads_val, threads_text, lib_path_text) = match &coordinator_settings {
+            CoordinatorSettings::Server(s) => {
+                let paths: Vec<String> = s
+                    .lib_search_path
+                    .directories()
+                    .iter()
+                    .map(|p| p.display().to_string())
+                    .chain(s.lib_search_path.urls().iter().map(ToString::to_string))
+                    .collect();
+                (
+                    s.native_flowstdlib,
+                    !threads_from_cli,
+                    s.num_threads.to_string(),
+                    paths.join(":"),
+                )
+            }
+            CoordinatorSettings::ClientOnly => (false, true, String::new(), String::new()),
         };
 
         (
@@ -2545,6 +2592,7 @@ impl FlowrGui {
                 #[cfg(feature = "debugger")]
                 debug_mode,
                 native_flowstdlib: native,
+                auto_threads: auto_threads_val,
                 num_threads_text: threads_text,
                 lib_search_path_text: lib_path_text,
             },
@@ -2763,7 +2811,7 @@ impl FlowrGui {
             }
             Message::DebugWaiting => {
                 self.debug_waiting = true;
-                if self.active_panel == Some(PanelKind::Browser) {
+                if self.browser_open {
                     self.suppress_next_output = true;
                     connection_manager::send_debug_command(
                         flowcore::model::debug_command::DebugCommand::ProcessList,
@@ -3313,6 +3361,7 @@ mod test {
                 #[cfg(feature = "debugger")]
                 debug_mode: DebugMode::Off,
                 native_flowstdlib: false,
+                auto_threads: true,
                 num_threads_text: String::new(),
                 lib_search_path_text: String::new(),
             },
@@ -3327,6 +3376,8 @@ mod test {
             running: false,
             show_modal: false,
             active_panel: None,
+            #[cfg(feature = "debugger")]
+            browser_open: false,
             #[cfg(feature = "debugger")]
             browser_collapsed: std::collections::HashSet::new(),
             last_metrics: None,
@@ -3544,7 +3595,7 @@ mod test {
         let mut gui = test_gui();
         gui.debug_client_active = true;
         gui.debug_waiting = true;
-        gui.active_panel = Some(PanelKind::Browser);
+        gui.browser_open = true;
         let view = gui.view();
         let _ui = simulator(view);
     }
@@ -3556,7 +3607,7 @@ mod test {
         let mut gui = test_gui();
         gui.debug_client_active = true;
         gui.debug_waiting = true;
-        gui.active_panel = Some(PanelKind::Browser);
+        gui.browser_open = true;
         let view = gui.view();
         let _ui = simulator(view);
     }
