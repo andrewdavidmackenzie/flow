@@ -543,6 +543,9 @@ pub enum Message {
     /// Toggle function state diagram panel
     #[cfg(feature = "debugger")]
     ToggleStateDiagram,
+    /// Hover info from state diagram canvas
+    #[cfg(feature = "debugger")]
+    DiagramHover(String),
     /// Metrics received from debug channel
     #[cfg(feature = "metrics")]
     DebugMetricsReceived(flowcore::model::metrics::Metrics),
@@ -772,6 +775,10 @@ struct FlowrGui {
     #[cfg(feature = "debugger")]
     browser_open: bool,
     #[cfg(feature = "debugger")]
+    states_refresh_pending: bool,
+    #[cfg(feature = "debugger")]
+    diagram_hover_info: String,
+    #[cfg(feature = "debugger")]
     browser_collapsed: std::collections::HashSet<usize>,
     last_metrics: Option<flowcore::model::metrics::Metrics>,
     modal_content: (String, String),
@@ -827,6 +834,10 @@ impl FlowrGui {
             active_panel: None,
             #[cfg(feature = "debugger")]
             browser_open: false,
+            #[cfg(feature = "debugger")]
+            states_refresh_pending: false,
+            #[cfg(feature = "debugger")]
+            diagram_hover_info: String::new(),
             #[cfg(feature = "debugger")]
             browser_collapsed: std::collections::HashSet::new(),
             last_metrics: None,
@@ -1079,7 +1090,18 @@ impl FlowrGui {
             }
             Message::ToggleMetrics => self.toggle_panel(PanelKind::Metrics),
             #[cfg(feature = "debugger")]
-            Message::ToggleStateDiagram => self.toggle_panel(PanelKind::StateDiagram),
+            Message::ToggleStateDiagram => {
+                if self.active_panel == Some(PanelKind::StateDiagram) {
+                    self.close_panel();
+                } else {
+                    if !self.ensure_functions_cached(Message::ToggleStateDiagram) {
+                        return iced::Task::none();
+                    }
+                    self.open_panel(PanelKind::StateDiagram);
+                }
+            }
+            #[cfg(feature = "debugger")]
+            Message::DiagramHover(info) => self.diagram_hover_info = info,
             #[cfg(feature = "debugger")]
             Message::DebugStatesReceived(states) => self.cached_states = states,
             #[cfg(feature = "debugger")]
@@ -1862,6 +1884,7 @@ impl FlowrGui {
     }
 
     #[cfg(feature = "debugger")]
+    #[allow(clippy::too_many_lines)]
     fn state_diagram_panel(&self) -> Element<'_, Message> {
         use iced::widget::Container;
         use iced::Length;
@@ -1945,11 +1968,24 @@ impl FlowrGui {
         let canvas_height = state_diagram::canvas_height(&diagram_data);
         let canvas = state_diagram::StateDiagramCanvas { data: diagram_data };
 
-        let panel_content = Column::new().spacing(theme::SPACE_MD).push(header).push(
-            iced::widget::canvas(canvas)
-                .width(Length::Fill)
-                .height(Length::Fixed(canvas_height)),
-        );
+        let hover_text: Element<'_, Message> = if self.diagram_hover_info.is_empty() {
+            Text::new(" ").size(theme::FONT_SM).into()
+        } else {
+            Text::new(&self.diagram_hover_info)
+                .size(theme::FONT_MD)
+                .color(iced::Color::WHITE)
+                .into()
+        };
+
+        let panel_content = Column::new()
+            .spacing(theme::SPACE_MD)
+            .push(header)
+            .push(
+                iced::widget::canvas(canvas)
+                    .width(Length::Fill)
+                    .height(Length::Fixed(canvas_height)),
+            )
+            .push(hover_text);
 
         Container::new(panel_content)
             .width(Length::Fixed(380.0))
@@ -2986,7 +3022,18 @@ impl FlowrGui {
                 }
             }
             Message::DebugWaiting => {
-                self.debug_waiting = true;
+                if self.states_refresh_pending {
+                    self.states_refresh_pending = false;
+                } else {
+                    self.debug_waiting = true;
+                    if self.active_panel == Some(PanelKind::StateDiagram) {
+                        self.states_refresh_pending = true;
+                        connection_manager::set_states_only(true);
+                        connection_manager::send_debug_command(
+                            flowcore::model::debug_command::DebugCommand::ProcessList,
+                        );
+                    }
+                }
             }
             Message::DebugConnected => {
                 self.tab_set
@@ -3546,6 +3593,10 @@ mod test {
             active_panel: None,
             #[cfg(feature = "debugger")]
             browser_open: false,
+            #[cfg(feature = "debugger")]
+            states_refresh_pending: false,
+            #[cfg(feature = "debugger")]
+            diagram_hover_info: String::new(),
             #[cfg(feature = "debugger")]
             browser_collapsed: std::collections::HashSet::new(),
             last_metrics: None,

@@ -92,6 +92,7 @@ impl canvas::Program<Message> for StateDiagramCanvas {
         bounds: Rectangle,
         cursor: mouse::Cursor,
     ) -> Option<canvas::Action<Message>> {
+        state.chip_bounds = compute_all_chip_bounds(&self.data);
         match event {
             Event::Mouse(mouse::Event::ButtonPressed(mouse::Button::Left)) => {
                 if let Some(pos) = cursor.position_in(bounds) {
@@ -119,21 +120,26 @@ impl canvas::Program<Message> for StateDiagramCanvas {
                 if state.hovered == old {
                     None
                 } else {
-                    Some(canvas::Action::request_redraw())
+                    let info = state
+                        .hovered
+                        .and_then(|id| self.data.cached_functions.iter().find(|f| f.id == id))
+                        .map_or_else(String::new, |f| {
+                            format!("#{} '{}' @ {}", f.id, f.name, f.route)
+                        });
+                    Some(canvas::Action::publish(Message::DiagramHover(info)))
                 }
             }
             _ => None,
         }
     }
 
-    #[allow(clippy::too_many_lines)]
     fn draw(
         &self,
         state: &Self::State,
         renderer: &Renderer,
         _theme: &Theme,
         bounds: Rectangle,
-        cursor: mouse::Cursor,
+        _cursor: mouse::Cursor,
     ) -> Vec<Geometry> {
         let mut frame = Frame::new(renderer, bounds.size());
         let d = &self.data;
@@ -186,19 +192,7 @@ impl canvas::Program<Message> for StateDiagramCanvas {
             );
         }
 
-        if let Some(pos) = cursor.position_in(bounds) {
-            if let Some(hovered_id) = state.hovered {
-                if let Some(func) = d.cached_functions.iter().find(|f| f.id == hovered_id) {
-                    draw_tooltip(&mut frame, pos, func, bounds);
-                }
-            }
-        }
-
-        // Store chip bounds for next update cycle (via interior mutability workaround)
-        // Note: we can't mutate state from draw(), so chip_bounds are computed but
-        // we rely on the initial empty state being populated after first mouse move
         let _ = chip_bounds;
-
         vec![frame.into_geometry()]
     }
 
@@ -244,6 +238,27 @@ fn build_boxes(d: &StateDiagramData) -> Vec<StateBox> {
         y,
     );
     vec![waiting, ready, running, completed]
+}
+
+fn compute_all_chip_bounds(data: &StateDiagramData) -> Vec<(Rectangle, usize)> {
+    let boxes = build_boxes(data);
+    let mut bounds = Vec::new();
+    let chips_per_row = ((BOX_W - CHIP_PAD * 2.0) / (CHIP_W + CHIP_GAP)) as usize;
+    for sb in &boxes {
+        let r = sb.rect();
+        let chip_start_y = r.y + 26.0;
+        for (i, &id) in sb.ids.iter().take(MAX_CHIPS).enumerate() {
+            let col = i % chips_per_row;
+            let row = i / chips_per_row;
+            let cx = r.x + CHIP_PAD + col as f32 * (CHIP_W + CHIP_GAP);
+            let cy = chip_start_y + row as f32 * (CHIP_H + CHIP_GAP);
+            bounds.push((
+                Rectangle::new(Point::new(cx, cy), Size::new(CHIP_W, CHIP_H)),
+                id,
+            ));
+        }
+    }
+    bounds
 }
 
 fn draw_state_box(
@@ -294,7 +309,7 @@ fn draw_state_box(
             sb.color
         };
 
-        let chip_path = rounded_rect(chip_rect.position(), chip_rect.size(), 4.0);
+        let chip_path = rounded_rect(chip_rect.position(), chip_rect.size(), CHIP_H / 2.0);
         frame.fill(&chip_path, chip_color);
 
         frame.fill_text(CanvasText {
@@ -324,7 +339,7 @@ fn draw_state_box(
                 a: 0.6,
                 ..Color::WHITE
             },
-            size: 10.0.into(),
+            size: 12.0.into(),
             ..CanvasText::default()
         });
     }
@@ -356,10 +371,10 @@ fn draw_forward_arrow(
         content: label.to_string(),
         position: Point::new(x + 12.0, (y1 + y2) / 2.0),
         color: Color {
-            a: 0.7,
+            a: 0.8,
             ..Color::WHITE
         },
-        size: 11.0.into(),
+        size: 14.0.into(),
         align_y: iced::alignment::Vertical::Center,
         ..CanvasText::default()
     });
@@ -401,50 +416,10 @@ fn draw_back_arrow(
         content: label.to_string(),
         position: Point::new(curve_x + 4.0, label_y),
         color: Color {
-            a: 0.7,
+            a: 0.8,
             ..Color::WHITE
         },
-        size: 10.0.into(),
-        align_y: iced::alignment::Vertical::Center,
-        ..CanvasText::default()
-    });
-}
-
-fn draw_tooltip(frame: &mut Frame, pos: Point, func: &CachedFunction, bounds: Rectangle) {
-    let text = format!("#{} '{}' @ {}", func.id, func.name, func.route);
-    let tip_w = text.len() as f32 * 6.5 + 16.0;
-    let tip_h = 22.0;
-    let mut tx = pos.x + 12.0;
-    let mut ty = pos.y - tip_h - 4.0;
-
-    if tx + tip_w > bounds.width {
-        tx = pos.x - tip_w - 4.0;
-    }
-    if ty < 0.0 {
-        ty = pos.y + 16.0;
-    }
-
-    let bg = Color {
-        r: 0.15,
-        g: 0.15,
-        b: 0.2,
-        a: 0.95,
-    };
-    let tip_rect = rounded_rect(Point::new(tx, ty), Size::new(tip_w, tip_h), 4.0);
-    frame.fill(&tip_rect, bg);
-    frame.stroke(
-        &tip_rect,
-        Stroke::default().with_width(1.0).with_color(Color {
-            a: 0.4,
-            ..crate::theme::ACCENT
-        }),
-    );
-
-    frame.fill_text(CanvasText {
-        content: text,
-        position: Point::new(tx + 8.0, ty + tip_h / 2.0),
-        color: Color::WHITE,
-        size: 11.0.into(),
+        size: 13.0.into(),
         align_y: iced::alignment::Vertical::Center,
         ..CanvasText::default()
     });

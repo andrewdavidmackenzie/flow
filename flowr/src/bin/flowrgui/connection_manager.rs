@@ -106,6 +106,15 @@ pub fn set_flows_only(v: bool) {
     FLOWS_ONLY.store(v, Ordering::Relaxed);
 }
 
+/// Flag: extract states only from next `ProcessTree` (no debug output)
+#[cfg(feature = "debugger")]
+static STATES_ONLY: AtomicBool = AtomicBool::new(false);
+
+#[cfg(feature = "debugger")]
+pub fn set_states_only(v: bool) {
+    STATES_ONLY.store(v, Ordering::Relaxed);
+}
+
 /// Last output-inspect source process ID (set by GUI before sending `InspectOutput`)
 #[cfg(feature = "debugger")]
 static LAST_OUTPUT_INSPECT_PID: AtomicUsize = AtomicUsize::new(usize::MAX);
@@ -806,7 +815,9 @@ fn format_debug_event(message: &DebugServerMessage) -> Vec<crate::DebugEventLine
             .text(")")
             .finish()],
         DebugServerMessage::ProcessTree(ref state) => {
-            if FLOWS_ONLY.swap(false, Ordering::Relaxed) {
+            if STATES_ONLY.swap(false, Ordering::Relaxed) {
+                vec![]
+            } else if FLOWS_ONLY.swap(false, Ordering::Relaxed) {
                 format_flows_only(state)
             } else {
                 format_tree_only(state)
