@@ -1829,6 +1829,7 @@ impl FlowrGui {
         row
     }
 
+    #[allow(clippy::too_many_lines, clippy::cast_precision_loss)]
     fn metrics_panel(&self) -> Element<'_, Message> {
         use iced::widget::Container;
         use iced::Length;
@@ -1858,7 +1859,88 @@ impl FlowrGui {
             let text = format!("{metrics}");
             let mut col = Column::new().spacing(theme::SPACE_SM);
             for line in text.lines() {
+                if line.starts_with("Jobs per Function:") {
+                    break;
+                }
                 col = col.push(Text::new(line.to_string()).size(theme::FONT_MD));
+            }
+
+            let counts = metrics.jobs_per_function();
+            let max_count = counts.iter().copied().max().unwrap_or(1).max(1);
+            let non_zero: Vec<(usize, usize)> = counts
+                .iter()
+                .enumerate()
+                .filter(|(_, &c)| c > 0)
+                .map(|(id, &c)| (id, c))
+                .collect();
+
+            if !non_zero.is_empty() {
+                col = col.push(
+                    Text::new("Jobs per Function:")
+                        .size(theme::FONT_MD)
+                        .color(theme::TEXT_SECONDARY),
+                );
+                let id_width = non_zero.last().map_or(1, |(id, _)| id.to_string().len());
+
+                for &(id, count) in &non_zero {
+                    let label = format!("{id:>id_width$}");
+                    #[allow(clippy::cast_possible_truncation)]
+                    let portion = (count.saturating_mul(100) / max_count).max(1) as u16;
+                    let bar = Container::new(Text::new("").size(1))
+                        .width(Length::FillPortion(portion))
+                        .height(Length::Fixed(14.0))
+                        .style(move |_: &iced::Theme| iced::widget::container::Style {
+                            background: Some(iced::Background::Color(theme::ACCENT)),
+                            border: iced::Border {
+                                radius: 3.0.into(),
+                                ..Default::default()
+                            },
+                            ..Default::default()
+                        });
+                    let tip = metrics.function_name(id).map_or_else(
+                        || format!("#{id}"),
+                        |(name, route)| format!("'{name}' @ {route}"),
+                    );
+                    let label_widget = iced::widget::tooltip(
+                        Text::new(label)
+                            .size(theme::FONT_SM)
+                            .font(iced::Font::MONOSPACE)
+                            .color(theme::ACCENT),
+                        Text::new(tip).size(theme::FONT_MD),
+                        iced::widget::tooltip::Position::Left,
+                    )
+                    .style(|_: &iced::Theme| iced::widget::container::Style {
+                        background: Some(iced::Background::Color(theme::SURFACE_TOOLTIP)),
+                        text_color: Some(iced::Color::WHITE),
+                        border: iced::Border {
+                            radius: theme::RADIUS_SM.into(),
+                            width: 1.0,
+                            color: iced::Color {
+                                a: 0.3,
+                                ..theme::ACCENT
+                            },
+                        },
+                        ..Default::default()
+                    })
+                    .padding(4)
+                    .gap(4);
+                    let spacer_portion = (100 - portion).max(1);
+                    let row = Row::new()
+                        .spacing(4)
+                        .align_y(iced::alignment::Vertical::Center)
+                        .push(label_widget)
+                        .push(bar)
+                        .push(
+                            iced::widget::container(Text::new("").size(1))
+                                .width(Length::FillPortion(spacer_portion)),
+                        )
+                        .push(
+                            Text::new(count.to_string())
+                                .size(theme::FONT_SM)
+                                .color(theme::TEXT_SECONDARY),
+                        );
+                    col = col.push(row);
+                }
             }
             col
         } else {
@@ -1872,7 +1954,7 @@ impl FlowrGui {
         let panel_content = Column::new()
             .spacing(theme::SPACE_MD)
             .push(header)
-            .push(content);
+            .push(iced::widget::Scrollable::new(content).height(Length::Fill));
 
         Container::new(panel_content)
             .width(Length::Fixed(300.0))
