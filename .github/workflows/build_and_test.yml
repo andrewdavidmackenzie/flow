@@ -148,16 +148,34 @@ jobs:
         run: cargo build
 
       - name: compile flowstdlib to WASM
-        if: runner.os != 'Windows'
-        run: target/debug/flowc -d -g -O flowstdlib
+        shell: bash
+        run: |
+          if [[ "$RUNNER_OS" == "Windows" ]]; then
+            export PATH="$CARGO_HOME/bin:$PATH"
+            target/debug/flowc.exe -d -g -O flowstdlib
+          else
+            target/debug/flowc -d -g -O flowstdlib
+          fi
 
       - name: compile flowrcli
-        if: runner.os != 'Windows'
-        run: target/debug/flowc flowr/src/bin/flowrcli
+        shell: bash
+        run: |
+          if [[ "$RUNNER_OS" == "Windows" ]]; then
+            export PATH="$CARGO_HOME/bin:$PATH"
+            target/debug/flowc.exe flowr/src/bin/flowrcli
+          else
+            target/debug/flowc flowr/src/bin/flowrcli
+          fi
 
       - name: compile flowrgui
-        if: runner.os != 'Windows'
-        run: target/debug/flowc flowr/src/bin/flowrgui
+        shell: bash
+        run: |
+          if [[ "$RUNNER_OS" == "Windows" ]]; then
+            export PATH="$CARGO_HOME/bin:$PATH"
+            target/debug/flowc.exe flowr/src/bin/flowrgui
+          else
+            target/debug/flowc flowr/src/bin/flowrgui
+          fi
 
       - name: StartHeadlessWayland
         if: runner.os == 'Linux'
