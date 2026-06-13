@@ -1,182 +1,133 @@
-# CI that:
+# Release workflow using cargo-packager
 #
-# * checks for a Git Tag that looks like a release ("v1.2.0")
-# * creates a Github Release™️
-# * builds binaries/packages with cargo-dist
-# * uploads those packages to the Github Release™️
-#
-# Note that the Github Release™️ will be created before the packages,
-# so there will be a few minutes where the release has no packages
-# and then they will slowly trickle in, possibly failing. To make
-# this more pleasant we mark the release as a "draft" until all
-# artifacts have been successfully uploaded. This allows you to
-# choose what to do with partial successes and avoids spamming
-# anyone with notifications before the release is actually ready.
-name: Release
+# Triggered when a GitHub Release is published.
+# Builds binaries and packages for all supported platforms,
+# compiles flowstdlib to WASM, and uploads everything to the release.
+name: Release Bundle
+
+on:
+  release:
+    types: [ published ]
 
 permissions:
   contents: write
 
-# This task will run whenever you push a git tag that looks like
-# a version number. We just look for `v` followed by at least one number
-# and then whatever. so `v1`, `v1.0.0`, and `v1.0.0-prerelease` all work.
-#
-# If there's a prerelease-style suffix to the version then the Github Release™️
-# will be marked as a prerelease (handled by taiki-e/create-gh-release-action).
-#
-# Note that when generating links to uploaded artifacts, cargo-dist will currently
-# assume that your git tag is always v{VERSION} where VERSION is the version in
-# the published package's Cargo.toml (this is the default behaviour of cargo-release).
-# In the future this may be made more robust/configurable.
-on:
-  workflow_run:
-    workflows: [ "Build and Test with Coverage" ]
-    branches: [ main ]
-    types:
-      - completed
-  push:
-    tags:
-      - v[0-9]+.*
-
 env:
-  ALL_CARGO_DIST_TARGET_ARGS: --target=x86_64-unknown-linux-gnu --target=x86_64-apple-darwin
-  ALL_CARGO_DIST_INSTALLER_ARGS: 
   CARGO_TERM_COLOR: always
   CARGO_INCREMENTAL: 0
+  RUST_BACKTRACE: 1
 
 jobs:
-  # Create the Github Release™️ so the packages have something to be uploaded to
-  create-release:
-    runs-on: ubuntu-latest
-    outputs:
-      tag: ${{ steps.create-gh-release.outputs.computed-prefix }}${{ steps.create-gh-release.outputs.version }}
-    steps:
-      - uses: actions/checkout@v3
-      - id: create-gh-release
-        uses: taiki-e/create-gh-release-action@v1
-        with:
-          draft: true
-          # (required) GitHub token for creating GitHub Releases.
-          token: ${{ secrets.GITHUB_TOKEN }}
-
-  # Build and packages all the things
-  upload-artifacts:
-    needs: create-release
-    strategy:
-      matrix:
-        # For these target platforms
-        include:
-        - target: x86_64-unknown-linux-gnu
-          os: ubuntu-latest
-        - target: x86_64-apple-darwin
-          os: macos-26
+  build-and-bundle:
     runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            target: x86_64-unknown-linux-gnu
+          - os: ubuntu-24.04-arm
+            target: aarch64-unknown-linux-gnu
+          - os: macos-26
+            target: aarch64-apple-darwin
+          - os: windows-latest
+            target: x86_64-pc-windows-msvc
+
     env:
       GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
     steps:
-      - uses: dtolnay/rust-toolchain@master
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
         with:
-          toolchain: 1.95.0
-          targets: wasm32-unknown-unknown
-      - name: InstallLinuxDependencies
-        if: matrix.os == 'ubuntu-latest'
-        run: sudo apt-get update && sudo apt-get -y install libzmq3-dev binaryen
-      - name: InstallMacDependencies
+          targets: ${{ matrix.target }},wasm32-unknown-unknown
+
+      - uses: Swatinem/rust-cache@v2
+
+      - name: Install Linux dependencies
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libzmq3-dev binaryen
+
+      - name: Install macOS dependencies
         if: runner.os == 'macOS'
         run: brew install zmq binaryen
-      - name: InstallWasmTools
+
+      - name: Install Windows dependencies
+        if: runner.os == 'Windows'
+        shell: bash
+        run: |
+          echo "ZMQ and binaryen may need manual setup on Windows"
+
+      - name: Install WASM tools
         run: cargo install wasm-gc wasm-snip
-      - uses: actions/checkout@v3
-      - name: Install cargo-dist
-        uses: taiki-e/install-action@v2
-        with:
-          tool: cargo-dist
-      - name: Run cargo-dist
+
+      - name: Build release binaries
+        run: cargo build --release --all-features --target ${{ matrix.target }}
+
+      - name: Find and upload release binaries
+        shell: bash
         run: |
-          # make zips and whatnot
-          cargo dist build --allow-dirty --target=${{ matrix.target }} --output-format=json > dist-manifest.json
-          cat dist-manifest.json
-          # Parse out what we just built and upload it to the Github Release™️
-          cat dist-manifest.json | jq --raw-output ".releases[].artifacts[].path" > uploads.txt
-          cat uploads.txt
-          gh release upload ${{ needs.create-release.outputs.tag }} $(cat uploads.txt)
-      - name: flowc compile flowstdlib to wasm (on Linux)
-        if: matrix.os == 'ubuntu-latest'
-        run: target/${{ matrix.target }}/dist/flowc -d -g -O flowstdlib
-      - name: Upload flowstdlib tarball (on Linux)
-        if: matrix.os == 'ubuntu-latest'
+          TAG="${{ github.event.release.tag_name }}"
+          TARGET="${{ matrix.target }}"
+          RELEASE_DIR="target/${TARGET}/release"
+
+          # Create a directory for the archive
+          mkdir -p staging
+
+          # Copy binaries (platform-specific extensions)
+          if [[ "$TARGET" == *"windows"* ]]; then
+            EXT=".exe"
+          else
+            EXT=""
+          fi
+
+          for bin in flowc flowrcli flowrgui flowrex flowrdb flowedit; do
+            if [ -f "${RELEASE_DIR}/${bin}${EXT}" ]; then
+              cp "${RELEASE_DIR}/${bin}${EXT}" staging/
+              echo "Found: ${bin}${EXT}"
+            fi
+          done
+
+          # Create archive
+          cd staging
+          if [[ "$TARGET" == *"windows"* ]]; then
+            ARCHIVE="flow-${TAG}-${TARGET}.zip"
+            7z a "../${ARCHIVE}" .
+          else
+            ARCHIVE="flow-${TAG}-${TARGET}.tar.gz"
+            tar -czf "../${ARCHIVE}" .
+          fi
+          cd ..
+
+          echo "Uploading ${ARCHIVE}"
+          gh release upload "${TAG}" "${ARCHIVE}" --clobber
+
+      - name: Compile flowstdlib to WASM (Linux x86_64 only)
+        if: matrix.target == 'x86_64-unknown-linux-gnu'
         run: |
+          target/${{ matrix.target }}/release/flowc -d -g -O flowstdlib
+
+      - name: Upload flowstdlib tarball (Linux x86_64 only)
+        if: matrix.target == 'x86_64-unknown-linux-gnu'
+        shell: bash
+        run: |
+          TAG="${{ github.event.release.tag_name }}"
           cd $HOME/.flow/lib
-          tar -cJf flowstdlib-${{ needs.create-release.outputs.tag }}.tar.xz flowstdlib
+          tar -cJf "flowstdlib-${TAG}.tar.xz" flowstdlib
           cd -
-          gh release upload ${{ needs.create-release.outputs.tag }} $HOME/.flow/lib/flowstdlib-${{ needs.create-release.outputs.tag }}.tar.xz
-      - name: flowc compile flowrcli
-        if: matrix.os == 'ubuntu-latest'
-        run: target/${{ matrix.target }}/dist/flowc flowr/src/bin/flowrcli
-      - name: Upload flowrcli
-        if: matrix.os == 'ubuntu-latest'
-        run: |
-          cd $HOME/.flow/runner
-          tar -cJf flowrcli-${{ needs.create-release.outputs.tag }}.tar.xz flowrcli
-          cd -
-          gh release upload ${{ needs.create-release.outputs.tag }} $HOME/.flow/runner/flowrcli-${{ needs.create-release.outputs.tag }}.tar.xz
-      - name: flowc compile flowrgui
-        if: matrix.os == 'ubuntu-latest'
-        run: target/${{ matrix.target }}/dist/flowc flowr/src/bin/flowrgui
-      - name: Upload flowrgui
-        if: matrix.os == 'ubuntu-latest'
-        run: |
-          cd $HOME/.flow/runner
-          tar -cJf flowrgui-${{ needs.create-release.outputs.tag }}.tar.xz flowrgui
-          cd -
-          gh release upload ${{ needs.create-release.outputs.tag }} $HOME/.flow/runner/flowrgui-${{ needs.create-release.outputs.tag }}.tar.xz
-
-  # Compute and upload the manifest for everything
-  upload-manifest:
-    needs: create-release
-    runs-on: ubuntu-latest
-    env:
-      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-    steps:
-      - uses: actions/checkout@v3
-      - name: Install Rust
-        run: rustup update stable && rustup default stable
-      - name: Install cargo-dist
-        uses: taiki-e/install-action@v2
-        with:
-          tool: cargo-dist
-      - name: Run cargo-dist manifest
-        run: |
-          # Generate a manifest describing everything
-          cargo dist manifest --allow-dirty --no-local-paths --output-format=json $ALL_CARGO_DIST_TARGET_ARGS $ALL_CARGO_DIST_INSTALLER_ARGS > dist-manifest.json
-          cat dist-manifest.json
-          echo "Tag is " ${{ needs.create-release.outputs.tag }}
-          gh release upload ${{ needs.create-release.outputs.tag }} dist-manifest.json
-          # Edit the Github Release™️ title/body to match what cargo-dist thinks it should be
-          CHANGELOG_TITLE=$(cat dist-manifest.json | jq --raw-output ".releases[].changelog_title")
-          echo "Changelog Title is " $CHANGELOG_TITLE
-          cat dist-manifest.json | jq --raw-output ".releases[].changelog_body" > new_dist_changelog.md
-          gh release edit ${{ needs.create-release.outputs.tag }} --notes-file=new_dist_changelog.md
-          echo "updated release notes!"
-
-  # Mark the Github Release™️ as a non-draft now that everything has succeeded!
-  publish-release:
-    needs: [create-release, upload-artifacts, upload-manifest]
-    runs-on: ubuntu-latest
-    env:
-      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-    steps:
-      - uses: actions/checkout@v3
-      - name: mark release as non-draft
-        run: |
-          gh release edit ${{ needs.create-release.outputs.tag }} --title ${{ needs.create-release.outputs.tag }} --draft=false
+          gh release upload "${TAG}" "$HOME/.flow/lib/flowstdlib-${TAG}.tar.xz" --clobber
 
   build-and-publish-book:
-    needs: [publish-release]
+    needs: [ build-and-bundle ]
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
-      - name: build-book
+      - uses: actions/checkout@v4
+      - name: Build book
         run: |
           sudo apt-get update && sudo apt-get -y install graphviz
           curl -sSL https://github.com/rust-lang/mdBook/releases/download/v0.4.27/mdbook-v0.4.27-x86_64-unknown-linux-gnu.tar.gz | tar -xz --directory=$HOME/.cargo/bin
@@ -187,7 +138,7 @@ jobs:
           echo "PATH=$HOME/.cargo/bin:$PATH" >> "$GITHUB_ENV"
           make book
       - name: Deploy book
-        uses: JamesIves/github-pages-deploy-action@4.1.4
+        uses: JamesIves/github-pages-deploy-action@v4
         with:
           branch: gh-pages
           folder: target/html
