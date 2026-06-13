@@ -73,7 +73,6 @@ jobs:
       fail-fast: false
       matrix:
         os: [ macos-26, ubuntu-24.04, ubuntu-24.04-arm, windows-latest ]
-        rust: [ 1.95.0 ]
 
     steps:
       - name: Checkout
@@ -86,9 +85,8 @@ jobs:
           echo "CARGO_REGISTRIES_CRATES_IO_PROTOCOL=sparse" >> "$GITHUB_ENV"
 
       - name: Install stable toolchain
-        uses: dtolnay/rust-toolchain@master
+        uses: dtolnay/rust-toolchain@1.95.0
         with:
-          toolchain: 1.95.0
           targets: wasm32-unknown-unknown
 
       - name: Cache cargo registry and build
