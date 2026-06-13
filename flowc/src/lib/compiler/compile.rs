@@ -539,19 +539,15 @@ mod test {
         let (impl_source_path, impl_wasm_path) =
             get_paths(&target_dir, &function).expect("Error in 'get_paths'");
 
-        assert_eq!(
-            format!(
-                "{}/{}",
-                Path::new(env!("CARGO_MANIFEST_DIR"))
-                    .parent()
-                    .expect("Error getting Manifest Dir")
-                    .display(),
-                "flowc/tests/test-functions/test/test.rs"
-            ),
-            impl_source_path
-                .to_str()
-                .expect("Error converting path to str")
-        );
+        let expected_source = Path::new(env!("CARGO_MANIFEST_DIR"))
+            .parent()
+            .expect("Error getting Manifest Dir")
+            .join("flowc")
+            .join("tests")
+            .join("test-functions")
+            .join("test")
+            .join("test.rs");
+        assert_eq!(expected_source, impl_source_path);
         assert_eq!(expected_output_wasm, impl_wasm_path);
     }
 }
