@@ -60,13 +60,15 @@ mod test {
     #[test]
     fn file_scheme_in_arg_absolute_path_preserved() {
         let cwd = cwd_as_url();
-        let path = "/some/file";
-        let arg = format!("file:{path}");
+        // Use a real temp dir for a valid absolute path on all platforms
+        let tmp = std::env::temp_dir().join("test_file");
+        let tmp_url = Url::from_file_path(&tmp).expect("Could not form URL");
+        let arg = tmp_url.as_str().to_string();
 
         let url = url_from_string(&cwd, Some(&arg)).expect("Could not form URL");
 
         assert_eq!(url.scheme(), "file");
-        assert_eq!(url.path(), path);
+        assert_eq!(url.path(), tmp_url.path());
     }
 
     #[test]
@@ -84,12 +86,15 @@ mod test {
     #[test]
     fn no_scheme_in_arg_assumes_file() {
         let cwd = cwd_as_url();
-        let arg = "/some/file";
+        // Use a real absolute path that works on all platforms
+        let tmp = std::env::temp_dir().join("test_file");
+        let tmp_str = tmp.to_str().expect("Could not convert to str");
+        let expected_url = Url::from_file_path(&tmp).expect("Could not form URL");
 
-        let url = url_from_string(&cwd, Some(arg)).expect("Could not form URL");
+        let url = url_from_string(&cwd, Some(tmp_str)).expect("Could not form URL");
 
         assert_eq!(url.scheme(), "file");
-        assert_eq!(url.path(), arg);
+        assert_eq!(url.path(), expected_url.path());
     }
 
     #[test]
@@ -104,9 +109,10 @@ mod test {
 
         let url =
             url_from_string(&root_url, Some(relative_path_to_file)).expect("Could not form URL");
-        let abs_path = format!("{}/{relative_path_to_file}", root.display());
+        let abs_path = root.join(relative_path_to_file);
+        let expected_url = Url::from_file_path(&abs_path).expect("Could not form URL");
 
         assert_eq!(url.scheme(), "file");
-        assert_eq!(url.path(), abs_path);
+        assert_eq!(url.path(), expected_url.path());
     }
 }
