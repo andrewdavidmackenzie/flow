@@ -20,26 +20,10 @@ opt-level = 1
 [profile.dev.package."*"]
 opt-level = 3
 
-# The profile that 'cargo dist' will build with
-[profile.dist]
-inherits = "release"
-lto = "thin"
-
 # Config for "cargo release" to work with a Virtual Workspace with Unified Version number across packages
 [workspace.metadata.release]
 shared-version = true
 tag-name = "v{{version}}"
-
-# Config for 'cargo dist'
-[workspace.metadata.dist]
-# The preferred cargo-dist version to use in CI (Cargo.toml SemVer syntax)
-cargo-dist-version = "0.3.0"
-# CI backends to support
-ci = ["github"]
-# The installers to generate for each app
-installers = ["shell"]
-# Target platforms to build apps for (Rust target-triple syntax)
-targets = ["x86_64-unknown-linux-gnu", "x86_64-apple-darwin", "aarch64-apple-darwin"]
 
 [workspace.lints.rust]
 unsafe_code = "forbid"
