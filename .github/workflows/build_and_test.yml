@@ -144,6 +144,7 @@ jobs:
           echo LLVM_PROFILE_FILE="flow-%p-%m.profraw" >> "$GITHUB_ENV"
 
       - name: build
+        shell: bash
         run: cargo build
 
       - name: compile flowstdlib to WASM
@@ -188,10 +189,12 @@ jobs:
           echo "XDG_RUNTIME_DIR=$XDG_RUNTIME_DIR" >> "$GITHUB_ENV"
 
       - name: test
+        shell: bash
         timeout-minutes: 15
         run: cargo test --features "online_tests"
 
       - name: test-examples
+        shell: bash
         timeout-minutes: 10
         run: cargo test --examples
 
