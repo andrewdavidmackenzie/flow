@@ -32,6 +32,8 @@ jobs:
             target: aarch64-apple-darwin
           - os: windows-latest
             target: x86_64-pc-windows-msvc
+          - os: windows-11-arm
+            target: aarch64-pc-windows-msvc
 
     env:
       GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -86,12 +88,20 @@ jobs:
             EXT=""
           fi
 
+          FOUND=0
           for bin in flowc flowrcli flowrgui flowrex flowrdb flowedit; do
             if [ -f "${RELEASE_DIR}/${bin}${EXT}" ]; then
               cp "${RELEASE_DIR}/${bin}${EXT}" staging/
               echo "Found: ${bin}${EXT}"
+              FOUND=$((FOUND + 1))
             fi
           done
+
+          if [ "$FOUND" -eq 0 ]; then
+            echo "::error::No binaries found in ${RELEASE_DIR}"
+            exit 1
+          fi
+          echo "Total binaries found: ${FOUND}"
 
           # Create archive
           cd staging
