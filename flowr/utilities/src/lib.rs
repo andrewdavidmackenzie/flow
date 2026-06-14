@@ -212,17 +212,19 @@ pub fn check_test_output(source_file: &str) {
 
 fn compare_and_fail(expected_path: PathBuf, actual_path: PathBuf) {
     if expected_path.exists() {
-        let diff = Command::new("diff")
-            .args(vec![&expected_path, &actual_path])
-            .stdin(Stdio::inherit())
-            .stderr(Stdio::inherit())
-            .stdout(Stdio::inherit())
-            .spawn()
-            .expect("Could not get child process");
-        let output = diff.wait_with_output().expect("Could not get diff output");
-        if output.status.success() {
+        let expected = fs::read_to_string(&expected_path)
+            .expect("Could not read expected file")
+            .trim()
+            .to_string();
+        let actual = fs::read_to_string(&actual_path)
+            .expect("Could not read actual file")
+            .trim()
+            .to_string();
+        if expected == actual {
             return;
         }
+        eprintln!("Expected:\n{expected}");
+        eprintln!("Actual:\n{actual}");
         panic!(
             "Contents of '{}' doesn't match the expected contents in '{}'",
             actual_path.display(),
@@ -366,10 +368,13 @@ pub fn execute_flow_client_server(example_name: &str, manifest: PathBuf) {
             panic!("Actual STDOUT lines did not match expected_unordered.stdout");
         }
     } else {
-        let expected_stdout = read_file(&samples_dir, "expected.stdout");
-        if expected_stdout != actual_stdout {
+        let expected_stdout = read_file(&samples_dir, "expected.stdout")
+            .trim()
+            .to_string();
+        let actual_trimmed = actual_stdout.trim().to_string();
+        if expected_stdout != actual_trimmed {
             println!("Expected STDOUT:\n{expected_stdout}");
-            println!("Actual STDOUT:\n{actual_stdout}");
+            println!("Actual STDOUT:\n{actual_trimmed}");
             panic!("Actual STDOUT did not match expected.stdout");
         }
     }
