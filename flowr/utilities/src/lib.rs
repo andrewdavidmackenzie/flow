@@ -6,6 +6,12 @@ use std::path::{Path, PathBuf};
 use std::process::{Command, Stdio};
 use std::{env, fs, io};
 
+/// Normalize text output for cross-platform comparison.
+/// Converts Windows `\r\n` line endings to Unix `\n` and trims surrounding whitespace.
+fn normalize_output(s: &str) -> String {
+    s.replace("\r\n", "\n").trim().to_string()
+}
+
 /// Name of file where any Stdout will be written while executing an example
 const TEST_STDOUT_FILENAME: &str = "test.stdout";
 
@@ -218,17 +224,17 @@ fn compare_and_fail(expected_path: PathBuf, actual_path: PathBuf) {
         if expected == actual {
             return;
         }
-        // Try text comparison normalizing line endings (\r\n -> \n) and trimming
+        // Try text comparison with normalized line endings
         if let (Ok(exp_str), Ok(act_str)) =
             (std::str::from_utf8(&expected), std::str::from_utf8(&actual))
         {
-            let exp_normalized = exp_str.replace("\r\n", "\n");
-            let act_normalized = act_str.replace("\r\n", "\n");
-            if exp_normalized.trim() == act_normalized.trim() {
+            let exp_normalized = normalize_output(exp_str);
+            let act_normalized = normalize_output(act_str);
+            if exp_normalized == act_normalized {
                 return;
             }
-            eprintln!("Expected:\n{}", exp_normalized.trim());
-            eprintln!("Actual:\n{}", act_normalized.trim());
+            eprintln!("Expected:\n{exp_normalized}");
+            eprintln!("Actual:\n{act_normalized}");
         }
         panic!(
             "Contents of '{}' doesn't match the expected contents in '{}'",
@@ -240,8 +246,11 @@ fn compare_and_fail(expected_path: PathBuf, actual_path: PathBuf) {
 
 fn compare_unordered_and_fail(expected_path: PathBuf, actual_path: PathBuf) {
     if expected_path.exists() {
-        let expected = fs::read_to_string(&expected_path).expect("Could not read expected file");
-        let actual = fs::read_to_string(&actual_path).expect("Could not read actual file");
+        let expected_raw =
+            fs::read_to_string(&expected_path).expect("Could not read expected file");
+        let actual_raw = fs::read_to_string(&actual_path).expect("Could not read actual file");
+        let expected = normalize_output(&expected_raw);
+        let actual = normalize_output(&actual_raw);
 
         let mut expected_lines: Vec<&str> = expected.lines().filter(|l| !l.is_empty()).collect();
         let mut actual_lines: Vec<&str> = actual.lines().filter(|l| !l.is_empty()).collect();
@@ -361,10 +370,15 @@ pub fn execute_flow_client_server(example_name: &str, manifest: PathBuf) {
 
     let unordered_path = samples_dir.join(EXPECTED_UNORDERED_STDOUT_FILENAME);
     if unordered_path.exists() {
-        let expected_stdout = read_file(&samples_dir, EXPECTED_UNORDERED_STDOUT_FILENAME);
+        let expected_stdout =
+            normalize_output(&read_file(&samples_dir, EXPECTED_UNORDERED_STDOUT_FILENAME));
+        let actual_normalized = normalize_output(&actual_stdout);
         let mut expected_lines: Vec<&str> =
             expected_stdout.lines().filter(|l| !l.is_empty()).collect();
-        let mut actual_lines: Vec<&str> = actual_stdout.lines().filter(|l| !l.is_empty()).collect();
+        let mut actual_lines: Vec<&str> = actual_normalized
+            .lines()
+            .filter(|l| !l.is_empty())
+            .collect();
         expected_lines.sort();
         actual_lines.sort();
         if expected_lines != actual_lines {
@@ -373,13 +387,11 @@ pub fn execute_flow_client_server(example_name: &str, manifest: PathBuf) {
             panic!("Actual STDOUT lines did not match expected_unordered.stdout");
         }
     } else {
-        let expected_stdout = read_file(&samples_dir, "expected.stdout")
-            .trim()
-            .to_string();
-        let actual_trimmed = actual_stdout.trim().to_string();
-        if expected_stdout != actual_trimmed {
+        let expected_stdout = normalize_output(&read_file(&samples_dir, "expected.stdout"));
+        let actual_normalized = normalize_output(&actual_stdout);
+        if expected_stdout != actual_normalized {
             println!("Expected STDOUT:\n{expected_stdout}");
-            println!("Actual STDOUT:\n{actual_trimmed}");
+            println!("Actual STDOUT:\n{actual_normalized}");
             panic!("Actual STDOUT did not match expected.stdout");
         }
     }
