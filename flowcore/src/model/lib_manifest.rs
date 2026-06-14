@@ -361,6 +361,26 @@ mod test {
         assert_eq!(expected, serialized);
     }
 
+    fn test_source_path() -> String {
+        std::env::temp_dir()
+            .join("myproject")
+            .join("bin")
+            .join("my.rs")
+            .to_str()
+            .expect("Could not convert path")
+            .to_string()
+    }
+
+    fn test_source_path_alt() -> String {
+        std::env::temp_dir()
+            .join("myproject")
+            .join("bin")
+            .join("fake.rs")
+            .to_str()
+            .expect("Could not convert path")
+            .to_string()
+    }
+
     #[test]
     fn load_dyn_library() {
         let test_content = "{
@@ -405,7 +425,7 @@ mod test {
                 "/bin/my.wasm",
                 "/bin",
                 #[cfg(feature = "debugger")]
-                "/users/me/myproject/bin/my.rs",
+                &test_source_path(),
             )
             .expect("Could not add to manifest");
         assert_eq!(
@@ -440,7 +460,7 @@ mod test {
                 "/bin/my.wasm",
                 "/bin",
                 #[cfg(feature = "debugger")]
-                "/users/me/myproject/bin/my.rs",
+                &test_source_path(),
             )
             .expect("Could not add to manifest");
 
@@ -463,7 +483,7 @@ mod test {
                 "/bin/fake.wasm",
                 "/bin",
                 #[cfg(feature = "debugger")]
-                "/users/me/myproject/bin/fake.rs",
+                &test_source_path_alt(),
             )
             .expect("Could not add to manifest");
 
@@ -476,7 +496,7 @@ mod test {
                 "/bin/my.wasm",
                 "/bin",
                 #[cfg(feature = "debugger")]
-                "/users/me/myproject/bin/my.rs",
+                &test_source_path(),
             )
             .expect("Could not add to manifest");
 
@@ -494,7 +514,7 @@ mod test {
                 "/bin/my.wasm",
                 "/bin",
                 #[cfg(feature = "debugger")]
-                "/users/me/myproject/bin/my.rs",
+                &test_source_path(),
             )
             .expect("Could not add to manifest");
 
@@ -507,7 +527,7 @@ mod test {
                 "/bin/my.wasm",
                 "/bin",
                 #[cfg(feature = "debugger")]
-                "/users/me/myproject/bin/my.rs",
+                &test_source_path(),
             )
             .expect("Could not add to manifest");
 
@@ -525,7 +545,7 @@ mod test {
                 "bin/my.wasm",
                 "bin",
                 #[cfg(feature = "debugger")]
-                "/users/me/myproject/bin/my.rs",
+                &test_source_path(),
             )
             .expect("Could not add to manifest");
         assert_eq!(manifest.locators.len(), 1);
@@ -546,7 +566,7 @@ mod test {
                 "bin/my.wasm",
                 "bin",
                 #[cfg(feature = "debugger")]
-                "/users/me/myproject/bin/my.rs",
+                &test_source_path(),
             )
             .expect("Could not add to manifest");
 

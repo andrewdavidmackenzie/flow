@@ -1096,8 +1096,26 @@ mod test {
 
         let saved = win.perform_save(&mut flow_def, &path);
         assert!(saved);
+        let stored = WindowState::file_path_of(&flow_def).expect("file_path should be set");
+        // On Windows, canonicalize() returns UNC paths (\\?\C:\...) but
+        // Url::from_file_path stores C:\... — compare path endings to avoid
+        // prefix differences while verifying the meaningful path segments
         let canonical = path.canonicalize().unwrap_or_else(|_| path.clone());
-        assert_eq!(WindowState::file_path_of(&flow_def), Some(canonical));
+        assert!(
+            stored.ends_with(canonical.file_name().expect("should have filename")),
+            "stored path {stored:?} should end with filename"
+        );
+        assert!(
+            stored
+                .to_str()
+                .expect("stored path")
+                .contains("perform_save"),
+            "stored path should contain the temp dir name"
+        );
+        assert!(
+            stored.to_str().expect("stored path").contains("saved.toml"),
+            "stored path should contain the file name"
+        );
 
         let contents = std::fs::read_to_string(&path).expect("read failed");
         assert!(contents.contains("flow = \"saved_flow\""));

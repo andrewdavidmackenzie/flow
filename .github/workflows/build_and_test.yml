@@ -38,9 +38,8 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
       - name: Install stable toolchain
-        uses: dtolnay/rust-toolchain@master
+        uses: dtolnay/rust-toolchain@stable
         with:
-          toolchain: 1.95.0
           components: clippy
       - name: Install system dependencies
         run: sudo apt-get update && sudo apt-get -y install libzmq3-dev libgtk-3-dev
@@ -55,9 +54,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
       - name: Install stable toolchain
-        uses: dtolnay/rust-toolchain@master
-        with:
-          toolchain: 1.95.0
+        uses: dtolnay/rust-toolchain@stable
       - name: Install system dependencies
         run: sudo apt-get update && sudo apt-get -y install libzmq3-dev libgtk-3-dev
       - name: Cache cargo registry and build
@@ -72,23 +69,24 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ macos-26, ubuntu-24.04, ubuntu-24.04-arm ]
-        rust: [ 1.95.0 ]
+        os: [ macos-26, ubuntu-24.04, ubuntu-24.04-arm, windows-latest ]
+
+    continue-on-error: ${{ matrix.os == 'windows-latest' }}
 
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Install stable toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: wasm32-unknown-unknown
+
       - name: SetupEnv
+        shell: bash
         run: |
           echo "PATH=$GITHUB_WORKSPACE/target/debug:$PATH" >> "$GITHUB_ENV"
           echo "CARGO_REGISTRIES_CRATES_IO_PROTOCOL=sparse" >> "$GITHUB_ENV"
-
-      - name: Install stable toolchain
-        uses: dtolnay/rust-toolchain@master
-        with:
-          toolchain: 1.95.0
-          targets: wasm32-unknown-unknown
 
       - name: Cache cargo registry and build
         uses: Swatinem/rust-cache@v2
@@ -119,12 +117,25 @@ jobs:
         if: runner.os == 'macOS'
         run: brew install zmq binaryen lcov
 
+      - name: InstallWindowsDependencies
+        if: runner.os == 'Windows'
+        shell: bash
+        run: |
+          BINARYEN_VERSION="version_129"
+          curl -sL "https://github.com/WebAssembly/binaryen/releases/download/${BINARYEN_VERSION}/binaryen-${BINARYEN_VERSION}-x86_64-windows.tar.gz" -o binaryen.tar.gz
+          tar -xzf binaryen.tar.gz
+          cp binaryen-${BINARYEN_VERSION}/bin/* "$GITHUB_WORKSPACE/"
+          echo "$GITHUB_WORKSPACE" >> "$GITHUB_PATH"
+          rm -rf binaryen-${BINARYEN_VERSION} binaryen.tar.gz
+
       - name: InstallWasmTools
+        shell: bash
         run: |
           which wasm-gc || cargo install wasm-gc
           which wasm-snip || cargo install wasm-snip
 
       - name: ConfigureCoverage
+        if: runner.os != 'Windows'
         run: |
           which grcov || cargo install grcov
           rustup component add llvm-tools-preview
@@ -132,16 +143,38 @@ jobs:
           echo LLVM_PROFILE_FILE="flow-%p-%m.profraw" >> "$GITHUB_ENV"
 
       - name: build
+        shell: bash
         run: cargo build
 
       - name: compile flowstdlib to WASM
-        run: target/debug/flowc -d -g -O flowstdlib
+        shell: bash
+        run: |
+          if [[ "$RUNNER_OS" == "Windows" ]]; then
+            export PATH="$CARGO_HOME/bin:$PATH"
+            target/debug/flowc.exe -v debug -d -g -O flowstdlib
+          else
+            target/debug/flowc -d -g -O flowstdlib
+          fi
 
       - name: compile flowrcli
-        run: target/debug/flowc flowr/src/bin/flowrcli
+        shell: bash
+        run: |
+          if [[ "$RUNNER_OS" == "Windows" ]]; then
+            export PATH="$CARGO_HOME/bin:$PATH"
+            target/debug/flowc.exe -v debug flowr/src/bin/flowrcli
+          else
+            target/debug/flowc flowr/src/bin/flowrcli
+          fi
 
       - name: compile flowrgui
-        run: target/debug/flowc flowr/src/bin/flowrgui
+        shell: bash
+        run: |
+          if [[ "$RUNNER_OS" == "Windows" ]]; then
+            export PATH="$CARGO_HOME/bin:$PATH"
+            target/debug/flowc.exe flowr/src/bin/flowrgui
+          else
+            target/debug/flowc flowr/src/bin/flowrgui
+          fi
 
       - name: StartHeadlessWayland
         if: runner.os == 'Linux'
@@ -158,14 +191,17 @@ jobs:
           echo "XDG_RUNTIME_DIR=$XDG_RUNTIME_DIR" >> "$GITHUB_ENV"
 
       - name: test
-        timeout-minutes: 15
+        shell: bash
+        timeout-minutes: ${{ runner.os == 'Windows' && 30 || 15 }}
         run: cargo test --features "online_tests"
 
       - name: test-examples
-        timeout-minutes: 10
+        shell: bash
+        timeout-minutes: ${{ runner.os == 'Windows' && 20 || 10 }}
         run: cargo test --examples
 
       - name: UploadCoverage
+        if: runner.os != 'Windows'
         run: |
           grcov . --binary-path target/debug/ -s . -t lcov --branch --ignore-not-existing --ignore "/*" -o lcov.info
           lcov --ignore-errors inconsistent --remove lcov.info 'target/debug/build/**' '**/errors.rs' '*tests/*' -o lcov.info
