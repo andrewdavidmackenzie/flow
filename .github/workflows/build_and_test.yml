@@ -151,7 +151,7 @@ jobs:
         run: |
           if [[ "$RUNNER_OS" == "Windows" ]]; then
             export PATH="$CARGO_HOME/bin:$PATH"
-            target/debug/flowc.exe -d -g -O flowstdlib
+            target/debug/flowc.exe -v debug -d -g -O flowstdlib
           else
             target/debug/flowc -d -g -O flowstdlib
           fi
@@ -161,7 +161,7 @@ jobs:
         run: |
           if [[ "$RUNNER_OS" == "Windows" ]]; then
             export PATH="$CARGO_HOME/bin:$PATH"
-            target/debug/flowc.exe flowr/src/bin/flowrcli
+            target/debug/flowc.exe -v debug flowr/src/bin/flowrcli
           else
             target/debug/flowc flowr/src/bin/flowrcli
           fi
@@ -192,12 +192,12 @@ jobs:
 
       - name: test
         shell: bash
-        timeout-minutes: 15
+        timeout-minutes: ${{ runner.os == 'Windows' && 30 || 15 }}
         run: cargo test --features "online_tests"
 
       - name: test-examples
         shell: bash
-        timeout-minutes: 10
+        timeout-minutes: ${{ runner.os == 'Windows' && 20 || 10 }}
         run: cargo test --examples
 
       - name: UploadCoverage

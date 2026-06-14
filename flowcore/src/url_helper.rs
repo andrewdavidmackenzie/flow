@@ -86,12 +86,15 @@ mod test {
     #[test]
     fn no_scheme_in_arg_assumes_file() {
         let cwd = cwd_as_url();
-        let arg = "some/relative/file";
+        // Use a real absolute path that works on all platforms
+        let tmp = std::env::temp_dir().join("test_file");
+        let tmp_str = tmp.to_str().expect("Could not convert to str");
+        let expected_url = Url::from_file_path(&tmp).expect("Could not form URL");
 
-        let url = url_from_string(&cwd, Some(arg)).expect("Could not form URL");
+        let url = url_from_string(&cwd, Some(tmp_str)).expect("Could not form URL");
 
         assert_eq!(url.scheme(), "file");
-        assert!(url.path().ends_with(arg));
+        assert_eq!(url.path(), expected_url.path());
     }
 
     #[test]

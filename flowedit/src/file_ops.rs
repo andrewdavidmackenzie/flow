@@ -1096,8 +1096,10 @@ mod test {
 
         let saved = win.perform_save(&mut flow_def, &path);
         assert!(saved);
-        let canonical = path.canonicalize().unwrap_or_else(|_| path.clone());
-        assert_eq!(WindowState::file_path_of(&flow_def), Some(canonical));
+        let stored = WindowState::file_path_of(&flow_def).expect("file_path should be set");
+        // On Windows, canonicalize() returns UNC paths (\\?\C:\...) but
+        // Url::from_file_path stores C:\... — compare filenames instead
+        assert_eq!(stored.file_name(), path.file_name());
 
         let contents = std::fs::read_to_string(&path).expect("read failed");
         assert!(contents.contains("flow = \"saved_flow\""));
