@@ -99,10 +99,11 @@ pub fn run_example(source_file: &str, runner: &str, flowrex: bool, native: bool)
 
     let stdin_file = sample_dir.join(TEST_STDIN_FILENAME);
     if stdin_file.exists() {
-        let _ = Command::new("cat")
-            .args(vec![stdin_file])
-            .stdout(runner_child.stdin.take().expect("Could not take STDIN"))
-            .spawn();
+        if let Some(mut child_stdin) = runner_child.stdin.take() {
+            let content = fs::read(&stdin_file).expect("Could not read stdin file");
+            std::io::Write::write_all(&mut child_stdin, &content)
+                .expect("Could not write to child stdin");
+        }
     }
 
     runner_child
@@ -212,19 +213,21 @@ pub fn check_test_output(source_file: &str) {
 
 fn compare_and_fail(expected_path: PathBuf, actual_path: PathBuf) {
     if expected_path.exists() {
-        let expected = fs::read_to_string(&expected_path)
-            .expect("Could not read expected file")
-            .trim()
-            .to_string();
-        let actual = fs::read_to_string(&actual_path)
-            .expect("Could not read actual file")
-            .trim()
-            .to_string();
+        let expected = fs::read(&expected_path).expect("Could not read expected file");
+        let actual = fs::read(&actual_path).expect("Could not read actual file");
         if expected == actual {
             return;
         }
-        eprintln!("Expected:\n{expected}");
-        eprintln!("Actual:\n{actual}");
+        // Try text comparison with trimming for line-ending differences
+        if let (Ok(exp_str), Ok(act_str)) =
+            (std::str::from_utf8(&expected), std::str::from_utf8(&actual))
+        {
+            if exp_str.trim() == act_str.trim() {
+                return;
+            }
+            eprintln!("Expected:\n{}", exp_str.trim());
+            eprintln!("Actual:\n{}", act_str.trim());
+        }
         panic!(
             "Contents of '{}' doesn't match the expected contents in '{}'",
             actual_path.display(),

@@ -172,16 +172,12 @@ fn execute_flow(filepath: &Path, options: &Options, runner_name: &str) -> Result
     if let Some(stdin_file) = &options.stdin_file {
         debug!("Reading STDIN from file: '{stdin_file}'");
 
-        let _ = Command::new("cat")
-            .args(vec![stdin_file])
-            .stdout(
-                runner_child
-                    .stdin
-                    .take()
-                    .chain_err(|| "Could not read child process stdin")?,
-            )
-            .spawn()
-            .chain_err(|| format!("Could not spawn 'cat' to pipe STDIN to '{runner_name}'"));
+        if let Some(mut child_stdin) = runner_child.stdin.take() {
+            let content = std::fs::read(stdin_file)
+                .chain_err(|| format!("Could not read stdin file '{stdin_file}'"))?;
+            std::io::Write::write_all(&mut child_stdin, &content)
+                .chain_err(|| format!("Could not write stdin to '{runner_name}'"))?;
+        }
     }
 
     let runner_output = runner_child
