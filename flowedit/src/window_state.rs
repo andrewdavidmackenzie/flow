@@ -1374,12 +1374,17 @@ impl WindowState {
         &mut self,
         flow_def: &mut FlowDefinition,
     ) -> Result<PathBuf, String> {
+        eprintln!("[COMPILE] perform_compile: enter");
         if Self::file_path_of(flow_def).is_none() {
+            eprintln!("[COMPILE] no file path, calling perform_save_as");
             self.perform_save_as(flow_def);
+            eprintln!("[COMPILE] perform_save_as returned");
         }
         let Some(flow_path) = Self::file_path_of(flow_def) else {
+            eprintln!("[COMPILE] still no file path, returning error");
             return Err("Flow must be saved before compiling".to_string());
         };
+        eprintln!("[COMPILE] flow_path = {}", flow_path.display());
 
         if !self.history.is_empty() {
             self.perform_save(flow_def, &flow_path);
