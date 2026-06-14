@@ -4,6 +4,10 @@ use serial_test::serial;
 
 #[test]
 #[serial]
+#[cfg_attr(
+    target_os = "windows",
+    ignore = "No headless display server on Windows CI"
+)]
 fn test_fibonacci_flowrgui_example() {
     utilities::test_example("flowr/examples/fibonacci/main.rs", "flowrgui", false, true);
 }
@@ -11,6 +15,10 @@ fn test_fibonacci_flowrgui_example() {
 #[cfg(feature = "debugger")]
 #[test]
 #[serial]
+#[cfg_attr(
+    target_os = "windows",
+    ignore = "No headless display server on Windows CI"
+)]
 fn test_fibonacci_flowrgui_debug() {
     let example_dir =
         std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("examples/fibonacci");
