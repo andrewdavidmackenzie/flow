@@ -20,16 +20,21 @@ fn default_lib_compile_dir(source_url: &Url) -> Result<PathBuf> {
         .next_back()
         .ok_or("Could not get last path segment of source_url")?;
 
-    let home_dir = env::var("HOME").map_err(|_| "Could not get $HOME")?;
+    let home = env::var("HOME")
+        .or_else(|_| env::var("USERPROFILE"))
+        .map_err(|_| "Could not get HOME or USERPROFILE")?;
 
-    Ok(PathBuf::from(format!("{home_dir}/.flow/lib/{lib_name}")))
+    Ok(PathBuf::from(home).join(".flow").join("lib").join(lib_name))
 }
 
 pub(crate) fn default_runner_dir(runner_name: &str) -> Result<PathBuf> {
-    let home_dir = env::var("HOME").map_err(|_| "Could not get $HOME")?;
-    Ok(PathBuf::from(format!(
-        "{home_dir}/.flow/runner/{runner_name}"
-    )))
+    let home = env::var("HOME")
+        .or_else(|_| env::var("USERPROFILE"))
+        .map_err(|_| "Could not get HOME or USERPROFILE")?;
+    Ok(PathBuf::from(home)
+        .join(".flow")
+        .join("runner")
+        .join(runner_name))
 }
 
 // Load a `RunnerSpec` from the context at `context_root`

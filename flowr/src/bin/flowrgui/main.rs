@@ -3064,8 +3064,11 @@ impl FlowrGui {
         }
 
         if lib_search_path.is_empty() {
-            let home_dir = env::var("HOME").unwrap_or_else(|_| "Could not get $HOME".to_string());
-            lib_search_path.add(&format!("{home_dir}/.flow/lib"));
+            let home = env::var("HOME")
+                .or_else(|_| env::var("USERPROFILE"))
+                .unwrap_or_else(|_| ".".to_string());
+            let default_path = std::path::PathBuf::from(home).join(".flow").join("lib");
+            lib_search_path.add(default_path.to_str().unwrap_or(".flow/lib"));
         }
 
         lib_search_path
