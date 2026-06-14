@@ -218,15 +218,17 @@ fn compare_and_fail(expected_path: PathBuf, actual_path: PathBuf) {
         if expected == actual {
             return;
         }
-        // Try text comparison with trimming for line-ending differences
+        // Try text comparison normalizing line endings (\r\n -> \n) and trimming
         if let (Ok(exp_str), Ok(act_str)) =
             (std::str::from_utf8(&expected), std::str::from_utf8(&actual))
         {
-            if exp_str.trim() == act_str.trim() {
+            let exp_normalized = exp_str.replace("\r\n", "\n");
+            let act_normalized = act_str.replace("\r\n", "\n");
+            if exp_normalized.trim() == act_normalized.trim() {
                 return;
             }
-            eprintln!("Expected:\n{}", exp_str.trim());
-            eprintln!("Actual:\n{}", act_str.trim());
+            eprintln!("Expected:\n{}", exp_normalized.trim());
+            eprintln!("Actual:\n{}", act_normalized.trim());
         }
         panic!(
             "Contents of '{}' doesn't match the expected contents in '{}'",
