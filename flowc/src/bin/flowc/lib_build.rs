@@ -331,8 +331,8 @@ fn compile_functions(
 
                         lib_manifest
                             .add_locator(
-                                &wasm_relative_path.to_string_lossy(),
-                                &relative_dir.to_string_lossy(),
+                                &wasm_relative_path.to_string_lossy().replace('\\', "/"),
+                                &relative_dir.to_string_lossy().replace('\\', "/"),
                                 #[cfg(feature = "debugger")]
                                 &source_path.to_string_lossy(),
                             )
@@ -473,8 +473,8 @@ fn compile_flows(
 
                         lib_manifest
                             .add_locator(
-                                &flow_relative_path.to_string_lossy(),
-                                &flow_lib_reference,
+                                &flow_relative_path.to_string_lossy().replace('\\', "/"),
+                                &flow_lib_reference.replace('\\', "/"),
                                 #[cfg(feature = "debugger")]
                                 &toml_path.to_string_lossy(),
                             )

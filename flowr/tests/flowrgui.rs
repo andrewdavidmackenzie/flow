@@ -6,7 +6,7 @@ use serial_test::serial;
 #[serial]
 #[cfg_attr(
     target_os = "windows",
-    ignore = "No headless display server on Windows CI"
+    ignore = "winit event loop hangs in non-interactive Windows CI session (no WM_PAINT)"
 )]
 fn test_fibonacci_flowrgui_example() {
     utilities::test_example("flowr/examples/fibonacci/main.rs", "flowrgui", false, true);
@@ -17,7 +17,7 @@ fn test_fibonacci_flowrgui_example() {
 #[serial]
 #[cfg_attr(
     target_os = "windows",
-    ignore = "No headless display server on Windows CI"
+    ignore = "winit event loop hangs in non-interactive Windows CI session (no WM_PAINT)"
 )]
 fn test_fibonacci_flowrgui_debug() {
     let example_dir =
