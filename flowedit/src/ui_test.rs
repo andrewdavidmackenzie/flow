@@ -3055,10 +3055,16 @@ fn check_running_process_clears_on_none() {
 #[test]
 fn compile_message_updates_status() {
     let (mut app, win_id) = test_app();
+    // Set a file path so perform_compile doesn't open a save-as dialog
+    // (rfd::FileDialog blocks on Windows headless CI)
+    let tmp = std::env::temp_dir().join("compile_test.toml");
+    std::fs::write(&tmp, "flow = \"test\"\n").expect("write temp");
+    crate::window_state::WindowState::set_file_path_on(&mut app.root_flow, &tmp);
     let _ = app.update(Message::Compile);
     let win = app.windows.get(&win_id).unwrap();
-    // Compile will fail (no flowc available in test) but status should change from default
+    // Compilation will fail (invalid flow) but status should change from Ready
     assert!(!win.status.starts_with("Ready"));
+    let _ = std::fs::remove_file(&tmp);
 }
 
 #[test]
@@ -3104,14 +3110,17 @@ fn launch_flowrgui_with_manifest() {
 
 #[test]
 fn auto_run_triggers_launch_after_compile() {
-    let (mut app, win_id) = test_app();
+    let (mut app, _win_id) = test_app();
     app.auto_run = true;
-    // Compile will fail (no flowc in test), so auto_run should remain true
+    // Set a file path so perform_compile doesn't open a save-as dialog
+    // (rfd::FileDialog blocks on Windows headless CI)
+    let tmp = std::env::temp_dir().join("autorun_test.toml");
+    std::fs::write(&tmp, "flow = \"test\"\n").expect("write temp");
+    crate::window_state::WindowState::set_file_path_on(&mut app.root_flow, &tmp);
     let _ = app.update(Message::Compile);
-    let win = app.windows.get(&win_id).unwrap();
-    assert!(!win.status.starts_with("Ready"));
-    // auto_run stays true because compile failed (launch_flowrgui not called)
+    // Compile fails (invalid flow), so auto_run remains true
     assert!(app.auto_run);
+    let _ = std::fs::remove_file(&tmp);
 }
 
 #[test]
