@@ -43,9 +43,9 @@ pub struct MetaProvider {
 /// let lib_search_path = Simpath::new_with_separator("FLOW_LIB_PATH", ',');
 /// let meta_provider = &mut MetaProvider::new(
 ///                                             #[cfg(feature = "file_provider")]lib_search_path,
-///                                             #[cfg(feature = "context")] PathBuf::from("/")
+///                                             #[cfg(feature = "context")] std::env::temp_dir()
 ///                                             ) as &dyn Provider;
-/// let url = Url::parse("file://directory").unwrap();
+/// let url = Url::from_directory_path(std::env::temp_dir()).unwrap();
 /// match meta_provider.resolve_url(&url, "default", &["toml"]) {
 ///     Ok((resolved_url, lib_ref)) => {
 ///         match meta_provider.get_contents(&resolved_url) {
