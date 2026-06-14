@@ -3055,10 +3055,23 @@ fn check_running_process_clears_on_none() {
 #[test]
 fn compile_message_updates_status() {
     let (mut app, win_id) = test_app();
+    let tmp = std::env::temp_dir().join("compile_test.toml");
+    eprintln!("[TEST] compile_message_updates_status: start");
+    eprintln!("[TEST] temp path: {}", tmp.display());
+    std::fs::write(&tmp, "flow = \"test\"\n").expect("write temp");
+    crate::window_state::WindowState::set_file_path_on(&mut app.root_flow, &tmp);
+    eprintln!("[TEST] file path set, calling Message::Compile");
     let _ = app.update(Message::Compile);
+    eprintln!("[TEST] Message::Compile returned");
     let win = app.windows.get(&win_id).unwrap();
-    // Compile will fail (no flowc available in test) but status should change from default
-    assert!(!win.status.starts_with("Ready"));
+    eprintln!("[TEST] status = '{}'", win.status);
+    assert!(
+        !win.status.starts_with("Ready"),
+        "status was: {}",
+        win.status
+    );
+    let _ = std::fs::remove_file(&tmp);
+    eprintln!("[TEST] compile_message_updates_status: done");
 }
 
 #[test]
@@ -3104,14 +3117,22 @@ fn launch_flowrgui_with_manifest() {
 
 #[test]
 fn auto_run_triggers_launch_after_compile() {
-    let (mut app, win_id) = test_app();
+    let (mut app, _win_id) = test_app();
     app.auto_run = true;
-    // Compile will fail (no flowc in test), so auto_run should remain true
+    let tmp = std::env::temp_dir().join("autorun_test.toml");
+    eprintln!("[TEST] auto_run_triggers_launch_after_compile: start");
+    eprintln!("[TEST] temp path: {}", tmp.display());
+    std::fs::write(&tmp, "flow = \"test\"\n").expect("write temp");
+    crate::window_state::WindowState::set_file_path_on(&mut app.root_flow, &tmp);
+    eprintln!("[TEST] file path set, calling Message::Compile");
     let _ = app.update(Message::Compile);
-    let win = app.windows.get(&win_id).unwrap();
-    assert!(!win.status.starts_with("Ready"));
-    // auto_run stays true because compile failed (launch_flowrgui not called)
+    eprintln!(
+        "[TEST] Message::Compile returned, auto_run={}",
+        app.auto_run
+    );
     assert!(app.auto_run);
+    let _ = std::fs::remove_file(&tmp);
+    eprintln!("[TEST] auto_run_triggers_launch_after_compile: done");
 }
 
 #[test]

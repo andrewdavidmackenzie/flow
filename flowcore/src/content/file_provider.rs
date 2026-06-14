@@ -234,7 +234,7 @@ mod test {
         #[test]
         fn resolve_url_file_not_found() {
             let provider: &dyn Provider = &FileProvider;
-            let url = Url::parse("file://directory").expect("Could not create Url");
+            let url = Url::parse("file:///no-such-directory/fake").expect("Could not create Url");
             let _ = provider.resolve_url(&url, "default", &["toml"]);
         }
 
