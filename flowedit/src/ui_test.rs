@@ -3053,10 +3053,6 @@ fn check_running_process_clears_on_none() {
 }
 
 #[test]
-#[cfg_attr(
-    target_os = "windows",
-    ignore = "WASM compilation too slow on Windows CI"
-)]
 fn compile_message_updates_status() {
     let (mut app, win_id) = test_app();
     let _ = app.update(Message::Compile);
@@ -3107,10 +3103,6 @@ fn launch_flowrgui_with_manifest() {
 }
 
 #[test]
-#[cfg_attr(
-    target_os = "windows",
-    ignore = "WASM compilation too slow on Windows CI"
-)]
 fn auto_run_triggers_launch_after_compile() {
     let (mut app, win_id) = test_app();
     app.auto_run = true;

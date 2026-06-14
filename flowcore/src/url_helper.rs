@@ -27,9 +27,38 @@ pub fn url_from_string(base_url: &Url, string: Option<&str>) -> Result<Url> {
             info!("No url specified, so using: '{base_url}'");
             Ok(base_url.clone())
         }
-        Some(url_string) => base_url
-            .join(url_string)
-            .chain_err(|| format!("Problem joining url '{base_url}' with '{url_string}'")),
+        Some(url_string) => {
+            // Detect absolute file paths and convert to file:// URLs.
+            // Without this, Url::join interprets drive letters (C:, D:) as
+            // URL schemes on Windows.
+            #[cfg(not(target_arch = "wasm32"))]
+            {
+                let path = std::path::Path::new(url_string);
+                if path.is_absolute() {
+                    return Url::from_file_path(path).map_err(|()| {
+                        format!("Could not convert path '{url_string}' to file URL").into()
+                    });
+                }
+            }
+            if is_windows_absolute_path(url_string) {
+                let normalized = url_string.replace('\\', "/");
+                return Url::parse(&format!("file:///{normalized}")).chain_err(|| {
+                    format!("Could not convert Windows path '{url_string}' to file URL")
+                });
+            }
+            base_url
+                .join(url_string)
+                .chain_err(|| format!("Problem joining url '{base_url}' with '{url_string}'"))
+        }
+    }
+}
+
+fn is_windows_absolute_path(s: &str) -> bool {
+    let bytes = s.as_bytes();
+    if let [drive, b':', sep, ..] = bytes {
+        drive.is_ascii_alphabetic() && (*sep == b'\\' || *sep == b'/')
+    } else {
+        false
     }
 }
 
@@ -115,5 +144,62 @@ mod test {
 
         assert_eq!(url.scheme(), "file");
         assert_eq!(url.path(), expected_url.path());
+    }
+
+    #[test]
+    fn is_windows_path_detected() {
+        assert!(super::is_windows_absolute_path("C:\\Users\\test"));
+        assert!(super::is_windows_absolute_path("D:/some/path"));
+        assert!(super::is_windows_absolute_path("c:\\file"));
+        assert!(!super::is_windows_absolute_path("/unix/path"));
+        assert!(!super::is_windows_absolute_path("relative/path"));
+        assert!(!super::is_windows_absolute_path("http://example.com"));
+        assert!(!super::is_windows_absolute_path("file:///test"));
+        assert!(!super::is_windows_absolute_path("C:"));
+    }
+
+    #[test]
+    fn windows_backslash_path_becomes_file_url() {
+        let cwd = cwd_as_url();
+        let win_path = "C:\\Users\\test\\myflow";
+        let url = url_from_string(&cwd, Some(win_path)).expect("Could not form URL");
+        assert_eq!(url.scheme(), "file");
+        assert!(
+            url.path().contains("Users/test/myflow"),
+            "URL path '{}' should contain the path segments",
+            url.path()
+        );
+    }
+
+    #[test]
+    fn windows_forward_slash_path_becomes_file_url() {
+        let cwd = cwd_as_url();
+        let win_path = "D:/a/flow/flow/examples";
+        let url = url_from_string(&cwd, Some(win_path)).expect("Could not form URL");
+        assert_eq!(url.scheme(), "file");
+        assert!(
+            url.path().contains("a/flow/flow/examples"),
+            "URL path '{}' should contain the path segments",
+            url.path()
+        );
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn unix_absolute_path_becomes_file_url() {
+        let cwd = cwd_as_url();
+        let url = url_from_string(&cwd, Some("/tmp/myflow")).expect("Could not form URL");
+        assert_eq!(url.scheme(), "file");
+        assert_eq!(url.path(), "/tmp/myflow");
+    }
+
+    #[cfg(windows)]
+    #[test]
+    fn windows_native_absolute_path_becomes_file_url() {
+        let cwd = cwd_as_url();
+        let url =
+            url_from_string(&cwd, Some("C:\\Users\\test\\myflow")).expect("Could not form URL");
+        assert_eq!(url.scheme(), "file");
+        assert!(url.path().contains("Users/test/myflow"));
     }
 }

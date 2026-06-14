@@ -3,10 +3,6 @@
 use std::path::PathBuf;
 
 #[test]
-#[cfg_attr(
-    target_os = "windows",
-    ignore = "Windows drive letter parsed as URL scheme (#2815)"
-)]
 fn hello_world_client_server() {
     let example_dir = PathBuf::from("examples/hello-world");
     utilities::compile_example(&example_dir, "flowrcli");
