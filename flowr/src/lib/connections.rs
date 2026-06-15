@@ -36,6 +36,9 @@ impl ClientConnection {
         let requester = context
             .socket(zmq::REQ)
             .chain_err(|| "Client could not connect to coordinator service")?;
+        requester
+            .set_linger(0)
+            .chain_err(|| "Client Connection - could not set linger on Socket")?;
 
         requester
             .connect(&format!("tcp://{coordinator_address}"))
@@ -118,6 +121,9 @@ impl CoordinatorConnection {
             .socket(zmq::REP)
             .chain_err(|| "Coordinator Connection - could not create Socket")?;
 
+        responder
+            .set_linger(0)
+            .chain_err(|| "Coordinator Connection - could not set linger on Socket")?;
         debug!("Coordinator Connection attempting to bind to: tcp://*:{port}");
         responder.bind(&format!("tcp://*:{port}")).chain_err(|| {
             format!("Coordinator Connection - could not bind on TCP Socket on: tcp://{port}")

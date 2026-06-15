@@ -39,12 +39,18 @@ impl Dispatcher {
             .socket(zmq::PUSH)
             .map_err(|_| "Could not create job socket")?;
         lib_job_socket
+            .set_linger(0)
+            .map_err(|_| "Could not set linger on job socket")?;
+        lib_job_socket
             .bind(&job_queues.0)
             .map_err(|_| "Could not bind to job socket")?;
 
         let general_job_socket = context
             .socket(zmq::PUSH)
             .map_err(|_| "Could not create context job socket")?;
+        general_job_socket
+            .set_linger(0)
+            .map_err(|_| "Could not set linger on context job socket")?;
         general_job_socket
             .bind(&job_queues.1)
             .map_err(|_| "Could not bind to context job socket")?;
@@ -53,12 +59,18 @@ impl Dispatcher {
             .socket(zmq::PULL)
             .map_err(|_| "Could not create results socket")?;
         results_socket
+            .set_linger(0)
+            .map_err(|_| "Could not set linger on results socket")?;
+        results_socket
             .bind(&job_queues.2)
             .map_err(|_| "Could not bind to results socket")?;
 
         let control_socket = context
             .socket(zmq::PUB)
             .map_err(|_| "Could not create control socket")?;
+        control_socket
+            .set_linger(0)
+            .map_err(|_| "Could not set linger on control socket")?;
         control_socket
             .bind(&job_queues.3)
             .map_err(|_| "Could not bind to control socket")?;
