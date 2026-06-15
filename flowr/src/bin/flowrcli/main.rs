@@ -238,6 +238,7 @@ fn client_and_coordinator(
     }
 
     let coordinator_lib_search_path = lib_search_path.clone();
+    let coordinator_address = format!("localhost:{runtime_port}");
 
     info!("Starting coordinator in background thread");
     thread::spawn(move || {
@@ -251,8 +252,6 @@ fn client_and_coordinator(
             false,
         );
     });
-
-    let coordinator_address = discover_service(COORDINATOR_SERVICE_NAME)?;
 
     let runtime_client_connection = ClientConnection::new(&coordinator_address)?;
 
