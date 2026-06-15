@@ -128,13 +128,6 @@ jobs:
           echo "$GITHUB_WORKSPACE" >> "$GITHUB_PATH"
           rm -rf binaryen-${BINARYEN_VERSION} binaryen.tar.gz
 
-      - name: AllowMdnsMulticast
-        if: runner.os == 'Windows'
-        shell: pwsh
-        run: |
-          New-NetFirewallRule -DisplayName "Allow mDNS" -Direction Inbound -Protocol UDP -LocalPort 5353 -Action Allow
-          New-NetFirewallRule -DisplayName "Allow mDNS Out" -Direction Outbound -Protocol UDP -LocalPort 5353 -Action Allow
-
       - name: InstallWasmTools
         shell: bash
         run: |

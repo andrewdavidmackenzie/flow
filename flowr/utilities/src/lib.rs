@@ -497,7 +497,6 @@ impl DebugSession {
             .and_then(|s| s.trim().parse::<u16>().ok())
             .unwrap_or_else(|| panic!("Could not parse debug port from: {port_line}"));
 
-        eprintln!("[DEBUG] spawning flowrdb --address localhost:{port}");
         let flowrdb = Command::new("flowrdb")
             .args(["--address", &format!("localhost:{port}")])
             .stdin(Stdio::piped())
@@ -505,7 +504,6 @@ impl DebugSession {
             .stderr(Stdio::piped())
             .spawn()
             .expect("Could not spawn flowrdb");
-        eprintln!("[DEBUG] flowrdb spawned");
 
         let mut session = DebugSession {
             server,
@@ -518,7 +516,6 @@ impl DebugSession {
 
         // Wait for the ZMQ handshake to complete by reading flowrdb stdout
         // until we see "Entering Debugger" which confirms the connection
-        eprintln!("[DEBUG] waiting for 'Entering Debugger' from flowrdb stdout");
         let stdout = session
             .flowrdb
             .stdout
@@ -532,10 +529,8 @@ impl DebugSession {
                 .read_line(&mut line)
                 .expect("Could not read from flowrdb stdout");
             if line.is_empty() {
-                eprintln!("[DEBUG] flowrdb stdout EOF (empty line)");
                 break;
             }
-            eprintln!("[DEBUG] flowrdb stdout: {}", line.trim());
             let ready = line.contains("Entering Debugger");
             session.stdout_lines.push(line);
             if ready {
@@ -544,12 +539,11 @@ impl DebugSession {
             }
         }
         if !connected {
-            // Capture server stderr for diagnostics
+            // Capture server and flowrdb stderr for diagnostics
             let mut server_stderr = String::new();
             if let Some(ref mut stderr) = session.server.stderr {
                 let _ = stderr.read_to_string(&mut server_stderr);
             }
-            // Capture flowrdb stderr too
             let mut flowrdb_stderr = String::new();
             if let Some(ref mut stderr) = session.flowrdb.stderr {
                 let _ = stderr.read_to_string(&mut flowrdb_stderr);
@@ -562,7 +556,6 @@ impl DebugSession {
                 session.stdout_lines.join("")
             );
         }
-        eprintln!("[DEBUG] handshake complete");
         session.stdout_reader = Some(stdout_reader);
 
         session
