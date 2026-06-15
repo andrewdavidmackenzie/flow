@@ -69,6 +69,10 @@ impl<'a> Coordinator<'a> {
     #[cfg(feature = "submission")]
     pub fn submission_loop(&mut self, loop_forever: bool) -> Result<()> {
         while let Some(submission) = self.submission_handler.wait_for_submission()? {
+            #[cfg(feature = "debugger")]
+            if submission.debug_enabled {
+                eprintln!("[server] submission received, debug_enabled=true");
+            }
             let _ = self.execute_flow(submission);
             if !loop_forever {
                 break;
@@ -115,7 +119,9 @@ impl<'a> Coordinator<'a> {
 
         #[cfg(feature = "debugger")]
         if state.submission.debug_enabled {
+            eprintln!("[server] debug_enabled=true, calling debugger.start()...");
             self.debugger.start();
+            eprintln!("[server] debugger.start() returned");
         }
 
         let mut restart = false;

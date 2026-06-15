@@ -407,6 +407,7 @@ pub struct DebugSession {
     stdin: Option<std::process::ChildStdin>,
     stdout_lines: Vec<String>,
     stdout_reader: Option<BufReader<std::process::ChildStdout>>,
+    server_stderr_rx: Option<std::sync::mpsc::Receiver<String>>,
 }
 
 impl DebugSession {
@@ -447,46 +448,34 @@ impl DebugSession {
 
         let stderr = server.stderr.take().expect("Could not get stderr");
 
-        // Read stderr in a background thread with a timeout so CI doesn't hang
+        // Read stderr in a background thread — find the port line, then keep
+        // collecting remaining stderr for diagnostics on failure
         let runner_name = runner.to_string();
-        let (tx, rx) = std::sync::mpsc::channel();
+        let (port_tx, port_rx) = std::sync::mpsc::channel();
+        let (stderr_tx, stderr_rx) = std::sync::mpsc::channel();
         std::thread::spawn(move || {
             let mut reader = BufReader::new(stderr);
-            let mut lines = Vec::new();
             loop {
                 let mut line = String::new();
                 match reader.read_line(&mut line) {
-                    Ok(0) => {
-                        let _ = tx.send(Err(format!(
-                            "Runner {runner_name} exited before printing debug port.\nStderr:\n{}",
-                            lines.join("")
-                        )));
-                        return;
-                    }
+                    Ok(0) => break,
                     Ok(_) => {
                         if line.contains("localhost:") {
-                            let _ = tx.send(Ok(line));
-                            return;
+                            let _ = port_tx.send(Ok(line.clone()));
                         }
-                        lines.push(line);
+                        let _ = stderr_tx.send(line);
                     }
-                    Err(e) => {
-                        let _ = tx.send(Err(format!(
-                            "Error reading stderr from {runner_name}: {e}\nStderr so far:\n{}",
-                            lines.join("")
-                        )));
-                        return;
-                    }
+                    Err(_) => break,
                 }
             }
         });
 
-        let port_line = rx
+        let port_line = port_rx
             .recv_timeout(std::time::Duration::from_secs(30))
             .unwrap_or_else(|_| {
                 let _ = server.kill();
                 Err(format!(
-                    "Timed out waiting for {runner} to print debug port (30s)"
+                    "Timed out waiting for {runner_name} to print debug port (30s)"
                 ))
             })
             .unwrap_or_else(|e| panic!("{e}"));
@@ -511,6 +500,7 @@ impl DebugSession {
             stdin: None,
             stdout_lines: Vec::new(),
             stdout_reader: None,
+            server_stderr_rx: Some(stderr_rx),
         };
         session.stdin = session.flowrdb.stdin.take();
 
@@ -539,10 +529,13 @@ impl DebugSession {
             }
         }
         if !connected {
-            // Capture server and flowrdb stderr for diagnostics
-            let mut server_stderr = String::new();
-            if let Some(ref mut stderr) = session.server.stderr {
-                let _ = stderr.read_to_string(&mut server_stderr);
+            // Give server a moment to flush stderr, then drain the channel
+            std::thread::sleep(std::time::Duration::from_secs(1));
+            let mut server_stderr_lines = Vec::new();
+            if let Some(ref rx) = session.server_stderr_rx {
+                while let Ok(line) = rx.try_recv() {
+                    server_stderr_lines.push(line);
+                }
             }
             let mut flowrdb_stderr = String::new();
             if let Some(ref mut stderr) = session.flowrdb.stderr {
@@ -551,9 +544,10 @@ impl DebugSession {
             panic!(
                 "flowrdb exited before completing debug handshake.\n\
                  flowrdb output:\n{}\n\
-                 Server stderr:\n{server_stderr}\n\
+                 Server stderr:\n{}\n\
                  flowrdb stderr:\n{flowrdb_stderr}",
-                session.stdout_lines.join("")
+                session.stdout_lines.join(""),
+                server_stderr_lines.join(""),
             );
         }
         session.stdout_reader = Some(stdout_reader);
