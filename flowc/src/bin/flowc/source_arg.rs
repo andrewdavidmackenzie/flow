@@ -147,54 +147,41 @@ mod test {
         let temp_dir = tempdir()
             .expect("Could not create temporary directory for test")
             .keep();
-        let flow_dir = temp_dir
-            .to_str()
-            .expect("Could not convert temp dir name to string");
-        let flow_path = format!("{flow_dir}/fake.toml");
+        let flow_path = temp_dir.join("fake.toml");
         let mut file = fs::File::create(&flow_path).expect("Could not create file");
         file.write_all(b"flow = 'test'")
             .expect("Could not write to file");
-        let url = Url::parse(&format!("file://{flow_path}")).expect("Could not parse test Url");
+        let url =
+            Url::from_file_path(&flow_path).expect("Could not create Url from flow file path");
 
         let dir = super::get_output_dir(&url, &None, CompileType::Flow)
             .expect("Could not get output dir");
 
-        assert_eq!(
-            dir.to_str()
-                .expect("Could not convert output directory to file"),
-            flow_dir
-        );
+        assert_eq!(dir, temp_dir);
         assert!(dir.exists());
     }
 
     #[test]
     fn file_url_output_dir_arg() {
-        // FLow url
         let temp_dir = tempdir()
             .expect("Could not create temporary directory for test")
             .keep();
-        let flow_dir = temp_dir
-            .to_str()
-            .expect("Could not convert temp dir name to string");
-
-        let flow_path = format!("{flow_dir}/fake.toml");
-        let url = Url::parse(&format!("file:/{flow_path}")).expect("Could not parse test Url");
+        let flow_path = temp_dir.join("fake.toml");
+        let url =
+            Url::from_file_path(&flow_path).expect("Could not create Url from flow file path");
 
         // Output dir arg
-        let temp_dir = tempdir()
+        let out_dir = tempdir()
             .expect("Could not create temporary directory for test")
             .keep();
-        let out_dir_arg = temp_dir
+        let out_dir_arg = out_dir
             .to_str()
             .expect("Could not convert temp dir name to string");
 
         let dir = super::get_output_dir(&url, &Some(out_dir_arg.to_string()), CompileType::Flow)
             .expect("Could not get output dir");
 
-        assert_eq!(
-            dir.to_str().expect("Could not convert dir ot String"),
-            out_dir_arg
-        );
+        assert_eq!(dir, out_dir);
         assert!(dir.exists());
     }
 }

@@ -141,7 +141,10 @@ impl MetaProvider {
                 ))
             }
             Ok(FoundType::Resource(mut lib_root_url)) => {
-                lib_root_url.set_path(&format!("{}/{path_under_lib}", lib_root_url.path()));
+                lib_root_url
+                    .path_segments_mut()
+                    .map_err(|()| "URL cannot be a base")?
+                    .extend(path_under_lib.split('/'));
                 Ok((lib_root_url, lib_reference))
             }
             _ => bail!(

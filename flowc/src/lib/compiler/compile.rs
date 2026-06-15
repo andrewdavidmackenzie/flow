@@ -503,11 +503,10 @@ mod test {
             "print".into(),
             vec![IO::new(vec![STRING_TYPE.into()], Route::default())],
             vec![IO::new(vec![STRING_TYPE.into()], Route::default())],
-            Url::parse(&format!(
-                "file://{}/{}",
-                env!("CARGO_MANIFEST_DIR"),
-                "tests/test-functions/test/test"
-            ))
+            Url::from_file_path(
+                std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+                    .join("tests/test-functions/test/test"),
+            )
             .expect("Could not create source Url"),
             Route::from("/flow0/stdout"),
             Some(Url::parse("lib::/tests/test-functions/test/test").expect("Could not parse Url")),
