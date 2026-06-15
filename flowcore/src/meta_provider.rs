@@ -263,7 +263,7 @@ mod test {
         let provider = &MetaProvider::new(
             get_lib_search_path(),
             #[cfg(feature = "context")]
-            PathBuf::from("/"),
+            PathBuf::default(),
         ) as &dyn Provider;
         let lib_url =
             Url::parse("lib://test-flows/control/compare_switch").expect("Couldn't form Url");
@@ -300,7 +300,7 @@ mod test {
         let provider = &MetaProvider::new(
             search_path,
             #[cfg(feature = "context")]
-            PathBuf::from("/"),
+            PathBuf::default(),
         );
 
         let lib_url = Url::parse("lib://src/control/tap").expect("Couldn't create Url");

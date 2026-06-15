@@ -3841,8 +3841,12 @@ mod test {
     #[test]
     fn submitted_sets_flow_name_from_url() {
         let mut gui = test_gui();
-        gui.submission_settings.flow_manifest_url =
-            "flowr/examples/mandlebrot/manifest.json".into();
+        gui.submission_settings.flow_manifest_url = std::path::PathBuf::from("flowr")
+            .join("examples")
+            .join("mandlebrot")
+            .join("manifest.json")
+            .to_string_lossy()
+            .to_string();
         drop(gui.update(Message::Submitted));
         assert_eq!(gui.tab_set.flow_name, "mandlebrot");
         assert!(gui.submitted);
@@ -3902,7 +3906,12 @@ mod test {
     fn view_renders_after_submitted() {
         use iced_test::simulator::simulator;
         let mut gui = test_gui();
-        gui.submission_settings.flow_manifest_url = "flowr/examples/fibonacci/manifest.json".into();
+        gui.submission_settings.flow_manifest_url = std::path::PathBuf::from("flowr")
+            .join("examples")
+            .join("fibonacci")
+            .join("manifest.json")
+            .to_string_lossy()
+            .to_string();
         drop(gui.update(Message::Submitted));
         let view = gui.view();
         let _ui = simulator(view);

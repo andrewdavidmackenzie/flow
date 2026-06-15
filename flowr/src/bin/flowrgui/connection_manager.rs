@@ -379,7 +379,7 @@ fn coordinator(
 
     let provider = Arc::new(MetaProvider::new(
         coordinator_settings.lib_search_path,
-        PathBuf::from("/"),
+        PathBuf::default(),
     )) as Arc<dyn Provider>;
 
     let ports = get_four_ports()?;

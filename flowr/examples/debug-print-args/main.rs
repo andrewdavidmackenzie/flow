@@ -8,7 +8,9 @@ mod test {
     use utilities::DebugSession;
 
     fn example_dir() -> std::path::PathBuf {
-        std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("examples/debug-print-args")
+        std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+            .join("examples")
+            .join("debug-print-args")
     }
 
     #[test]

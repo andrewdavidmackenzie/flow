@@ -10,8 +10,9 @@ mod test {
     #[test]
     #[serial]
     fn test_debug_help_string_example() {
-        let example_dir =
-            std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("examples/debug-help-string");
+        let example_dir = std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+            .join("examples")
+            .join("debug-help-string");
         let mut session = DebugSession::start(&example_dir, &[]);
         session.send("h");
         session.send("e");

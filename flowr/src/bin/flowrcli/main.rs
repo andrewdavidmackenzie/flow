@@ -284,7 +284,7 @@ fn coordinator(
     };
 
     let provider =
-        Arc::new(MetaProvider::new(lib_search_path, PathBuf::from("/"))) as Arc<dyn Provider>;
+        Arc::new(MetaProvider::new(lib_search_path, PathBuf::default())) as Arc<dyn Provider>;
 
     let ports = get_four_ports()?;
     trace!("Announcing three job queues and a control socket on ports: {ports:?}");
@@ -375,7 +375,7 @@ fn client(
     let override_args = Arc::new(Mutex::new(Vec::<String>::new()));
 
     let flow_manifest_url = parse_flow_url(matches)?;
-    let provider = MetaProvider::new(lib_search_path, PathBuf::from("/"));
+    let provider = MetaProvider::new(lib_search_path, PathBuf::default());
     let (flow_manifest, _) = FlowManifest::load(&provider, &flow_manifest_url)?;
 
     let flow_args = get_flow_args(matches, &flow_manifest_url);

@@ -962,7 +962,7 @@ mod test {
 
     #[test]
     fn load_flow_nonexistent() {
-        let result = load_flow(&PathBuf::from("/nonexistent/flow.toml"));
+        let result = load_flow(&std::env::temp_dir().join("nonexistent").join("flow.toml"));
         assert!(result.is_err());
     }
 

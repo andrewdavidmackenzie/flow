@@ -1503,7 +1503,9 @@ fn load_mandlebrot_app() -> (FlowEdit, window::Id, std::path::PathBuf) {
     let src = std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR"))
         .parent()
         .expect("parent dir")
-        .join("flowr/examples/mandlebrot");
+        .join("flowr")
+        .join("examples")
+        .join("mandlebrot");
     let dest = std::env::temp_dir().join(format!("flowedit_mandlebrot_test_{id}"));
     if dest.exists() {
         std::fs::remove_dir_all(&dest).expect("clean temp dir");

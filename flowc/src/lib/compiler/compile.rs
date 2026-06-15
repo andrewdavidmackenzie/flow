@@ -505,7 +505,10 @@ mod test {
             vec![IO::new(vec![STRING_TYPE.into()], Route::default())],
             Url::from_file_path(
                 std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR"))
-                    .join("tests/test-functions/test/test"),
+                    .join("tests")
+                    .join("test-functions")
+                    .join("test")
+                    .join("test"),
             )
             .expect("Could not create source Url"),
             Route::from("/flow0/stdout"),

@@ -130,7 +130,7 @@ fn prepare_lib_workspace(lib_root_path: &Path) -> Result<()> {
         bail!("Flow libraries must have a valid 'lib.toml' file in the library's root directory");
     }
     let lib_src_path = lib_root_path.join("src");
-    let cargo_toml = lib_root_path.join("src/Cargo.toml");
+    let cargo_toml = lib_root_path.join("src").join("Cargo.toml");
     fs::copy(lib_toml_path, cargo_toml)?;
 
     // copy all function.toml files to Cargo.toml files in the same directory so the
@@ -178,7 +178,7 @@ fn check_manifest_status(
                 true,
             ))
         } else {
-            let provider = Arc::new(MetaProvider::new(Simpath::new(""), PathBuf::from("/")))
+            let provider = Arc::new(MetaProvider::new(Simpath::new(""), PathBuf::default()))
                 as Arc<dyn Provider>;
             let json_manifest_file_as_url =
                 Url::from_file_path(manifest_json_file).map_err(|()| {

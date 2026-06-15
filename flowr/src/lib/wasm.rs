@@ -172,7 +172,9 @@ mod test {
 
     #[test]
     fn load_test_wasm() {
-        let path = Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/add.wasm");
+        let path = Path::new(env!("CARGO_MANIFEST_DIR"))
+            .join("tests")
+            .join("add.wasm");
         let url = Url::from_file_path(path).expect("Could not convert path to Url");
         let provider = Arc::new(FileProvider {}) as Arc<dyn Provider>;
         let adder = &super::load(&provider, &url).expect("Could not load test_wasm.wasm")

@@ -22,7 +22,11 @@ pub fn get_canonical_context_root() -> PathBuf {
         .ok_or("Could not get parent dir")
         .expect("Could not get parent dir");
     examples_dir
-        .join("flowr/src/bin/flowrcli/context")
+        .join("flowr")
+        .join("src")
+        .join("bin")
+        .join("flowrcli")
+        .join("context")
         .canonicalize()
         .expect("Could not get absolute path")
 }

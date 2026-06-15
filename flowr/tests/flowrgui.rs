@@ -9,7 +9,11 @@ use serial_test::serial;
     ignore = "winit event loop hangs in non-interactive Windows CI session (no WM_PAINT)"
 )]
 fn test_fibonacci_flowrgui_example() {
-    utilities::test_example("flowr/examples/fibonacci/main.rs", "flowrgui", false, true);
+    let source = std::path::PathBuf::from("flowr")
+        .join("examples")
+        .join("fibonacci")
+        .join("main.rs");
+    utilities::test_example(source.to_str().expect("path"), "flowrgui", false, true);
 }
 
 #[cfg(feature = "debugger")]
@@ -20,8 +24,9 @@ fn test_fibonacci_flowrgui_example() {
     ignore = "winit event loop hangs in non-interactive Windows CI session (no WM_PAINT)"
 )]
 fn test_fibonacci_flowrgui_debug() {
-    let example_dir =
-        std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("examples/fibonacci");
+    let example_dir = std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+        .join("examples")
+        .join("fibonacci");
     let mut session = utilities::DebugSession::start_with_runner(&example_dir, "flowrgui", &[]);
     session.send("c");
     std::thread::sleep(std::time::Duration::from_secs(3));
