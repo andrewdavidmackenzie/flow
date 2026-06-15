@@ -445,24 +445,51 @@ impl DebugSession {
             .spawn()
             .unwrap_or_else(|e| panic!("Could not spawn {runner}: {e}"));
 
-        let stderr = server.stderr.as_mut().expect("Could not get stderr");
-        let mut reader = BufReader::new(stderr);
+        let stderr = server.stderr.take().expect("Could not get stderr");
 
-        // Read stderr lines until we find the debug port
-        let port_line;
-        loop {
-            let mut line = String::new();
-            reader
-                .read_line(&mut line)
-                .unwrap_or_else(|e| panic!("Could not read stderr from {runner}: {e}"));
-            if line.is_empty() {
-                panic!("Runner {runner} exited before printing debug port");
+        // Read stderr in a background thread with a timeout so CI doesn't hang
+        let runner_name = runner.to_string();
+        let (tx, rx) = std::sync::mpsc::channel();
+        std::thread::spawn(move || {
+            let mut reader = BufReader::new(stderr);
+            let mut lines = Vec::new();
+            loop {
+                let mut line = String::new();
+                match reader.read_line(&mut line) {
+                    Ok(0) => {
+                        let _ = tx.send(Err(format!(
+                            "Runner {runner_name} exited before printing debug port.\nStderr:\n{}",
+                            lines.join("")
+                        )));
+                        return;
+                    }
+                    Ok(_) => {
+                        if line.contains("localhost:") {
+                            let _ = tx.send(Ok(line));
+                            return;
+                        }
+                        lines.push(line);
+                    }
+                    Err(e) => {
+                        let _ = tx.send(Err(format!(
+                            "Error reading stderr from {runner_name}: {e}\nStderr so far:\n{}",
+                            lines.join("")
+                        )));
+                        return;
+                    }
+                }
             }
-            if line.contains("localhost:") {
-                port_line = line;
-                break;
-            }
-        }
+        });
+
+        let port_line = rx
+            .recv_timeout(std::time::Duration::from_secs(30))
+            .unwrap_or_else(|_| {
+                let _ = server.kill();
+                Err(format!(
+                    "Timed out waiting for {runner} to print debug port (30s)"
+                ))
+            })
+            .unwrap_or_else(|e| panic!("{e}"));
 
         let port = port_line
             .split("localhost:")
