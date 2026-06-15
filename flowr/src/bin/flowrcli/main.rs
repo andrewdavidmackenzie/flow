@@ -252,12 +252,9 @@ fn client_and_coordinator(
         );
     });
 
-    eprintln!("[flowrcli] discovering coordinator...");
     let coordinator_address = discover_service(COORDINATOR_SERVICE_NAME)?;
-    eprintln!("[flowrcli] discovered at {coordinator_address}");
 
     let runtime_client_connection = ClientConnection::new(&coordinator_address)?;
-    eprintln!("[flowrcli] client connected, entering client loop");
 
     client(
         matches,
