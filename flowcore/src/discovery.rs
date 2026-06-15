@@ -56,17 +56,6 @@ pub fn enable_service_discovery(name: &str, service_port: u16) -> Result<Service
 /// - Cannot create `ServiceDaemon`
 /// - Cannot get receiver for discovery messages
 pub fn discover_service(name: &str) -> Result<String> {
-    discover_service_with_timeout(name, DEFAULT_DISCOVERY_TIMEOUT)
-}
-
-/// Discover a service by name using mDNS-SD with a custom timeout.
-///
-/// Returns the service address as `"{ip}:{port}"`.
-///
-/// # Errors
-/// - Cannot create `ServiceDaemon`
-/// - Cannot get receiver for discovery messages
-pub fn discover_service_with_timeout(name: &str, timeout: Duration) -> Result<String> {
     let mdns = ServiceDaemon::new().map_err(|e| format!("Could not create mDNS daemon: {e}"))?;
 
     let receiver = mdns
@@ -77,11 +66,11 @@ pub fn discover_service_with_timeout(name: &str, timeout: Duration) -> Result<St
     let start = Instant::now();
 
     loop {
-        if start.elapsed() > timeout {
+        if start.elapsed() > DEFAULT_DISCOVERY_TIMEOUT {
             mdns.shutdown().ok();
             bail!(format!(
                 "mDNS discovery timed out after {}s for '{name}'",
-                timeout.as_secs()
+                DEFAULT_DISCOVERY_TIMEOUT.as_secs()
             ));
         }
 
