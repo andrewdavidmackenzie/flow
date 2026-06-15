@@ -511,11 +511,17 @@ impl DebugSession {
                 break;
             }
         }
-        assert!(
-            connected,
-            "flowrdb exited before completing debug handshake. Output:\n{}",
-            session.stdout_lines.join("")
-        );
+        if !connected {
+            // Capture server stderr for diagnostics
+            let mut server_stderr = String::new();
+            if let Some(ref mut stderr) = session.server.stderr {
+                let _ = stderr.read_to_string(&mut server_stderr);
+            }
+            panic!(
+                "flowrdb exited before completing debug handshake.\nflowrdb output:\n{}\nServer stderr:\n{server_stderr}",
+                session.stdout_lines.join("")
+            );
+        }
         session.stdout_reader = Some(stdout_reader);
 
         session
