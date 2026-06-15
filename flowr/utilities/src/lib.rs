@@ -497,6 +497,7 @@ impl DebugSession {
             .and_then(|s| s.trim().parse::<u16>().ok())
             .unwrap_or_else(|| panic!("Could not parse debug port from: {port_line}"));
 
+        eprintln!("[DEBUG] spawning flowrdb --address localhost:{port}");
         let flowrdb = Command::new("flowrdb")
             .args(["--address", &format!("localhost:{port}")])
             .stdin(Stdio::piped())
@@ -504,6 +505,7 @@ impl DebugSession {
             .stderr(Stdio::piped())
             .spawn()
             .expect("Could not spawn flowrdb");
+        eprintln!("[DEBUG] flowrdb spawned");
 
         let mut session = DebugSession {
             server,
@@ -516,6 +518,7 @@ impl DebugSession {
 
         // Wait for the ZMQ handshake to complete by reading flowrdb stdout
         // until we see "Entering Debugger" which confirms the connection
+        eprintln!("[DEBUG] waiting for 'Entering Debugger' from flowrdb stdout");
         let stdout = session
             .flowrdb
             .stdout
@@ -529,8 +532,10 @@ impl DebugSession {
                 .read_line(&mut line)
                 .expect("Could not read from flowrdb stdout");
             if line.is_empty() {
+                eprintln!("[DEBUG] flowrdb stdout EOF (empty line)");
                 break;
             }
+            eprintln!("[DEBUG] flowrdb stdout: {}", line.trim());
             let ready = line.contains("Entering Debugger");
             session.stdout_lines.push(line);
             if ready {
@@ -544,11 +549,20 @@ impl DebugSession {
             if let Some(ref mut stderr) = session.server.stderr {
                 let _ = stderr.read_to_string(&mut server_stderr);
             }
+            // Capture flowrdb stderr too
+            let mut flowrdb_stderr = String::new();
+            if let Some(ref mut stderr) = session.flowrdb.stderr {
+                let _ = stderr.read_to_string(&mut flowrdb_stderr);
+            }
             panic!(
-                "flowrdb exited before completing debug handshake.\nflowrdb output:\n{}\nServer stderr:\n{server_stderr}",
+                "flowrdb exited before completing debug handshake.\n\
+                 flowrdb output:\n{}\n\
+                 Server stderr:\n{server_stderr}\n\
+                 flowrdb stderr:\n{flowrdb_stderr}",
                 session.stdout_lines.join("")
             );
         }
+        eprintln!("[DEBUG] handshake complete");
         session.stdout_reader = Some(stdout_reader);
 
         session
