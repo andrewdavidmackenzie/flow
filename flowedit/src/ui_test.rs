@@ -740,12 +740,14 @@ fn lib_paths_remove_message() {
     // which triggers update_lib_paths() and sets FLOW_LIB_PATH="", breaking
     // concurrent tests that need to resolve lib:// URLs.
     let (mut app, _) = test_app();
-    app.lib_paths.push("/tmp/a".into());
-    app.lib_paths.push("/tmp/b".into());
+    let path_a = std::env::temp_dir().join("a").to_string_lossy().to_string();
+    let path_b = std::env::temp_dir().join("b").to_string_lossy().to_string();
+    app.lib_paths.push(path_a);
+    app.lib_paths.push(path_b.clone());
     assert_eq!(app.lib_paths.len(), 2);
     app.lib_paths.remove(0);
     assert_eq!(app.lib_paths.len(), 1);
-    assert_eq!(app.lib_paths[0], "/tmp/b");
+    assert_eq!(app.lib_paths[0], path_b);
 }
 
 #[test]
@@ -3037,7 +3039,7 @@ fn run_button_enabled_with_manifest() {
         .get_mut(&win_id)
         .unwrap()
         .history
-        .set_compiled_manifest(PathBuf::from("/tmp/test-manifest.json"));
+        .set_compiled_manifest(std::env::temp_dir().join("test-manifest.json"));
     let _ = app.update(Message::Run);
     let win = app.windows.get(&win_id).unwrap();
     // Should attempt to launch, not show "Build the flow first"
@@ -3109,7 +3111,7 @@ fn launch_flowrgui_with_manifest() {
         .get_mut(&win_id)
         .unwrap()
         .history
-        .set_compiled_manifest(PathBuf::from("/tmp/test-manifest.json"));
+        .set_compiled_manifest(std::env::temp_dir().join("test-manifest.json"));
     app.launch_flowrgui();
     let win = app.windows.get(&win_id).unwrap();
     assert_ne!(win.status, "Build the flow first");
@@ -3144,7 +3146,7 @@ fn auto_run_cleared_after_use() {
         .get_mut(&win_id)
         .unwrap()
         .history
-        .set_compiled_manifest(PathBuf::from("/tmp/test-manifest.json"));
+        .set_compiled_manifest(std::env::temp_dir().join("test-manifest.json"));
     // auto_run with a manifest: launch_flowrgui is called, auto_run cleared
     // We can't simulate a real compile success, but we can test the flag directly
     assert!(app.auto_run);

@@ -72,6 +72,7 @@ pub(crate) fn load_library_catalogs(
     // and the MetaProvider is configured with that context root.
     let ctx_provider = file_ops::build_meta_provider();
     let runner_dir = std::env::var("HOME")
+        .or_else(|_| std::env::var("USERPROFILE"))
         .map(|h| {
             std::path::PathBuf::from(h)
                 .join(".flow")

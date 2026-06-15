@@ -202,7 +202,6 @@ mod test {
     use std::collections::BTreeMap;
     use std::env;
     use std::fs::{remove_file, write, File};
-    use std::path::Path;
     use std::time::Duration;
 
     use tempfile::tempdir;
@@ -221,7 +220,7 @@ mod test {
 
     #[test]
     fn test_run_optional_non_existent() {
-        let _ = run_optional_command(Path::new("/tmp"), "foo", &["bar"]);
+        let _ = run_optional_command(&std::env::temp_dir(), "foo", &["bar"]);
     }
 
     #[test]
