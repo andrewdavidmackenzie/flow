@@ -83,13 +83,8 @@ impl DebugClient {
     pub fn debug_client_loop(mut self) {
         let _ = self.editor.load_history(FLOWDB_HISTORY_FILENAME);
 
-        eprintln!("[flowrdb] sending DebugClientStarting...");
-        match self.connection.send(DebugClientStarting) {
-            Ok(()) => eprintln!("[flowrdb] DebugClientStarting sent OK"),
-            Err(ref e) => eprintln!("[flowrdb] DebugClientStarting send FAILED: {e}"),
-        }
+        let _ = self.connection.send(DebugClientStarting);
 
-        eprintln!("[flowrdb] waiting for first message from server...");
         loop {
             match self.connection.receive() {
                 Ok(debug_server_message) => {

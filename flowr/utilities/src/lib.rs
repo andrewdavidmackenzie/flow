@@ -407,7 +407,6 @@ pub struct DebugSession {
     stdin: Option<std::process::ChildStdin>,
     stdout_lines: Vec<String>,
     stdout_reader: Option<BufReader<std::process::ChildStdout>>,
-    server_stderr_rx: Option<std::sync::mpsc::Receiver<String>>,
 }
 
 impl DebugSession {
@@ -446,39 +445,24 @@ impl DebugSession {
             .spawn()
             .unwrap_or_else(|e| panic!("Could not spawn {runner}: {e}"));
 
-        let stderr = server.stderr.take().expect("Could not get stderr");
+        let stderr = server.stderr.as_mut().expect("Could not get stderr");
+        let mut reader = BufReader::new(stderr);
 
-        // Read stderr in a background thread — find the port line, then keep
-        // collecting remaining stderr for diagnostics on failure
-        let runner_name = runner.to_string();
-        let (port_tx, port_rx) = std::sync::mpsc::channel();
-        let (stderr_tx, stderr_rx) = std::sync::mpsc::channel();
-        std::thread::spawn(move || {
-            let mut reader = BufReader::new(stderr);
-            loop {
-                let mut line = String::new();
-                match reader.read_line(&mut line) {
-                    Ok(0) => break,
-                    Ok(_) => {
-                        if line.contains("localhost:") {
-                            let _ = port_tx.send(Ok(line.clone()));
-                        }
-                        let _ = stderr_tx.send(line);
-                    }
-                    Err(_) => break,
-                }
+        // Read stderr lines until we find the debug port
+        let port_line;
+        loop {
+            let mut line = String::new();
+            reader
+                .read_line(&mut line)
+                .unwrap_or_else(|e| panic!("Could not read stderr from {runner}: {e}"));
+            if line.is_empty() {
+                panic!("Runner {runner} exited before printing debug port");
             }
-        });
-
-        let port_line = port_rx
-            .recv_timeout(std::time::Duration::from_secs(30))
-            .unwrap_or_else(|_| {
-                let _ = server.kill();
-                Err(format!(
-                    "Timed out waiting for {runner_name} to print debug port (30s)"
-                ))
-            })
-            .unwrap_or_else(|e| panic!("{e}"));
+            if line.contains("localhost:") {
+                port_line = line;
+                break;
+            }
+        }
 
         let port = port_line
             .split("localhost:")
@@ -500,7 +484,6 @@ impl DebugSession {
             stdin: None,
             stdout_lines: Vec::new(),
             stdout_reader: None,
-            server_stderr_rx: Some(stderr_rx),
         };
         session.stdin = session.flowrdb.stdin.take();
 
@@ -528,28 +511,11 @@ impl DebugSession {
                 break;
             }
         }
-        if !connected {
-            // Give server a moment to flush stderr, then drain the channel
-            std::thread::sleep(std::time::Duration::from_secs(1));
-            let mut server_stderr_lines = Vec::new();
-            if let Some(ref rx) = session.server_stderr_rx {
-                while let Ok(line) = rx.try_recv() {
-                    server_stderr_lines.push(line);
-                }
-            }
-            let mut flowrdb_stderr = String::new();
-            if let Some(ref mut stderr) = session.flowrdb.stderr {
-                let _ = stderr.read_to_string(&mut flowrdb_stderr);
-            }
-            panic!(
-                "flowrdb exited before completing debug handshake.\n\
-                 flowrdb output:\n{}\n\
-                 Server stderr:\n{}\n\
-                 flowrdb stderr:\n{flowrdb_stderr}",
-                session.stdout_lines.join(""),
-                server_stderr_lines.join(""),
-            );
-        }
+        assert!(
+            connected,
+            "flowrdb exited before completing debug handshake. Output:\n{}",
+            session.stdout_lines.join("")
+        );
         session.stdout_reader = Some(stdout_reader);
 
         session

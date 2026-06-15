@@ -73,7 +73,7 @@ fn main() {
 
     let connection = match ClientConnection::new(&server_address) {
         Ok(conn) => {
-            if let Err(e) = conn.set_receive_timeout(30_000) {
+            if let Err(e) = conn.set_receive_timeout(5_000) {
                 error!("Could not set receive timeout: {e}");
             }
             conn

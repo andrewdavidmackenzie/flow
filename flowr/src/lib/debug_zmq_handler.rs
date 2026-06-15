@@ -30,16 +30,10 @@ pub struct DebugZmqHandler {
 
 impl DebuggerHandler for DebugZmqHandler {
     fn start(&mut self) {
-        eprintln!("[server] DebugZmqHandler::start() called, waiting for DebugClientStarting...");
-        match self.debug_server_connection.receive::<DebugCommand>(WAIT) {
-            Ok(cmd) => eprintln!("[server] received: {cmd}"),
-            Err(ref e) => eprintln!("[server] receive FAILED: {e}"),
-        }
-        eprintln!("[server] sending EnteringDebugger...");
-        let resp: flowcore::errors::Result<DebugCommand> = self
+        let _ = self.debug_server_connection.receive::<DebugCommand>(WAIT);
+        let _: flowcore::errors::Result<DebugCommand> = self
             .debug_server_connection
             .send_and_receive_response(EnteringDebugger);
-        eprintln!("[server] EnteringDebugger response: {resp:?}");
     }
 
     fn job_breakpoint(&mut self, job: &Job, _function: &RuntimeFunction, _states: Vec<State>) {

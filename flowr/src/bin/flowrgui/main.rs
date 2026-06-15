@@ -3672,9 +3672,11 @@ mod test {
 
     #[test]
     fn flow_url_absolute_path() {
-        let url = FlowrGui::flow_url("/tmp/test.toml").expect("Could not create url");
+        let abs_path = std::env::temp_dir().join("test.toml");
+        let abs_str = abs_path.to_str().expect("Could not convert path");
+        let url = FlowrGui::flow_url(abs_str).expect("Could not create url");
         assert_eq!(url.scheme(), "file");
-        assert!(url.path().ends_with("/tmp/test.toml"));
+        assert!(url.path().ends_with("/test.toml"));
     }
 
     #[test]
