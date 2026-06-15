@@ -9,10 +9,6 @@ mod test {
 
     #[test]
     #[serial]
-    #[cfg_attr(
-        target_os = "windows",
-        ignore = "mDNS service discovery fails on Windows CI (no multicast)"
-    )]
     fn test_debug_help_string_example() {
         let example_dir = std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR"))
             .join("examples")
