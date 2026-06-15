@@ -202,4 +202,128 @@ mod test {
         assert_eq!(url.scheme(), "file");
         assert!(url.path().contains("Users/test/myflow"));
     }
+
+    #[test]
+    fn canonicalized_path_to_directory_url_round_trips() {
+        let dir = std::env::temp_dir()
+            .canonicalize()
+            .expect("Could not canonicalize temp dir");
+        let url = Url::from_directory_path(&dir).unwrap_or_else(|()| {
+            panic!(
+                "Url::from_directory_path failed for canonicalized path: {}",
+                dir.display()
+            )
+        });
+        assert_eq!(url.scheme(), "file");
+        let back = url
+            .to_file_path()
+            .unwrap_or_else(|()| panic!("to_file_path failed for URL: {url}"));
+        assert_eq!(back, dir, "round-trip failed: {dir:?} -> {url} -> {back:?}");
+    }
+
+    #[test]
+    fn canonicalized_path_to_file_url_round_trips() {
+        let file = std::env::temp_dir().join("test_round_trip.txt");
+        std::fs::write(&file, "test").expect("Could not write test file");
+        let canonical = file
+            .canonicalize()
+            .expect("Could not canonicalize test file");
+        let url = Url::from_file_path(&canonical).unwrap_or_else(|()| {
+            panic!(
+                "Url::from_file_path failed for canonicalized path: {}",
+                canonical.display()
+            )
+        });
+        assert_eq!(url.scheme(), "file");
+        let back = url
+            .to_file_path()
+            .unwrap_or_else(|()| panic!("to_file_path failed for URL: {url}"));
+        assert_eq!(
+            back, canonical,
+            "round-trip failed: {canonical:?} -> {url} -> {back:?}"
+        );
+        let _ = std::fs::remove_file(&file);
+    }
+
+    #[cfg(windows)]
+    #[test]
+    fn windows_unc_path_to_url_round_trips() {
+        let cwd = std::env::current_dir().expect("Could not get cwd");
+        let canonical = cwd.canonicalize().expect("Could not canonicalize cwd");
+        let canonical_str = canonical.to_string_lossy();
+        eprintln!("Canonical path: {canonical_str}");
+        assert!(
+            canonical_str.starts_with("\\\\?\\"),
+            "Expected UNC prefix on Windows canonicalize, got: {canonical_str}"
+        );
+        let url = Url::from_directory_path(&canonical).unwrap_or_else(|()| {
+            panic!("Url::from_directory_path failed for UNC path: {canonical_str}")
+        });
+        eprintln!("URL: {url}");
+        let joined = url
+            .join("manifest.json")
+            .expect("Could not join manifest.json");
+        eprintln!("Joined URL: {joined}");
+        let back = joined
+            .to_file_path()
+            .unwrap_or_else(|()| panic!("to_file_path failed for joined URL: {joined}"));
+        eprintln!("Back to path: {}", back.display());
+        assert!(
+            back.ends_with("manifest.json"),
+            "Path should end with manifest.json, got: {}",
+            back.display()
+        );
+    }
+
+    #[test]
+    fn canonicalize_then_set_cwd_then_get_cwd() {
+        let original_cwd = std::env::current_dir().expect("Could not get cwd");
+        let dir = std::env::temp_dir();
+        let canonical = dir.canonicalize().expect("Could not canonicalize temp dir");
+        eprintln!("canonical temp dir: {}", canonical.display());
+        std::env::set_current_dir(&canonical).expect("Could not set cwd to canonical path");
+        let retrieved_cwd = std::env::current_dir().expect("Could not get cwd after set");
+        eprintln!("retrieved cwd: {}", retrieved_cwd.display());
+        let url = Url::from_directory_path(&retrieved_cwd).unwrap_or_else(|()| {
+            panic!(
+                "Url::from_directory_path failed for retrieved cwd: {}",
+                retrieved_cwd.display()
+            )
+        });
+        eprintln!("url from retrieved cwd: {url}");
+        let back = url
+            .to_file_path()
+            .unwrap_or_else(|()| panic!("to_file_path failed for: {url}"));
+        eprintln!("back to path: {}", back.display());
+        std::env::set_current_dir(&original_cwd).expect("Could not restore cwd");
+    }
+
+    #[test]
+    fn canonicalized_cwd_produces_valid_url_for_manifest() {
+        let cwd = std::env::current_dir()
+            .expect("Could not get cwd")
+            .canonicalize()
+            .expect("Could not canonicalize cwd");
+        let cwd_url = Url::from_directory_path(&cwd).unwrap_or_else(|()| {
+            panic!(
+                "Url::from_directory_path failed for canonicalized cwd: {}",
+                cwd.display()
+            )
+        });
+        let manifest_url = cwd_url
+            .join("manifest.json")
+            .expect("Could not join manifest.json to cwd url");
+        assert!(
+            manifest_url.as_str().ends_with("manifest.json"),
+            "manifest URL should end with manifest.json, got: {manifest_url}"
+        );
+        let manifest_path = manifest_url
+            .to_file_path()
+            .expect("Could not convert manifest URL back to path");
+        assert!(
+            manifest_path.ends_with("manifest.json"),
+            "manifest path should end with manifest.json, got: {}",
+            manifest_path.display()
+        );
+    }
 }
