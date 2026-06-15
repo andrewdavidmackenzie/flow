@@ -49,7 +49,9 @@ use flowrlib::connections::{ClientConnection, CoordinatorConnection};
 use flowrlib::coordinator::Coordinator;
 #[cfg(feature = "debugger")]
 use flowrlib::debug_zmq_handler::DebugZmqHandler;
-use flowrlib::discovery::{discover_service, enable_service_discovery};
+use flowrlib::discovery::{
+    discover_service, discover_service_with_timeout, enable_service_discovery,
+};
 use flowrlib::dispatcher::Dispatcher;
 use flowrlib::executor::Executor;
 use flowrlib::info as flowrlib_info;
@@ -238,7 +240,6 @@ fn client_and_coordinator(
     }
 
     let coordinator_lib_search_path = lib_search_path.clone();
-    let coordinator_address = format!("localhost:{runtime_port}");
 
     info!("Starting coordinator in background thread");
     thread::spawn(move || {
@@ -252,6 +253,13 @@ fn client_and_coordinator(
             false,
         );
     });
+
+    let coordinator_address =
+        discover_service_with_timeout(COORDINATOR_SERVICE_NAME, std::time::Duration::from_secs(5))
+            .unwrap_or_else(|_| {
+                info!("mDNS discovery failed, falling back to localhost:{runtime_port}");
+                format!("127.0.0.1:{runtime_port}")
+            });
 
     let runtime_client_connection = ClientConnection::new(&coordinator_address)?;
 
