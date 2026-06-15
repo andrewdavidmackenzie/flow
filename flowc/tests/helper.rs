@@ -40,5 +40,5 @@ pub fn absolute_file_url_from_relative_path(path: &str) -> Url {
     Url::from_directory_path(flow_root)
         .expect("Could not create Url from directory path")
         .join(path)
-        .expect("Could not jin path to Url")
+        .expect("Could not join path to Url")
 }
