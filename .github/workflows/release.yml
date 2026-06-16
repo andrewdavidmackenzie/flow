@@ -82,23 +82,11 @@ jobs:
       - name: Install cargo-packager
         run: cargo install cargo-packager --locked
 
-      - name: Cross-compile OpenSSL for armv7
-        if: matrix.target == 'armv7-unknown-linux-gnueabihf'
-        run: |
-          curl -sL https://github.com/openssl/openssl/releases/download/openssl-3.4.1/openssl-3.4.1.tar.gz | tar xz
-          cd openssl-3.4.1
-          ./Configure linux-armv4 --cross-compile-prefix=arm-linux-gnueabihf- --prefix=$HOME/openssl-armv7 no-shared
-          make -j$(nproc)
-          make install_sw
-          cd ..
-
       - name: Build release binaries
         run: cargo build --release --all-features --target ${{ matrix.target }}
         env:
           CC_armv7_unknown_linux_gnueabihf: arm-linux-gnueabihf-gcc
           CXX_armv7_unknown_linux_gnueabihf: arm-linux-gnueabihf-g++
-          OPENSSL_STATIC: ${{ matrix.target == 'armv7-unknown-linux-gnueabihf' && '1' || '' }}
-          OPENSSL_DIR: ${{ matrix.target == 'armv7-unknown-linux-gnueabihf' && '/home/runner/openssl-armv7' || '' }}
 
       - name: Find and upload release binaries
         shell: bash

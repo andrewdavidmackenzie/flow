@@ -34,22 +34,10 @@ jobs:
       - name: Install armv7 cross-compilation toolchain
         run: |
           sudo apt-get update
-          sudo apt-get install -y gcc-arm-linux-gnueabihf g++-arm-linux-gnueabihf
-          sudo apt-get install -y cmake
-
-      - name: Cross-compile OpenSSL for armv7
-        run: |
-          curl -sL https://github.com/openssl/openssl/releases/download/openssl-3.4.1/openssl-3.4.1.tar.gz | tar xz
-          cd openssl-3.4.1
-          ./Configure linux-armv4 --cross-compile-prefix=arm-linux-gnueabihf- --prefix=$HOME/openssl-armv7 no-shared
-          make -j$(nproc)
-          make install_sw
-          cd ..
+          sudo apt-get install -y gcc-arm-linux-gnueabihf g++-arm-linux-gnueabihf cmake
 
       - name: Build for armv7 (Raspberry Pi 2/3/4 32-bit)
         env:
           CC_armv7_unknown_linux_gnueabihf: arm-linux-gnueabihf-gcc
           CXX_armv7_unknown_linux_gnueabihf: arm-linux-gnueabihf-g++
-          OPENSSL_STATIC: 1
-          OPENSSL_DIR: /home/runner/openssl-armv7
         run: cargo build --target=armv7-unknown-linux-gnueabihf
