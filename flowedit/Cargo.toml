@@ -15,6 +15,11 @@ pkg-url = "{ repo }/releases/download/{ version }/flow-{ version }-{ target }.ta
 bin-dir = "{ bin }{ binary-ext }"
 pkg-fmt = "tgz"
 
+[package.metadata.packager]
+product-name = "flowedit"
+identifier = "net.mackenzie-serres.flowedit"
+icons = ["assets/icons/icon.png", "assets/icons/icon.icns", "assets/icons/icon.ico"]
+
 [lints]
 workspace = true
 

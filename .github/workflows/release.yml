@@ -73,6 +73,9 @@ jobs:
       - name: Install WASM tools
         run: cargo install wasm-gc wasm-snip
 
+      - name: Install cargo-packager
+        run: cargo install cargo-packager --locked
+
       - name: Build release binaries
         run: cargo build --release --all-features --target ${{ matrix.target }}
 
@@ -121,6 +124,32 @@ jobs:
 
           echo "Uploading ${ARCHIVE}"
           gh release upload "${TAG}" "${ARCHIVE}" --clobber
+
+      - name: Package flowc (native installers)
+        shell: bash
+        continue-on-error: true
+        run: cargo packager --release --target ${{ matrix.target }} --packages flowc --verbose
+
+      - name: Package flowr (native installers)
+        shell: bash
+        continue-on-error: true
+        run: cargo packager --release --target ${{ matrix.target }} --packages flowr --verbose
+
+      - name: Package flowedit (native installers)
+        shell: bash
+        continue-on-error: true
+        run: cargo packager --release --target ${{ matrix.target }} --packages flowedit --verbose
+
+      - name: Upload native packages
+        shell: bash
+        run: |
+          TAG="${{ github.event.release.tag_name }}"
+          for ext in deb AppImage dmg exe msi; do
+            find target -name "*.${ext}" -type f 2>/dev/null | while read pkg; do
+              echo "Uploading: ${pkg}"
+              gh release upload "${TAG}" "${pkg}" --clobber || true
+            done
+          done
 
       - name: Compile flowstdlib to WASM (Linux x86_64 only)
         if: matrix.target == 'x86_64-unknown-linux-gnu'
