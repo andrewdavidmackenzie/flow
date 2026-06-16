@@ -34,6 +34,8 @@ jobs:
             target: x86_64-pc-windows-msvc
           - os: windows-11-arm
             target: aarch64-pc-windows-msvc
+          - os: ubuntu-latest
+            target: armv7-unknown-linux-gnueabihf
 
     env:
       GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -53,7 +55,11 @@ jobs:
         if: runner.os == 'Linux'
         run: |
           sudo apt-get update
-          sudo apt-get install -y libzmq3-dev binaryen
+          sudo apt-get install -y libzmq3-dev binaryen cmake
+
+      - name: Install armv7 cross-compilation toolchain
+        if: matrix.target == 'armv7-unknown-linux-gnueabihf'
+        run: sudo apt-get install -y gcc-arm-linux-gnueabihf g++-arm-linux-gnueabihf
 
       - name: Install macOS dependencies
         if: runner.os == 'macOS'
@@ -78,6 +84,10 @@ jobs:
 
       - name: Build release binaries
         run: cargo build --release --all-features --target ${{ matrix.target }}
+        env:
+          CC_armv7_unknown_linux_gnueabihf: arm-linux-gnueabihf-gcc
+          CXX_armv7_unknown_linux_gnueabihf: arm-linux-gnueabihf-g++
+          CARGO_TARGET_ARMV7_UNKNOWN_LINUX_GNUEABIHF_LINKER: arm-linux-gnueabihf-gcc
 
       - name: Find and upload release binaries
         shell: bash
