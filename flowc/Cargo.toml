@@ -18,7 +18,7 @@ pkg-fmt = "tgz"
 [package.metadata.packager]
 product-name = "flowc"
 identifier = "net.mackenzie-serres.flowc"
-icons = ["../assets/icons/icon.png", "../assets/icons/icon.icns", "../assets/icons/icon.ico"]
+icons = ["assets/icons/icon.png", "assets/icons/icon.icns", "assets/icons/icon.ico"]
 
 [lints]
 workspace = true
