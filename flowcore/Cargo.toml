@@ -44,8 +44,7 @@ toml = { version = "1.1.2" }
 serde_yml = "0.0.13"
 
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]
-curl = {version = "~0.4", default-features = false }
-curl-sys = {version = "~0.4", default-features = false, features = ["rustls"] }
+curl = {version = "~0.4", default-features = false, features = ["static-ssl"] }
 simpath = { version = "~2.6", features = ["urls"] }
 mdns-sd = { version = "0.20", default-features = false }
 
