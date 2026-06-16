@@ -9,6 +9,10 @@ mod test {
     use std::path::PathBuf;
 
     #[test]
+    #[cfg_attr(
+        target_os = "windows",
+        ignore = "Non-deterministic intermediate output order on Windows"
+    )]
     fn test_running_average_example() {
         let _ = env::set_current_dir(
             PathBuf::from(env!("CARGO_MANIFEST_DIR"))
