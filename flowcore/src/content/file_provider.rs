@@ -138,7 +138,7 @@ mod test {
         #[test]
         fn get_default_sample() {
             let root = Path::new(env!("CARGO_MANIFEST_DIR"));
-            let path = root.join("tests/test-flows/hello-world");
+            let path = root.join("tests").join("test-flows").join("hello-world");
             match FileProvider::find_file(&path, "root", &["toml"]) {
                 Ok(path_string) => {
                     let path = path_string
@@ -163,7 +163,11 @@ mod test {
         #[test]
         fn get_default_sample_full_path() {
             let root = Path::new(env!("CARGO_MANIFEST_DIR"));
-            let path = root.join("tests/test-flows/hello-world/root.toml");
+            let path = root
+                .join("tests")
+                .join("test-flows")
+                .join("hello-world")
+                .join("root.toml");
             let url = Url::from_file_path(path).expect("Could not create Url from path");
             let provider: &dyn Provider = &FileProvider;
             let resolved_url = provider
@@ -179,7 +183,11 @@ mod test {
         #[test]
         fn get_default_sample_full_path_without_extension() {
             let root = Path::new(env!("CARGO_MANIFEST_DIR"));
-            let path = root.join("tests/test-flows/hello-world/root");
+            let path = root
+                .join("tests")
+                .join("test-flows")
+                .join("hello-world")
+                .join("root");
             let url = Url::from_file_path(path).expect("Could not create Url from path");
             let provider: &dyn Provider = &FileProvider;
             let resolved_url = provider
@@ -198,7 +206,7 @@ mod test {
         #[test]
         fn get_default_sample_rom_dir() {
             let root = Path::new(env!("CARGO_MANIFEST_DIR"));
-            let path = root.join("tests/test-flows/hello-world");
+            let path = root.join("tests").join("test-flows").join("hello-world");
             let url = Url::from_file_path(path.clone()).expect("Could not create Url from path");
             let provider: &dyn Provider = &FileProvider;
             let resolved_url = provider
@@ -216,7 +224,11 @@ mod test {
         #[test]
         fn get_by_last_path_segment() {
             let root = Path::new(env!("CARGO_MANIFEST_DIR"));
-            let path = root.join("tests/test-flows/control/compare_switch");
+            let path = root
+                .join("tests")
+                .join("test-flows")
+                .join("control")
+                .join("compare_switch");
             let url = Url::from_file_path(path.clone()).expect("Could not create Url from path");
             let provider: &dyn Provider = &FileProvider;
             let resolved_url = provider

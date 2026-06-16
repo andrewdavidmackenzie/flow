@@ -96,7 +96,7 @@ fn start_executors(num_threads: usize) -> Result<()> {
         );
 
         let provider =
-            Arc::new(MetaProvider::new(Simpath::new(""), PathBuf::from("/"))) as Arc<dyn Provider>;
+            Arc::new(MetaProvider::new(Simpath::new(""), PathBuf::default())) as Arc<dyn Provider>;
 
         let job_service = format!("tcp://{}", discover_service(JOB_SERVICE_NAME)?);
         let results_service = format!("tcp://{}", discover_service(RESULTS_JOB_SERVICE_NAME)?);

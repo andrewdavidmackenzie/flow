@@ -555,7 +555,7 @@ impl FlowEdit {
         let mut lib_search_path = Simpath::new_with_separator("FLOW_LIB_PATH", ',');
         lib_search_path.add_directory(parent_str);
 
-        if let Ok(home) = std::env::var("HOME") {
+        if let Ok(home) = std::env::var("HOME").or_else(|_| std::env::var("USERPROFILE")) {
             let default_lib = PathBuf::from(&home).join(".flow").join("lib");
             if default_lib.exists() {
                 if let Some(path_str) = default_lib.to_str() {
@@ -564,15 +564,17 @@ impl FlowEdit {
             }
         }
 
-        let context_root = std::env::var("HOME").map_or_else(
-            |_| PathBuf::from("/"),
-            |h| {
-                PathBuf::from(h)
-                    .join(".flow")
-                    .join("runner")
-                    .join("flowrcli")
-            },
-        );
+        let context_root = std::env::var("HOME")
+            .or_else(|_| std::env::var("USERPROFILE"))
+            .map_or_else(
+                |_| PathBuf::from("."),
+                |h| {
+                    PathBuf::from(h)
+                        .join(".flow")
+                        .join("runner")
+                        .join("flowrcli")
+                },
+            );
         let provider = MetaProvider::new(lib_search_path.clone(), context_root.clone());
         let arc_provider: Arc<dyn Provider> = Arc::new(provider);
 

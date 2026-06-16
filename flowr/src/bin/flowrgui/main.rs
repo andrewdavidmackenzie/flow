@@ -3064,8 +3064,11 @@ impl FlowrGui {
         }
 
         if lib_search_path.is_empty() {
-            let home_dir = env::var("HOME").unwrap_or_else(|_| "Could not get $HOME".to_string());
-            lib_search_path.add(&format!("{home_dir}/.flow/lib"));
+            let home = env::var("HOME")
+                .or_else(|_| env::var("USERPROFILE"))
+                .unwrap_or_else(|_| ".".to_string());
+            let default_path = std::path::PathBuf::from(home).join(".flow").join("lib");
+            lib_search_path.add(default_path.to_str().unwrap_or(".flow/lib"));
         }
 
         lib_search_path
@@ -3669,9 +3672,11 @@ mod test {
 
     #[test]
     fn flow_url_absolute_path() {
-        let url = FlowrGui::flow_url("/tmp/test.toml").expect("Could not create url");
+        let abs_path = std::env::temp_dir().join("test.toml");
+        let abs_str = abs_path.to_str().expect("Could not convert path");
+        let url = FlowrGui::flow_url(abs_str).expect("Could not create url");
         assert_eq!(url.scheme(), "file");
-        assert!(url.path().ends_with("/tmp/test.toml"));
+        assert!(url.path().ends_with("/test.toml"));
     }
 
     #[test]
@@ -3838,8 +3843,12 @@ mod test {
     #[test]
     fn submitted_sets_flow_name_from_url() {
         let mut gui = test_gui();
-        gui.submission_settings.flow_manifest_url =
-            "flowr/examples/mandlebrot/manifest.json".into();
+        gui.submission_settings.flow_manifest_url = std::path::PathBuf::from("flowr")
+            .join("examples")
+            .join("mandlebrot")
+            .join("manifest.json")
+            .to_string_lossy()
+            .to_string();
         drop(gui.update(Message::Submitted));
         assert_eq!(gui.tab_set.flow_name, "mandlebrot");
         assert!(gui.submitted);
@@ -3899,7 +3908,12 @@ mod test {
     fn view_renders_after_submitted() {
         use iced_test::simulator::simulator;
         let mut gui = test_gui();
-        gui.submission_settings.flow_manifest_url = "flowr/examples/fibonacci/manifest.json".into();
+        gui.submission_settings.flow_manifest_url = std::path::PathBuf::from("flowr")
+            .join("examples")
+            .join("fibonacci")
+            .join("manifest.json")
+            .to_string_lossy()
+            .to_string();
         drop(gui.update(Message::Submitted));
         let view = gui.view();
         let _ui = simulator(view);

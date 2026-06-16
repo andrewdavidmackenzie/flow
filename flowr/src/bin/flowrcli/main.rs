@@ -104,8 +104,11 @@ fn get_lib_search_path(search_path_additions: &[String]) -> Simpath {
     }
 
     if lib_search_path.is_empty() {
-        let home_dir = env::var("HOME").unwrap_or_else(|_| "Could not get $HOME".to_string());
-        lib_search_path.add(&format!("{home_dir}/.flow/lib"));
+        let home = env::var("HOME")
+            .or_else(|_| env::var("USERPROFILE"))
+            .unwrap_or_else(|_| ".".to_string());
+        let default_path = std::path::PathBuf::from(home).join(".flow").join("lib");
+        lib_search_path.add(default_path.to_str().unwrap_or(".flow/lib"));
     }
 
     lib_search_path
@@ -281,7 +284,7 @@ fn coordinator(
     };
 
     let provider =
-        Arc::new(MetaProvider::new(lib_search_path, PathBuf::from("/"))) as Arc<dyn Provider>;
+        Arc::new(MetaProvider::new(lib_search_path, PathBuf::default())) as Arc<dyn Provider>;
 
     let ports = get_four_ports()?;
     trace!("Announcing three job queues and a control socket on ports: {ports:?}");
@@ -372,7 +375,7 @@ fn client(
     let override_args = Arc::new(Mutex::new(Vec::<String>::new()));
 
     let flow_manifest_url = parse_flow_url(matches)?;
-    let provider = MetaProvider::new(lib_search_path, PathBuf::from("/"));
+    let provider = MetaProvider::new(lib_search_path, PathBuf::default());
     let (flow_manifest, _) = FlowManifest::load(&provider, &flow_manifest_url)?;
 
     let flow_args = get_flow_args(matches, &flow_manifest_url);

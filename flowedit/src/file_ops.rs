@@ -26,7 +26,7 @@ pub(crate) struct EditorPrefs {
 /// and the default flowrcli context root.
 pub(crate) fn build_meta_provider() -> MetaProvider {
     let mut lib_search_path = Simpath::new_with_separator("FLOW_LIB_PATH", ',');
-    if let Ok(home) = std::env::var("HOME") {
+    if let Ok(home) = std::env::var("HOME").or_else(|_| std::env::var("USERPROFILE")) {
         let default_lib = PathBuf::from(&home).join(".flow").join("lib");
         if default_lib.exists() {
             if let Some(path_str) = default_lib.to_str() {
@@ -34,15 +34,17 @@ pub(crate) fn build_meta_provider() -> MetaProvider {
             }
         }
     }
-    let context_root = std::env::var("HOME").map_or_else(
-        |_| PathBuf::from("/"),
-        |h| {
-            PathBuf::from(h)
-                .join(".flow")
-                .join("runner")
-                .join("flowrcli")
-        },
-    );
+    let context_root = std::env::var("HOME")
+        .or_else(|_| std::env::var("USERPROFILE"))
+        .map_or_else(
+            |_| PathBuf::from("."),
+            |h| {
+                PathBuf::from(h)
+                    .join(".flow")
+                    .join("runner")
+                    .join("flowrcli")
+            },
+        );
     MetaProvider::new(lib_search_path, context_root)
 }
 
@@ -60,8 +62,12 @@ pub(crate) fn resolve_lib_paths() -> Vec<String> {
         }
     }
 
-    if let Ok(home) = std::env::var("HOME") {
-        let default_lib = format!("{home}/.flow/lib");
+    if let Ok(home) = std::env::var("HOME").or_else(|_| std::env::var("USERPROFILE")) {
+        let default_lib = PathBuf::from(&home)
+            .join(".flow")
+            .join("lib")
+            .to_string_lossy()
+            .to_string();
         if std::path::Path::new(&default_lib).is_dir() && !paths.contains(&default_lib) {
             paths.push(default_lib);
         }
@@ -767,7 +773,7 @@ mod test {
 
     #[test]
     fn editor_prefs_path_format() {
-        let path = editor_prefs_path(Path::new("/tmp/test/root.toml"));
+        let path = editor_prefs_path(&std::env::temp_dir().join("test").join("root.toml"));
         assert_eq!(
             path.file_name().and_then(|n| n.to_str()),
             Some(".root.toml.flowedit")
@@ -956,7 +962,7 @@ mod test {
 
     #[test]
     fn load_flow_nonexistent() {
-        let result = load_flow(&PathBuf::from("/nonexistent/flow.toml"));
+        let result = load_flow(&std::env::temp_dir().join("nonexistent").join("flow.toml"));
         assert!(result.is_err());
     }
 

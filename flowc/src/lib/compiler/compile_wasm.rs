@@ -202,7 +202,6 @@ mod test {
     use std::collections::BTreeMap;
     use std::env;
     use std::fs::{remove_file, write, File};
-    use std::path::Path;
     use std::time::Duration;
 
     use tempfile::tempdir;
@@ -221,7 +220,7 @@ mod test {
 
     #[test]
     fn test_run_optional_non_existent() {
-        let _ = run_optional_command(Path::new("/tmp"), "foo", &["bar"]);
+        let _ = run_optional_command(&std::env::temp_dir(), "foo", &["bar"]);
     }
 
     #[test]
@@ -317,11 +316,13 @@ mod test {
             "print".into(),
             vec![IO::new(vec![STRING_TYPE.into()], Route::default())],
             vec![IO::new(vec![STRING_TYPE.into()], Route::default())],
-            Url::parse(&format!(
-                "file://{}/{}",
-                env!("CARGO_MANIFEST_DIR"),
-                "tests/test-functions/test/test"
-            ))
+            Url::from_file_path(
+                std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+                    .join("tests")
+                    .join("test-functions")
+                    .join("test")
+                    .join("test"),
+            )
             .expect("Could not create source Url"),
             Route::from("/flow0/stdout"),
             Some(Url::parse("lib::/tests/test-functions/test/test").expect("Could not parse Url")),

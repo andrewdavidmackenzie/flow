@@ -266,10 +266,11 @@ mod test {
         let mut history = EditHistory::default();
         assert!(history.compiled_manifest().is_none());
 
-        history.set_compiled_manifest(PathBuf::from("/tmp/test.manifest"));
+        let manifest_path = std::env::temp_dir().join("test.manifest");
+        history.set_compiled_manifest(manifest_path.clone());
         assert_eq!(
             history.compiled_manifest().map(Path::to_path_buf),
-            Some(PathBuf::from("/tmp/test.manifest"))
+            Some(manifest_path)
         );
 
         // Recording an action invalidates the manifest
@@ -283,7 +284,7 @@ mod test {
         assert!(history.compiled_manifest().is_none());
 
         // Setting again, then mark_modified also invalidates
-        history.set_compiled_manifest(PathBuf::from("/tmp/test2.manifest"));
+        history.set_compiled_manifest(std::env::temp_dir().join("test2.manifest"));
         assert!(history.compiled_manifest().is_some());
         history.mark_modified();
         assert!(history.compiled_manifest().is_none());

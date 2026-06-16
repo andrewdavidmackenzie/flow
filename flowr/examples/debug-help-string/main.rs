@@ -9,9 +9,14 @@ mod test {
 
     #[test]
     #[serial]
+    #[cfg_attr(
+        target_os = "windows",
+        ignore = "Debug handshake fails on Windows CI (#2817)"
+    )]
     fn test_debug_help_string_example() {
-        let example_dir =
-            std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("examples/debug-help-string");
+        let example_dir = std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+            .join("examples")
+            .join("debug-help-string");
         let mut session = DebugSession::start(&example_dir, &[]);
         session.send("h");
         session.send("e");

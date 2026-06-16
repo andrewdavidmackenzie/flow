@@ -57,7 +57,8 @@ mod test {
     #[test]
     #[serial]
     fn write_file() {
-        let file_path = "/fake/write_test";
+        let file_path = std::path::Path::new("fake").join("write_test");
+        let file_path = file_path.to_str().expect("Could not convert path");
         let file_contents = "test text".as_bytes().to_vec();
         let inputs = [json!(file_path), json!(file_contents)];
         let file_write_message = CoordinatorMessage::Write(file_path.to_string(), file_contents);

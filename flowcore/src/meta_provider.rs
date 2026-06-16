@@ -43,9 +43,9 @@ pub struct MetaProvider {
 /// let lib_search_path = Simpath::new_with_separator("FLOW_LIB_PATH", ',');
 /// let meta_provider = &mut MetaProvider::new(
 ///                                             #[cfg(feature = "file_provider")]lib_search_path,
-///                                             #[cfg(feature = "context")] PathBuf::from("/")
+///                                             #[cfg(feature = "context")] std::env::temp_dir()
 ///                                             ) as &dyn Provider;
-/// let url = Url::parse("file://directory").unwrap();
+/// let url = Url::from_directory_path(std::env::temp_dir()).unwrap();
 /// match meta_provider.resolve_url(&url, "default", &["toml"]) {
 ///     Ok((resolved_url, lib_ref)) => {
 ///         match meta_provider.get_contents(&resolved_url) {
@@ -141,7 +141,10 @@ impl MetaProvider {
                 ))
             }
             Ok(FoundType::Resource(mut lib_root_url)) => {
-                lib_root_url.set_path(&format!("{}/{path_under_lib}", lib_root_url.path()));
+                lib_root_url
+                    .path_segments_mut()
+                    .map_err(|()| "URL cannot be a base")?
+                    .extend(path_under_lib.split('/'));
                 Ok((lib_root_url, lib_reference))
             }
             _ => bail!(
@@ -260,7 +263,7 @@ mod test {
         let provider = &MetaProvider::new(
             get_lib_search_path(),
             #[cfg(feature = "context")]
-            PathBuf::from("/"),
+            PathBuf::default(),
         ) as &dyn Provider;
         let lib_url =
             Url::parse("lib://test-flows/control/compare_switch").expect("Couldn't form Url");
@@ -297,7 +300,7 @@ mod test {
         let provider = &MetaProvider::new(
             search_path,
             #[cfg(feature = "context")]
-            PathBuf::from("/"),
+            PathBuf::default(),
         );
 
         let lib_url = Url::parse("lib://src/control/tap").expect("Couldn't create Url");

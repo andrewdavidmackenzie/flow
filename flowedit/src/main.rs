@@ -126,10 +126,11 @@ pub(crate) fn setup_lib_search_path(lib_dirs: &[String]) {
         info!("'{addition}' added to the Library Search Path");
     }
     if lib_search_path.is_empty() {
-        if let Ok(home) = std::env::var("HOME") {
-            let default_lib = format!("{home}/.flow/lib");
-            lib_search_path.add(&default_lib);
-            std::env::set_var("FLOW_LIB_PATH", &default_lib);
+        if let Ok(home) = std::env::var("HOME").or_else(|_| std::env::var("USERPROFILE")) {
+            let default_lib = std::path::PathBuf::from(home).join(".flow").join("lib");
+            let default_lib_str = default_lib.to_string_lossy();
+            lib_search_path.add(&default_lib_str);
+            std::env::set_var("FLOW_LIB_PATH", &*default_lib_str);
         }
     } else if !lib_dirs.is_empty() {
         let current = std::env::var("FLOW_LIB_PATH").unwrap_or_default();
