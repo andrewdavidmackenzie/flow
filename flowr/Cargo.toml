@@ -15,6 +15,20 @@ pkg-url = "{ repo }/releases/download/{ version }/flow-{ version }-{ target }.ta
 bin-dir = "{ bin }{ binary-ext }"
 pkg-fmt = "tgz"
 
+[package.metadata.packager]
+product-name = "flowr"
+identifier = "net.mackenzie-serres.flowr"
+binaries = [
+    { path = "flowrcli", main = true },
+    { path = "flowrgui" },
+    { path = "flowrex" },
+    { path = "flowrdb" },
+]
+icons = ["../assets/icons/icon.png", "../assets/icons/icon.icns", "../assets/icons/icon.ico"]
+
+[package.metadata.packager.deb]
+depends = ["libzmq5"]
+
 [lints]
 workspace = true
 
