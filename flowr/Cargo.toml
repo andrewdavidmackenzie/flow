@@ -27,7 +27,7 @@ binaries = [
 icons = ["assets/icons/icon.png", "assets/icons/icon.icns", "assets/icons/icon.ico"]
 
 [package.metadata.packager.deb]
-depends = ["libzmq5"]
+depends = ["libzmq5", "libssl3", "ca-certificates"]
 
 [lints]
 workspace = true

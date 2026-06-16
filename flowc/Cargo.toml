@@ -20,6 +20,9 @@ product-name = "flowc"
 identifier = "net.mackenzie-serres.flowc"
 icons = ["assets/icons/icon.png", "assets/icons/icon.icns", "assets/icons/icon.ico"]
 
+[package.metadata.packager.deb]
+depends = ["libssl3", "ca-certificates"]
+
 [lints]
 workspace = true
 
