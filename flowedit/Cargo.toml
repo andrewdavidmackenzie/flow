@@ -10,6 +10,11 @@ repository.workspace = true
 readme = "../README.md"
 edition.workspace = true
 
+[package.metadata.binstall]
+pkg-url = "{ repo }/releases/download/{ version }/flow-{ version }-{ target }.tar.gz"
+bin-dir = "{ bin }{ binary-ext }"
+pkg-fmt = "tgz"
+
 [lints]
 workspace = true
 
