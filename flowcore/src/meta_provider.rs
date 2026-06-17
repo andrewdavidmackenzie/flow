@@ -168,7 +168,7 @@ impl MetaProvider {
                  - Install the library with: curl -sL https://github.com/andrewdavidmackenzie/flow/releases/latest/download/install-flowstdlib.sh | bash\n\
                  - Set FLOW_LIB_PATH to the directory containing the library\n\
                  - Use the -L flag to add a library directory",
-                url,
+                lib_name,
                 self.lib_search_path
             ),
         }
