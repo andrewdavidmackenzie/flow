@@ -187,18 +187,21 @@ jobs:
 
       - name: Compile flowstdlib to WASM (Linux x86_64 only)
         if: matrix.target == 'x86_64-unknown-linux-gnu'
-        run: |
-          target/${{ matrix.target }}/release/flowc -d -g -O flowstdlib
+        run: target/${{ matrix.target }}/release/flowc -d -g -O flowstdlib
 
       - name: Upload flowstdlib tarball (Linux x86_64 only)
         if: matrix.target == 'x86_64-unknown-linux-gnu'
         shell: bash
         run: |
           TAG="${{ github.event.release.tag_name }}"
-          cd $HOME/.flow/lib
-          tar -cJf "flowstdlib-${TAG}.tar.xz" flowstdlib
-          cd -
-          gh release upload "${TAG}" "$HOME/.flow/lib/flowstdlib-${TAG}.tar.xz" --clobber
+          mkdir -p flowstdlib-staging
+          cp -r $HOME/.flow/lib/flowstdlib flowstdlib-staging/
+          cp install-flowstdlib.sh flowstdlib-staging/
+          cd flowstdlib-staging
+          tar -cJf "flowstdlib-${TAG}.tar.xz" flowstdlib install-flowstdlib.sh
+          cd ..
+          gh release upload "${TAG}" "flowstdlib-staging/flowstdlib-${TAG}.tar.xz" --clobber
+          gh release upload "${TAG}" install-flowstdlib.sh --clobber
 
   build-and-publish-book:
     needs: [ build-and-bundle ]
