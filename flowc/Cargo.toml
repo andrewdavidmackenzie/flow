@@ -50,7 +50,7 @@ env_logger = "0.11.10"
 log = "0.4.32"
 url = { version = "2.2", features = ["serde"] }
 tempfile = "3"
-simpath = { version = "~2.5", features = ["urls"]}
+simpath = { version = "~2.6", features = ["urls"]}
 globwalk = "0.9.1"
 serde_json = "1.0"
 error-chain = "0.12.2"
@@ -62,5 +62,5 @@ toml = { version = "1.1.2" }
 [dev-dependencies]
 flowcore = {path = "../flowcore", version = "1.1.0", features = ["context"]}
 tempfile = "3"
-simpath = { version = "~2.5", features = ["urls"]}
+simpath = { version = "~2.6", features = ["urls"]}
 serial_test = "3.5.0"
