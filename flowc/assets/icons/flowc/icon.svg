@@ -1,0 +1,43 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024">
+  
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#2563eb"/>
+      <stop offset="100%" style="stop-color:#7c3aed"/>
+    </linearGradient>
+  </defs>
+  <rect width="1024" height="1024" rx="160" fill="url(#bg)"/>
+
+  <!-- Source flow nodes (left side) -->
+  <circle cx="160" cy="400" r="32" fill="white" opacity="0.8"/>
+  <circle cx="160" cy="560" r="32" fill="white" opacity="0.8"/>
+  <circle cx="310" cy="480" r="36" fill="white" opacity="0.9"/>
+  <path d="M160 400 C230 400, 240 480, 310 480" stroke="white" stroke-width="7" fill="none" opacity="0.5"/>
+  <path d="M160 560 C230 560, 240 480, 310 480" stroke="white" stroke-width="7" fill="none" opacity="0.5"/>
+  <!-- Gear (center) -->
+  <g transform="translate(512,490)">
+    <circle r="80" fill="rgba(255,255,255,0.2)" stroke="white" stroke-width="10"/>
+    <circle r="36" fill="none" stroke="white" stroke-width="10"/>
+    <!-- Gear teeth -->
+    <rect x="-12" y="-92" width="24" height="24" rx="4" fill="white" opacity="0.8"/>
+    <rect x="-12" y="68" width="24" height="24" rx="4" fill="white" opacity="0.8"/>
+    <rect x="-92" y="-12" width="24" height="24" rx="4" fill="white" opacity="0.8"/>
+    <rect x="68" y="-12" width="24" height="24" rx="4" fill="white" opacity="0.8"/>
+    <rect x="50" y="-68" width="24" height="24" rx="4" fill="white" opacity="0.8" transform="rotate(45 62 -56)"/>
+    <rect x="-74" y="-68" width="24" height="24" rx="4" fill="white" opacity="0.8" transform="rotate(45 -62 -56)"/>
+    <rect x="50" y="44" width="24" height="24" rx="4" fill="white" opacity="0.8" transform="rotate(45 62 56)"/>
+    <rect x="-74" y="44" width="24" height="24" rx="4" fill="white" opacity="0.8" transform="rotate(45 -62 56)"/>
+  </g>
+  <!-- Manifest document (right side) -->
+  <rect x="700" y="360" width="180" height="260" rx="18" fill="white" opacity="0.85"/>
+  <line x1="736" y1="416" x2="844" y2="416" stroke="#7c3aed" stroke-width="7" opacity="0.35" stroke-linecap="round"/>
+  <line x1="736" y1="456" x2="844" y2="456" stroke="#7c3aed" stroke-width="7" opacity="0.35" stroke-linecap="round"/>
+  <line x1="736" y1="496" x2="820" y2="496" stroke="#7c3aed" stroke-width="7" opacity="0.35" stroke-linecap="round"/>
+  <line x1="736" y1="536" x2="836" y2="536" stroke="#7c3aed" stroke-width="7" opacity="0.35" stroke-linecap="round"/>
+  <line x1="736" y1="576" x2="810" y2="576" stroke="#7c3aed" stroke-width="7" opacity="0.35" stroke-linecap="round"/>
+  <!-- Arrows: flow → gear → manifest -->
+  <path d="M346 480 L420 480" stroke="white" stroke-width="8" fill="none" opacity="0.5" marker-end="none"/>
+  <polygon points="410,468 430,480 410,492" fill="white" opacity="0.5"/>
+  <path d="M604 490 L690 490" stroke="white" stroke-width="8" fill="none" opacity="0.5"/>
+  <polygon points="680,478 700,490 680,502" fill="white" opacity="0.5"/>
+</svg>

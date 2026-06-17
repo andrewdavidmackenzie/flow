@@ -24,7 +24,7 @@ binaries = [
     { path = "flowrex" },
     { path = "flowrdb" },
 ]
-icons = ["assets/icons/icon.png", "assets/icons/icon.icns", "assets/icons/icon.ico"]
+icons = ["assets/icons/flowrcli/icon.png", "assets/icons/flowrcli/icon.icns", "assets/icons/flowrcli/icon.ico"]
 
 [package.metadata.packager.deb]
 depends = ["libzmq5", "libssl3"]

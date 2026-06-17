@@ -1,0 +1,46 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024">
+  
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#2563eb"/>
+      <stop offset="100%" style="stop-color:#7c3aed"/>
+    </linearGradient>
+  </defs>
+  <rect width="1024" height="1024" rx="160" fill="url(#bg)"/>
+
+  
+  <!-- Common flow graph background -->
+  <circle cx="240" cy="380" r="28" fill="white" opacity="0.2"/>
+  <circle cx="240" cy="644" r="28" fill="white" opacity="0.2"/>
+  <circle cx="460" cy="512" r="34" fill="white" opacity="0.25"/>
+  <circle cx="680" cy="380" r="28" fill="white" opacity="0.2"/>
+  <circle cx="680" cy="644" r="28" fill="white" opacity="0.2"/>
+  <path d="M240 380 C350 380, 350 512, 460 512" stroke="white" stroke-width="6" fill="none" opacity="0.15"/>
+  <path d="M240 644 C350 644, 350 512, 460 512" stroke="white" stroke-width="6" fill="none" opacity="0.15"/>
+  <path d="M460 512 C570 512, 570 380, 680 380" stroke="white" stroke-width="6" fill="none" opacity="0.15"/>
+  <path d="M460 512 C570 512, 570 644, 680 644" stroke="white" stroke-width="6" fill="none" opacity="0.15"/>
+
+  <!-- Canvas frame -->
+  <rect x="140" y="220" width="640" height="520" rx="16" fill="rgba(255,255,255,0.1)" stroke="white" stroke-width="5"/>
+  <!-- Grid dots on canvas -->
+  <g fill="white" opacity="0.12">
+    <circle cx="220" cy="300" r="3"/><circle cx="320" cy="300" r="3"/><circle cx="420" cy="300" r="3"/>
+    <circle cx="520" cy="300" r="3"/><circle cx="620" cy="300" r="3"/><circle cx="700" cy="300" r="3"/>
+    <circle cx="220" cy="400" r="3"/><circle cx="320" cy="400" r="3"/><circle cx="420" cy="400" r="3"/>
+    <circle cx="520" cy="400" r="3"/><circle cx="620" cy="400" r="3"/><circle cx="700" cy="400" r="3"/>
+    <circle cx="220" cy="500" r="3"/><circle cx="320" cy="500" r="3"/><circle cx="420" cy="500" r="3"/>
+    <circle cx="520" cy="500" r="3"/><circle cx="620" cy="500" r="3"/><circle cx="700" cy="500" r="3"/>
+    <circle cx="220" cy="600" r="3"/><circle cx="320" cy="600" r="3"/><circle cx="420" cy="600" r="3"/>
+    <circle cx="520" cy="600" r="3"/><circle cx="620" cy="600" r="3"/><circle cx="700" cy="600" r="3"/>
+    <circle cx="220" cy="700" r="3"/><circle cx="320" cy="700" r="3"/><circle cx="420" cy="700" r="3"/>
+    <circle cx="520" cy="700" r="3"/><circle cx="620" cy="700" r="3"/><circle cx="700" cy="700" r="3"/>
+  </g>
+  <!-- Selection highlight on one of the background flow nodes -->
+  <rect x="426" y="478" width="68" height="68" rx="14" fill="none" stroke="white" stroke-width="4" stroke-dasharray="10,6" opacity="0.6"/>
+  <!-- Large pencil outside canvas -->
+  <g transform="translate(800,160) rotate(45)">
+    <rect x="-18" y="0" width="36" height="220" rx="6" fill="white" opacity="0.9"/>
+    <polygon points="-18,220 18,220 0,260" fill="white" opacity="0.9"/>
+    <rect x="-18" y="0" width="36" height="44" rx="6" fill="rgba(0,0,0,0.25)"/>
+  </g>
+</svg>
