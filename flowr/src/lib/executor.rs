@@ -319,7 +319,11 @@ fn load_referenced_implementation(
         .locators
         .get(implementation_url)
         .ok_or(format!(
-            "Could not find ImplementationLocator for '{implementation_url}' in library"
+            "Could not find implementation for '{implementation_url}' in library '{}'.\n\
+             The library may need to be recompiled or reinstalled.\n\
+             For flowstdlib: curl -sL https://github.com/andrewdavidmackenzie/flow/releases/download/v{}/install-flowstdlib.sh | bash",
+            lib_manifest.metadata.name,
+            env!("CARGO_PKG_VERSION")
         ))?;
 
     // find the implementation we need from the locator
@@ -676,7 +680,7 @@ mod test {
         );
         let err_msg = result.expect_err("Expected an error").to_string();
         assert!(
-            err_msg.contains("Could not find ImplementationLocator"),
+            err_msg.contains("Could not find implementation for"),
             "Error should mention missing locator, got: {err_msg}"
         );
     }
@@ -785,7 +789,7 @@ mod test {
         );
         let err_msg = result.expect_err("Expected an error").to_string();
         assert!(
-            err_msg.contains("Could not find ImplementationLocator"),
+            err_msg.contains("Could not find implementation for"),
             "Error should mention missing locator, got: {err_msg}"
         );
     }

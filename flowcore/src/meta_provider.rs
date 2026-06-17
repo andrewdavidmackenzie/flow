@@ -103,9 +103,23 @@ impl MetaProvider {
             .chain_err(|| format!("context 'dir' could not be extracted from the url '{url}'"))?;
         let sub_dir = url.path().trim_start_matches('/');
         let context_function_path = self.context_root.join(dir).join(sub_dir);
+        if !self.context_root.exists() {
+            bail!(
+                "Context function directory '{}' does not exist.\n\
+                 Context definitions are needed to compile flows.\n\
+                 Run the install.sh script from a release archive to install them,\n\
+                 or compile the runner with: flowc flowr/src/bin/flowrcli",
+                self.context_root.display()
+            );
+        }
         Ok((
-            Url::from_file_path(context_function_path)
-                .map_err(|()| "Could not convert context function's path to a Url")?,
+            Url::from_file_path(&context_function_path).map_err(|()| {
+                format!(
+                    "Could not resolve context function at '{}'\n\
+                         Check that the runner context definitions are installed.",
+                    context_function_path.display()
+                )
+            })?,
             Some(Url::parse(&format!("context://{dir}/{sub_dir}"))?),
         ))
     }
@@ -148,7 +162,12 @@ impl MetaProvider {
                 Ok((lib_root_url, lib_reference))
             }
             _ => bail!(
-                "Could not resolve library Url '{}' using {}",
+                "Could not resolve library '{}' in search path: {}\n\
+                 \n\
+                 To fix this, either:\n\
+                 - Install the library with: curl -sL https://github.com/andrewdavidmackenzie/flow/releases/latest/download/install-flowstdlib.sh | bash\n\
+                 - Set FLOW_LIB_PATH to the directory containing the library\n\
+                 - Use the -L flag to add a library directory",
                 url,
                 self.lib_search_path
             ),
