@@ -7,7 +7,7 @@
 # Or with a specific version:
 #   curl -sL https://github.com/andrewdavidmackenzie/flow/releases/download/v1.2.0/install-flow.sh | bash
 
-set -e
+set -eo pipefail
 
 REPO="andrewdavidmackenzie/flow"
 VERSION="${1:-latest}"
@@ -27,10 +27,17 @@ case "$OS" in
         esac
         ;;
     Darwin*)
-        TARGET="aarch64-apple-darwin"
+        case "$ARCH" in
+            arm64|aarch64) TARGET="aarch64-apple-darwin" ;;
+            *) echo "Unsupported macOS architecture: $ARCH"; exit 1 ;;
+        esac
         ;;
     MINGW*|MSYS*|CYGWIN*)
-        TARGET="x86_64-pc-windows-msvc"
+        case "$ARCH" in
+            x86_64)        TARGET="x86_64-pc-windows-msvc" ;;
+            arm64|aarch64) TARGET="aarch64-pc-windows-msvc" ;;
+            *) echo "Unsupported Windows architecture: $ARCH"; exit 1 ;;
+        esac
         ;;
     *)
         echo "Unsupported OS: $OS"
