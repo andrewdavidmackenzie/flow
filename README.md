@@ -94,10 +94,23 @@ algorithms in a completely new way. This reminded me of when I got stuck trying 
 University. If you're trying to write a loop ...."you're thinking about it wrong".
 
 ## Installing
-You can install many of the crates from crates.io, but due to unresolved issues in packaging
-non-source files, a total working installation cannot yet be achieved using `cargo install`.
 
-The workaround in the meantime is to clone the repo and build all from source (see below).
+### Quick install (recommended)
+Install the complete flow environment with a single command:
+```bash
+curl -sL https://github.com/andrewdavidmackenzie/flow/releases/latest/download/install-flow.sh | bash
+```
+
+This installs all flow binaries (flowc, flowrcli, flowrgui, flowedit, flowrex, flowrdb),
+the standard library (flowstdlib), and runner context definitions.
+
+To install a specific version:
+```bash
+curl -sL https://github.com/andrewdavidmackenzie/flow/releases/download/v1.2.0/install-flow.sh | bash
+```
+
+### Building from source
+Alternatively, clone the repo and build from source (see below).
 
 ## Building `flow`
 For more details on how to build flow locally and contribute to it, please see
