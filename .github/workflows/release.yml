@@ -202,6 +202,7 @@ jobs:
           cd ..
           gh release upload "${TAG}" "flowstdlib-staging/flowstdlib-${TAG}.tar.xz" --clobber
           gh release upload "${TAG}" install-flowstdlib.sh --clobber
+          gh release upload "${TAG}" install-flow.sh --clobber
 
   build-and-publish-book:
     needs: [ build-and-bundle ]
