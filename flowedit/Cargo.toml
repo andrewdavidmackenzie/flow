@@ -20,6 +20,9 @@ product-name = "flowedit"
 identifier = "net.mackenzie-serres.flowedit"
 icons = ["assets/icons/icon.png", "assets/icons/icon.icns", "assets/icons/icon.ico"]
 
+[package.metadata.packager.deb]
+depends = ["libssl3"]
+
 [lints]
 workspace = true
 

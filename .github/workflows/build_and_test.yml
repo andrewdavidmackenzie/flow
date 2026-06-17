@@ -102,7 +102,7 @@ jobs:
       - name: InstallLinuxDependencies
         if: runner.os == 'Linux'
         run: |
-          sudo apt-get update && sudo apt-get -y install libzmq3-dev binaryen lcov libgtk-3-dev weston
+          sudo apt-get update && sudo apt-get -y install libzmq3-dev libssl-dev binaryen lcov libgtk-3-dev weston
           ARCH=$(uname -m)
           BINARYEN_VERSION="version_129"
           wget https://github.com/WebAssembly/binaryen/releases/download/${BINARYEN_VERSION}/binaryen-${BINARYEN_VERSION}-${ARCH}-linux.tar.gz
