@@ -1,25 +1,30 @@
-#!/usr/bin/env sh
+#!/bin/bash
+# Install flow binaries and context definitions
+# Run this after extracting the release archive
 
-# Install cargo-binstall
-curl -L --tlsv1.2 -sSf https://raw.githubusercontent.com/cargo-bins/cargo-binstall/main/install-from-binstall-release.sh | bash
+set -e
 
-# binstall the flowc binary
-cargo binstall flowc
-echo "flowc binary installed by cargo"
+FLOW_DIR="${HOME}/.flow"
 
-# cargo binstall flowr crate's multiple binaries: flowrcli, flowrgui and flowrex
+echo "Installing flow context definitions to ${FLOW_DIR}/"
 
-# download the flowstdlib artifact and expand into $HOME/.flow/lib
-mkdir -p "$HOME"/.flow/lib
-curl -L --tlsv1.2 -sSf https://github.com/andrewdavidmackenzie/flow/releases/download/v0.135.0/flowstdlib-v0.135.0.tar.xz | tar -x --directory "$HOME"/.flow/lib
-echo "flowstdlib library installed in $HOME/.flow/lib"
+# Install flowrcli context definitions
+FLOWRCLI_DIR="${FLOW_DIR}/runner/flowrcli"
+if [ -d "runner/flowrcli" ]; then
+    mkdir -p "${FLOWRCLI_DIR}"
+    cp -r runner/flowrcli/* "${FLOWRCLI_DIR}/"
+    echo "  Installed flowrcli context definitions"
+fi
 
-# download the flowrcli context into $HOME/.flow/runner
-mkdir -p "$HOME"/.flow/runner
-curl -L --tlsv1.2 -sSf https://github.com/andrewdavidmackenzie/flow/releases/download/v0.135.0/flowrcli-v0.135.0.tar.xz | tar -x --directory "$HOME"/.flow/runner
-echo "flowrcli runner context installed in $HOME/.flow/runner"
+# Install flowrgui context definitions
+FLOWRGUI_DIR="${FLOW_DIR}/runner/flowrgui"
+if [ -d "runner/flowrgui" ]; then
+    mkdir -p "${FLOWRGUI_DIR}"
+    cp -r runner/flowrgui/* "${FLOWRGUI_DIR}/"
+    echo "  Installed flowrgui context definitions"
+fi
 
-# download the flowrgui context into $HOME/.flow/runner
-mkdir -p "$HOME"/.flow/runner
-curl -L --tlsv1.2 -sSf https://github.com/andrewdavidmackenzie/flow/releases/download/v0.135.0/flowrgui-v0.135.0.tar.xz | tar -x --directory "$HOME"/.flow/runner
-echo "flowrgui runner context installed in $HOME/.flow/runner"
+echo "Done. Context definitions installed to ${FLOW_DIR}/runner/"
+echo ""
+echo "To also install flowstdlib, download the flowstdlib tarball from the"
+echo "release and extract it to ${FLOW_DIR}/lib/"

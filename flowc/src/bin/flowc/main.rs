@@ -91,11 +91,9 @@ fn get_lib_search_path(search_path_additions: &[String]) -> Simpath {
     }
 
     if lib_search_path.is_empty() {
-        let home = env::var("HOME")
-            .or_else(|_| env::var("USERPROFILE"))
-            .unwrap_or_else(|_| ".".to_string());
-        let default_path = std::path::PathBuf::from(home).join(".flow").join("lib");
-        lib_search_path.add(default_path.to_str().unwrap_or(".flow/lib"));
+        if let Some(default_path) = flowcore::dirs::lib_dir() {
+            lib_search_path.add(&default_path.to_string_lossy());
+        }
     }
 
     lib_search_path
@@ -282,7 +280,7 @@ fn get_matches() -> ArgMatches {
                 .number_of_values(1)
                 .value_name("OUTPUT_DIR")
                 .help("Specify a non-default directory for generated output. \
-                Default is $HOME/.flow/lib/{lib_name} for a library."),
+                Default is platform data dir + /flow/lib/{lib_name} for a library."),
         )
         .arg(
             Arg::new("verbosity")

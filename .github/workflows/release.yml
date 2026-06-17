@@ -132,6 +132,19 @@ jobs:
           fi
           echo "Total binaries found: ${FOUND}"
 
+          # Bundle context definitions for runners
+          for runner in flowrcli flowrgui; do
+            CONTEXT_DIR="flowr/src/bin/${runner}/context"
+            if [ -d "${CONTEXT_DIR}" ]; then
+              mkdir -p "staging/runner/${runner}"
+              cp -r "${CONTEXT_DIR}"/* "staging/runner/${runner}/"
+              echo "Bundled context definitions for ${runner}"
+            fi
+          done
+
+          # Bundle install script
+          cp install.sh staging/ 2>/dev/null || true
+
           # Create archive
           cd staging
           if [[ "$TARGET" == *"windows"* ]]; then

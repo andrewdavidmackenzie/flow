@@ -20,21 +20,32 @@ fn default_lib_compile_dir(source_url: &Url) -> Result<PathBuf> {
         .next_back()
         .ok_or("Could not get last path segment of source_url")?;
 
-    let home = env::var("HOME")
-        .or_else(|_| env::var("USERPROFILE"))
-        .map_err(|_| "Could not get HOME or USERPROFILE")?;
-
-    Ok(PathBuf::from(home).join(".flow").join("lib").join(lib_name))
+    flowcore::dirs::lib_dir()
+        .map(|d| d.join(lib_name))
+        .ok_or_else(|| "Could not determine flow data directory".into())
 }
 
 pub(crate) fn default_runner_dir(runner_name: &str) -> Result<PathBuf> {
-    let home = env::var("HOME")
-        .or_else(|_| env::var("USERPROFILE"))
-        .map_err(|_| "Could not get HOME or USERPROFILE")?;
-    Ok(PathBuf::from(home)
-        .join(".flow")
-        .join("runner")
-        .join(runner_name))
+    // Standard data directory location
+    if let Some(dir) = flowcore::dirs::runner_dir(runner_name) {
+        if dir.is_dir() {
+            return Ok(dir);
+        }
+    }
+
+    // Fallback: next to the binary (for portable installs)
+    if let Ok(exe_path) = env::current_exe() {
+        if let Some(exe_dir) = exe_path.parent() {
+            let system_dir = exe_dir.join("runner").join(runner_name);
+            if system_dir.is_dir() {
+                return Ok(system_dir);
+            }
+        }
+    }
+
+    // Return the standard path even if it doesn't exist yet (it may be created)
+    flowcore::dirs::runner_dir(runner_name)
+        .ok_or_else(|| "Could not determine flow data directory".into())
 }
 
 // Load a `RunnerSpec` from the context at `context_root`
