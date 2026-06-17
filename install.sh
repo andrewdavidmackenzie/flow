@@ -21,14 +21,14 @@ echo "Installing flow data to ${FLOW_DIR}/"
 # Install flowrcli context definitions
 if [ -d "runner/flowrcli" ]; then
     mkdir -p "${FLOW_DIR}/runner/flowrcli"
-    cp -r runner/flowrcli/* "${FLOW_DIR}/runner/flowrcli/"
+    cp -a runner/flowrcli/. "${FLOW_DIR}/runner/flowrcli/"
     echo "  Installed flowrcli context definitions"
 fi
 
 # Install flowrgui context definitions
 if [ -d "runner/flowrgui" ]; then
     mkdir -p "${FLOW_DIR}/runner/flowrgui"
-    cp -r runner/flowrgui/* "${FLOW_DIR}/runner/flowrgui/"
+    cp -a runner/flowrgui/. "${FLOW_DIR}/runner/flowrgui/"
     echo "  Installed flowrgui context definitions"
 fi
 
@@ -36,7 +36,7 @@ fi
 # Looks for flowstdlib/ in the current directory (from the separate tarball)
 if [ -d "flowstdlib" ]; then
     mkdir -p "${FLOW_DIR}/lib/flowstdlib"
-    cp -r flowstdlib/* "${FLOW_DIR}/lib/flowstdlib/"
+    cp -a flowstdlib/. "${FLOW_DIR}/lib/flowstdlib/"
     echo "  Installed flowstdlib library"
 else
     echo "  flowstdlib/ not found — download the flowstdlib tarball from the"

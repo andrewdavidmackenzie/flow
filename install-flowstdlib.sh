@@ -55,6 +55,6 @@ fi
 
 DEST="${FLOW_DIR}/lib/flowstdlib"
 mkdir -p "${DEST}"
-cp -r flowstdlib/* "${DEST}/"
+cp -a flowstdlib/. "${DEST}/"
 
 echo "Done. flowstdlib installed to ${DEST}/"
