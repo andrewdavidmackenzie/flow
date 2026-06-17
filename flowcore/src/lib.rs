@@ -103,6 +103,10 @@ pub type RunAgain = bool;
 #[cfg(not(target_arch = "wasm32"))]
 pub mod content;
 
+/// Platform-standard directory paths for flow data
+#[cfg(not(target_arch = "wasm32"))]
+pub mod dirs;
+
 /// The `Implementation` trait used by functions to provide the code that runs on inputs
 ///
 /// A function's implementation must implement this trait with a single `run()` method that takes

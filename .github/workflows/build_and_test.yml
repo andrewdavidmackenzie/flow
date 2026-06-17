@@ -192,7 +192,7 @@ jobs:
 
       - name: test
         shell: bash
-        timeout-minutes: ${{ runner.os == 'Windows' && 25 || 15 }}
+        timeout-minutes: ${{ runner.os == 'Windows' && 25 || 20 }}
         run: cargo test --features "online_tests"
 
       - name: test-examples

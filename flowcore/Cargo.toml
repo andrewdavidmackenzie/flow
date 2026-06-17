@@ -47,6 +47,7 @@ serde_yml = "0.0.13"
 curl = {version = "~0.4" }
 simpath = { version = "~2.5", features = ["urls"] }
 mdns-sd = { version = "0.20", default-features = false }
+directories = { version = "6.0.0", default-features = false }
 
 [lints]
 workspace = true

@@ -26,25 +26,14 @@ pub(crate) struct EditorPrefs {
 /// and the default flowrcli context root.
 pub(crate) fn build_meta_provider() -> MetaProvider {
     let mut lib_search_path = Simpath::new_with_separator("FLOW_LIB_PATH", ',');
-    if let Ok(home) = std::env::var("HOME").or_else(|_| std::env::var("USERPROFILE")) {
-        let default_lib = PathBuf::from(&home).join(".flow").join("lib");
+    if let Some(default_lib) = flowcore::dirs::lib_dir() {
         if default_lib.exists() {
             if let Some(path_str) = default_lib.to_str() {
                 lib_search_path.add_directory(path_str);
             }
         }
     }
-    let context_root = std::env::var("HOME")
-        .or_else(|_| std::env::var("USERPROFILE"))
-        .map_or_else(
-            |_| PathBuf::from("."),
-            |h| {
-                PathBuf::from(h)
-                    .join(".flow")
-                    .join("runner")
-                    .join("flowrcli")
-            },
-        );
+    let context_root = flowcore::dirs::runner_dir("flowrcli").unwrap_or_default();
     MetaProvider::new(lib_search_path, context_root)
 }
 
@@ -62,14 +51,10 @@ pub(crate) fn resolve_lib_paths() -> Vec<String> {
         }
     }
 
-    if let Ok(home) = std::env::var("HOME").or_else(|_| std::env::var("USERPROFILE")) {
-        let default_lib = PathBuf::from(&home)
-            .join(".flow")
-            .join("lib")
-            .to_string_lossy()
-            .to_string();
-        if std::path::Path::new(&default_lib).is_dir() && !paths.contains(&default_lib) {
-            paths.push(default_lib);
+    if let Some(default_lib) = flowcore::dirs::lib_dir() {
+        let default_lib_str = default_lib.to_string_lossy().to_string();
+        if default_lib.is_dir() && !paths.contains(&default_lib_str) {
+            paths.push(default_lib_str);
         }
     }
 

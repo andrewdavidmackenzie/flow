@@ -71,15 +71,7 @@ pub(crate) fn load_library_catalogs(
     // Only scan ~/.flow/runner/flowrcli/ since flowedit only supports the flowrcli runner,
     // and the MetaProvider is configured with that context root.
     let ctx_provider = file_ops::build_meta_provider();
-    let runner_dir = std::env::var("HOME")
-        .or_else(|_| std::env::var("USERPROFILE"))
-        .map(|h| {
-            std::path::PathBuf::from(h)
-                .join(".flow")
-                .join("runner")
-                .join("flowrcli")
-        })
-        .unwrap_or_default();
+    let runner_dir = flowcore::dirs::runner_dir("flowrcli").unwrap_or_default();
     if runner_dir.is_dir() {
         if let Ok(cats) = std::fs::read_dir(&runner_dir) {
             for cat_entry in cats.flatten() {
