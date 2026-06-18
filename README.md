@@ -106,6 +106,8 @@ WYSIWYG editor for creating and editing flow definitions. Drag-and-drop
 process nodes, draw connections, edit properties, and compile directly
 from the editor.
 
+![flowedit editing mandlebrot](book/images/flowedit.png)
+
 ```bash
 flowedit                       # start with empty canvas
 flowedit path/to/root.toml    # open existing flow
