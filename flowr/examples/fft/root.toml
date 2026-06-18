@@ -1,0 +1,34 @@
+flow = "fft"
+docs = "DESCRIPTION.md"
+
+# FFT of a signal with two sine waves (440 Hz + 880 Hz) at 8000 Hz sample rate
+[[process]]
+source = "fft_compute"
+input.signal = { once = [0.0, 0.65745, 1.128568, 1.298895, 1.16635, 0.83318, 0.454143, 0.165255, 0.025851, 0.000015, -0.015124, -0.128615, -0.391914, -0.763027, -1.11646, -1.295515, -1.18356, -0.761632, -0.125457, 0.546905, 1.046539, 1.229289, 1.073927, 0.687379, 0.23682, -0.098965, -0.2013, -0.069543, 0.214024, 0.519116, 0.677655, 0.583832, 0.234131, -0.259938, -0.735553, -1.012427, -1.005879, -0.754113, -0.370126, -0.01044, 0.202966, 0.217755, 0.062684, -0.16967, -0.343791, -0.346103, -0.141024, 0.229361, 0.648799, 0.966076, 1.044299, 0.844143, 0.427916, -0.0591, -0.465281, -0.65826, -0.561987, -0.203996, 0.281849, 0.718989, 0.95048, 0.887756, 0.54998, -0.002282] }
+input.sample_rate = { once = 8000 }
+
+# Text output to stdout
+[[process]]
+source = "context://stdio/stdout"
+
+[[connection]]
+from = "fft_compute/text"
+to = "stdout"
+
+# Visual spectrum: bins → histogram chart → image file
+[[process]]
+alias = "chart"
+source = "lib://flowstdlib/charts/histogram"
+
+[[connection]]
+from = "fft_compute/bins"
+to = "chart/bins"
+
+[[process]]
+source = "context://image/image_write"
+input.width = { always = 256 }
+input.filename = { once = "fft_spectrum.png" }
+
+[[connection]]
+from = "chart/grid"
+to = "image_write/grid"

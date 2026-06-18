@@ -137,6 +137,8 @@
     - [debug-help-string](flowr/examples/debug-help-string/DESCRIPTION.md)
     - [debug-print-args](flowr/examples/debug-print-args/DESCRIPTION.md)
     - [factorial](flowr/examples/factorial/DESCRIPTION.md)
+    - [fft](flowr/examples/fft/DESCRIPTION.md)
+      - [fft_compute](flowr/examples/fft/fft_compute/fft_compute.md) provided function
     - [gcd](flowr/examples/gcd/DESCRIPTION.md)
     - [hamming](flowr/examples/hamming/DESCRIPTION.md)
     - [image-analysis](flowr/examples/image-analysis/DESCRIPTION.md)

@@ -1,11 +1,11 @@
 function = "histogram"
-description = "Render a histogram as a bar chart image (256x128 grayscale)"
+description = "Render an array of numbers as a bar chart image (Nx128 grayscale, width matches number of bins)"
 source = "histogram.rs"
 docs = "histogram.md"
 type = "rust"
 
 [[input]]
-name = "bins" # 256-element histogram array
+name = "bins"
 type = "array/number"
 
 [[output]]
