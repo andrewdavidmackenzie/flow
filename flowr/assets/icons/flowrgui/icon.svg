@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024">
+  
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#2563eb"/>
+      <stop offset="100%" style="stop-color:#7c3aed"/>
+    </linearGradient>
+  </defs>
+  <rect width="1024" height="1024" rx="160" fill="url(#bg)"/>
+
+  
+  <!-- Common flow graph background -->
+  <circle cx="240" cy="380" r="28" fill="white" opacity="0.2"/>
+  <circle cx="240" cy="644" r="28" fill="white" opacity="0.2"/>
+  <circle cx="460" cy="512" r="34" fill="white" opacity="0.25"/>
+  <circle cx="680" cy="380" r="28" fill="white" opacity="0.2"/>
+  <circle cx="680" cy="644" r="28" fill="white" opacity="0.2"/>
+  <path d="M240 380 C350 380, 350 512, 460 512" stroke="white" stroke-width="6" fill="none" opacity="0.15"/>
+  <path d="M240 644 C350 644, 350 512, 460 512" stroke="white" stroke-width="6" fill="none" opacity="0.15"/>
+  <path d="M460 512 C570 512, 570 380, 680 380" stroke="white" stroke-width="6" fill="none" opacity="0.15"/>
+  <path d="M460 512 C570 512, 570 644, 680 644" stroke="white" stroke-width="6" fill="none" opacity="0.15"/>
+
+  <!-- Large play button -->
+  <circle cx="512" cy="512" r="240" fill="rgba(255,255,255,0.15)" stroke="white" stroke-width="10"/>
+  <polygon points="440,360 720,512 440,664" fill="white" opacity="0.85"/>
+</svg>

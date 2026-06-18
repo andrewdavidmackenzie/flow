@@ -1,0 +1,522 @@
+<!DOCTYPE HTML>
+<html lang="en" class="sidebar-visible no-js light">
+    <head>
+        <!-- Book generated using mdBook -->
+        <meta charset="UTF-8">
+        <title>Feature Examples - The &#x27;flow&#x27; book</title>
+
+
+        <!-- Custom HTML head -->
+        
+        <meta name="description" content="What is &#x27;flow&#x27; and how to use it?">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="theme-color" content="#ffffff" />
+
+        <link rel="icon" href="../../favicon.svg">
+        <link rel="shortcut icon" href="../../favicon.png">
+        <link rel="stylesheet" href="../../css/variables.css">
+        <link rel="stylesheet" href="../../css/general.css">
+        <link rel="stylesheet" href="../../css/chrome.css">
+        <link rel="stylesheet" href="../../css/print.css" media="print">
+
+        <!-- Fonts -->
+        <link rel="stylesheet" href="../../FontAwesome/css/font-awesome.css">
+        <link rel="stylesheet" href="../../fonts/fonts.css">
+
+        <!-- Highlight.js Stylesheets -->
+        <link rel="stylesheet" href="../../highlight.css">
+        <link rel="stylesheet" href="../../tomorrow-night.css">
+        <link rel="stylesheet" href="../../ayu-highlight.css">
+
+        <!-- Custom theme stylesheets -->
+
+    </head>
+    <body>
+    <div id="body-container">
+        <!-- Provide site root to javascript -->
+        <script>
+            var path_to_root = "../../";
+            var default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? "navy" : "light";
+        </script>
+
+        <!-- Work around some values being stored in localStorage wrapped in quotes -->
+        <script>
+            try {
+                var theme = localStorage.getItem('mdbook-theme');
+                var sidebar = localStorage.getItem('mdbook-sidebar');
+
+                if (theme.startsWith('"') && theme.endsWith('"')) {
+                    localStorage.setItem('mdbook-theme', theme.slice(1, theme.length - 1));
+                }
+
+                if (sidebar.startsWith('"') && sidebar.endsWith('"')) {
+                    localStorage.setItem('mdbook-sidebar', sidebar.slice(1, sidebar.length - 1));
+                }
+            } catch (e) { }
+        </script>
+
+        <!-- Set the theme before any content is loaded, prevents flash -->
+        <script>
+            var theme;
+            try { theme = localStorage.getItem('mdbook-theme'); } catch(e) { }
+            if (theme === null || theme === undefined) { theme = default_theme; }
+            var html = document.querySelector('html');
+            html.classList.remove('no-js')
+            html.classList.remove('light')
+            html.classList.add(theme);
+            html.classList.add('js');
+        </script>
+
+        <!-- Hide / unhide sidebar before it is displayed -->
+        <script>
+            var html = document.querySelector('html');
+            var sidebar = 'hidden';
+            if (document.body.clientWidth >= 1080) {
+                try { sidebar = localStorage.getItem('mdbook-sidebar'); } catch(e) { }
+                sidebar = sidebar || 'visible';
+            }
+            html.classList.remove('sidebar-visible');
+            html.classList.add("sidebar-" + sidebar);
+        </script>
+
+        <nav id="sidebar" class="sidebar" aria-label="Table of contents">
+            <div class="sidebar-scrollbox">
+                <ol class="chapter"><li class="chapter-item expanded affix "><a href="../../book/book_intro.html">Intro</a></li><li class="chapter-item expanded affix "><li class="part-title">Introduction to flow</li><li class="chapter-item expanded "><a href="../../INSTALLING.html"><strong aria-hidden="true">1.</strong> Installing flow</a></li><li class="chapter-item expanded "><a href="../../book/introduction/what_is_flow.html"><strong aria-hidden="true">2.</strong> What is flow?</a></li><li class="chapter-item expanded "><a href="../../book/introduction/tenets.html"><strong aria-hidden="true">3.</strong> Tenets of flow</a></li><li class="chapter-item expanded "><a href="../../book/introduction/structure.html"><strong aria-hidden="true">4.</strong> Project Components and Structure</a></li><li class="chapter-item expanded "><a href="../../book/introduction/inspirations.html"><strong aria-hidden="true">5.</strong> The Inspirations for flow</a></li><li class="chapter-item expanded "><a href="../../book/introduction/non_inspirations.html"><strong aria-hidden="true">6.</strong> Non-Inspirations</a></li><li class="chapter-item expanded "><a href="../../book/introduction/parallelism.html"><strong aria-hidden="true">7.</strong> Parallelism</a></li><li class="chapter-item expanded "><a href="../../book/introduction/status.html"><strong aria-hidden="true">8.</strong> Status</a></li><li class="chapter-item expanded affix "><li class="part-title">Your First Flow</li><li class="chapter-item expanded "><a href="../../book/first_flow/first_flow.html"><strong aria-hidden="true">9.</strong> Your First Flow</a></li><li class="chapter-item expanded "><a href="../../book/first_flow/implementation.html"><strong aria-hidden="true">10.</strong> Running the flow</a></li><li class="chapter-item expanded "><a href="../../book/first_flow/step-by-step.html"><strong aria-hidden="true">11.</strong> Step-by-Step</a></li><li class="chapter-item expanded "><a href="../../book/first_flow/debugging.html"><strong aria-hidden="true">12.</strong> Debugging your first flow</a></li><li class="chapter-item expanded affix "><li class="part-title">Defining Flows</li><li class="chapter-item expanded "><a href="../../book/describing/definition_overview.html"><strong aria-hidden="true">13.</strong> Defining flows</a></li><li class="chapter-item expanded "><a href="../../book/describing/names.html"><strong aria-hidden="true">14.</strong> Names</a></li><li class="chapter-item expanded "><a href="../../book/describing/ios.html"><strong aria-hidden="true">15.</strong> Flow IOs</a></li><li class="chapter-item expanded "><a href="../../book/describing/process_references.html"><strong aria-hidden="true">16.</strong> Process References</a></li><li class="chapter-item expanded "><a href="../../book/describing/function_definitions.html"><strong aria-hidden="true">17.</strong> Function Definitions</a></li><li class="chapter-item expanded "><a href="../../book/describing/types.html"><strong aria-hidden="true">18.</strong> Data Types</a></li><li class="chapter-item expanded "><a href="../../book/describing/connections.html"><strong aria-hidden="true">19.</strong> Connections</a></li><li class="chapter-item expanded "><a href="../../book/describing/flow_libraries.html"><strong aria-hidden="true">20.</strong> Flow Libraries</a></li><li class="chapter-item expanded "><a href="../../book/describing/context_functions.html"><strong aria-hidden="true">21.</strong> Context Functions</a></li><li class="chapter-item expanded "><a href="../../book/describing/provided_functions.html"><strong aria-hidden="true">22.</strong> Provided Functions</a></li><li class="chapter-item expanded "><a href="../../book/describing/flow_hierarchy.html"><strong aria-hidden="true">23.</strong> Flow Hierarchy</a></li><li class="chapter-item expanded "><a href="../../book/describing/sub_flow_semantics.html"><strong aria-hidden="true">24.</strong> Sub-flow Execution Semantics</a></li><li class="chapter-item expanded "><a href="../../book/describing/programming_methods.html"><strong aria-hidden="true">25.</strong> Programming Methods</a></li><li class="chapter-item expanded "><a href="../../book/describing/feature_examples.html" class="active"><strong aria-hidden="true">26.</strong> Feature Examples</a></li><li class="chapter-item expanded affix "><li class="part-title">flowrcli's context functions</li><li class="chapter-item expanded "><a href="../../flowr/src/bin/flowrcli/context/flowrcli_context_functions.html"><strong aria-hidden="true">27.</strong> flowr's context functions</a></li><li class="chapter-item expanded "><a href="../../flowr/src/bin/flowrcli/context/args/args.html"><strong aria-hidden="true">28.</strong> Arg functions</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../../flowr/src/bin/flowrcli/context/args/get.html"><strong aria-hidden="true">28.1.</strong> Arg get function</a></li></ol></li><li class="chapter-item expanded "><a href="../../flowr/src/bin/flowrcli/context/file/file.html"><strong aria-hidden="true">29.</strong> File functions</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../../flowr/src/bin/flowrcli/context/file/file_write.html"><strong aria-hidden="true">29.1.</strong> File Write function</a></li><li class="chapter-item expanded "><a href="../../flowr/src/bin/flowrcli/context/file/file_read.html"><strong aria-hidden="true">29.2.</strong> File Read function</a></li></ol></li><li class="chapter-item expanded "><a href="../../flowr/src/bin/flowrcli/context/image/image.html"><strong aria-hidden="true">30.</strong> Image manipulation functions</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../../flowr/src/bin/flowrcli/context/image/image_buffer.html"><strong aria-hidden="true">30.1.</strong> Image buffer</a></li></ol></li><li class="chapter-item expanded "><a href="../../flowr/src/bin/flowrcli/context/stdio/stdio.html"><strong aria-hidden="true">31.</strong> Standard IO functions</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../../flowr/src/bin/flowrcli/context/stdio/readline.html"><strong aria-hidden="true">31.1.</strong> Readline function</a></li><li class="chapter-item expanded "><a href="../../flowr/src/bin/flowrcli/context/stdio/stdin.html"><strong aria-hidden="true">31.2.</strong> Standard Input function</a></li><li class="chapter-item expanded "><a href="../../flowr/src/bin/flowrcli/context/stdio/stdout.html"><strong aria-hidden="true">31.3.</strong> Standard Output function</a></li><li class="chapter-item expanded "><a href="../../flowr/src/bin/flowrcli/context/stdio/stderr.html"><strong aria-hidden="true">31.4.</strong> Standard Error function</a></li></ol></li><li class="chapter-item expanded "><li class="part-title">flowrgui's context functions</li><li class="chapter-item expanded "><a href="../../flowr/src/bin/flowrgui/context/flowrgui_context_functions.html"><strong aria-hidden="true">32.</strong> flowrgui's context functions</a></li><li class="chapter-item expanded "><a href="../../flowr/src/bin/flowrgui/context/args/args.html"><strong aria-hidden="true">33.</strong> Arg functions</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../../flowr/src/bin/flowrgui/context/args/get.html"><strong aria-hidden="true">33.1.</strong> Arg get function</a></li></ol></li><li class="chapter-item expanded "><a href="../../flowr/src/bin/flowrgui/context/file/file.html"><strong aria-hidden="true">34.</strong> File functions</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../../flowr/src/bin/flowrgui/context/file/file_write.html"><strong aria-hidden="true">34.1.</strong> File Write function</a></li><li class="chapter-item expanded "><a href="../../flowr/src/bin/flowrgui/context/file/file_read.html"><strong aria-hidden="true">34.2.</strong> File Read function</a></li></ol></li><li class="chapter-item expanded "><a href="../../flowr/src/bin/flowrgui/context/image/image.html"><strong aria-hidden="true">35.</strong> Image manipulation functions</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../../flowr/src/bin/flowrgui/context/image/image_buffer.html"><strong aria-hidden="true">35.1.</strong> Image buffer</a></li></ol></li><li class="chapter-item expanded "><a href="../../flowr/src/bin/flowrgui/context/stdio/stdio.html"><strong aria-hidden="true">36.</strong> Standard IO functions</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../../flowr/src/bin/flowrgui/context/stdio/readline.html"><strong aria-hidden="true">36.1.</strong> Readline function</a></li><li class="chapter-item expanded "><a href="../../flowr/src/bin/flowrgui/context/stdio/stdin.html"><strong aria-hidden="true">36.2.</strong> Standard Input function</a></li><li class="chapter-item expanded "><a href="../../flowr/src/bin/flowrgui/context/stdio/stdout.html"><strong aria-hidden="true">36.3.</strong> Standard Output function</a></li><li class="chapter-item expanded "><a href="../../flowr/src/bin/flowrgui/context/stdio/stderr.html"><strong aria-hidden="true">36.4.</strong> Standard Error function</a></li></ol></li><li class="chapter-item expanded "><li class="part-title">Running Flows</li><li class="chapter-item expanded "><a href="../../book/running/running.html"><strong aria-hidden="true">37.</strong> Running flows</a></li><li class="chapter-item expanded "><a href="../../book/running/flowc.html"><strong aria-hidden="true">38.</strong> flowc Command Line Arguments</a></li><li class="chapter-item expanded "><a href="../../book/running/arguments.html"><strong aria-hidden="true">39.</strong> Passing command line arguments to flows</a></li><li class="chapter-item expanded "><a href="../../book/running/root_file_selection.html"><strong aria-hidden="true">40.</strong> Specifying the root file to load</a></li><li class="chapter-item expanded "><a href="../../book/running/stdio.html"><strong aria-hidden="true">41.</strong> Standard Input and Output</a></li><li class="chapter-item expanded "><a href="../../book/running/panics.html"><strong aria-hidden="true">42.</strong> Exceptions and Panics</a></li><li class="chapter-item expanded "><a href="../../book/running/flowr.html"><strong aria-hidden="true">43.</strong> Running Flows using flowr</a></li><li class="chapter-item expanded "><a href="../../book/running/client_server.html"><strong aria-hidden="true">44.</strong> Running a flow in client/server mode of flowr</a></li><li class="chapter-item expanded "><a href="../../book/running/distributed.html"><strong aria-hidden="true">45.</strong> Distributed execution of jobs with flowr and flowrex</a></li><li class="chapter-item expanded affix "><li class="part-title">Debugging Flows</li><li class="chapter-item expanded "><a href="../../book/debugging/debugger.html"><strong aria-hidden="true">46.</strong> The Debugger</a></li><li class="chapter-item expanded affix "><li class="part-title">The flowstdlib Standard Library</li><li class="chapter-item expanded "><a href="../../flowstdlib/README.html"><strong aria-hidden="true">47.</strong> README</a></li><li class="chapter-item expanded "><a href="../../flowstdlib/src/control/control.html"><strong aria-hidden="true">48.</strong> control</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../../flowstdlib/src/control/compare_switch/compare_switch.html"><strong aria-hidden="true">48.1.</strong> compare_switch</a></li><li class="chapter-item expanded "><a href="../../flowstdlib/src/control/index/index.html"><strong aria-hidden="true">48.2.</strong> index</a></li><li class="chapter-item expanded "><a href="../../flowstdlib/src/control/index_f.html"><strong aria-hidden="true">48.3.</strong> index_f</a></li><li class="chapter-item expanded "><a href="../../flowstdlib/src/control/join/join.html"><strong aria-hidden="true">48.4.</strong> join</a></li><li class="chapter-item expanded "><a href="../../flowstdlib/src/control/route/route.html"><strong aria-hidden="true">48.5.</strong> route</a></li><li class="chapter-item expanded "><a href="../../flowstdlib/src/control/select/select.html"><strong aria-hidden="true">48.6.</strong> select</a></li><li class="chapter-item expanded "><a href="../../flowstdlib/src/control/tap/tap.html"><strong aria-hidden="true">48.7.</strong> tap</a></li></ol></li><li class="chapter-item expanded "><a href="../../flowstdlib/src/data/data.html"><strong aria-hidden="true">49.</strong> data</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../../flowstdlib/src/data/accumulate/accumulate.html"><strong aria-hidden="true">49.1.</strong> accumulate</a></li><li class="chapter-item expanded "><a href="../../flowstdlib/src/data/append/append.html"><strong aria-hidden="true">49.2.</strong> append</a></li><li class="chapter-item expanded "><a href="../../flowstdlib/src/data/bin_count/bin_count.html"><strong aria-hidden="true">49.3.</strong> bin_count</a></li><li class="chapter-item expanded "><a href="../../flowstdlib/src/data/min/min.html"><strong aria-hidden="true">49.4.</strong> min</a></li><li class="chapter-item expanded "><a href="../../flowstdlib/src/data/max/max.html"><strong aria-hidden="true">49.5.</strong> max</a></li><li class="chapter-item expanded "><a href="../../flowstdlib/src/data/avg/avg.html"><strong aria-hidden="true">49.6.</strong> avg</a></li><li class="chapter-item expanded "><a href="../../flowstdlib/src/data/array_get/array_get.html"><strong aria-hidden="true">49.7.</strong> array_get</a></li><li class="chapter-item expanded "><a href="../../flowstdlib/src/data/array_set/array_set.html"><strong aria-hidden="true">49.8.</strong> array_set</a></li><li class="chapter-item expanded "><a href="../../flowstdlib/src/data/count/count.html"><strong aria-hidden="true">49.9.</strong> count</a></li><li class="chapter-item expanded "><a href="../../flowstdlib/src/data/duplicate/duplicate.html"><strong aria-hidden="true">49.10.</strong> duplicate</a></li><li class="chapter-item expanded "><a href="../../flowstdlib/src/data/enumerate/enumerate.html"><strong aria-hidden="true">49.11.</strong> enumerate</a></li><li class="chapter-item expanded "><a href="../../flowstdlib/src/data/info/info.html"><strong aria-hidden="true">49.12.</strong> info</a></li><li class="chapter-item expanded "><a href="../../flowstdlib/src/data/ordered_split/ordered_split.html"><strong aria-hidden="true">49.13.</strong> ordered_split</a></li><li class="chapter-item expanded "><a href="../../flowstdlib/src/data/remove/remove.html"><strong aria-hidden="true">49.14.</strong> remove</a></li><li class="chapter-item expanded "><a href="../../flowstdlib/src/data/sort/sort.html"><strong aria-hidden="true">49.15.</strong> sort</a></li><li class="chapter-item expanded "><a href="../../flowstdlib/src/data/split/split.html"><strong aria-hidden="true">49.16.</strong> split</a></li><li class="chapter-item expanded "><a href="../../flowstdlib/src/data/zip/zip.html"><strong aria-hidden="true">49.17.</strong> zip</a></li></ol></li><li class="chapter-item expanded "><a href="../../flowstdlib/src/fmt/fmt.html"><strong aria-hidden="true">50.</strong> fmt</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../../flowstdlib/src/fmt/reverse/reverse.html"><strong aria-hidden="true">50.1.</strong> reverse</a></li><li class="chapter-item expanded "><a href="../../flowstdlib/src/fmt/to_json/to_json.html"><strong aria-hidden="true">50.2.</strong> to_json</a></li><li class="chapter-item expanded "><a href="../../flowstdlib/src/fmt/to_string/to_string.html"><strong aria-hidden="true">50.3.</strong> to_string</a></li></ol></li><li class="chapter-item expanded "><a href="../../flowstdlib/src/math/math.html"><strong aria-hidden="true">51.</strong> math</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../../flowstdlib/src/math/add/add.html"><strong aria-hidden="true">51.1.</strong> add</a></li><li class="chapter-item expanded "><a href="../../flowstdlib/src/math/compare/compare.html"><strong aria-hidden="true">51.2.</strong> compare</a></li><li class="chapter-item expanded "><a href="../../flowstdlib/src/math/divide/divide.html"><strong aria-hidden="true">51.3.</strong> divide</a></li><li class="chapter-item expanded "><a href="../../flowstdlib/src/math/multiply/multiply.html"><strong aria-hidden="true">51.4.</strong> multiply</a></li><li class="chapter-item expanded "><a href="../../flowstdlib/src/math/range.html"><strong aria-hidden="true">51.5.</strong> range</a></li><li class="chapter-item expanded "><a href="../../flowstdlib/src/math/range_split/range_split.html"><strong aria-hidden="true">51.6.</strong> range_split</a></li><li class="chapter-item expanded "><a href="../../flowstdlib/src/math/sequence.html"><strong aria-hidden="true">51.7.</strong> sequence</a></li><li class="chapter-item expanded "><a href="../../flowstdlib/src/math/sin/sin.html"><strong aria-hidden="true">51.8.</strong> sin</a></li><li class="chapter-item expanded "><a href="../../flowstdlib/src/math/cos/cos.html"><strong aria-hidden="true">51.9.</strong> cos</a></li><li class="chapter-item expanded "><a href="../../flowstdlib/src/math/tan/tan.html"><strong aria-hidden="true">51.10.</strong> tan</a></li><li class="chapter-item expanded "><a href="../../flowstdlib/src/math/sqrt/sqrt.html"><strong aria-hidden="true">51.11.</strong> sqrt</a></li><li class="chapter-item expanded "><a href="../../flowstdlib/src/math/subtract/subtract.html"><strong aria-hidden="true">51.12.</strong> subtract</a></li></ol></li><li class="chapter-item expanded "><a href="../../flowstdlib/src/charts/charts.html"><strong aria-hidden="true">52.</strong> charts</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../../flowstdlib/src/charts/histogram/histogram.html"><strong aria-hidden="true">52.1.</strong> histogram</a></li></ol></li><li class="chapter-item expanded "><a href="../../flowstdlib/src/matrix/matrix.html"><strong aria-hidden="true">53.</strong> matrix</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../../flowstdlib/src/matrix/duplicate_rows/duplicate_rows.html"><strong aria-hidden="true">53.1.</strong> duplicate_rows</a></li><li class="chapter-item expanded "><a href="../../flowstdlib/src/matrix/multiply.html"><strong aria-hidden="true">53.2.</strong> multiply</a></li><li class="chapter-item expanded "><a href="../../flowstdlib/src/matrix/multiply_row/multiply_row.html"><strong aria-hidden="true">53.3.</strong> multiply_row</a></li><li class="chapter-item expanded "><a href="../../flowstdlib/src/matrix/transpose/transpose.html"><strong aria-hidden="true">53.4.</strong> transpose</a></li><li class="chapter-item expanded "><a href="../../flowstdlib/src/matrix/compose_matrix/compose_matrix.html"><strong aria-hidden="true">53.5.</strong> compose_matrix</a></li></ol></li><li class="chapter-item expanded "><li class="part-title">flow examples</li><li class="chapter-item expanded "><a href="../../flowr/examples/README.html"><strong aria-hidden="true">54.</strong> Examples README</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../../flowr/examples/debug-help-string/DESCRIPTION.html"><strong aria-hidden="true">54.1.</strong> debug-help-string</a></li><li class="chapter-item expanded "><a href="../../flowr/examples/debug-print-args/DESCRIPTION.html"><strong aria-hidden="true">54.2.</strong> debug-print-args</a></li><li class="chapter-item expanded "><a href="../../flowr/examples/factorial/DESCRIPTION.html"><strong aria-hidden="true">54.3.</strong> factorial</a></li><li class="chapter-item expanded "><a href="../../flowr/examples/gcd/DESCRIPTION.html"><strong aria-hidden="true">54.4.</strong> gcd</a></li><li class="chapter-item expanded "><a href="../../flowr/examples/hamming/DESCRIPTION.html"><strong aria-hidden="true">54.5.</strong> hamming</a></li><li class="chapter-item expanded "><a href="../../flowr/examples/image-analysis/DESCRIPTION.html"><strong aria-hidden="true">54.6.</strong> image-analysis</a></li><li class="chapter-item expanded "><a href="../../flowr/examples/fibonacci/DESCRIPTION.html"><strong aria-hidden="true">54.7.</strong> fibonacci</a></li><li class="chapter-item expanded "><a href="../../flowr/examples/game-of-life/DESCRIPTION.html"><strong aria-hidden="true">54.8.</strong> game-of-life</a></li><li class="chapter-item expanded "><a href="../../flowr/examples/hello-world/DESCRIPTION.html"><strong aria-hidden="true">54.9.</strong> hello-world</a></li><li class="chapter-item expanded "><a href="../../flowr/examples/mandlebrot/DESCRIPTION.html"><strong aria-hidden="true">54.10.</strong> mandlebrot</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../../flowr/examples/mandlebrot/escapes/escapes.html"><strong aria-hidden="true">54.10.1.</strong> escapes</a></li><li class="chapter-item expanded "><a href="../../flowr/examples/mandlebrot/pixel_to_point/pixel_to_point.html"><strong aria-hidden="true">54.10.2.</strong> pixel_to_point</a></li></ol></li><li class="chapter-item expanded "><a href="../../flowr/examples/prime/DESCRIPTION.html"><strong aria-hidden="true">54.11.</strong> prime</a></li><li class="chapter-item expanded "><a href="../../flowr/examples/router/DESCRIPTION.html"><strong aria-hidden="true">54.12.</strong> router</a></li><li class="chapter-item expanded "><a href="../../flowr/examples/running-average/DESCRIPTION.html"><strong aria-hidden="true">54.13.</strong> running-average</a></li><li class="chapter-item expanded "><a href="../../flowr/examples/sequence-of-sequences/DESCRIPTION.html"><strong aria-hidden="true">54.14.</strong> sequence-of-sequences</a></li><li class="chapter-item expanded "><a href="../../flowr/examples/word-count/DESCRIPTION.html"><strong aria-hidden="true">54.15.</strong> word-count</a></li><li class="spacer"></li></ol></li><li class="chapter-item expanded "><li class="part-title">Developing flow</li><li class="chapter-item expanded "><a href="../../book/developing/overview.html"><strong aria-hidden="true">55.</strong> Developing flow</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../../flowcore/README.html"><strong aria-hidden="true">55.1.</strong> flowcore</a></li><li class="chapter-item expanded "><a href="../../flowmacro/README.html"><strong aria-hidden="true">55.2.</strong> flowmacro</a></li><li class="chapter-item expanded "><a href="../../flowc/README.html"><strong aria-hidden="true">55.3.</strong> flowc</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../../flowc/tests/test-flows/README.html"><strong aria-hidden="true">55.3.1.</strong> Flowc Compiler and Parser Test flows</a></li></ol></li><li class="chapter-item expanded "><a href="../../flowr/README.html"><strong aria-hidden="true">55.4.</strong> flowr</a></li></ol></li><li class="chapter-item expanded "><a href="../../book/developing/contributing.html"><strong aria-hidden="true">56.</strong> Contributing</a></li><li class="chapter-item expanded affix "><li class="part-title">Internals of the flow Project</li><li class="chapter-item expanded "><a href="../../book/internals/overview.html"><strong aria-hidden="true">57.</strong> Internals of flow</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../../book/internals/flow_loading.html"><strong aria-hidden="true">57.1.</strong> Flow Loading</a></li><li class="chapter-item expanded "><a href="../../book/internals/flow_compiling.html"><strong aria-hidden="true">57.2.</strong> Flow Compiling</a></li><li class="chapter-item expanded "><a href="../../book/internals/flow_execution.html"><strong aria-hidden="true">57.3.</strong> Flow Execution</a></li><li class="chapter-item expanded "><a href="../../book/internals/state_transitions.html"><strong aria-hidden="true">57.4.</strong> Flow Execution State Transitions</a></li></ol></li></ol>
+            </div>
+            <div id="sidebar-resize-handle" class="sidebar-resize-handle"></div>
+        </nav>
+
+        <div id="page-wrapper" class="page-wrapper">
+
+            <div class="page">
+                                <div id="menu-bar-hover-placeholder"></div>
+                <div id="menu-bar" class="menu-bar sticky bordered">
+                    <div class="left-buttons">
+                        <button id="sidebar-toggle" class="icon-button" type="button" title="Toggle Table of Contents" aria-label="Toggle Table of Contents" aria-controls="sidebar">
+                            <i class="fa fa-bars"></i>
+                        </button>
+                        <button id="theme-toggle" class="icon-button" type="button" title="Change theme" aria-label="Change theme" aria-haspopup="true" aria-expanded="false" aria-controls="theme-list">
+                            <i class="fa fa-paint-brush"></i>
+                        </button>
+                        <ul id="theme-list" class="theme-popup" aria-label="Themes" role="menu">
+                            <li role="none"><button role="menuitem" class="theme" id="light">Light</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="rust">Rust</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="coal">Coal</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="navy">Navy</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="ayu">Ayu</button></li>
+                        </ul>
+                        <button id="search-toggle" class="icon-button" type="button" title="Search. (Shortkey: s)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="S" aria-controls="searchbar">
+                            <i class="fa fa-search"></i>
+                        </button>
+                    </div>
+
+                    <h1 class="menu-title">The &#x27;flow&#x27; book</h1>
+
+                    <div class="right-buttons">
+                        <a href="../../print.html" title="Print this book" aria-label="Print this book">
+                            <i id="print-button" class="fa fa-print"></i>
+                        </a>
+
+                    </div>
+                </div>
+
+                <div id="search-wrapper" class="hidden">
+                    <form id="searchbar-outer" class="searchbar-outer">
+                        <input type="search" id="searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="searchresults-outer" aria-describedby="searchresults-header">
+                    </form>
+                    <div id="searchresults-outer" class="searchresults-outer hidden">
+                        <div id="searchresults-header" class="searchresults-header"></div>
+                        <ul id="searchresults">
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Apply ARIA attributes after the sidebar and the sidebar toggle button are added to the DOM -->
+                <script>
+                    document.getElementById('sidebar-toggle').setAttribute('aria-expanded', sidebar === 'visible');
+                    document.getElementById('sidebar').setAttribute('aria-hidden', sidebar !== 'visible');
+                    Array.from(document.querySelectorAll('#sidebar a')).forEach(function(link) {
+                        link.setAttribute('tabIndex', sidebar === 'visible' ? 0 : -1);
+                    });
+                </script>
+
+                <div id="content" class="content">
+                    <main>
+                        <h1 id="feature-examples"><a class="header" href="#feature-examples">Feature Examples</a></h1>
+<p>This section contains small, focused flow definitions that each demonstrate a single
+flow feature. They are useful as quick references when building your own flows.</p>
+<h2 id="reading-json-arguments"><a class="header" href="#reading-json-arguments">Reading JSON arguments</a></h2>
+<p>Access command-line arguments as JSON values using the <code>context://args/get</code> function
+with <code>/json/N</code> output indexing:</p>
+<pre><code class="language-toml">flow = &quot;args-json&quot;
+
+[[process]]
+source = &quot;context://args/get&quot;
+
+[[process]]
+source = &quot;context://stdio/stdout&quot;
+
+# Read the 3rd argument as a parsed JSON value
+[[connection]]
+from = &quot;get/json/3&quot;
+to = &quot;stdout&quot;
+</code></pre>
+<p><strong>Feature</strong>: Output route indexing (<code>/json/3</code>) to select the output type and position.
+Compare with <code>/string/3</code> which returns the raw string instead of a parsed JSON value.</p>
+<h2 id="multiple-connections-to-a-single-input"><a class="header" href="#multiple-connections-to-a-single-input">Multiple connections to a single input</a></h2>
+<p>Multiple connections can feed the same input. Values arrive in the order they are
+produced and queue up:</p>
+<pre><code class="language-toml">flow = &quot;double-connection&quot;
+
+[[process]]
+source = &quot;context://args/get&quot;
+
+[[process]]
+source = &quot;context://stdio/stdout&quot;
+
+# Two different outputs both connect to the same stdout input
+[[connection]]
+from = &quot;get/string/1&quot;
+to = &quot;stdout&quot;
+
+[[connection]]
+from = &quot;get/string/3&quot;
+to = &quot;stdout&quot;
+</code></pre>
+<p><strong>Feature</strong>: Multiple connections to one input — values queue up and are processed
+in order.</p>
+<h2 id="one-output-to-multiple-destinations-fan-out"><a class="header" href="#one-output-to-multiple-destinations-fan-out">One output to multiple destinations (fan-out)</a></h2>
+<p>A single output can connect to multiple destinations simultaneously using array
+syntax. The value is sent to all destinations in parallel:</p>
+<pre><code class="language-toml">flow = &quot;two-destinations&quot;
+
+[[process]]
+source = &quot;context://args/get&quot;
+
+[[process]]
+source = &quot;context://stdio/stdout&quot;
+
+[[process]]
+source = &quot;context://file/file_write&quot;
+input.bytes = { once = [1, 2] }
+
+# One output goes to BOTH stdout and file_write simultaneously
+[[connection]]
+from = &quot;get/string/1&quot;
+to = [&quot;stdout&quot;, &quot;file_write/filename&quot;]
+</code></pre>
+<p><strong>Feature</strong>: Fan-out using <code>to = [&quot;dest1&quot;, &quot;dest2&quot;]</code> array syntax. The value is
+duplicated to all destinations. This is the basis for fan-out parallelism — one
+data source feeding multiple independent processing paths.</p>
+<h2 id="reading-json-from-stdin"><a class="header" href="#reading-json-from-stdin">Reading JSON from stdin</a></h2>
+<p>Read and parse JSON values interactively from stdin using <code>context://stdio/readline</code>
+with <code>/json</code> output indexing:</p>
+<pre><code class="language-toml">flow = &quot;json-indexing&quot;
+
+[[process]]
+source = &quot;context://stdio/readline&quot;
+input.prompt = { always = &quot;&quot; }
+
+[[process]]
+source = &quot;context://stdio/stdout&quot;
+
+# Parse each line as JSON and extract the 2nd element
+[[connection]]
+from = &quot;readline/json/2&quot;
+to = &quot;stdout&quot;
+</code></pre>
+<p><strong>Feature</strong>: <code>readline/json/N</code> parses stdin input as JSON and indexes into arrays.
+Input <code>[1, 2, 3]</code> with <code>/json/2</code> outputs <code>3</code> (0-indexed).</p>
+<h2 id="echoing-stdin-with-a-prompt"><a class="header" href="#echoing-stdin-with-a-prompt">Echoing stdin with a prompt</a></h2>
+<p>Read lines from stdin and echo them back, with a configurable prompt using the
+<code>always</code> initializer:</p>
+<pre><code class="language-toml">flow = &quot;line-echo&quot;
+
+[[process]]
+source = &quot;context://stdio/readline&quot;
+input.prompt = { always = &quot;&gt; &quot; }
+
+[[process]]
+source = &quot;context://stdio/stdout&quot;
+
+[[connection]]
+from = &quot;readline/string&quot;
+to = &quot;stdout&quot;
+</code></pre>
+<p><strong>Feature</strong>: The <code>always</code> initializer provides a constant value on every invocation.
+Here it sets the prompt string that is displayed before each line of input.</p>
+<h2 id="generating-a-sequence-with-end-detection"><a class="header" href="#generating-a-sequence-with-end-detection">Generating a sequence with end detection</a></h2>
+<p>Generate a numeric sequence using <code>flowstdlib/math/sequence</code> and use <code>join</code> to
+output a message when the sequence completes:</p>
+<pre><code class="language-toml">flow = &quot;sequence&quot;
+
+[[process]]
+source = &quot;lib://flowstdlib/math/sequence&quot;
+input.start = { once = 2 }
+input.step = { once = 3 }
+input.limit = { once = 100 }
+
+[[process]]
+source = &quot;context://stdio/stdout&quot;
+
+[[connection]]
+from = &quot;sequence/number&quot;
+to = &quot;stdout&quot;
+
+# Output a string when the sequence ends
+[[process]]
+source = &quot;lib://flowstdlib/control/join&quot;
+input.data = { once = &quot;Sequence done&quot; }
+
+# The &quot;last&quot; output triggers join when the final number is produced
+[[connection]]
+from = &quot;sequence/last&quot;
+to = &quot;join/control&quot;
+
+[[connection]]
+from = &quot;join&quot;
+to = &quot;stdout&quot;
+</code></pre>
+<p><strong>Features</strong>:</p>
+<ul>
+<li>The <code>once</code> initializer provides a value only on the first invocation</li>
+<li>The <code>sequence</code> library flow generates numbers from <code>start</code> to <code>limit</code> by <code>step</code></li>
+<li>The <code>join</code> control function holds a value until a control signal arrives</li>
+<li>Multiple named outputs (<code>/number</code> and <code>/last</code>) from a single process</li>
+</ul>
+<h2 id="reading-command-line-arguments"><a class="header" href="#reading-command-line-arguments">Reading command-line arguments</a></h2>
+<p>Read a specific argument by position using <code>context://args/get</code> with
+<code>/string/N</code> (as text) or <code>/json/N</code> (as parsed JSON):</p>
+<pre><code class="language-toml">flow = &quot;args&quot;
+
+[[process]]
+source = &quot;context://args/get&quot;
+
+[[process]]
+source = &quot;context://stdio/stdout&quot;
+
+# Read the 3rd argument as a string
+[[connection]]
+from = &quot;get/string/3&quot;
+to = &quot;stdout&quot;
+</code></pre>
+<p><strong>Feature</strong>: <code>args/get</code> provides command-line arguments. Use <code>/string/N</code> for
+raw text or <code>/json/N</code> for parsed values (numbers, arrays, objects).</p>
+<h2 id="array-accumulation-decomposition-and-counting"><a class="header" href="#array-accumulation-decomposition-and-counting">Array accumulation, decomposition, and counting</a></h2>
+<p>Generate a stream of numbers, accumulate them into fixed-size arrays,
+then process each element individually (auto-decomposition) and count them:</p>
+<pre><code class="language-toml">flow = &quot;arrays&quot;
+
+# Generate numbers 10..29
+[[process]]
+source = &quot;lib://flowstdlib/math/sequence&quot;
+input.start = { once = 10 }
+input.limit = { once = 29 }
+input.step = { once = 1 }
+
+# Accumulate into arrays of size 4
+[[process]]
+alias = &quot;accumulator&quot;
+source = &quot;lib://flowstdlib/data/accumulate&quot;
+input.partial = { once = [] }
+input.chunk_size = { always = 4 }
+
+[[connection]]
+from = &quot;sequence/number&quot;
+to = &quot;accumulator/values&quot;
+
+# Loop back partial array
+[[connection]]
+from = &quot;accumulator/partial&quot;
+to = &quot;accumulator/partial&quot;
+
+# Add 1 to every number — array chunks auto-decompose to individual values
+[[process]]
+source = &quot;lib://flowstdlib/math/add&quot;
+input.i2 = { always = 1 }
+
+[[connection]]
+from = &quot;accumulator/chunk&quot;
+to = &quot;add/i1&quot;
+
+# Count the numbers produced
+[[process]]
+source = &quot;lib://flowstdlib/data/count&quot;
+input.count = { once = 0 }
+
+[[connection]]
+from = &quot;add&quot;
+to = &quot;count/data&quot;
+
+[[connection]]
+from = &quot;count&quot;
+to = &quot;count/count&quot;
+
+[[connection]]
+from = &quot;count&quot;
+to = &quot;stdout&quot;
+
+[[process]]
+source = &quot;context://stdio/stdout&quot;
+</code></pre>
+<p><strong>Features</strong>:</p>
+<ul>
+<li><code>accumulate</code> collects a stream of values into fixed-size arrays with
+loopback on <code>partial</code></li>
+<li>Array auto-decomposition: connecting <code>accumulator/chunk</code> (array) to
+<code>add/i1</code> (number) automatically sends elements one by one</li>
+<li><code>count</code> with loopback tracks how many values have been processed</li>
+<li><code>always</code> initializer for constants (<code>chunk_size</code>, <code>i2</code>)</li>
+</ul>
+<h2 id="multi-stage-pipeline"><a class="header" href="#multi-stage-pipeline">Multi-stage pipeline</a></h2>
+<p>A linear chain of math operations, each feeding the next. Demonstrates
+process aliasing and how data flows through a sequence of transformations:</p>
+<pre><code class="language-toml">flow = &quot;pipeline&quot;
+
+[[process]]
+source = &quot;lib://flowstdlib/math/sequence&quot;
+input.start = { once = 1 }
+input.limit = { once = 20 }
+input.step = { once = 1 }
+
+[[process]]
+alias = &quot;add1&quot;
+source = &quot;lib://flowstdlib/math/add&quot;
+input.i2 = { always = 1 }
+
+[[connection]]
+from = &quot;sequence/number&quot;
+to = &quot;add1/i1&quot;
+
+[[process]]
+alias = &quot;divide2&quot;
+source = &quot;lib://flowstdlib/math/divide&quot;
+input.divisor = { always = 2 }
+
+[[connection]]
+from = &quot;add1&quot;
+to = &quot;divide2/dividend&quot;
+
+[[connection]]
+from = &quot;divide2/result&quot;
+to = &quot;stdout&quot;
+
+[[process]]
+source = &quot;context://stdio/stdout&quot;
+</code></pre>
+<p><strong>Features</strong>:</p>
+<ul>
+<li>Process aliasing (<code>alias = &quot;add1&quot;</code>) to use multiple instances of the
+same function with different names</li>
+<li>Linear pipeline: each function's output feeds the next function's input</li>
+<li>Named output selection (<code>divide2/result</code> vs <code>divide2/remainder</code>)</li>
+</ul>
+<h2 id="comparison-tap-and-conditional-output"><a class="header" href="#comparison-tap-and-conditional-output">Comparison, tap, and conditional output</a></h2>
+<p>Compare a computed value to a threshold and conditionally output using
+<code>tap</code>. Demonstrates basic flow control:</p>
+<pre><code class="language-toml">flow = &quot;primitives&quot;
+
+# 1 + 2 = 3
+[[process]]
+source = &quot;lib://flowstdlib/math/add&quot;
+input.i1 = { once = 2 }
+input.i2 = { once = 1 }
+
+# 3 / 2 = 1.5
+[[process]]
+source = &quot;lib://flowstdlib/math/divide&quot;
+input.divisor = { once = 2 }
+
+[[connection]]
+from = &quot;add&quot;
+to = &quot;divide/dividend&quot;
+
+# Compare 1.5 to 1
+[[process]]
+source = &quot;lib://flowstdlib/math/compare&quot;
+input.right = { once = 1 }
+
+[[connection]]
+from = &quot;divide/result&quot;
+to = &quot;compare/left&quot;
+
+# Output the comparison result (gt = true since 1.5 &gt; 1)
+[[connection]]
+from = &quot;compare/gt&quot;
+to = &quot;stdout&quot;
+
+# Tap blocks data when control is false
+[[process]]
+source = &quot;lib://flowstdlib/control/tap&quot;
+input.control = { once = false }
+
+[[connection]]
+from = &quot;divide/result&quot;
+to = &quot;tap/data&quot;
+
+# Tap output is blocked (control=false), so nothing reaches stdout from here
+[[connection]]
+from = &quot;tap&quot;
+to = &quot;stdout&quot;
+
+[[process]]
+source = &quot;context://stdio/stdout&quot;
+</code></pre>
+<p><strong>Features</strong>:</p>
+<ul>
+<li><code>compare</code> produces boolean outputs (<code>gt</code>, <code>lt</code>, <code>equal</code>, etc.)</li>
+<li><code>tap</code> gates data flow based on a boolean control input</li>
+<li>Multiple inputs initialized with <code>once</code> for one-shot computation</li>
+</ul>
+
+                    </main>
+
+                    <nav class="nav-wrapper" aria-label="Page navigation">
+                        <!-- Mobile navigation buttons -->
+                            <a rel="prev" href="../../book/describing/programming_methods.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                                <i class="fa fa-angle-left"></i>
+                            </a>
+
+                            <a rel="next" href="../../flowr/src/bin/flowrcli/context/flowrcli_context_functions.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                                <i class="fa fa-angle-right"></i>
+                            </a>
+
+                        <div style="clear: both"></div>
+                    </nav>
+                </div>
+            </div>
+
+            <nav class="nav-wide-wrapper" aria-label="Page navigation">
+                    <a rel="prev" href="../../book/describing/programming_methods.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                        <i class="fa fa-angle-left"></i>
+                    </a>
+
+                    <a rel="next" href="../../flowr/src/bin/flowrcli/context/flowrcli_context_functions.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                        <i class="fa fa-angle-right"></i>
+                    </a>
+            </nav>
+
+        </div>
+
+
+
+
+        <script>
+            window.playground_copyable = true;
+        </script>
+
+
+        <script src="../../elasticlunr.min.js"></script>
+        <script src="../../mark.min.js"></script>
+        <script src="../../searcher.js"></script>
+
+        <script src="../../clipboard.min.js"></script>
+        <script src="../../highlight.js"></script>
+        <script src="../../book.js"></script>
+
+        <!-- Custom JS scripts -->
+
+
+    </div>
+    </body>
+</html>
