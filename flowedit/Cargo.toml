@@ -18,7 +18,7 @@ pkg-fmt = "tgz"
 [package.metadata.packager]
 product-name = "flowedit"
 identifier = "net.mackenzie-serres.flowedit"
-icons = ["assets/icons/icon.png", "assets/icons/icon.icns", "assets/icons/icon.ico"]
+icons = ["assets/icons/flowedit/icon.png", "assets/icons/flowedit/icon.icns", "assets/icons/flowedit/icon.ico"]
 
 [package.metadata.packager.deb]
 depends = ["libssl3"]

@@ -1,0 +1,39 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024">
+  
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#2563eb"/>
+      <stop offset="100%" style="stop-color:#7c3aed"/>
+    </linearGradient>
+  </defs>
+  <rect width="1024" height="1024" rx="160" fill="url(#bg)"/>
+
+  
+  <!-- Common flow graph background -->
+  <circle cx="240" cy="380" r="28" fill="white" opacity="0.2"/>
+  <circle cx="240" cy="644" r="28" fill="white" opacity="0.2"/>
+  <circle cx="460" cy="512" r="34" fill="white" opacity="0.25"/>
+  <circle cx="680" cy="380" r="28" fill="white" opacity="0.2"/>
+  <circle cx="680" cy="644" r="28" fill="white" opacity="0.2"/>
+  <path d="M240 380 C350 380, 350 512, 460 512" stroke="white" stroke-width="6" fill="none" opacity="0.15"/>
+  <path d="M240 644 C350 644, 350 512, 460 512" stroke="white" stroke-width="6" fill="none" opacity="0.15"/>
+  <path d="M460 512 C570 512, 570 380, 680 380" stroke="white" stroke-width="6" fill="none" opacity="0.15"/>
+  <path d="M460 512 C570 512, 570 644, 680 644" stroke="white" stroke-width="6" fill="none" opacity="0.15"/>
+
+  <!-- Terminal window overlay -->
+  <rect x="180" y="240" width="664" height="544" rx="24" fill="rgba(0,0,0,0.45)" stroke="white" stroke-width="6"/>
+  <rect x="180" y="240" width="664" height="50" rx="24" fill="rgba(255,255,255,0.12)"/>
+  <rect x="180" y="266" width="664" height="24" fill="rgba(255,255,255,0.12)"/>
+  <circle cx="220" cy="265" r="10" fill="#ff5f57"/>
+  <circle cx="252" cy="265" r="10" fill="#febc2e"/>
+  <circle cx="284" cy="265" r="10" fill="#28c840"/>
+  <!-- Terminal content — no duplicate flow, just prompt + output -->
+  <text x="220" y="348" fill="#28c840" font-family="monospace" font-size="46" opacity="0.9">$ flowrcli run</text>
+  <!-- Output -->
+  <text x="220" y="440" fill="white" font-family="monospace" font-size="42" opacity="0.6">1 1 2 3 5 8 13</text>
+  <text x="220" y="500" fill="white" font-family="monospace" font-size="42" opacity="0.6">21 34 55 89 144</text>
+  <text x="220" y="560" fill="white" font-family="monospace" font-size="42" opacity="0.6">233 377 610</text>
+  <!-- Cursor -->
+  <text x="220" y="640" fill="#28c840" font-family="monospace" font-size="46" opacity="0.9">$</text>
+  <rect x="260" y="610" width="22" height="38" fill="white" opacity="0.6"/>
+</svg>
