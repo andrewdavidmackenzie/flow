@@ -27,12 +27,26 @@ curl -sL https://github.com/andrewdavidmackenzie/flow/releases/latest/download/i
 
 ## Your First Flow
 
-Here's a flow that generates the fibonacci sequence — two inputs feed into `add`,
-whose output loops back and also prints to stdout:
+Here's a flow that generates the fibonacci sequence:
 
 <div align="center">
-<img src="first.svg" alt="Fibonacci flow" width="500">
+<img src="first.svg" alt="Fibonacci flow" width="600">
 </div>
+
+This flow has two **functions** connected together:
+- `add` — a library function from `flowstdlib` that adds two numbers
+- `stdout` — a **context function** provided by the runner for printing to the terminal
+
+The `add` function has two inputs (`i1` and `i2`) with **initializers**: `i1` is
+set to `0` and `i2` to `1` at startup (shown as "once" — they're only set once).
+
+Three **connections** carry data between functions:
+- `add`'s output feeds back to its own `i2` input (the next value)
+- The previous `i2` value feeds back to `i1` (a **feedback connection**)
+- `add`'s output also flows to `stdout`, which prints each value
+
+The output of `add` includes the input values, enabling feedback of the
+previous value. The flow runs until integer overflow produces no output.
 
 ```bash
 flowc -r flowrcli flowr/examples/fibonacci    # compile and run

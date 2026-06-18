@@ -60,12 +60,22 @@ pub fn render_flow(flow: &FlowDefinition) -> String {
         }
     }
 
-    let (doc_width, doc_height) = compute_document_size(&layouts);
+    let has_initializers = flow
+        .process_refs
+        .iter()
+        .any(|pr| !pr.initializations.is_empty());
+    let (vb_x, vb_y, doc_width, doc_height) = compute_document_bounds(&layouts, has_initializers);
 
     let document = Document::new()
         .set(
             "viewBox",
-            format!("0 0 {} {}", doc_width.round(), doc_height.round()),
+            format!(
+                "{} {} {} {}",
+                vb_x.round(),
+                vb_y.round(),
+                doc_width.round(),
+                doc_height.round()
+            ),
         )
         .set("width", doc_width)
         .set("height", doc_height)
@@ -360,14 +370,20 @@ fn render_initializers(pr: &ProcessReference, layout: &NodeLayout) -> Group {
             value_str.clone()
         };
 
-        let label_x = px - 60.0;
+        let init_type = match initializer {
+            flowcore::model::input::InputInitializer::Always(_) => "always",
+            flowcore::model::input::InputInitializer::Once(_) => "once",
+        };
+        let label = format!("{truncated} ({init_type})");
+
+        let label_x = px - 70.0;
         let label_y = py;
 
         group = group.add(shapes::centered_text(
             label_x,
             label_y,
-            &truncated,
-            style::PORT_FONT_SIZE,
+            &label,
+            style::PORT_FONT_SIZE + 1.0,
             style::COLOR_INITIALIZER,
         ));
 
@@ -377,7 +393,7 @@ fn render_initializers(pr: &ProcessReference, layout: &NodeLayout) -> Group {
         };
 
         group = group.add(edge::bezier_edge(
-            label_x + 25.0,
+            label_x + 35.0,
             label_y,
             px,
             py,
@@ -391,17 +407,27 @@ fn render_initializers(pr: &ProcessReference, layout: &NodeLayout) -> Group {
     group
 }
 
-fn compute_document_size(layouts: &HashMap<String, NodeLayout>) -> (f32, f32) {
+fn compute_document_bounds(
+    layouts: &HashMap<String, NodeLayout>,
+    has_initializers: bool,
+) -> (f32, f32, f32, f32) {
+    let mut min_x: f32 = 0.0;
+    let mut min_y: f32 = 0.0;
     let mut max_x: f32 = 0.0;
     let mut max_y: f32 = 0.0;
 
     for layout in layouts.values() {
+        min_x = min_x.min(layout.x);
+        min_y = min_y.min(layout.y);
         max_x = max_x.max(layout.x + layout.width);
         max_y = max_y.max(layout.y + layout.height);
     }
 
-    (
-        max_x + style::GRID_ORIGIN_X * 2.0,
-        max_y + style::GRID_ORIGIN_Y * 2.0,
-    )
+    let left_pad = if has_initializers { 80.0 } else { 0.0 };
+    let origin_x = min_x - left_pad;
+    let origin_y = min_y - style::GRID_ORIGIN_Y;
+    let width = max_x - origin_x + style::GRID_ORIGIN_X;
+    let height = max_y - origin_y + style::GRID_ORIGIN_Y;
+
+    (origin_x, origin_y, width, height)
 }
