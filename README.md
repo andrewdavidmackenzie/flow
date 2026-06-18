@@ -12,6 +12,8 @@
 [dataflow programs](https://en.wikipedia.org/wiki/Dataflow_programming).
 Flows are defined declaratively as graphs of connected processes — using a
 visual editor or text files — compiled to a manifest, and executed by a runner.
+The suite of tools (runner, debugger, remote executor) work together over the
+network, discovering each other via mDNS for distributed flow execution.
 
 <div align="center">
 
