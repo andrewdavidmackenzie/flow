@@ -93,12 +93,16 @@ jobs:
           cd ..
 
       - name: Build release binaries
-        run: cargo build --release --all-features --target ${{ matrix.target }}
+        shell: bash
+        run: |
+          if [[ "${{ matrix.target }}" == "armv7-unknown-linux-gnueabihf" ]]; then
+            export OPENSSL_STATIC=1
+            export OPENSSL_DIR=/home/runner/openssl-armv7
+          fi
+          cargo build --release --all-features --target ${{ matrix.target }}
         env:
           CC_armv7_unknown_linux_gnueabihf: arm-linux-gnueabihf-gcc
           CXX_armv7_unknown_linux_gnueabihf: arm-linux-gnueabihf-g++
-          OPENSSL_STATIC: ${{ matrix.target == 'armv7-unknown-linux-gnueabihf' && '1' || '' }}
-          OPENSSL_DIR: ${{ matrix.target == 'armv7-unknown-linux-gnueabihf' && '/home/runner/openssl-armv7' || '' }}
 
       - name: Find and upload release binaries
         shell: bash
