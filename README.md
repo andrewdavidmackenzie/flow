@@ -10,8 +10,8 @@
 
 `flow` is a system for defining, compiling and running parallel
 [dataflow programs](https://en.wikipedia.org/wiki/Dataflow_programming).
-Flows are defined declaratively as graphs of connected processes, compiled to
-a manifest, and executed by a runner.
+Flows are defined declaratively as graphs of connected processes — using a
+visual editor or text files — compiled to a manifest, and executed by a runner.
 
 <div align="center">
 
