@@ -66,29 +66,6 @@ flowrcli --debugger manifest.json  # start with debug server
 
 ---
 
-### <img src="flowr/assets/icons/flowrgui/icon.png" width="48" align="left"> flowrgui — Graphical Runner
-
-GUI application for running flows with visual I/O — image display, interactive
-stdin, and a built-in graphical debugger with state diagrams, breakpoints,
-and function inspection.
-
-![Fibonacci in flowrgui](book/images/fibonacci.gif)
-
----
-
-### <img src="flowedit/assets/icons/flowedit/icon.png" width="48" align="left"> flowedit — Visual Flow Editor
-
-WYSIWYG editor for creating and editing flow definitions. Drag-and-drop
-process nodes, draw connections, edit properties, and compile directly
-from the editor.
-
-```bash
-flowedit                       # start with empty canvas
-flowedit path/to/root.toml    # open existing flow
-```
-
----
-
 ### <img src="flowr/assets/icons/flowrdb/icon.png" width="48" align="left"> flowrdb — Flow Debugger
 
 Command-line debugger client that connects to a running flow (via flowrcli
@@ -102,6 +79,16 @@ flowrdb --address localhost:1234  # connect directly
 
 ---
 
+### <img src="flowr/assets/icons/flowrgui/icon.png" width="48" align="left"> flowrgui — Graphical Runner
+
+GUI application for running flows with visual I/O — image display, interactive
+stdin, and a built-in graphical debugger with state diagrams, breakpoints,
+and function inspection.
+
+![Fibonacci in flowrgui](book/images/fibonacci.gif)
+
+---
+
 ### flowrex — Remote Job Executor
 
 Headless executor that can be discovered on the local network by a runner
@@ -109,6 +96,19 @@ and used to distribute job execution across machines.
 
 ```bash
 flowrex                        # start and advertise via mDNS
+```
+
+---
+
+### <img src="flowedit/assets/icons/flowedit/icon.png" width="48" align="left"> flowedit — Visual Flow Editor
+
+WYSIWYG editor for creating and editing flow definitions. Drag-and-drop
+process nodes, draw connections, edit properties, and compile directly
+from the editor.
+
+```bash
+flowedit                       # start with empty canvas
+flowedit path/to/root.toml    # open existing flow
 ```
 
 ## Standard Library
