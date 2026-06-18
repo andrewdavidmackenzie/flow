@@ -43,7 +43,7 @@ debugger = ["flowcore/debugger"] # feature to add output for the debugger
 graph = ["svg"] # feature to enable SVG graph output with -g flag
 
 [dependencies]
-flowcore = {path = "../flowcore", version = "1.1.0", features = ["context", "file_provider", "http_provider", "meta_provider"]}
+flowcore = {path = "../flowcore", version = "1.2.0", features = ["context", "file_provider", "http_provider", "meta_provider"]}
 svg = { version = "0.18", optional = true }
 clap = "~4"
 env_logger = "0.11.10"
@@ -60,7 +60,7 @@ colored = "3"
 toml = { version = "1.1.2" }
 
 [dev-dependencies]
-flowcore = {path = "../flowcore", version = "1.1.0", features = ["context"]}
+flowcore = {path = "../flowcore", version = "1.2.0", features = ["context"]}
 tempfile = "3"
 simpath = { version = "~2.5", features = ["urls"]}
 serial_test = "3.5.0"
