@@ -63,7 +63,7 @@ jobs:
 
       - name: Install macOS dependencies
         if: runner.os == 'macOS'
-        run: brew install zmq binaryen
+        run: brew install zmq binaryen openssl
 
       - name: Install Windows dependencies
         if: runner.os == 'Windows'
