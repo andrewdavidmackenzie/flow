@@ -55,7 +55,13 @@ jobs:
         if: runner.os == 'Linux'
         run: |
           sudo apt-get update
-          sudo apt-get install -y libzmq3-dev libssl-dev binaryen cmake
+          sudo apt-get install -y libzmq3-dev libssl-dev cmake
+          ARCH=$(uname -m)
+          BINARYEN_VERSION="version_129"
+          wget -q https://github.com/WebAssembly/binaryen/releases/download/${BINARYEN_VERSION}/binaryen-${BINARYEN_VERSION}-${ARCH}-linux.tar.gz
+          tar -xzf binaryen-${BINARYEN_VERSION}-${ARCH}-linux.tar.gz
+          sudo cp binaryen-${BINARYEN_VERSION}/bin/* /usr/local/bin/
+          rm -rf binaryen-${BINARYEN_VERSION} binaryen-${BINARYEN_VERSION}-${ARCH}-linux.tar.gz
 
       - name: Install armv7 cross-compilation toolchain
         if: matrix.target == 'armv7-unknown-linux-gnueabihf'
@@ -182,11 +188,16 @@ jobs:
         shell: bash
         run: |
           TAG="${{ github.event.release.tag_name }}"
-          for ext in deb AppImage dmg exe msi; do
+          for ext in deb AppImage dmg; do
             find target -name "*.${ext}" -type f 2>/dev/null | while read pkg; do
               echo "Uploading: ${pkg}"
               gh release upload "${TAG}" "${pkg}" --clobber || true
             done
+          done
+          # Windows installers: only upload *-setup.exe and *.msi to avoid build artifacts
+          find target -name "*-setup.exe" -o -name "*.msi" 2>/dev/null | while read pkg; do
+            echo "Uploading: ${pkg}"
+            gh release upload "${TAG}" "${pkg}" --clobber || true
           done
 
       - name: Compile flowstdlib to WASM (Linux x86_64 only)
