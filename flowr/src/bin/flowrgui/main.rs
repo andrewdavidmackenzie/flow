@@ -1425,6 +1425,7 @@ impl FlowrGui {
 
                     let (tx, mut rx) = tokio::sync::mpsc::channel::<Option<String>>(100);
 
+                    info!("stdin-file: reading from '{}'", path.display());
                     tokio::task::spawn_blocking(move || {
                         use std::io::BufRead;
                         let file = match std::fs::File::open(&path) {
