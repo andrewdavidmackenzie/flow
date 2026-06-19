@@ -1,0 +1,21 @@
+function = "fft_compute"
+description = "Compute FFT of a signal and return spectrum text and magnitude bins"
+source = "fft_compute.rs"
+docs = "fft_compute.md"
+type = "rust"
+
+[[input]]
+name = "signal"
+type = "array/number"
+
+[[input]]
+name = "sample_rate"
+type = "number"
+
+[[output]]
+name = "text"
+type = "string"
+
+[[output]]
+name = "bins"
+type = "array/number"
