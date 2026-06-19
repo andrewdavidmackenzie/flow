@@ -72,6 +72,23 @@ Similar to `flowrcli` that interacts with the terminal and the file system for I
 for flows, but with a Graphical User Interface (GUI). It displays STDIO and STDERR on the UI, shows images written
 to visually and tracks writes to files during execution.
 
-Most (but not all) of the same command line options as `flowrcli` are supported, and help can be see using:
+Most (but not all) of the same command line options as `flowrcli` are supported, and help can be seen using:
 
 `flowrgui --help`
+
+#### `--stdin-file <FILE>`
+Read stdin lines from a file or named pipe instead of the GUI text input.
+Each line appears in the stdin tab as if typed by the user, and is consumed
+by `readline` context functions in the flow.
+
+This is useful for streaming data into a flow running in the GUI:
+
+```bash
+# Read from a file
+flowrgui --stdin-file test.stdin flowr/examples/running-average
+
+# Stream from a named pipe
+mkfifo /tmp/data_pipe
+./generate_data.sh > /tmp/data_pipe &
+flowrgui --stdin-file /tmp/data_pipe flowr/examples/weather-station
+```
