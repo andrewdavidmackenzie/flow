@@ -27,7 +27,6 @@ fn inner_array_extract(
     let s = resolve_index(start_idx, len);
     let e = resolve_index(end_idx, len);
 
-    let e = e.min(len);
     let slice = if s < e {
         array.get(s..e).map_or_else(Vec::new, <[Value]>::to_vec)
     } else {
