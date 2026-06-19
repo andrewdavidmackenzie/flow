@@ -1,0 +1,17 @@
+function = "sliding_window"
+description = "Maintain a sliding window of the last N values"
+source = "sliding_window.rs"
+docs = "sliding_window.md"
+type = "rust"
+
+[[input]]
+name = "value"
+type = "number"
+
+[[input]]
+name = "window"
+type = "array/number"
+
+[[output]]
+name = "window"
+type = "array/number"

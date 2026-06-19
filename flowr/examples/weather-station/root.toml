@@ -1,0 +1,56 @@
+flow = "weather-station"
+docs = "DESCRIPTION.md"
+
+# Read individual temperature values from stdin (one per line)
+[[process]]
+source = "context://stdio/readline"
+input.prompt = { always = "" }
+
+# Maintain a sliding window of the last 24 readings (6 hours at 15-min intervals)
+[[process]]
+source = "sliding_window"
+input.window = { once = [] }
+
+[[connection]]
+from = "readline/json"
+to = "sliding_window/value"
+
+# Feed the window back to accumulate readings
+[[connection]]
+from = "sliding_window/window"
+to = "sliding_window/window"
+
+# Analyze the current window
+[[process]]
+source = "analyze"
+
+[[connection]]
+from = "sliding_window/window"
+to = "analyze/window"
+
+# Print analysis report
+[[process]]
+source = "context://stdio/stdout"
+
+[[connection]]
+from = "analyze/report"
+to = "stdout"
+
+# Temperature distribution chart
+[[process]]
+alias = "chart"
+source = "lib://flowstdlib/charts/histogram"
+
+[[connection]]
+from = "analyze/bins"
+to = "chart/bins"
+
+# Write histogram image (overwritten each update)
+[[process]]
+source = "context://image/image_write"
+input.width = { always = 256 }
+input.filename = { always = "temperature_distribution.png" }
+
+[[connection]]
+from = "chart/grid"
+to = "image_write/grid"

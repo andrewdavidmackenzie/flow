@@ -1,0 +1,17 @@
+function = "analyze"
+description = "Analyze a window of temperature readings: compute stats, detect anomalies, produce histogram bins"
+source = "analyze.rs"
+docs = "analyze.md"
+type = "rust"
+
+[[input]]
+name = "window"
+type = "array/number"
+
+[[output]]
+name = "report"
+type = "string"
+
+[[output]]
+name = "bins"
+type = "array/number"

@@ -15,6 +15,7 @@ members = [
     "data/min",
     "data/max",
     "data/avg",
+    "data/array_extract",
     "data/array_get",
     "data/array_set",
     "data/count",
