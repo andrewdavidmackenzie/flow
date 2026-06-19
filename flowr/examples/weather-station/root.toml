@@ -6,51 +6,130 @@ docs = "DESCRIPTION.md"
 source = "context://stdio/readline"
 input.prompt = { always = "" }
 
-# Maintain a sliding window of the last 24 readings (6 hours at 15-min intervals)
+# --- Running minimum ---
 [[process]]
-source = "sliding_window"
-input.window = { once = [] }
+alias = "min"
+source = "lib://flowstdlib/data/min"
+input.partial = { once = 99999 }
 
 [[connection]]
 from = "readline/json"
-to = "sliding_window/value"
+to = "min/value"
 
-# Feed the window back to accumulate readings
 [[connection]]
-from = "sliding_window/window"
-to = "sliding_window/window"
+from = "min/partial"
+to = "min/partial"
 
-# Analyze the current window
 [[process]]
-source = "analyze"
+alias = "label_min"
+source = "lib://flowstdlib/data/append"
+input.s1 = { always = "Min: " }
 
 [[connection]]
-from = "sliding_window/window"
-to = "analyze/window"
+from = "min/partial"
+to = "label_min/s2"
 
-# Print analysis report
+# --- Running maximum ---
+[[process]]
+alias = "max"
+source = "lib://flowstdlib/data/max"
+input.partial = { once = -99999 }
+
+[[connection]]
+from = "readline/json"
+to = "max/value"
+
+[[connection]]
+from = "max/partial"
+to = "max/partial"
+
+[[process]]
+alias = "label_max"
+source = "lib://flowstdlib/data/append"
+input.s1 = { always = "Max: " }
+
+[[connection]]
+from = "max/partial"
+to = "label_max/s2"
+
+# --- Running average (sum / count) ---
+[[process]]
+alias = "avg"
+source = "lib://flowstdlib/data/avg"
+input.partial_sum = { once = 0 }
+input.partial_count = { once = 0 }
+
+[[connection]]
+from = "readline/json"
+to = "avg/value"
+
+[[connection]]
+from = "avg/partial_sum"
+to = "avg/partial_sum"
+
+[[connection]]
+from = "avg/partial_count"
+to = "avg/partial_count"
+
+[[process]]
+alias = "mean"
+source = "lib://flowstdlib/math/divide"
+
+[[connection]]
+from = "avg/partial_sum"
+to = "mean/dividend"
+
+[[connection]]
+from = "avg/partial_count"
+to = "mean/divisor"
+
+[[process]]
+alias = "label_mean"
+source = "lib://flowstdlib/data/append"
+input.s1 = { always = "Mean: " }
+
+[[connection]]
+from = "mean/result"
+to = "label_mean/s2"
+
+# --- Reading count ---
+[[process]]
+source = "lib://flowstdlib/data/count"
+input.count = { once = 0 }
+
+[[connection]]
+from = "readline/json"
+to = "count/data"
+
+[[connection]]
+from = "count"
+to = "count/count"
+
+[[process]]
+alias = "label_count"
+source = "lib://flowstdlib/data/append"
+input.s1 = { always = "Count: " }
+
+[[connection]]
+from = "count"
+to = "label_count/s2"
+
+# --- All stats to stdout ---
 [[process]]
 source = "context://stdio/stdout"
 
 [[connection]]
-from = "analyze/report"
+from = "label_min"
 to = "stdout"
 
-# Temperature distribution chart
-[[process]]
-alias = "chart"
-source = "lib://flowstdlib/charts/histogram"
+[[connection]]
+from = "label_max"
+to = "stdout"
 
 [[connection]]
-from = "analyze/bins"
-to = "chart/bins"
-
-# Write histogram image (overwritten each update)
-[[process]]
-source = "context://image/image_write"
-input.width = { always = 256 }
-input.filename = { always = "temperature_distribution.png" }
+from = "label_mean"
+to = "stdout"
 
 [[connection]]
-from = "chart/grid"
-to = "image_write/grid"
+from = "label_count"
+to = "stdout"

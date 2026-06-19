@@ -1,20 +1,21 @@
 # Weather Station — Streaming Sensor Data Processing
 
 A streaming example that processes temperature readings one at a time,
-maintaining a sliding window of the last 24 values (6 hours at 15-minute
-intervals).
+computing running statistics in parallel using only flowstdlib primitives.
 
-Each new reading triggers:
-- **Sliding window update**: the window accumulates up to 24 values, then
-  drops the oldest on each new reading
-- **Statistical analysis**: min, max, mean over the current window
-- **Anomaly detection**: flags sudden temperature changes (>3°C between
-  consecutive readings) within the window
-- **Temperature distribution**: histogram image updated with each reading
+Each new reading triggers — in parallel:
+- **Running minimum** (`lib://flowstdlib/data/min`)
+- **Running maximum** (`lib://flowstdlib/data/max`)
+- **Running mean** (`lib://flowstdlib/data/avg` + `lib://flowstdlib/math/divide`)
+- **Reading count** (`lib://flowstdlib/data/count`)
+
+Each stat is labeled with `lib://flowstdlib/data/append` and sent to stdout
+independently. The output order between stats is non-deterministic — this
+demonstrates the parallelism inherent in the dataflow model.
 
 ## Running interactively
 
-Type temperature values (one per line) and see analysis after each:
+Type temperature values (one per line) and see stats update after each:
 
 ```
 flowrcli flowr/examples/weather-station
