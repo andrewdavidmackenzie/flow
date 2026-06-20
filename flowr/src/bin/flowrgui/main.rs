@@ -25,6 +25,7 @@ use core::str::FromStr;
 use std::fs::File;
 use std::io::prelude::*;
 use std::path::PathBuf;
+use std::sync::OnceLock;
 use std::{env, process, thread};
 
 use clap::Command as ClapCommand;
@@ -753,6 +754,7 @@ enum PanelKind {
 struct UiSettings {
     auto_start: bool,
     auto_exit: bool,
+    stdin_file: Option<PathBuf>,
 }
 
 struct ImageReference {
@@ -1375,8 +1377,14 @@ impl FlowrGui {
     }
 
     fn subscription(&self) -> Subscription<Message> {
-        let coordinator_sub = connection_manager::subscribe(self.coordinator_settings.clone())
-            .map(Message::CoordinatorSent);
+        let mut subs = vec![
+            connection_manager::subscribe(self.coordinator_settings.clone())
+                .map(Message::CoordinatorSent),
+        ];
+
+        if let Some(ref path) = self.ui_settings.stdin_file {
+            subs.push(Self::stdin_file_subscription(path.clone()));
+        }
 
         #[cfg(feature = "debugger")]
         if self.debug_client_active {
@@ -1396,18 +1404,62 @@ impl FlowrGui {
                 }
             };
             if let Some(addr) = address {
-                return Subscription::batch([
-                    coordinator_sub,
-                    connection_manager::debug_client_subscribe(addr),
-                ]);
+                subs.push(connection_manager::debug_client_subscribe(addr));
             }
         }
 
-        coordinator_sub
+        Subscription::batch(subs)
     }
 }
 
 impl FlowrGui {
+    fn stdin_file_subscription(path: PathBuf) -> Subscription<Message> {
+        static STDIN_FILE_PATH: OnceLock<PathBuf> = OnceLock::new();
+        STDIN_FILE_PATH.get_or_init(|| path);
+        Subscription::run(|| {
+            let path = STDIN_FILE_PATH.get().cloned().unwrap_or_default();
+            iced::stream::channel(
+                100,
+                move |mut sender: iced::futures::channel::mpsc::Sender<Message>| async move {
+                    use iced::futures::SinkExt;
+
+                    let (tx, mut rx) = tokio::sync::mpsc::channel::<Option<String>>(100);
+
+                    info!("stdin-file: reading from '{}'", path.display());
+                    tokio::task::spawn_blocking(move || {
+                        use std::io::BufRead;
+                        let file = match std::fs::File::open(&path) {
+                            Ok(f) => f,
+                            Err(e) => {
+                                info!("Could not open stdin file '{}': {e}", path.display());
+                                return;
+                            }
+                        };
+                        for line in std::io::BufReader::new(file).lines() {
+                            match line {
+                                Ok(l) => {
+                                    if tx.blocking_send(Some(l)).is_err() {
+                                        break;
+                                    }
+                                }
+                                Err(_) => break,
+                            }
+                        }
+                        let _ = tx.blocking_send(None);
+                    });
+
+                    while let Some(Some(line)) = rx.recv().await {
+                        if sender.send(Message::LineOfStdin(line)).await.is_err() {
+                            break;
+                        }
+                    }
+                    let _ = sender.send(Message::SendEof).await;
+                    std::future::pending::<()>().await;
+                },
+            )
+        })
+    }
+
     #[allow(clippy::unused_async)]
     async fn auto_submit() {
         info!("Auto submitting flow");
@@ -2882,6 +2934,7 @@ impl FlowrGui {
 
         let auto = matches.get_flag("auto");
         let mut auto_start = auto || matches.get_flag("auto-start");
+        let stdin_file = matches.get_one::<String>("stdin-file").map(PathBuf::from);
         #[cfg(feature = "debugger")]
         if debug_mode != DebugMode::Off
             && !matches!(coordinator_settings, CoordinatorSettings::ClientOnly)
@@ -2929,6 +2982,7 @@ impl FlowrGui {
             UiSettings {
                 auto_start,
                 auto_exit: auto,
+                stdin_file,
             },
         )
     }
@@ -2990,6 +3044,13 @@ impl FlowrGui {
                 .long("auto-start")
                 .action(clap::ArgAction::SetTrue)
                 .help("Run the flow automatically on start-up, but stay open for interaction."),
+        );
+
+        let app = app.arg(
+            Arg::new("stdin-file")
+                .long("stdin-file")
+                .value_name("FILE")
+                .help("Read stdin lines from a file or named pipe instead of the GUI input"),
         );
 
         let app = app
@@ -3704,6 +3765,7 @@ mod test {
             ui_settings: UiSettings {
                 auto_start: false,
                 auto_exit: false,
+                stdin_file: None,
             },
             coordinator_state: CoordinatorState::Disconnected("test".into()),
             tab_set: TabSet::new(),
