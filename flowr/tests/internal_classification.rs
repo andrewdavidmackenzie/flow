@@ -134,9 +134,9 @@ fn prime_classification() {
 }
 
 #[test]
-fn running_average_classification() {
-    let manifest = load_example_manifest("running-average");
-    verify_basic_invariants(&manifest, "running-average");
+fn weather_station_classification() {
+    let manifest = load_example_manifest("weather-station");
+    verify_basic_invariants(&manifest, "weather-station");
 }
 
 #[test]
