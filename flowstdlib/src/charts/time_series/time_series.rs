@@ -11,7 +11,10 @@ const HEIGHT: usize = 128;
 fn inner_time_series(values: &Value) -> Result<(Option<Value>, RunAgain)> {
     let values = values.as_array().ok_or("Could not get values as array")?;
 
-    let floats: Vec<f64> = values.iter().map(|v| v.as_f64().unwrap_or(0.0)).collect();
+    let floats: Vec<f64> = values
+        .iter()
+        .map(|v| v.as_f64().ok_or("values must contain only numbers"))
+        .collect::<std::result::Result<Vec<_>, _>>()?;
 
     // Use only the last WIDTH values if there are more
     let start = floats.len().saturating_sub(WIDTH);

@@ -17,7 +17,7 @@ demonstrates the parallelism inherent in the dataflow model.
 
 Type temperature values (one per line) and see stats update after each:
 
-```
+```bash
 flowrcli flowr/examples/weather-station
 ```
 
