@@ -4,27 +4,30 @@ use flowcore::RunAgain;
 use flowmacro::flow_function;
 use serde_json::{json, Value};
 
-const MIN_WIDTH: usize = 256;
+const WIDTH: usize = 256;
 const HEIGHT: usize = 128;
 
 #[flow_function]
 fn inner_time_series(values: &Value) -> Result<(Option<Value>, RunAgain)> {
     let values = values.as_array().ok_or("Could not get values as array")?;
-    let num_values = values.len().max(1);
-    let bar_width = (MIN_WIDTH / num_values).max(1);
-    let width = num_values * bar_width;
 
     let floats: Vec<f64> = values.iter().map(|v| v.as_f64().unwrap_or(0.0)).collect();
 
-    let min_val = floats.iter().copied().fold(f64::INFINITY, f64::min);
-    let max_val = floats.iter().copied().fold(f64::NEG_INFINITY, f64::max);
+    // Use only the last WIDTH values if there are more
+    let start = floats.len().saturating_sub(WIDTH);
+    let visible = floats.get(start..).unwrap_or(&floats);
+    let num_values = visible.len().max(1);
+    let bar_width = (WIDTH / num_values).max(1);
+
+    let min_val = visible.iter().copied().fold(f64::INFINITY, f64::min);
+    let max_val = visible.iter().copied().fold(f64::NEG_INFINITY, f64::max);
     let range = (max_val - min_val).max(f64::MIN_POSITIVE);
 
     #[allow(clippy::cast_precision_loss)]
     let height_f = HEIGHT as f64;
-    let mut grid: Vec<Vec<u8>> = vec![vec![255; width]; HEIGHT];
+    let mut grid: Vec<Vec<u8>> = vec![vec![255; WIDTH]; HEIGHT];
 
-    for (i, val) in floats.iter().enumerate().take(num_values) {
+    for (i, val) in visible.iter().enumerate().take(num_values) {
         let normalized = (val - min_val) / range;
         #[allow(clippy::cast_possible_truncation, clippy::cast_sign_loss)]
         let bar_height = (normalized * height_f).round().max(0.0) as usize;

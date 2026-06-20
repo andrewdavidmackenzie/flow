@@ -3547,10 +3547,12 @@ impl FlowrGui {
                     self.send(ClientMessage::GetLineEof);
                     self.tab_set.stdin_tab.eof_signaled = false;
                 } else {
-                    debug!("GetLine: buffer empty, waiting for user input");
+                    debug!("GetLine: buffer empty, waiting for input");
                     self.pending_getline = true;
                     self.tab_set.stdin_tab.waiting_for_input = true;
-                    self.tab_set.active_tab = 2; // Switch to Stdin tab
+                    if self.ui_settings.stdin_file.is_none() {
+                        self.tab_set.active_tab = 2; // Switch to Stdin tab for user input
+                    }
                 }
             }
             CoordinatorMessage::GetArgs => {

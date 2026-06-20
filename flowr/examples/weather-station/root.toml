@@ -134,13 +134,13 @@ to = "stdout"
 from = "label_count"
 to = "stdout"
 
-# --- Moving chart of recent mean values ---
-# Accumulate mean values into batches of 64 for charting
+# --- Moving chart of mean values (updated on each reading) ---
+# Accumulate all mean values
 [[process]]
 alias = "history"
 source = "lib://flowstdlib/data/accumulate"
 input.partial = { once = [] }
-input.chunk_size = { always = 64 }
+input.chunk_size = { always = 999999 }
 
 [[connection]]
 from = "mean/result"
@@ -150,13 +150,13 @@ to = "history/values"
 from = "history/partial"
 to = "history/partial"
 
-# Render accumulated values as a time series chart
+# Render as a time series chart (internally shows last 256 values)
 [[process]]
 alias = "chart"
 source = "lib://flowstdlib/charts/time_series"
 
 [[connection]]
-from = "history/chunk"
+from = "history/partial"
 to = "chart/values"
 
 # Write chart image
