@@ -133,3 +133,38 @@ to = "stdout"
 [[connection]]
 from = "label_count"
 to = "stdout"
+
+# --- Moving chart of recent mean values ---
+# Accumulate mean values into batches of 64 for charting
+[[process]]
+alias = "history"
+source = "lib://flowstdlib/data/accumulate"
+input.partial = { once = [] }
+input.chunk_size = { always = 64 }
+
+[[connection]]
+from = "mean/result"
+to = "history/values"
+
+[[connection]]
+from = "history/partial"
+to = "history/partial"
+
+# Render accumulated values as a time series chart
+[[process]]
+alias = "chart"
+source = "lib://flowstdlib/charts/time_series"
+
+[[connection]]
+from = "history/chunk"
+to = "chart/values"
+
+# Write chart image
+[[process]]
+source = "context://image/image_write"
+input.width = { always = 256 }
+input.filename = { always = "mean_trend.png" }
+
+[[connection]]
+from = "chart/grid"
+to = "image_write/grid"

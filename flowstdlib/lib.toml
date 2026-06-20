@@ -3,6 +3,7 @@
 [workspace]
 members = [
     "charts/histogram",
+    "charts/time_series",
     "control/compare_switch",
     "control/index",
     "control/join",

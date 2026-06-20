@@ -25,8 +25,22 @@ flowrcli flowr/examples/weather-station
 
 Stream pseudo-random temperature data continuously:
 
-```
+```bash
 ./flowr/examples/weather-station/generate_data.sh | flowrcli flowr/examples/weather-station
+```
+
+## Running in the GUI
+
+Use `--stdin-file` to feed data into flowrgui from a file or named pipe:
+
+```bash
+# From the test data file
+flowrgui --stdin-file flowr/examples/weather-station/test.stdin flowr/examples/weather-station
+
+# Streaming from the data generator via a named pipe
+mkfifo /tmp/weather_pipe
+./flowr/examples/weather-station/generate_data.sh > /tmp/weather_pipe &
+flowrgui --stdin-file /tmp/weather_pipe flowr/examples/weather-station
 ```
 
 ## Test data
