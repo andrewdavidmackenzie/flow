@@ -367,7 +367,7 @@ impl<'a> Coordinator<'a> {
 
         self.dispatcher.send_job_for_execution(&job.payload)?;
 
-        job.ttl = self.job_timeout.map(|d| Instant::now() + d);
+        job.ttl = self.job_timeout.and_then(|d| Instant::now().checked_add(d));
         state.start_job(job);
 
         #[cfg(feature = "metrics")]

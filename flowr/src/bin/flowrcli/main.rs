@@ -478,7 +478,7 @@ fn get_matches() -> ArgMatches {
         .arg(Arg::new("job-timeout")
             .long("job-timeout")
             .number_of_values(1)
-            .value_parser(clap::value_parser!(u64))
+            .value_parser(clap::value_parser!(u64).range(1..))
             .value_name("SECONDS")
             .help("Set timeout in seconds for job execution (lost jobs are retried)"))
         .arg(Arg::new("lib_dir")

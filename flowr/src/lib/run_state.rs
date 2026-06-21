@@ -365,10 +365,12 @@ impl RunState {
 
         for job_id in expired_ids {
             if let Some(mut job) = self.running_jobs.remove(&job_id) {
-                if job.attempt >= max_retries {
+                if job.attempt > max_retries {
                     return Err(format!(
-                        "Job #{} (function #{}) failed after {} attempts",
-                        job_id, job.process_id, job.attempt
+                        "Job #{} (function #{}) failed after {} retries",
+                        job_id,
+                        job.process_id,
+                        job.attempt - 1
                     )
                     .into());
                 }
