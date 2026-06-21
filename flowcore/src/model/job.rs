@@ -1,4 +1,5 @@
 use std::fmt;
+use std::time::Instant;
 
 use serde_derive::{Deserialize, Serialize};
 use serde_json::Value;
@@ -37,6 +38,36 @@ pub struct Job {
     pub result: Result<(Option<Value>, RunAgain)>,
     /// The destinations (other function's inputs) where any output should be sent
     pub connections: Vec<OutputConnection>,
+    /// When this job expires and should be considered lost (coordinator-local, not sent over wire)
+    #[serde(skip)]
+    pub ttl: Option<Instant>,
+    /// How many times this job has been attempted (coordinator-local, not sent over wire)
+    #[serde(skip)]
+    pub attempt: usize,
+}
+
+impl Job {
+    /// Create a new `Job` with default TTL and attempt count
+    #[must_use]
+    pub fn new(
+        process_id: usize,
+        parent_id: usize,
+        #[cfg(feature = "debugger")] function_name: String,
+        payload: Payload,
+        connections: Vec<OutputConnection>,
+    ) -> Self {
+        Self {
+            process_id,
+            parent_id,
+            #[cfg(feature = "debugger")]
+            function_name,
+            payload,
+            result: Ok((None, false)),
+            connections,
+            ttl: None,
+            attempt: 1,
+        }
+    }
 }
 
 impl fmt::Display for Job {
@@ -87,6 +118,8 @@ mod test {
                     .expect("Could not parse Url"),
             },
             result: Ok((None, false)),
+            ttl: None,
+            attempt: 1,
         };
         println!("Job: {job}");
     }
@@ -106,6 +139,8 @@ mod test {
                     .expect("Could not parse Url"),
             },
             result: Ok((Some(json!(42u64)), false)),
+            ttl: None,
+            attempt: 1,
         };
 
         assert_eq!(
@@ -137,6 +172,8 @@ mod test {
                     .expect("Could not parse Url"),
             },
             result: Ok((Some(json!(value)), false)),
+            ttl: None,
+            attempt: 1,
         };
 
         assert_eq!(

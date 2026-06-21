@@ -1196,6 +1196,8 @@ mod test {
                 input_set: vec![json!(1)],
             },
             result: Ok((Some(json!(1)), true)),
+            ttl: None,
+            attempt: 1,
         }
     }
 

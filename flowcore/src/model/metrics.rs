@@ -16,6 +16,7 @@ pub struct Metrics {
     start_time: Instant,
     elapsed_time_seconds: u64,
     max_simultaneous_jobs: usize,
+    jobs_retried: usize,
     jobs_per_function: Vec<usize>,
     function_names: Vec<(String, String)>,
 }
@@ -31,6 +32,7 @@ impl Metrics {
             start_time: Instant::now(),
             elapsed_time_seconds: 0,
             max_simultaneous_jobs: 0,
+            jobs_retried: 0,
             jobs_per_function: vec![0; num_processes],
             function_names: Vec::new(),
         }
@@ -57,6 +59,7 @@ impl Metrics {
         self.outputs_sent = 0;
         self.start_time = Instant::now();
         self.max_simultaneous_jobs = 0;
+        self.jobs_retried = 0;
         self.jobs_per_function.fill(0);
     }
 
@@ -90,6 +93,11 @@ impl Metrics {
         self.outputs_sent += 1;
     }
 
+    /// Increment the count of jobs that were retried after expiring
+    pub fn increment_jobs_retried(&mut self) {
+        self.jobs_retried += 1;
+    }
+
     /// Keep track of the maximum jobs that are executing in parallel during a flows
     /// execution, as a measure of the maximum level of parallelism achieved
     pub fn track_max_jobs(&mut self, jobs_running: usize) {
@@ -116,6 +124,9 @@ impl fmt::Display for Metrics {
         writeln!(f, "Values sent: {}", self.outputs_sent)?;
         writeln!(f, "Elapsed time(s): {:.*}", 1, self.elapsed_time_seconds)?;
         writeln!(f, "Max Jobs in Parallel: {}", self.max_simultaneous_jobs)?;
+        if self.jobs_retried > 0 {
+            writeln!(f, "Jobs Retried: {}", self.jobs_retried)?;
+        }
         write!(f, "Jobs per Function:")?;
         for (id, &count) in self.jobs_per_function.iter().enumerate() {
             if count > 0 {

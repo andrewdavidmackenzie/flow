@@ -1,8 +1,9 @@
 use std::collections::VecDeque;
 use std::collections::{HashMap, HashSet};
 use std::fmt;
+use std::time::Instant;
 
-use log::{debug, error, info, trace};
+use log::{debug, error, info, trace, warn};
 use serde_derive::{Deserialize, Serialize};
 use serde_json::Value;
 
@@ -346,6 +347,46 @@ impl RunState {
         self.running_jobs.insert(job.payload.job_id, job);
     }
 
+    /// Check for running jobs that have exceeded their TTL.
+    /// Expired jobs are removed from `running_jobs` and re-queued with an incremented attempt count.
+    /// Returns `Err` if any job has exceeded `max_retries`.
+    pub(crate) fn requeue_expired_jobs(
+        &mut self,
+        max_retries: usize,
+        #[cfg(feature = "metrics")] metrics: &mut Metrics,
+    ) -> Result<()> {
+        let now = Instant::now();
+        let expired_ids: Vec<usize> = self
+            .running_jobs
+            .iter()
+            .filter(|(_, job)| job.ttl.is_some_and(|ttl| ttl < now))
+            .map(|(id, _)| *id)
+            .collect();
+
+        for job_id in expired_ids {
+            if let Some(mut job) = self.running_jobs.remove(&job_id) {
+                if job.attempt >= max_retries {
+                    return Err(format!(
+                        "Job #{} (function #{}) failed after {} attempts",
+                        job_id, job.process_id, job.attempt
+                    )
+                    .into());
+                }
+                warn!(
+                    "Job #{} (function #{}) expired after attempt {}, re-queuing",
+                    job_id, job.process_id, job.attempt
+                );
+                job.attempt += 1;
+                job.ttl = None;
+                #[cfg(feature = "metrics")]
+                metrics.increment_jobs_retried();
+                self.ready_jobs.push_back(job);
+            }
+        }
+
+        Ok(())
+    }
+
     /// get the number of jobs created to date in the flow's execution
     #[cfg(any(feature = "metrics", feature = "debugger"))]
     #[must_use]
@@ -613,19 +654,18 @@ impl RunState {
                 debug!(
                     "Job #{job_id} created for Function #{process_id}({parent_id}) with inputs: {input_set:?}"
                 );
-                let job = Job {
+                let job = Job::new(
                     process_id,
                     parent_id,
                     #[cfg(feature = "debugger")]
-                    function_name: function.name().to_string(),
-                    connections: function.get_output_connections().clone(),
-                    payload: Payload {
+                    function.name().to_string(),
+                    Payload {
                         job_id,
                         input_set,
                         implementation_url,
                     },
-                    result: Ok((None, false)),
-                };
+                    function.get_output_connections().clone(),
+                );
 
                 // avoid getting stuck in a loop generating jobs for a function - generate just one
                 let always_ready = function.is_always_ready();
@@ -1004,6 +1044,8 @@ mod test {
                 input_set: vec![json!(1)],
             },
             result: Ok((Some(json!(1)), true)),
+            ttl: None,
+            attempt: 1,
         }
     }
 
@@ -1322,6 +1364,8 @@ mod test {
                     input_set: vec![json!(1)],
                 },
                 result: Ok((None, true)),
+                ttl: None,
+                attempt: 1,
             }
         }
 

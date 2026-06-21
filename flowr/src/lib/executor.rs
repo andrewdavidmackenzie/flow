@@ -913,6 +913,8 @@ mod test {
                     .expect("Could not parse Url"),
             },
             result: Ok((None, false)),
+            ttl: None,
+            attempt: 1,
         };
 
         let job2 = Job {
@@ -928,6 +930,8 @@ mod test {
                     .expect("Could not parse Url"),
             },
             result: Ok((None, false)),
+            ttl: None,
+            attempt: 1,
         };
 
         let job3 = Job {
@@ -942,6 +946,8 @@ mod test {
                 implementation_url: Url::parse("file://fake/path").expect("Could not parse Url"),
             },
             result: Ok((None, false)),
+            ttl: None,
+            attempt: 1,
         };
 
         for job in [job1, job2, job3] {

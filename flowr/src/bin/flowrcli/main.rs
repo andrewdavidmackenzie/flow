@@ -26,6 +26,7 @@ use std::io::Write;
 use std::path::PathBuf;
 use std::process::exit;
 use std::sync::{Arc, Mutex};
+use std::time::Duration;
 use std::{env, thread};
 
 use clap::{Arg, ArgMatches, Command};
@@ -380,10 +381,13 @@ fn client(
     let parallel_jobs_limit = matches
         .get_one::<usize>("jobs")
         .map(std::borrow::ToOwned::to_owned);
+    let job_timeout = matches
+        .get_one::<u64>("job-timeout")
+        .map(|secs| Duration::from_secs(*secs));
     let submission = Submission::new(
         flow_manifest,
         parallel_jobs_limit,
-        None, // No timeout waiting for job results
+        job_timeout,
         #[cfg(feature = "debugger")]
         debug_this_flow,
     );
@@ -471,6 +475,12 @@ fn get_matches() -> ArgMatches {
             .value_parser(clap::value_parser!(usize))
             .value_name("MAX_JOBS")
             .help("Set maximum number of jobs that can be running in parallel)"))
+        .arg(Arg::new("job-timeout")
+            .long("job-timeout")
+            .number_of_values(1)
+            .value_parser(clap::value_parser!(u64))
+            .value_name("SECONDS")
+            .help("Set timeout in seconds for job execution (lost jobs are retried)"))
         .arg(Arg::new("lib_dir")
             .short('L')
             .long("libdir")
