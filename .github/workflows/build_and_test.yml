@@ -10,7 +10,6 @@ on:
 
 env:
   CARGO_TERM_COLOR: always
-  CARGO_INCREMENTAL: 0
 
 jobs:
   test-book-build:
@@ -139,34 +138,35 @@ jobs:
         run: |
           which grcov || cargo install grcov
           rustup component add llvm-tools-preview
+          echo CARGO_INCREMENTAL=0 >> "$GITHUB_ENV"
           echo RUSTFLAGS="-C instrument-coverage" >> "$GITHUB_ENV"
           echo LLVM_PROFILE_FILE="flow-%p-%m.profraw" >> "$GITHUB_ENV"
 
-      - name: build
+      - name: cargo-build
         shell: bash
         run: cargo build
 
-      - name: compile flowstdlib to WASM
+      - name: build-flowstdlib
         shell: bash
         run: |
           if [[ "$RUNNER_OS" == "Windows" ]]; then
             export PATH="$CARGO_HOME/bin:$PATH"
-            target/debug/flowc.exe -v debug -d -g -O flowstdlib
+            target/debug/flowc.exe -d -g -O flowstdlib
           else
             target/debug/flowc -d -g -O flowstdlib
           fi
 
-      - name: compile flowrcli
+      - name: build-flowrcli-context
         shell: bash
         run: |
           if [[ "$RUNNER_OS" == "Windows" ]]; then
             export PATH="$CARGO_HOME/bin:$PATH"
-            target/debug/flowc.exe -v debug flowr/src/bin/flowrcli
+            target/debug/flowc.exe flowr/src/bin/flowrcli
           else
             target/debug/flowc flowr/src/bin/flowrcli
           fi
 
-      - name: compile flowrgui
+      - name: build-flowrgui-context
         shell: bash
         run: |
           if [[ "$RUNNER_OS" == "Windows" ]]; then
