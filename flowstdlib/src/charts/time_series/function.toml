@@ -1,0 +1,15 @@
+[package]
+name = "time_series"
+version.workspace = true
+authors.workspace = true
+edition.workspace = true
+
+[lib]
+name = "time_series"
+crate-type = ["cdylib"]
+path = "time_series.rs"
+
+[dependencies]
+flowcore = { workspace = true }
+flowmacro = { workspace = true }
+serde_json = { workspace = true, default-features = false }

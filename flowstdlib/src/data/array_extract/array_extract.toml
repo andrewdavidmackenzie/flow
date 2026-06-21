@@ -1,0 +1,21 @@
+function = "array_extract"
+description = "Extract a slice from an array using start and end indices (supports negative indices)"
+source = "array_extract.rs"
+docs = "array_extract.md"
+type = "rust"
+
+[[input]]
+name = "array"
+type = "array/"
+
+[[input]]
+name = "start" # start index (negative counts from end: -1 = last element)
+type = "number"
+
+[[input]]
+name = "end" # end index, exclusive (negative counts from end: -1 = last element)
+type = "number"
+
+[[output]]
+name = "slice" # the extracted sub-array
+type = "array/"

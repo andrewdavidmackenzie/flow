@@ -1211,7 +1211,10 @@ impl FlowrGui {
             Message::LineOfStdin(line) => {
                 debug!("LineOfStdin: user entered line ({} chars)", line.len());
                 self.tab_set.stdin_tab.new_line(line);
-                if self.tab_set.stdin_tab.auto_scroll && !self.pending_getline {
+                if self.tab_set.stdin_tab.auto_scroll
+                    && !self.pending_getline
+                    && self.tab_set.active_tab == 2
+                {
                     return operation::snap_to(
                         self.tab_set.stdin_tab.id.clone(),
                         RelativeOffset::END,
@@ -1422,33 +1425,20 @@ impl FlowrGui {
                 100,
                 move |mut sender: iced::futures::channel::mpsc::Sender<Message>| async move {
                     use iced::futures::SinkExt;
-
-                    let (tx, mut rx) = tokio::sync::mpsc::channel::<Option<String>>(100);
+                    use tokio::io::AsyncBufReadExt;
 
                     info!("stdin-file: reading from '{}'", path.display());
-                    tokio::task::spawn_blocking(move || {
-                        use std::io::BufRead;
-                        let file = match std::fs::File::open(&path) {
-                            Ok(f) => f,
-                            Err(e) => {
-                                info!("Could not open stdin file '{}': {e}", path.display());
-                                return;
-                            }
-                        };
-                        for line in std::io::BufReader::new(file).lines() {
-                            match line {
-                                Ok(l) => {
-                                    if tx.blocking_send(Some(l)).is_err() {
-                                        break;
-                                    }
-                                }
-                                Err(_) => break,
-                            }
+                    let file = match tokio::fs::File::open(&path).await {
+                        Ok(f) => f,
+                        Err(e) => {
+                            info!("Could not open stdin file '{}': {e}", path.display());
+                            std::future::pending::<()>().await;
+                            unreachable!()
                         }
-                        let _ = tx.blocking_send(None);
-                    });
-
-                    while let Some(Some(line)) = rx.recv().await {
+                    };
+                    let reader = tokio::io::BufReader::new(file);
+                    let mut lines = reader.lines();
+                    while let Ok(Some(line)) = lines.next_line().await {
                         if sender.send(Message::LineOfStdin(line)).await.is_err() {
                             break;
                         }
@@ -3547,10 +3537,12 @@ impl FlowrGui {
                     self.send(ClientMessage::GetLineEof);
                     self.tab_set.stdin_tab.eof_signaled = false;
                 } else {
-                    debug!("GetLine: buffer empty, waiting for user input");
+                    debug!("GetLine: buffer empty, waiting for input");
                     self.pending_getline = true;
-                    self.tab_set.stdin_tab.waiting_for_input = true;
-                    self.tab_set.active_tab = 2; // Switch to Stdin tab
+                    if self.ui_settings.stdin_file.is_none() {
+                        self.tab_set.stdin_tab.waiting_for_input = true;
+                        self.tab_set.active_tab = 2; // Switch to Stdin tab for user input
+                    }
                 }
             }
             CoordinatorMessage::GetArgs => {

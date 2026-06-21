@@ -85,7 +85,7 @@ This is useful for streaming data into a flow running in the GUI:
 
 ```bash
 # Read from a file
-flowrgui --stdin-file test.stdin flowr/examples/running-average
+flowrgui --stdin-file flowr/examples/weather-station/test.stdin flowr/examples/weather-station
 
 # Stream from a named pipe
 mkfifo /tmp/data_pipe

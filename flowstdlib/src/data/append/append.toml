@@ -1,16 +1,14 @@
 function = "append"
-description = "Append two strings"
+description = "Append two values as strings (accepts strings, numbers, or any JSON value)"
 source = "append.rs"
 docs = "append.md"
 type = "rust"
 
 [[input]]
-name = "s1"
-type = "string"
+name = "s1" # first value — converted to string if not already
 
 [[input]]
-name = "s2"
-type = "string"
+name = "s2" # second value — converted to string if not already
 
 [[output]]
-type = "string" # - The Concatenated string
+type = "string" # the concatenated string

@@ -1,0 +1,13 @@
+function = "time_series"
+description = "Render an array of values as a time series bar chart (Nx128 grayscale)"
+source = "time_series.rs"
+docs = "time_series.md"
+type = "rust"
+
+[[input]]
+name = "values" # array of numeric values, one per time step
+type = "array/number"
+
+[[output]]
+name = "grid" # 2D grayscale grid (black bars on white background)
+type = "array/array/number"

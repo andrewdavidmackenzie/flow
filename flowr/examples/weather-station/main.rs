@@ -1,4 +1,4 @@
-//! A runner for the Running Average example using flowrcli
+//! Weather station example — sensor data processing
 fn main() {
     utilities::run_example(file!(), "flowrcli", false, true);
 }
@@ -9,11 +9,7 @@ mod test {
     use std::path::PathBuf;
 
     #[test]
-    #[cfg_attr(
-        target_os = "windows",
-        ignore = "Non-deterministic intermediate output order on Windows"
-    )]
-    fn test_running_average_example() {
+    fn test_weather_station_example() {
         let _ = env::set_current_dir(
             PathBuf::from(env!("CARGO_MANIFEST_DIR"))
                 .parent()

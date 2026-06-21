@@ -7,6 +7,9 @@ pub mod accumulate;
 /// A module that implements String concatenation
 #[path = "append/append.rs"]
 pub mod append;
+/// A module to extract a slice from an array using start/end indices
+#[path = "array_extract/array_extract.rs"]
+pub mod array_extract;
 /// A module to get a value from an array at a runtime index
 #[path = "array_get/array_get.rs"]
 pub mod array_get;

@@ -150,8 +150,8 @@
       - [pixel_to_point](flowr/examples/mandlebrot/pixel_to_point/pixel_to_point.md) provided function
     - [prime](flowr/examples/prime/DESCRIPTION.md)
     - [router](flowr/examples/router/DESCRIPTION.md)
-    - [running-average](flowr/examples/running-average/DESCRIPTION.md)
     - [sequence-of-sequences](flowr/examples/sequence-of-sequences/DESCRIPTION.md)
+    - [weather-station](flowr/examples/weather-station/DESCRIPTION.md)
     - [word-count](flowr/examples/word-count/DESCRIPTION.md)
 
 

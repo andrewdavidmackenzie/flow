@@ -3,6 +3,7 @@
 [workspace]
 members = [
     "charts/histogram",
+    "charts/time_series",
     "control/compare_switch",
     "control/index",
     "control/join",
@@ -15,6 +16,7 @@ members = [
     "data/min",
     "data/max",
     "data/avg",
+    "data/array_extract",
     "data/array_get",
     "data/array_set",
     "data/count",
