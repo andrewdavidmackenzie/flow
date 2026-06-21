@@ -139,7 +139,7 @@ to = "stdout"
 alias = "history"
 source = "lib://flowstdlib/data/accumulate"
 input.partial = { once = [] }
-input.chunk_size = { always = 999999 }
+input.chunk_size = { always = 16 }
 
 [[connection]]
 from = "mean/result"
@@ -149,13 +149,13 @@ to = "history/values"
 from = "history/partial"
 to = "history/partial"
 
-# Render as a time series chart (internally shows last 256 values)
+# Render batch as a time series chart (internally shows last 256 values)
 [[process]]
 alias = "chart"
 source = "lib://flowstdlib/charts/time_series"
 
 [[connection]]
-from = "history/partial"
+from = "history/chunk"
 to = "chart/values"
 
 # Write chart image
