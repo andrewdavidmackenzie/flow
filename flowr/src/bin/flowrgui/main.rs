@@ -2925,6 +2925,9 @@ impl FlowrGui {
         let auto = matches.get_flag("auto");
         let mut auto_start = auto || matches.get_flag("auto-start");
         let stdin_file = matches.get_one::<String>("stdin-file").map(PathBuf::from);
+        let job_timeout_text = matches
+            .get_one::<u64>("job-timeout")
+            .map_or_else(String::new, std::string::ToString::to_string);
         #[cfg(feature = "debugger")]
         if debug_mode != DebugMode::Off
             && !matches!(coordinator_settings, CoordinatorSettings::ClientOnly)
@@ -2958,7 +2961,7 @@ impl FlowrGui {
                 flow_manifest_url,
                 flow_args,
                 max_jobs_text: parallel_jobs_limit.map_or(String::new(), |n| n.to_string()),
-                job_timeout_text: String::new(),
+                job_timeout_text,
                 debug_this_flow,
                 parallel_jobs_limit,
                 #[cfg(feature = "debugger")]
@@ -3051,6 +3054,12 @@ impl FlowrGui {
                 .value_parser(clap::value_parser!(usize))
                 .value_name("MAX_JOBS")
                 .help("Set maximum number of jobs that can be running in parallel)"))
+            .arg(Arg::new("job-timeout")
+                .long("job-timeout")
+                .number_of_values(1)
+                .value_parser(clap::value_parser!(u64).range(1..))
+                .value_name("SECONDS")
+                .help("Set timeout in seconds for job execution (lost jobs are retried)"))
             .arg(Arg::new("lib_dir")
                 .short('L')
                 .long("libdir")

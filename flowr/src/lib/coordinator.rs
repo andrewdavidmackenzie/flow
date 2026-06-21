@@ -1,5 +1,6 @@
 #[cfg(all(not(feature = "debugger"), not(feature = "submission")))]
 use std::marker::PhantomData;
+use std::time::{Duration, Instant};
 
 use log::{debug, error, info, trace};
 use serde_json::Value;
@@ -34,6 +35,8 @@ pub struct Coordinator<'a> {
     submission_handler: &'a mut dyn SubmissionHandler,
     /// Dispatcher to dispatch jobs for execution
     dispatcher: Dispatcher,
+    /// Maximum time to wait for a job result before considering it lost
+    job_timeout: Option<Duration>,
     #[cfg(feature = "debugger")]
     /// A `Debugger` to communicate with debug clients
     debugger: Debugger<'a>,
@@ -42,6 +45,8 @@ pub struct Coordinator<'a> {
 }
 
 impl<'a> Coordinator<'a> {
+    const MAX_JOB_RETRIES: usize = 3;
+
     /// Create a new `coordinator` with `num_threads` local executor threads
     pub fn new(
         dispatcher: Dispatcher,
@@ -52,6 +57,7 @@ impl<'a> Coordinator<'a> {
             #[cfg(feature = "submission")]
             submission_handler: submitter,
             dispatcher,
+            job_timeout: None,
             #[cfg(feature = "debugger")]
             debugger: Debugger::new(debug_server),
             #[cfg(all(not(feature = "debugger"), not(feature = "submission")))]
@@ -95,6 +101,7 @@ impl<'a> Coordinator<'a> {
         clippy::too_many_lines
     )]
     pub fn execute_flow(&mut self, submission: Submission) -> Result<()> {
+        self.job_timeout = submission.job_timeout;
         self.dispatcher
             .set_results_timeout(submission.job_timeout)?;
         let mut state = RunState::new(submission);
@@ -261,6 +268,15 @@ impl<'a> Coordinator<'a> {
         let mut restart = false;
 
         if state.number_jobs_running() > 0 {
+            // Check for expired jobs and re-queue them
+            if self.job_timeout.is_some() {
+                state.requeue_expired_jobs(
+                    Self::MAX_JOB_RETRIES,
+                    #[cfg(feature = "metrics")]
+                    metrics,
+                )?;
+            }
+
             match self.get_result(state) {
                 Ok(Some(result)) => {
                     let job;
@@ -339,7 +355,7 @@ impl<'a> Coordinator<'a> {
     // Dispatch a job for execution
     fn dispatch_a_job(
         &mut self,
-        job: Job,
+        mut job: Job,
         state: &mut RunState,
         #[cfg(feature = "metrics")] metrics: &mut Metrics,
     ) -> Result<(bool, bool)> {
@@ -351,6 +367,7 @@ impl<'a> Coordinator<'a> {
 
         self.dispatcher.send_job_for_execution(&job.payload)?;
 
+        job.ttl = self.job_timeout.and_then(|d| Instant::now().checked_add(d));
         state.start_job(job);
 
         #[cfg(feature = "metrics")]
