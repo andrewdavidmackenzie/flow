@@ -63,7 +63,57 @@ jobs:
       - name: Check all feature combinations
         run: cargo build-all-features
 
+  # Build flowstdlib WASM once on Linux — output is cross-platform
+  build-flowstdlib:
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install stable toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: wasm32-unknown-unknown
+
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update && sudo apt-get -y install libzmq3-dev libssl-dev libgtk-3-dev
+          ARCH=$(uname -m)
+          BINARYEN_VERSION="version_129"
+          wget https://github.com/WebAssembly/binaryen/releases/download/${BINARYEN_VERSION}/binaryen-${BINARYEN_VERSION}-${ARCH}-linux.tar.gz
+          tar -xvzf binaryen-${BINARYEN_VERSION}-${ARCH}-linux.tar.gz
+          sudo cp binaryen-${BINARYEN_VERSION}/bin/* /bin/
+          rm -rf binaryen-${BINARYEN_VERSION} binaryen-${BINARYEN_VERSION}-${ARCH}-linux.tar.gz
+
+      - name: Cache cargo registry and build
+        uses: Swatinem/rust-cache@v2
+
+      - name: Cache cargo install tools
+        uses: actions/cache@v4
+        with:
+          path: ~/.cargo/bin
+          key: Linux-x86_64-cargo-tools-v1
+
+      - name: InstallWasmTools
+        run: |
+          which wasm-gc || cargo install wasm-gc
+          which wasm-snip || cargo install wasm-snip
+
+      - name: cargo-build-flowc
+        run: cargo build -p flowc
+
+      - name: build-flowstdlib
+        run: target/debug/flowc -d -g -O flowstdlib
+
+      - name: upload-flowstdlib
+        uses: actions/upload-artifact@v4
+        with:
+          name: flowstdlib
+          path: ~/.flow/lib/flowstdlib/
+          retention-days: 1
+
   build-and-test:
+    needs: build-flowstdlib
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
@@ -151,15 +201,11 @@ jobs:
         shell: bash
         run: cargo build
 
-      - name: build-flowstdlib
-        shell: bash
-        run: |
-          if [[ "$RUNNER_OS" == "Windows" ]]; then
-            export PATH="$CARGO_HOME/bin:$PATH"
-            target/debug/flowc.exe -d -g -O flowstdlib
-          else
-            target/debug/flowc -d -g -O flowstdlib
-          fi
+      - name: download-flowstdlib
+        uses: actions/download-artifact@v4
+        with:
+          name: flowstdlib
+          path: ~/.flow/lib/flowstdlib/
 
       - name: build-flowrcli-context
         shell: bash
