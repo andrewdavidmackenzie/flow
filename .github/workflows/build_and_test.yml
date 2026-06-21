@@ -10,7 +10,6 @@ on:
 
 env:
   CARGO_TERM_COLOR: always
-  CARGO_INCREMENTAL: 0
 
 jobs:
   test-book-build:
@@ -64,7 +63,65 @@ jobs:
       - name: Check all feature combinations
         run: cargo build-all-features
 
+  # Build flowstdlib WASM once on Linux — output is cross-platform
+  build-flowstdlib:
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install stable toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: wasm32-unknown-unknown
+
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update && sudo apt-get -y install libzmq3-dev libssl-dev libgtk-3-dev
+          ARCH=$(uname -m)
+          BINARYEN_VERSION="version_129"
+          wget https://github.com/WebAssembly/binaryen/releases/download/${BINARYEN_VERSION}/binaryen-${BINARYEN_VERSION}-${ARCH}-linux.tar.gz
+          tar -xvzf binaryen-${BINARYEN_VERSION}-${ARCH}-linux.tar.gz
+          sudo cp binaryen-${BINARYEN_VERSION}/bin/* /bin/
+          rm -rf binaryen-${BINARYEN_VERSION} binaryen-${BINARYEN_VERSION}-${ARCH}-linux.tar.gz
+
+      - name: Cache cargo registry and build
+        uses: Swatinem/rust-cache@v2
+
+      - name: Cache cargo install tools
+        uses: actions/cache@v4
+        with:
+          path: ~/.cargo/bin
+          key: Linux-x86_64-cargo-tools-v1
+
+      - name: InstallWasmTools
+        run: |
+          which wasm-gc || cargo install wasm-gc
+          which wasm-snip || cargo install wasm-snip
+
+      - name: cargo-build-flowc
+        run: cargo build -p flowc
+
+      - name: build-flowstdlib
+        run: |
+          target/debug/flowc -d -g -O flowstdlib
+          echo "FLOW_LIB_DIR=$(target/debug/flowc --lib-dir 2>/dev/null || echo $HOME/.local/share/flow/lib)" >> "$GITHUB_ENV"
+
+      - name: find-flowstdlib
+        run: |
+          FLOWSTDLIB_DIR=$(find $HOME -type d -name flowstdlib -path "*/flow/lib/*" 2>/dev/null | head -1)
+          echo "Flowstdlib at: $FLOWSTDLIB_DIR"
+          echo "FLOWSTDLIB_DIR=$FLOWSTDLIB_DIR" >> "$GITHUB_ENV"
+
+      - name: upload-flowstdlib
+        uses: actions/upload-artifact@v4
+        with:
+          name: flowstdlib
+          path: ${{ env.FLOWSTDLIB_DIR }}
+          retention-days: 1
+
   build-and-test:
+    needs: build-flowstdlib
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
@@ -88,6 +145,11 @@ jobs:
           echo "PATH=$GITHUB_WORKSPACE/target/debug:$PATH" >> "$GITHUB_ENV"
           echo "CARGO_REGISTRIES_CRATES_IO_PROTOCOL=sparse" >> "$GITHUB_ENV"
 
+      - name: EnableIncrementalOnWindows
+        if: runner.os == 'Windows'
+        shell: bash
+        run: echo "CARGO_INCREMENTAL=1" >> "$GITHUB_ENV"
+
       - name: Cache cargo registry and build
         uses: Swatinem/rust-cache@v2
         with:
@@ -101,32 +163,11 @@ jobs:
 
       - name: InstallLinuxDependencies
         if: runner.os == 'Linux'
-        run: |
-          sudo apt-get update && sudo apt-get -y install libzmq3-dev libssl-dev binaryen lcov libgtk-3-dev weston
-          ARCH=$(uname -m)
-          BINARYEN_VERSION="version_129"
-          wget https://github.com/WebAssembly/binaryen/releases/download/${BINARYEN_VERSION}/binaryen-${BINARYEN_VERSION}-${ARCH}-linux.tar.gz
-          tar -xvzf binaryen-${BINARYEN_VERSION}-${ARCH}-linux.tar.gz
-          sudo cp binaryen-${BINARYEN_VERSION}/bin/* /bin/
-          rm -rf binaryen-${BINARYEN_VERSION}
-          rm binaryen-${BINARYEN_VERSION}-${ARCH}-linux.tar.gz
-          which wasm-opt
-          wasm-opt --version
+        run: sudo apt-get update && sudo apt-get -y install libzmq3-dev libssl-dev lcov libgtk-3-dev weston
 
       - name: InstallMacDependencies
         if: runner.os == 'macOS'
-        run: brew install zmq binaryen lcov
-
-      - name: InstallWindowsDependencies
-        if: runner.os == 'Windows'
-        shell: bash
-        run: |
-          BINARYEN_VERSION="version_129"
-          curl -sL "https://github.com/WebAssembly/binaryen/releases/download/${BINARYEN_VERSION}/binaryen-${BINARYEN_VERSION}-x86_64-windows.tar.gz" -o binaryen.tar.gz
-          tar -xzf binaryen.tar.gz
-          cp binaryen-${BINARYEN_VERSION}/bin/* "$GITHUB_WORKSPACE/"
-          echo "$GITHUB_WORKSPACE" >> "$GITHUB_PATH"
-          rm -rf binaryen-${BINARYEN_VERSION} binaryen.tar.gz
+        run: brew install zmq lcov
 
       - name: InstallWasmTools
         shell: bash
@@ -139,34 +180,44 @@ jobs:
         run: |
           which grcov || cargo install grcov
           rustup component add llvm-tools-preview
+          echo CARGO_INCREMENTAL=0 >> "$GITHUB_ENV"
           echo RUSTFLAGS="-C instrument-coverage" >> "$GITHUB_ENV"
           echo LLVM_PROFILE_FILE="flow-%p-%m.profraw" >> "$GITHUB_ENV"
 
-      - name: build
+      - name: cargo-build
         shell: bash
         run: cargo build
 
-      - name: compile flowstdlib to WASM
+      - name: find-flow-lib-dir
         shell: bash
         run: |
           if [[ "$RUNNER_OS" == "Windows" ]]; then
-            export PATH="$CARGO_HOME/bin:$PATH"
-            target/debug/flowc.exe -v debug -d -g -O flowstdlib
+            FLOW_LIB="$APPDATA/flow/lib"
+          elif [[ "$RUNNER_OS" == "macOS" ]]; then
+            FLOW_LIB="$HOME/Library/Application Support/flow/lib"
           else
-            target/debug/flowc -d -g -O flowstdlib
+            FLOW_LIB="$HOME/.local/share/flow/lib"
           fi
+          mkdir -p "$FLOW_LIB/flowstdlib"
+          echo "FLOW_LIB_DIR=$FLOW_LIB" >> "$GITHUB_ENV"
 
-      - name: compile flowrcli
+      - name: download-flowstdlib
+        uses: actions/download-artifact@v4
+        with:
+          name: flowstdlib
+          path: ${{ env.FLOW_LIB_DIR }}/flowstdlib/
+
+      - name: build-flowrcli-context
         shell: bash
         run: |
           if [[ "$RUNNER_OS" == "Windows" ]]; then
             export PATH="$CARGO_HOME/bin:$PATH"
-            target/debug/flowc.exe -v debug flowr/src/bin/flowrcli
+            target/debug/flowc.exe flowr/src/bin/flowrcli
           else
             target/debug/flowc flowr/src/bin/flowrcli
           fi
 
-      - name: compile flowrgui
+      - name: build-flowrgui-context
         shell: bash
         run: |
           if [[ "$RUNNER_OS" == "Windows" ]]; then
