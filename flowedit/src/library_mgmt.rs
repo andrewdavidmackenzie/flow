@@ -68,7 +68,7 @@ pub(crate) fn load_library_catalogs(
     }
 
     // Discover and parse context functions from the flowrcli runner directory.
-    // Only scan ~/.flow/runner/flowrcli/ since flowedit only supports the flowrcli runner,
+    // Only scan the flowrcli runner dir since flowedit only supports the flowrcli runner,
     // and the MetaProvider is configured with that context root.
     let ctx_provider = file_ops::build_meta_provider();
     let runner_dir = flowcore::dirs::runner_dir("flowrcli").unwrap_or_default();

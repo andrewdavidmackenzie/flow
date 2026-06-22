@@ -21,7 +21,7 @@ use serde_derive::Deserialize;
 use simpath::Simpath;
 use url::Url;
 
-use errors::{Result, ResultExt};
+use errors::{bail, Result, ResultExt};
 use flowcore::meta_provider::MetaProvider;
 use flowcore::url_helper::url_from_string;
 use flowrclib::info;
@@ -145,7 +145,19 @@ fn compile_type(url: &Url) -> Result<CompileType> {
     a message to display to the user if all went OK
 */
 fn run() -> Result<()> {
-    let options = parse_args(&get_matches())?;
+    let matches = get_matches();
+
+    if matches.get_flag("print_lib_dir") {
+        match flowcore::dirs::lib_dir() {
+            Some(dir) => {
+                println!("{}", dir.display());
+                return Ok(());
+            }
+            None => bail!("Could not determine the default library directory"),
+        }
+    }
+
+    let options = parse_args(&matches)?;
     let mut lib_search_path = get_lib_search_path(&options.lib_dirs);
 
     let compile_type = compile_type(&options.source_url)?;
@@ -301,8 +313,15 @@ fn get_matches() -> ArgMatches {
                 .help("Read STDIN from the named file"),
         )
         .arg(
+            Arg::new("print_lib_dir")
+                .long("print-lib-dir")
+                .action(clap::ArgAction::SetTrue)
+                .help("Print the default library directory path and exit"),
+        )
+        .arg(
             Arg::new("source_url")
                 .num_args(1)
+                .required(false)
                 .help("path or url for the flow or library to compile")
         )
         .arg(
@@ -335,11 +354,11 @@ fn parse_args(matches: &ArgMatches) -> Result<Options> {
     let cwd_url = Url::from_directory_path(cwd)
         .map_err(|()| "Could not form a Url for the current working directory")?;
 
-    let source_url = url_from_string(
-        &cwd_url,
-        matches.get_one::<String>("source_url").map(String::as_str),
-    )
-    .chain_err(|| "Could not create a url for flow from the 'FLOW' command line parameter")?;
+    let source_str = matches
+        .get_one::<String>("source_url")
+        .ok_or("A flow or library source path is required")?;
+    let source_url = url_from_string(&cwd_url, Some(source_str.as_str()))
+        .chain_err(|| "Could not create a url for flow from the 'FLOW' command line parameter")?;
 
     let lib_dirs = if matches.contains_id("lib_dir") {
         matches
