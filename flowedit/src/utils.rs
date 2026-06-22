@@ -171,7 +171,12 @@ pub(crate) fn check_port_type_compatibility(
             if src.datatypes().is_empty() || tgt.datatypes().is_empty() {
                 return true;
             }
-            DataType::compatible_types(src.datatypes(), tgt.datatypes(), &Route::default()).is_ok()
+            let (from_types, to_types) = if source_is_output {
+                (src.datatypes(), tgt.datatypes())
+            } else {
+                (tgt.datatypes(), src.datatypes())
+            };
+            DataType::compatible_types(from_types, to_types, &Route::default()).is_ok()
         }
         _ => true,
     }
@@ -451,6 +456,41 @@ mod test {
             &nodes[1],
             "in",
             false
+        ));
+    }
+
+    #[test]
+    fn check_type_compat_reversed_direction() {
+        let data = [
+            test_node(
+                "a",
+                "",
+                Some(Process::FunctionProcess(function_with_io(
+                    vec![IO::new_named(vec!["number".into()], Route::default(), "in")],
+                    vec![],
+                ))),
+            ),
+            test_node(
+                "b",
+                "",
+                Some(Process::FunctionProcess(function_with_io(
+                    vec![],
+                    vec![IO::new_named(
+                        vec!["number".into()],
+                        Route::default(),
+                        "out",
+                    )],
+                ))),
+            ),
+        ];
+        let nodes: Vec<_> = data.iter().map(as_layout).collect();
+        assert!(check_port_type_compatibility(
+            Some(&nodes[0]),
+            "in",
+            false,
+            &nodes[1],
+            "out",
+            true
         ));
     }
 }
