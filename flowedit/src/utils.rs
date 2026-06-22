@@ -4,6 +4,7 @@ use iced::widget::canvas;
 use iced::{Point, Size};
 
 use flowcore::model::connection::Connection;
+use flowcore::model::datatype::DataType;
 use flowcore::model::io::IO;
 use flowcore::model::name::HasName;
 use flowcore::model::route::Route;
@@ -137,11 +138,8 @@ pub(crate) fn rounded_rect(
     builder.close();
 }
 
-/// Check if the types of two ports are compatible for a connection.
-///
-/// Returns true if:
-/// - Either port has no type info (unknown types are assumed compatible)
-/// - At least one type from the source port matches a type on the destination port
+/// Check if the types of two ports are compatible for a connection,
+/// using the same type compatibility logic as the compiler.
 pub(crate) fn check_port_type_compatibility(
     source_node: Option<&NodeLayout>,
     source_port: &str,
@@ -150,7 +148,7 @@ pub(crate) fn check_port_type_compatibility(
     target_port: &str,
     target_is_output: bool,
 ) -> bool {
-    let source_types = source_node.and_then(|n| {
+    let source_io = source_node.and_then(|n| {
         let ports = if source_is_output {
             n.outputs()
         } else {
@@ -159,7 +157,7 @@ pub(crate) fn check_port_type_compatibility(
         ports.iter().find(|p| p.name() == source_port)
     });
 
-    let target_types = {
+    let target_io = {
         let ports = if target_is_output {
             target_node.outputs()
         } else {
@@ -168,35 +166,14 @@ pub(crate) fn check_port_type_compatibility(
         ports.iter().find(|p| p.name() == target_port)
     };
 
-    match (source_types, target_types) {
+    match (source_io, target_io) {
         (Some(src), Some(tgt)) => {
-            log::info!(
-                "Type check: src port '{}' types {:?} → tgt port '{}' types {:?}",
-                src.name(),
-                src.datatypes(),
-                tgt.name(),
-                tgt.datatypes()
-            );
-            let src_untyped = src.datatypes().is_empty()
-                || src.datatypes().iter().all(|d| d.to_string().is_empty());
-            let tgt_untyped = tgt.datatypes().is_empty()
-                || tgt.datatypes().iter().all(|d| d.to_string().is_empty());
-            if src_untyped || tgt_untyped {
+            if src.datatypes().is_empty() || tgt.datatypes().is_empty() {
                 return true;
             }
-            src.datatypes()
-                .iter()
-                .any(|st| tgt.datatypes().iter().any(|tt| st == tt))
+            DataType::compatible_types(src.datatypes(), tgt.datatypes(), &Route::default()).is_ok()
         }
-        // Unknown port or no type info — allow
-        (src, tgt) => {
-            log::info!(
-                "Type check: src={}, tgt={} — allowing (unknown port)",
-                src.is_some(),
-                tgt.is_some()
-            );
-            true
-        }
+        _ => true,
     }
 }
 
