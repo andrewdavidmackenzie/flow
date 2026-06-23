@@ -42,7 +42,7 @@ pub fn bezier_edge(
         .add(arrow_head(to_x, to_y, ctrl_x2, to_y, color))
 }
 
-/// Render a loopback edge that curves below the node.
+/// Render a loopback edge that routes around the node: right, down, left, up.
 #[must_use]
 pub fn loopback_edge(
     out_x: f32,
@@ -52,12 +52,33 @@ pub fn loopback_edge(
     node_bottom: f32,
     color: &str,
 ) -> Group {
-    let loop_y = node_bottom + 30.0;
-    let ctrl_x1 = out_x + 30.0;
-    let ctrl_x2 = in_x - 30.0;
+    let margin = 25.0;
+    let r = 10.0;
+    let right_x = out_x + margin;
+    let left_x = in_x - margin;
+    let bottom_y = node_bottom + margin;
 
-    let path_data =
-        format!("M {out_x} {out_y} C {ctrl_x1} {loop_y}, {ctrl_x2} {loop_y}, {in_x} {in_y}");
+    // Path: right from output, round corner down, go under node, round corner up, into input
+    let path_data = format!(
+        "M {out_x} {out_y} \
+         L {} {out_y} \
+         Q {right_x} {out_y} {right_x} {} \
+         L {right_x} {} \
+         Q {right_x} {bottom_y} {} {bottom_y} \
+         L {} {bottom_y} \
+         Q {left_x} {bottom_y} {left_x} {} \
+         L {left_x} {} \
+         Q {left_x} {in_y} {} {in_y} \
+         L {in_x} {in_y}",
+        right_x - r,
+        out_y + r,
+        bottom_y - r,
+        right_x - r,
+        left_x + r,
+        bottom_y - r,
+        in_y + r,
+        left_x + r,
+    );
 
     let path = Path::new()
         .set("d", path_data)
@@ -67,7 +88,7 @@ pub fn loopback_edge(
 
     Group::new()
         .add(path)
-        .add(arrow_head(in_x, in_y, ctrl_x2, loop_y, color))
+        .add(arrow_head(in_x, in_y, left_x, in_y, color))
 }
 
 /// Arrow head pointing toward `(tip_x, tip_y)` from direction `(from_x, from_y)`.
