@@ -97,6 +97,96 @@ pub fn split_route(route: &str) -> (String, String) {
     }
 }
 
+/// Sort nodes within each column by the median index of their neighbors
+/// in adjacent columns, reducing edge crossings (Sugiyama barycenter heuristic).
+fn median_ordering(
+    columns: &mut HashMap<usize, Vec<String>>,
+    max_col: usize,
+    incoming: &HashMap<String, Vec<String>>,
+    outgoing: &HashMap<String, Vec<String>>,
+) {
+    for _pass in 0..3 {
+        // Forward pass: sort each column by median position of incoming neighbors
+        for col in 1..=max_col {
+            let prev_order: HashMap<String, usize> = columns
+                .get(&(col - 1))
+                .map(|nodes| {
+                    nodes
+                        .iter()
+                        .enumerate()
+                        .map(|(i, a)| (a.clone(), i))
+                        .collect()
+                })
+                .unwrap_or_default();
+
+            if let Some(col_nodes) = columns.get_mut(&col) {
+                col_nodes.sort_by(|a, b| {
+                    let ma = median_neighbor_pos(a, incoming, &prev_order);
+                    let mb = median_neighbor_pos(b, incoming, &prev_order);
+                    ma.partial_cmp(&mb).unwrap_or(std::cmp::Ordering::Equal)
+                });
+            }
+        }
+
+        // Backward pass: sort each column by median position of outgoing neighbors
+        for col in (0..max_col).rev() {
+            let next_order: HashMap<String, usize> = columns
+                .get(&(col + 1))
+                .map(|nodes| {
+                    nodes
+                        .iter()
+                        .enumerate()
+                        .map(|(i, a)| (a.clone(), i))
+                        .collect()
+                })
+                .unwrap_or_default();
+
+            if let Some(col_nodes) = columns.get_mut(&col) {
+                col_nodes.sort_by(|a, b| {
+                    let ma = median_neighbor_pos(a, outgoing, &next_order);
+                    let mb = median_neighbor_pos(b, outgoing, &next_order);
+                    ma.partial_cmp(&mb).unwrap_or(std::cmp::Ordering::Equal)
+                });
+            }
+        }
+    }
+}
+
+/// Compute the median position of a node's neighbors in an adjacent column.
+fn median_neighbor_pos(
+    node: &str,
+    adjacency: &HashMap<String, Vec<String>>,
+    order: &HashMap<String, usize>,
+) -> f32 {
+    let mut positions: Vec<usize> = adjacency
+        .get(node)
+        .map(|neighbors| {
+            neighbors
+                .iter()
+                .filter_map(|n| order.get(n).copied())
+                .collect()
+        })
+        .unwrap_or_default();
+
+    if positions.is_empty() {
+        return f32::MAX;
+    }
+
+    positions.sort_unstable();
+    let mid = positions.len() / 2;
+    if positions.len().is_multiple_of(2) {
+        let Some(&a) = positions.get(mid.wrapping_sub(1)) else {
+            return f32::MAX;
+        };
+        let Some(&b) = positions.get(mid) else {
+            return f32::MAX;
+        };
+        (a + b) as f32 / 2.0
+    } else {
+        positions.get(mid).map_or(f32::MAX, |&p| p as f32)
+    }
+}
+
 /// Compute topological layout for a set of nodes and connections.
 ///
 /// `node_specs` maps alias → (input names, output names).
@@ -178,6 +268,11 @@ pub fn compute_layout(
         .iter()
         .map(|(alias, inputs, outputs)| (alias.as_str(), (inputs.as_slice(), outputs.as_slice())))
         .collect();
+
+    // Median ordering: reduce edge crossings by sorting nodes within each column
+    // by the median position of their connected neighbors in adjacent columns.
+    let max_col = columns.keys().copied().max().unwrap_or(0);
+    median_ordering(&mut columns, max_col, &incoming, &outgoing);
 
     // Compute positions
     let mut layouts = HashMap::new();
