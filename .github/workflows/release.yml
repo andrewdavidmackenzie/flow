@@ -209,12 +209,9 @@ jobs:
         shell: bash
         run: |
           TAG="${{ github.event.release.tag_name }}"
-          FLOW_DATA="${XDG_DATA_HOME:-$HOME/.local/share}/flow"
-          if [ ! -d "$FLOW_DATA/lib/flowstdlib" ] && [ -d "$HOME/.flow/lib/flowstdlib" ]; then
-            FLOW_DATA="$HOME/.flow"
-          fi
+          FLOW_LIB=$(target/x86_64-unknown-linux-gnu/release/flowc --print-lib-dir)
           mkdir -p flowstdlib-staging
-          cp -r "$FLOW_DATA/lib/flowstdlib" flowstdlib-staging/
+          cp -r "$FLOW_LIB/flowstdlib" flowstdlib-staging/
           cp install-flowstdlib.sh flowstdlib-staging/
           cd flowstdlib-staging
           tar -cJf "flowstdlib-${TAG}.tar.xz" flowstdlib install-flowstdlib.sh

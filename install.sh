@@ -8,12 +8,12 @@ set -e
 case "$(uname -s)" in
     Linux*)  FLOW_DIR="${XDG_DATA_HOME:-$HOME/.local/share}/flow" ;;
     Darwin*) FLOW_DIR="$HOME/Library/Application Support/flow" ;;
-    *)       FLOW_DIR="$HOME/.flow" ;;
+    MINGW*|MSYS*|CYGWIN*) FLOW_DIR="$APPDATA/flow/data" ;;
 esac
 
-# Fall back to legacy location if it exists
-if [ ! -d "$FLOW_DIR" ] && [ -d "$HOME/.flow" ]; then
-    FLOW_DIR="$HOME/.flow"
+if [ -z "$FLOW_DIR" ]; then
+    echo "Error: unsupported platform"
+    exit 1
 fi
 
 echo "Installing flow data to ${FLOW_DIR}/"

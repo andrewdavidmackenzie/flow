@@ -105,13 +105,7 @@ jobs:
       - name: build-flowstdlib
         run: |
           target/debug/flowc -d -g -O flowstdlib
-          echo "FLOW_LIB_DIR=$(target/debug/flowc --lib-dir 2>/dev/null || echo $HOME/.local/share/flow/lib)" >> "$GITHUB_ENV"
-
-      - name: find-flowstdlib
-        run: |
-          FLOWSTDLIB_DIR=$(find $HOME -type d -name flowstdlib -path "*/flow/lib/*" 2>/dev/null | head -1)
-          echo "Flowstdlib at: $FLOWSTDLIB_DIR"
-          echo "FLOWSTDLIB_DIR=$FLOWSTDLIB_DIR" >> "$GITHUB_ENV"
+          echo "FLOWSTDLIB_DIR=$(target/debug/flowc --print-lib-dir)/flowstdlib" >> "$GITHUB_ENV"
 
       - name: upload-flowstdlib
         uses: actions/upload-artifact@v4
@@ -127,8 +121,6 @@ jobs:
       fail-fast: false
       matrix:
         os: [ macos-26, ubuntu-24.04, ubuntu-24.04-arm, windows-latest ]
-
-    continue-on-error: ${{ matrix.os == 'windows-latest' }}
 
     steps:
       - name: Checkout
@@ -192,11 +184,9 @@ jobs:
         shell: bash
         run: |
           if [[ "$RUNNER_OS" == "Windows" ]]; then
-            FLOW_LIB="$APPDATA/flow/lib"
-          elif [[ "$RUNNER_OS" == "macOS" ]]; then
-            FLOW_LIB="$HOME/Library/Application Support/flow/lib"
+            FLOW_LIB=$(target/debug/flowc.exe --print-lib-dir)
           else
-            FLOW_LIB="$HOME/.local/share/flow/lib"
+            FLOW_LIB=$(target/debug/flowc --print-lib-dir)
           fi
           mkdir -p "$FLOW_LIB/flowstdlib"
           echo "FLOW_LIB_DIR=$FLOW_LIB" >> "$GITHUB_ENV"

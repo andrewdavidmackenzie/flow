@@ -22,7 +22,7 @@ pub(crate) struct EditorPrefs {
     pub(crate) y: Option<f32>,
 }
 
-/// Build a `MetaProvider` with `FLOW_LIB_PATH` (plus `~/.flow/lib` default)
+/// Build a `MetaProvider` with `FLOW_LIB_PATH` (plus platform default lib dir)
 /// and the default flowrcli context root.
 pub(crate) fn build_meta_provider() -> MetaProvider {
     let mut lib_search_path = Simpath::new_with_separator("FLOW_LIB_PATH", ',');
@@ -38,7 +38,7 @@ pub(crate) fn build_meta_provider() -> MetaProvider {
 }
 
 /// Resolve the library search paths from the `FLOW_LIB_PATH` environment variable
-/// and the default `~/.flow/lib` directory.
+/// and the platform default library directory.
 pub(crate) fn resolve_lib_paths() -> Vec<String> {
     let mut paths = Vec::new();
 
