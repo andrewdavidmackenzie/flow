@@ -99,6 +99,9 @@ pub const RUN_AGAIN: RunAgain = true;
 /// executed more times in the future.
 pub type RunAgain = bool;
 
+/// Graph layout constants and algorithms shared between flowc and flowedit
+pub mod graph;
+
 /// contains the file and http content provider implementations
 #[cfg(not(target_arch = "wasm32"))]
 pub mod content;
