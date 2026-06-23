@@ -205,14 +205,10 @@ struct ConnectingState {
     current_screen_pos: Point,
 }
 
-/// Corner radius for rounded rectangles
-pub(crate) const CORNER_RADIUS: f32 = 10.0;
-/// Title font size (minimum readable)
-pub(crate) const TITLE_FONT_SIZE: f32 = 16.0;
-/// Source label font size (minimum readable)
-pub(crate) const SOURCE_FONT_SIZE: f32 = 12.0;
-/// Port circle radius
-const PORT_RADIUS: f32 = 5.0;
+pub(crate) const CORNER_RADIUS: f32 = flowcore::graph::style::CORNER_RADIUS;
+pub(crate) const TITLE_FONT_SIZE: f32 = flowcore::graph::style::TITLE_FONT_SIZE;
+pub(crate) const SOURCE_FONT_SIZE: f32 = flowcore::graph::style::SOURCE_FONT_SIZE;
+const PORT_RADIUS: f32 = flowcore::graph::style::PORT_RADIUS;
 /// Maximum characters for source label before truncation
 const MAX_SOURCE_CHARS: usize = 22;
 
