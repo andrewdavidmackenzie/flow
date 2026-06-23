@@ -2,6 +2,7 @@
 
 #![allow(clippy::cast_precision_loss)]
 
+use flowcore::graph::layout as shared;
 use svg::node::element::{Group, Path};
 
 use super::shapes;
@@ -17,8 +18,8 @@ pub fn bezier_edge(
     color: &str,
     dash: Option<&str>,
 ) -> Group {
-    let dx = (to_x - from_x).abs();
-    let offset = (dx / 3.0).max(40.0);
+    let dx = to_x - from_x;
+    let offset = shared::bezier_control_offset(dx);
 
     let ctrl_x1 = from_x + offset;
     let ctrl_x2 = to_x - offset;
@@ -30,7 +31,7 @@ pub fn bezier_edge(
         .set("d", path_data)
         .set("fill", "none")
         .set("stroke", color)
-        .set("stroke-width", 1.5);
+        .set("stroke-width", style::STROKE_WIDTH);
 
     if let Some(pattern) = dash {
         path = path.set("stroke-dasharray", pattern);
@@ -62,7 +63,7 @@ pub fn loopback_edge(
         .set("d", path_data)
         .set("fill", "none")
         .set("stroke", color)
-        .set("stroke-width", 1.5);
+        .set("stroke-width", style::STROKE_WIDTH);
 
     Group::new()
         .add(path)

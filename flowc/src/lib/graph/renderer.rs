@@ -8,20 +8,20 @@ use std::collections::HashMap;
 use svg::node::element::{Group, Style};
 use svg::Document;
 
+use flowcore::graph::layout::split_route;
+use flowcore::graph::style::NodeCategory;
 use flowcore::model::connection::Connection;
 use flowcore::model::flow_definition::FlowDefinition;
 use flowcore::model::name::HasName;
 use flowcore::model::process::Process::{FlowProcess, FunctionProcess};
 use flowcore::model::process_reference::ProcessReference;
 
-use super::layout::{self, process_alias, split_route, NodeLayout};
+use super::layout::{self, process_alias, PositionedNode};
 use super::{edge, shapes, style};
 
 /// Information about a process needed for rendering.
 struct ProcessInfo {
-    is_subflow: bool,
-    is_impure: bool,
-    has_inputs: bool,
+    category: NodeCategory,
     /// (name, type) pairs
     inputs: Vec<(String, String)>,
     /// (name, type) pairs
@@ -39,7 +39,6 @@ pub fn render_flow(flow: &FlowDefinition) -> String {
 
     let mut svg_group = Group::new().set("class", "flow-graph");
 
-    // Render nodes
     for pr in &flow.process_refs {
         let alias = process_alias(pr);
         if let (Some(layout), Some(info)) = (layouts.get(&alias), process_info.get(&alias)) {
@@ -47,12 +46,10 @@ pub fn render_flow(flow: &FlowDefinition) -> String {
         }
     }
 
-    // Render connections
     for conn in &flow.connections {
         svg_group = svg_group.add(render_connection(conn, &layouts));
     }
 
-    // Render initializers
     for pr in &flow.process_refs {
         let alias = process_alias(pr);
         if let Some(layout) = layouts.get(&alias) {
@@ -91,7 +88,7 @@ fn css_styles() -> Style {
     Style::new(
         ".node-subflow rect { cursor: pointer; }
 .node-subflow:hover rect { stroke-width: 3; }
-.node-function:hover rect, .node-function:hover path { stroke-width: 3; }
+.node:hover rect { stroke-width: 3; }
 .port-label { pointer-events: none; }
 .edge path { transition: stroke-width 0.15s; }
 .edge:hover path { stroke-width: 3; }
@@ -120,44 +117,41 @@ fn collect_process_info(flow: &FlowDefinition) -> HashMap<String, ProcessInfo> {
 
     for pr in &flow.process_refs {
         let alias = process_alias(pr);
+        let process = flow.subprocesses.get(&alias);
+        let category = NodeCategory::classify(process, &pr.source);
 
-        if let Some(process) = flow.subprocesses.get(&alias) {
-            match process {
-                FlowProcess(sub_flow) => {
-                    let inputs: Vec<(String, String)> =
-                        sub_flow.inputs.iter().map(io_name_and_type).collect();
-                    let outputs: Vec<(String, String)> =
-                        sub_flow.outputs.iter().map(io_name_and_type).collect();
-                    info.insert(
-                        alias,
-                        ProcessInfo {
-                            is_subflow: true,
-                            is_impure: false,
-                            has_inputs: !inputs.is_empty(),
-                            inputs,
-                            outputs,
-                            source: pr.source.clone(),
-                        },
-                    );
-                }
-                FunctionProcess(func) => {
-                    let inputs: Vec<(String, String)> =
-                        func.inputs.iter().map(io_name_and_type).collect();
-                    let outputs: Vec<(String, String)> =
-                        func.outputs.iter().map(io_name_and_type).collect();
-                    info.insert(
-                        alias,
-                        ProcessInfo {
-                            is_subflow: false,
-                            is_impure: func.is_impure(),
-                            has_inputs: !inputs.is_empty(),
-                            inputs,
-                            outputs,
-                            source: pr.source.clone(),
-                        },
-                    );
-                }
+        match process {
+            Some(FlowProcess(sub_flow)) => {
+                let inputs: Vec<(String, String)> =
+                    sub_flow.inputs.iter().map(io_name_and_type).collect();
+                let outputs: Vec<(String, String)> =
+                    sub_flow.outputs.iter().map(io_name_and_type).collect();
+                info.insert(
+                    alias,
+                    ProcessInfo {
+                        category,
+                        inputs,
+                        outputs,
+                        source: pr.source.clone(),
+                    },
+                );
             }
+            Some(FunctionProcess(func)) => {
+                let inputs: Vec<(String, String)> =
+                    func.inputs.iter().map(io_name_and_type).collect();
+                let outputs: Vec<(String, String)> =
+                    func.outputs.iter().map(io_name_and_type).collect();
+                info.insert(
+                    alias,
+                    ProcessInfo {
+                        category,
+                        inputs,
+                        outputs,
+                        source: pr.source.clone(),
+                    },
+                );
+            }
+            None => {}
         }
     }
 
@@ -181,69 +175,56 @@ fn build_node_info(
         .collect()
 }
 
-fn render_node(layout: &NodeLayout, info: &ProcessInfo, alias: &str) -> Group {
+fn render_node(layout: &PositionedNode, info: &ProcessInfo, alias: &str) -> Group {
     let mut group = Group::new();
 
-    let (fill, text_color, css_class) = if info.is_subflow {
-        (style::COLOR_SUBFLOW, style::COLOR_TEXT, "node-subflow")
-    } else if info.is_impure && !info.has_inputs {
-        (style::COLOR_SOURCE, style::COLOR_TEXT, "node-source")
-    } else if info.is_impure {
-        (style::COLOR_SINK, style::COLOR_TEXT_LIGHT, "node-sink")
+    let fill = info.category.color_hex();
+    let css_class = if info.category == NodeCategory::Subflow {
+        "node node-subflow"
     } else {
-        (style::COLOR_FUNCTION, style::COLOR_TEXT, "node-function")
+        "node"
     };
 
     group = group.set("class", css_class);
 
-    // Node shape
-    if info.is_impure && !info.has_inputs {
-        group = group.add(shapes::inverted_house(
-            layout.x,
-            layout.y,
-            layout.width,
-            layout.height,
-            fill,
-            style::COLOR_BORDER,
-        ));
-    } else if info.is_impure && info.has_inputs {
-        group = group.add(shapes::house(
-            layout.x,
-            layout.y,
-            layout.width,
-            layout.height,
-            fill,
-            style::COLOR_BORDER,
-        ));
-    } else {
-        group = group.add(shapes::rounded_rect(
-            layout.x,
-            layout.y,
-            layout.width,
-            layout.height,
-            fill,
-            style::COLOR_BORDER,
-        ));
-    }
+    // All nodes use rounded rectangles
+    group = group.add(shapes::rounded_rect(
+        layout.x,
+        layout.y,
+        layout.width,
+        layout.height,
+        fill,
+        style::COLOR_BORDER,
+    ));
 
     // Node title
     group = group.add(shapes::centered_text(
         layout.x + layout.width / 2.0,
-        layout.y + style::HEADER_HEIGHT / 2.0,
+        layout.y + 18.0,
         alias,
-        style::FONT_SIZE,
-        text_color,
+        style::TITLE_FONT_SIZE,
+        style::COLOR_TEXT,
+    ));
+
+    // Source label (truncated)
+    let source_label = truncate_source(&info.source);
+    group = group.add(shapes::centered_text(
+        layout.x + layout.width / 2.0,
+        layout.y + 36.0,
+        &source_label,
+        style::SOURCE_FONT_SIZE,
+        style::COLOR_TEXT,
     ));
 
     // Tooltip
     group = group.add(shapes::tooltip(&format!("{} ({})", alias, info.source)));
 
-    // Input ports with type tooltips
+    // Input ports
     for (i, (port_name, port_type)) in info.inputs.iter().enumerate() {
         let px = layout.input_port_x();
         let py = layout.input_port_y(i);
         let mut port_group = Group::new();
-        port_group = port_group.add(shapes::port_circle(px, py));
+        port_group = port_group.add(shapes::input_port(px, py, style::COLOR_PORT));
         port_group = port_group.add(shapes::tooltip(&format!("{port_name}: {port_type}")));
         group = group.add(port_group);
         group = group.add(shapes::port_label(
@@ -251,16 +232,16 @@ fn render_node(layout: &NodeLayout, info: &ProcessInfo, alias: &str) -> Group {
             py,
             port_name,
             "start",
-            text_color,
+            style::COLOR_TEXT,
         ));
     }
 
-    // Output ports with type tooltips
+    // Output ports
     for (i, (port_name, port_type)) in info.outputs.iter().enumerate() {
         let px = layout.output_port_x();
         let py = layout.output_port_y(i);
         let mut port_group = Group::new();
-        port_group = port_group.add(shapes::port_circle(px, py));
+        port_group = port_group.add(shapes::output_port(px, py, style::COLOR_PORT));
         port_group = port_group.add(shapes::tooltip(&format!("{port_name}: {port_type}")));
         group = group.add(port_group);
         group = group.add(shapes::port_label(
@@ -268,11 +249,11 @@ fn render_node(layout: &NodeLayout, info: &ProcessInfo, alias: &str) -> Group {
             py,
             port_name,
             "end",
-            text_color,
+            style::COLOR_TEXT,
         ));
     }
 
-    if info.is_subflow {
+    if info.category == NodeCategory::Subflow {
         let href = format!("{alias}.svg");
         return Group::new().add(shapes::link(&href, group));
     }
@@ -280,7 +261,16 @@ fn render_node(layout: &NodeLayout, info: &ProcessInfo, alias: &str) -> Group {
     group
 }
 
-fn render_connection(conn: &Connection, layouts: &HashMap<String, NodeLayout>) -> Group {
+fn truncate_source(source: &str) -> String {
+    let max_len = 22;
+    if source.len() <= max_len {
+        source.to_string()
+    } else {
+        format!("...{}", &source[source.len() - max_len + 3..])
+    }
+}
+
+fn render_connection(conn: &Connection, layouts: &HashMap<String, PositionedNode>) -> Group {
     let mut group = Group::new().set("class", "edge");
 
     let from_route = conn.from().to_string();
@@ -319,7 +309,6 @@ fn render_connection(conn: &Connection, layouts: &HashMap<String, NodeLayout>) -
         let tooltip_text = format!("{from_route} → {to_str}");
 
         if from_node == to_node {
-            // Loopback
             group = group.add(edge::loopback_edge(
                 x1,
                 y1,
@@ -349,7 +338,7 @@ fn render_connection(conn: &Connection, layouts: &HashMap<String, NodeLayout>) -
     group
 }
 
-fn render_initializers(pr: &ProcessReference, layout: &NodeLayout) -> Group {
+fn render_initializers(pr: &ProcessReference, layout: &PositionedNode) -> Group {
     let mut group = Group::new();
 
     for (input_path, initializer) in &pr.initializations {
@@ -408,7 +397,7 @@ fn render_initializers(pr: &ProcessReference, layout: &NodeLayout) -> Group {
 }
 
 fn compute_document_bounds(
-    layouts: &HashMap<String, NodeLayout>,
+    layouts: &HashMap<String, PositionedNode>,
     has_initializers: bool,
 ) -> (f32, f32, f32, f32) {
     let mut min_x: f32 = 0.0;
