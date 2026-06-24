@@ -205,14 +205,10 @@ struct ConnectingState {
     current_screen_pos: Point,
 }
 
-/// Corner radius for rounded rectangles
-pub(crate) const CORNER_RADIUS: f32 = 10.0;
-/// Title font size (minimum readable)
-pub(crate) const TITLE_FONT_SIZE: f32 = 16.0;
-/// Source label font size (minimum readable)
-pub(crate) const SOURCE_FONT_SIZE: f32 = 12.0;
-/// Port circle radius
-const PORT_RADIUS: f32 = 5.0;
+pub(crate) const CORNER_RADIUS: f32 = flowcore::graph::style::CORNER_RADIUS;
+pub(crate) const TITLE_FONT_SIZE: f32 = flowcore::graph::style::TITLE_FONT_SIZE;
+pub(crate) const SOURCE_FONT_SIZE: f32 = flowcore::graph::style::SOURCE_FONT_SIZE;
+const PORT_RADIUS: f32 = flowcore::graph::style::PORT_RADIUS;
 /// Maximum characters for source label before truncation
 const MAX_SOURCE_CHARS: usize = 22;
 
@@ -466,6 +462,116 @@ fn loopback_waypoints(
     (box_right, box_bottom, box_left, mid_x)
 }
 
+/// Build the loopback path that routes around a node with rounded corners.
+#[allow(clippy::too_many_arguments)]
+fn loopback_path(
+    from_s: Point,
+    to_s: Point,
+    nx: f32,
+    ny: f32,
+    nw: f32,
+    nh: f32,
+    zoom: f32,
+    offset: Point,
+) -> Path {
+    let (box_right, box_bottom, box_left, _) = loopback_waypoints(nx, ny, nw, nh, zoom, offset);
+    let r = 10.0 * zoom;
+    Path::new(|builder| {
+        builder.move_to(from_s);
+        builder.line_to(Point::new(box_right - r, from_s.y));
+        builder.quadratic_curve_to(
+            Point::new(box_right, from_s.y),
+            Point::new(box_right, from_s.y + r),
+        );
+        builder.line_to(Point::new(box_right, box_bottom - r));
+        builder.quadratic_curve_to(
+            Point::new(box_right, box_bottom),
+            Point::new(box_right - r, box_bottom),
+        );
+        builder.line_to(Point::new(box_left + r, box_bottom));
+        builder.quadratic_curve_to(
+            Point::new(box_left, box_bottom),
+            Point::new(box_left, box_bottom - r),
+        );
+        builder.line_to(Point::new(box_left, to_s.y + r));
+        builder.quadratic_curve_to(
+            Point::new(box_left, to_s.y),
+            Point::new(box_left + r, to_s.y),
+        );
+        builder.line_to(to_s);
+    })
+}
+
+/// Sample points along a loopback path for hit-testing.
+#[allow(clippy::too_many_arguments)]
+fn loopback_sample_points(
+    from_s: Point,
+    to_s: Point,
+    box_right: f32,
+    box_bottom: f32,
+    box_left: f32,
+    zoom: f32,
+) -> Vec<Point> {
+    let mut pts = Vec::with_capacity(BEZIER_SAMPLES + 1);
+    let segments = BEZIER_SAMPLES / 8;
+    let r = 10.0 * zoom;
+
+    let lerp = |a: f32, b: f32, i: usize| a + (b - a) * (i as f32 / segments as f32);
+
+    for i in 0..=segments {
+        pts.push(Point::new(lerp(from_s.x, box_right - r, i), from_s.y));
+    }
+    for i in 0..=segments {
+        let t = i as f32 / segments as f32;
+        pts.push(quadratic_bezier_pt(
+            Point::new(box_right - r, from_s.y),
+            Point::new(box_right, from_s.y),
+            Point::new(box_right, from_s.y + r),
+            t,
+        ));
+    }
+    for i in 0..=segments {
+        pts.push(Point::new(box_right, lerp(from_s.y + r, box_bottom - r, i)));
+    }
+    for i in 0..=segments {
+        let t = i as f32 / segments as f32;
+        pts.push(quadratic_bezier_pt(
+            Point::new(box_right, box_bottom - r),
+            Point::new(box_right, box_bottom),
+            Point::new(box_right - r, box_bottom),
+            t,
+        ));
+    }
+    for i in 0..=segments {
+        pts.push(Point::new(lerp(box_right - r, box_left + r, i), box_bottom));
+    }
+    for i in 0..=segments {
+        let t = i as f32 / segments as f32;
+        pts.push(quadratic_bezier_pt(
+            Point::new(box_left + r, box_bottom),
+            Point::new(box_left, box_bottom),
+            Point::new(box_left, box_bottom - r),
+            t,
+        ));
+    }
+    for i in 0..=segments {
+        pts.push(Point::new(box_left, lerp(box_bottom - r, to_s.y + r, i)));
+    }
+    for i in 0..=segments {
+        let t = i as f32 / segments as f32;
+        pts.push(quadratic_bezier_pt(
+            Point::new(box_left, to_s.y + r),
+            Point::new(box_left, to_s.y),
+            Point::new(box_left + r, to_s.y),
+            t,
+        ));
+    }
+    for i in 0..=segments {
+        pts.push(Point::new(lerp(box_left + r, to_s.x, i), to_s.y));
+    }
+    pts
+}
+
 /// Draw a bezier curve connection between two world-space points, applying zoom and offset.
 /// `node_bounds` is `Some((x, y, width, height))` in world coords for self-connections,
 /// `None` for normal connections.
@@ -492,26 +598,7 @@ fn draw_bezier_connection(
         .with_color(conn_color);
 
     if let Some((nx, ny, nw, nh)) = node_bounds {
-        let (box_right, box_bottom, box_left, _mid_x) =
-            loopback_waypoints(nx, ny, nw, nh, zoom, offset);
-
-        let path = Path::new(|builder| {
-            builder.move_to(from_s);
-            // Go right past the box
-            builder.line_to(Point::new(box_right, from_s.y));
-            // Curve down to below the box
-            builder.quadratic_curve_to(
-                Point::new(box_right, box_bottom),
-                Point::new(box_right.midpoint(box_left), box_bottom),
-            );
-            // Curve up to left of the box
-            builder.quadratic_curve_to(
-                Point::new(box_left, box_bottom),
-                Point::new(box_left, to_s.y),
-            );
-            // Arrive at input
-            builder.line_to(to_s);
-        });
+        let path = loopback_path(from_s, to_s, nx, ny, nw, nh, zoom, offset);
         frame.stroke(&path, stroke);
     } else {
         // Normal connection: bezier curve from right to left
@@ -971,7 +1058,7 @@ impl FlowCanvas<'_> {
                         let Some(from_n) = from_node_ref else {
                             continue;
                         };
-                        let (box_right, box_bottom, box_left, mid_x) = loopback_waypoints(
+                        let (box_right, box_bottom, box_left, _mid_x) = loopback_waypoints(
                             from_n.x(),
                             from_n.y(),
                             from_n.width(),
@@ -980,42 +1067,7 @@ impl FlowCanvas<'_> {
                             offset,
                         );
 
-                        // Sample the path: from -> right -> curve down -> bottom -> curve up -> to
-                        let mut pts = Vec::with_capacity(BEZIER_SAMPLES + 1);
-                        let segments = BEZIER_SAMPLES / 5;
-                        // Segment 1: from -> right
-                        for i in 0..=segments {
-                            let t = i as f32 / segments as f32;
-                            pts.push(Point::new(from_s.x + (box_right - from_s.x) * t, from_s.y));
-                        }
-                        // Segment 2: curve right -> bottom
-                        for i in 0..=segments {
-                            let t = i as f32 / segments as f32;
-                            let p = quadratic_bezier_pt(
-                                Point::new(box_right, from_s.y),
-                                Point::new(box_right, box_bottom),
-                                Point::new(mid_x, box_bottom),
-                                t,
-                            );
-                            pts.push(p);
-                        }
-                        // Segment 3: curve bottom -> left
-                        for i in 0..=segments {
-                            let t = i as f32 / segments as f32;
-                            let p = quadratic_bezier_pt(
-                                Point::new(mid_x, box_bottom),
-                                Point::new(box_left, box_bottom),
-                                Point::new(box_left, to_s.y),
-                                t,
-                            );
-                            pts.push(p);
-                        }
-                        // Segment 4: left -> to
-                        for i in 0..=segments {
-                            let t = i as f32 / segments as f32;
-                            pts.push(Point::new(box_left + (to_s.x - box_left) * t, to_s.y));
-                        }
-                        pts
+                        loopback_sample_points(from_s, to_s, box_right, box_bottom, box_left, zoom)
                     } else {
                         // Use matching control points for flow I/O vs normal connections
                         let is_flow_io = from_node_str == "input" || to_node_str == "output";

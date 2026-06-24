@@ -18,24 +18,14 @@ use flowcore::model::process::Process;
 use flowcore::model::process_reference::ProcessReference;
 
 use crate::flow_canvas::TITLE_FONT_SIZE;
-use crate::utils::{base_port_name, derive_short_name, format_value, split_route};
+use crate::utils::{base_port_name, derive_short_name, format_value};
 
-/// Default node width when no layout width is specified
-pub(crate) const DEFAULT_WIDTH: f32 = 180.0;
-/// Default node height when no layout height is specified
-pub(crate) const DEFAULT_HEIGHT: f32 = 120.0;
-/// Horizontal spacing between auto-laid-out nodes
-const GRID_SPACING_X: f32 = 250.0;
-/// Minimum vertical gap between auto-laid-out nodes
-const NODE_GAP_Y: f32 = 30.0;
-/// Starting X offset for auto-layout
-const GRID_ORIGIN_X: f32 = 50.0;
-/// Starting Y offset for auto-layout
-const GRID_ORIGIN_Y: f32 = 50.0;
-/// Port label font size
-pub(crate) const PORT_FONT_SIZE: f32 = 11.0;
-/// Vertical spacing between ports
-pub(crate) const PORT_SPACING: f32 = 20.0;
+use flowcore::graph::style;
+
+pub(crate) const DEFAULT_WIDTH: f32 = style::NODE_WIDTH;
+pub(crate) const DEFAULT_HEIGHT: f32 = style::NODE_HEIGHT;
+pub(crate) const PORT_FONT_SIZE: f32 = style::PORT_FONT_SIZE;
+pub(crate) const PORT_SPACING: f32 = style::PORT_SPACING;
 
 static EMPTY_IO: Vec<IO> = Vec::new();
 
@@ -85,10 +75,10 @@ impl<'a> NodeLayout<'a> {
 
     pub(crate) fn height(&self) -> f32 {
         let stored = self.process_ref.height.unwrap_or(DEFAULT_HEIGHT);
-        let header = 50.0;
         let bottom_pad = 25.0;
         let max_ports = self.inputs().len().max(self.outputs().len());
-        let min_for_ports = header + max_ports.saturating_sub(1) as f32 * PORT_SPACING + bottom_pad;
+        let min_for_ports =
+            style::HEADER_HEIGHT + max_ports.saturating_sub(1) as f32 * PORT_SPACING + bottom_pad;
         stored.max(min_for_ports)
     }
 
@@ -146,27 +136,8 @@ impl<'a> NodeLayout<'a> {
     }
 
     pub(crate) fn fill_color(&self) -> iced::Color {
-        match &self.process {
-            Some(Process::FlowProcess(_)) => iced::Color::from_rgb(0.9, 0.6, 0.2),
-            Some(Process::FunctionProcess(f)) => {
-                if f.get_lib_reference().is_some() {
-                    iced::Color::from_rgb(0.3, 0.5, 0.9)
-                } else if f.get_context_reference().is_some() {
-                    iced::Color::from_rgb(0.3, 0.75, 0.45)
-                } else {
-                    iced::Color::from_rgb(0.6, 0.3, 0.8)
-                }
-            }
-            None => {
-                if self.source().starts_with("lib://") {
-                    iced::Color::from_rgb(0.3, 0.5, 0.9)
-                } else if self.source().starts_with("context://") {
-                    iced::Color::from_rgb(0.3, 0.75, 0.45)
-                } else {
-                    iced::Color::from_rgb(0.9, 0.6, 0.2)
-                }
-            }
-        }
+        let (r, g, b) = style::NodeCategory::classify(self.process, self.source()).color_rgb();
+        iced::Color::from_rgb(r, g, b)
     }
 
     pub(crate) fn is_openable(&self) -> bool {
@@ -182,11 +153,10 @@ impl<'a> NodeLayout<'a> {
     }
 
     fn port_start_y(&self, port_count: usize) -> f32 {
-        let header_height = 50.0;
-        let available = self.height() - header_height;
+        let available = self.height() - style::HEADER_HEIGHT;
         let ports_height = (port_count.saturating_sub(1)) as f32 * PORT_SPACING;
         let padding = ((available - ports_height) / 2.0).max(0.0);
-        self.y() + header_height + padding
+        self.y() + style::HEADER_HEIGHT + padding
     }
 
     pub(crate) fn output_port_position(&self, port_index: usize) -> Point {
@@ -329,107 +299,40 @@ impl<'a> NodeLayout<'a> {
 
 /// Compute topology-based positions for nodes without saved layout.
 ///
-/// Assigns each node a column based on its depth from source nodes (nodes with no
-/// incoming connections). Nodes are spread vertically within each column.
+/// Delegates to the shared layout algorithm in `flowcore::graph::layout`.
 pub(crate) fn compute_topological_layout(
     process_refs: &[ProcessReference],
     connections: &[Connection],
-    node_heights: &HashMap<String, f32>,
+    _node_heights: &HashMap<String, f32>,
 ) -> HashMap<String, (f32, f32)> {
-    // Build alias list
-    let aliases: Vec<String> = process_refs
+    use flowcore::graph::layout as shared;
+
+    let node_specs: Vec<(String, Vec<String>, Vec<String>)> = process_refs
         .iter()
         .map(|p| {
-            if p.alias.is_empty() {
+            let alias = if p.alias.is_empty() {
                 derive_short_name(&p.source)
             } else {
                 p.alias.clone()
-            }
+            };
+            (alias, vec![], vec![])
         })
         .collect();
 
-    // Build adjacency: which nodes feed which
-    let mut incoming: HashMap<String, Vec<String>> = HashMap::new();
-    let mut outgoing: HashMap<String, Vec<String>> = HashMap::new();
-    for alias in &aliases {
-        incoming.entry(alias.clone()).or_default();
-        outgoing.entry(alias.clone()).or_default();
-    }
+    let conn_pairs: Vec<(String, String)> = connections
+        .iter()
+        .flat_map(|conn| {
+            let from = conn.from().to_string();
+            conn.to()
+                .iter()
+                .map(move |to| (from.clone(), to.to_string()))
+        })
+        .collect();
 
-    let alias_set: std::collections::HashSet<&str> = aliases.iter().map(String::as_str).collect();
-    for conn in connections {
-        let from_route = conn.from().to_string();
-        let (from_node, _) = split_route(&from_route);
-        if !alias_set.contains(from_node.as_str()) {
-            continue;
-        }
-        for to_route in conn.to() {
-            let to_str = to_route.to_string();
-            let (to_node, _) = split_route(&to_str);
-            if from_node != to_node && alias_set.contains(to_node.as_str()) {
-                outgoing
-                    .entry(from_node.clone())
-                    .or_default()
-                    .push(to_node.clone());
-                incoming.entry(to_node).or_default().push(from_node.clone());
-            }
-        }
-    }
-
-    // Assign column depth using BFS from source nodes (no incoming edges)
-    let mut depth: HashMap<String, usize> = HashMap::new();
-    let mut queue: std::collections::VecDeque<String> = std::collections::VecDeque::new();
-
-    for alias in &aliases {
-        if incoming.get(alias).is_none_or(std::vec::Vec::is_empty) {
-            depth.insert(alias.clone(), 0);
-            queue.push_back(alias.clone());
-        }
-    }
-
-    // BFS to assign max depth (longest path from any source).
-    // Cap depth to prevent infinite loops on cyclic flows (e.g., fibonacci feedback).
-    let max_depth = aliases.len().saturating_sub(1);
-    while let Some(node) = queue.pop_front() {
-        let node_depth = depth.get(&node).copied().unwrap_or(0);
-        if let Some(neighbors) = outgoing.get(&node) {
-            for neighbor in neighbors {
-                let new_depth = (node_depth + 1).min(max_depth);
-                let current = depth.get(neighbor).copied().unwrap_or(0);
-                if new_depth > current {
-                    depth.insert(neighbor.clone(), new_depth);
-                    queue.push_back(neighbor.clone());
-                }
-            }
-        }
-    }
-
-    // Assign any unvisited nodes depth 0
-    for alias in &aliases {
-        depth.entry(alias.clone()).or_insert(0);
-    }
-
-    // Group nodes by column
-    let mut columns: HashMap<usize, Vec<String>> = HashMap::new();
-    for alias in &aliases {
-        let col = depth.get(alias).copied().unwrap_or(0);
-        columns.entry(col).or_default().push(alias.clone());
-    }
-
-    // Compute positions: spread columns horizontally, stack nodes vertically
-    // using actual heights plus a gap
-    let mut positions = HashMap::new();
-    for (col, col_nodes) in &columns {
-        let x = GRID_ORIGIN_X + *col as f32 * GRID_SPACING_X;
-        let mut y = GRID_ORIGIN_Y;
-        for alias in col_nodes {
-            positions.insert(alias.clone(), (x, y));
-            let h = node_heights.get(alias).copied().unwrap_or(DEFAULT_HEIGHT);
-            y += h + NODE_GAP_Y;
-        }
-    }
-
-    positions
+    shared::compute_layout(&node_specs, &conn_pairs)
+        .into_iter()
+        .map(|(alias, node)| (alias, (node.x, node.y)))
+        .collect()
 }
 
 #[cfg(test)]

@@ -1,10 +1,10 @@
 //! SVG shape primitives for graph rendering.
 
-use svg::node::element::{Anchor, Circle, Group, Path, Rectangle, Text, Title};
+use svg::node::element::{Anchor, Group, Path, Rectangle, Text, Title};
 
 use super::style;
 
-/// Rounded rectangle node (for sub-flows and pure functions).
+/// Rounded rectangle node shape.
 #[must_use]
 pub fn rounded_rect(
     left: f32,
@@ -23,60 +23,37 @@ pub fn rounded_rect(
         .set("ry", style::CORNER_RADIUS)
         .set("fill", fill)
         .set("stroke", stroke)
-        .set("stroke-width", 1.5)
+        .set("stroke-width", style::STROKE_WIDTH)
 }
 
-/// House shape (pentagon pointing up) for sink nodes.
+/// Port semi-circle on the left edge (input port).
 #[must_use]
-pub fn house(left: f32, top: f32, width: f32, height: f32, fill: &str, stroke: &str) -> Path {
-    let mid_x = left + width / 2.0;
-    let roof_y = top + height * 0.3;
-    let bottom = top + height;
-    let right = left + width;
-
+pub fn input_port(center_x: f32, center_y: f32, fill: &str) -> Path {
+    let r = style::PORT_RADIUS;
+    let top_y = center_y - r;
+    let bot_y = center_y + r;
     Path::new()
         .set(
             "d",
-            format!("M {mid_x} {top} L {right} {roof_y} L {right} {bottom} L {left} {bottom} L {left} {roof_y} Z"),
+            format!("M {center_x} {top_y} A {r} {r} 0 0 0 {center_x} {bot_y} Z"),
         )
         .set("fill", fill)
-        .set("stroke", stroke)
-        .set("stroke-width", 1.5)
+        .set("stroke", style::COLOR_BORDER)
+        .set("stroke-width", 1)
 }
 
-/// Inverted house shape (pentagon pointing down) for source nodes.
+/// Port semi-circle on the right edge (output port).
 #[must_use]
-pub fn inverted_house(
-    left: f32,
-    top: f32,
-    width: f32,
-    height: f32,
-    fill: &str,
-    stroke: &str,
-) -> Path {
-    let mid_x = left + width / 2.0;
-    let body_y = top + height * 0.7;
-    let bottom = top + height;
-    let right = left + width;
-
+pub fn output_port(center_x: f32, center_y: f32, fill: &str) -> Path {
+    let r = style::PORT_RADIUS;
+    let top_y = center_y - r;
+    let bot_y = center_y + r;
     Path::new()
         .set(
             "d",
-            format!("M {left} {top} L {right} {top} L {right} {body_y} L {mid_x} {bottom} L {left} {body_y} Z"),
+            format!("M {center_x} {top_y} A {r} {r} 0 0 1 {center_x} {bot_y} Z"),
         )
         .set("fill", fill)
-        .set("stroke", stroke)
-        .set("stroke-width", 1.5)
-}
-
-/// Port circle (input or output).
-#[must_use]
-pub fn port_circle(center_x: f32, center_y: f32) -> Circle {
-    Circle::new()
-        .set("cx", center_x)
-        .set("cy", center_y)
-        .set("r", style::PORT_RADIUS)
-        .set("fill", style::COLOR_PORT)
         .set("stroke", style::COLOR_BORDER)
         .set("stroke-width", 1)
 }

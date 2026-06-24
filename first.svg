@@ -2,66 +2,72 @@
 <style>
 .node-subflow rect { cursor: pointer; }
 .node-subflow:hover rect { stroke-width: 3; }
-.node-function:hover rect, .node-function:hover path { stroke-width: 3; }
+.node:hover rect { stroke-width: 3; }
 .port-label { pointer-events: none; }
 .edge path { transition: stroke-width 0.15s; }
 .edge:hover path { stroke-width: 3; }
 text { user-select: none; }
 </style>
 <g class="flow-graph">
-<g class="node-function">
-<rect fill="#FF7F50" height="120" rx="10" ry="10" stroke="#444444" stroke-width="1.5" width="180" x="50" y="50"/>
-<text dominant-baseline="central" fill="#222222" font-family="sans-serif" font-size="14" text-anchor="middle" x="140" y="65">
+<g class="node">
+<rect fill="#4D80E6" height="120" rx="10" ry="10" stroke="#444444" stroke-width="2" width="180" x="50" y="50"/>
+<text dominant-baseline="central" fill="#FFFFFF" font-family="sans-serif" font-size="16" text-anchor="middle" x="140" y="68">
 add
+</text>
+<text dominant-baseline="central" fill="#FFFFFF" font-family="sans-serif" font-size="12" text-anchor="middle" x="140" y="86">
+...flowstdlib/math/add
 </text>
 <title>add (lib://flowstdlib/math/add)</title>
 <g>
-<circle cx="50" cy="115" fill="#888888" r="5" stroke="#444444" stroke-width="1"/>
+<path d="M 50 120 A 5 5 0 0 0 50 130 Z" fill="#FFFFFF" stroke="#444444" stroke-width="1"/>
 <title>i1: number</title>
 </g>
-<text dominant-baseline="central" fill="#222222" font-family="sans-serif" font-size="10" text-anchor="start" x="58" y="115">
+<text dominant-baseline="central" fill="#FFFFFF" font-family="sans-serif" font-size="11" text-anchor="start" x="58" y="125">
 i1
 </text>
 <g>
-<circle cx="50" cy="135" fill="#888888" r="5" stroke="#444444" stroke-width="1"/>
+<path d="M 50 140 A 5 5 0 0 0 50 150 Z" fill="#FFFFFF" stroke="#444444" stroke-width="1"/>
 <title>i2: number</title>
 </g>
-<text dominant-baseline="central" fill="#222222" font-family="sans-serif" font-size="10" text-anchor="start" x="58" y="135">
+<text dominant-baseline="central" fill="#FFFFFF" font-family="sans-serif" font-size="11" text-anchor="start" x="58" y="145">
 i2
 </text>
 <g>
-<circle cx="230" cy="125" fill="#888888" r="5" stroke="#444444" stroke-width="1"/>
+<path d="M 230 130 A 5 5 0 0 1 230 140 Z" fill="#FFFFFF" stroke="#444444" stroke-width="1"/>
 <title>: number</title>
 </g>
-<text dominant-baseline="central" fill="#222222" font-family="sans-serif" font-size="10" text-anchor="end" x="222" y="125">
+<text dominant-baseline="central" fill="#FFFFFF" font-family="sans-serif" font-size="11" text-anchor="end" x="222" y="135">
 
 </text>
 </g>
-<g class="node-sink">
-<path d="M 390 50 L 480 86 L 480 170 L 300 170 L 300 86 Z" fill="#333333" stroke="#444444" stroke-width="1.5"/>
-<text dominant-baseline="central" fill="#FFFFFF" font-family="sans-serif" font-size="14" text-anchor="middle" x="390" y="65">
+<g class="node">
+<rect fill="#4DBF73" height="120" rx="10" ry="10" stroke="#444444" stroke-width="2" width="180" x="300" y="50"/>
+<text dominant-baseline="central" fill="#FFFFFF" font-family="sans-serif" font-size="16" text-anchor="middle" x="390" y="68">
 stdout
+</text>
+<text dominant-baseline="central" fill="#FFFFFF" font-family="sans-serif" font-size="12" text-anchor="middle" x="390" y="86">
+context://stdio/stdout
 </text>
 <title>stdout (context://stdio/stdout)</title>
 <g>
-<circle cx="300" cy="125" fill="#888888" r="5" stroke="#444444" stroke-width="1"/>
+<path d="M 300 130 A 5 5 0 0 0 300 140 Z" fill="#FFFFFF" stroke="#444444" stroke-width="1"/>
 <title>: generic</title>
 </g>
-<text dominant-baseline="central" fill="#FFFFFF" font-family="sans-serif" font-size="10" text-anchor="start" x="308" y="125">
+<text dominant-baseline="central" fill="#FFFFFF" font-family="sans-serif" font-size="11" text-anchor="start" x="308" y="135">
 
 </text>
 </g>
 <g class="edge">
 <g>
-<path d="M 230 125 C 260 200, 20 200, 50 135" fill="none" stroke="#555555" stroke-width="1.5"/>
-<path d="M 50 135 L 49.740784 142.9958 L 44.083565 140.38478 Z" fill="#555555" stroke="none"/>
+<path d="M 230 135 L 245 135 Q 255 135 255 145 L 255 185 Q 255 195 245 195 L 35 195 Q 25 195 25 185 L 25 155 Q 25 145 35 145 L 50 145" fill="none" stroke="#808080" stroke-width="2"/>
+<path d="M 50 145 L 44.473633 147.33652 L 44.473633 142.66348 Z" fill="#808080" stroke="none"/>
 </g>
 </g>
 <g class="edge">
 <g>
-<path d="M 230 125 C 270 125, 260 125, 300 125" fill="none" stroke="#555555" stroke-width="1.5"/>
-<path d="M 300 125 L 292.6315 128.11534 L 292.6315 121.88465 Z" fill="#555555" stroke="none"/>
-<text dominant-baseline="central" fill="#555555" font-family="sans-serif" font-size="10" text-anchor="middle" x="265" y="117">
+<path d="M 230 135 C 265 135, 265 135, 300 135" fill="none" stroke="#808080" stroke-width="2"/>
+<path d="M 300 135 L 294.47363 137.33652 L 294.47363 132.66348 Z" fill="#808080" stroke="none"/>
+<text dominant-baseline="central" fill="#808080" font-family="sans-serif" font-size="11" text-anchor="middle" x="265" y="127">
 next value
 </text>
 <title>add → stdout</title>
@@ -69,25 +75,25 @@ next value
 </g>
 <g class="edge">
 <g>
-<path d="M 230 125 C 260 200, 20 200, 50 115" fill="none" stroke="#555555" stroke-width="1.5"/>
-<path d="M 50 115 L 50.48536 122.98526 L 44.60988 120.91156 Z" fill="#555555" stroke="none"/>
+<path d="M 230 135 L 245 135 Q 255 135 255 145 L 255 185 Q 255 195 245 195 L 35 195 Q 25 195 25 185 L 25 135 Q 25 125 35 125 L 50 125" fill="none" stroke="#808080" stroke-width="2"/>
+<path d="M 50 125 L 44.473633 127.33651 L 44.473633 122.66349 Z" fill="#808080" stroke="none"/>
 </g>
 </g>
 <g>
-<text dominant-baseline="central" fill="#4488CC" font-family="sans-serif" font-size="11" text-anchor="middle" x="-20" y="115">
+<text dominant-baseline="central" fill="#4488CC" font-family="sans-serif" font-size="12" text-anchor="middle" x="-20" y="125">
 0 (once)
 </text>
 <g>
-<path d="M 15 115 C 55 115, 10 115, 50 115" fill="none" stroke="#4488CC" stroke-dasharray="4 2" stroke-width="1.5"/>
-<path d="M 50 115 L 42.63151 118.11535 L 42.63151 111.88465 Z" fill="#4488CC" stroke="none"/>
+<path d="M 15 125 C 45 125, 20 125, 50 125" fill="none" stroke="#4488CC" stroke-dasharray="4 2" stroke-width="2"/>
+<path d="M 50 125 L 44.473633 127.33651 L 44.473633 122.66349 Z" fill="#4488CC" stroke="none"/>
 </g>
 <title>i1: 0</title>
-<text dominant-baseline="central" fill="#4488CC" font-family="sans-serif" font-size="11" text-anchor="middle" x="-20" y="135">
+<text dominant-baseline="central" fill="#4488CC" font-family="sans-serif" font-size="12" text-anchor="middle" x="-20" y="145">
 1 (once)
 </text>
 <g>
-<path d="M 15 135 C 55 135, 10 135, 50 135" fill="none" stroke="#4488CC" stroke-dasharray="4 2" stroke-width="1.5"/>
-<path d="M 50 135 L 42.63151 138.11534 L 42.63151 131.88466 Z" fill="#4488CC" stroke="none"/>
+<path d="M 15 145 C 45 145, 20 145, 50 145" fill="none" stroke="#4488CC" stroke-dasharray="4 2" stroke-width="2"/>
+<path d="M 50 145 L 44.473633 147.33652 L 44.473633 142.66348 Z" fill="#4488CC" stroke="none"/>
 </g>
 <title>i2: 1</title>
 </g>

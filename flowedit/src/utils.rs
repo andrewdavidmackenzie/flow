@@ -23,23 +23,8 @@ pub(crate) fn next_unique_io_name(prefix: &str, existing: &[IO]) -> String {
     }
 }
 
-/// Derive a short display name from a source URL.
-/// e.g., `"lib://flowstdlib/math/sequence"` → `"sequence"`
-/// e.g., `"context://stdio/stdout"` → `"stdout"`
-pub(crate) fn derive_short_name(source: &str) -> String {
-    source.rsplit('/').next().unwrap_or(source).to_string()
-}
-
-/// Split a route string like "sequence/number" into ("sequence", "number")
-/// or "add1" into ("add1", "")
-pub(crate) fn split_route(route: &str) -> (String, String) {
-    let route = route.trim_start_matches('/');
-    if let Some(pos) = route.find('/') {
-        (route[..pos].to_string(), route[pos + 1..].to_string())
-    } else {
-        (route.to_string(), String::new())
-    }
-}
+pub(crate) use flowcore::graph::layout::derive_short_name;
+pub(crate) use flowcore::graph::layout::split_route;
 
 /// Check whether a Connection references a node by alias in its from or to routes.
 pub(crate) fn connection_references_node(conn: &Connection, alias: &str) -> bool {
