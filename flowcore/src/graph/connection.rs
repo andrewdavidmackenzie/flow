@@ -37,11 +37,18 @@ pub fn bezier_controls(from_x: f32, from_y: f32, to_x: f32, to_y: f32) -> (f32, 
 /// Compute the 3 vertices of an arrow head triangle.
 ///
 /// The tip is at `(tip_x, tip_y)`, pointing from direction `(from_x, from_y)`.
+/// `size` is the arrow length in the caller's coordinate space (use
+/// `ARROW_SIZE` for world space, `ARROW_SIZE * zoom` for screen space).
 /// Returns `[(tip_x, tip_y), (left_x, left_y), (right_x, right_y)]`.
 #[must_use]
-pub fn arrow_head_points(tip_x: f32, tip_y: f32, from_x: f32, from_y: f32) -> [(f32, f32); 3] {
+pub fn arrow_head_points(
+    tip_x: f32,
+    tip_y: f32,
+    from_x: f32,
+    from_y: f32,
+    size: f32,
+) -> [(f32, f32); 3] {
     let angle = (tip_y - from_y).atan2(tip_x - from_x);
-    let size = style::ARROW_SIZE;
     let half_angle = 0.4;
 
     let left_x = tip_x - size * (angle - half_angle).cos();
@@ -122,7 +129,7 @@ mod test {
 
     #[test]
     fn arrow_rightward() {
-        let pts = arrow_head_points(100.0, 50.0, 80.0, 50.0);
+        let pts = arrow_head_points(100.0, 50.0, 80.0, 50.0, style::ARROW_SIZE);
         assert!((pts[0].0 - 100.0).abs() < 0.01);
         assert!(pts[1].0 < 100.0);
         assert!(pts[2].0 < 100.0);
@@ -131,7 +138,7 @@ mod test {
 
     #[test]
     fn arrow_leftward() {
-        let pts = arrow_head_points(50.0, 100.0, 80.0, 100.0);
+        let pts = arrow_head_points(50.0, 100.0, 80.0, 100.0, style::ARROW_SIZE);
         assert!((pts[0].0 - 50.0).abs() < 0.01);
         assert!(pts[1].0 > 50.0);
         assert!(pts[2].0 > 50.0);

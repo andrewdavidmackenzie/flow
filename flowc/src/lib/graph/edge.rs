@@ -13,7 +13,7 @@ use super::style;
 /// Format an arrow head as an SVG path element.
 fn svg_arrow(tip_x: f32, tip_y: f32, from_x: f32, from_y: f32, color: &str) -> Path {
     let [(tx, ty), (lx, ly), (rx, ry)] =
-        connection::arrow_head_points(tip_x, tip_y, from_x, from_y);
+        connection::arrow_head_points(tip_x, tip_y, from_x, from_y, style::ARROW_SIZE);
 
     Path::new()
         .set("d", format!("M {tx} {ty} L {lx} {ly} L {rx} {ry} Z"))

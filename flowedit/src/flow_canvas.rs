@@ -617,8 +617,9 @@ fn draw_bezier_connection(
         Point::new(cx2, cy2)
     };
 
+    let arrow_size = flowcore::graph::style::ARROW_SIZE * zoom;
     let [(ax, ay), (bx, by), (cx, cy)] =
-        connection::arrow_head_points(to_s.x, to_s.y, arrow_from.x, arrow_from.y);
+        connection::arrow_head_points(to_s.x, to_s.y, arrow_from.x, arrow_from.y, arrow_size);
     let arrow = Path::new(|builder| {
         builder.move_to(Point::new(ax, ay));
         builder.line_to(Point::new(bx, by));
