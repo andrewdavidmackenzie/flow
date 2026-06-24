@@ -16,6 +16,7 @@ fn svg_arrow(tip_x: f32, tip_y: f32, from_x: f32, from_y: f32, color: &str) -> P
         connection::arrow_head_points(tip_x, tip_y, from_x, from_y, style::ARROW_SIZE);
 
     Path::new()
+        .set("class", "edge-arrow")
         .set("d", format!("M {tx} {ty} L {lx} {ly} L {rx} {ry} Z"))
         .set("fill", color)
         .set("stroke", "none")
@@ -38,6 +39,7 @@ pub fn bezier_edge(
     let path_data = format!("M {from_x} {from_y} C {cx1} {cy1}, {cx2} {cy2}, {end_x} {to_y}");
 
     let mut path = Path::new()
+        .set("class", "edge-line")
         .set("d", path_data)
         .set("fill", "none")
         .set("stroke", color)
@@ -83,6 +85,7 @@ pub fn loopback_edge(
     }
 
     let path = Path::new()
+        .set("class", "edge-line")
         .set("d", path_data)
         .set("fill", "none")
         .set("stroke", color)
@@ -92,6 +95,40 @@ pub fn loopback_edge(
     Group::new()
         .add(path)
         .add(svg_arrow(arrow_tip_x, in_y, arrow_from_x, in_y, color))
+}
+
+/// Render an initializer edge — a bezier from the label to the port,
+/// with the line stopping at the arrow base and arrow tip at the port.
+#[must_use]
+#[allow(clippy::too_many_arguments)]
+pub fn initializer_edge(
+    from_x: f32,
+    from_y: f32,
+    to_x: f32,
+    to_y: f32,
+    color: &str,
+    dash: Option<&str>,
+) -> Group {
+    let (cx1, cy1, cx2, cy2) = connection::bezier_controls(from_x, from_y, to_x, to_y);
+    let arrow_tip_x = to_x;
+    let end_x = arrow_tip_x - style::ARROW_SIZE * 0.7;
+
+    let path_data = format!("M {from_x} {from_y} C {cx1} {cy1}, {cx2} {cy2}, {end_x} {to_y}");
+
+    let mut path = Path::new()
+        .set("class", "edge-line")
+        .set("d", path_data)
+        .set("fill", "none")
+        .set("stroke", color)
+        .set("stroke-width", style::STROKE_WIDTH);
+
+    if let Some(pattern) = dash {
+        path = path.set("stroke-dasharray", pattern);
+    }
+
+    Group::new()
+        .add(path)
+        .add(svg_arrow(arrow_tip_x, to_y, cx2, cy2, color))
 }
 
 /// Render an edge with an optional label and tooltip.
