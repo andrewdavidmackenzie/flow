@@ -1,6 +1,6 @@
 #!/bin/bash
-# Install flow data files (context definitions and flowstdlib)
-# Run this after extracting the release archive
+# Install flow context definitions (runner data files).
+# flowstdlib is installed separately via install-flowstdlib.sh.
 
 set -e
 
@@ -32,16 +32,5 @@ if [ -d "runner/flowrgui" ]; then
     echo "  Installed flowrgui context definitions"
 fi
 
-# Install flowstdlib (compiled WASM library)
-# Looks for flowstdlib/ in the current directory (from the separate tarball)
-if [ -d "flowstdlib" ]; then
-    mkdir -p "${FLOW_DIR}/lib/flowstdlib"
-    cp -a flowstdlib/. "${FLOW_DIR}/lib/flowstdlib/"
-    echo "  Installed flowstdlib library"
-else
-    echo "  flowstdlib/ not found — download the flowstdlib tarball from the"
-    echo "  release, extract it here, and re-run this script to install it."
-fi
-
 echo ""
-echo "Done. Flow data installed to ${FLOW_DIR}/"
+echo "Done. Context definitions installed to ${FLOW_DIR}/"
