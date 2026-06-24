@@ -32,8 +32,10 @@ pub fn bezier_edge(
     dash: Option<&str>,
 ) -> Group {
     let (cx1, cy1, cx2, cy2) = connection::bezier_controls(from_x, from_y, to_x, to_y);
+    let arrow_tip_x = to_x;
+    let end_x = arrow_tip_x - style::ARROW_SIZE * 0.7;
 
-    let path_data = format!("M {from_x} {from_y} C {cx1} {cy1}, {cx2} {cy2}, {to_x} {to_y}");
+    let path_data = format!("M {from_x} {from_y} C {cx1} {cy1}, {cx2} {cy2}, {end_x} {to_y}");
 
     let mut path = Path::new()
         .set("d", path_data)
@@ -47,7 +49,7 @@ pub fn bezier_edge(
 
     Group::new()
         .add(path)
-        .add(svg_arrow(to_x, to_y, cx2, cy2, color))
+        .add(svg_arrow(arrow_tip_x, to_y, cx2, cy2, color))
 }
 
 /// Render a loopback edge that routes around the node: right, down, left, up.
@@ -60,7 +62,9 @@ pub fn loopback_edge(
     node_bottom: f32,
     color: &str,
 ) -> Group {
-    let waypoints = connection::loopback_waypoints(out_x, out_y, in_x, in_y, node_bottom);
+    let arrow_tip_x = in_x;
+    let line_end_x = arrow_tip_x - style::ARROW_SIZE * 0.7;
+    let waypoints = connection::loopback_waypoints(out_x, out_y, line_end_x, in_y, node_bottom);
 
     let mut path_data = String::new();
     for (i, wp) in waypoints.iter().enumerate() {
@@ -84,11 +88,10 @@ pub fn loopback_edge(
         .set("stroke", color)
         .set("stroke-width", style::STROKE_WIDTH);
 
-    // Arrow from the last corner toward the input port
-    let last_corner_x = in_x - 25.0 + 10.0;
+    let arrow_from_x = arrow_tip_x - style::ARROW_SIZE;
     Group::new()
         .add(path)
-        .add(svg_arrow(in_x, in_y, last_corner_x, in_y, color))
+        .add(svg_arrow(arrow_tip_x, in_y, arrow_from_x, in_y, color))
 }
 
 /// Render an edge with an optional label and tooltip.

@@ -50,7 +50,7 @@ pub const PORT_FONT_SIZE: f32 = 11.0;
 // --- Edge geometry ---
 
 /// Arrow head size in pixels
-pub const ARROW_SIZE: f32 = 6.0;
+pub const ARROW_SIZE: f32 = 10.0;
 /// Edge stroke width
 pub const STROKE_WIDTH: f32 = 2.0;
 

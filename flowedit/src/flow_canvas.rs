@@ -599,26 +599,30 @@ fn draw_bezier_connection(
         .with_width(line_width * zoom)
         .with_color(conn_color);
 
+    let arrow_size = flowcore::graph::style::ARROW_SIZE * zoom;
+    let arrow_tip_x = to_s.x;
+
+    let line_stop = arrow_tip_x - arrow_size * 0.7;
+
     let arrow_from = if let Some((nx, ny, nw, nh)) = node_bounds {
-        let path = loopback_path(from_s, to_s, nx, ny, nw, nh, zoom, offset);
+        let line_end = Point::new(line_stop, to_s.y);
+        let path = loopback_path(from_s, line_end, nx, ny, nw, nh, zoom, offset);
         frame.stroke(&path, stroke);
-        // Arrow approaches from the left
-        Point::new(to_s.x - 20.0, to_s.y)
+        Point::new(line_stop, to_s.y)
     } else {
         let (cx1, cy1, cx2, cy2) = connection::bezier_controls(from_s.x, from_s.y, to_s.x, to_s.y);
+        let end = Point::new(line_stop, to_s.y);
 
         let path = Path::new(|builder| {
             builder.move_to(from_s);
-            builder.bezier_curve_to(Point::new(cx1, cy1), Point::new(cx2, cy2), to_s);
+            builder.bezier_curve_to(Point::new(cx1, cy1), Point::new(cx2, cy2), end);
         });
         frame.stroke(&path, stroke);
-        // Arrow direction from last control point
         Point::new(cx2, cy2)
     };
 
-    let arrow_size = flowcore::graph::style::ARROW_SIZE * zoom;
     let [(ax, ay), (bx, by), (cx, cy)] =
-        connection::arrow_head_points(to_s.x, to_s.y, arrow_from.x, arrow_from.y, arrow_size);
+        connection::arrow_head_points(arrow_tip_x, to_s.y, arrow_from.x, arrow_from.y, arrow_size);
     let arrow = Path::new(|builder| {
         builder.move_to(Point::new(ax, ay));
         builder.line_to(Point::new(bx, by));
@@ -1090,7 +1094,11 @@ impl FlowCanvas<'_> {
                             .collect()
                     };
 
-                    for pair in sample_points.windows(2) {
+                    // Include the arrow tip so clicking the arrowhead registers
+                    let mut pts = sample_points;
+                    pts.push(to_s);
+
+                    for pair in pts.windows(2) {
                         if let [a, b] = *pair {
                             if distance_to_segment_sq(screen_pos, a, b) <= threshold_sq {
                                 return Some(conn_idx);
@@ -2212,12 +2220,7 @@ fn draw_port(
     let screen_center = transform_point(center, zoom, offset);
     let scaled_radius = PORT_RADIUS * zoom;
 
-    let has_init = initializer.is_some();
-    let fill_color = if has_init {
-        Color::from_rgb(1.0, 0.9, 0.3)
-    } else {
-        Color::WHITE
-    };
+    let fill_color = Color::WHITE;
 
     // Draw semi-circle: curved side faces inside the box, flat edge on the box boundary
     let semi = Path::new(|builder| {
