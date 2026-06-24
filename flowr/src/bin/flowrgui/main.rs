@@ -4167,4 +4167,100 @@ mod test {
         assert!(!gui.browser_open);
         assert_eq!(gui.active_panel, Some(PanelKind::Settings));
     }
+
+    #[test]
+    fn stdout_output_reaches_gui_tab() {
+        let mut gui = test_gui();
+        gui.running = true;
+        drop(
+            gui.update(Message::CoordinatorSent(CoordinatorMessage::Stdout(
+                "hello world".into(),
+            ))),
+        );
+        assert_eq!(gui.tab_set.stdout_tab.content, vec!["hello world"]);
+    }
+
+    #[test]
+    fn multiple_stdout_lines_accumulate() {
+        let mut gui = test_gui();
+        gui.running = true;
+        drop(
+            gui.update(Message::CoordinatorSent(CoordinatorMessage::Stdout(
+                "line1".into(),
+            ))),
+        );
+        drop(
+            gui.update(Message::CoordinatorSent(CoordinatorMessage::Stdout(
+                "line2".into(),
+            ))),
+        );
+        assert_eq!(gui.tab_set.stdout_tab.content, vec!["line1", "line2"]);
+    }
+
+    #[test]
+    fn flow_end_stops_running() {
+        use flowcore::model::metrics::Metrics;
+        let mut gui = test_gui();
+        gui.running = true;
+        gui.submitted = true;
+        drop(
+            gui.update(Message::CoordinatorSent(CoordinatorMessage::FlowEnd(
+                Metrics::new(0, 0),
+            ))),
+        );
+        assert!(!gui.running);
+        assert!(!gui.submitted);
+        assert!(gui.last_metrics.is_some());
+    }
+
+    #[test]
+    fn flow_start_sets_running() {
+        let mut gui = test_gui();
+        gui.submitted = true;
+        drop(gui.update(Message::CoordinatorSent(CoordinatorMessage::FlowStart)));
+        assert!(gui.running);
+    }
+
+    #[test]
+    fn stderr_output_reaches_gui_tab() {
+        let mut gui = test_gui();
+        gui.running = true;
+        drop(
+            gui.update(Message::CoordinatorSent(CoordinatorMessage::Stderr(
+                "error msg".into(),
+            ))),
+        );
+        assert_eq!(gui.tab_set.stderr_tab.content, vec!["error msg"]);
+    }
+
+    #[test]
+    fn view_renders_with_stdout_content() {
+        use iced_test::simulator::simulator;
+        let mut gui = test_gui();
+        gui.running = true;
+        drop(
+            gui.update(Message::CoordinatorSent(CoordinatorMessage::Stdout(
+                "1\n1\n2\n3\n5".into(),
+            ))),
+        );
+        let view = gui.view();
+        let mut ui = simulator(view);
+        assert!(ui.find("1\n1\n2\n3\n5").is_ok());
+    }
+
+    #[cfg(feature = "debugger")]
+    #[test]
+    fn debug_flow_completion_updates_state() {
+        use flowcore::model::metrics::Metrics;
+        let mut gui = test_gui();
+        gui.debug_client_active = true;
+        gui.running = true;
+        drop(
+            gui.update(Message::CoordinatorSent(CoordinatorMessage::FlowEnd(
+                Metrics::new(0, 0),
+            ))),
+        );
+        assert!(!gui.running);
+        assert!(gui.last_metrics.is_some());
+    }
 }
