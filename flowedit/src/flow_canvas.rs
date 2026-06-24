@@ -586,12 +586,9 @@ fn draw_bezier_connection(
 ) {
     use flowcore::graph::connection;
 
-    let (fx, fy) = connection::port_edge_point(from.x, from.y, true);
+    let from_s = transform_point(from, zoom, offset);
     let (tx, ty) = connection::port_edge_point(to.x, to.y, false);
-    let from_edge = Point::new(fx, fy);
-    let to_edge = Point::new(tx, ty);
-    let from_s = transform_point(from_edge, zoom, offset);
-    let to_s = transform_point(to_edge, zoom, offset);
+    let to_s = transform_point(Point::new(tx, ty), zoom, offset);
 
     let conn_color = if highlighted {
         Color::from_rgb(1.0, 0.85, 0.0)
@@ -603,9 +600,11 @@ fn draw_bezier_connection(
         .with_width(line_width * zoom)
         .with_color(conn_color);
 
-    if let Some((nx, ny, nw, nh)) = node_bounds {
+    let arrow_from = if let Some((nx, ny, nw, nh)) = node_bounds {
         let path = loopback_path(from_s, to_s, nx, ny, nw, nh, zoom, offset);
         frame.stroke(&path, stroke);
+        // Arrow approaches from the left
+        Point::new(to_s.x - 20.0, to_s.y)
     } else {
         let (cx1, cy1, cx2, cy2) = connection::bezier_controls(from_s.x, from_s.y, to_s.x, to_s.y);
 
@@ -614,10 +613,12 @@ fn draw_bezier_connection(
             builder.bezier_curve_to(Point::new(cx1, cy1), Point::new(cx2, cy2), to_s);
         });
         frame.stroke(&path, stroke);
-    }
+        // Arrow direction from last control point
+        Point::new(cx2, cy2)
+    };
 
     let [(ax, ay), (bx, by), (cx, cy)] =
-        connection::arrow_head_points(to_s.x, to_s.y, from_s.x, from_s.y);
+        connection::arrow_head_points(to_s.x, to_s.y, arrow_from.x, arrow_from.y);
     let arrow = Path::new(|builder| {
         builder.move_to(Point::new(ax, ay));
         builder.line_to(Point::new(bx, by));

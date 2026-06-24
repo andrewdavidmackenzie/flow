@@ -287,11 +287,8 @@ fn render_connection(conn: &Connection, layouts: &HashMap<String, PositionedNode
         .position(|p| p == &from_port)
         .unwrap_or(0);
 
-    let (x1, y1) = connection::port_edge_point(
-        from_layout.output_port_x(),
-        from_layout.output_port_y(from_port_idx),
-        true,
-    );
+    let x1 = from_layout.output_port_x();
+    let y1 = from_layout.output_port_y(from_port_idx);
 
     for to_route in conn.to() {
         let to_str = to_route.to_string();
