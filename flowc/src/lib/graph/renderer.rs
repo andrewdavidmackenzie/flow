@@ -90,8 +90,10 @@ fn css_styles() -> Style {
 .node-subflow:hover rect { stroke-width: 3; }
 .node:hover rect { stroke-width: 3; }
 .port-label { pointer-events: none; }
-.edge path { transition: stroke-width 0.15s; }
-.edge:hover path { stroke-width: 3; }
+.edge-line { }
+.edge-arrow { }
+.edge:hover .edge-line { stroke-width: 3; stroke: #FFD900; }
+.edge:hover .edge-arrow { fill: #FFD900; }
 text { user-select: none; }",
     )
 }
@@ -365,23 +367,24 @@ fn render_initializers(pr: &ProcessReference, layout: &PositionedNode) -> Group 
         };
         let label = format!("{truncated} ({init_type})");
 
+        let init_offset_y = 20.0;
         let label_x = px - 70.0;
-        let label_y = py;
-
-        group = group.add(shapes::centered_text(
-            label_x,
-            label_y,
-            &label,
-            style::PORT_FONT_SIZE + 1.0,
-            style::COLOR_INITIALIZER,
-        ));
+        let label_y = py - init_offset_y;
 
         let dash = match initializer {
             flowcore::model::input::InputInitializer::Always(_) => None,
             flowcore::model::input::InputInitializer::Once(_) => Some("4 2"),
         };
 
-        group = group.add(edge::bezier_edge(
+        let mut init_group = Group::new().set("class", "edge");
+        init_group = init_group.add(shapes::centered_text(
+            label_x,
+            label_y,
+            &label,
+            style::PORT_FONT_SIZE + 1.0,
+            style::COLOR_INITIALIZER,
+        ));
+        init_group = init_group.add(edge::initializer_edge(
             label_x + 35.0,
             label_y,
             px,
@@ -389,8 +392,8 @@ fn render_initializers(pr: &ProcessReference, layout: &PositionedNode) -> Group 
             style::COLOR_INITIALIZER,
             dash,
         ));
-
-        group = group.add(shapes::tooltip(&format!("{input_path}: {value_str}")));
+        init_group = init_group.add(shapes::tooltip(&format!("{input_path}: {value_str}")));
+        group = group.add(init_group);
     }
 
     group
