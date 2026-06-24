@@ -8,6 +8,7 @@ use std::collections::HashMap;
 use svg::node::element::{Group, Style};
 use svg::Document;
 
+use flowcore::graph::connection;
 use flowcore::graph::layout::split_route;
 use flowcore::graph::style::NodeCategory;
 use flowcore::model::connection::Connection;
@@ -286,8 +287,11 @@ fn render_connection(conn: &Connection, layouts: &HashMap<String, PositionedNode
         .position(|p| p == &from_port)
         .unwrap_or(0);
 
-    let x1 = from_layout.output_port_x();
-    let y1 = from_layout.output_port_y(from_port_idx);
+    let (x1, y1) = connection::port_edge_point(
+        from_layout.output_port_x(),
+        from_layout.output_port_y(from_port_idx),
+        true,
+    );
 
     for to_route in conn.to() {
         let to_str = to_route.to_string();
@@ -303,8 +307,11 @@ fn render_connection(conn: &Connection, layouts: &HashMap<String, PositionedNode
             .position(|p| p == &to_port)
             .unwrap_or(0);
 
-        let x2 = to_layout.input_port_x();
-        let y2 = to_layout.input_port_y(to_port_idx);
+        let (x2, y2) = connection::port_edge_point(
+            to_layout.input_port_x(),
+            to_layout.input_port_y(to_port_idx),
+            false,
+        );
 
         let tooltip_text = format!("{from_route} → {to_str}");
 
