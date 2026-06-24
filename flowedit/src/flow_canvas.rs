@@ -587,8 +587,7 @@ fn draw_bezier_connection(
     use flowcore::graph::connection;
 
     let from_s = transform_point(from, zoom, offset);
-    let (tx, ty) = connection::port_edge_point(to.x, to.y, false);
-    let to_s = transform_point(Point::new(tx, ty), zoom, offset);
+    let to_s = transform_point(to, zoom, offset);
 
     let conn_color = if highlighted {
         Color::from_rgb(1.0, 0.85, 0.0)
