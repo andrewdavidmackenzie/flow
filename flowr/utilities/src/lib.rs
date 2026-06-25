@@ -21,6 +21,10 @@ const EXPECTED_STDOUT_FILENAME: &str = "expected.stdout";
 /// Name of file where the Stdout is defined (unordered line-set comparison)
 const EXPECTED_UNORDERED_STDOUT_FILENAME: &str = "expected_unordered.stdout";
 
+/// Name of file where required output lines are defined (subset check — every
+/// expected line must appear at least once in actual, extra lines are allowed)
+const EXPECTED_CONTAINS_STDOUT_FILENAME: &str = "expected_contains.stdout";
+
 /// Name of file where any Stdin will be read from while executing am example
 const TEST_STDIN_FILENAME: &str = "test.stdin";
 
@@ -202,8 +206,11 @@ pub fn check_test_output(source_file: &str) {
         }
     }
 
+    let contains_path = sample_dir.join(EXPECTED_CONTAINS_STDOUT_FILENAME);
     let unordered_path = sample_dir.join(EXPECTED_UNORDERED_STDOUT_FILENAME);
-    if unordered_path.exists() {
+    if contains_path.exists() {
+        compare_contains_and_fail(contains_path, sample_dir.join(TEST_STDOUT_FILENAME));
+    } else if unordered_path.exists() {
         compare_unordered_and_fail(unordered_path, sample_dir.join(TEST_STDOUT_FILENAME));
     } else {
         compare_and_fail(
@@ -280,6 +287,32 @@ fn compare_unordered_and_fail(expected_path: PathBuf, actual_path: PathBuf) {
                 let _ = write!(msg, "  Extra lines: {extra:?}\n");
             }
             panic!("{msg}");
+        }
+    }
+}
+
+fn compare_contains_and_fail(expected_path: PathBuf, actual_path: PathBuf) {
+    if expected_path.exists() {
+        let expected_raw =
+            fs::read_to_string(&expected_path).expect("Could not read expected file");
+        let actual_raw = fs::read_to_string(&actual_path).expect("Could not read actual file");
+        let expected = normalize_output(&expected_raw);
+        let actual = normalize_output(&actual_raw);
+
+        let actual_lines: Vec<&str> = actual.lines().filter(|l| !l.is_empty()).collect();
+
+        let missing: Vec<&str> = expected
+            .lines()
+            .filter(|l| !l.is_empty())
+            .filter(|l| !actual_lines.contains(l))
+            .collect();
+
+        if !missing.is_empty() {
+            panic!(
+                "Contains comparison of '{}' vs '{}' failed.\nMissing lines: {missing:?}\nActual output:\n{actual}",
+                actual_path.display(),
+                expected_path.display()
+            );
         }
     }
 }
@@ -368,8 +401,11 @@ pub fn execute_flow_client_server(example_name: &str, manifest: PathBuf) {
         panic!("Failed due to STDERR output")
     }
 
+    let contains_path = samples_dir.join(EXPECTED_CONTAINS_STDOUT_FILENAME);
     let unordered_path = samples_dir.join(EXPECTED_UNORDERED_STDOUT_FILENAME);
-    if unordered_path.exists() {
+    if contains_path.exists() {
+        compare_contains_and_fail(contains_path, samples_dir.join(TEST_STDOUT_FILENAME));
+    } else if unordered_path.exists() {
         let expected_stdout =
             normalize_output(&read_file(&samples_dir, EXPECTED_UNORDERED_STDOUT_FILENAME));
         let actual_normalized = normalize_output(&actual_stdout);

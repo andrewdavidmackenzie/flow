@@ -9,7 +9,6 @@ mod test {
     use std::path::PathBuf;
 
     #[test]
-    #[ignore = "intermediate output ordering varies by platform (#2859)"]
     fn test_prime_example() {
         let _ = env::set_current_dir(
             PathBuf::from(env!("CARGO_MANIFEST_DIR"))
