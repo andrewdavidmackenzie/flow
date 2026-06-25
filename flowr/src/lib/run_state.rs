@@ -568,7 +568,16 @@ impl RunState {
         // connection that sends a value to itself, as it may also send to other functions.
         // But for all other receivers of values, make them Ready
         if new_job_available && !loopback {
-            self.create_jobs(connection.destination_id, connection.destination_parent_id)?;
+            // If this is an external send (crossing flow boundaries) and the destination's
+            // parent flow is already busy, don't create a job yet. The value stays queued
+            // and will be consumed when the sub-flow goes idle and restarts.
+            let dest_flow_busy = !connection.internal
+                && self
+                    .busy_count
+                    .contains_key(&connection.destination_parent_id);
+            if !dest_flow_busy {
+                self.create_jobs(connection.destination_id, connection.destination_parent_id)?;
+            }
         }
 
         Ok((display_next_output, restart))
@@ -1803,6 +1812,102 @@ mod test {
                     &mut debugger,
                 )
                 .expect("Failed to retire job correctly");
+        }
+
+        #[test]
+        #[serial]
+        #[allow(clippy::indexing_slicing)]
+        fn external_send_to_busy_subflow_does_not_create_job() {
+            use flowcore::model::input::InputInitializer::Always;
+            use serde_json::json;
+            // Function A (parent=0) outputs to Function B (parent=1) via external connection
+            let external_conn = OutputConnection::new(
+                Source::default(),
+                1,     // destination_id = function B
+                0,     // destination_io_number
+                1,     // destination_parent_id = flow 1 (different from A's parent 0)
+                false, // internal = false (crosses flow boundary)
+                "/fB".to_string(),
+                #[cfg(feature = "debugger")]
+                String::default(),
+            );
+            let f_a = RuntimeFunction::new(
+                #[cfg(feature = "debugger")]
+                "fA",
+                #[cfg(feature = "debugger")]
+                "/fA",
+                "file://fake/test",
+                vec![Input::new(
+                    #[cfg(feature = "debugger")]
+                    "",
+                    0,
+                    false,
+                    Some(Always(json!(1))),
+                    None,
+                )],
+                0, // process_id
+                0, // parent_id (flow 0)
+                &[external_conn],
+                false,
+            );
+            let f_b = RuntimeFunction::new(
+                #[cfg(feature = "debugger")]
+                "fB",
+                #[cfg(feature = "debugger")]
+                "/fB",
+                "file://fake/test",
+                vec![Input::new(
+                    #[cfg(feature = "debugger")]
+                    "",
+                    0,
+                    false,
+                    None,
+                    None,
+                )],
+                1, // process_id
+                1, // parent_id (flow 1 — different sub-flow)
+                &[],
+                false,
+            );
+
+            let mut state = RunState::new(super::test_submission(vec![f_a, f_b]));
+            #[cfg(feature = "metrics")]
+            let mut metrics = Metrics::new(2, 2);
+            #[cfg(feature = "debugger")]
+            let mut server = super::DummyServer {};
+            #[cfg(feature = "debugger")]
+            let mut debugger = super::dummy_debugger(&mut server);
+
+            state.init().expect("Could not init state");
+
+            // A is ready (has Always initializer), B is not
+            let job = state.get_next_job().expect("Couldn't get next job");
+            assert_eq!(job.process_id, 0, "First job should be for function A");
+            state.start_job(job.clone());
+
+            // Now flow 1 (B's parent) is NOT busy, but flow 0 IS busy (A is running)
+            // Mark flow 1 as busy to simulate a sub-flow that's already running
+            *state.busy_count.entry(1).or_insert(0) += 1;
+
+            // Retire A's job — it sends output to B via external connection
+            // Since B's parent flow (1) is busy, no job should be created for B
+            state
+                .retire_a_job(
+                    #[cfg(feature = "metrics")]
+                    &mut metrics,
+                    (job.payload.job_id, Ok((Some(json!(42)), true))),
+                    #[cfg(feature = "debugger")]
+                    &mut debugger,
+                )
+                .expect("Failed to retire job");
+
+            // B should NOT have a job created because its parent flow is busy
+            // A may be re-queued (has always initializer), so check B specifically
+            let b_has_job = state.ready_jobs.iter().any(|j| j.process_id == 1);
+            assert!(
+                !b_has_job,
+                "No job should be created for B when its parent sub-flow is busy"
+            );
         }
     }
 }

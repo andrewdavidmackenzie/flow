@@ -21,6 +21,10 @@ const EXPECTED_STDOUT_FILENAME: &str = "expected.stdout";
 /// Name of file where the Stdout is defined (unordered line-set comparison)
 const EXPECTED_UNORDERED_STDOUT_FILENAME: &str = "expected_unordered.stdout";
 
+/// Name of file where required output lines are defined (subset check — every
+/// expected line must appear at least once in actual, extra lines are allowed)
+const EXPECTED_CONTAINS_STDOUT_FILENAME: &str = "expected_contains.stdout";
+
 /// Name of file where any Stdin will be read from while executing am example
 const TEST_STDIN_FILENAME: &str = "test.stdin";
 
@@ -202,8 +206,11 @@ pub fn check_test_output(source_file: &str) {
         }
     }
 
+    let contains_path = sample_dir.join(EXPECTED_CONTAINS_STDOUT_FILENAME);
     let unordered_path = sample_dir.join(EXPECTED_UNORDERED_STDOUT_FILENAME);
-    if unordered_path.exists() {
+    if contains_path.exists() {
+        compare_contains_and_fail(contains_path, sample_dir.join(TEST_STDOUT_FILENAME));
+    } else if unordered_path.exists() {
         compare_unordered_and_fail(unordered_path, sample_dir.join(TEST_STDOUT_FILENAME));
     } else {
         compare_and_fail(
@@ -280,6 +287,36 @@ fn compare_unordered_and_fail(expected_path: PathBuf, actual_path: PathBuf) {
                 let _ = write!(msg, "  Extra lines: {extra:?}\n");
             }
             panic!("{msg}");
+        }
+    }
+}
+
+fn compare_contains_and_fail(expected_path: PathBuf, actual_path: PathBuf) {
+    if expected_path.exists() {
+        let expected_raw =
+            fs::read_to_string(&expected_path).expect("Could not read expected file");
+        let actual_raw = fs::read_to_string(&actual_path).expect("Could not read actual file");
+        let expected = normalize_output(&expected_raw);
+        let actual = normalize_output(&actual_raw);
+
+        let actual_lines: Vec<&str> = actual.lines().filter(|l| !l.is_empty()).collect();
+
+        let missing: Vec<&str> = expected
+            .lines()
+            .filter(|l| !l.is_empty())
+            .filter(|expected_line| {
+                !actual_lines
+                    .iter()
+                    .any(|actual_line| actual_line.contains(expected_line))
+            })
+            .collect();
+
+        if !missing.is_empty() {
+            panic!(
+                "Contains comparison of '{}' vs '{}' failed.\nMissing lines: {missing:?}\nActual output:\n{actual}",
+                actual_path.display(),
+                expected_path.display()
+            );
         }
     }
 }
@@ -368,8 +405,11 @@ pub fn execute_flow_client_server(example_name: &str, manifest: PathBuf) {
         panic!("Failed due to STDERR output")
     }
 
+    let contains_path = samples_dir.join(EXPECTED_CONTAINS_STDOUT_FILENAME);
     let unordered_path = samples_dir.join(EXPECTED_UNORDERED_STDOUT_FILENAME);
-    if unordered_path.exists() {
+    if contains_path.exists() {
+        compare_contains_and_fail(contains_path, samples_dir.join(TEST_STDOUT_FILENAME));
+    } else if unordered_path.exists() {
         let expected_stdout =
             normalize_output(&read_file(&samples_dir, EXPECTED_UNORDERED_STDOUT_FILENAME));
         let actual_normalized = normalize_output(&actual_stdout);
@@ -561,4 +601,79 @@ fn read_file(test_dir: &Path, file_name: &str) -> String {
     f.read_to_end(&mut buffer)
         .expect("Could not read from file");
     String::from_utf8(buffer).expect("Could not convert to String")
+}
+
+#[cfg(test)]
+#[allow(clippy::unwrap_used, clippy::expect_used)]
+mod test {
+    use super::*;
+    use std::io::Write;
+
+    fn write_temp(dir: &Path, name: &str, content: &str) {
+        let mut f = File::create(dir.join(name)).unwrap();
+        f.write_all(content.as_bytes()).unwrap();
+    }
+
+    #[test]
+    fn compare_contains_passes_when_all_lines_present() {
+        let dir = tempfile::tempdir().unwrap();
+        write_temp(dir.path(), "expected", "hello\nworld\n");
+        write_temp(dir.path(), "actual", "extra\nhello\nworld\nmore\n");
+        compare_contains_and_fail(dir.path().join("expected"), dir.path().join("actual"));
+    }
+
+    #[test]
+    #[should_panic(expected = "Missing lines")]
+    fn compare_contains_fails_when_line_missing() {
+        let dir = tempfile::tempdir().unwrap();
+        write_temp(dir.path(), "expected", "hello\nmissing\n");
+        write_temp(dir.path(), "actual", "hello\nworld\n");
+        compare_contains_and_fail(dir.path().join("expected"), dir.path().join("actual"));
+    }
+
+    #[test]
+    fn compare_contains_skips_when_no_expected_file() {
+        let dir = tempfile::tempdir().unwrap();
+        write_temp(dir.path(), "actual", "hello\n");
+        compare_contains_and_fail(dir.path().join("nonexistent"), dir.path().join("actual"));
+    }
+
+    #[test]
+    fn compare_unordered_passes_with_same_lines_different_order() {
+        let dir = tempfile::tempdir().unwrap();
+        write_temp(dir.path(), "expected", "b\na\nc\n");
+        write_temp(dir.path(), "actual", "a\nc\nb\n");
+        compare_unordered_and_fail(dir.path().join("expected"), dir.path().join("actual"));
+    }
+
+    #[test]
+    #[should_panic(expected = "Unordered comparison")]
+    fn compare_unordered_fails_with_different_lines() {
+        let dir = tempfile::tempdir().unwrap();
+        write_temp(dir.path(), "expected", "a\nb\n");
+        write_temp(dir.path(), "actual", "a\nc\n");
+        compare_unordered_and_fail(dir.path().join("expected"), dir.path().join("actual"));
+    }
+
+    #[test]
+    fn compare_ordered_passes_with_matching_content() {
+        let dir = tempfile::tempdir().unwrap();
+        write_temp(dir.path(), "expected", "hello\nworld\n");
+        write_temp(dir.path(), "actual", "hello\nworld\n");
+        compare_and_fail(dir.path().join("expected"), dir.path().join("actual"));
+    }
+
+    #[test]
+    #[should_panic(expected = "doesn't match")]
+    fn compare_ordered_fails_with_different_content() {
+        let dir = tempfile::tempdir().unwrap();
+        write_temp(dir.path(), "expected", "hello\n");
+        write_temp(dir.path(), "actual", "world\n");
+        compare_and_fail(dir.path().join("expected"), dir.path().join("actual"));
+    }
+
+    #[test]
+    fn normalize_handles_crlf() {
+        assert_eq!(normalize_output("hello\r\nworld\r\n"), "hello\nworld");
+    }
 }
