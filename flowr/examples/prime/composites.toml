@@ -8,185 +8,70 @@ type = "number"
 name = "composites"
 type = "number"
 
-# Compute max_divisor = floor(sqrt(limit))
+# Generate divisors: 2..sqrt(limit)
 [[process]]
 source = "lib://flowstdlib/math/sqrt"
 [[connection]]
 from = "input/limit"
 to = "sqrt"
 
-########################################################################
-# Inner loop: for current divisor, emit multiples from divisor*2..limit
-#
-# check-multiple(left=limit, right=multiple):
-#   right-lte: multiple <= limit → emit as composite
-#   right-gt:  multiple > limit  → (not used directly)
-########################################################################
-
 [[process]]
-alias = "check-multiple"
-source = "lib://flowstdlib/control/compare_switch"
-
-# Seed with limit
-[[connection]]
-from = "input/limit"
-to = "check-multiple/left"
-
-# Seed with initial multiple = 2*2 = 4
-[[process]]
-alias = "init-multiple"
-source = "lib://flowstdlib/math/multiply"
-input.i1 = {once = 2}
-input.i2 = {once = 2}
-[[connection]]
-from = "init-multiple"
-to = "check-multiple/right"
-
-# When multiple <= limit: output it as composite
-[[connection]]
-from = "check-multiple/right-lte"
-to = "output/composites"
-
-# Feedback limit while inner loop runs
-[[connection]]
-from = "check-multiple/left-gt"
-to = "check-multiple/left"
-
-########################################################################
-# Compute next_multiple = current + divisor
-########################################################################
-
-[[process]]
-alias = "add-multiple"
-source = "lib://flowstdlib/math/add"
-
-# i1 = current multiple (emitted composite)
-[[connection]]
-from = "check-multiple/right-lte"
-to = "add-multiple/i1"
-
-# i2 = current divisor (seeded from init, then from feedback)
-[[connection]]
-from = "init-multiple/i1"
-to = "add-multiple/i2"
-
-########################################################################
-# Decide: continue inner loop or advance outer loop?
-#
-# compare-inner(left=limit, right=NEXT_multiple):
-#   gte: limit >= next_multiple → inner loop continues (inclusive)
-#   lt:  limit < next_multiple  → inner loop done, advance divisor
-#
-# Key: compare-inner receives the NEXT multiple (add-multiple output),
-# not the current one. Uses gte so that next_multiple == limit is still
-# fed back and emitted on the next iteration.
-########################################################################
-
-[[process]]
-alias = "compare-inner"
-source = "lib://flowstdlib/math/compare"
-[[connection]]
-from = "input/limit"
-to = "compare-inner/left"
-[[connection]]
-from = "add-multiple"
-to = "compare-inner/right"
-# Feedback limit to compare-inner
-[[connection]]
-from = "check-multiple/left-gt"
-to = "compare-inner/left"
-
-########################################################################
-# Inner loop feedback: route divisor and next_multiple based on decision
-########################################################################
-
-# divisor-route: routes the divisor based on compare-inner/gte
-#   true (continue) → loops divisor back to add-multiple/i2
-#   false (done) → sends divisor to add-divisor for outer loop
-[[process]]
-alias = "divisor-route"
-source = "lib://flowstdlib/control/route"
-[[connection]]
-from = "compare-inner/gte"
-to = "divisor-route/control"
-[[connection]]
-from = "add-multiple/i2"
-to = "divisor-route/data"
-
-# Continue inner: divisor loops back as step
-[[connection]]
-from = "divisor-route/true"
-to = "add-multiple/i2"
-
-# End inner: divisor goes to outer loop
-[[connection]]
-from = "divisor-route/false"
-to = "add-divisor/i1"
-
-# multiple-tap: gate next_multiple feedback when continuing inner loop
-[[process]]
-alias = "multiple-tap"
-source = "lib://flowstdlib/control/tap"
-[[connection]]
-from = "compare-inner/gte"
-to = "multiple-tap/control"
-[[connection]]
-from = "add-multiple"
-to = "multiple-tap/data"
-
-# Gated next_multiple feeds back to check-multiple for next inner iteration
-[[connection]]
-from = "multiple-tap"
-to = "check-multiple/right"
-
-########################################################################
-# Outer loop: advance divisor when inner loop ends
-########################################################################
-
-# add-divisor: next_divisor = divisor + 1
-[[process]]
-alias = "add-divisor"
-source = "lib://flowstdlib/math/add"
-input.i2 = {always = 1}
-
-# check-divisor(left=max_divisor, right=next_divisor):
-#   right-lte: restart inner loop with new divisor
-#   right-gt:  done
-[[process]]
-alias = "check-divisor"
-source = "lib://flowstdlib/control/compare_switch"
+alias = "divisors"
+source = "lib://flowstdlib/math/sequence"
+input.start = {once = 2}
+input.step = {once = 1}
 [[connection]]
 from = "sqrt"
-to = "check-divisor/left"
-[[connection]]
-from = "add-divisor"
-to = "check-divisor/right"
+to = "divisors/limit"
 
-# Feedback max_divisor for next outer iteration
-[[connection]]
-from = "check-divisor/left-gt"
-to = "check-divisor/left"
-
-# New starting multiple = next_divisor * 2
+# start = divisor * 2
 [[process]]
-alias = "new-start"
+alias = "make-start"
 source = "lib://flowstdlib/math/multiply"
 input.i2 = {always = 2}
 [[connection]]
-from = "check-divisor/right-lte"
-to = "new-start/i1"
+from = "divisors/number"
+to = "make-start/i1"
 
-# Feed new multiple into inner loop
+# Replicate limit per divisor: multiply divisor by 0, add limit with self-loopback
+[[process]]
+alias = "zero-divisor"
+source = "lib://flowstdlib/math/multiply"
+input.i2 = {always = 0}
 [[connection]]
-from = "new-start"
-to = "check-multiple/right"
+from = "divisors/number"
+to = "zero-divisor/i1"
 
-# Feed new divisor as step for inner loop
+[[process]]
+alias = "make-limit"
+source = "lib://flowstdlib/math/add"
 [[connection]]
-from = "check-divisor/right-lte"
-to = "add-multiple/i2"
+from = "zero-divisor"
+to = "make-limit/i1"
+[[connection]]
+from = "input/limit"
+to = "make-limit/i2"
+[[connection]]
+from = "make-limit"
+to = "make-limit/i2"
 
-# Feed limit back for the new inner loop
+# Inner sequence: generate composites
+[[process]]
+alias = "composite-sequence"
+source = "lib://flowstdlib/math/sequence"
+
 [[connection]]
-from = "check-divisor/left-gt"
-to = ["check-multiple/left", "compare-inner/left"]
+from = "make-start"
+to = "composite-sequence/start"
+
+[[connection]]
+from = "divisors/number"
+to = "composite-sequence/step"
+
+[[connection]]
+from = "make-limit"
+to = "composite-sequence/limit"
+
+[[connection]]
+from = "composite-sequence/number"
+to = "output/composites"
