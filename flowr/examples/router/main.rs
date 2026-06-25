@@ -9,7 +9,6 @@ mod test {
     use std::path::PathBuf;
 
     #[test]
-    #[ignore = "output ordering is non-deterministic between runs"]
     fn test_router_example() {
         let _ = env::set_current_dir(
             PathBuf::from(env!("CARGO_MANIFEST_DIR"))
