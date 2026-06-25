@@ -598,3 +598,78 @@ fn read_file(test_dir: &Path, file_name: &str) -> String {
         .expect("Could not read from file");
     String::from_utf8(buffer).expect("Could not convert to String")
 }
+
+#[cfg(test)]
+#[allow(clippy::unwrap_used, clippy::expect_used)]
+mod test {
+    use super::*;
+    use std::io::Write;
+
+    fn write_temp(dir: &Path, name: &str, content: &str) {
+        let mut f = File::create(dir.join(name)).unwrap();
+        f.write_all(content.as_bytes()).unwrap();
+    }
+
+    #[test]
+    fn compare_contains_passes_when_all_lines_present() {
+        let dir = tempfile::tempdir().unwrap();
+        write_temp(dir.path(), "expected", "hello\nworld\n");
+        write_temp(dir.path(), "actual", "extra\nhello\nworld\nmore\n");
+        compare_contains_and_fail(dir.path().join("expected"), dir.path().join("actual"));
+    }
+
+    #[test]
+    #[should_panic(expected = "Missing lines")]
+    fn compare_contains_fails_when_line_missing() {
+        let dir = tempfile::tempdir().unwrap();
+        write_temp(dir.path(), "expected", "hello\nmissing\n");
+        write_temp(dir.path(), "actual", "hello\nworld\n");
+        compare_contains_and_fail(dir.path().join("expected"), dir.path().join("actual"));
+    }
+
+    #[test]
+    fn compare_contains_skips_when_no_expected_file() {
+        let dir = tempfile::tempdir().unwrap();
+        write_temp(dir.path(), "actual", "hello\n");
+        compare_contains_and_fail(dir.path().join("nonexistent"), dir.path().join("actual"));
+    }
+
+    #[test]
+    fn compare_unordered_passes_with_same_lines_different_order() {
+        let dir = tempfile::tempdir().unwrap();
+        write_temp(dir.path(), "expected", "b\na\nc\n");
+        write_temp(dir.path(), "actual", "a\nc\nb\n");
+        compare_unordered_and_fail(dir.path().join("expected"), dir.path().join("actual"));
+    }
+
+    #[test]
+    #[should_panic(expected = "Unordered comparison")]
+    fn compare_unordered_fails_with_different_lines() {
+        let dir = tempfile::tempdir().unwrap();
+        write_temp(dir.path(), "expected", "a\nb\n");
+        write_temp(dir.path(), "actual", "a\nc\n");
+        compare_unordered_and_fail(dir.path().join("expected"), dir.path().join("actual"));
+    }
+
+    #[test]
+    fn compare_ordered_passes_with_matching_content() {
+        let dir = tempfile::tempdir().unwrap();
+        write_temp(dir.path(), "expected", "hello\nworld\n");
+        write_temp(dir.path(), "actual", "hello\nworld\n");
+        compare_and_fail(dir.path().join("expected"), dir.path().join("actual"));
+    }
+
+    #[test]
+    #[should_panic(expected = "doesn't match")]
+    fn compare_ordered_fails_with_different_content() {
+        let dir = tempfile::tempdir().unwrap();
+        write_temp(dir.path(), "expected", "hello\n");
+        write_temp(dir.path(), "actual", "world\n");
+        compare_and_fail(dir.path().join("expected"), dir.path().join("actual"));
+    }
+
+    #[test]
+    fn normalize_handles_crlf() {
+        assert_eq!(normalize_output("hello\r\nworld\r\n"), "hello\nworld");
+    }
+}

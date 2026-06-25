@@ -12,6 +12,9 @@ edition = "2021"
 [badges]
 maintenance = { status = "actively-developed" }
 
+[dev-dependencies]
+tempfile = "3"
+
 [lib]
 name = "utilities"
 path = "src/lib.rs"

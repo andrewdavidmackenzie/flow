@@ -1458,6 +1458,9 @@ dependencies = [
 [[package]]
 name = "flowr-utilities"
 version = "1.0.0"
+dependencies = [
+ "tempfile",
+]
 
 [[package]]
 name = "flowstdlib"
