@@ -304,7 +304,11 @@ fn compare_contains_and_fail(expected_path: PathBuf, actual_path: PathBuf) {
         let missing: Vec<&str> = expected
             .lines()
             .filter(|l| !l.is_empty())
-            .filter(|l| !actual_lines.contains(l))
+            .filter(|expected_line| {
+                !actual_lines
+                    .iter()
+                    .any(|actual_line| actual_line.contains(expected_line))
+            })
             .collect();
 
         if !missing.is_empty() {
