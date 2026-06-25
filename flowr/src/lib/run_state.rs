@@ -568,7 +568,16 @@ impl RunState {
         // connection that sends a value to itself, as it may also send to other functions.
         // But for all other receivers of values, make them Ready
         if new_job_available && !loopback {
-            self.create_jobs(connection.destination_id, connection.destination_parent_id)?;
+            // If this is an external send (crossing flow boundaries) and the destination's
+            // parent flow is already busy, don't create a job yet. The value stays queued
+            // and will be consumed when the sub-flow goes idle and restarts.
+            let dest_flow_busy = !connection.internal
+                && self
+                    .busy_count
+                    .contains_key(&connection.destination_parent_id);
+            if !dest_flow_busy {
+                self.create_jobs(connection.destination_id, connection.destination_parent_id)?;
+            }
         }
 
         Ok((display_next_output, restart))
