@@ -112,8 +112,13 @@ fn extract_functions(functions: &serde_json::Map<String, Value>) -> Result<FuncD
                 always_val.as_deref().unwrap_or("NoInit")
             ));
         }
-        init_once.push(format!("{fid} :> ({})", once_parts.join(" @@ ")));
-        init_always.push(format!("{fid} :> ({})", always_parts.join(" @@ ")));
+        if once_parts.is_empty() {
+            init_once.push(format!("{fid} :> <<>>"));
+            init_always.push(format!("{fid} :> <<>>"));
+        } else {
+            init_once.push(format!("{fid} :> ({})", once_parts.join(" @@ ")));
+            init_always.push(format!("{fid} :> ({})", always_parts.join(" @@ ")));
+        }
 
         if let Some(ocs) = func.get("output_connections").and_then(Value::as_array) {
             for oc in ocs {
@@ -264,6 +269,10 @@ fn copy_base_tla(dir: &Path) -> Result<(), String> {
             return Ok(());
         }
     }
+    log::warn!(
+        "FlowRuntimeBase.tla not found — TLC will fail. \
+         Ensure specs/FlowRuntimeBase.tla exists in the working directory."
+    );
     Ok(())
 }
 

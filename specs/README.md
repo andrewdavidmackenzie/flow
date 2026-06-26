@@ -87,49 +87,43 @@ The `.tla` file has two parts:
    connections, parent flows, and initializers. This defines a specific
    flow graph to check.
 
-Currently both live in `FlowRuntime.tla`. The topology is defined as
-operators near the top:
+The generic logic lives in `FlowRuntimeBase.tla`. Scenario files
+(like `TwoFuncsOneFlow.tla`) INSTANCE it with a specific topology:
 
 ```tla
-Procs == {1, 2}                    \* Two processes
-Flows == {10}                      \* One flow
-InputsOf == 1 :> {0, 1} @@ 2 :> {0}   \* p1 has 2 inputs, p2 has 1
-Parent == 1 :> 10 @@ 2 :> 10 @@ 10 :> NULL  \* Both in flow 10
-Conns == {[src |-> 1, dst |-> 2, dstInput |-> 0, internal |-> TRUE]}
+FR == INSTANCE FlowRuntimeBase WITH
+    Procs <- {1, 2},
+    Flows <- {10},
+    InputsOf <- 1 :> {0, 1} @@ 2 :> {0},
+    Parent <- 1 :> 10 @@ 2 :> 10 @@ 10 :> NoParent,
+    ...
 ```
 
-To test a different topology, you change these operators. TLC then
-explores all possible execution orderings for that specific graph.
+To check a different topology, create a new scenario file or use
+`flowc --tla` to auto-generate one from a flow definition.
 
 ### The .cfg file
 
 The `.cfg` file tells TLC what to check:
 
 ```
-SPECIFICATION Spec     \* Which specification to use
-CONSTANTS              \* Values for any CONSTANTS declared in the spec
-    NULL = 0
-INVARIANTS             \* Which invariants to verify
+SPECIFICATION Spec
+INVARIANTS
     TypeOK
     CompletedNeverRuns
     InternalCountBound
     AncestorConsistency
 ```
 
-It does NOT define the flow topology — that's in the `.tla` file.
-The `.cfg` only sets simple scalar constants and lists which invariants
-and properties TLC should check.
+It lists the specification and which invariants to verify.
 
-### Future: separate scenario files
+### Adding more scenarios
 
-The plan is to split into:
-- `FlowRuntimeBase.tla` — generic logic (actions, invariants)
-- `TwoFuncsOneFlow.tla` — one topology, uses INSTANCE to pull in the base
-- `NestedFlows.tla` — another topology for testing sub-flow semantics
+Create new scenario files for specific topologies:
+- `NestedFlows.tla` — testing sub-flow semantics
 - `FeedbackLoop.tla` — topology with loopback connections
 
-Each scenario file defines its topology and can be checked independently
-with TLC. The generic logic stays in one place.
+Or use `flowc --tla` to generate scenarios from any compiled flow.
 
 ### What TLC output looks like
 
@@ -155,8 +149,8 @@ The trace shows you exactly which sequence of actions leads to the bug.
 
 ## Files
 
-- `FlowRuntime.tla` — the TLA+ specification (generic logic + topology)
-- `FlowRuntime.cfg` — TLC model checker configuration
+- `FlowRuntimeBase.tla` — generic runtime semantics (CONSTANTS for topology)
+- `TwoFuncsOneFlow.tla` / `.cfg` — hand-written scenario (2 processes, 1 flow)
 - `README.md` — this file
 
 ## Installing TLA+ Tools
