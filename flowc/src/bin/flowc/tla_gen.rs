@@ -304,3 +304,185 @@ fn sanitize_module_name(name: &str) -> String {
         })
         .collect()
 }
+
+#[cfg(test)]
+#[allow(clippy::unwrap_used, clippy::expect_used)]
+mod test {
+    use super::*;
+    use serde_json::json;
+    use std::io::Write;
+
+    #[test]
+    fn sanitize_replaces_special_chars() {
+        assert_eq!(sanitize_module_name("my-first-flow"), "my_first_flow");
+        assert_eq!(sanitize_module_name("hello_world"), "hello_world");
+        assert_eq!(sanitize_module_name("a.b.c"), "a_b_c");
+    }
+
+    #[test]
+    fn value_to_tla_integer() {
+        assert_eq!(value_to_tla(&json!(42)), "42");
+        assert_eq!(value_to_tla(&json!(-1)), "-1");
+        assert_eq!(value_to_tla(&json!(0)), "0");
+    }
+
+    #[test]
+    fn value_to_tla_non_integer() {
+        assert_eq!(value_to_tla(&json!("hello")), "1");
+        assert_eq!(value_to_tla(&json!(true)), "1");
+        assert_eq!(value_to_tla(&json!([1, 2])), "1");
+        assert_eq!(value_to_tla(&json!(2.5)), "1");
+    }
+
+    #[test]
+    fn extract_initializer_once() {
+        let input = json!({"initializer": {"once": 5}});
+        assert_eq!(
+            extract_initializer(&input, "initializer", "once"),
+            Some("5".into())
+        );
+    }
+
+    #[test]
+    fn extract_initializer_always() {
+        let input = json!({"flow_initializer": {"always": 9}});
+        assert_eq!(
+            extract_initializer(&input, "flow_initializer", "always"),
+            Some("9".into())
+        );
+    }
+
+    #[test]
+    fn extract_initializer_missing() {
+        let input = json!({"name": "i1"});
+        assert_eq!(extract_initializer(&input, "initializer", "once"), None);
+    }
+
+    #[test]
+    fn generate_tla_from_manifest() {
+        let dir = tempfile::tempdir().unwrap();
+        let manifest = json!({
+            "metadata": {"name": "test_flow", "version": "1.0.0", "description": "", "authors": []},
+            "lib_references": [],
+            "context_references": [],
+            "source_urls": [],
+            "functions": {
+                "1": {
+                    "process_id": 1,
+                    "parent_id": 0,
+                    "implementation_location": "lib://test/add",
+                    "inputs": [
+                        {"name": "i1", "initializer": {"once": 1}},
+                        {"name": "i2", "initializer": {"once": 2}}
+                    ],
+                    "output_connections": [
+                        {"destination_id": 2, "destination_io_number": 0, "internal": true}
+                    ]
+                },
+                "2": {
+                    "process_id": 2,
+                    "parent_id": 0,
+                    "implementation_location": "context://stdio/stdout",
+                    "inputs": [{"generic": true}],
+                    "output_connections": []
+                }
+            },
+            "flows": {
+                "0": {
+                    "process_id": 0,
+                    "parent_id": null,
+                    "sub_flow_ids": [],
+                    "name": "test_flow",
+                    "route": "/test_flow"
+                }
+            }
+        });
+
+        let manifest_path = dir.path().join("manifest.json");
+        let mut f = std::fs::File::create(&manifest_path).unwrap();
+        f.write_all(serde_json::to_string_pretty(&manifest).unwrap().as_bytes())
+            .unwrap();
+
+        // Create a fake FlowRuntimeBase.tla so the copy succeeds
+        std::fs::write(
+            dir.path().join("FlowRuntimeBase.tla"),
+            "---- MODULE FlowRuntimeBase ----\n====",
+        )
+        .unwrap();
+
+        generate_tla(&manifest_path).expect("TLA generation should succeed");
+
+        let tla_path = dir.path().join("test_flow.tla");
+        let cfg_path = dir.path().join("test_flow.cfg");
+        assert!(tla_path.exists(), ".tla file should be created");
+        assert!(cfg_path.exists(), ".cfg file should be created");
+
+        let tla_content = std::fs::read_to_string(&tla_path).unwrap();
+        assert!(tla_content.contains("MODULE test_flow"));
+        assert!(tla_content.contains("Procs <- {1, 2}"));
+        assert!(tla_content.contains("Flows <- {0}"));
+        assert!(tla_content.contains("INSTANCE FlowRuntimeBase"));
+        assert!(tla_content.contains("internal |-> TRUE"));
+
+        let cfg_content = std::fs::read_to_string(&cfg_path).unwrap();
+        assert!(cfg_content.contains("SPECIFICATION Spec"));
+        assert!(cfg_content.contains("TypeOK"));
+    }
+
+    #[test]
+    fn generate_tla_derives_name_from_directory() {
+        let dir = tempfile::tempdir().unwrap();
+        let subdir = dir.path().join("my_example");
+        std::fs::create_dir(&subdir).unwrap();
+
+        let manifest = json!({
+            "metadata": {"name": "", "version": "1.0.0", "description": "", "authors": []},
+            "functions": {
+                "1": {
+                    "process_id": 1, "parent_id": 0,
+                    "implementation_location": "test",
+                    "inputs": [],
+                    "output_connections": []
+                }
+            },
+            "flows": {
+                "0": {"process_id": 0, "parent_id": null, "sub_flow_ids": [], "name": "", "route": "/"}
+            }
+        });
+
+        let manifest_path = subdir.join("manifest.json");
+        std::fs::write(&manifest_path, serde_json::to_string(&manifest).unwrap()).unwrap();
+        std::fs::write(subdir.join("FlowRuntimeBase.tla"), "stub").unwrap();
+
+        generate_tla(&manifest_path).unwrap();
+        assert!(subdir.join("my_example.tla").exists());
+    }
+
+    #[test]
+    fn generate_tla_empty_inputs_function() {
+        let dir = tempfile::tempdir().unwrap();
+        let manifest = json!({
+            "metadata": {"name": "empty_test", "version": "1.0.0", "description": "", "authors": []},
+            "functions": {
+                "1": {
+                    "process_id": 1, "parent_id": 0,
+                    "implementation_location": "test",
+                    "inputs": [],
+                    "output_connections": []
+                }
+            },
+            "flows": {
+                "0": {"process_id": 0, "parent_id": null, "sub_flow_ids": [], "name": "", "route": "/"}
+            }
+        });
+
+        let manifest_path = dir.path().join("manifest.json");
+        std::fs::write(&manifest_path, serde_json::to_string(&manifest).unwrap()).unwrap();
+        std::fs::write(dir.path().join("FlowRuntimeBase.tla"), "stub").unwrap();
+
+        generate_tla(&manifest_path).unwrap();
+        let tla = std::fs::read_to_string(dir.path().join("empty_test.tla")).unwrap();
+        assert!(tla.contains("InputsOf <- 1 :> {}"));
+        assert!(tla.contains("1 :> <<>>"));
+    }
+}
