@@ -53,7 +53,10 @@ pub(crate) struct Options {
     runner_name: Option<String>,
     verbosity: Option<String>,
     optimize: bool,
+    tla: bool,
 }
+
+mod tla_gen;
 
 #[derive(Deserialize)]
 pub(crate) struct RunnerSpec {
@@ -319,6 +322,12 @@ fn get_matches() -> ArgMatches {
                 .help("Print the default library directory path and exit"),
         )
         .arg(
+            Arg::new("tla")
+                .long("tla")
+                .action(clap::ArgAction::SetTrue)
+                .help("Generate a TLA+ specification file for formal verification"),
+        )
+        .arg(
             Arg::new("source_url")
                 .num_args(1)
                 .required(false)
@@ -397,5 +406,6 @@ fn parse_args(matches: &ArgMatches) -> Result<Options> {
             .map(std::string::ToString::to_string),
         verbosity: verbosity_option.map(std::string::ToString::to_string),
         optimize: matches.get_flag("optimize"),
+        tla: matches.get_flag("tla"),
     })
 }

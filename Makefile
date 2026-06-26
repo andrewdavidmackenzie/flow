@@ -118,6 +118,17 @@ endif
 	cargo test
 	cargo test --examples
 
+.PHONY: tla
+tla: build
+	@echo "tla<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<"
+	@echo "Generating TLA+ specs for flowr examples..."
+	@for dir in flowr/examples/*/; do \
+		if [ -f "$$dir/root.toml" ]; then \
+			echo "  $$dir"; \
+			target/debug/flowc -c --tla -r flowrcli "$$dir" 2>/dev/null || true; \
+		fi; \
+	done
+
 .PHONY: coverage
 coverage: clean-start
 	@echo "coverage<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<"

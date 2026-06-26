@@ -71,6 +71,11 @@ pub fn compile_and_execute_flow(
             )
             .chain_err(|| "Failed to write manifest")?;
 
+            if options.tla {
+                crate::tla_gen::generate_tla(&manifest_path)
+                    .map_err(|e| format!("TLA+ generation failed: {e}"))?;
+            }
+
             if options.compile_only {
                 info!("Flow execution skipped");
                 return Ok(());

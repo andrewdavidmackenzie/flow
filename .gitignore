@@ -12,3 +12,11 @@ flowstdlib/src/Cargo.lock
 .flowrdb_history
 notes.txt
 .flowdb_history
+
+# Generated TLA+ files (from flowc --tla)
+**/FlowRuntimeBase.tla
+!specs/FlowRuntimeBase.tla
+flowr/**/*.tla
+flowr/**/*.cfg
+flowstdlib/**/*.tla
+flowstdlib/**/*.cfg
