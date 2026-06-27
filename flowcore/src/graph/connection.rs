@@ -72,6 +72,8 @@ pub enum Waypoint {
 ///
 /// Coordinates are in world space. The path starts at the output port's
 /// semi-circle edge and ends at the input port's semi-circle edge.
+/// The `loopback_index` offsets successive loopbacks further from the node
+/// so multiple self-connections don't overlap.
 #[must_use]
 pub fn loopback_waypoints(
     out_x: f32,
@@ -79,11 +81,13 @@ pub fn loopback_waypoints(
     in_x: f32,
     in_y: f32,
     node_bottom: f32,
+    loopback_index: usize,
 ) -> Vec<Waypoint> {
     let r = LOOPBACK_CORNER;
-    let right_x = out_x + LOOPBACK_MARGIN;
-    let left_x = in_x - LOOPBACK_MARGIN;
-    let bottom_y = node_bottom + LOOPBACK_MARGIN;
+    let offset = LOOPBACK_MARGIN + loopback_index as f32 * LOOPBACK_MARGIN;
+    let right_x = out_x + offset;
+    let left_x = in_x - offset;
+    let bottom_y = node_bottom + offset;
 
     vec![
         Waypoint::Point(out_x, out_y),
@@ -146,7 +150,7 @@ mod test {
 
     #[test]
     fn loopback_stays_outside_node() {
-        let wp = loopback_waypoints(230.0, 135.0, 50.0, 145.0, 170.0);
+        let wp = loopback_waypoints(230.0, 135.0, 50.0, 145.0, 170.0, 0);
         for w in &wp {
             match w {
                 Waypoint::Point(_, y) | Waypoint::Corner(_, _, _, y) => {
@@ -158,7 +162,7 @@ mod test {
 
     #[test]
     fn loopback_starts_at_output_ends_at_input() {
-        let wp = loopback_waypoints(230.0, 135.0, 50.0, 145.0, 170.0);
+        let wp = loopback_waypoints(230.0, 135.0, 50.0, 145.0, 170.0, 0);
         let first = match wp.first() {
             Some(Waypoint::Point(x, y)) => (*x, *y),
             _ => panic!("first waypoint should be Point"),

@@ -17,7 +17,7 @@ USAGE:
 
 FLAGS:
     -d, --dump        Dump the flow to .dump files after loading it
-    -z, --graphs      Create .dot files for graph generation
+    -g, --graphs      Generate SVG graph files for flow visualization
     -h, --help        Prints help information
     -p, --provided    Provided function implementations should NOT be compiled from source
     -s, --skip        Skip execution of flow

@@ -66,9 +66,8 @@ include:
 - `*.toml` - Flow and Function definition files copied into output directory corresponding to source directory
 - `*.wasm` - Function WASM implementation compiled from supplied function source and copied into output 
   directory corresponding to source directory
-- `*.dot` - 'dot' (graphvis) format graph descriptions of any flows in the library source
-- `*.dot.svg` - flow graphs rendered into SVG files from the corresponding 'dot' files. These can be referenced in 
-  doc files
+- `*.svg` - SVG flow graph files generated directly by the compiler for any flows in the library source. These can be
+  referenced in doc files
 
 ### Lib References
 References to flows or functions are described in more detail in the [process references](process_references.md)

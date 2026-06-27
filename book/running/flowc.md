@@ -28,7 +28,7 @@ Options:
   -L, --libdir <LIB_DIR|BASE_URL>
           Add a directory or base Url to the Library Search path
   -t, --tables
-          Write flow and compiler tables to .dump and .dot files
+          Write flow and compiler tables to .dump files
   -g, --graphs
           Generate SVG graph files for flow visualization
   -m, --metrics
@@ -57,7 +57,7 @@ Options:
 *  `-C, --context_root <CONTEXT_DIRECTORY>` Set the directory to use as the root dir for context function definitions
 *  `-n, --native` Compile only native (not wasm) implementations when compiling a library
 *  `-L, --libdir <LIB_DIR|BASE_URL>` Add a directory or base Url to the Library Search path
-*  `-t, --tables` Write flow and compiler tables to .dump and .dot files
+*  `-t, --tables` Write flow and compiler tables to .dump files
 *  `-g, --graphs` Generate SVG graph files for flow visualization
 *  `-m, --metrics` Show flow execution metrics when execution ends
 *  `-w, --wasm` Use wasm library implementations (not any statically linked native implementations) when executing flow

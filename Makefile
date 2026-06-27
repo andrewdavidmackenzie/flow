@@ -40,19 +40,19 @@ ifneq ($(DNF),)
 	@echo "To build OpenSSL you need perl installed"
 	@sudo dnf install perl
 	@sudo dnf install curl-devel elfutils-libelf-devel elfutils-devel openssl openssl-devel binutils-devel || true
-	@sudo dnf install zeromq zeromq-devel graphviz binaryen lcov || true
+	@sudo dnf install zeromq zeromq-devel binaryen lcov || true
 else ifneq ($(YUM),)
 	@echo "Installing dependencies using $(YUM)"
 	@echo "To build OpenSSL you need perl installed"
 	@sudo yum install perl
 	@sudo yum install curl-devel elfutils-libelf-devel elfutils-devel openssl openssl-devel binutils-devel || true
-	@sudo yum install zeromq zeromq-devel graphviz binaryen lcov || true
+	@sudo yum install zeromq zeromq-devel binaryen lcov || true
 else ifneq ($(APTGET),)
 	@echo "Installing dependencies using $(APTGET)"
 	@echo "To build OpenSSL you need perl installed"
 	@sudo apt-get install perl
 	@sudo apt-get -y install libcurl4-openssl-dev libelf-dev libdw-dev libssl-dev binutils-dev || true
-	@sudo apt-get -y install libzmq3-dev graphviz binaryen lcov || true
+	@sudo apt-get -y install libzmq3-dev binaryen lcov || true
 	@wget https://github.com/WebAssembly/binaryen/releases/download/version_116/binaryen-version_116-x86_64-linux.tar.gz
 	@tar -xvzf binaryen-version_116-x86_64-linux.tar.gz
 	@sudo cp binaryen-version_116/bin/* /bin/
@@ -60,7 +60,7 @@ else ifneq ($(APTGET),)
 	@rm binaryen-version_116-x86_64-linux.tar.gz
 else ifneq ($(BREW),)
 	@echo "Installing dependencies using $(BREW)"
-	@brew install --quiet zmq graphviz binaryen lcov
+	@brew install --quiet zmq binaryen lcov
 endif
 	@echo "Installing grcov using cargo"
 	@cargo install grcov
@@ -73,8 +73,6 @@ endif
 .PHONY: clean_examples
 clean_examples:
 	@find flowr/examples -name manifest.json | xargs rm -rf
-	@find flowr/examples -name \*.dot | xargs rm -rf
-	@find flowr/examples -name \*.dot.svg | xargs rm -rf
 	@find flowr/examples -name \*.svg -not -name test_\* | xargs rm -rf
 	@find flowr/examples -name \*.wasm | xargs rm -rf
 
@@ -193,11 +191,11 @@ build-book:
 .PHONE: copy-svgs
 copy-svgs:
 	@echo "copy-svgs<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<"
-	@for i in $(shell find flowr/examples -name '*.dot.svg' -o -name '*.svg' | grep -v test_ ); do \
+	@for i in $(shell find flowr/examples -name '*.svg' | grep -v test_ ); do \
       mkdir -p target/html/$$(dirname $$i); \
       cp $$i target/html/$$i; \
     done
-	@for i in $(shell cd $$HOME/.flow/lib/flowstdlib && find . -name '*.dot.svg' -o -name '*.svg' | grep -v test_ ); do \
+	@for i in $(shell cd $$HOME/.flow/lib/flowstdlib && find . -name '*.svg' | grep -v test_ ); do \
       mkdir -p target/html/flowstdlib/src/$$(dirname $$i); \
       cp $$HOME/.flow/lib/flowstdlib/$$i target/html/flowstdlib/src/$$i; \
     done
@@ -220,7 +218,6 @@ trim-book:
 	@find target/html -name test.file | xargs rm -rf {}
 	@find target/html -name \*.rs | xargs rm -rf {}
 	@find target/html -name \*.dump | xargs rm -rf {}
-	@find target/html -name \*.dot | xargs rm -rf {}
 	@find target/html -name \*.wasm | xargs rm -rf {}
 	@find target/html -name \*.lock  | xargs rm -rf {}
 	@find target/html -name \*.profraw  | xargs rm -rf {}

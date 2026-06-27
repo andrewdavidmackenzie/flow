@@ -56,17 +56,22 @@ pub fn bezier_edge(
 
 /// Render a loopback edge that routes around the node: right, down, left, up.
 #[must_use]
+#[allow(clippy::too_many_arguments)]
 pub fn loopback_edge(
     out_x: f32,
     out_y: f32,
     in_x: f32,
     in_y: f32,
     node_bottom: f32,
+    loopback_index: usize,
+    label: Option<&str>,
+    tooltip_text: Option<&str>,
     color: &str,
 ) -> Group {
     let arrow_tip_x = in_x;
     let line_end_x = arrow_tip_x - style::ARROW_SIZE * 0.7;
-    let waypoints = connection::loopback_waypoints(out_x, out_y, line_end_x, in_y, node_bottom);
+    let waypoints =
+        connection::loopback_waypoints(out_x, out_y, line_end_x, in_y, node_bottom, loopback_index);
 
     let mut path_data = String::new();
     for (i, wp) in waypoints.iter().enumerate() {
@@ -92,9 +97,29 @@ pub fn loopback_edge(
         .set("stroke-width", style::STROKE_WIDTH);
 
     let arrow_from_x = arrow_tip_x - style::ARROW_SIZE;
-    Group::new()
-        .add(path)
-        .add(svg_arrow(arrow_tip_x, in_y, arrow_from_x, in_y, color))
+    let mut group =
+        Group::new()
+            .add(path)
+            .add(svg_arrow(arrow_tip_x, in_y, arrow_from_x, in_y, color));
+
+    if let Some(text) = label {
+        let label_x = f32::midpoint(in_x, out_x);
+        let bottom_y = node_bottom + 25.0 + loopback_index as f32 * 25.0;
+        let label_y = bottom_y + 12.0;
+        group = group.add(shapes::centered_text(
+            label_x,
+            label_y,
+            text,
+            style::PORT_FONT_SIZE,
+            color,
+        ));
+    }
+
+    if let Some(tip) = tooltip_text {
+        group = group.add(shapes::tooltip(tip));
+    }
+
+    group
 }
 
 /// Render an initializer edge — a bezier from the label to the port,

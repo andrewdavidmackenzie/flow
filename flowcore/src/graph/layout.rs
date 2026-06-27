@@ -97,6 +97,17 @@ pub fn split_route(route: &str) -> (String, String) {
     }
 }
 
+/// Build a label for a connection from its output port name and connection name.
+#[must_use]
+pub fn connection_label(from_port: &str, conn_name: &str) -> String {
+    match (from_port, conn_name) {
+        ("", "") => String::new(),
+        ("", name) => name.to_string(),
+        (port, "") => format!("/{port}"),
+        (port, name) => format!("{name} /{port}"),
+    }
+}
+
 /// Sort nodes within each column by the median index of their neighbors
 /// in adjacent columns, reducing edge crossings (Sugiyama barycenter heuristic).
 fn median_ordering(
@@ -512,5 +523,25 @@ mod test {
     fn bezier_offset_negative_dx() {
         let offset = bezier_control_offset(-200.0);
         assert!((offset - 100.0).abs() < 0.01);
+    }
+
+    #[test]
+    fn connection_label_empty() {
+        assert_eq!(connection_label("", ""), "");
+    }
+
+    #[test]
+    fn connection_label_name_only() {
+        assert_eq!(connection_label("", "feedback-step"), "feedback-step");
+    }
+
+    #[test]
+    fn connection_label_subpath_only() {
+        assert_eq!(connection_label("right-lte", ""), "/right-lte");
+    }
+
+    #[test]
+    fn connection_label_both() {
+        assert_eq!(connection_label("i2", "feedback-step"), "feedback-step /i2");
     }
 }

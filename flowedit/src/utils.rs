@@ -24,7 +24,7 @@ pub(crate) fn next_unique_io_name(prefix: &str, existing: &[IO]) -> String {
 }
 
 pub(crate) use flowcore::graph::layout::derive_short_name;
-pub(crate) use flowcore::graph::layout::split_route;
+pub(crate) use flowcore::graph::layout::{connection_label, split_route};
 
 /// Check whether a Connection references a node by alias in its from or to routes.
 pub(crate) fn connection_references_node(conn: &Connection, alias: &str) -> bool {
