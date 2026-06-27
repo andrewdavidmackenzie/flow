@@ -8,7 +8,7 @@ use std::collections::HashMap;
 use svg::node::element::{Group, Style};
 use svg::Document;
 
-use flowcore::graph::layout::split_route;
+use flowcore::graph::layout::{connection_label, split_route};
 use flowcore::graph::style::NodeCategory;
 use flowcore::model::connection::Connection;
 use flowcore::model::flow_definition::FlowDefinition;
@@ -325,11 +325,15 @@ fn render_connection(conn: &Connection, layouts: &HashMap<String, PositionedNode
                 y1,
                 x2,
                 y2,
-                if conn.name().is_empty() {
-                    None
-                } else {
-                    Some(conn.name().as_str())
-                },
+                {
+                    let label = connection_label(&from_port, conn.name());
+                    if label.is_empty() {
+                        None
+                    } else {
+                        Some(label)
+                    }
+                }
+                .as_deref(),
                 Some(&tooltip_text),
                 style::COLOR_EDGE,
                 None,

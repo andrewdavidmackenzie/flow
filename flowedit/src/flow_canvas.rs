@@ -25,7 +25,8 @@ use flowcore::model::route::Route;
 
 use crate::node_layout::{NodeLayout, PORT_FONT_SIZE};
 use crate::utils::{
-    base_port_name, check_port_type_compatibility, rounded_rect, split_route, truncate_source,
+    base_port_name, check_port_type_compatibility, connection_label, rounded_rect, split_route,
+    truncate_source,
 };
 use crate::window_state::{FlowCanvasState, ZOOM_STEP};
 
@@ -2095,16 +2096,6 @@ impl canvas::Program<CanvasMessage> for FlowCanvas<'_> {
     }
 }
 
-/// Draw a single node as a rounded rectangle with title, source, and ports.
-fn connection_label(from_port: &str, conn_name: &str) -> String {
-    match (from_port, conn_name) {
-        ("", "") => String::new(),
-        ("", name) => name.to_string(),
-        (port, "") => format!("/{port}"),
-        (port, name) => format!("{name} /{port}"),
-    }
-}
-
 fn draw_node(frame: &mut Frame, node: &NodeLayout, zoom: f32, offset: Point) {
     let top_left = transform_point(Point::new(node.x(), node.y()), zoom, offset);
     let size = Size::new(node.width() * zoom, node.height() * zoom);
@@ -2543,25 +2534,5 @@ mod test {
         let (inp, outp) = compute_flow_io_positions(&[], &[], &[]);
         assert!(inp.is_empty());
         assert!(outp.is_empty());
-    }
-
-    #[test]
-    fn connection_label_empty() {
-        assert_eq!(connection_label("", ""), "");
-    }
-
-    #[test]
-    fn connection_label_name_only() {
-        assert_eq!(connection_label("", "feedback-step"), "feedback-step");
-    }
-
-    #[test]
-    fn connection_label_subpath_only() {
-        assert_eq!(connection_label("right-lte", ""), "/right-lte");
-    }
-
-    #[test]
-    fn connection_label_both() {
-        assert_eq!(connection_label("i2", "feedback-step"), "feedback-step /i2");
     }
 }
