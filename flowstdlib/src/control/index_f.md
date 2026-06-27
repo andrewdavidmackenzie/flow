@@ -11,6 +11,6 @@ source = "lib://flowstdlib/control/index_f"
 ```
 
 ### Flow Graph
-<a href="index_f.dot.svg" target="_blank"><img src="index_f.dot.svg"></a>
+<a href="index_f.svg" target="_blank"><img src="index_f.svg"></a>
 
 Click image to navigate flow hierarchy.

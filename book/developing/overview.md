@@ -26,7 +26,7 @@ Once you have those, install the remaining dependencies with:
 make config
 ```
 
-This installs the wasm target, clippy, graphviz, mdbook, and other tools.
+This installs the wasm target, clippy, mdbook, and other tools.
 It works on macOS and Linux variants using `apt-get` or `yum`.
 
 ### Build and test

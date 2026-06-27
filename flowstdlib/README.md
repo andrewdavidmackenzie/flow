@@ -20,7 +20,7 @@ NOTE: That flows are compiled down to a graph of functions at compile time, and 
 Libraries like `flowstdlib` are built using `flowc`, specifying the library root folder as the source url.
 
 This builds a directory tree (in `target/{lib_name}`) of all required files for a portable library, including:-
-* documentation files (.md MarkDown files, .dot graphs of flows, graphs rendered as .dot.svg SVG files)
+* documentation files (.md MarkDown files, SVG flow graphs generated directly by the compiler)
 * TOML definition files for flows and functions
 * Function implementations compiled to a .wasm WASM file
 * A `manifest.json` manifest of the libraries functions and where the implementations (.wasm files) can be found.
