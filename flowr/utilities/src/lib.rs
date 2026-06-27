@@ -25,6 +25,9 @@ const EXPECTED_UNORDERED_STDOUT_FILENAME: &str = "expected_unordered.stdout";
 /// expected line must appear at least once in actual, extra lines are allowed)
 const EXPECTED_CONTAINS_STDOUT_FILENAME: &str = "expected_contains.stdout";
 
+/// Name of file where the expected last line of stdout is defined
+const EXPECTED_LAST_LINE_STDOUT_FILENAME: &str = "expected_last_line.stdout";
+
 /// Name of file where any Stdin will be read from while executing am example
 const TEST_STDIN_FILENAME: &str = "test.stdin";
 
@@ -206,9 +209,12 @@ pub fn check_test_output(source_file: &str) {
         }
     }
 
+    let last_line_path = sample_dir.join(EXPECTED_LAST_LINE_STDOUT_FILENAME);
     let contains_path = sample_dir.join(EXPECTED_CONTAINS_STDOUT_FILENAME);
     let unordered_path = sample_dir.join(EXPECTED_UNORDERED_STDOUT_FILENAME);
-    if contains_path.exists() {
+    if last_line_path.exists() {
+        compare_last_line_and_fail(last_line_path, sample_dir.join(TEST_STDOUT_FILENAME));
+    } else if contains_path.exists() {
         compare_contains_and_fail(contains_path, sample_dir.join(TEST_STDOUT_FILENAME));
     } else if unordered_path.exists() {
         compare_unordered_and_fail(unordered_path, sample_dir.join(TEST_STDOUT_FILENAME));
@@ -314,6 +320,27 @@ fn compare_contains_and_fail(expected_path: PathBuf, actual_path: PathBuf) {
         if !missing.is_empty() {
             panic!(
                 "Contains comparison of '{}' vs '{}' failed.\nMissing lines: {missing:?}\nActual output:\n{actual}",
+                actual_path.display(),
+                expected_path.display()
+            );
+        }
+    }
+}
+
+fn compare_last_line_and_fail(expected_path: PathBuf, actual_path: PathBuf) {
+    if expected_path.exists() {
+        let expected_raw =
+            fs::read_to_string(&expected_path).expect("Could not read expected file");
+        let actual_raw = fs::read_to_string(&actual_path).expect("Could not read actual file");
+        let expected = normalize_output(&expected_raw);
+        let actual = normalize_output(&actual_raw);
+
+        let expected_line = expected.lines().last().unwrap_or("");
+        let actual_line = actual.lines().last().unwrap_or("");
+
+        if expected_line != actual_line {
+            panic!(
+                "Last line comparison of '{}' vs '{}' failed.\nExpected last line: {expected_line}\nActual last line: {actual_line}\nFull actual output:\n{actual}",
                 actual_path.display(),
                 expected_path.display()
             );
