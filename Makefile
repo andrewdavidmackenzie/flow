@@ -118,6 +118,50 @@ endif
 	cargo test
 	cargo test --examples
 
+.PHONY: tla
+tla: build
+	@echo "tla<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<"
+	@echo "Generating TLA+ specs for flowr examples..."
+	@find flowr/examples -name "FlowRuntimeBase.tla" -delete 2>/dev/null || true
+	@for dir in flowr/examples/*/; do \
+		if [ -f "$$dir/root.toml" ]; then \
+			echo "  $$dir"; \
+			target/debug/flowc -c --tla -r flowrcli "$$dir" 2>/dev/null || true; \
+		fi; \
+	done
+
+TLA2TOOLS := $(shell ls "/Applications/TLA+ Toolbox.app/Contents/Eclipse/tla2tools.jar" 2>/dev/null || echo "")
+TLC_CMD = java -XX:+UseParallelGC -cp "$(TLA2TOOLS)" tlc2.TLC -workers auto -deadlock
+
+.PHONY: tla-check
+tla-check: tla
+	@echo "tla-check<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<"
+ifeq ($(TLA2TOOLS),)
+	@echo "TLA+ Toolbox not found — skipping TLC verification"
+	@echo "Install with: brew install --cask tla+-toolbox"
+else
+	@echo "Verifying TLA+ specs with TLC model checker..."
+	@FAIL=0; \
+	for dir in flowr/examples/*/; do \
+		name=$$(basename "$$dir"); \
+		tla=$$(find "$$dir" -maxdepth 1 -name "*.tla" ! -name "FlowRuntimeBase.tla" 2>/dev/null | head -1); \
+		cfg=$$(find "$$dir" -maxdepth 1 -name "*.cfg" 2>/dev/null | head -1); \
+		if [ -n "$$tla" ] && [ -n "$$cfg" ]; then \
+			printf "  %-30s" "$$name"; \
+			if $(TLC_CMD) -metadir "/tmp/tlc-$$name" -config "$$cfg" "$$tla" > /tmp/tlc-$$name.log 2>&1; then \
+				states=$$(grep "distinct states" /tmp/tlc-$$name.log | grep -o "[0-9]* distinct" | head -1); \
+				echo "OK ($$states states)"; \
+			else \
+				echo "FAILED"; \
+				tail -5 /tmp/tlc-$$name.log; \
+				FAIL=1; \
+			fi; \
+		fi; \
+	done; \
+	if [ $$FAIL -eq 1 ]; then echo "TLA+ verification failed"; exit 1; fi
+	@echo "All TLA+ specs verified."
+endif
+
 .PHONY: coverage
 coverage: clean-start
 	@echo "coverage<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<"
