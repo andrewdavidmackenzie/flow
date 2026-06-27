@@ -6,7 +6,3 @@ Functions for generating chart and visualization images from data.
 [[process]]
 source = "lib://flowstdlib/charts/{function_name}"
 ```
-
-## List of Functions
-* [`histogram`](histogram/histogram.md) — generate a histogram image from binned data
-* [`time_series`](time_series/time_series.md) — generate a time series chart image
