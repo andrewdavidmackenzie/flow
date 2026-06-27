@@ -29,6 +29,9 @@ meta_provider = []
 file_provider = []
 http_provider = []
 
+[package.metadata.docs.rs]
+all-features = true
+
 [package.metadata.cargo-all-features]
 max_combination_size = 2
 skip_feature_sets = [["online_tests"]]
