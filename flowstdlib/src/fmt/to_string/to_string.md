@@ -1,14 +1,24 @@
 ## ToString (//flowstdlib/fmt/to_string)
-Convert an input type to a String
+Convert any JSON value to its string representation.
 
-Current types supported are:
- * null - A null will be printed as "null"
- * boolean - boolean JSON value
- * number - A JSON Number
- * string - a bit redundant, but it works
- * array - An JSON array of values that can be converted, they are converted one by one
- * object - a Map of names/objects that will also be printed out
- 
+Takes a generic input value and outputs its string form using JSON
+serialization. This is useful for converting numbers, arrays, objects,
+or other types into strings for display or further processing.
+
+### Input
+* Any JSON value (generic input — accepts all types)
+
+### Output
+* `string` — the string representation of the input value
+
+### Supported conversions
+* `null` → `"null"`
+* `true` / `false` → `"true"` / `"false"`
+* `42` → `"42"`
+* `"hello"` → `"\"hello\""`
+* `[1,2,3]` → `"[1,2,3]"`
+* `{"key": 42}` → `"{\"key\":42}"`
+
 ### Include using
 ```toml
 [[process]]
