@@ -118,13 +118,6 @@ to = "append/s1"
 
 [[connection]]
 from = "A_tracker/distance"
-to = "to_string"
-
-[[process]]
-source = "lib://flowstdlib/fmt/to_string"
-
-[[connection]]
-from = "to_string"
 to = "append/s2"
 
 [[process]]
