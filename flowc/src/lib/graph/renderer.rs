@@ -46,14 +46,16 @@ pub fn render_flow(flow: &FlowDefinition) -> String {
         }
     }
 
+    let mut loopback_counts: HashMap<String, usize> = HashMap::new();
     for conn in &flow.connections {
-        svg_group = svg_group.add(render_connection(conn, &layouts));
+        svg_group = svg_group.add(render_connection(conn, &layouts, &mut loopback_counts));
     }
 
     for pr in &flow.process_refs {
         let alias = process_alias(pr);
         if let Some(layout) = layouts.get(&alias) {
-            svg_group = svg_group.add(render_initializers(pr, layout));
+            let node_loopbacks = loopback_counts.get(&alias).copied().unwrap_or(0);
+            svg_group = svg_group.add(render_initializers(pr, layout, node_loopbacks));
         }
     }
 
@@ -61,7 +63,9 @@ pub fn render_flow(flow: &FlowDefinition) -> String {
         .process_refs
         .iter()
         .any(|pr| !pr.initializations.is_empty());
-    let (vb_x, vb_y, doc_width, doc_height) = compute_document_bounds(&layouts, has_initializers);
+    let max_loopbacks = loopback_counts.values().copied().max().unwrap_or(0);
+    let (vb_x, vb_y, doc_width, doc_height) =
+        compute_document_bounds(&layouts, has_initializers, max_loopbacks);
 
     let document = Document::new()
         .set(
@@ -272,7 +276,11 @@ fn truncate_source(source: &str) -> String {
     }
 }
 
-fn render_connection(conn: &Connection, layouts: &HashMap<String, PositionedNode>) -> Group {
+fn render_connection(
+    conn: &Connection,
+    layouts: &HashMap<String, PositionedNode>,
+    loopback_counts: &mut HashMap<String, usize>,
+) -> Group {
     let mut group = Group::new().set("class", "edge");
 
     let from_route = conn.from().to_string();
@@ -288,7 +296,7 @@ fn render_connection(conn: &Connection, layouts: &HashMap<String, PositionedNode
         .position(|p| p == &from_port)
         .unwrap_or(0);
 
-    let x1 = from_layout.output_port_x();
+    let x1 = from_layout.output_port_x() + style::PORT_RADIUS;
     let y1 = from_layout.output_port_y(from_port_idx);
 
     for to_route in conn.to() {
@@ -305,18 +313,27 @@ fn render_connection(conn: &Connection, layouts: &HashMap<String, PositionedNode
             .position(|p| p == &to_port)
             .unwrap_or(0);
 
-        let x2 = to_layout.input_port_x();
+        let x2 = to_layout.input_port_x() - style::PORT_RADIUS;
         let y2 = to_layout.input_port_y(to_port_idx);
 
         let tooltip_text = format!("{from_route} → {to_str}");
 
+        let label = connection_label(&from_port, conn.name());
+        let label_opt = if label.is_empty() { None } else { Some(label) };
+
         if from_node == to_node {
+            let idx = loopback_counts.entry(from_node.clone()).or_insert(0);
+            let loopback_index = *idx;
+            *idx += 1;
             group = group.add(edge::loopback_edge(
                 x1,
                 y1,
                 x2,
                 y2,
                 from_layout.y + from_layout.height,
+                loopback_index,
+                label_opt.as_deref(),
+                Some(&tooltip_text),
                 style::COLOR_EDGE,
             ));
         } else {
@@ -325,15 +342,7 @@ fn render_connection(conn: &Connection, layouts: &HashMap<String, PositionedNode
                 y1,
                 x2,
                 y2,
-                {
-                    let label = connection_label(&from_port, conn.name());
-                    if label.is_empty() {
-                        None
-                    } else {
-                        Some(label)
-                    }
-                }
-                .as_deref(),
+                label_opt.as_deref(),
                 Some(&tooltip_text),
                 style::COLOR_EDGE,
                 None,
@@ -344,8 +353,15 @@ fn render_connection(conn: &Connection, layouts: &HashMap<String, PositionedNode
     group
 }
 
-fn render_initializers(pr: &ProcessReference, layout: &PositionedNode) -> Group {
+fn render_initializers(
+    pr: &ProcessReference,
+    layout: &PositionedNode,
+    node_loopbacks: usize,
+) -> Group {
     let mut group = Group::new();
+
+    #[allow(clippy::cast_precision_loss)]
+    let loopback_clearance = node_loopbacks as f32 * 25.0;
 
     for (input_path, initializer) in &pr.initializations {
         let port_name = input_path.rsplit('/').next().unwrap_or(input_path);
@@ -355,7 +371,7 @@ fn render_initializers(pr: &ProcessReference, layout: &PositionedNode) -> Group 
             .position(|p| p == port_name)
             .unwrap_or(0);
 
-        let px = layout.input_port_x();
+        let px = layout.input_port_x() - style::PORT_RADIUS;
         let py = layout.input_port_y(port_idx);
 
         let value_str = format!("{}", initializer.get_value());
@@ -371,8 +387,8 @@ fn render_initializers(pr: &ProcessReference, layout: &PositionedNode) -> Group 
         };
         let label = format!("{truncated} ({init_type})");
 
-        let init_offset_y = 20.0;
-        let label_x = px - 70.0;
+        let init_offset_y = 20.0 + loopback_clearance;
+        let label_x = px - 70.0 - loopback_clearance;
         let label_y = py - init_offset_y;
 
         let dash = match initializer {
@@ -406,6 +422,7 @@ fn render_initializers(pr: &ProcessReference, layout: &PositionedNode) -> Group 
 fn compute_document_bounds(
     layouts: &HashMap<String, PositionedNode>,
     has_initializers: bool,
+    max_loopbacks: usize,
 ) -> (f32, f32, f32, f32) {
     let mut min_x: f32 = 0.0;
     let mut min_y: f32 = 0.0;
@@ -419,11 +436,18 @@ fn compute_document_bounds(
         max_y = max_y.max(layout.y + layout.height);
     }
 
+    #[allow(clippy::cast_precision_loss)]
+    let loopback_extra = if max_loopbacks > 0 {
+        max_loopbacks as f32 * 25.0 + 25.0
+    } else {
+        0.0
+    };
+
     let left_pad = if has_initializers { 80.0 } else { 0.0 };
-    let origin_x = min_x - left_pad;
+    let origin_x = min_x - left_pad - loopback_extra;
     let origin_y = min_y - style::GRID_ORIGIN_Y;
-    let width = max_x - origin_x + style::GRID_ORIGIN_X;
-    let height = max_y - origin_y + style::GRID_ORIGIN_Y;
+    let width = max_x - origin_x + style::GRID_ORIGIN_X + loopback_extra;
+    let height = max_y - origin_y + style::GRID_ORIGIN_Y + loopback_extra;
 
     (origin_x, origin_y, width, height)
 }
