@@ -67,6 +67,9 @@ submission = []
 # feature to include context functions, make sure flowcore is compiled with it if we plan to use it
 context = ["flowcore/context"]
 
+[package.metadata.docs.rs]
+all-features = true
+
 [package.metadata.cargo-all-features]
 max_combination_size = 2
 skip_optional_dependencies = true

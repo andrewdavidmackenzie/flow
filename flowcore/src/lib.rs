@@ -1,4 +1,5 @@
 #![deny(clippy::unwrap_used, clippy::expect_used)]
+#![cfg_attr(docsrs, feature(doc_auto_cfg))]
 //! `flowcore` defines core structs and traits used by other flow libraries and implementations
 
 use serde_json::Value;

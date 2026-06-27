@@ -23,6 +23,9 @@ icons = ["assets/icons/flowc/icon.png", "assets/icons/flowc/icon.icns", "assets/
 [package.metadata.packager.deb]
 depends = ["libssl3"]
 
+[package.metadata.docs.rs]
+all-features = true
+
 [lints]
 workspace = true
 

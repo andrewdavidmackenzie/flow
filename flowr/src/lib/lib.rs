@@ -1,4 +1,5 @@
 #![deny(clippy::unwrap_used, clippy::expect_used)]
+#![cfg_attr(docsrs, feature(doc_auto_cfg))]
 //! `flowrlib` is the runtime library for flow execution. This can be used to produce a flow runner,
 //! such as the `flowr` command line runner.
 //!
