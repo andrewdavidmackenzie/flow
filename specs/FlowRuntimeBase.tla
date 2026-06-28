@@ -114,6 +114,23 @@ Dispatch ==
     /\ ready' = Tail(ready)
     /\ UNCHANGED <<inputQ, intCount, busyCount, done, jobCounter>>
 
+(*
+ * Input queue ordering discipline
+ *
+ * Each input maintains a single queue partitioned by intCount:
+ *
+ *   positions 1..intCount        = internal (within-flow) values
+ *   positions intCount+1..Len(q) = external (cross-flow) values
+ *
+ * - send_internal: insert at position intCount+1, then intCount += 1
+ * - send (external): append to end of queue
+ * - take: remove Head (position 1), decrement intCount if > 0
+ * - clear_internal: keep only the external suffix (positions intCount+1..Len)
+ *
+ * Internal values are always consumed before external values.
+ * FlowGoesIdle clears all internal values while preserving external.
+ *)
+
 RetireAndSend(job) ==
     /\ job \in running
     /\ running' = running \ {job}
@@ -167,7 +184,6 @@ FlowGoesIdle(flow) ==
 
 CreateJobAfterIdle(p) ==
     /\ CanRun(p)
-    /\ p \notin done
     /\ \/ ~IsBusy(Parent[p])
        \/ \E i \in InputsOf[p] : intCount[p][i] > 0
     /\ LET inputs == [i \in InputsOf[p] |-> Head(inputQ[p][i])]
@@ -212,6 +228,8 @@ CompletedNeverRuns ==
         /\ \A j \in running : j.func # p
         /\ \A idx \in 1..Len(ready) : ready[idx].func # p
 
+(* Together with TypeOK (intCount \in Nat), this ensures the queue partition
+   invariant: 0 <= intCount[p][i] <= Len(inputQ[p][i]) for all inputs. *)
 InternalCountBound ==
     \A p \in Procs : \A i \in InputsOf[p] :
         intCount[p][i] <= Len(inputQ[p][i])
