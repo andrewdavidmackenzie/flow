@@ -100,8 +100,29 @@ Init ==
 ---------------------------------------------------------------------------
 (* Actions *)
 
+(*
+ * External send gating (Phase 4)
+ *
+ * In the runtime, send_a_value gates job creation for external sends:
+ * if a value crosses a flow boundary (!connection.internal) and the
+ * destination's parent flow is already busy, the value is queued but
+ * no job is created.  The job is deferred until the parent flow goes
+ * idle (handled by unblock_flows / has_runnable_on_internal).
+ *
+ * Internal sends (!dest_flow_busy when connection.internal) bypass the
+ * gate — a function can always run on values produced within its own
+ * flow, even while the flow is busy.
+ *
+ * In TLA+, CreateJob is a standalone action that fires nondeterministically
+ * whenever its guard is satisfied.  Adding the gating guard here is
+ * equivalent to gating inline in RetireAndSend: after RetireAndSend
+ * queues values, CreateJob can only fire for a destination process if
+ * the parent flow is idle OR the process has internal values.
+ *)
 CreateJob(p) ==
     /\ CanRun(p)
+    /\ \/ ~IsBusy(Parent[p])
+       \/ \E i \in InputsOf[p] : intCount[p][i] > 0
     /\ LET inputs == [i \in InputsOf[p] |-> Head(inputQ[p][i])]
            toMark == {p} \union AncestorsOf(p)
        IN
@@ -176,8 +197,9 @@ CompleteJob(job) ==
 
 (*
  * When a flow becomes idle, the runtime first checks has_runnable_on_internal.
- * If any function can still run on internal data, CreateJob/CreateJobAfterIdle
- * handles that — those actions fire for any process where CanRun is true.
+ * If any function can still run on internal data, CreateJob handles that —
+ * its intCount guard allows firing for processes with internal values even
+ * while the parent flow is busy (matching the runtime's internal-send bypass).
  *
  * FlowGoesIdle fires only when NO function can run on internal data alone.
  * It clears all internal values, matching clear_flow_internal_inputs.
@@ -206,24 +228,6 @@ FlowGoesIdle(flow) ==
          ]]
     /\ UNCHANGED <<busyCount, ready, running, done, jobCounter>>
 
-CreateJobAfterIdle(p) ==
-    /\ CanRun(p)
-    /\ \/ ~IsBusy(Parent[p])
-       \/ \E i \in InputsOf[p] : intCount[p][i] > 0
-    /\ LET inputs == [i \in InputsOf[p] |-> Head(inputQ[p][i])]
-           toMark == {p} \union AncestorsOf(p)
-       IN
-       /\ inputQ' = [inputQ EXCEPT ![p] =
-            [i \in InputsOf[p] |-> Tail(inputQ[p][i])]]
-       /\ intCount' = [intCount EXCEPT ![p] =
-            [i \in InputsOf[p] |->
-              IF intCount[p][i] > 0 THEN intCount[p][i] - 1 ELSE 0]]
-       /\ jobCounter' = jobCounter + 1
-       /\ ready' = Append(ready,
-            [func |-> p, inputs |-> inputs, jobId |-> jobCounter + 1])
-       /\ busyCount' = IncrBusy(toMark)
-       /\ UNCHANGED <<running, done>>
-
 ---------------------------------------------------------------------------
 (* Specification *)
 
@@ -233,7 +237,6 @@ Next ==
     \/ \E job \in running : RetireAndSend(job)
     \/ \E job \in running : CompleteJob(job)
     \/ \E flow \in Flows : FlowGoesIdle(flow)
-    \/ \E p \in Procs : CreateJobAfterIdle(p)
 
 Spec == Init /\ [][Next]_vars
 

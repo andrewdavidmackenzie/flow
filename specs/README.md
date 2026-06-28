@@ -150,7 +150,10 @@ The trace shows you exactly which sequence of actions leads to the bug.
 ## Files
 
 - `FlowRuntimeBase.tla` — generic runtime semantics (CONSTANTS for topology)
-- `TwoFuncsOneFlow.tla` / `.cfg` — hand-written scenario (2 processes, 1 flow)
+- `TwoFuncsOneFlow.tla` / `.cfg` — scenario: 2 processes, 1 flow (internal send)
+- `InternalExternal.tla` / `.cfg` — scenario: mixed internal and external sends to same input
+- `MixedQueue.tla` / `.cfg` — scenario: internal self-feedback and external send with bounded execution
+- `ExternalGating.tla` / `.cfg` — scenario: external send gating across flow boundaries
 - `README.md` — this file
 
 ## Installing TLA+ Tools
@@ -177,7 +180,7 @@ as it explores states.
 ## Phases
 
 1. **Core state machine** — process states, input queues, job lifecycle ✅
-2. **Input queue ordering** — internal vs external values
-3. **Flow hierarchy** — busy/idle detection, ancestor tracking
-4. **External send gating** — cross-flow sends deferred when busy
+2. **Input queue ordering** — internal vs external values ✅
+3. **Flow hierarchy** — busy/idle detection, ancestor tracking ✅
+4. **External send gating** — cross-flow sends deferred when busy ✅
 5. **Initializer semantics** — Once/Always, function vs flow level
