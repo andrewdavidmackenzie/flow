@@ -156,6 +156,22 @@ else
 			fi; \
 		fi; \
 	done; \
+	for tla in specs/*.tla; do \
+		case "$$tla" in *FlowRuntimeBase*) continue ;; esac; \
+		name=$$(basename "$$tla" .tla); \
+		cfg="specs/$$name.cfg"; \
+		if [ -f "$$cfg" ]; then \
+			printf "  %-30s" "specs/$$name"; \
+			if $(TLC_CMD) -metadir "/tmp/tlc-specs-$$name" -config "$$cfg" "$$tla" > /tmp/tlc-specs-$$name.log 2>&1; then \
+				states=$$(grep "distinct states" /tmp/tlc-specs-$$name.log | grep -o "[0-9]* distinct" | head -1); \
+				echo "OK ($$states states)"; \
+			else \
+				echo "FAILED"; \
+				tail -5 /tmp/tlc-specs-$$name.log; \
+				FAIL=1; \
+			fi; \
+		fi; \
+	done; \
 	if [ $$FAIL -eq 1 ]; then echo "TLA+ verification failed"; exit 1; fi
 	@echo "All TLA+ specs verified."
 endif
