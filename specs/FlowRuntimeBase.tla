@@ -57,6 +57,14 @@ AncestorsOf(p) ==
 ConnsFrom(p) == {c \in Conns : c.src = p}
 ProcsInFlow(flow) == {p \in Procs : Parent[p] = flow}
 
+CanRunOnInternal(p) ==
+    /\ p \notin done
+    /\ InputsOf[p] # {}
+    /\ \A i \in InputsOf[p] : intCount[p][i] > 0
+
+HasRunnableOnInternal(flow) ==
+    \E p \in ProcsInFlow(flow) : CanRunOnInternal(p)
+
 IncrBusy(ids) ==
     [id \in (DOMAIN busyCount \union ids) |->
       IF id \in DOMAIN busyCount
@@ -166,6 +174,22 @@ CompleteJob(job) ==
     /\ busyCount' = DecrBusy({job.func} \union AncestorsOf(job.func))
     /\ UNCHANGED <<inputQ, intCount, ready, jobCounter>>
 
+(*
+ * When a flow becomes idle, the runtime first checks has_runnable_on_internal.
+ * If any function can still run on internal data, CreateJob/CreateJobAfterIdle
+ * handles that — those actions fire for any process where CanRun is true.
+ *
+ * FlowGoesIdle fires only when NO function can run on internal data alone.
+ * It clears all internal values, matching clear_flow_internal_inputs.
+ *
+ * NOTE: The runtime gates this with ~has_runnable_on_internal(flow) —
+ * modeled here but the guard requires CompleteJob to work correctly
+ * (otherwise self-loops create unbounded state spaces in TLC).
+ * The guard is deferred until CompleteJob semantics are refined.
+ *
+ * The runtime also re-applies Always initializers via
+ * run_flow_initializers — deferred to Phase 5 (initializer semantics).
+ *)
 FlowGoesIdle(flow) ==
     /\ flow \in Flows
     /\ ~IsBusy(flow)
