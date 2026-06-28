@@ -117,12 +117,13 @@ Init ==
  * whenever its guard is satisfied.  Adding the gating guard here is
  * equivalent to gating inline in RetireAndSend: after RetireAndSend
  * queues values, CreateJob can only fire for a destination process if
- * the parent flow is idle OR the process has internal values.
+ * the parent flow is idle OR the process can run entirely on internal
+ * values (CanRunOnInternal — all inputs have intCount > 0).
  *)
 CreateJob(p) ==
     /\ CanRun(p)
     /\ \/ ~IsBusy(Parent[p])
-       \/ \E i \in InputsOf[p] : intCount[p][i] > 0
+       \/ CanRunOnInternal(p)
     /\ LET inputs == [i \in InputsOf[p] |-> Head(inputQ[p][i])]
            toMark == {p} \union AncestorsOf(p)
        IN
@@ -198,8 +199,8 @@ CompleteJob(job) ==
 (*
  * When a flow becomes idle, the runtime first checks has_runnable_on_internal.
  * If any function can still run on internal data, CreateJob handles that —
- * its intCount guard allows firing for processes with internal values even
- * while the parent flow is busy (matching the runtime's internal-send bypass).
+ * its CanRunOnInternal guard allows firing for processes whose inputs are
+ * all internal, even while the parent flow is busy.
  *
  * FlowGoesIdle fires only when NO function can run on internal data alone.
  * It clears all internal values, matching clear_flow_internal_inputs.
