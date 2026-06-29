@@ -155,6 +155,9 @@ The trace shows you exactly which sequence of actions leads to the bug.
 - `MixedQueue.tla` / `.cfg` — scenario: internal self-feedback and external send with bounded execution
 - `ExternalGating.tla` / `.cfg` — scenario: external send gating across flow boundaries
 - `AlwaysInit.tla` / `.cfg` — scenario: function Always re-initialization after execution
+- `FlowAlwaysInit.tla` / `.cfg` — scenario: flow-level Always re-initialization via FlowGoesIdle
+- `NestedFlows.tla` / `.cfg` — scenario: ancestor busy-count propagation across nested flows
+- `CompleteJobStops.tla` / `.cfg` — scenario: CompleteJob prevents re-execution despite Always
 - `README.md` — this file
 
 ## Installing TLA+ Tools

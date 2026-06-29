@@ -67,6 +67,17 @@ CanRunOnInternal(p) ==
 HasRunnableOnInternal(flow) ==
     \E p \in ProcsInFlow(flow) : CanRunOnInternal(p)
 
+(* Busy-count helpers.
+ *
+ * busyCount is a function from IDs to positive integers.
+ * Presence in the domain means "busy"; the value is a reference count.
+ *
+ * IncrBusy({a, c}) on {a: 2, b: 1} -> {a: 3, b: 1, c: 1}
+ *   Existing entries incremented, new entries start at 1.
+ *
+ * DecrBusy({a, b}) on {a: 2, b: 1} -> {a: 1}
+ *   Entries reaching zero are removed (b was 1, decremented to 0).
+ *)
 IncrBusy(ids) ==
     [id \in (DOMAIN busyCount \union ids) |->
       IF id \in DOMAIN busyCount
@@ -135,8 +146,7 @@ CreateJob(p) ==
     /\ CanRun(p)
     /\ \/ ~IsBusy(Parent[p])
        \/ CanRunOnInternal(p)
-    /\ LET inputs == [i \in InputsOf[p] |-> Head(inputQ[p][i])]
-           toMark == {p} \union AncestorsOf(p)
+    /\ LET toMark == {p} \union AncestorsOf(p)
        IN
        /\ inputQ' = [inputQ EXCEPT ![p] =
             [i \in InputsOf[p] |-> Tail(inputQ[p][i])]]
@@ -145,7 +155,7 @@ CreateJob(p) ==
               IF intCount[p][i] > 0 THEN intCount[p][i] - 1 ELSE 0]]
        /\ jobCounter' = jobCounter + 1
        /\ ready' = Append(ready,
-            [func |-> p, inputs |-> inputs, jobId |-> jobCounter + 1])
+            [func |-> p, jobId |-> jobCounter + 1])
        /\ busyCount' = IncrBusy(toMark)
        /\ UNCHANGED <<running, done>>
 
@@ -177,22 +187,27 @@ Dispatch ==
  * After sending output values, it re-applies function-level Always
  * initializers to the retiring function's inputs (run_state.rs:471).
  * Always values use send() (external append), not send_internal().
+ *
+ * In the runtime, retire_result sequences: send_a_value (with gating
+ * checks) -> init_inputs -> unblock_flows (busy count decrement).
+ * Here, sends and busy-count decrement happen atomically.  This is
+ * equivalent because the coordinator is single-threaded — no other
+ * job can be dispatched or retired between those steps, so the
+ * intermediate state is never observable.
  *)
 RetireAndSend(job) ==
     /\ job \in running
     /\ running' = running \ {job}
-    /\ LET outVal == IF InputsOf[job.func] = {} THEN 1
-                     ELSE job.inputs[CHOOSE i \in InputsOf[job.func] : TRUE]
-           conns == ConnsFrom(job.func)
+    /\ LET conns == ConnsFrom(job.func)
            toDecr == {job.func} \union AncestorsOf(job.func)
            sentQ == [p \in Procs |->
             [i \in InputsOf[p] |->
               IF \E c \in conns : c.dst = p /\ c.dstInput = i
               THEN IF (\E c \in conns : c.dst = p /\ c.dstInput = i /\ c.internal)
                    THEN SubSeq(inputQ[p][i], 1, intCount[p][i])
-                        \o <<outVal>>
+                        \o <<1>>
                         \o SubSeq(inputQ[p][i], intCount[p][i] + 1, Len(inputQ[p][i]))
-                   ELSE Append(inputQ[p][i], outVal)
+                   ELSE Append(inputQ[p][i], 1)
               ELSE inputQ[p][i]
             ]]
        IN
@@ -220,29 +235,28 @@ CompleteJob(job) ==
     /\ UNCHANGED <<inputQ, intCount, ready, jobCounter>>
 
 (*
- * When a flow becomes idle, the runtime first checks has_runnable_on_internal.
- * If any function can still run on internal data, CreateJob handles that —
- * its CanRunOnInternal guard allows firing for processes whose inputs are
- * all internal, even while the parent flow is busy.
+ * Flow idle lifecycle (matches unblock_flows in run_state.rs:755-796):
  *
- * FlowGoesIdle fires only when NO function can run on internal data alone.
- * It clears all internal values (clear_flow_internal_inputs) and re-applies
- * flow-level Always initializers (run_flow_initializers, run_state.rs:857).
- * Flow Always values use send() (external append).
+ * 1. While any function can run consuming ONLY internal values,
+ *    CreateJob fires (its CanRunOnInternal guard allows this even
+ *    while the parent flow is busy).  The flow stays busy.
  *
- * The guard requires intCount > 0 so the action is self-disabling (clearing
- * intCount makes the guard false, preventing infinite re-firing).  Flow
- * Always re-application piggybacks on internal-value clearing — this covers
- * the common case where internal sends occur during flow execution.
+ * 2. When no function can run on internal values alone, the flow
+ *    has completed its cycle.  FlowGoesIdle fires:
+ *    - Clears residual internal values (clear_flow_internal_inputs)
+ *    - Re-applies flow-level Always initializers (run_flow_initializers)
  *
- * NOTE: The runtime gates this with ~has_runnable_on_internal(flow) —
- * modeled here but the guard requires CompleteJob to work correctly
- * (otherwise self-loops create unbounded state spaces in TLC).
- * The guard is deferred until CompleteJob semantics are refined.
+ * 3. Functions may then run on external values or re-applied
+ *    initializers via CreateJob, restarting the flow.
+ *
+ * The ~HasRunnableOnInternal guard matches the runtime's
+ * has_runnable_on_internal check.  The intCount > 0 guard ensures
+ * the action is self-disabling (prevents infinite re-firing).
  *)
 FlowGoesIdle(flow) ==
     /\ flow \in Flows
     /\ ~IsBusy(flow)
+    /\ ~HasRunnableOnInternal(flow)
     /\ \E p \in ProcsInFlow(flow) : \E i \in InputsOf[p] : intCount[p][i] > 0
     /\ inputQ' = [p \in Procs |->
          [i \in InputsOf[p] |->

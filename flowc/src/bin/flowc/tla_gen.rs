@@ -41,6 +41,8 @@ pub fn generate_tla(manifest_path: &Path) -> Result<(), String> {
         &fd.parent_entries,
         &fd.init_once,
         &fd.init_always,
+        &fd.flow_init_once,
+        &fd.flow_init_always,
     );
 
     let dir = manifest_path
@@ -52,7 +54,7 @@ pub fn generate_tla(manifest_path: &Path) -> Result<(), String> {
     fs::write(&tla_path, tla).map_err(|e| format!("Cannot write .tla: {e}"))?;
     fs::write(
         &cfg_path,
-        "SPECIFICATION Spec\n\nINVARIANTS\n    TypeOK\n    CompletedNeverRuns\n    InternalCountBound\n    AncestorConsistency\n",
+        "SPECIFICATION Spec\n\nCONSTRAINT\n    StateConstraint\n\nINVARIANTS\n    TypeOK\n    InternalCountBound\n    AncestorConsistency\n",
     )
     .map_err(|e| format!("Cannot write .cfg: {e}"))?;
 
@@ -70,6 +72,8 @@ struct FuncData {
     parent_entries: Vec<String>,
     init_once: Vec<String>,
     init_always: Vec<String>,
+    flow_init_once: Vec<String>,
+    flow_init_always: Vec<String>,
 }
 
 fn extract_functions(functions: &serde_json::Map<String, Value>) -> Result<FuncData, String> {
@@ -79,6 +83,8 @@ fn extract_functions(functions: &serde_json::Map<String, Value>) -> Result<FuncD
     let mut parent_entries = Vec::new();
     let mut init_once = Vec::new();
     let mut init_always = Vec::new();
+    let mut flow_init_once = Vec::new();
+    let mut flow_init_always = Vec::new();
 
     for (fid_str, func) in functions {
         let fid = fid_str.as_str();
@@ -98,26 +104,40 @@ fn extract_functions(functions: &serde_json::Map<String, Value>) -> Result<FuncD
 
         let mut once_parts = Vec::new();
         let mut always_parts = Vec::new();
+        let mut flow_once_parts = Vec::new();
+        let mut flow_always_parts = Vec::new();
         for (idx, input) in inputs.iter().enumerate() {
-            let once_val = extract_initializer(input, "initializer", "once")
-                .or_else(|| extract_initializer(input, "flow_initializer", "once"));
-            let always_val = extract_initializer(input, "initializer", "always")
-                .or_else(|| extract_initializer(input, "flow_initializer", "always"));
+            let func_once = extract_initializer(input, "initializer", "once");
+            let func_always = extract_initializer(input, "initializer", "always");
+            let fl_once = extract_initializer(input, "flow_initializer", "once");
+            let fl_always = extract_initializer(input, "flow_initializer", "always");
             once_parts.push(format!(
                 "{idx} :> {}",
-                once_val.as_deref().unwrap_or("NoInit")
+                func_once.as_deref().unwrap_or("NoInit")
             ));
             always_parts.push(format!(
                 "{idx} :> {}",
-                always_val.as_deref().unwrap_or("NoInit")
+                func_always.as_deref().unwrap_or("NoInit")
+            ));
+            flow_once_parts.push(format!(
+                "{idx} :> {}",
+                fl_once.as_deref().unwrap_or("NoInit")
+            ));
+            flow_always_parts.push(format!(
+                "{idx} :> {}",
+                fl_always.as_deref().unwrap_or("NoInit")
             ));
         }
         if once_parts.is_empty() {
             init_once.push(format!("{fid} :> <<>>"));
             init_always.push(format!("{fid} :> <<>>"));
+            flow_init_once.push(format!("{fid} :> <<>>"));
+            flow_init_always.push(format!("{fid} :> <<>>"));
         } else {
             init_once.push(format!("{fid} :> ({})", once_parts.join(" @@ ")));
             init_always.push(format!("{fid} :> ({})", always_parts.join(" @@ ")));
+            flow_init_once.push(format!("{fid} :> ({})", flow_once_parts.join(" @@ ")));
+            flow_init_always.push(format!("{fid} :> ({})", flow_always_parts.join(" @@ ")));
         }
 
         if let Some(ocs) = func.get("output_connections").and_then(Value::as_array) {
@@ -146,6 +166,8 @@ fn extract_functions(functions: &serde_json::Map<String, Value>) -> Result<FuncD
         parent_entries,
         init_once,
         init_always,
+        flow_init_once,
+        flow_init_always,
     })
 }
 
@@ -191,6 +213,8 @@ fn format_tla(
     parent_entries: &[String],
     init_once: &[String],
     init_always: &[String],
+    flow_init_once: &[String],
+    flow_init_always: &[String],
 ) -> String {
     let procs_str = procs.join(", ");
     let flows_str = flow_ids.join(", ");
@@ -214,6 +238,8 @@ FR == INSTANCE FlowRuntimeBase WITH
     Parent <- {parent},
     InitOnce <- {init_once},
     InitAlways <- {init_always},
+    FlowInitOnce <- {flow_init_once},
+    FlowInitAlways <- {flow_init_always},
     NoParent <- NoParent,
     NoInit <- NoInit,
     inputQ <- inputQ,
@@ -229,9 +255,9 @@ Next == FR!Next
 Spec == FR!Spec
 
 TypeOK == FR!TypeOK
-CompletedNeverRuns == FR!CompletedNeverRuns
 InternalCountBound == FR!InternalCountBound
 AncestorConsistency == FR!AncestorConsistency
+StateConstraint == jobCounter <= 8
 
 ==========================================================================
 ",
@@ -243,6 +269,8 @@ AncestorConsistency == FR!AncestorConsistency
         parent = parent_entries.join(" @@ "),
         init_once = init_once.join(" @@ "),
         init_always = init_always.join(" @@ "),
+        flow_init_once = flow_init_once.join(" @@ "),
+        flow_init_always = flow_init_always.join(" @@ "),
     )
 }
 
@@ -423,10 +451,15 @@ mod test {
         assert!(tla_content.contains("Flows <- {0}"));
         assert!(tla_content.contains("INSTANCE FlowRuntimeBase"));
         assert!(tla_content.contains("internal |-> TRUE"));
+        assert!(tla_content.contains("FlowInitOnce <-"));
+        assert!(tla_content.contains("FlowInitAlways <-"));
 
         let cfg_content = std::fs::read_to_string(&cfg_path).unwrap();
         assert!(cfg_content.contains("SPECIFICATION Spec"));
         assert!(cfg_content.contains("TypeOK"));
+        assert!(!cfg_content.contains("CompletedNeverRuns"));
+        assert!(cfg_content.contains("InternalCountBound"));
+        assert!(cfg_content.contains("AncestorConsistency"));
     }
 
     #[test]
