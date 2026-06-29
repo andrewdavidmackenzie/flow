@@ -220,29 +220,28 @@ CompleteJob(job) ==
     /\ UNCHANGED <<inputQ, intCount, ready, jobCounter>>
 
 (*
- * When a flow becomes idle, the runtime first checks has_runnable_on_internal.
- * If any function can still run on internal data, CreateJob handles that —
- * its CanRunOnInternal guard allows firing for processes whose inputs are
- * all internal, even while the parent flow is busy.
+ * Flow idle lifecycle (matches unblock_flows in run_state.rs:755-796):
  *
- * FlowGoesIdle fires only when NO function can run on internal data alone.
- * It clears all internal values (clear_flow_internal_inputs) and re-applies
- * flow-level Always initializers (run_flow_initializers, run_state.rs:857).
- * Flow Always values use send() (external append).
+ * 1. While any function can run consuming ONLY internal values,
+ *    CreateJob fires (its CanRunOnInternal guard allows this even
+ *    while the parent flow is busy).  The flow stays busy.
  *
- * The guard requires intCount > 0 so the action is self-disabling (clearing
- * intCount makes the guard false, preventing infinite re-firing).  Flow
- * Always re-application piggybacks on internal-value clearing — this covers
- * the common case where internal sends occur during flow execution.
+ * 2. When no function can run on internal values alone, the flow
+ *    has completed its cycle.  FlowGoesIdle fires:
+ *    - Clears residual internal values (clear_flow_internal_inputs)
+ *    - Re-applies flow-level Always initializers (run_flow_initializers)
  *
- * NOTE: The runtime gates this with ~has_runnable_on_internal(flow) —
- * modeled here but the guard requires CompleteJob to work correctly
- * (otherwise self-loops create unbounded state spaces in TLC).
- * The guard is deferred until CompleteJob semantics are refined.
+ * 3. Functions may then run on external values or re-applied
+ *    initializers via CreateJob, restarting the flow.
+ *
+ * The ~HasRunnableOnInternal guard matches the runtime's
+ * has_runnable_on_internal check.  The intCount > 0 guard ensures
+ * the action is self-disabling (prevents infinite re-firing).
  *)
 FlowGoesIdle(flow) ==
     /\ flow \in Flows
     /\ ~IsBusy(flow)
+    /\ ~HasRunnableOnInternal(flow)
     /\ \E p \in ProcsInFlow(flow) : \E i \in InputsOf[p] : intCount[p][i] > 0
     /\ inputQ' = [p \in Procs |->
          [i \in InputsOf[p] |->
