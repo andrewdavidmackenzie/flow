@@ -818,7 +818,7 @@ impl RunState {
                         .manifest
                         .functions()
                         .get(id)
-                        .is_some_and(RuntimeFunction::can_run)
+                        .is_some_and(RuntimeFunction::can_run_on_internal)
             })
             .collect();
         for func_id in runnable {
