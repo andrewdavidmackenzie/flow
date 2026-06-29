@@ -23,8 +23,10 @@ CONSTANTS
     InputsOf,       \* [proc -> set of input indices]
     Conns,          \* Set of [src, dst, dstInput, internal] records
     Parent,         \* [proc_or_flow -> parent flow ID or NoParent]
-    InitOnce,       \* [proc -> [input -> value or NoInit]]
-    InitAlways,     \* [proc -> [input -> value or NoInit]]
+    InitOnce,       \* [proc -> [input -> value or NoInit]] (function level)
+    InitAlways,     \* [proc -> [input -> value or NoInit]] (function level)
+    FlowInitOnce,   \* [proc -> [input -> value or NoInit]] (flow level)
+    FlowInitAlways, \* [proc -> [input -> value or NoInit]] (flow level)
     NoParent,       \* Sentinel for "no parent flow" (root)
     NoInit          \* Sentinel for "no initializer" (distinct from any value)
 
@@ -81,13 +83,22 @@ DecrBusy(ids) ==
     ]
 
 ---------------------------------------------------------------------------
-(* Initial state *)
+(*
+ * Initial state
+ *
+ * Initializer precedence matches input.init(true, false):
+ * function Once > function Always > flow Once > flow Always.
+ * Function initializers take absolute priority over flow initializers
+ * (input.rs:239 — second match block only runs if first didn't match).
+ *)
 
 Init ==
     /\ inputQ = [p \in Procs |->
          [i \in InputsOf[p] |->
            IF InitOnce[p][i] # NoInit THEN <<InitOnce[p][i]>>
            ELSE IF InitAlways[p][i] # NoInit THEN <<InitAlways[p][i]>>
+           ELSE IF FlowInitOnce[p][i] # NoInit THEN <<FlowInitOnce[p][i]>>
+           ELSE IF FlowInitAlways[p][i] # NoInit THEN <<FlowInitAlways[p][i]>>
            ELSE <<>>
          ]]
     /\ intCount = [p \in Procs |-> [i \in InputsOf[p] |-> 0]]
@@ -161,6 +172,12 @@ Dispatch ==
  * FlowGoesIdle clears all internal values while preserving external.
  *)
 
+(*
+ * RetireAndSend models the function_can_run_again=true path in the runtime.
+ * After sending output values, it re-applies function-level Always
+ * initializers to the retiring function's inputs (run_state.rs:471).
+ * Always values use send() (external append), not send_internal().
+ *)
 RetireAndSend(job) ==
     /\ job \in running
     /\ running' = running \ {job}
@@ -168,8 +185,7 @@ RetireAndSend(job) ==
                      ELSE job.inputs[CHOOSE i \in InputsOf[job.func] : TRUE]
            conns == ConnsFrom(job.func)
            toDecr == {job.func} \union AncestorsOf(job.func)
-       IN
-       /\ inputQ' = [p \in Procs |->
+           sentQ == [p \in Procs |->
             [i \in InputsOf[p] |->
               IF \E c \in conns : c.dst = p /\ c.dstInput = i
               THEN IF (\E c \in conns : c.dst = p /\ c.dstInput = i /\ c.internal)
@@ -178,6 +194,13 @@ RetireAndSend(job) ==
                         \o SubSeq(inputQ[p][i], intCount[p][i] + 1, Len(inputQ[p][i]))
                    ELSE Append(inputQ[p][i], outVal)
               ELSE inputQ[p][i]
+            ]]
+       IN
+       /\ inputQ' = [p \in Procs |->
+            [i \in InputsOf[p] |->
+              IF p = job.func /\ InitAlways[p][i] # NoInit
+              THEN Append(sentQ[p][i], InitAlways[p][i])
+              ELSE sentQ[p][i]
             ]]
        /\ intCount' = [p \in Procs |->
             [i \in InputsOf[p] |->
@@ -203,24 +226,28 @@ CompleteJob(job) ==
  * all internal, even while the parent flow is busy.
  *
  * FlowGoesIdle fires only when NO function can run on internal data alone.
- * It clears all internal values, matching clear_flow_internal_inputs.
+ * It clears all internal values (clear_flow_internal_inputs) and re-applies
+ * flow-level Always initializers (run_flow_initializers, run_state.rs:857).
+ * Flow Always values use send() (external append).
  *
  * NOTE: The runtime gates this with ~has_runnable_on_internal(flow) —
  * modeled here but the guard requires CompleteJob to work correctly
  * (otherwise self-loops create unbounded state spaces in TLC).
  * The guard is deferred until CompleteJob semantics are refined.
- *
- * The runtime also re-applies Always initializers via
- * run_flow_initializers — deferred to Phase 5 (initializer semantics).
  *)
 FlowGoesIdle(flow) ==
     /\ flow \in Flows
     /\ ~IsBusy(flow)
-    /\ \E p \in ProcsInFlow(flow) : \E i \in InputsOf[p] : intCount[p][i] > 0
+    /\ \/ \E p \in ProcsInFlow(flow) : \E i \in InputsOf[p] : intCount[p][i] > 0
+       \/ \E p \in ProcsInFlow(flow) : p \notin done
+            /\ \E i \in InputsOf[p] : FlowInitAlways[p][i] # NoInit
     /\ inputQ' = [p \in Procs |->
          [i \in InputsOf[p] |->
            IF Parent[p] = flow
-           THEN SubSeq(inputQ[p][i], intCount[p][i] + 1, Len(inputQ[p][i]))
+           THEN LET cleared == SubSeq(inputQ[p][i], intCount[p][i] + 1, Len(inputQ[p][i]))
+                IN IF p \notin done /\ FlowInitAlways[p][i] # NoInit
+                   THEN Append(cleared, FlowInitAlways[p][i])
+                   ELSE cleared
            ELSE inputQ[p][i]
          ]]
     /\ intCount' = [p \in Procs |->

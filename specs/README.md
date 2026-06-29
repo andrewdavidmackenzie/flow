@@ -154,6 +154,7 @@ The trace shows you exactly which sequence of actions leads to the bug.
 - `InternalExternal.tla` / `.cfg` — scenario: mixed internal and external sends to same input
 - `MixedQueue.tla` / `.cfg` — scenario: internal self-feedback and external send with bounded execution
 - `ExternalGating.tla` / `.cfg` — scenario: external send gating across flow boundaries
+- `AlwaysInit.tla` / `.cfg` — scenario: function Always re-initialization after execution
 - `README.md` — this file
 
 ## Installing TLA+ Tools
@@ -183,4 +184,4 @@ as it explores states.
 2. **Input queue ordering** — internal vs external values ✅
 3. **Flow hierarchy** — busy/idle detection, ancestor tracking ✅
 4. **External send gating** — cross-flow sends deferred when busy ✅
-5. **Initializer semantics** — Once/Always, function vs flow level
+5. **Initializer semantics** — Once/Always, function vs flow level ✅

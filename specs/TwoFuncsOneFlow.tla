@@ -20,6 +20,8 @@ FR == INSTANCE FlowRuntimeBase WITH
     Parent <- 1 :> 10 @@ 2 :> 10 @@ 10 :> NoParent,
     InitOnce <- 1 :> (0 :> 1 @@ 1 :> 2) @@ 2 :> (0 :> NoInit),
     InitAlways <- 1 :> (0 :> NoInit @@ 1 :> NoInit) @@ 2 :> (0 :> NoInit),
+    FlowInitOnce <- 1 :> (0 :> NoInit @@ 1 :> NoInit) @@ 2 :> (0 :> NoInit),
+    FlowInitAlways <- 1 :> (0 :> NoInit @@ 1 :> NoInit) @@ 2 :> (0 :> NoInit),
     NoParent <- NoParent,
     NoInit <- NoInit,
     inputQ <- inputQ,
