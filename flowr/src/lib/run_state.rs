@@ -745,7 +745,28 @@ impl RunState {
 
     // Check if ancestor flows have gone idle and run flow initializers if so
     #[allow(unused_variables, unused_assignments, unused_mut)]
+    /// After a job completes, decrement busy counts and check if any
+    /// ancestor flow has gone idle.  Matches the spec's `DecrBusy` +
+    /// `FlowGoesIdle` sequence.
     fn unblock_flows(
+        &mut self,
+        job: &Job,
+        #[cfg(feature = "debugger")] debugger: &mut Debugger,
+    ) -> Result<(bool, bool)> {
+        self.remove_from_busy(job.process_id, job.parent_id);
+        self.handle_idle_flows(
+            job,
+            #[cfg(feature = "debugger")]
+            debugger,
+        )
+    }
+
+    /// Check each ancestor flow from innermost to root.  For each newly
+    /// idle flow, either create jobs for functions runnable on internal
+    /// data (matching the spec's `CreateJob` with `CanRunOnInternal`), or
+    /// clear internals and re-apply flow initializers (`FlowGoesIdle`).
+    #[allow(unused_variables, unused_assignments, unused_mut)]
+    fn handle_idle_flows(
         &mut self,
         job: &Job,
         #[cfg(feature = "debugger")] debugger: &mut Debugger,
@@ -753,37 +774,14 @@ impl RunState {
         let mut display_next_output = false;
         let mut restart = false;
 
-        self.remove_from_busy(job.process_id, job.parent_id);
-
-        // Check each ancestor flow, from innermost to root
         for ancestor_id in self.ancestors(job.parent_id) {
             if self.busy_count.contains_key(&ancestor_id) {
                 continue;
             }
 
-            // No functions busy — check if any function can still run on internal data
             if self.has_runnable_on_internal(ancestor_id) {
-                let runnable: Vec<_> = self
-                    .functions_by_flow
-                    .get(&ancestor_id)
-                    .cloned()
-                    .unwrap_or_default()
-                    .into_iter()
-                    .filter(|id| {
-                        !self.completed.contains(id)
-                            && self
-                                .submission
-                                .manifest
-                                .functions()
-                                .get(id)
-                                .is_some_and(RuntimeFunction::can_run)
-                    })
-                    .collect();
-                for func_id in runnable {
-                    self.create_jobs(func_id, ancestor_id)?;
-                }
+                self.create_jobs_on_internal(ancestor_id)?;
             } else {
-                // Flow has truly run to completion
                 debug!(
                     "Job #{}:\tFlow #{} is now idle",
                     job.payload.job_id, ancestor_id
@@ -801,6 +799,31 @@ impl RunState {
         }
 
         Ok((display_next_output, restart))
+    }
+
+    /// Create jobs for all runnable functions in a flow that can run
+    /// on internal data.
+    fn create_jobs_on_internal(&mut self, flow_id: usize) -> Result<()> {
+        let runnable: Vec<_> = self
+            .functions_by_flow
+            .get(&flow_id)
+            .cloned()
+            .unwrap_or_default()
+            .into_iter()
+            .filter(|id| {
+                !self.completed.contains(id)
+                    && self
+                        .submission
+                        .manifest
+                        .functions()
+                        .get(id)
+                        .is_some_and(RuntimeFunction::can_run)
+            })
+            .collect();
+        for func_id in runnable {
+            self.create_jobs(func_id, flow_id)?;
+        }
+        Ok(())
     }
 
     // Decrement busy_count for the function and all its ancestor flows
