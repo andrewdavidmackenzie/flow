@@ -177,6 +177,13 @@ Dispatch ==
  * After sending output values, it re-applies function-level Always
  * initializers to the retiring function's inputs (run_state.rs:471).
  * Always values use send() (external append), not send_internal().
+ *
+ * In the runtime, retire_result sequences: send_a_value (with gating
+ * checks) -> init_inputs -> unblock_flows (busy count decrement).
+ * Here, sends and busy-count decrement happen atomically.  This is
+ * equivalent because the coordinator is single-threaded — no other
+ * job can be dispatched or retired between those steps, so the
+ * intermediate state is never observable.
  *)
 RetireAndSend(job) ==
     /\ job \in running
