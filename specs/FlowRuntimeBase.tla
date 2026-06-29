@@ -67,6 +67,17 @@ CanRunOnInternal(p) ==
 HasRunnableOnInternal(flow) ==
     \E p \in ProcsInFlow(flow) : CanRunOnInternal(p)
 
+(* Busy-count helpers.
+ *
+ * busyCount is a function from IDs to positive integers.
+ * Presence in the domain means "busy"; the value is a reference count.
+ *
+ * IncrBusy({a, c}) on {a: 2, b: 1} -> {a: 3, b: 1, c: 1}
+ *   Existing entries incremented, new entries start at 1.
+ *
+ * DecrBusy({a, b}) on {a: 2, b: 1} -> {a: 1}
+ *   Entries reaching zero are removed (b was 1, decremented to 0).
+ *)
 IncrBusy(ids) ==
     [id \in (DOMAIN busyCount \union ids) |->
       IF id \in DOMAIN busyCount
@@ -135,8 +146,7 @@ CreateJob(p) ==
     /\ CanRun(p)
     /\ \/ ~IsBusy(Parent[p])
        \/ CanRunOnInternal(p)
-    /\ LET inputs == [i \in InputsOf[p] |-> Head(inputQ[p][i])]
-           toMark == {p} \union AncestorsOf(p)
+    /\ LET toMark == {p} \union AncestorsOf(p)
        IN
        /\ inputQ' = [inputQ EXCEPT ![p] =
             [i \in InputsOf[p] |-> Tail(inputQ[p][i])]]
@@ -145,7 +155,7 @@ CreateJob(p) ==
               IF intCount[p][i] > 0 THEN intCount[p][i] - 1 ELSE 0]]
        /\ jobCounter' = jobCounter + 1
        /\ ready' = Append(ready,
-            [func |-> p, inputs |-> inputs, jobId |-> jobCounter + 1])
+            [func |-> p, jobId |-> jobCounter + 1])
        /\ busyCount' = IncrBusy(toMark)
        /\ UNCHANGED <<running, done>>
 
@@ -188,18 +198,16 @@ Dispatch ==
 RetireAndSend(job) ==
     /\ job \in running
     /\ running' = running \ {job}
-    /\ LET outVal == IF InputsOf[job.func] = {} THEN 1
-                     ELSE job.inputs[CHOOSE i \in InputsOf[job.func] : TRUE]
-           conns == ConnsFrom(job.func)
+    /\ LET conns == ConnsFrom(job.func)
            toDecr == {job.func} \union AncestorsOf(job.func)
            sentQ == [p \in Procs |->
             [i \in InputsOf[p] |->
               IF \E c \in conns : c.dst = p /\ c.dstInput = i
               THEN IF (\E c \in conns : c.dst = p /\ c.dstInput = i /\ c.internal)
                    THEN SubSeq(inputQ[p][i], 1, intCount[p][i])
-                        \o <<outVal>>
+                        \o <<1>>
                         \o SubSeq(inputQ[p][i], intCount[p][i] + 1, Len(inputQ[p][i]))
-                   ELSE Append(inputQ[p][i], outVal)
+                   ELSE Append(inputQ[p][i], 1)
               ELSE inputQ[p][i]
             ]]
        IN
