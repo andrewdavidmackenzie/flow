@@ -8,6 +8,17 @@ use serde_json::{json, Value};
 use crate::model::datatype::DataType;
 use crate::model::input::InputInitializer::{Always, Once};
 use crate::model::io::IO;
+
+/// Why an input is being initialized — determines which initializers fire.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum InitReason {
+    /// First-time startup: Once + Always fire
+    Startup,
+    /// After function execution: function Always re-fires
+    AfterExecution,
+    /// Flow went idle: flow Always re-fires, pending gradual elements delivered
+    FlowIdle,
+}
 #[cfg(feature = "debugger")]
 use crate::model::name::HasName;
 #[cfg(feature = "debugger")]
@@ -213,48 +224,44 @@ impl Input {
     /// When called at start-up    it will initialize      if it's a `Once` or `Always` initializer
     /// When called after start-up it will initialize only if it's a           `Always` initializer
     #[allow(clippy::match_same_arms)]
-    pub fn init(&mut self, first_time: bool, flow_gone_idle: bool) -> bool {
-        // Deliver pending elements from a previous gradual init
-        if flow_gone_idle && !self.pending_init_elements.is_empty() {
+    pub fn init(&mut self, reason: InitReason) -> bool {
+        if reason == InitReason::FlowIdle && !self.pending_init_elements.is_empty() {
             let next = self.pending_init_elements.remove(0);
             self.send(next);
             return true;
         }
 
-        match (first_time, flow_gone_idle, &self.initializer) {
-            (true, false, Some(Once(one_time))) => {
+        // Function initializers take priority — early return prevents
+        // the flow initializer block from firing
+        match (reason, &self.initializer) {
+            (InitReason::Startup, Some(Once(one_time))) => {
                 if self.should_deliver_gradually(one_time) {
                     return self.send_one_element(&one_time.clone());
                 }
                 self.send(one_time.clone());
                 return true;
             }
-            (_, false, Some(Always(constant))) => {
+            (InitReason::Startup | InitReason::AfterExecution, Some(Always(constant))) => {
                 self.send(constant.clone());
                 return true;
             }
-            (_, _, _) => {}
+            _ => {}
         }
 
-        // Flow initializers will only be applied if a function initializer has not already been
-        // applied
-        match (first_time, flow_gone_idle, &self.flow_initializer) {
-            (true, _, Some(Once(one_time))) => {
+        // Flow initializers only apply if no function initializer matched
+        match (reason, &self.flow_initializer) {
+            (InitReason::Startup, Some(Once(one_time))) => {
                 if self.should_deliver_gradually(one_time) {
                     return self.send_one_element(&one_time.clone());
                 }
                 self.send(one_time.clone());
                 return true;
             }
-            (true, _, Some(Always(constant))) => {
+            (InitReason::Startup | InitReason::FlowIdle, Some(Always(constant))) => {
                 self.send(constant.clone());
                 return true;
             }
-            (_, true, Some(Always(constant))) => {
-                self.send(constant.clone());
-                return true;
-            }
-            (_, _, _) => {}
+            _ => {}
         }
 
         false
@@ -406,6 +413,7 @@ impl Input {
 #[cfg(test)]
 #[allow(clippy::unwrap_used, clippy::expect_used)]
 mod test {
+    use crate::model::input::InitReason;
     use crate::model::input::InputInitializer::{Always, Once};
     use serde_json::json;
     use serde_json::Value;
@@ -502,7 +510,7 @@ mod test {
     }
 
     #[test]
-    fn init_first_time_once() {
+    fn init_startup_once() {
         let mut input = Input::new(
             #[cfg(feature = "debugger")]
             "",
@@ -512,14 +520,14 @@ mod test {
             None,
         );
 
-        input.init(true, false);
+        input.init(InitReason::Startup);
 
         assert_eq!(input.take(), Some(json!(1)));
         assert!(input.is_empty());
     }
 
     #[test]
-    fn init_first_time_always() {
+    fn init_startup_always() {
         let mut input = Input::new(
             #[cfg(feature = "debugger")]
             "",
@@ -529,14 +537,14 @@ mod test {
             None,
         );
 
-        input.init(true, false);
+        input.init(InitReason::Startup);
 
         assert_eq!(input.take(), Some(json!(1)));
         assert!(input.is_empty());
     }
 
     #[test]
-    fn init_later_once() {
+    fn after_execution_once_does_not_refire() {
         let mut input = Input::new(
             #[cfg(feature = "debugger")]
             "",
@@ -546,18 +554,18 @@ mod test {
             None,
         );
 
-        input.init(true, false);
+        input.init(InitReason::Startup);
 
         assert_eq!(input.take(), Some(json!(1)));
         assert!(input.is_empty());
 
-        input.init(false, false);
+        input.init(InitReason::AfterExecution);
 
         assert!(input.is_empty());
     }
 
     #[test]
-    fn init_later_always() {
+    fn after_execution_always_refires() {
         let mut input = Input::new(
             #[cfg(feature = "debugger")]
             "",
@@ -567,12 +575,12 @@ mod test {
             None,
         );
 
-        input.init(true, false);
+        input.init(InitReason::Startup);
 
         assert_eq!(input.take(), Some(json!(1)));
         assert!(input.is_empty());
 
-        input.init(false, false);
+        input.init(InitReason::AfterExecution);
 
         assert_eq!(input.take(), Some(json!(1)));
         assert!(input.is_empty());
@@ -589,29 +597,24 @@ mod test {
             None,
         );
 
-        // First init: sends only element 0
-        input.init(true, false);
+        input.init(InitReason::Startup);
         assert_eq!(input.take(), Some(json!(1)));
         assert!(input.is_empty());
 
-        // Idle cycle: sends element 1
-        input.init(false, true);
+        input.init(InitReason::FlowIdle);
         assert_eq!(input.take(), Some(json!(2)));
         assert!(input.is_empty());
 
-        // Idle cycle: sends element 2
-        input.init(false, true);
+        input.init(InitReason::FlowIdle);
         assert_eq!(input.take(), Some(json!(3)));
         assert!(input.is_empty());
 
-        // No more elements
-        input.init(false, true);
+        input.init(InitReason::FlowIdle);
         assert!(input.is_empty());
     }
 
     #[test]
     fn non_gradual_array_on_array_input() {
-        // array/number input receiving array/number value — same order, send whole array
         let mut input = Input::new(
             #[cfg(feature = "debugger")]
             "",
@@ -621,7 +624,7 @@ mod test {
             None,
         );
 
-        input.init(true, false);
+        input.init(InitReason::Startup);
         assert_eq!(input.take(), Some(json!([1, 2, 3])));
         assert!(input.is_empty());
     }

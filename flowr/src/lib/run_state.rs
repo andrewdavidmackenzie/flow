@@ -8,6 +8,7 @@ use serde_derive::{Deserialize, Serialize};
 use serde_json::Value;
 
 use flowcore::errors::Result;
+use flowcore::model::input::InitReason;
 #[cfg(feature = "metrics")]
 use flowcore::model::metrics::Metrics;
 use flowcore::model::output_connection::OutputConnection;
@@ -468,7 +469,7 @@ impl RunState {
                     let function = self.get_mut(job.process_id).ok_or("No such function")?;
 
                     // Refill any inputs with function initializers
-                    function.init_inputs(false, false);
+                    function.init_inputs(InitReason::AfterExecution);
 
                     // NOTE: The function we are retiring may have new input sets due to sending
                     // to itself via a loopback
@@ -881,7 +882,7 @@ impl RunState {
             for id in &func_ids {
                 if !self.completed.contains(id) {
                     if let Some(f) = self.submission.manifest.get_functions().get_mut(id) {
-                        f.init_inputs(false, true);
+                        f.init_inputs(InitReason::FlowIdle);
                         if f.can_run() {
                             runnable_functions.push(*id);
                         }

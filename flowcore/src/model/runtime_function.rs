@@ -7,6 +7,7 @@ use serde_json::Value;
 use url::Url;
 
 use crate::errors::{Result, ResultExt};
+use crate::model::input::InitReason;
 use crate::model::input::Input;
 use crate::model::input::InputInitializer;
 use crate::model::output_connection::OutputConnection;
@@ -170,13 +171,13 @@ impl RuntimeFunction {
 
     /// Initialize the function to be ready to be called during flow execution
     pub fn init(&mut self) {
-        self.init_inputs(true, false);
+        self.init_inputs(InitReason::Startup);
     }
 
     /// Initialize `Inputs` that have `InputInitializers` on them
-    pub fn init_inputs(&mut self, first_time: bool, flow_gone_idle: bool) {
+    pub fn init_inputs(&mut self, reason: InitReason) {
         for (io_number, input) in &mut self.inputs.iter_mut().enumerate() {
-            if input.init(first_time, flow_gone_idle) {
+            if input.init(reason) {
                 debug!(
                     "\tInitialized Input #{}:{io_number} in Flow #{}",
                     self.process_id, self.parent_id
