@@ -230,6 +230,11 @@ CompleteJob(job) ==
  * flow-level Always initializers (run_flow_initializers, run_state.rs:857).
  * Flow Always values use send() (external append).
  *
+ * The guard requires intCount > 0 so the action is self-disabling (clearing
+ * intCount makes the guard false, preventing infinite re-firing).  Flow
+ * Always re-application piggybacks on internal-value clearing — this covers
+ * the common case where internal sends occur during flow execution.
+ *
  * NOTE: The runtime gates this with ~has_runnable_on_internal(flow) —
  * modeled here but the guard requires CompleteJob to work correctly
  * (otherwise self-loops create unbounded state spaces in TLC).
@@ -238,9 +243,7 @@ CompleteJob(job) ==
 FlowGoesIdle(flow) ==
     /\ flow \in Flows
     /\ ~IsBusy(flow)
-    /\ \/ \E p \in ProcsInFlow(flow) : \E i \in InputsOf[p] : intCount[p][i] > 0
-       \/ \E p \in ProcsInFlow(flow) : p \notin done
-            /\ \E i \in InputsOf[p] : FlowInitAlways[p][i] # NoInit
+    /\ \E p \in ProcsInFlow(flow) : \E i \in InputsOf[p] : intCount[p][i] > 0
     /\ inputQ' = [p \in Procs |->
          [i \in InputsOf[p] |->
            IF Parent[p] = flow
