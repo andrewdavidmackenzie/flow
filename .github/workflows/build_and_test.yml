@@ -249,24 +249,23 @@ jobs:
       - name: diagnose-prime-flakiness
         if: always()
         shell: bash
-        timeout-minutes: 5
+        timeout-minutes: 10
         run: |
-          echo "Running prime example 10 times to diagnose flakiness..."
+          echo "Running prime example 10 times with debug tracing..."
           mkdir -p prime-traces
           for i in $(seq 1 10); do
-            cargo test -p flowr --example prime test_prime_example 2>/dev/null || true
+            rm -f flowr/examples/prime/test.stdout flowr/examples/prime/test.stderr
+            RUST_LOG=flowrlib::run_state=debug cargo test -p flowr --example prime test_prime_example 2>/dev/null || true
             cp flowr/examples/prime/test.stdout prime-traces/stdout-$i.txt 2>/dev/null || true
+            cp flowr/examples/prime/test.stderr prime-traces/trace-$i.log 2>/dev/null || true
             LAST=$(tail -1 prime-traces/stdout-$i.txt 2>/dev/null)
             if [ "$LAST" != "[1,2,3,5,7]" ]; then
               echo "Run $i FAILED: last line = $LAST"
-              rm -f flowr/examples/prime/test.stdout flowr/examples/prime/test.stderr
-              RUST_LOG=flowrlib::run_state=debug cargo test -p flowr --example prime test_prime_example 2>/dev/null || true
-              cp flowr/examples/prime/test.stderr prime-traces/trace-$i.log 2>/dev/null || true
-              cp flowr/examples/prime/test.stdout prime-traces/stdout-$i-debug.txt 2>/dev/null || true
+              echo "--- Flow idle events from failing trace ---"
               grep -E "idle|clear|runnable|cannot run" prime-traces/trace-$i.log 2>/dev/null | tail -30
             else
               echo "Run $i passed"
-              rm -f prime-traces/stdout-$i.txt
+              rm -f prime-traces/stdout-$i.txt prime-traces/trace-$i.log
             fi
           done
 
