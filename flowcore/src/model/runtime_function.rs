@@ -312,6 +312,12 @@ impl RuntimeFunction {
         self.inputs.iter().all(Input::has_internal)
     }
 
+    /// Return diagnostic (total, internal) counts per input for logging
+    #[must_use]
+    pub fn input_counts(&self) -> Vec<(usize, usize)> {
+        self.inputs.iter().map(Input::diagnostic_counts).collect()
+    }
+
     /// Inspect the values of the `inputs` of a `RuntimeFunction`
     #[cfg(any(feature = "debugger", debug_assertions))]
     #[must_use]
