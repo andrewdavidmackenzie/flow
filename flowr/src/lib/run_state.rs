@@ -864,6 +864,7 @@ impl RunState {
                         .functions()
                         .get(id)
                         .is_some_and(RuntimeFunction::can_run_on_internal);
+                    #[cfg(feature = "debugger")]
                     if not_completed && !can_run {
                         if let Some(f) = self.submission.manifest.functions().get(id) {
                             debug!(
@@ -885,14 +886,17 @@ impl RunState {
             for id in &func_ids {
                 if !self.completed.contains(id) {
                     if let Some(f) = self.submission.manifest.get_functions().get_mut(id) {
-                        let counts = f.input_counts();
-                        let has_values = counts.iter().any(|(total, _)| *total > 0);
-                        if has_values {
-                            debug!(
-                                "\tClearing internal inputs of Function #{id} '{}' in Flow #{flow_id}: {:?}",
-                                f.name(),
-                                counts
-                            );
+                        #[cfg(feature = "debugger")]
+                        {
+                            let counts = f.input_counts();
+                            let has_values = counts.iter().any(|(total, _)| *total > 0);
+                            if has_values {
+                                debug!(
+                                    "\tClearing internal inputs of Function #{id} '{}' in Flow #{flow_id}: {:?}",
+                                    f.name(),
+                                    counts
+                                );
+                            }
                         }
                         f.clear_internal_inputs();
                     }
