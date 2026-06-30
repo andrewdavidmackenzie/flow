@@ -116,6 +116,15 @@ endif
 	cargo test
 	cargo test --examples
 
+.PHONY: example
+example: build
+	@echo "example<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<"
+ifdef EXAMPLE
+	cargo test -p flowr --example $(EXAMPLE) -- --nocapture
+else
+	cargo test --examples
+endif
+
 .PHONY: tla
 tla: build
 	@echo "tla<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<"

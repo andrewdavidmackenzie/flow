@@ -408,6 +408,12 @@ impl Input {
     pub fn has_internal(&self) -> bool {
         self.internal_count > 0
     }
+
+    /// Return counts of (total, internal) values for diagnostics
+    #[must_use]
+    pub fn diagnostic_counts(&self) -> (usize, usize) {
+        (self.received.len(), self.internal_count)
+    }
 }
 
 #[cfg(test)]

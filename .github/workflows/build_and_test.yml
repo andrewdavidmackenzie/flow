@@ -239,6 +239,39 @@ jobs:
         timeout-minutes: ${{ runner.os == 'Windows' && 20 || 15 }}
         run: cargo test --examples
 
+      - name: diagnose-prime-flakiness
+        if: always()
+        shell: bash
+        timeout-minutes: 5
+        run: |
+          echo "Running prime example 10 times to diagnose flakiness..."
+          mkdir -p prime-traces
+          for i in $(seq 1 10); do
+            cargo test -p flowr --example prime test_prime_example 2>/dev/null || true
+            cp flowr/examples/prime/test.stdout prime-traces/stdout-$i.txt 2>/dev/null || true
+            LAST=$(tail -1 prime-traces/stdout-$i.txt 2>/dev/null)
+            if [ "$LAST" != "[1,2,3,5,7]" ]; then
+              echo "Run $i FAILED: last line = $LAST"
+              rm -f flowr/examples/prime/test.stdout flowr/examples/prime/test.stderr
+              RUST_LOG=flowrlib::run_state=debug cargo test -p flowr --example prime test_prime_example 2>/dev/null || true
+              cp flowr/examples/prime/test.stderr prime-traces/trace-$i.log 2>/dev/null || true
+              cp flowr/examples/prime/test.stdout prime-traces/stdout-$i-debug.txt 2>/dev/null || true
+              grep -E "idle|clear|runnable|cannot run" prime-traces/trace-$i.log 2>/dev/null | tail -30
+            else
+              echo "Run $i passed"
+              rm -f prime-traces/stdout-$i.txt
+            fi
+          done
+
+      - name: upload-prime-traces
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: prime-traces-${{ matrix.os }}
+          path: prime-traces/
+          retention-days: 7
+          if-no-files-found: ignore
+
       - name: UploadCoverage
         if: runner.os != 'Windows'
         run: |
