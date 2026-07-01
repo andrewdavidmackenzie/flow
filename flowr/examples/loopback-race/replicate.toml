@@ -1,0 +1,85 @@
+flow = "replicate"
+
+# Mirrors the composites sub-flow structure from prime.
+# A sequence generates N values (like divisors).
+# For each value, we replicate 'value' using the make-limit pattern.
+# An inner sequence sub-flow (like composite-sequence) consumes the result.
+# The fan-out from the outer sequence to multiple destinations creates
+# scheduling variability that can trigger the loopback-clearing race.
+
+[[input]]
+name = "value"
+type = "number"
+
+[[input]]
+name = "count"
+type = "number"
+
+[[output]]
+name = "result"
+type = "number"
+
+# Outer sequence generates 'count' numbers (like divisors in composites)
+[[process]]
+alias = "triggers"
+source = "lib://flowstdlib/math/sequence"
+input.start = {once = 1}
+input.step = {once = 1}
+[[connection]]
+from = "input/count"
+to = "triggers/limit"
+
+# Fan-out: triggers/number goes to zero/i1 AND make-start/i1 AND inner/step
+# (matching the 3-way fan-out from divisors in composites)
+
+# make-start: trigger * 2 (like composites/make-start)
+[[process]]
+alias = "make-start"
+source = "lib://flowstdlib/math/multiply"
+input.i2 = {always = 2}
+[[connection]]
+from = "triggers/number"
+to = "make-start/i1"
+
+# zero: trigger * 0 (like composites/zero-divisor)
+[[process]]
+alias = "zero"
+source = "lib://flowstdlib/math/multiply"
+input.i2 = {always = 0}
+[[connection]]
+from = "triggers/number"
+to = "zero/i1"
+
+# make-limit: 0 + value = value, with loopback (like composites/make-limit)
+[[process]]
+alias = "make-limit"
+source = "lib://flowstdlib/math/add"
+[[connection]]
+from = "zero"
+to = "make-limit/i1"
+[[connection]]
+from = "input/value"
+to = "make-limit/i2"
+[[connection]] # loopback - replicate value for next trigger
+from = "make-limit"
+to = "make-limit/i2"
+
+# Inner sequence (like composites/composite-sequence)
+# For each trigger, generate a sequence from make-start to make-limit
+[[process]]
+alias = "inner"
+source = "lib://flowstdlib/math/sequence"
+[[connection]]
+from = "make-start"
+to = "inner/start"
+[[connection]]
+from = "triggers/number"
+to = "inner/step"
+[[connection]]
+from = "make-limit"
+to = "inner/limit"
+
+# Output the inner sequence results
+[[connection]]
+from = "inner/number"
+to = "output/result"

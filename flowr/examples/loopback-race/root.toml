@@ -1,0 +1,26 @@
+flow = "loopback-race"
+
+# Minimal reproducer for the loopback-clearing race condition.
+# The 'replicate' sub-flow should output the value 3 times.
+# If the loopback in replicate/add gets cleared when the sub-flow
+# goes idle between iterations, fewer outputs are produced.
+
+[[process]]
+source = "context://args/get"
+
+# replicate sub-flow: output the value 'count' times
+[[process]]
+source = "replicate"
+[[connection]]
+from = "get/json/1"
+to = "replicate/value"
+[[connection]]
+from = "get/json/2"
+to = "replicate/count"
+
+# Print each replicated value
+[[process]]
+source = "context://stdio/stdout"
+[[connection]]
+from = "replicate/result"
+to = "stdout"

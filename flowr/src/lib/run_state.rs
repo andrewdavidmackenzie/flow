@@ -781,10 +781,14 @@ impl RunState {
             }
 
             if self.has_runnable_on_internal(ancestor_id) {
+                debug!(
+                    "Job #{}:\tFlow #{} idle but has runnable on internal — creating jobs",
+                    job.payload.job_id, ancestor_id
+                );
                 self.create_jobs_on_internal(ancestor_id)?;
             } else {
                 debug!(
-                    "Job #{}:\tFlow #{} is now idle",
+                    "Job #{}:\tFlow #{} is now idle — clearing internals and re-initializing",
                     job.payload.job_id, ancestor_id
                 );
 
@@ -849,19 +853,32 @@ impl RunState {
     }
 
     fn has_runnable_on_internal(&self, flow_id: usize) -> bool {
-        self.functions_by_flow
+        let result = self.functions_by_flow
             .get(&flow_id)
             .is_some_and(|func_ids| {
                 func_ids.iter().any(|id| {
-                    !self.completed.contains(id)
-                        && self
-                            .submission
-                            .manifest
-                            .functions()
-                            .get(id)
-                            .is_some_and(RuntimeFunction::can_run_on_internal)
+                    let not_completed = !self.completed.contains(id);
+                    let can_run = self
+                        .submission
+                        .manifest
+                        .functions()
+                        .get(id)
+                        .is_some_and(RuntimeFunction::can_run_on_internal);
+                    #[cfg(feature = "debugger")]
+                    if not_completed && !can_run {
+                        if let Some(f) = self.submission.manifest.functions().get(id) {
+                            debug!(
+                                "\tFlow #{flow_id}: Function #{id} '{}' cannot run on internal: inputs={:?}",
+                                f.name(),
+                                f.input_counts()
+                            );
+                        }
+                    }
+                    not_completed && can_run
                 })
-            })
+            });
+        debug!("\tFlow #{flow_id} has_runnable_on_internal = {result}");
+        result
     }
 
     fn clear_flow_internal_inputs(&mut self, flow_id: usize) {
@@ -869,6 +886,18 @@ impl RunState {
             for id in &func_ids {
                 if !self.completed.contains(id) {
                     if let Some(f) = self.submission.manifest.get_functions().get_mut(id) {
+                        #[cfg(feature = "debugger")]
+                        {
+                            let counts = f.input_counts();
+                            let has_values = counts.iter().any(|(total, _)| *total > 0);
+                            if has_values {
+                                debug!(
+                                    "\tClearing internal inputs of Function #{id} '{}' in Flow #{flow_id}: {:?}",
+                                    f.name(),
+                                    counts
+                                );
+                            }
+                        }
                         f.clear_internal_inputs();
                     }
                 }
