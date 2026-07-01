@@ -93,7 +93,7 @@ mod checks;
 
 #[cfg(feature = "trace")]
 /// Structured execution trace capture for replay, debugging, and formal verification
-pub mod trace;
+pub(crate) mod trace;
 
 /// Shared test helper for setting up client-coordinator test connections
 pub mod test_helper;

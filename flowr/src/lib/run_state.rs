@@ -238,6 +238,10 @@ impl RunState {
         self.completed.clear();
         self.number_of_jobs_created = 0;
         self.busy_count.clear();
+        #[cfg(feature = "trace")]
+        {
+            self.trace.events.clear();
+        }
     }
 
     /// The `ìnit()` function is responsible for initializing all functions, and it returns a
@@ -499,6 +503,8 @@ impl RunState {
             }
             Err(e) => {
                 error!("Error in Job #{}: {e}", job.payload.job_id);
+                #[cfg(feature = "trace")]
+                self.record_trace("JobError");
             }
         }
 
@@ -939,7 +945,8 @@ impl RunState {
 
     /// Extract the accumulated trace, replacing it with an empty trace
     #[cfg(feature = "trace")]
-    pub fn take_trace(&mut self) -> flowcore::model::trace::Trace {
+    #[allow(dead_code)]
+    pub(crate) fn take_trace(&mut self) -> flowcore::model::trace::Trace {
         std::mem::replace(
             &mut self.trace,
             crate::trace::topology_from_submission(&self.submission),
