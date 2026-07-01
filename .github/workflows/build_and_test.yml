@@ -244,10 +244,10 @@ jobs:
         shell: bash
         timeout-minutes: 10
         run: |
-          echo "Running prime example 10 times with debug tracing..."
+          echo "Running prime example 50 times with debug tracing..."
           mkdir -p prime-traces
           FAILED=0
-          for i in $(seq 1 10); do
+          for i in $(seq 1 50); do
             rm -f flowr/examples/prime/test.stdout flowr/examples/prime/test.stderr
             RUST_LOG=flowrlib::run_state=debug cargo test -p flowr --example prime test_prime_example 2>/dev/null || true
             LAST=$(tail -1 flowr/examples/prime/test.stdout 2>/dev/null)
@@ -262,7 +262,7 @@ jobs:
               echo "Run $i passed"
             fi
           done
-          echo "$FAILED out of 10 runs failed"
+          echo "$FAILED out of 50 runs failed"
 
       - name: upload-prime-traces
         if: always()
