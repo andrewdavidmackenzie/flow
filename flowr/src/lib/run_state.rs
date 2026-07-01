@@ -176,6 +176,9 @@ pub struct RunState {
     jobs_per_function: Vec<usize>,
     /// Index: parent flow ID → function IDs in that flow (avoids full-manifest scans)
     functions_by_flow: HashMap<usize, Vec<usize>>,
+    #[cfg(feature = "trace")]
+    #[serde(skip)]
+    trace: flowcore::model::trace::Trace,
 }
 
 impl RunState {
@@ -194,6 +197,8 @@ impl RunState {
         #[cfg(feature = "metrics")]
         let num_processes =
             submission.manifest.functions().len() + submission.manifest.flows().len();
+        #[cfg(feature = "trace")]
+        let trace = crate::trace::topology_from_submission(&submission);
         RunState {
             submission,
             ready_jobs: VecDeque::<Job>::new(),
@@ -204,6 +209,8 @@ impl RunState {
             #[cfg(feature = "metrics")]
             jobs_per_function: vec![0; num_processes],
             functions_by_flow,
+            #[cfg(feature = "trace")]
+            trace,
         }
     }
 
@@ -259,6 +266,9 @@ impl RunState {
             self.create_jobs(process_id, parent_id)?;
         }
 
+        #[cfg(feature = "trace")]
+        self.record_trace("Init");
+
         Ok(())
     }
 
@@ -300,7 +310,7 @@ impl RunState {
     }
 
     /// Get a Set (`job_id`) of the currently running jobs
-    #[cfg(any(feature = "debugger", debug_assertions))]
+    #[cfg(any(feature = "debugger", feature = "trace", debug_assertions))]
     #[must_use]
     pub fn get_running(&self) -> &HashMap<usize, Job> {
         &self.running_jobs
@@ -317,7 +327,7 @@ impl RunState {
         self.submission.manifest.get_functions().get_mut(&id)
     }
 
-    #[cfg(any(debug_assertions, feature = "debugger"))]
+    #[cfg(any(debug_assertions, feature = "debugger", feature = "trace"))]
     /// Return the busy count map (`process_id` -> count of busy entries)
     #[must_use]
     pub fn get_busy_count(&self) -> &HashMap<usize, usize> {
@@ -325,7 +335,7 @@ impl RunState {
     }
 
     /// Return the set of completed function IDs
-    #[cfg(feature = "debugger")]
+    #[cfg(any(feature = "debugger", feature = "trace"))]
     #[must_use]
     pub fn get_completed(&self) -> &HashSet<usize> {
         &self.completed
@@ -346,6 +356,8 @@ impl RunState {
     // Update the run_state to reflect that the job is now running
     pub(crate) fn start_job(&mut self, job: Job) {
         self.running_jobs.insert(job.payload.job_id, job);
+        #[cfg(feature = "trace")]
+        self.record_trace("Dispatch");
     }
 
     /// Check for running jobs that have exceeded their TTL.
@@ -391,7 +403,7 @@ impl RunState {
     }
 
     /// get the number of jobs created to date in the flow's execution
-    #[cfg(any(feature = "metrics", feature = "debugger"))]
+    #[cfg(any(feature = "metrics", feature = "debugger", feature = "trace"))]
     #[must_use]
     pub fn get_number_of_jobs_created(&self) -> usize {
         self.number_of_jobs_created
@@ -476,9 +488,13 @@ impl RunState {
                     if function.can_run() {
                         self.create_jobs(job.process_id, job.parent_id)?;
                     }
+                    #[cfg(feature = "trace")]
+                    self.record_trace("RetireAndSend");
                 } else {
                     // otherwise mark it as completed as it will never run again
                     self.mark_as_completed(job.process_id);
+                    #[cfg(feature = "trace")]
+                    self.record_trace("CompleteJob");
                 }
             }
             Err(e) => {
@@ -601,7 +617,7 @@ impl RunState {
     }
 
     /// Return the ready jobs queue
-    #[cfg(feature = "debugger")]
+    #[cfg(any(feature = "debugger", feature = "trace"))]
     #[must_use]
     pub fn get_ready_jobs(&self) -> &VecDeque<Job> {
         &self.ready_jobs
@@ -696,6 +712,8 @@ impl RunState {
                 for ancestor in self.ancestors(parent_id) {
                     *self.busy_count.entry(ancestor).or_insert(0) += 1;
                 }
+                #[cfg(feature = "trace")]
+                self.record_trace("CreateJob");
                 if always_ready {
                     return Ok(());
                 }
@@ -796,6 +814,8 @@ impl RunState {
 
                 self.clear_flow_internal_inputs(ancestor_id);
                 self.run_flow_initializers(ancestor_id)?;
+                #[cfg(feature = "trace")]
+                self.record_trace("FlowGoesIdle");
             }
         }
 
@@ -901,6 +921,29 @@ impl RunState {
     // Mark a function (via its ID) as having run to completion
     pub(crate) fn mark_as_completed(&mut self, function_id: usize) {
         self.completed.insert(function_id);
+    }
+
+    #[cfg(feature = "trace")]
+    fn record_trace(&mut self, action: &str) {
+        crate::trace::record_event(
+            &mut self.trace,
+            action,
+            &self.submission.manifest,
+            &self.busy_count,
+            &self.ready_jobs,
+            &self.running_jobs,
+            &self.completed,
+            self.number_of_jobs_created,
+        );
+    }
+
+    /// Extract the accumulated trace, replacing it with an empty trace
+    #[cfg(feature = "trace")]
+    pub fn take_trace(&mut self) -> flowcore::model::trace::Trace {
+        std::mem::replace(
+            &mut self.trace,
+            crate::trace::topology_from_submission(&self.submission),
+        )
     }
 }
 

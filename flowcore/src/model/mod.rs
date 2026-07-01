@@ -44,5 +44,7 @@ pub mod process_reference;
 pub mod route;
 /// `submission`defines a struct for submitting flows for execution
 pub mod submission;
+/// Structured execution trace types for replay, debugging, and formal verification
+pub mod trace;
 /// Traits used for the validation of Model structs
 pub mod validation;
