@@ -136,6 +136,7 @@ fn format_topology(topo: &TraceTopology) -> (String, String, String, String, Str
 fn generate_trace_tla(trace: &Trace) -> String {
     let topo = &trace.topology;
     let (procs, flows, inputs_of, conns, parent, init_stubs) = format_topology(topo);
+    let n = trace.events.len();
 
     let mut trace_states = String::new();
     for (i, event) in trace.events.iter().enumerate() {
@@ -146,18 +147,18 @@ fn generate_trace_tla(trace: &Trace) -> String {
         );
     }
 
-    let mut trace_next_parts = Vec::new();
-    for (i, pair) in trace.events.windows(2).enumerate() {
-        trace_next_parts.push(format!(
-            "    /\\ {} /\\ {}",
-            state_guard_tla(i, &pair[0].state),
-            state_prime_tla(i + 1, &pair[1].state, topo)
+    let mut trace_next_cases = Vec::new();
+    for i in 0..n - 1 {
+        trace_next_cases.push(format!(
+            "    \\/ /\\ traceIdx = {i}\n       /\\ traceIdx' = {next}\n{primed}",
+            next = i + 1,
+            primed = state_to_tla_primed(&trace.events[i + 1].state, topo)
         ));
     }
-    let trace_next = if trace_next_parts.is_empty() {
-        "FALSE".to_string()
+    let trace_next = if trace_next_cases.is_empty() {
+        "    FALSE".to_string()
     } else {
-        trace_next_parts.join("\n    \\/\n")
+        trace_next_cases.join("\n")
     };
 
     format!(
@@ -170,7 +171,7 @@ EXTENDS Integers, Sequences, FiniteSets, TLC
 NoParent == -1
 NoInit == -2
 
-VARIABLES inputQ, intCount, busyCount, ready, running, done, jobCounter
+VARIABLES inputQ, intCount, busyCount, ready, running, done, jobCounter, traceIdx
 
 FR == INSTANCE FlowRuntimeBase WITH
     Procs <- {{{procs}}},
@@ -193,18 +194,18 @@ FR == INSTANCE FlowRuntimeBase WITH
     jobCounter <- jobCounter
 
 ---------------------------------------------------------------------------
-(* Trace states *)
+(* Trace states — used by TraceInit *)
 
 {trace_states}\
 ---------------------------------------------------------------------------
 (* Trace specification *)
 
-TraceInit == TraceState0
+TraceInit == TraceState0 /\\ traceIdx = 0
 
 TraceNext ==
 {trace_next}
 
-TraceSpec == TraceInit /\\ [][TraceNext]_<<inputQ, intCount, busyCount, ready, running, done, jobCounter>>
+TraceSpec == TraceInit /\\ [][TraceNext]_<<inputQ, intCount, busyCount, ready, running, done, jobCounter, traceIdx>>
 
 ---------------------------------------------------------------------------
 (* Invariants to check at each recorded state *)
@@ -214,26 +215,35 @@ InternalCountBound == FR!InternalCountBound
 AncestorConsistency == FR!AncestorConsistency
 
 ==========================================================================
-"
+",
     )
 }
 
 fn state_to_tla(state: &TraceState, topo: &TraceTopology) -> String {
+    format_state_lines(state, topo, false)
+}
+
+fn state_to_tla_primed(state: &TraceState, topo: &TraceTopology) -> String {
+    format_state_lines(state, topo, true)
+}
+
+fn format_state_lines(state: &TraceState, topo: &TraceTopology, primed: bool) -> String {
+    let p = if primed { "'" } else { "" };
     let mut lines = Vec::new();
 
     lines.push(format!(
-        "    /\\ inputQ = {}",
+        "       /\\ inputQ{p} = {}",
         format_input_queues(state, topo)
     ));
     lines.push(format!(
-        "    /\\ intCount = {}",
+        "       /\\ intCount{p} = {}",
         format_int_counts(state, topo)
     ));
-    lines.push(format_busy_count(state));
-    lines.push(format_ready(state));
-    lines.push(format_running(state));
-    lines.push(format_done(state));
-    lines.push(format!("    /\\ jobCounter = {}", state.job_counter));
+    lines.push(format_busy_count_with(state, p));
+    lines.push(format_ready_with(state, p));
+    lines.push(format_running_with(state, p));
+    lines.push(format_done_with(state, p));
+    lines.push(format!("       /\\ jobCounter{p} = {}", state.job_counter));
 
     lines.join("\n")
 }
@@ -305,72 +315,52 @@ fn format_int_counts(state: &TraceState, topo: &TraceTopology) -> String {
     parts.join(" @@ ")
 }
 
-fn format_busy_count(state: &TraceState) -> String {
+fn format_busy_count_with(state: &TraceState, prime: &str) -> String {
     if state.busy_count.is_empty() {
-        "    /\\ busyCount = [id \\in {} |-> 0]".to_string()
+        format!("       /\\ busyCount{prime} = [id \\in {{}} |-> 0]")
     } else {
         let bc: Vec<String> = state
             .busy_count
             .iter()
             .map(|(k, v)| format!("{k} :> {v}"))
             .collect();
-        format!("    /\\ busyCount = {}", bc.join(" @@ "))
+        format!("       /\\ busyCount{prime} = {}", bc.join(" @@ "))
     }
 }
 
-fn format_ready(state: &TraceState) -> String {
+fn format_ready_with(state: &TraceState, prime: &str) -> String {
     if state.ready.is_empty() {
-        "    /\\ ready = <<>>".to_string()
+        format!("       /\\ ready{prime} = <<>>")
     } else {
         let parts: Vec<String> = state
             .ready
             .iter()
             .map(|j| format!("[func |-> {}, jobId |-> {}]", j[0], j[1]))
             .collect();
-        format!("    /\\ ready = <<{}>>", parts.join(", "))
+        format!("       /\\ ready{prime} = <<{}>>", parts.join(", "))
     }
 }
 
-fn format_running(state: &TraceState) -> String {
+fn format_running_with(state: &TraceState, prime: &str) -> String {
     if state.running.is_empty() {
-        "    /\\ running = {}".to_string()
+        format!("       /\\ running{prime} = {{}}")
     } else {
         let parts: Vec<String> = state
             .running
             .iter()
             .map(|j| format!("[func |-> {}, jobId |-> {}]", j[0], j[1]))
             .collect();
-        format!("    /\\ running = {{{}}}", parts.join(", "))
+        format!("       /\\ running{prime} = {{{}}}", parts.join(", "))
     }
 }
 
-fn format_done(state: &TraceState) -> String {
+fn format_done_with(state: &TraceState, prime: &str) -> String {
     if state.done.is_empty() {
-        "    /\\ done = {}".to_string()
+        format!("       /\\ done{prime} = {{}}")
     } else {
         let parts: Vec<String> = state.done.iter().map(ToString::to_string).collect();
-        format!("    /\\ done = {{{}}}", parts.join(", "))
+        format!("       /\\ done{prime} = {{{}}}", parts.join(", "))
     }
-}
-
-fn state_guard_tla(idx: usize, state: &TraceState) -> String {
-    format!(
-        "jobCounter = {} /\\ Cardinality(done) = {} (* state {idx} *)",
-        state.job_counter,
-        state.done.len()
-    )
-}
-
-fn state_prime_tla(idx: usize, state: &TraceState, topo: &TraceTopology) -> String {
-    let tla = state_to_tla(state, topo);
-    tla.replace("inputQ =", "inputQ' =")
-        .replace("intCount =", "intCount' =")
-        .replace("busyCount =", "busyCount' =")
-        .replace("ready =", "ready' =")
-        .replace("running =", "running' =")
-        .replace("done =", "done' =")
-        .replace("jobCounter =", "jobCounter' =")
-        + &format!(" (* -> state {idx} *)")
 }
 
 fn generate_trace_cfg() -> String {
