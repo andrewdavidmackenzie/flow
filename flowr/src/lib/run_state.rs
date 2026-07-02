@@ -952,6 +952,18 @@ impl RunState {
             crate::trace::topology_from_submission(&self.submission),
         )
     }
+
+    /// Write the trace to the path specified by the `FLOW_TRACE` env var
+    #[cfg(feature = "trace")]
+    pub(crate) fn write_trace(&mut self) -> flowcore::errors::Result<()> {
+        if let Ok(trace_path) = std::env::var("FLOW_TRACE") {
+            let trace = self.take_trace();
+            let trace_json = trace.to_json();
+            std::fs::write(&trace_path, &trace_json)
+                .map_err(|e| format!("Could not write trace to {trace_path}: {e}"))?;
+        }
+        Ok(())
+    }
 }
 
 impl fmt::Display for RunState {

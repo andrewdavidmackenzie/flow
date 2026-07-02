@@ -77,10 +77,11 @@ clean_examples:
 	@find flowr/examples -name \*.wasm | xargs rm -rf
 
 .PHONY: clean
-clean: clean_examples
+clean: clean_examples clean-traces
 	@echo "clean<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<"
 	@cargo clean
 	@find . -name target -type d | xargs rm -rf
+	@find flowr/examples -name "flow_trace.json" -delete 2>/dev/null || true
 	@rm -rf $(HOME)/.flow/lib/flowstdlib
 
 .PHONY: build
@@ -103,7 +104,7 @@ features:
 	cargo build-all-features
 
 .PHONY: test
-test: build
+test: build check-binary-paths
 	@echo "test<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<"
 ifneq ($(CODESIGN),)
 	@echo "Code signing tool \"codesign\" detected"
@@ -117,7 +118,7 @@ endif
 	cargo test --examples
 
 .PHONY: tla
-tla: build
+tla: build check-binary-paths
 	@echo "tla<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<"
 	@echo "Generating TLA+ specs for flowr examples..."
 	@find flowr/examples -name "FlowRuntimeBase.tla" -delete 2>/dev/null || true
@@ -174,6 +175,57 @@ else
 	done; \
 	if [ $$FAIL -eq 1 ]; then echo "TLA+ verification failed"; exit 1; fi
 	@echo "All TLA+ specs verified."
+endif
+
+.PHONY: clean-traces
+clean-traces:
+	@find flowr/examples -name "flow_trace.json" -delete 2>/dev/null || true
+
+.PHONY: check-binary-paths
+check-binary-paths:
+	@for bin in flowrcli flowc flowrdb; do \
+		found=$$(which $$bin 2>/dev/null); \
+		expected="$(PWD)/target/debug/$$bin"; \
+		if [ "$$found" != "$$expected" ]; then \
+			echo "ERROR: $$bin resolves to '$$found' instead of '$$expected'"; \
+			echo "Ensure target/debug is first in PATH"; \
+			exit 1; \
+		fi; \
+	done
+
+.PHONY: trace
+trace: check-binary-paths clean-traces
+	@echo "trace<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<"
+	cargo build -p flowr --features trace --bin flowrcli --bin flowr-tla-check
+	FLOW_TRACE=flow_trace.json cargo test --examples
+	@echo "Trace files:"
+	@find flowr/examples -name "flow_trace.json"
+
+.PHONY: tla-trace-check
+tla-trace-check: trace
+	@echo "tla-trace-check<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<"
+ifeq ($(TLA2TOOLS),)
+	@echo "TLA+ Toolbox not found — skipping TLC trace verification"
+	@echo "Install with: brew install --cask tla+-toolbox"
+else
+	@TRACE_DIR=$$(mktemp -d); \
+	FAIL=0; COUNT=0; \
+	for trace in $$(find flowr/examples -name "flow_trace.json"); do \
+		name=$$(basename $$(dirname "$$trace")); \
+		printf "  %-30s" "$$name"; \
+		out="$$TRACE_DIR/$$name"; mkdir -p "$$out"; \
+		cp specs/FlowRuntimeBase.tla "$$out/"; \
+		target/debug/flowr-tla-check "$$trace" "$$out" 2>/dev/null || { echo "CONVERT FAILED"; FAIL=1; continue; }; \
+		if $(TLC_CMD) -metadir "$$TRACE_DIR/tlc-$$name" -config "$$out/TraceCheck.cfg" "$$out/TraceCheck.tla" > "$$out/tlc.log" 2>&1; then \
+			echo "OK"; COUNT=$$((COUNT+1)); \
+		else \
+			echo "TLC FAILED"; tail -5 "$$out/tlc.log"; FAIL=1; \
+		fi; \
+		rm -f "$$trace"; \
+	done; \
+	rm -rf "$$TRACE_DIR"; \
+	echo "$$COUNT examples verified against TLA+ spec."; \
+	if [ $$FAIL -eq 1 ]; then exit 1; fi
 endif
 
 .PHONY: coverage

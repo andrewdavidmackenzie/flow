@@ -224,6 +224,9 @@ impl<'a> Coordinator<'a> {
             }
         }
 
+        #[cfg(feature = "trace")]
+        state.write_trace()?;
+
         #[cfg(feature = "metrics")]
         metrics.stop_timer();
         #[cfg(feature = "metrics")]
