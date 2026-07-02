@@ -54,6 +54,17 @@ pub const ARROW_SIZE: f32 = 10.0;
 /// Edge stroke width
 pub const STROKE_WIDTH: f32 = 2.0;
 
+/// Padding between internal nodes and the boundary box
+pub const BOUNDARY_PADDING: f32 = 120.0;
+/// Vertical spacing between boundary ports
+pub const BOUNDARY_PORT_SPACING: f32 = 40.0;
+/// Fill color for the boundary box
+pub const COLOR_BOUNDARY_FILL: &str = "#F0F0F0";
+/// Border color for the boundary box
+pub const COLOR_BOUNDARY_BORDER: &str = "#CCCCCC";
+/// Text color for boundary port labels (dark for light background)
+pub const COLOR_BOUNDARY_TEXT: &str = "#444444";
+
 // --- Colors (hex strings) ---
 
 /// Node border color

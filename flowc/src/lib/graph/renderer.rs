@@ -19,6 +19,14 @@ use flowcore::model::process_reference::ProcessReference;
 use super::layout::{self, process_alias, PositionedNode};
 use super::{edge, shapes, style};
 
+/// Positions of boundary ports (the flow's own input/output ports).
+struct BoundaryPorts {
+    /// Input port name → (x, y) anchor point (right side, facing inward)
+    inputs: HashMap<String, (f32, f32)>,
+    /// Output port name → (x, y) anchor point (left side, facing inward)
+    outputs: HashMap<String, (f32, f32)>,
+}
+
 /// Information about a process needed for rendering.
 struct ProcessInfo {
     category: NodeCategory,
@@ -39,6 +47,17 @@ pub fn render_flow(flow: &FlowDefinition) -> String {
 
     let mut svg_group = Group::new().set("class", "flow-graph");
 
+    // Render boundary box first (behind everything) if this flow has inputs/outputs
+    let has_boundary = !flow.inputs.is_empty() || !flow.outputs.is_empty();
+    let boundary_ports = if has_boundary {
+        let (boundary, ports) = compute_and_render_boundary(flow, &layouts);
+        svg_group = svg_group.add(boundary);
+        Some(ports)
+    } else {
+        None
+    };
+
+    // Render internal nodes (on top of boundary)
     for pr in &flow.process_refs {
         let alias = process_alias(pr);
         if let (Some(layout), Some(info)) = (layouts.get(&alias), process_info.get(&alias)) {
@@ -46,11 +65,18 @@ pub fn render_flow(flow: &FlowDefinition) -> String {
         }
     }
 
+    // Render connections (including boundary connections)
     let mut loopback_counts: HashMap<String, usize> = HashMap::new();
     for conn in &flow.connections {
-        svg_group = svg_group.add(render_connection(conn, &layouts, &mut loopback_counts));
+        svg_group = svg_group.add(render_connection(
+            conn,
+            &layouts,
+            &mut loopback_counts,
+            boundary_ports.as_ref(),
+        ));
     }
 
+    // Render initializers
     for pr in &flow.process_refs {
         let alias = process_alias(pr);
         if let Some(layout) = layouts.get(&alias) {
@@ -65,7 +91,7 @@ pub fn render_flow(flow: &FlowDefinition) -> String {
         .any(|pr| !pr.initializations.is_empty());
     let max_loopbacks = loopback_counts.values().copied().max().unwrap_or(0);
     let (vb_x, vb_y, doc_width, doc_height) =
-        compute_document_bounds(&layouts, has_initializers, max_loopbacks);
+        compute_document_bounds(&layouts, has_initializers, max_loopbacks, has_boundary);
 
     let document = Document::new()
         .set(
@@ -98,6 +124,7 @@ fn css_styles() -> Style {
 .edge-arrow { }
 .edge:hover .edge-line { stroke-width: 3; stroke: #FFD900; }
 .edge:hover .edge-arrow { fill: #FFD900; }
+.edge:hover text { fill: #FFD900; }
 text { user-select: none; }",
     )
 }
@@ -276,45 +303,173 @@ fn truncate_source(source: &str) -> String {
     }
 }
 
+/// Compute the boundary box geometry and port positions, then render the
+/// bounding rectangle and its ports. Returns the SVG group and port positions.
+#[allow(clippy::cast_precision_loss)]
+fn compute_and_render_boundary(
+    flow: &FlowDefinition,
+    layouts: &HashMap<String, PositionedNode>,
+) -> (Group, BoundaryPorts) {
+    // Find extents of all internal nodes
+    let mut min_x: f32 = f32::MAX;
+    let mut min_y: f32 = f32::MAX;
+    let mut max_x: f32 = f32::MIN;
+    let mut max_y: f32 = f32::MIN;
+
+    for layout in layouts.values() {
+        min_x = min_x.min(layout.x);
+        min_y = min_y.min(layout.y);
+        max_x = max_x.max(layout.x + layout.width);
+        max_y = max_y.max(layout.y + layout.height);
+    }
+
+    let pad = style::BOUNDARY_PADDING;
+    let box_left = min_x - pad;
+    let box_top = min_y - pad;
+    let box_width = (max_x - min_x) + pad * 2.0;
+    let box_height = (max_y - min_y) + pad * 2.0;
+
+    let mut group = Group::new().set("class", "boundary");
+
+    // Draw the bounding rectangle
+    group = group.add(shapes::rounded_rect(
+        box_left,
+        box_top,
+        box_width,
+        box_height,
+        style::COLOR_BOUNDARY_FILL,
+        style::COLOR_BOUNDARY_BORDER,
+    ));
+
+    // Compute and render input ports on the left inner wall
+    let input_count = flow.inputs.len();
+    let mut input_ports = HashMap::new();
+    for (i, io) in flow.inputs.iter().enumerate() {
+        let (port_name, port_type) = io_name_and_type(io);
+        let px = box_left;
+        let py = boundary_port_y(box_top, box_height, i, input_count);
+
+        // Draw output-style semi-circle (faces right/inward)
+        let mut port_group = Group::new();
+        port_group = port_group.add(shapes::output_port(px, py, style::COLOR_PORT));
+        port_group = port_group.add(shapes::tooltip(&format!("input: {port_name}: {port_type}")));
+        group = group.add(port_group);
+        group = group.add(shapes::port_label(
+            px + style::PORT_RADIUS + 3.0,
+            py - style::PORT_RADIUS - 4.0,
+            &port_name,
+            "start",
+            style::COLOR_BOUNDARY_TEXT,
+        ));
+
+        // Anchor for connections is on the right side of the port
+        input_ports.insert(port_name, (px + style::PORT_RADIUS, py));
+    }
+
+    // Compute and render output ports on the right inner wall
+    let output_count = flow.outputs.len();
+    let mut output_ports = HashMap::new();
+    for (i, io) in flow.outputs.iter().enumerate() {
+        let (port_name, port_type) = io_name_and_type(io);
+        let px = box_left + box_width;
+        let py = boundary_port_y(box_top, box_height, i, output_count);
+
+        // Draw input-style semi-circle (faces left/inward)
+        let mut port_group = Group::new();
+        port_group = port_group.add(shapes::input_port(px, py, style::COLOR_PORT));
+        port_group = port_group.add(shapes::tooltip(&format!(
+            "output: {port_name}: {port_type}"
+        )));
+        group = group.add(port_group);
+        group = group.add(shapes::port_label(
+            px - style::PORT_RADIUS - 3.0,
+            py - style::PORT_RADIUS - 4.0,
+            &port_name,
+            "end",
+            style::COLOR_BOUNDARY_TEXT,
+        ));
+
+        // Anchor for connections is on the left side of the port
+        output_ports.insert(port_name, (px - style::PORT_RADIUS, py));
+    }
+
+    (
+        group,
+        BoundaryPorts {
+            inputs: input_ports,
+            outputs: output_ports,
+        },
+    )
+}
+
+/// Compute the Y position of a boundary port, centered with fixed spacing.
+#[allow(clippy::cast_precision_loss)]
+fn boundary_port_y(box_top: f32, box_height: f32, index: usize, count: usize) -> f32 {
+    let total = (count.saturating_sub(1)) as f32 * style::BOUNDARY_PORT_SPACING;
+    let offset = (box_height - total) / 2.0;
+    box_top + offset + index as f32 * style::BOUNDARY_PORT_SPACING
+}
+
 fn render_connection(
     conn: &Connection,
     layouts: &HashMap<String, PositionedNode>,
     loopback_counts: &mut HashMap<String, usize>,
+    boundary_ports: Option<&BoundaryPorts>,
 ) -> Group {
     let mut group = Group::new().set("class", "edge");
 
     let from_route = conn.from().to_string();
     let (from_node, from_port) = split_route(&from_route);
 
-    let Some(from_layout) = layouts.get(&from_node) else {
-        return group;
+    // Resolve source position: boundary input port or internal node output
+    let (x1, y1) = if from_node == "input" {
+        if let Some((x, y)) = boundary_ports.and_then(|bp| bp.inputs.get(&from_port)) {
+            (*x, *y)
+        } else {
+            return group;
+        }
+    } else {
+        let Some(from_layout) = layouts.get(&from_node) else {
+            return group;
+        };
+        let port_base = from_port.split('/').next().unwrap_or(&from_port);
+        let from_port_idx = from_layout
+            .outputs
+            .iter()
+            .position(|p| p == port_base)
+            .unwrap_or(0);
+        (
+            from_layout.output_port_x() + style::PORT_RADIUS,
+            from_layout.output_port_y(from_port_idx),
+        )
     };
-
-    let from_port_idx = from_layout
-        .outputs
-        .iter()
-        .position(|p| p == &from_port)
-        .unwrap_or(0);
-
-    let x1 = from_layout.output_port_x() + style::PORT_RADIUS;
-    let y1 = from_layout.output_port_y(from_port_idx);
 
     for to_route in conn.to() {
         let to_str = to_route.to_string();
         let (to_node, to_port) = split_route(&to_str);
 
-        let Some(to_layout) = layouts.get(&to_node) else {
-            continue;
+        // Resolve destination position: boundary output port or internal node input
+        let (x2, y2) = if to_node == "output" {
+            if let Some((x, y)) = boundary_ports.and_then(|bp| bp.outputs.get(&to_port)) {
+                (*x, *y)
+            } else {
+                continue;
+            }
+        } else {
+            let Some(to_layout) = layouts.get(&to_node) else {
+                continue;
+            };
+            let to_port_base = to_port.split('/').next().unwrap_or(&to_port);
+            let to_port_idx = to_layout
+                .inputs
+                .iter()
+                .position(|p| p == to_port_base)
+                .unwrap_or(0);
+            (
+                to_layout.input_port_x() - style::PORT_RADIUS,
+                to_layout.input_port_y(to_port_idx),
+            )
         };
-
-        let to_port_idx = to_layout
-            .inputs
-            .iter()
-            .position(|p| p == &to_port)
-            .unwrap_or(0);
-
-        let x2 = to_layout.input_port_x() - style::PORT_RADIUS;
-        let y2 = to_layout.input_port_y(to_port_idx);
 
         let tooltip_text = format!("{from_route} → {to_str}");
 
@@ -322,6 +477,7 @@ fn render_connection(
         let label_opt = if label.is_empty() { None } else { Some(label) };
 
         if from_node == to_node {
+            let from_layout = &layouts[&from_node];
             let idx = loopback_counts.entry(from_node.clone()).or_insert(0);
             let loopback_index = *idx;
             *idx += 1;
@@ -423,6 +579,7 @@ fn compute_document_bounds(
     layouts: &HashMap<String, PositionedNode>,
     has_initializers: bool,
     max_loopbacks: usize,
+    has_boundary: bool,
 ) -> (f32, f32, f32, f32) {
     let mut min_x: f32 = 0.0;
     let mut min_y: f32 = 0.0;
@@ -443,11 +600,17 @@ fn compute_document_bounds(
         0.0
     };
 
+    let boundary_extra = if has_boundary {
+        style::BOUNDARY_PADDING
+    } else {
+        0.0
+    };
+
     let left_pad = if has_initializers { 80.0 } else { 0.0 };
-    let origin_x = min_x - left_pad - loopback_extra;
-    let origin_y = min_y - style::GRID_ORIGIN_Y;
-    let width = max_x - origin_x + style::GRID_ORIGIN_X + loopback_extra;
-    let height = max_y - origin_y + style::GRID_ORIGIN_Y + loopback_extra;
+    let origin_x = min_x - left_pad - loopback_extra - boundary_extra;
+    let origin_y = min_y - style::GRID_ORIGIN_Y - boundary_extra;
+    let width = max_x - origin_x + style::GRID_ORIGIN_X + loopback_extra + boundary_extra;
+    let height = max_y - origin_y + style::GRID_ORIGIN_Y + loopback_extra + boundary_extra;
 
     (origin_x, origin_y, width, height)
 }

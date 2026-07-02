@@ -98,13 +98,18 @@ pub fn split_route(route: &str) -> (String, String) {
 }
 
 /// Build a label for a connection from its output port name and connection name.
+/// Simple port names (already visible on the node) are omitted; only sub-routes
+/// (containing `/`) are included.
 #[must_use]
 pub fn connection_label(from_port: &str, conn_name: &str) -> String {
-    match (from_port, conn_name) {
-        ("", "") => String::new(),
-        ("", name) => name.to_string(),
-        (port, "") => format!("/{port}"),
-        (port, name) => format!("{name} /{port}"),
+    let is_subroute = from_port.contains('/');
+    match (is_subroute, from_port, conn_name) {
+        (_, "", "") => String::new(),
+        (_, "", name) => name.to_string(),
+        (true, port, "") => format!("/{port}"),
+        (true, port, name) => format!("{name} /{port}"),
+        (false, _, "") => String::new(),
+        (false, _, name) => name.to_string(),
     }
 }
 
@@ -536,12 +541,22 @@ mod test {
     }
 
     #[test]
-    fn connection_label_subpath_only() {
-        assert_eq!(connection_label("right-lte", ""), "/right-lte");
+    fn connection_label_simple_port_no_name() {
+        assert_eq!(connection_label("right-lte", ""), "");
     }
 
     #[test]
-    fn connection_label_both() {
-        assert_eq!(connection_label("i2", "feedback-step"), "feedback-step /i2");
+    fn connection_label_simple_port_with_name() {
+        assert_eq!(connection_label("i2", "feedback-step"), "feedback-step");
+    }
+
+    #[test]
+    fn connection_label_subroute_no_name() {
+        assert_eq!(connection_label("string/1", ""), "/string/1");
+    }
+
+    #[test]
+    fn connection_label_subroute_with_name() {
+        assert_eq!(connection_label("string/1", "first"), "first /string/1");
     }
 }
