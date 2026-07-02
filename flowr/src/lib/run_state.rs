@@ -239,9 +239,7 @@ impl RunState {
         self.number_of_jobs_created = 0;
         self.busy_count.clear();
         #[cfg(feature = "trace")]
-        {
-            self.trace.events.clear();
-        }
+        self.trace.events.clear();
     }
 
     /// The `ìnit()` function is responsible for initializing all functions, and it returns a
