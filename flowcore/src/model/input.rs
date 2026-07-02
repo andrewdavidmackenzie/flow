@@ -408,6 +408,12 @@ impl Input {
     pub fn has_internal(&self) -> bool {
         self.internal_count > 0
     }
+
+    /// Return the number of internal values at the front of the queue
+    #[must_use]
+    pub fn internal_count(&self) -> usize {
+        self.internal_count
+    }
 }
 
 #[cfg(test)]

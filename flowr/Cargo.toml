@@ -56,6 +56,11 @@ name = "flowrdb"
 path = "src/bin/flowrdb/main.rs"
 required-features = ["debugger"]
 
+[[bin]]
+name = "flowr-tla-check"
+path = "src/bin/flowr-tla-check/main.rs"
+required-features = ["trace"]
+
 [features]
 default = ["debugger", "metrics", "context", "submission", "flowstdlib"]
 # feature to add the debugger, requires flowcore crate to have feature enabled also, rustyline optional dependency too
@@ -64,6 +69,8 @@ debugger = ["flowcore/debugger", "rustyline"]
 metrics = []
 # feature to include ability to receive a submission of a flow
 submission = []
+# feature to emit structured trace events during execution
+trace = []
 # feature to include context functions, make sure flowcore is compiled with it if we plan to use it
 context = ["flowcore/context"]
 
