@@ -311,10 +311,17 @@ fn compute_and_render_boundary(
     layouts: &HashMap<String, PositionedNode>,
 ) -> (Group, BoundaryPorts) {
     // Find extents of all internal nodes
-    let mut min_x: f32 = f32::MAX;
-    let mut min_y: f32 = f32::MAX;
-    let mut max_x: f32 = f32::MIN;
-    let mut max_y: f32 = f32::MIN;
+    let mut min_x: f32 = 0.0;
+    let mut min_y: f32 = 0.0;
+    let mut max_x: f32 = 0.0;
+    let mut max_y: f32 = 0.0;
+
+    if let Some(first) = layouts.values().next() {
+        min_x = first.x;
+        min_y = first.y;
+        max_x = first.x + first.width;
+        max_y = first.y + first.height;
+    }
 
     for layout in layouts.values() {
         min_x = min_x.min(layout.x);
@@ -423,7 +430,8 @@ fn render_connection(
 
     // Resolve source position: boundary input port or internal node output
     let (x1, y1) = if from_node == "input" {
-        if let Some((x, y)) = boundary_ports.and_then(|bp| bp.inputs.get(&from_port)) {
+        let port_base = from_port.split('/').next().unwrap_or(&from_port);
+        if let Some((x, y)) = boundary_ports.and_then(|bp| bp.inputs.get(port_base)) {
             (*x, *y)
         } else {
             return group;
@@ -450,7 +458,8 @@ fn render_connection(
 
         // Resolve destination position: boundary output port or internal node input
         let (x2, y2) = if to_node == "output" {
-            if let Some((x, y)) = boundary_ports.and_then(|bp| bp.outputs.get(&to_port)) {
+            let to_port_base = to_port.split('/').next().unwrap_or(&to_port);
+            if let Some((x, y)) = boundary_ports.and_then(|bp| bp.outputs.get(to_port_base)) {
                 (*x, *y)
             } else {
                 continue;
