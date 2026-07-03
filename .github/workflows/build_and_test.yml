@@ -135,17 +135,12 @@ jobs:
           echo "PATH=$GITHUB_WORKSPACE/target/debug:$PATH" >> "$GITHUB_ENV"
           echo "CARGO_REGISTRIES_CRATES_IO_PROTOCOL=sparse" >> "$GITHUB_ENV"
 
-      - name: EnableIncrementalOnWindows
+      - name: OptimizeWindowsBuild
         if: runner.os == 'Windows'
         shell: bash
         run: |
           echo "CARGO_INCREMENTAL=1" >> "$GITHUB_ENV"
-          if [ -f "/c/Program Files/LLVM/bin/lld-link.exe" ]; then
-            echo "Using lld-link for faster linking"
-            echo "CARGO_TARGET_X86_64_PC_WINDOWS_MSVC_LINKER=C:/Program Files/LLVM/bin/lld-link.exe" >> "$GITHUB_ENV"
-          else
-            echo "lld-link not found, using default MSVC linker"
-          fi
+          echo "CARGO_TARGET_X86_64_PC_WINDOWS_MSVC_LINKER=rust-lld" >> "$GITHUB_ENV"
 
       - name: DisableWindowsDefenderScanning
         if: runner.os == 'Windows'
