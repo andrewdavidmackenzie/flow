@@ -140,11 +140,7 @@ jobs:
         shell: bash
         run: |
           echo "CARGO_INCREMENTAL=1" >> "$GITHUB_ENV"
-
-      - name: DisableWindowsDefenderScanning
-        if: runner.os == 'Windows'
-        shell: powershell
-        run: Add-MpPreference -ExclusionPath "$env:GITHUB_WORKSPACE"
+          echo "CARGO_TARGET_X86_64_PC_WINDOWS_MSVC_LINKER=rust-lld" >> "$GITHUB_ENV"
 
       - name: Cache cargo registry and build
         uses: Swatinem/rust-cache@v2
