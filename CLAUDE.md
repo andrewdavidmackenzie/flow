@@ -25,9 +25,7 @@ or the extensive docs in the ./book folder.
 - Don't close GitHub issues without the user's explicit approval.
 - Don't change Rust versions or install or uninstall anything using rustup without the user's explicit approval.
 - Don't add new crate dependencies without the user's explicit approval.
-- Always run `make test` (not just `cargo test`) before pushing,
-  since the Makefile builds nested workspaces (like `examples/workspace_test`) that aren't part of the
-  main workspace.
+- Always run `make test` (not just `cargo test`) before pushing.
 - Always run `make clippy` and `cargo fmt` before committing or pushing changes.
 - Explain your analysis of the problem and proposed implementation plan before starting to
   implement changes. Describe what files will be modified, what functions will be added/deleted/modified
