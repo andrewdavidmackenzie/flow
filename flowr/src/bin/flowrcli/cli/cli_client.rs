@@ -47,6 +47,7 @@ impl CliRuntimeClient {
             let response = self.process_coordinator_message(event);
             if let ClientMessage::ClientExiting(coordinator_result) = response {
                 debug!("Client is exiting the event loop.");
+                let _ = connection.send(ClientMessage::ClientExiting(Ok(())));
                 return coordinator_result;
             }
             let _ = connection.send(response);
