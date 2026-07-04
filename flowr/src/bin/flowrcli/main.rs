@@ -239,7 +239,7 @@ fn client_and_coordinator(
     let coordinator_lib_search_path = lib_search_path.clone();
 
     info!("Starting coordinator in background thread");
-    let coordinator_handle = thread::spawn(move || {
+    thread::spawn(move || {
         let _ = coordinator(
             num_threads,
             coordinator_lib_search_path,
@@ -255,17 +255,13 @@ fn client_and_coordinator(
 
     let runtime_client_connection = ClientConnection::new(&coordinator_address)?;
 
-    let result = client(
+    client(
         matches,
         lib_search_path,
         &runtime_client_connection,
         #[cfg(feature = "debugger")]
         debug_this_flow,
-    );
-
-    let _ = coordinator_handle.join();
-
-    result
+    )
 }
 
 /// Create a new `Coordinator`, preload any libraries in native format that we want to have before
