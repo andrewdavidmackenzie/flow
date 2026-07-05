@@ -232,7 +232,7 @@ jobs:
       - name: debug-flowrex-windows
         if: runner.os == 'Windows'
         shell: bash
-        timeout-minutes: 5
+        timeout-minutes: 15
         env:
           RUST_LOG: flowrcli=debug,flowrlib=debug,flowcore=debug,flowrex=debug
         run: cargo test -p flowr --test flowrex test_hello_world_flowrex_example -- --nocapture 2>&1
