@@ -229,6 +229,14 @@ jobs:
           echo "RUST_LOG=error,sctk_adwaita=off" >> "$GITHUB_ENV"
           echo "XDG_RUNTIME_DIR=$XDG_RUNTIME_DIR" >> "$GITHUB_ENV"
 
+      - name: debug-flowrex-windows
+        if: runner.os == 'Windows'
+        shell: bash
+        timeout-minutes: 5
+        env:
+          RUST_LOG: flowrcli=debug,flowrlib=debug,flowcore=debug,flowrex=debug
+        run: cargo test -p flowr --test flowrex test_hello_world_flowrex_example -- --nocapture 2>&1
+
       - name: test
         shell: bash
         timeout-minutes: ${{ runner.os == 'Windows' && 25 || 20 }}
