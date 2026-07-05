@@ -1,7 +1,7 @@
 #![allow(missing_docs)]
 
 #[test]
-fn test_fibonacci_flowrex_example() {
+fn test_hello_world_flowrex_example() {
     let source = std::path::PathBuf::from("flowr")
         .join("examples")
         .join("hello-world")

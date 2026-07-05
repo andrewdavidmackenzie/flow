@@ -240,7 +240,7 @@ fn client_and_coordinator(
 
     info!("Starting coordinator in background thread");
     let coordinator_handle = thread::spawn(move || {
-        let _ = coordinator(
+        if let Err(e) = coordinator(
             num_threads,
             coordinator_lib_search_path,
             native_flowstdlib,
@@ -248,7 +248,9 @@ fn client_and_coordinator(
             #[cfg(feature = "debugger")]
             debug_connection,
             false,
-        );
+        ) {
+            error!("Coordinator thread exited with error: {e}");
+        }
     });
 
     let coordinator_address = discover_service(COORDINATOR_SERVICE_NAME)?;
