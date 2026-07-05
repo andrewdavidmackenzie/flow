@@ -187,6 +187,16 @@ impl CoordinatorConnection {
 
         Ok(())
     }
+
+    /// Set a receive timeout in milliseconds.
+    ///
+    /// # Errors
+    /// Returns an error if the timeout cannot be set on the socket
+    pub fn set_receive_timeout(&self, timeout_ms: i32) -> Result<()> {
+        self.responder
+            .set_rcvtimeo(timeout_ms)
+            .chain_err(|| "Could not set receive timeout")
+    }
 }
 
 #[cfg(test)]

@@ -118,11 +118,16 @@ impl SubmissionHandler for CLISubmissionHandler {
     }
 
     fn coordinator_is_exiting(&mut self, result: Result<()>) -> Result<()> {
-        debug!("Coordinator exiting");
+        debug!("Coordinator exiting — waiting briefly for client acknowledgement");
         let mut connection = self
             .coordinator_connection
             .lock()
             .map_err(|e| format!("Could not lock Coordinator Connection: {e}"))?;
-        connection.send(CoordinatorMessage::CoordinatorExiting(result))
+        let _ = connection.set_receive_timeout(1000);
+        let received: std::result::Result<ClientMessage, _> = connection.receive(WAIT);
+        if received.is_ok() {
+            let _ = connection.send(CoordinatorMessage::CoordinatorExiting(result));
+        }
+        Ok(())
     }
 }
