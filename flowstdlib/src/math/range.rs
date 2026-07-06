@@ -12,6 +12,7 @@ mod test {
 
     // Serialized to avoid mDNS service name collision when multiple flowc
     // instances run in parallel — see https://github.com/andrewdavidmackenzie/flow/issues/2563
+    #[cfg_attr(target_os = "windows", ignore)]
     #[test]
     #[serial]
     fn test_range_flow() {
