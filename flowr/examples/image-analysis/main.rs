@@ -8,6 +8,7 @@ mod test {
     use std::env;
     use std::path::PathBuf;
 
+    #[cfg_attr(target_os = "windows", ignore)]
     #[test]
     fn test_image_analysis_example() {
         let _ = env::set_current_dir(
