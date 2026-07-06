@@ -229,16 +229,9 @@ jobs:
           echo "RUST_LOG=error,sctk_adwaita=off" >> "$GITHUB_ENV"
           echo "XDG_RUNTIME_DIR=$XDG_RUNTIME_DIR" >> "$GITHUB_ENV"
 
-      - name: test-flowrex-isolated-windows
-        if: runner.os == 'Windows'
-        shell: bash
-        timeout-minutes: 5
-        run: cargo test -p flowr --test flowrex test_hello_world_flowrex_example
-
       - name: test
-        if: runner.os != 'Windows'
         shell: bash
-        timeout-minutes: 20
+        timeout-minutes: ${{ runner.os == 'Windows' && 25 || 20 }}
         run: cargo test --features "online_tests"
 
       - name: test-examples

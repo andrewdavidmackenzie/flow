@@ -47,10 +47,14 @@ impl CliRuntimeClient {
             let response = self.process_coordinator_message(event);
             if let ClientMessage::ClientExiting(coordinator_result) = response {
                 debug!("Client is exiting the event loop.");
-                let _ = connection.send(ClientMessage::ClientExiting(Ok(())));
+                if let Err(e) = connection.send(ClientMessage::ClientExiting(Ok(()))) {
+                    error!("Failed to send ClientExiting to coordinator: {e}");
+                }
                 return coordinator_result;
             }
-            let _ = connection.send(response);
+            if let Err(e) = connection.send(response) {
+                error!("Failed to send message to coordinator: {e}");
+            }
         }
     }
 

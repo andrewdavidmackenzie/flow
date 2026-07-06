@@ -118,20 +118,25 @@ impl SubmissionHandler for CLISubmissionHandler {
     }
 
     fn coordinator_is_exiting(&mut self, result: Result<()>) -> Result<()> {
-        debug!("Coordinator exiting — waiting briefly for client acknowledgement");
-
+        debug!("Coordinator exiting");
         let mut connection = self
             .coordinator_connection
             .lock()
             .map_err(|e| format!("Could not lock Coordinator Connection: {e}"))?;
 
-        // After send(FlowEnd) the REP socket is in "sent" state.
-        // We need to receive the client's ClientExiting before we can send again.
-        let _ = connection.set_receive_timeout(1000);
-        if connection.receive::<ClientMessage>(WAIT).is_ok() {
-            connection.send(CoordinatorMessage::CoordinatorExiting(result))?;
+        // After flow_execution_ended sends FlowEnd the REP socket is in "sent" state
+        // (client_and_coordinator mode). We need to receive the client's ClientExiting
+        // before we can send CoordinatorExiting.
+        // In server mode, wait_for_submission already consumed ClientExiting, so this
+        // recv may fail (EFSM or timeout) — either is fine, just proceed.
+        if let Err(e) = connection.set_receive_timeout(1000) {
+            error!("Could not set receive timeout: {e}");
+        }
+        match connection.receive::<ClientMessage>(WAIT) {
+            Ok(_) => debug!("Received client acknowledgement"),
+            Err(e) => debug!("No client acknowledgement (expected in server mode): {e}"),
         }
 
-        Ok(())
+        connection.send(CoordinatorMessage::CoordinatorExiting(result))
     }
 }
