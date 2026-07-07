@@ -237,7 +237,15 @@ jobs:
       - name: test-examples
         shell: bash
         timeout-minutes: ${{ runner.os == 'Windows' && 20 || 15 }}
-        run: cargo test --examples -- --nocapture
+        run: cargo test --examples
+
+      - name: test-hello-world-windows-debug
+        if: runner.os == 'Windows'
+        shell: bash
+        timeout-minutes: 20
+        env:
+          FLOW_TEST_VERBOSE: 1
+        run: cargo test --examples hello_world -- --nocapture
 
       - name: UploadCoverage
         if: runner.os != 'Windows'
