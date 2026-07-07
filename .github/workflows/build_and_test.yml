@@ -237,7 +237,7 @@ jobs:
       - name: test-examples
         shell: bash
         timeout-minutes: ${{ runner.os == 'Windows' && 20 || 15 }}
-        run: cargo test --examples
+        run: cargo test --examples -- --nocapture
 
       - name: UploadCoverage
         if: runner.os != 'Windows'

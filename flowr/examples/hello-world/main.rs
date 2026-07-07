@@ -8,7 +8,6 @@ mod test {
     use std::env;
     use std::path::PathBuf;
 
-    #[cfg_attr(target_os = "windows", ignore)]
     #[test]
     fn test_hello_world_example() {
         let _ = env::set_current_dir(
@@ -17,7 +16,10 @@ mod test {
                 .expect("Could not cd into flow directory"),
         );
 
+        eprintln!("[FLOW_TEST] test_hello_world_example: calling super::main()");
         super::main();
+        eprintln!("[FLOW_TEST] test_hello_world_example: super::main() returned, checking output");
         utilities::check_test_output(file!());
+        eprintln!("[FLOW_TEST] test_hello_world_example: PASSED");
     }
 }

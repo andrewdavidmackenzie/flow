@@ -48,7 +48,12 @@ pub fn run_example(source_file: &str, runner: &str, flowrex: bool, native: bool)
     let mut sample_dir = PathBuf::from(source_file);
     sample_dir.pop();
 
+    eprintln!(
+        "[FLOW_TEST] run_example: compiling {}",
+        sample_dir.display()
+    );
     compile_example(&sample_dir, runner);
+    eprintln!("[FLOW_TEST] run_example: compile done");
 
     println!("\n\tRunning example: {}", sample_dir.display());
     println!("\t\tRunner: {}", runner);
@@ -68,6 +73,9 @@ pub fn run_example(source_file: &str, runner: &str, flowrex: bool, native: bool)
     } else {
         vec![]
     };
+
+    runner_args.push("--verbosity".into());
+    runner_args.push("trace".into());
 
     if runner == "flowrgui" {
         runner_args.push("--auto".into());
@@ -89,6 +97,8 @@ pub fn run_example(source_file: &str, runner: &str, flowrex: bool, native: bool)
     runner_args.push("manifest.json".into());
     runner_args.append(&mut args(&sample_dir).expect("Could not get flow args"));
 
+    eprintln!("[FLOW_TEST] run_example: creating output files");
+
     let output = File::create(sample_dir.join(TEST_STDOUT_FILENAME))
         .expect("Could not create Test StdOutput File");
 
@@ -96,7 +106,11 @@ pub fn run_example(source_file: &str, runner: &str, flowrex: bool, native: bool)
         .expect("Could not create Test StdError File ");
     let stderr_target = Stdio::from(error);
 
-    println!("\tCommand line: '{} {}'", runner, runner_args.join(" "));
+    eprintln!(
+        "[FLOW_TEST] run_example: spawning: '{} {}'",
+        runner,
+        runner_args.join(" ")
+    );
     let mut runner_child = Command::new(runner)
         .args(runner_args)
         .current_dir(
@@ -110,6 +124,11 @@ pub fn run_example(source_file: &str, runner: &str, flowrex: bool, native: bool)
         .spawn()
         .expect("Could not spawn runner");
 
+    eprintln!(
+        "[FLOW_TEST] run_example: spawned, PID: {:?}",
+        runner_child.id()
+    );
+
     let stdin_file = sample_dir.join(TEST_STDIN_FILENAME);
     if stdin_file.exists() {
         if let Some(mut child_stdin) = runner_child.stdin.take() {
@@ -119,9 +138,11 @@ pub fn run_example(source_file: &str, runner: &str, flowrex: bool, native: bool)
         }
     }
 
+    eprintln!("[FLOW_TEST] run_example: waiting for runner to exit");
     runner_child
         .wait_with_output()
         .expect("Could not get sub process output");
+    eprintln!("[FLOW_TEST] run_example: runner exited");
 
     // If flowrex was started - then kill it
     if let Some(mut child) = flowrex_child {
