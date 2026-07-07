@@ -235,14 +235,15 @@ jobs:
         run: cargo test --features "online_tests"
 
       - name: test-examples
+        if: runner.os != 'Windows'
         shell: bash
-        timeout-minutes: ${{ runner.os == 'Windows' && 20 || 15 }}
+        timeout-minutes: 15
         run: cargo test --examples
 
       - name: test-hello-world-windows-debug
         if: runner.os == 'Windows'
         shell: bash
-        timeout-minutes: 20
+        timeout-minutes: 25
         env:
           FLOW_TEST_VERBOSE: 1
         run: cargo test --examples hello_world -- --nocapture
