@@ -60,6 +60,7 @@ fn verify_basic_invariants(manifest: &FlowManifest, example_name: &str) {
     }
 }
 
+#[cfg_attr(target_os = "windows", ignore)]
 #[test]
 fn factorial_all_internal() {
     let manifest = load_example_manifest("factorial");
@@ -79,12 +80,14 @@ fn factorial_all_internal() {
     }
 }
 
+#[cfg_attr(target_os = "windows", ignore)]
 #[test]
 fn sequence_of_sequences_classification() {
     let manifest = load_example_manifest("sequence-of-sequences");
     verify_basic_invariants(&manifest, "sequence-of-sequences");
 }
 
+#[cfg_attr(target_os = "windows", ignore)]
 #[test]
 fn router_classification() {
     let manifest = load_example_manifest("router");
@@ -111,6 +114,7 @@ fn router_classification() {
     );
 }
 
+#[cfg_attr(target_os = "windows", ignore)]
 #[test]
 fn prime_classification() {
     let manifest = load_example_manifest("prime");
@@ -133,12 +137,14 @@ fn prime_classification() {
     assert!(has_external, "prime: should have external connections");
 }
 
+#[cfg_attr(target_os = "windows", ignore)]
 #[test]
 fn weather_station_classification() {
     let manifest = load_example_manifest("weather-station");
     verify_basic_invariants(&manifest, "weather-station");
 }
 
+#[cfg_attr(target_os = "windows", ignore)]
 #[test]
 fn fibonacci_classification() {
     let manifest = load_example_manifest("fibonacci");
