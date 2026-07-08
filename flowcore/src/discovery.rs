@@ -24,7 +24,9 @@ const DEFAULT_DISCOVERY_TIMEOUT: Duration = Duration::from_secs(30);
 ///
 /// Returns an error if the mDNS daemon or service registration fails.
 pub fn enable_service_discovery(name: &str, service_port: u16) -> Result<ServiceDaemon> {
+    eprintln!("[FLOW_DISCOVERY] {name}: before ServiceDaemon::new()");
     let mdns = ServiceDaemon::new().map_err(|e| format!("Could not create mDNS daemon: {e}"))?;
+    eprintln!("[FLOW_DISCOVERY] {name}: after ServiceDaemon::new()");
 
     let service_hostname = format!("{name}.local.");
 
@@ -39,8 +41,10 @@ pub fn enable_service_discovery(name: &str, service_port: u16) -> Result<Service
     .map_err(|e| format!("Could not create mDNS ServiceInfo: {e}"))?
     .enable_addr_auto();
 
+    eprintln!("[FLOW_DISCOVERY] {name}: before mdns.register()");
     mdns.register(service_info)
         .map_err(|e| format!("Could not register mDNS service: {e}"))?;
+    eprintln!("[FLOW_DISCOVERY] {name}: after mdns.register()");
 
     info!("mDNS service registered: '{name}' on port {service_port}");
 

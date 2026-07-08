@@ -222,7 +222,9 @@ fn client_and_coordinator(
     let coordinator_connection =
         CoordinatorConnection::new(COORDINATOR_SERVICE_NAME, runtime_port)?;
 
+    eprintln!("[FLOW_MAIN] before enable_service_discovery(COORDINATOR)");
     let _mdns_coordinator = enable_service_discovery(COORDINATOR_SERVICE_NAME, runtime_port)?;
+    eprintln!("[FLOW_MAIN] after enable_service_discovery(COORDINATOR)");
 
     #[cfg(feature = "debugger")]
     let debug_port = pick_unused_port().chain_err(|| "No ports free")?;
@@ -253,7 +255,9 @@ fn client_and_coordinator(
         }
     });
 
+    eprintln!("[FLOW_MAIN] before discover_service(COORDINATOR)");
     let coordinator_address = discover_service(COORDINATOR_SERVICE_NAME)?;
+    eprintln!("[FLOW_MAIN] after discover_service(COORDINATOR)");
 
     let runtime_client_connection = ClientConnection::new(&coordinator_address)?;
 
@@ -295,9 +299,15 @@ fn coordinator(
     trace!("Announcing three job queues and a control socket on ports: {ports:?}");
     let job_queues = get_bind_addresses(ports);
     let dispatcher = Dispatcher::new(&job_queues)?;
+    eprintln!("[FLOW_MAIN] before enable_service_discovery(jobs)");
     let _mdns_jobs = enable_service_discovery(JOB_SERVICE_NAME, ports.0)?;
+    eprintln!("[FLOW_MAIN] after enable_service_discovery(jobs)");
+    eprintln!("[FLOW_MAIN] before enable_service_discovery(results)");
     let _mdns_results = enable_service_discovery(RESULTS_JOB_SERVICE_NAME, ports.2)?;
+    eprintln!("[FLOW_MAIN] after enable_service_discovery(results)");
+    eprintln!("[FLOW_MAIN] before enable_service_discovery(control)");
     let _mdns_control = enable_service_discovery(CONTROL_SERVICE_NAME, ports.3)?;
+    eprintln!("[FLOW_MAIN] after enable_service_discovery(control)");
 
     let (job_source_name, context_job_source_name, results_sink, control_socket) =
         get_connect_addresses(ports);
