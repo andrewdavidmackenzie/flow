@@ -24,8 +24,26 @@ const DEFAULT_DISCOVERY_TIMEOUT: Duration = Duration::from_secs(30);
 ///
 /// Returns an error if the mDNS daemon or service registration fails.
 pub fn enable_service_discovery(name: &str, service_port: u16) -> Result<ServiceDaemon> {
-    eprintln!("[FLOW_DISCOVERY] {name}: before ServiceDaemon::new()");
-    let mdns = ServiceDaemon::new().map_err(|e| format!("Could not create mDNS daemon: {e}"))?;
+    eprintln!("[FLOW_DISCOVERY] {name}: before ServiceDaemon::new() (will wait 10s max)");
+
+    let mdns = {
+        let name = name.to_string();
+        let (tx, rx) = std::sync::mpsc::channel::<std::result::Result<ServiceDaemon, String>>();
+        std::thread::spawn(move || {
+            let result =
+                ServiceDaemon::new().map_err(|e| format!("Could not create mDNS daemon: {e}"));
+            let _ = tx.send(result);
+        });
+        match rx.recv_timeout(Duration::from_secs(10)) {
+            Ok(Ok(mdns)) => mdns,
+            Ok(Err(e)) => bail!(e),
+            Err(_) => {
+                eprintln!("[FLOW_DISCOVERY] {name}: ServiceDaemon::new() TIMED OUT after 10s!");
+                bail!("ServiceDaemon::new() timed out after 10s for '{name}'");
+            }
+        }
+    };
+
     eprintln!("[FLOW_DISCOVERY] {name}: after ServiceDaemon::new()");
 
     let service_hostname = format!("{name}.local.");
@@ -60,7 +78,9 @@ pub fn enable_service_discovery(name: &str, service_port: u16) -> Result<Service
 /// - Cannot create `ServiceDaemon`
 /// - Cannot get receiver for discovery messages
 pub fn discover_service(name: &str) -> Result<String> {
+    eprintln!("[FLOW_DISCOVERY] discover({name}): before ServiceDaemon::new()");
     let mdns = ServiceDaemon::new().map_err(|e| format!("Could not create mDNS daemon: {e}"))?;
+    eprintln!("[FLOW_DISCOVERY] discover({name}): after ServiceDaemon::new()");
 
     let receiver = mdns
         .browse(FLOW_SERVICE_TYPE)
