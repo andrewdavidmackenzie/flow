@@ -51,7 +51,8 @@ use flowrlib::coordinator::Coordinator;
 #[cfg(feature = "debugger")]
 use flowrlib::debug_zmq_handler::DebugZmqHandler;
 use flowrlib::discovery::{
-    create_service_daemon, discover_service, register_service, ServiceDaemon,
+    create_service_daemon, discover_service, discover_services, register_service,
+    shutdown_service_daemon, unregister_service, ServiceDaemon,
 };
 use flowrlib::dispatcher::Dispatcher;
 use flowrlib::executor::Executor;
@@ -182,14 +183,18 @@ fn coordinator_only(
     let coordinator_port = pick_unused_port().chain_err(|| "No ports free")?;
     let coordinator_connection =
         CoordinatorConnection::new(COORDINATOR_SERVICE_NAME, coordinator_port)?;
-    register_service(&mdns, COORDINATOR_SERVICE_NAME, coordinator_port)?;
+    let mut fullnames = vec![register_service(
+        &mdns,
+        COORDINATOR_SERVICE_NAME,
+        coordinator_port,
+    )?];
 
     #[cfg(feature = "debugger")]
     let debug_port = pick_unused_port().chain_err(|| "No ports free")?;
     #[cfg(feature = "debugger")]
     let debug_server_connection = CoordinatorConnection::new(DEBUG_SERVICE_NAME, debug_port)?;
     #[cfg(feature = "debugger")]
-    register_service(&mdns, DEBUG_SERVICE_NAME, debug_port)?;
+    fullnames.push(register_service(&mdns, DEBUG_SERVICE_NAME, debug_port)?);
 
     #[cfg(feature = "debugger")]
     eprintln!("Debug server listening on port {debug_port}. Connect with: flowrdb --address localhost:{debug_port}");
@@ -198,7 +203,7 @@ fn coordinator_only(
     println!("ready");
 
     info!("Starting coordinator in main thread");
-    coordinator(
+    let result = coordinator(
         &mdns,
         num_threads,
         lib_search_path,
@@ -207,7 +212,13 @@ fn coordinator_only(
         #[cfg(feature = "debugger")]
         debug_server_connection,
         true,
-    )?;
+    );
+
+    if let Err(e) = shutdown_service_daemon(&mdns, &fullnames) {
+        error!("Could not shut down mDNS daemon: {e}");
+    }
+
+    result?;
 
     info!("'flowr' coordinator has exited");
 
@@ -229,14 +240,18 @@ fn client_and_coordinator(
     let coordinator_connection =
         CoordinatorConnection::new(COORDINATOR_SERVICE_NAME, runtime_port)?;
 
-    register_service(&mdns, COORDINATOR_SERVICE_NAME, runtime_port)?;
+    let mut fullnames = vec![register_service(
+        &mdns,
+        COORDINATOR_SERVICE_NAME,
+        runtime_port,
+    )?];
 
     #[cfg(feature = "debugger")]
     let debug_port = pick_unused_port().chain_err(|| "No ports free")?;
     #[cfg(feature = "debugger")]
     let debug_connection = CoordinatorConnection::new(DEBUG_SERVICE_NAME, debug_port)?;
     #[cfg(feature = "debugger")]
-    register_service(&mdns, DEBUG_SERVICE_NAME, debug_port)?;
+    fullnames.push(register_service(&mdns, DEBUG_SERVICE_NAME, debug_port)?);
 
     #[cfg(feature = "debugger")]
     if debug_this_flow {
@@ -262,6 +277,30 @@ fn client_and_coordinator(
         }
     });
 
+    // TEMPORARY DIAGNOSTIC (only runs if FLOW_DIAGNOSTIC_MDNS is set): enumerate every
+    // currently-resolvable '{COORDINATOR_SERVICE_NAME}' instance before doing the real
+    // (single-result) discovery, so we can see directly whether more than one is being
+    // advertised at this moment (investigating a Windows-only hang in `discover_service`).
+    if env::var("FLOW_DIAGNOSTIC_MDNS").is_ok() {
+        match discover_services(COORDINATOR_SERVICE_NAME, Duration::from_secs(2)) {
+            Ok(instances) if instances.len() > 1 => {
+                error!(
+                    "[FLOW_DIAGNOSTIC] Found {} '{COORDINATOR_SERVICE_NAME}' instances: \
+                     {instances:?} (this process bound port {runtime_port})",
+                    instances.len()
+                );
+            }
+            Ok(instances) => {
+                info!(
+                    "[FLOW_DIAGNOSTIC] Found {} '{COORDINATOR_SERVICE_NAME}' instance(s): \
+                     {instances:?} (this process bound port {runtime_port})",
+                    instances.len()
+                );
+            }
+            Err(e) => error!("[FLOW_DIAGNOSTIC] discover_services failed: {e}"),
+        }
+    }
+
     let coordinator_address = discover_service(COORDINATOR_SERVICE_NAME)?;
 
     let runtime_client_connection = ClientConnection::new(&coordinator_address)?;
@@ -275,6 +314,12 @@ fn client_and_coordinator(
     );
 
     let _ = coordinator_handle.join();
+
+    // Both the client (this thread) and the coordinator (now joined) are done using
+    // the daemon - unregister our services (send "goodbye" packets) and shut it down.
+    if let Err(e) = shutdown_service_daemon(&mdns, &fullnames) {
+        error!("Could not shut down mDNS daemon: {e}");
+    }
 
     result
 }
@@ -305,9 +350,11 @@ fn coordinator(
     trace!("Announcing three job queues and a control socket on ports: {ports:?}");
     let job_queues = get_bind_addresses(ports);
     let dispatcher = Dispatcher::new(&job_queues)?;
-    register_service(mdns, JOB_SERVICE_NAME, ports.0)?;
-    register_service(mdns, RESULTS_JOB_SERVICE_NAME, ports.2)?;
-    register_service(mdns, CONTROL_SERVICE_NAME, ports.3)?;
+    let fullnames = [
+        register_service(mdns, JOB_SERVICE_NAME, ports.0)?,
+        register_service(mdns, RESULTS_JOB_SERVICE_NAME, ports.2)?,
+        register_service(mdns, CONTROL_SERVICE_NAME, ports.3)?,
+    ];
 
     let (job_source_name, context_job_source_name, results_sink, control_socket) =
         get_connect_addresses(ports);
@@ -357,9 +404,18 @@ fn coordinator(
     );
 
     #[cfg(feature = "submission")]
-    coordinator.submission_loop(loop_forever)?;
+    let result = coordinator.submission_loop(loop_forever);
+    #[cfg(not(feature = "submission"))]
+    let result: Result<()> = Ok(());
 
-    Ok(())
+    // Unregister our job/results/control services (send "goodbye" packets). The daemon
+    // itself is shared with the caller, which is responsible for shutting it down once
+    // it has also unregistered its own (runtime/debug) services.
+    for fullname in &fullnames {
+        unregister_service(mdns, fullname);
+    }
+
+    result
 }
 
 /// Start only a client in the calling thread. Discover the remote Coordinator using service discovery

@@ -28,7 +28,8 @@ use flowrlib::connections::CoordinatorConnection;
 #[cfg(feature = "debugger")]
 use flowrlib::debug_zmq_handler::DebugZmqHandler;
 use flowrlib::discovery::{
-    create_service_daemon, discover_service, register_service, ServiceDaemon,
+    create_service_daemon, discover_service, register_service, shutdown_service_daemon,
+    unregister_service, ServiceDaemon,
 };
 use flowrlib::services::COORDINATOR_SERVICE_NAME;
 #[cfg(feature = "debugger")]
@@ -336,14 +337,18 @@ fn start_server(coordinator_settings: ServerSettings) -> Result<()> {
     let coordinator_connection =
         CoordinatorConnection::new(COORDINATOR_SERVICE_NAME, runtime_port)?;
 
-    register_service(&mdns, COORDINATOR_SERVICE_NAME, runtime_port)?;
+    let mut fullnames = vec![register_service(
+        &mdns,
+        COORDINATOR_SERVICE_NAME,
+        runtime_port,
+    )?];
 
     #[cfg(feature = "debugger")]
     let debug_port = pick_unused_port().chain_err(|| "No ports free")?;
     #[cfg(feature = "debugger")]
     let debug_connection = CoordinatorConnection::new(DEBUG_SERVICE_NAME, debug_port)?;
     #[cfg(feature = "debugger")]
-    register_service(&mdns, DEBUG_SERVICE_NAME, debug_port)?;
+    fullnames.push(register_service(&mdns, DEBUG_SERVICE_NAME, debug_port)?);
 
     #[cfg(feature = "debugger")]
     {
@@ -355,14 +360,22 @@ fn start_server(coordinator_settings: ServerSettings) -> Result<()> {
 
     info!("Starting coordinator in background thread");
     thread::spawn(move || {
-        if let Err(e) = coordinator(
+        let result = coordinator(
             &coordinator_mdns,
             coordinator_settings,
             coordinator_connection,
             #[cfg(feature = "debugger")]
             debug_connection,
             true,
-        ) {
+        );
+
+        // The coordinator has ended (normally or with an error) - unregister our
+        // runtime/debug services (send "goodbye" packets) and shut the daemon down.
+        if let Err(e) = shutdown_service_daemon(&coordinator_mdns, &fullnames) {
+            error!("Could not shut down mDNS daemon: {e}");
+        }
+
+        if let Err(e) = result {
             error!("Coordinator thread exited with error: {e}");
         }
     });
@@ -393,9 +406,11 @@ fn coordinator(
     trace!("Announcing three job queues and a control socket on ports: {ports:?}");
     let job_queues = get_bind_addresses(ports);
     let dispatcher = Dispatcher::new(&job_queues)?;
-    register_service(mdns, JOB_SERVICE_NAME, ports.0)?;
-    register_service(mdns, RESULTS_JOB_SERVICE_NAME, ports.2)?;
-    register_service(mdns, CONTROL_SERVICE_NAME, ports.3)?;
+    let fullnames = [
+        register_service(mdns, JOB_SERVICE_NAME, ports.0)?,
+        register_service(mdns, RESULTS_JOB_SERVICE_NAME, ports.2)?,
+        register_service(mdns, CONTROL_SERVICE_NAME, ports.3)?,
+    ];
 
     let (job_source_name, context_job_source_name, results_sink, control_socket) =
         get_connect_addresses(ports);
@@ -445,10 +460,20 @@ fn coordinator(
     );
 
     #[cfg(feature = "submission")]
-    {
-        coordinator.submission_loop(loop_forever)?;
+    let result: Result<()> = coordinator
+        .submission_loop(loop_forever)
+        .map_err(Into::into);
+    #[cfg(not(feature = "submission"))]
+    let result: Result<()> = Ok(());
+
+    // Unregister our job/results/control services (send "goodbye" packets). The daemon
+    // itself is shared with the caller, which is responsible for shutting it down once
+    // it has also unregistered its own (runtime/debug) services.
+    for fullname in &fullnames {
+        unregister_service(mdns, fullname);
     }
-    Ok(())
+
+    result
 }
 
 /// Global sender for debug commands from GUI to the debug client subscription

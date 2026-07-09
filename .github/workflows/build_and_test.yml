@@ -240,12 +240,25 @@ jobs:
         timeout-minutes: 15
         run: cargo test --examples
 
+      - name: check-for-leftover-flowr-processes
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          $procs = Get-Process -ErrorAction SilentlyContinue | Where-Object { $_.ProcessName -match '^flowr' }
+          if ($procs) {
+            Write-Host "Found leftover flowr* processes still running before test-hello-world-windows-debug:"
+            $procs | Format-Table Id, ProcessName, StartTime
+          } else {
+            Write-Host "No leftover flowr* processes found."
+          }
+
       - name: test-hello-world-windows-debug
         if: runner.os == 'Windows'
         shell: bash
         timeout-minutes: 25
         env:
           FLOW_TEST_VERBOSE: 1
+          FLOW_DIAGNOSTIC_MDNS: 1
         run: cargo test --examples hello_world -- --nocapture
 
       - name: UploadCoverage

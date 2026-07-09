@@ -6,7 +6,7 @@
 
 use std::time::{Duration, Instant};
 
-use log::info;
+use log::{debug, info};
 pub use mdns_sd::ServiceDaemon;
 use mdns_sd::{ServiceEvent, ServiceInfo};
 
@@ -38,10 +38,17 @@ pub fn create_service_daemon() -> Result<ServiceDaemon> {
 /// Use together with [`create_service_daemon`] when registering multiple services
 /// so that only one daemon thread and one multicast socket are created.
 ///
+/// Returns the service's mDNS "fullname" (e.g. `"runtime._flow._tcp.local."`), which
+/// must be kept and passed to [`unregister_service`] to properly deregister the
+/// service (send a "goodbye" packet) before the daemon is shut down. `mdns-sd`'s
+/// `ServiceDaemon` has no `Drop` implementation of its own: simply letting it go out
+/// of scope does **not** unregister services or notify other hosts — see
+/// [`shutdown_service_daemon`].
+///
 /// # Errors
 ///
 /// Returns an error if the service registration fails.
-pub fn register_service(mdns: &ServiceDaemon, name: &str, service_port: u16) -> Result<()> {
+pub fn register_service(mdns: &ServiceDaemon, name: &str, service_port: u16) -> Result<String> {
     let service_hostname = format!("{name}.local.");
 
     let service_info = ServiceInfo::new(
@@ -55,18 +62,62 @@ pub fn register_service(mdns: &ServiceDaemon, name: &str, service_port: u16) -> 
     .map_err(|e| format!("Could not create mDNS ServiceInfo: {e}"))?
     .enable_addr_auto();
 
+    let fullname = service_info.get_fullname().to_string();
+
     mdns.register(service_info)
         .map_err(|e| format!("Could not register mDNS service: {e}"))?;
 
     info!("mDNS service registered: '{name}' on port {service_port}");
+
+    Ok(fullname)
+}
+
+/// Unregister a single service (identified by the "fullname" returned from
+/// [`register_service`]), waiting briefly for confirmation that the "goodbye"
+/// packet was sent.
+///
+/// This is best-effort: failures are logged (at debug level) rather than returned,
+/// since callers typically call this while already tearing down/exiting.
+pub fn unregister_service(mdns: &ServiceDaemon, fullname: &str) {
+    match mdns.unregister(fullname) {
+        Ok(rx) => {
+            if let Err(e) = rx.recv_timeout(Duration::from_secs(1)) {
+                debug!("No confirmation of mDNS unregister for '{fullname}': {e}");
+            }
+        }
+        Err(e) => debug!("Could not unregister mDNS service '{fullname}': {e}"),
+    }
+}
+
+/// Unregister all `fullnames` (as returned by [`register_service`]) then shut the
+/// daemon down.
+///
+/// Unregistering before shutdown gives other hosts a "goodbye" packet so they don't
+/// keep treating the service as available after this process exits - simply
+/// dropping the `ServiceDaemon` does neither of these things (see [`register_service`]).
+///
+/// # Errors
+///
+/// Returns an error if the daemon itself could not be shut down. Failures to
+/// unregister individual services are logged but do not cause an error, since
+/// the daemon is being shut down regardless.
+pub fn shutdown_service_daemon(mdns: &ServiceDaemon, fullnames: &[String]) -> Result<()> {
+    for fullname in fullnames {
+        unregister_service(mdns, fullname);
+    }
+
+    mdns.shutdown()
+        .map_err(|e| format!("Could not shut down mDNS daemon: {e}"))?;
 
     Ok(())
 }
 
 /// Register a service for mDNS-SD discovery, creating a new daemon.
 ///
-/// The returned `ServiceDaemon` must be kept alive by the caller — the service is
-/// unregistered when the daemon is dropped.
+/// The returned `ServiceDaemon` must be explicitly torn down with
+/// [`shutdown_service_daemon`] (passing back the service's fullname) once the
+/// service is no longer needed — dropping the `ServiceDaemon` alone does not
+/// unregister the service or shut down its background thread.
 ///
 /// Prefer [`create_service_daemon`] + [`register_service`] when registering
 /// multiple services, to share a single daemon.
