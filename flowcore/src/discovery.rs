@@ -7,7 +7,8 @@
 use std::time::{Duration, Instant};
 
 use log::info;
-use mdns_sd::{ServiceDaemon, ServiceEvent, ServiceInfo};
+pub use mdns_sd::ServiceDaemon;
+use mdns_sd::{ServiceEvent, ServiceInfo};
 
 use crate::errors::{bail, Result};
 
@@ -15,37 +16,32 @@ use crate::services::FLOW_SERVICE_TYPE;
 
 const DEFAULT_DISCOVERY_TIMEOUT: Duration = Duration::from_secs(30);
 
-/// Register a service for mDNS-SD discovery.
+/// Create a new mDNS service daemon.
 ///
-/// The returned `ServiceDaemon` must be kept alive by the caller — the service is
-/// unregistered when the daemon is dropped.
+/// Prefer creating a single daemon and registering multiple services on it via
+/// [`register_service`] instead of creating one daemon per service — this avoids
+/// resource contention on Windows (see [`mdns-sd`] issue #...).
+///
+/// The returned `ServiceDaemon` must be kept alive for the lifetime of the
+/// registered services. All services are unregistered when the daemon is dropped.
 ///
 /// # Errors
 ///
-/// Returns an error if the mDNS daemon or service registration fails.
-pub fn enable_service_discovery(name: &str, service_port: u16) -> Result<ServiceDaemon> {
-    eprintln!("[FLOW_DISCOVERY] {name}: before ServiceDaemon::new() (will wait 10s max)");
+/// Returns an error if the mDNS daemon cannot be initialized.
+pub fn create_service_daemon() -> Result<ServiceDaemon> {
+    let mdns = ServiceDaemon::new().map_err(|e| format!("Could not create mDNS daemon: {e}"))?;
+    Ok(mdns)
+}
 
-    let mdns = {
-        let name = name.to_string();
-        let (tx, rx) = std::sync::mpsc::channel::<std::result::Result<ServiceDaemon, String>>();
-        std::thread::spawn(move || {
-            let result =
-                ServiceDaemon::new().map_err(|e| format!("Could not create mDNS daemon: {e}"));
-            let _ = tx.send(result);
-        });
-        match rx.recv_timeout(Duration::from_secs(10)) {
-            Ok(Ok(mdns)) => mdns,
-            Ok(Err(e)) => bail!(e),
-            Err(_) => {
-                eprintln!("[FLOW_DISCOVERY] {name}: ServiceDaemon::new() TIMED OUT after 10s!");
-                bail!("ServiceDaemon::new() timed out after 10s for '{name}'");
-            }
-        }
-    };
-
-    eprintln!("[FLOW_DISCOVERY] {name}: after ServiceDaemon::new()");
-
+/// Register a service for mDNS-SD discovery on an existing daemon.
+///
+/// Use together with [`create_service_daemon`] when registering multiple services
+/// so that only one daemon thread and one multicast socket are created.
+///
+/// # Errors
+///
+/// Returns an error if the service registration fails.
+pub fn register_service(mdns: &ServiceDaemon, name: &str, service_port: u16) -> Result<()> {
     let service_hostname = format!("{name}.local.");
 
     let service_info = ServiceInfo::new(
@@ -59,13 +55,28 @@ pub fn enable_service_discovery(name: &str, service_port: u16) -> Result<Service
     .map_err(|e| format!("Could not create mDNS ServiceInfo: {e}"))?
     .enable_addr_auto();
 
-    eprintln!("[FLOW_DISCOVERY] {name}: before mdns.register()");
     mdns.register(service_info)
         .map_err(|e| format!("Could not register mDNS service: {e}"))?;
-    eprintln!("[FLOW_DISCOVERY] {name}: after mdns.register()");
 
     info!("mDNS service registered: '{name}' on port {service_port}");
 
+    Ok(())
+}
+
+/// Register a service for mDNS-SD discovery, creating a new daemon.
+///
+/// The returned `ServiceDaemon` must be kept alive by the caller — the service is
+/// unregistered when the daemon is dropped.
+///
+/// Prefer [`create_service_daemon`] + [`register_service`] when registering
+/// multiple services, to share a single daemon.
+///
+/// # Errors
+///
+/// Returns an error if the mDNS daemon or service registration fails.
+pub fn enable_service_discovery(name: &str, service_port: u16) -> Result<ServiceDaemon> {
+    let mdns = create_service_daemon()?;
+    register_service(&mdns, name, service_port)?;
     Ok(mdns)
 }
 
@@ -78,9 +89,7 @@ pub fn enable_service_discovery(name: &str, service_port: u16) -> Result<Service
 /// - Cannot create `ServiceDaemon`
 /// - Cannot get receiver for discovery messages
 pub fn discover_service(name: &str) -> Result<String> {
-    eprintln!("[FLOW_DISCOVERY] discover({name}): before ServiceDaemon::new()");
     let mdns = ServiceDaemon::new().map_err(|e| format!("Could not create mDNS daemon: {e}"))?;
-    eprintln!("[FLOW_DISCOVERY] discover({name}): after ServiceDaemon::new()");
 
     let receiver = mdns
         .browse(FLOW_SERVICE_TYPE)

@@ -27,8 +27,9 @@ use flowrlib::connections::ClientConnection;
 use flowrlib::connections::CoordinatorConnection;
 #[cfg(feature = "debugger")]
 use flowrlib::debug_zmq_handler::DebugZmqHandler;
-use flowrlib::discovery::discover_service;
-use flowrlib::discovery::enable_service_discovery;
+use flowrlib::discovery::{
+    create_service_daemon, discover_service, register_service, ServiceDaemon,
+};
 use flowrlib::services::COORDINATOR_SERVICE_NAME;
 #[cfg(feature = "debugger")]
 use flowrlib::services::DEBUG_SERVICE_NAME;
@@ -329,18 +330,20 @@ async fn handle_idle(
 
 // Start a coordinator server in a background thread, then discover it and return the address
 fn start_server(coordinator_settings: ServerSettings) -> Result<()> {
+    let mdns = Arc::new(create_service_daemon()?);
+
     let runtime_port = pick_unused_port().chain_err(|| "No ports free")?;
     let coordinator_connection =
         CoordinatorConnection::new(COORDINATOR_SERVICE_NAME, runtime_port)?;
 
-    let _mdns_coordinator = enable_service_discovery(COORDINATOR_SERVICE_NAME, runtime_port)?;
+    register_service(&mdns, COORDINATOR_SERVICE_NAME, runtime_port)?;
 
     #[cfg(feature = "debugger")]
     let debug_port = pick_unused_port().chain_err(|| "No ports free")?;
     #[cfg(feature = "debugger")]
     let debug_connection = CoordinatorConnection::new(DEBUG_SERVICE_NAME, debug_port)?;
     #[cfg(feature = "debugger")]
-    let _mdns_debug = enable_service_discovery(DEBUG_SERVICE_NAME, debug_port)?;
+    register_service(&mdns, DEBUG_SERVICE_NAME, debug_port)?;
 
     #[cfg(feature = "debugger")]
     {
@@ -348,9 +351,12 @@ fn start_server(coordinator_settings: ServerSettings) -> Result<()> {
         info!("Debug server listening on port {debug_port}. Connect with: flowrdb --address localhost:{debug_port}");
     }
 
+    let coordinator_mdns = Arc::clone(&mdns);
+
     info!("Starting coordinator in background thread");
     thread::spawn(move || {
         if let Err(e) = coordinator(
+            &coordinator_mdns,
             coordinator_settings,
             coordinator_connection,
             #[cfg(feature = "debugger")]
@@ -365,6 +371,7 @@ fn start_server(coordinator_settings: ServerSettings) -> Result<()> {
 }
 
 fn coordinator(
+    mdns: &ServiceDaemon,
     coordinator_settings: ServerSettings,
     coordinator_connection: CoordinatorConnection,
     #[cfg(feature = "debugger")] debug_connection: CoordinatorConnection,
@@ -386,9 +393,9 @@ fn coordinator(
     trace!("Announcing three job queues and a control socket on ports: {ports:?}");
     let job_queues = get_bind_addresses(ports);
     let dispatcher = Dispatcher::new(&job_queues)?;
-    let _mdns_jobs = enable_service_discovery(JOB_SERVICE_NAME, ports.0)?;
-    let _mdns_results = enable_service_discovery(RESULTS_JOB_SERVICE_NAME, ports.2)?;
-    let _mdns_control = enable_service_discovery(CONTROL_SERVICE_NAME, ports.3)?;
+    register_service(mdns, JOB_SERVICE_NAME, ports.0)?;
+    register_service(mdns, RESULTS_JOB_SERVICE_NAME, ports.2)?;
+    register_service(mdns, CONTROL_SERVICE_NAME, ports.3)?;
 
     let (job_source_name, context_job_source_name, results_sink, control_socket) =
         get_connect_addresses(ports);

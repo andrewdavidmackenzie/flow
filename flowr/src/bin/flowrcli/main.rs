@@ -50,7 +50,9 @@ use flowrlib::connections::{ClientConnection, CoordinatorConnection};
 use flowrlib::coordinator::Coordinator;
 #[cfg(feature = "debugger")]
 use flowrlib::debug_zmq_handler::DebugZmqHandler;
-use flowrlib::discovery::{discover_service, enable_service_discovery};
+use flowrlib::discovery::{
+    create_service_daemon, discover_service, register_service, ServiceDaemon,
+};
 use flowrlib::dispatcher::Dispatcher;
 use flowrlib::executor::Executor;
 use flowrlib::info as flowrlib_info;
@@ -175,17 +177,19 @@ fn coordinator_only(
     lib_search_path: Simpath,
     native_flowstdlib: bool,
 ) -> Result<()> {
+    let mdns = create_service_daemon()?;
+
     let coordinator_port = pick_unused_port().chain_err(|| "No ports free")?;
     let coordinator_connection =
         CoordinatorConnection::new(COORDINATOR_SERVICE_NAME, coordinator_port)?;
-    let _mdns_coordinator = enable_service_discovery(COORDINATOR_SERVICE_NAME, coordinator_port)?;
+    register_service(&mdns, COORDINATOR_SERVICE_NAME, coordinator_port)?;
 
     #[cfg(feature = "debugger")]
     let debug_port = pick_unused_port().chain_err(|| "No ports free")?;
     #[cfg(feature = "debugger")]
     let debug_server_connection = CoordinatorConnection::new(DEBUG_SERVICE_NAME, debug_port)?;
     #[cfg(feature = "debugger")]
-    let _mdns_debug = enable_service_discovery(DEBUG_SERVICE_NAME, debug_port)?;
+    register_service(&mdns, DEBUG_SERVICE_NAME, debug_port)?;
 
     #[cfg(feature = "debugger")]
     eprintln!("Debug server listening on port {debug_port}. Connect with: flowrdb --address localhost:{debug_port}");
@@ -195,6 +199,7 @@ fn coordinator_only(
 
     info!("Starting coordinator in main thread");
     coordinator(
+        &mdns,
         num_threads,
         lib_search_path,
         native_flowstdlib,
@@ -218,20 +223,20 @@ fn client_and_coordinator(
     matches: &ArgMatches,
     #[cfg(feature = "debugger")] debug_this_flow: bool,
 ) -> Result<()> {
+    let mdns = Arc::new(create_service_daemon()?);
+
     let runtime_port = pick_unused_port().chain_err(|| "No ports free")?;
     let coordinator_connection =
         CoordinatorConnection::new(COORDINATOR_SERVICE_NAME, runtime_port)?;
 
-    eprintln!("[FLOW_MAIN] before enable_service_discovery(COORDINATOR)");
-    let _mdns_coordinator = enable_service_discovery(COORDINATOR_SERVICE_NAME, runtime_port)?;
-    eprintln!("[FLOW_MAIN] after enable_service_discovery(COORDINATOR)");
+    register_service(&mdns, COORDINATOR_SERVICE_NAME, runtime_port)?;
 
     #[cfg(feature = "debugger")]
     let debug_port = pick_unused_port().chain_err(|| "No ports free")?;
     #[cfg(feature = "debugger")]
     let debug_connection = CoordinatorConnection::new(DEBUG_SERVICE_NAME, debug_port)?;
     #[cfg(feature = "debugger")]
-    let _mdns_debug = enable_service_discovery(DEBUG_SERVICE_NAME, debug_port)?;
+    register_service(&mdns, DEBUG_SERVICE_NAME, debug_port)?;
 
     #[cfg(feature = "debugger")]
     if debug_this_flow {
@@ -239,10 +244,12 @@ fn client_and_coordinator(
     }
 
     let coordinator_lib_search_path = lib_search_path.clone();
+    let coordinator_mdns = Arc::clone(&mdns);
 
     info!("Starting coordinator in background thread");
     let coordinator_handle = thread::spawn(move || {
         if let Err(e) = coordinator(
+            &coordinator_mdns,
             num_threads,
             coordinator_lib_search_path,
             native_flowstdlib,
@@ -255,9 +262,7 @@ fn client_and_coordinator(
         }
     });
 
-    eprintln!("[FLOW_MAIN] before discover_service(COORDINATOR)");
     let coordinator_address = discover_service(COORDINATOR_SERVICE_NAME)?;
-    eprintln!("[FLOW_MAIN] after discover_service(COORDINATOR)");
 
     let runtime_client_connection = ClientConnection::new(&coordinator_address)?;
 
@@ -278,6 +283,7 @@ fn client_and_coordinator(
 /// loading a flow, and it's library references, then enter the `submission_loop()` accepting and
 /// executing flows submitted for execution, executing each one using the `Coordinator`
 fn coordinator(
+    mdns: &ServiceDaemon,
     num_threads: usize,
     lib_search_path: Simpath,
     native_flowstdlib: bool,
@@ -299,15 +305,9 @@ fn coordinator(
     trace!("Announcing three job queues and a control socket on ports: {ports:?}");
     let job_queues = get_bind_addresses(ports);
     let dispatcher = Dispatcher::new(&job_queues)?;
-    eprintln!("[FLOW_MAIN] before enable_service_discovery(jobs)");
-    let _mdns_jobs = enable_service_discovery(JOB_SERVICE_NAME, ports.0)?;
-    eprintln!("[FLOW_MAIN] after enable_service_discovery(jobs)");
-    eprintln!("[FLOW_MAIN] before enable_service_discovery(results)");
-    let _mdns_results = enable_service_discovery(RESULTS_JOB_SERVICE_NAME, ports.2)?;
-    eprintln!("[FLOW_MAIN] after enable_service_discovery(results)");
-    eprintln!("[FLOW_MAIN] before enable_service_discovery(control)");
-    let _mdns_control = enable_service_discovery(CONTROL_SERVICE_NAME, ports.3)?;
-    eprintln!("[FLOW_MAIN] after enable_service_discovery(control)");
+    register_service(mdns, JOB_SERVICE_NAME, ports.0)?;
+    register_service(mdns, RESULTS_JOB_SERVICE_NAME, ports.2)?;
+    register_service(mdns, CONTROL_SERVICE_NAME, ports.3)?;
 
     let (job_source_name, context_job_source_name, results_sink, control_socket) =
         get_connect_addresses(ports);
