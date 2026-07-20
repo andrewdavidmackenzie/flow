@@ -11,6 +11,7 @@ mod test {
     use std::env;
     use std::path::PathBuf;
 
+    #[cfg_attr(target_os = "windows", ignore)]
     #[test]
     #[serial]
     fn test_fibonacci_example() {

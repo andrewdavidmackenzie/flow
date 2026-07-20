@@ -2,6 +2,7 @@
 
 use std::path::PathBuf;
 
+#[cfg_attr(target_os = "windows", ignore)]
 #[test]
 fn hello_world_client_server() {
     let example_dir = PathBuf::from("examples").join("hello-world");

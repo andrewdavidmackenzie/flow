@@ -16,6 +16,17 @@ or the extensive docs in the ./book folder.
 
 3. Use direct quotes for factual grounding.
 
+## Prefer Makefile targets over handmade scripts
+
+The Makefile is the canonical way to build and test the project. It has many targets that set up the environment
+and PATH correctly for ensuring that tests and builds use the flow tools (e.g. flowc) being built (possibly
+modified) as part of the project.
+
+Whenever possible, use an existing Makefile target to get the job done.
+
+If you see the need for a Makefile target that does not exist, but which would probably be used many times for
+a specific task, then propose it to the user.
+
 ## Workflow Rules
 
 - Never commit to master/main branch, always use a feature branch and create a PR.

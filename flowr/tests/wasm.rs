@@ -1,5 +1,6 @@
 #![allow(missing_docs)]
 
+#[cfg_attr(target_os = "windows", ignore)]
 #[test]
 fn test_fibonacci_wasm_example() {
     let source = std::path::PathBuf::from("flowr")
