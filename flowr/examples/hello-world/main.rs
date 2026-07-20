@@ -16,10 +16,7 @@ mod test {
                 .expect("Could not cd into flow directory"),
         );
 
-        eprintln!("[FLOW_TEST] test_hello_world_example: calling super::main()");
         super::main();
-        eprintln!("[FLOW_TEST] test_hello_world_example: super::main() returned, checking output");
         utilities::check_test_output(file!());
-        eprintln!("[FLOW_TEST] test_hello_world_example: PASSED");
     }
 }

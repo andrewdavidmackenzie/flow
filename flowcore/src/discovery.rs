@@ -134,6 +134,10 @@ pub fn enable_service_discovery(name: &str, service_port: u16) -> Result<Service
 /// Discover a service by name using mDNS-SD. Blocks until the service is found
 /// or the default timeout (30 seconds) expires.
 ///
+/// Creates a temporary daemon for browsing. Prefer [`discover_service_on`] when
+/// a daemon already exists (e.g. in `client_and_coordinator` mode) to avoid
+/// creating a second daemon — which can hang on some platforms.
+///
 /// Returns the service address as `"{ip}:{port}"`.
 ///
 /// # Errors
@@ -141,7 +145,22 @@ pub fn enable_service_discovery(name: &str, service_port: u16) -> Result<Service
 /// - Cannot get receiver for discovery messages
 pub fn discover_service(name: &str) -> Result<String> {
     let mdns = ServiceDaemon::new().map_err(|e| format!("Could not create mDNS daemon: {e}"))?;
+    let result = discover_service_on(&mdns, name);
+    mdns.shutdown().ok();
+    result
+}
 
+/// Discover a service by name on an existing daemon.
+///
+/// Like [`discover_service`] but reuses the caller's daemon instead of creating
+/// a new one — avoids the second-daemon hang seen on Windows and ARM.
+///
+/// Returns the service address as `"{ip}:{port}"`.
+///
+/// # Errors
+/// - Cannot browse for services on the daemon
+/// - Discovery times out
+pub fn discover_service_on(mdns: &ServiceDaemon, name: &str) -> Result<String> {
     let receiver = mdns
         .browse(FLOW_SERVICE_TYPE)
         .map_err(|e| format!("Could not browse for mDNS services: {e}"))?;
@@ -151,7 +170,6 @@ pub fn discover_service(name: &str) -> Result<String> {
 
     loop {
         if start.elapsed() > DEFAULT_DISCOVERY_TIMEOUT {
-            mdns.shutdown().ok();
             bail!(format!(
                 "mDNS discovery timed out after {}s for '{name}'",
                 DEFAULT_DISCOVERY_TIMEOUT.as_secs()
@@ -171,7 +189,6 @@ pub fn discover_service(name: &str) -> Result<String> {
                 if let Some(addr) = info.get_addresses_v4().into_iter().next() {
                     let address = format!("{addr}:{port}");
                     info!("Discovered mDNS service '{name}' at {address}");
-                    mdns.shutdown().ok();
                     return Ok(address);
                 }
             }

@@ -51,7 +51,7 @@ use flowrlib::coordinator::Coordinator;
 #[cfg(feature = "debugger")]
 use flowrlib::debug_zmq_handler::DebugZmqHandler;
 use flowrlib::discovery::{
-    create_service_daemon, discover_service, discover_services, register_service,
+    create_service_daemon, discover_service, discover_service_on, register_service,
     shutdown_service_daemon, unregister_service, ServiceDaemon,
 };
 use flowrlib::dispatcher::Dispatcher;
@@ -277,32 +277,7 @@ fn client_and_coordinator(
         }
     });
 
-    // TEMPORARY DIAGNOSTIC (only runs if FLOW_DIAGNOSTIC_MDNS is set): enumerate every
-    // currently-resolvable '{COORDINATOR_SERVICE_NAME}' instance before doing the real
-    // (single-result) discovery, so we can see directly whether more than one is being
-    // advertised at this moment (investigating a Windows-only hang in `discover_service`).
-    if env::var("FLOW_DIAGNOSTIC_MDNS").is_ok() {
-        match discover_services(COORDINATOR_SERVICE_NAME, Duration::from_secs(2)) {
-            Ok(instances) if instances.len() > 1 => {
-                error!(
-                    "[FLOW_DIAGNOSTIC] Found {} '{COORDINATOR_SERVICE_NAME}' instances: \
-                     {instances:?} (this process bound port {runtime_port})",
-                    instances.len()
-                );
-            }
-            Ok(instances) => {
-                info!(
-                    "[FLOW_DIAGNOSTIC] Found {} '{COORDINATOR_SERVICE_NAME}' instance(s): \
-                     {instances:?} (this process bound port {runtime_port})",
-                    instances.len()
-                );
-            }
-            Err(e) => error!("[FLOW_DIAGNOSTIC] discover_services failed: {e}"),
-        }
-    }
-
-    let coordinator_address = discover_service(COORDINATOR_SERVICE_NAME)?;
-
+    let coordinator_address = discover_service_on(&mdns, COORDINATOR_SERVICE_NAME)?;
     let runtime_client_connection = ClientConnection::new(&coordinator_address)?;
 
     let result = client(
