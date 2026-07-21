@@ -218,6 +218,13 @@ impl RuntimeFunction {
         Ok(())
     }
 
+    /// Mark that the input at `io_number` receives internal connections
+    pub fn set_input_receives_internal(&mut self, io_number: usize) {
+        if let Some(input) = self.inputs.get_mut(io_number) {
+            input.set_receives_internal();
+        }
+    }
+
     /// Clear all internal values from all inputs of this function
     pub fn clear_internal_inputs(&mut self) {
         for input in &mut self.inputs {
@@ -301,6 +308,17 @@ impl RuntimeFunction {
     #[must_use]
     pub fn can_run(&self) -> bool {
         self.input_sets_available() > 0
+    }
+
+    /// Would creating a job consume an external value on an input that
+    /// receives internal connections? Used to gate job creation while the
+    /// parent flow is busy — external values should wait until the flow
+    /// goes idle so that internal (loopback) values arrive first.
+    #[must_use]
+    pub fn would_consume_external_on_internal_input(&self) -> bool {
+        self.inputs
+            .iter()
+            .any(|i| i.receives_internal() && i.internal_count() == 0 && i.values_available() > 0)
     }
 
     /// Can this function run using only internal values on all inputs?
@@ -701,5 +719,85 @@ mod test {
                 );
             }
         }
+    }
+
+    #[test]
+    fn would_consume_external_false_when_no_internal_inputs() {
+        let input = Input::new(
+            #[cfg(feature = "debugger")]
+            "i1",
+            0,
+            false,
+            None,
+            None,
+        );
+        let mut func = RuntimeFunction::new(
+            #[cfg(feature = "debugger")]
+            "test",
+            #[cfg(feature = "debugger")]
+            "/test",
+            "test",
+            vec![input],
+            0,
+            0,
+            &[],
+            false,
+        );
+        func.send(0, json!(1)).unwrap();
+        assert!(!func.would_consume_external_on_internal_input());
+    }
+
+    #[test]
+    fn would_consume_external_true_when_only_external_on_internal_input() {
+        let mut input = Input::new(
+            #[cfg(feature = "debugger")]
+            "i1",
+            0,
+            false,
+            None,
+            None,
+        );
+        input.set_receives_internal();
+        let mut func = RuntimeFunction::new(
+            #[cfg(feature = "debugger")]
+            "test",
+            #[cfg(feature = "debugger")]
+            "/test",
+            "test",
+            vec![input],
+            0,
+            0,
+            &[],
+            false,
+        );
+        func.send(0, json!(1)).unwrap();
+        assert!(func.would_consume_external_on_internal_input());
+    }
+
+    #[test]
+    fn would_consume_external_false_when_internal_value_present() {
+        let mut input = Input::new(
+            #[cfg(feature = "debugger")]
+            "i1",
+            0,
+            false,
+            None,
+            None,
+        );
+        input.set_receives_internal();
+        let mut func = RuntimeFunction::new(
+            #[cfg(feature = "debugger")]
+            "test",
+            #[cfg(feature = "debugger")]
+            "/test",
+            "test",
+            vec![input],
+            0,
+            0,
+            &[],
+            false,
+        );
+        func.send_internal(0, json!(1)).unwrap();
+        assert!(!func.would_consume_external_on_internal_input());
     }
 }
