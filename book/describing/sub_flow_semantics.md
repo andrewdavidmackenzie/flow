@@ -65,6 +65,11 @@ make sure the loop terminates cleanly — all internal loopback values should be
 or become irrelevant when the loop ends. Avoid producing internal values that feed
 downstream functions after the loop's termination condition is met.
 
+The runtime ensures that when a function with a loopback has a running job, external
+values on that input are not consumed until the loopback value arrives. This prevents
+values from different invocations being paired incorrectly when a sub-flow receives
+multiple sets of inputs concurrently.
+
 #### Flow initializers are external
 
 Input initializers set at the parent flow level (e.g., `input.start = {always = 0}`)

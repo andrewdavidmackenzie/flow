@@ -226,6 +226,22 @@ destination input's queue, while external values go to the *back*. This ensures 
 internal pipeline values from the current execution are consumed before external values
 intended for the next invocation.
 
+#### Deferring External Value Consumption
+
+When a function has a running job and one of its inputs receives both internal connections
+(e.g. a loopback from itself or a sibling within the flow) and external connections (from
+the parent flow), the runtime defers creating a new job that would consume the external
+value. The running job may produce an internal (loopback) value that should be consumed
+first.
+
+Without this rule, concurrent job completion can cause value interleaving: if a function's
+running job hasn't retired yet (so its loopback value hasn't arrived), but another function
+in the same flow completes and makes the first function runnable using the queued external
+value, the wrong values get paired — leading to incorrect results.
+
+The deferral is lifted when the function's own job completes and its loopback value
+arrives, or when the flow goes idle and internal values are cleared.
+
 #### Clearing on Idle
 
 When a flow transitions to idle (run to completion):
