@@ -67,6 +67,20 @@ CanRunOnInternal(p) ==
 HasRunnableOnInternal(flow) ==
     \E p \in ProcsInFlow(flow) : CanRunOnInternal(p)
 
+(* An input receives internal connections if any connection targets it
+   with internal=TRUE. Used to gate external value consumption. *)
+ReceivesInternal(p, i) ==
+    \E c \in Conns : c.dst = p /\ c.dstInput = i /\ c.internal
+
+(* A function would consume an external value on an input that receives
+   internal connections — the front value is external (intCount=0) but
+   the input has queued values and is marked as receiving internals. *)
+WouldConsumeExternalOnInternalInput(p) ==
+    \E i \in InputsOf[p] :
+        /\ ReceivesInternal(p, i)
+        /\ intCount[p][i] = 0
+        /\ Len(inputQ[p][i]) > 0
+
 (* Busy-count helpers.
  *
  * busyCount is a function from IDs to positive integers.
@@ -135,6 +149,14 @@ Init ==
  * gate — a function can always run on values produced within its own
  * flow, even while the flow is busy.
  *
+ * Loopback deferral (Phase 5 — fixes #2887)
+ *
+ * When a function itself is busy (has a running job) and would consume
+ * an external value on an input that also receives internal connections,
+ * defer job creation.  The running job may produce a loopback value
+ * that should be consumed first.  Without this guard, concurrent job
+ * retirement can cause values from different iterations to be paired.
+ *
  * In TLA+, CreateJob is a standalone action that fires nondeterministically
  * whenever its guard is satisfied.  Adding the gating guard here is
  * equivalent to gating inline in RetireAndSend: after RetireAndSend
@@ -146,6 +168,7 @@ CreateJob(p) ==
     /\ CanRun(p)
     /\ \/ ~IsBusy(Parent[p])
        \/ CanRunOnInternal(p)
+    /\ ~(IsBusy(p) /\ WouldConsumeExternalOnInternalInput(p))
     /\ LET toMark == {p} \union AncestorsOf(p)
        IN
        /\ inputQ' = [inputQ EXCEPT ![p] =

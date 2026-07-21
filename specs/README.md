@@ -188,3 +188,4 @@ as it explores states.
 3. **Flow hierarchy** — busy/idle detection, ancestor tracking ✅
 4. **External send gating** — cross-flow sends deferred when busy ✅
 5. **Initializer semantics** — Once/Always, function vs flow level ✅
+6. **Loopback deferral** — defer external consumption while function is busy with pending loopback ✅
