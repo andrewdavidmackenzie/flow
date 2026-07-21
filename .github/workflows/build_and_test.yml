@@ -135,10 +135,17 @@ jobs:
           echo "PATH=$GITHUB_WORKSPACE/target/debug:$PATH" >> "$GITHUB_ENV"
           echo "CARGO_REGISTRIES_CRATES_IO_PROTOCOL=sparse" >> "$GITHUB_ENV"
 
-      - name: EnableIncrementalOnWindows
+      - name: OptimizeWindowsBuild
         if: runner.os == 'Windows'
         shell: bash
-        run: echo "CARGO_INCREMENTAL=1" >> "$GITHUB_ENV"
+        run: |
+          echo "CARGO_INCREMENTAL=1" >> "$GITHUB_ENV"
+          echo "CARGO_TARGET_X86_64_PC_WINDOWS_MSVC_LINKER=rust-lld" >> "$GITHUB_ENV"
+
+      - name: DisableWindowsDefender
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: Add-MpPreference -ExclusionPath "$env:GITHUB_WORKSPACE"
 
       - name: Cache cargo registry and build
         uses: Swatinem/rust-cache@v2
