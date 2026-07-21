@@ -679,6 +679,20 @@ impl RunState {
     // Create one or more new jobs for the function and mark it and ancestor flows as busy
     pub(crate) fn create_jobs(&mut self, process_id: usize, parent_id: usize) -> Result<()> {
         loop {
+            // Don't consume external values on inputs that receive internal
+            // connections while the function itself has a running job — the
+            // internal (loopback) value may not have arrived yet.
+            let function_busy = self.busy_count.contains_key(&process_id);
+            let would_consume_external = self
+                .submission
+                .manifest
+                .functions()
+                .get(&process_id)
+                .is_some_and(RuntimeFunction::would_consume_external_on_internal_input);
+            if function_busy && would_consume_external {
+                return Ok(());
+            }
+
             self.number_of_jobs_created = self
                 .number_of_jobs_created
                 .checked_add(1)

@@ -76,6 +76,10 @@ pub struct Input {
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     received: Vec<Value>,
 
+    // Whether this input has any internal connection (within same flow) that can send to it
+    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
+    receives_internal: bool,
+
     // How many values at the front of `received` are from internal connections
     #[serde(skip)]
     internal_count: usize,
@@ -144,6 +148,7 @@ impl Input {
             generic,
             initializer,
             flow_initializer,
+            receives_internal: false,
             received: Vec::new(),
             internal_count: 0,
             pending_init_elements: Vec::new(),
@@ -164,6 +169,7 @@ impl Input {
             generic,
             initializer,
             flow_initializer,
+            receives_internal: false,
             received: Vec::new(),
             internal_count: 0,
             pending_init_elements: Vec::new(),
@@ -199,6 +205,17 @@ impl Input {
     #[must_use]
     pub fn flow_initializer(&self) -> &Option<InputInitializer> {
         &self.flow_initializer
+    }
+
+    /// Whether this input can receive values from internal connections
+    #[must_use]
+    pub fn receives_internal(&self) -> bool {
+        self.receives_internal
+    }
+
+    /// Mark this input as receiving values from internal connections
+    pub fn set_receives_internal(&mut self) {
+        self.receives_internal = true;
     }
 
     /// Check if an initializer value should be delivered gradually (one element per idle cycle)
@@ -633,5 +650,48 @@ mod test {
         input.init(InitReason::Startup);
         assert_eq!(input.take(), Some(json!([1, 2, 3])));
         assert!(input.is_empty());
+    }
+
+    #[test]
+    fn receives_internal_default_false() {
+        let input = Input::new(
+            #[cfg(feature = "debugger")]
+            "",
+            0,
+            false,
+            None,
+            None,
+        );
+        assert!(!input.receives_internal());
+    }
+
+    #[test]
+    fn set_receives_internal() {
+        let mut input = Input::new(
+            #[cfg(feature = "debugger")]
+            "",
+            0,
+            false,
+            None,
+            None,
+        );
+        input.set_receives_internal();
+        assert!(input.receives_internal());
+    }
+
+    #[test]
+    fn internal_values_consumed_before_external() {
+        let mut input = Input::new(
+            #[cfg(feature = "debugger")]
+            "",
+            0,
+            false,
+            None,
+            None,
+        );
+        input.send(json!(1));
+        input.send_internal(json!(2));
+        assert_eq!(input.take(), Some(json!(2)));
+        assert_eq!(input.take(), Some(json!(1)));
     }
 }

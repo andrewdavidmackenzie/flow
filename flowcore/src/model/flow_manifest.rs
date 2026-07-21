@@ -117,6 +117,27 @@ impl FlowManifest {
         self.functions.insert(function.id(), function);
     }
 
+    /// Scan all output connections and mark destination inputs that receive
+    /// internal connections. Must be called after all functions are added.
+    pub fn mark_internal_inputs(&mut self) {
+        let internal_targets: Vec<(usize, usize)> = self
+            .functions
+            .values()
+            .flat_map(|f| {
+                f.get_output_connections()
+                    .iter()
+                    .filter(|c| c.internal)
+                    .map(|c| (c.destination_id, c.destination_io_number))
+            })
+            .collect();
+
+        for (func_id, io_number) in internal_targets {
+            if let Some(func) = self.functions.get_mut(&func_id) {
+                func.set_input_receives_internal(io_number);
+            }
+        }
+    }
+
     /// Add flow hierarchy info to the manifest
     pub fn add_flow_info(&mut self, flow_info: FlowInfo) {
         self.flows.insert(flow_info.process_id, flow_info);

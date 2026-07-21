@@ -52,6 +52,8 @@ pub fn create_manifest(
         );
     }
 
+    manifest.mark_internal_inputs();
+
     emit_flow_hierarchy(flow, &mut manifest, None);
 
     manifest.set_lib_references(&tables.libs);
