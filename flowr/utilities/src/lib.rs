@@ -657,7 +657,9 @@ impl DebugSession {
         }
     }
 
-    /// Close stdin, wait for flowrdb to exit, and return its stdout
+    /// Close stdin, wait for flowrdb to exit, and return its stdout.
+    /// Waits for the server to exit gracefully (so mDNS services are unregistered)
+    /// before falling back to kill.
     pub fn finish(mut self) -> String {
         drop(self.stdin.take());
 
@@ -671,8 +673,21 @@ impl DebugSession {
         }
 
         self.flowrdb.wait().expect("Could not wait for flowrdb");
-        self.server.kill().expect("Could not kill flowrcli");
-        self.server.wait().expect("Could not wait for flowrcli");
+
+        for _ in 0..20 {
+            if self
+                .server
+                .try_wait()
+                .expect("Could not check server")
+                .is_some()
+            {
+                return self.stdout_lines.join("");
+            }
+            std::thread::sleep(std::time::Duration::from_millis(500));
+        }
+        let _ = self.server.kill();
+        let _ = self.server.wait();
+
         self.stdout_lines.join("")
     }
 }
