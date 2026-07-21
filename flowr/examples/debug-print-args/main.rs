@@ -17,7 +17,7 @@ mod test {
     #[serial]
     #[cfg_attr(
         target_os = "windows",
-        ignore = "Debug handshake fails on Windows CI (#2817)"
+        ignore = "mDNS unreliable on Windows CI (#2817)"
     )]
     fn test_debug_continue_and_exit() {
         let mut session = DebugSession::start(&example_dir(), &["test_arg1"]);
@@ -37,7 +37,7 @@ mod test {
     #[serial]
     #[cfg_attr(
         target_os = "windows",
-        ignore = "Debug handshake fails on Windows CI (#2817)"
+        ignore = "mDNS unreliable on Windows CI (#2817)"
     )]
     fn test_debug_step() {
         let mut session = DebugSession::start(&example_dir(), &["test_arg1"]);
@@ -60,7 +60,7 @@ mod test {
     #[serial]
     #[cfg_attr(
         target_os = "windows",
-        ignore = "Debug handshake fails on Windows CI (#2817)"
+        ignore = "mDNS unreliable on Windows CI (#2817)"
     )]
     fn test_debug_functions() {
         let mut session = DebugSession::start(&example_dir(), &["test_arg1"]);
@@ -80,7 +80,7 @@ mod test {
     #[serial]
     #[cfg_attr(
         target_os = "windows",
-        ignore = "Debug handshake fails on Windows CI (#2817)"
+        ignore = "mDNS unreliable on Windows CI (#2817)"
     )]
     fn test_debug_inspect() {
         let mut session = DebugSession::start(&example_dir(), &["test_arg1"]);
@@ -96,7 +96,7 @@ mod test {
     #[serial]
     #[cfg_attr(
         target_os = "windows",
-        ignore = "Debug handshake fails on Windows CI (#2817)"
+        ignore = "mDNS unreliable on Windows CI (#2817)"
     )]
     fn test_debug_list_empty() {
         let mut session = DebugSession::start(&example_dir(), &["test_arg1"]);
@@ -111,7 +111,7 @@ mod test {
     #[serial]
     #[cfg_attr(
         target_os = "windows",
-        ignore = "Debug handshake fails on Windows CI (#2817)"
+        ignore = "mDNS unreliable on Windows CI (#2817)"
     )]
     fn test_debug_breakpoint_and_delete() {
         let mut session = DebugSession::start(&example_dir(), &["test_arg1"]);
@@ -128,7 +128,7 @@ mod test {
     #[serial]
     #[cfg_attr(
         target_os = "windows",
-        ignore = "Debug handshake fails on Windows CI (#2817)"
+        ignore = "mDNS unreliable on Windows CI (#2817)"
     )]
     fn test_debug_validate() {
         let mut session = DebugSession::start(&example_dir(), &["test_arg1"]);
@@ -143,7 +143,7 @@ mod test {
     #[serial]
     #[cfg_attr(
         target_os = "windows",
-        ignore = "Debug handshake fails on Windows CI (#2817)"
+        ignore = "mDNS unreliable on Windows CI (#2817)"
     )]
     fn test_debug_step_n() {
         let mut session = DebugSession::start(&example_dir(), &["test_arg1"]);
@@ -162,7 +162,7 @@ mod test {
     #[serial]
     #[cfg_attr(
         target_os = "windows",
-        ignore = "Debug handshake fails on Windows CI (#2817)"
+        ignore = "mDNS unreliable on Windows CI (#2817)"
     )]
     fn test_debug_inspect_function() {
         let mut session = DebugSession::start(&example_dir(), &["test_arg1"]);
@@ -182,7 +182,7 @@ mod test {
     #[serial]
     #[cfg_attr(
         target_os = "windows",
-        ignore = "Debug handshake fails on Windows CI (#2817)"
+        ignore = "mDNS unreliable on Windows CI (#2817)"
     )]
     fn test_debug_inspect_input() {
         let mut session = DebugSession::start(&example_dir(), &["test_arg1"]);
@@ -197,7 +197,7 @@ mod test {
     #[serial]
     #[cfg_attr(
         target_os = "windows",
-        ignore = "Debug handshake fails on Windows CI (#2817)"
+        ignore = "mDNS unreliable on Windows CI (#2817)"
     )]
     fn test_debug_inspect_output() {
         let mut session = DebugSession::start(&example_dir(), &["test_arg1"]);
@@ -212,7 +212,7 @@ mod test {
     #[serial]
     #[cfg_attr(
         target_os = "windows",
-        ignore = "Debug handshake fails on Windows CI (#2817)"
+        ignore = "mDNS unreliable on Windows CI (#2817)"
     )]
     fn test_debug_inspect_block() {
         let mut session = DebugSession::start(&example_dir(), &["test_arg1"]);
@@ -227,7 +227,7 @@ mod test {
     #[serial]
     #[cfg_attr(
         target_os = "windows",
-        ignore = "Debug handshake fails on Windows CI (#2817)"
+        ignore = "mDNS unreliable on Windows CI (#2817)"
     )]
     fn test_debug_breakpoint_output_spec() {
         let mut session = DebugSession::start(&example_dir(), &["test_arg1"]);
@@ -244,7 +244,7 @@ mod test {
     #[serial]
     #[cfg_attr(
         target_os = "windows",
-        ignore = "Debug handshake fails on Windows CI (#2817)"
+        ignore = "mDNS unreliable on Windows CI (#2817)"
     )]
     fn test_debug_breakpoint_input_spec() {
         let mut session = DebugSession::start(&example_dir(), &["test_arg1"]);
@@ -261,7 +261,7 @@ mod test {
     #[serial]
     #[cfg_attr(
         target_os = "windows",
-        ignore = "Debug handshake fails on Windows CI (#2817)"
+        ignore = "mDNS unreliable on Windows CI (#2817)"
     )]
     fn test_debug_breakpoint_block_spec() {
         let mut session = DebugSession::start(&example_dir(), &["test_arg1"]);
@@ -278,7 +278,7 @@ mod test {
     #[serial]
     #[cfg_attr(
         target_os = "windows",
-        ignore = "Debug handshake fails on Windows CI (#2817)"
+        ignore = "mDNS unreliable on Windows CI (#2817)"
     )]
     fn test_debug_modify() {
         let mut session = DebugSession::start(&example_dir(), &["test_arg1"]);
@@ -293,7 +293,7 @@ mod test {
     #[serial]
     #[cfg_attr(
         target_os = "windows",
-        ignore = "Debug handshake fails on Windows CI (#2817)"
+        ignore = "mDNS unreliable on Windows CI (#2817)"
     )]
     fn test_debug_reset() {
         let mut session = DebugSession::start(&example_dir(), &["test_arg1"]);
@@ -315,7 +315,7 @@ mod test {
     #[serial]
     #[cfg_attr(
         target_os = "windows",
-        ignore = "Debug handshake fails on Windows CI (#2817)"
+        ignore = "mDNS unreliable on Windows CI (#2817)"
     )]
     fn test_debug_delete_all() {
         let mut session = DebugSession::start(&example_dir(), &["test_arg1"]);
@@ -332,7 +332,7 @@ mod test {
     #[serial]
     #[cfg_attr(
         target_os = "windows",
-        ignore = "Debug handshake fails on Windows CI (#2817)"
+        ignore = "mDNS unreliable on Windows CI (#2817)"
     )]
     fn test_debug_completion_breakpoint() {
         let mut session = DebugSession::start(&example_dir(), &["test_arg1"]);
@@ -364,7 +364,7 @@ mod test {
     #[serial]
     #[cfg_attr(
         target_os = "windows",
-        ignore = "Debug handshake fails on Windows CI (#2817)"
+        ignore = "mDNS unreliable on Windows CI (#2817)"
     )]
     fn test_debug_processes() {
         let mut session = DebugSession::start(&example_dir(), &["test_arg1"]);
@@ -383,7 +383,7 @@ mod test {
     #[serial]
     #[cfg_attr(
         target_os = "windows",
-        ignore = "Debug handshake fails on Windows CI (#2817)"
+        ignore = "mDNS unreliable on Windows CI (#2817)"
     )]
     fn test_debug_inspect_ready() {
         let mut session = DebugSession::start(&example_dir(), &["test_arg1"]);
@@ -402,7 +402,7 @@ mod test {
     #[serial]
     #[cfg_attr(
         target_os = "windows",
-        ignore = "Debug handshake fails on Windows CI (#2817)"
+        ignore = "mDNS unreliable on Windows CI (#2817)"
     )]
     fn test_debug_inspect_waiting() {
         let mut session = DebugSession::start(&example_dir(), &["test_arg1"]);

@@ -580,55 +580,72 @@ impl DebugSession {
             .and_then(|s| s.trim().parse::<u16>().ok())
             .unwrap_or_else(|| panic!("Could not parse debug port from: {port_line}"));
 
-        let flowrdb = Command::new("flowrdb")
-            .args(["--address", &format!("localhost:{port}")])
-            .stdin(Stdio::piped())
-            .stdout(Stdio::piped())
-            .stderr(Stdio::piped())
-            .spawn()
-            .expect("Could not spawn flowrdb");
+        let address = format!("localhost:{port}");
+        let max_attempts = 3;
+        let mut flowrdb = None;
+        let mut stdin = None;
+        let mut stdout_lines = Vec::new();
+        let mut stdout_reader = None;
 
-        let mut session = DebugSession {
-            server,
-            flowrdb,
-            stdin: None,
-            stdout_lines: Vec::new(),
-            stdout_reader: None,
-        };
-        session.stdin = session.flowrdb.stdin.take();
+        for attempt in 1..=max_attempts {
+            let mut child = Command::new("flowrdb")
+                .args(["--address", &address])
+                .stdin(Stdio::piped())
+                .stdout(Stdio::piped())
+                .stderr(Stdio::piped())
+                .spawn()
+                .expect("Could not spawn flowrdb");
 
-        // Wait for the ZMQ handshake to complete by reading flowrdb stdout
-        // until we see "Entering Debugger" which confirms the connection
-        let stdout = session
-            .flowrdb
-            .stdout
-            .take()
-            .expect("Could not get flowrdb stdout");
-        let mut stdout_reader = BufReader::new(stdout);
-        let mut connected = false;
-        loop {
-            let mut line = String::new();
-            stdout_reader
-                .read_line(&mut line)
-                .expect("Could not read from flowrdb stdout");
-            if line.is_empty() {
+            let child_stdin = child.stdin.take();
+            let child_stdout = child.stdout.take().expect("Could not get flowrdb stdout");
+            let mut reader = BufReader::new(child_stdout);
+            let mut connected = false;
+            stdout_lines.clear();
+
+            loop {
+                let mut line = String::new();
+                reader
+                    .read_line(&mut line)
+                    .expect("Could not read from flowrdb stdout");
+                if line.is_empty() {
+                    break;
+                }
+                let ready = line.contains("Entering Debugger");
+                stdout_lines.push(line);
+                if ready {
+                    connected = true;
+                    break;
+                }
+            }
+
+            if connected {
+                flowrdb = Some(child);
+                stdin = child_stdin;
+                stdout_reader = Some(reader);
                 break;
             }
-            let ready = line.contains("Entering Debugger");
-            session.stdout_lines.push(line);
-            if ready {
-                connected = true;
-                break;
+
+            let _ = child.wait();
+            if attempt < max_attempts {
+                eprintln!("flowrdb handshake attempt {attempt}/{max_attempts} failed, retrying...");
+                std::thread::sleep(std::time::Duration::from_secs(2));
             }
         }
-        assert!(
-            connected,
-            "flowrdb exited before completing debug handshake. Output:\n{}",
-            session.stdout_lines.join("")
-        );
-        session.stdout_reader = Some(stdout_reader);
 
-        session
+        let flowrdb = flowrdb.unwrap_or_else(|| {
+            panic!(
+                "flowrdb failed to complete debug handshake after {max_attempts} attempts. Last output:\n{}",
+                stdout_lines.join("")
+            )
+        });
+
+        DebugSession {
+            server,
+            flowrdb,
+            stdin,
+            stdout_lines,
+            stdout_reader,
+        }
     }
 
     /// Send a debugger command (e.g. "s", "c", "h", "e")
@@ -640,7 +657,9 @@ impl DebugSession {
         }
     }
 
-    /// Close stdin, wait for flowrdb to exit, and return its stdout
+    /// Close stdin, wait for flowrdb to exit, and return its stdout.
+    /// Waits for the server to exit gracefully (so mDNS services are unregistered)
+    /// before falling back to kill.
     pub fn finish(mut self) -> String {
         drop(self.stdin.take());
 
@@ -654,8 +673,21 @@ impl DebugSession {
         }
 
         self.flowrdb.wait().expect("Could not wait for flowrdb");
-        self.server.kill().expect("Could not kill flowrcli");
-        self.server.wait().expect("Could not wait for flowrcli");
+
+        for _ in 0..20 {
+            if self
+                .server
+                .try_wait()
+                .expect("Could not check server")
+                .is_some()
+            {
+                return self.stdout_lines.join("");
+            }
+            std::thread::sleep(std::time::Duration::from_millis(500));
+        }
+        let _ = self.server.kill();
+        let _ = self.server.wait();
+
         self.stdout_lines.join("")
     }
 }
