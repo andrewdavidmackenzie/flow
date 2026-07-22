@@ -412,27 +412,39 @@ fn coordinator_bridge(
     use crate::cli::coordinator_message::{ClientMessage, CoordinatorMessage};
     use flowrlib::connections::WAIT;
 
-    // Phase 1: Wait for client submission
-    loop {
-        match connection.receive::<ClientMessage>(WAIT) {
-            Ok(ClientMessage::ClientSubmission(submission)) => {
-                if submission_tx.send(*submission).is_err() {
-                    return;
-                }
-                break;
-            }
-            Ok(ClientMessage::ClientExiting(_)) => return,
-            Ok(_) => {}
-            Err(e) => {
-                error!("Bridge: error receiving submission: {e}");
-                return;
-            }
-        }
-    }
-
-    // Phase 2: Forward context/submission handler messages to client
     while let Ok(request) = context_rx.recv() {
         let is_exiting = matches!(request.message, CoordinatorMessage::CoordinatorExiting(_));
+        let wait_for_submission = matches!(request.message, CoordinatorMessage::Invalid);
+
+        if wait_for_submission {
+            // The submission handler is asking the bridge to receive the next
+            // submission from the client via ZMQ.
+            loop {
+                match connection.receive::<ClientMessage>(WAIT) {
+                    Ok(ClientMessage::ClientSubmission(submission)) => {
+                        if submission_tx.send(*submission).is_err() {
+                            return;
+                        }
+                        break;
+                    }
+                    Ok(ClientMessage::ClientExiting(_)) => {
+                        if let Some(response_tx) = request.response_tx {
+                            let _ = response_tx.send(ClientMessage::ClientExiting(Ok(())));
+                        }
+                        return;
+                    }
+                    Ok(_) => {}
+                    Err(e) => {
+                        error!("Bridge: error receiving submission: {e}");
+                        return;
+                    }
+                }
+            }
+            if let Some(response_tx) = request.response_tx {
+                let _ = response_tx.send(ClientMessage::Ack);
+            }
+            continue;
+        }
 
         if let Err(e) = connection.send(request.message) {
             error!("Bridge: failed to send to client: {e}");
@@ -440,7 +452,7 @@ fn coordinator_bridge(
                 let _ = response_tx.send(ClientMessage::Error(format!("{e}")));
             }
             if is_exiting {
-                break;
+                return;
             }
             continue;
         }
@@ -460,7 +472,7 @@ fn coordinator_bridge(
         }
 
         if is_exiting {
-            break;
+            return;
         }
     }
 }

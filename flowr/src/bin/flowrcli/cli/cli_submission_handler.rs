@@ -61,6 +61,9 @@ impl SubmissionHandler for CLISubmissionHandler {
 
     fn wait_for_submission(&mut self) -> Result<Option<Submission>> {
         info!("Coordinator is waiting to receive a 'Submission'");
+        // Tell the bridge thread to switch to ZMQ receive mode for the next submission
+        self.context_io
+            .send_and_receive(CoordinatorMessage::Invalid)?;
         match self.submission_rx.recv() {
             Ok(submission) => {
                 info!("Coordinator received a submission for execution");
