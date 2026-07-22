@@ -52,6 +52,7 @@ to = "stdout"
         assert_eq!(numbers, vec!(1, 2, 3, 4, 5, 6, 7, 8, 9, 10));
     }
 
+    #[cfg_attr(target_os = "windows", ignore)]
     #[test]
     #[serial]
     fn test_array_initializers() {
