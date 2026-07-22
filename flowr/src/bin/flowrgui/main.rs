@@ -990,7 +990,6 @@ impl FlowrGui {
                     self.submission_settings.debug_this_flow = true;
                     #[cfg(feature = "debugger")]
                     {
-                        self.debug_client_active = true;
                         self.debug_waiting = false;
                     }
                     return Task::perform(Self::submit(sender.clone(), settings), |result| {
@@ -1065,7 +1064,6 @@ impl FlowrGui {
                     #[cfg(feature = "debugger")]
                     {
                         self.selected_debug_address = Some(address);
-                        self.debug_client_active = true;
                         self.submission_settings.debug_this_flow = true;
                     }
                     self.show_coordinator_picker = false;
@@ -3443,6 +3441,10 @@ impl FlowrGui {
                 self.running = true;
                 self.submitted = false;
                 connection_manager::set_job_count(0);
+                #[cfg(feature = "debugger")]
+                if self.submission_settings.debug_this_flow && !self.debug_client_active {
+                    self.debug_client_active = true;
+                }
                 self.send(ClientMessage::Ack);
             }
             CoordinatorMessage::FlowEnd(metrics) => {
