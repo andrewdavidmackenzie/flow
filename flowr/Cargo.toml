@@ -101,7 +101,7 @@ mdns-sd = { version = "0.20", default-features = false }
 
 # for flowrlib
 rand = "0.10"
-wasmtime = { version = "46.0.0", default-features = false, features = ["runtime", "cranelift"] }
+wasmtime = { version = "47.0.2", default-features = false, features = ["runtime", "cranelift"] }
 
 # for flowrgui
 iced = { version = "0.14.0", default-features = false, features = ["canvas", "tokio", "debug", "wgpu", "tiny-skia", "image", "wayland", "x11", "unconditional-rendering"] }
