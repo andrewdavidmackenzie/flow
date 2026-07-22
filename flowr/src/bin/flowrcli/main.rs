@@ -411,6 +411,7 @@ fn coordinator_bridge(
 ) {
     use crate::cli::coordinator_message::{ClientMessage, CoordinatorMessage};
     use flowrlib::connections::WAIT;
+    use log::debug;
 
     while let Ok(request) = context_rx.recv() {
         let is_exiting = matches!(request.message, CoordinatorMessage::CoordinatorExiting(_));
@@ -446,13 +447,29 @@ fn coordinator_bridge(
             continue;
         }
 
+        // For CoordinatorExiting, the client may have already exited after
+        // FlowEnd — set a receive timeout and handle the exit handshake.
+        if is_exiting {
+            if let Err(e) = connection.set_receive_timeout(1000) {
+                error!("Bridge: could not set receive timeout: {e}");
+            }
+            match connection.receive::<ClientMessage>(WAIT) {
+                Ok(_) => debug!("Bridge: received client acknowledgement"),
+                Err(e) => debug!("Bridge: no client ack (expected): {e}"),
+            }
+            if let Err(e) = connection.send(request.message) {
+                error!("Bridge: failed to send CoordinatorExiting: {e}");
+            }
+            if let Some(response_tx) = request.response_tx {
+                let _ = response_tx.send(ClientMessage::Ack);
+            }
+            return;
+        }
+
         if let Err(e) = connection.send(request.message) {
             error!("Bridge: failed to send to client: {e}");
             if let Some(response_tx) = request.response_tx {
                 let _ = response_tx.send(ClientMessage::Error(format!("{e}")));
-            }
-            if is_exiting {
-                return;
             }
             continue;
         }
@@ -469,10 +486,6 @@ fn coordinator_bridge(
                     let _ = response_tx.send(ClientMessage::Error(format!("{e}")));
                 }
             }
-        }
-
-        if is_exiting {
-            return;
         }
     }
 }
