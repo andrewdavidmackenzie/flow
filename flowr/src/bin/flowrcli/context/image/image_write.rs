@@ -1,16 +1,13 @@
-use std::sync::{Arc, Mutex};
-
 use flowcore::errors::Result;
 use flowcore::{Implementation, RunAgain, RUN_AGAIN};
 use serde_json::Value;
 
-use crate::cli::coordinator_message::{ClientMessage, CoordinatorMessage};
-use flowrlib::connections::CoordinatorConnection;
+use crate::cli::coordinator_message::CoordinatorMessage;
+use crate::context::ContextIO;
 
 /// `Implementation` struct for the `image_write` function
 pub struct ImageWrite {
-    /// It holds a reference to the runtime client in order to send commands
-    pub server_connection: Arc<Mutex<CoordinatorConnection>>,
+    pub context_io: ContextIO,
 }
 
 fn to_u8(v: &Value) -> u8 {
@@ -54,13 +51,8 @@ impl Implementation for ImageWrite {
             flat.chunks(width).map(<[u8]>::to_vec).collect()
         };
 
-        let mut server = self
-            .server_connection
-            .lock()
-            .map_err(|_| "Could not lock server")?;
-
-        let _: Result<ClientMessage> = server
-            .send_and_receive_response(CoordinatorMessage::ImageWrite(grid, filename.to_string()));
+        self.context_io
+            .send_and_receive(CoordinatorMessage::ImageWrite(grid, filename.to_string()))?;
 
         Ok((None, RUN_AGAIN))
     }

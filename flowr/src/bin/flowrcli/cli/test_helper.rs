@@ -1,20 +1,4 @@
-#[cfg(test)]
-#[allow(clippy::unwrap_used, clippy::expect_used)]
-pub mod test {
-    use std::sync::{Arc, Mutex};
-
-    use flowrlib::connections::CoordinatorConnection;
-
-    use crate::cli::coordinator_message::{ClientMessage, CoordinatorMessage};
-
-    pub fn wait_for_then_send(
-        wait_for_message: CoordinatorMessage,
-        then_send: ClientMessage,
-    ) -> Arc<Mutex<CoordinatorConnection>> {
-        flowrlib::test_helper::test::wait_for_then_send(
-            wait_for_message,
-            then_send,
-            ClientMessage::Ack,
-        )
-    }
-}
+// Test helper module — previously provided wait_for_then_send() for ZMQ-based
+// context function tests. Now that context functions use ContextIO channels,
+// tests create channels directly. This module is retained for potential future
+// shared test utilities.

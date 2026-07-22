@@ -1,29 +1,23 @@
-use std::sync::{Arc, Mutex};
-
 use serde_json::{json, Value};
 
 use flowcore::errors::Result;
 use flowcore::{Implementation, RunAgain, DONT_RUN_AGAIN};
 
 use crate::cli::coordinator_message::{ClientMessage, CoordinatorMessage};
-use flowrlib::connections::CoordinatorConnection;
+use crate::context::ContextIO;
 
 /// `Implementation` struct for the `get` function
 pub struct Get {
-    /// It holds a reference to the runtime client in order to Get the Args
-    pub server_connection: Arc<Mutex<CoordinatorConnection>>,
+    pub context_io: ContextIO,
 }
 
 impl Implementation for Get {
     fn run(&self, mut _inputs: &[Value]) -> Result<(Option<Value>, RunAgain)> {
-        let mut guard = self
-            .server_connection
-            .lock()
-            .map_err(|_| "Could not lock server")?;
+        let response = self
+            .context_io
+            .send_and_receive(CoordinatorMessage::GetArgs);
 
-        let sent = guard.send_and_receive_response(CoordinatorMessage::GetArgs);
-
-        match sent {
+        match response {
             Ok(ClientMessage::Args(arg_vec)) => {
                 let mut output_map = serde_json::Map::new();
 
@@ -52,31 +46,35 @@ impl Implementation for Get {
 #[cfg(test)]
 #[allow(clippy::unwrap_used, clippy::expect_used)]
 mod test {
-    use std::sync::{Arc, Mutex};
-
-    use portpicker::pick_unused_port;
     use serde_json::json;
-    use serial_test::serial;
 
     use flowcore::{Implementation, DONT_RUN_AGAIN};
 
-    use crate::cli::coordinator_message::ClientMessage::Args;
-    use crate::cli::coordinator_message::CoordinatorMessage::GetArgs;
-    use crate::cli::test_helper::test::wait_for_then_send;
-    use flowrlib::connections::CoordinatorConnection;
+    use crate::cli::coordinator_message::{ClientMessage, CoordinatorMessage};
+    use crate::context::ContextIO;
 
     use super::Get;
 
+    fn make_get() -> (
+        Get,
+        std::sync::mpsc::Receiver<crate::context::ContextRequest>,
+    ) {
+        let (tx, rx) = std::sync::mpsc::channel();
+        (
+            Get {
+                context_io: ContextIO::new(tx),
+            },
+            rx,
+        )
+    }
+
     #[test]
-    #[serial]
     fn gets_args_no_client() {
-        let test_port = pick_unused_port().expect("No ports free");
-        let getter = &Get {
-            server_connection: Arc::new(Mutex::new(
-                CoordinatorConnection::new("foo", test_port)
-                    .expect("Could not create server connection"),
-            )),
-        } as &dyn Implementation;
+        let (tx, rx) = std::sync::mpsc::channel();
+        let getter = Get {
+            context_io: ContextIO::new(tx),
+        };
+        drop(rx);
         let (value, run_again) = getter.run(&[]).expect("_get() failed");
 
         assert_eq!(run_again, DONT_RUN_AGAIN);
@@ -84,18 +82,24 @@ mod test {
     }
 
     #[test]
-    #[serial]
     fn gets_args() {
         let args: Vec<String> = ["flow_name", "arg1", "arg2"]
             .iter()
             .map(ToString::to_string)
             .collect();
 
-        let server_connection = wait_for_then_send(GetArgs, Args(args.clone()));
+        let (getter, rx) = make_get();
+        let args_clone = args.clone();
+        let handle = std::thread::spawn(move || getter.run(&[]));
 
-        let getter = &Get { server_connection } as &dyn Implementation;
+        let req = rx.recv().expect("No request");
+        assert!(matches!(req.message, CoordinatorMessage::GetArgs));
+        req.response_tx
+            .unwrap()
+            .send(ClientMessage::Args(args_clone))
+            .unwrap();
 
-        let (value, run_again) = getter.run(&[]).expect("_get() failed");
+        let (value, run_again) = handle.join().unwrap().expect("_get() failed");
 
         assert_eq!(run_again, DONT_RUN_AGAIN);
 
@@ -109,18 +113,23 @@ mod test {
     }
 
     #[test]
-    #[serial]
     fn gets_args_num() {
         let args: Vec<String> = ["flow_name", "10"]
             .iter()
             .map(|s| (*s).to_string())
             .collect();
 
-        let server_connection = wait_for_then_send(GetArgs, Args(args));
+        let (getter, rx) = make_get();
+        let args_clone = args.clone();
+        let handle = std::thread::spawn(move || getter.run(&[]));
 
-        let getter = &Get { server_connection } as &dyn Implementation;
+        let req = rx.recv().expect("No request");
+        req.response_tx
+            .unwrap()
+            .send(ClientMessage::Args(args_clone))
+            .unwrap();
 
-        let (value, run_again) = getter.run(&[]).expect("_get() failed");
+        let (value, run_again) = handle.join().unwrap().expect("_get() failed");
 
         assert_eq!(run_again, DONT_RUN_AGAIN);
 
@@ -138,18 +147,23 @@ mod test {
     }
 
     #[test]
-    #[serial]
     fn gets_args_array_num() {
         let args: Vec<String> = ["flow_name", "[10,20]"]
             .iter()
             .map(ToString::to_string)
             .collect();
 
-        let server_connection = wait_for_then_send(GetArgs, Args(args));
+        let (getter, rx) = make_get();
+        let args_clone = args.clone();
+        let handle = std::thread::spawn(move || getter.run(&[]));
 
-        let getter = &Get { server_connection } as &dyn Implementation;
+        let req = rx.recv().expect("No request");
+        req.response_tx
+            .unwrap()
+            .send(ClientMessage::Args(args_clone))
+            .unwrap();
 
-        let (value, run_again) = getter.run(&[]).expect("_get() failed");
+        let (value, run_again) = handle.join().unwrap().expect("_get() failed");
 
         assert_eq!(run_again, DONT_RUN_AGAIN);
 
@@ -167,18 +181,23 @@ mod test {
     }
 
     #[test]
-    #[serial]
     fn gets_args_array_array_num() {
         let args: Vec<String> = ["flow_name", "[[10,20],[30,40]]"]
             .iter()
             .map(ToString::to_string)
             .collect();
 
-        let server_connection = wait_for_then_send(GetArgs, Args(args));
+        let (getter, rx) = make_get();
+        let args_clone = args.clone();
+        let handle = std::thread::spawn(move || getter.run(&[]));
 
-        let getter = &Get { server_connection } as &dyn Implementation;
+        let req = rx.recv().expect("No request");
+        req.response_tx
+            .unwrap()
+            .send(ClientMessage::Args(args_clone))
+            .unwrap();
 
-        let (value, run_again) = getter.run(&[]).expect("_get() failed");
+        let (value, run_again) = handle.join().unwrap().expect("_get() failed");
 
         assert_eq!(run_again, DONT_RUN_AGAIN);
 

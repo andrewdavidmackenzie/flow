@@ -1,46 +1,27 @@
-use std::sync::{Arc, Mutex};
-
 use flowcore::errors::Result;
 use flowcore::{Implementation, RunAgain, RUN_AGAIN};
 use serde_json::Value;
 
-use crate::cli::coordinator_message::{ClientMessage, CoordinatorMessage};
-use flowrlib::connections::CoordinatorConnection;
+use crate::cli::coordinator_message::CoordinatorMessage;
+use crate::context::ContextIO;
 
-/// `Implementation` struct for the `Stdout` function
 pub struct Stdout {
-    /// It holds a reference to the runtime client in order to write output
-    pub server_connection: Arc<Mutex<CoordinatorConnection>>,
+    pub context_io: ContextIO,
 }
 
 impl Implementation for Stdout {
     fn run(&self, inputs: &[Value]) -> Result<(Option<Value>, RunAgain)> {
         let input = inputs.first().ok_or("Could not get input")?;
 
-        // Gain sole access to send to the client to avoid mixing output from other functions
-        let mut server = self
-            .server_connection
-            .lock()
-            .map_err(|_| "Could not lock server")?;
-
-        let _: Result<ClientMessage> = match input {
-            Value::Null => server.send_and_receive_response(CoordinatorMessage::StdoutEof),
-            Value::String(string) => {
-                server.send_and_receive_response(CoordinatorMessage::Stdout(string.clone()))
-            }
-            Value::Bool(boolean) => {
-                server.send_and_receive_response(CoordinatorMessage::Stdout(boolean.to_string()))
-            }
-            Value::Number(number) => {
-                server.send_and_receive_response(CoordinatorMessage::Stdout(number.to_string()))
-            }
-            Value::Array(_array) => {
-                server.send_and_receive_response(CoordinatorMessage::Stdout(input.to_string()))
-            }
-            Value::Object(_obj) => {
-                server.send_and_receive_response(CoordinatorMessage::Stdout(input.to_string()))
-            }
+        let msg = match input {
+            Value::Null => CoordinatorMessage::StdoutEof,
+            Value::String(string) => CoordinatorMessage::Stdout(string.clone()),
+            Value::Bool(boolean) => CoordinatorMessage::Stdout(boolean.to_string()),
+            Value::Number(number) => CoordinatorMessage::Stdout(number.to_string()),
+            _ => CoordinatorMessage::Stdout(input.to_string()),
         };
+
+        self.context_io.send_and_receive(msg)?;
 
         Ok((None, RUN_AGAIN))
     }
@@ -53,100 +34,100 @@ mod test {
 
     use flowcore::{Implementation, RUN_AGAIN};
     use serde_json::{json, Value};
-    use serial_test::serial;
 
     use crate::cli::coordinator_message::{ClientMessage, CoordinatorMessage};
-    use crate::cli::test_helper::test::wait_for_then_send;
+    use crate::context::ContextIO;
 
     use super::Stdout;
 
+    fn make_stdout() -> (
+        Stdout,
+        std::sync::mpsc::Receiver<crate::context::ContextRequest>,
+    ) {
+        let (tx, rx) = std::sync::mpsc::channel();
+        (
+            Stdout {
+                context_io: ContextIO::new(tx),
+            },
+            rx,
+        )
+    }
+
+    fn respond(
+        rx: &std::sync::mpsc::Receiver<crate::context::ContextRequest>,
+        expected: &CoordinatorMessage,
+    ) {
+        let req = rx.recv().expect("No request received");
+        assert_eq!(
+            std::mem::discriminant(&req.message),
+            std::mem::discriminant(expected)
+        );
+        if let Some(response_tx) = req.response_tx {
+            response_tx
+                .send(ClientMessage::Ack)
+                .expect("Could not send response");
+        }
+    }
+
     #[test]
-    #[serial]
     fn send_null() {
-        let server_connection =
-            wait_for_then_send(CoordinatorMessage::StdoutEof, ClientMessage::Ack);
-        let stderr = &Stdout { server_connection } as &dyn Implementation;
-        let (value, run_again) = stderr.run(&[Value::Null]).expect("run() failed");
-
+        let (stdout, rx) = make_stdout();
+        let handle = std::thread::spawn(move || stdout.run(&[Value::Null]));
+        respond(&rx, &CoordinatorMessage::StdoutEof);
+        let (value, run_again) = handle.join().unwrap().expect("run() failed");
         assert_eq!(run_again, RUN_AGAIN);
         assert_eq!(value, None);
     }
 
     #[test]
-    #[serial]
     fn send_string() {
-        let string = "string of text";
-        let value = json!(string);
-        let server_connection = wait_for_then_send(
-            CoordinatorMessage::Stdout(string.into()),
-            ClientMessage::Ack,
-        );
-        let stderr = &Stdout { server_connection } as &dyn Implementation;
-        let (value, run_again) = stderr.run(&[value]).expect("run() failed");
-
+        let (stdout, rx) = make_stdout();
+        let handle = std::thread::spawn(move || stdout.run(&[json!("hello")]));
+        respond(&rx, &CoordinatorMessage::Stdout(String::new()));
+        let (value, run_again) = handle.join().unwrap().expect("run() failed");
         assert_eq!(run_again, RUN_AGAIN);
         assert_eq!(value, None);
     }
 
     #[test]
-    #[serial]
     fn send_bool() {
-        let bool = true;
-        let value = json!(bool);
-        let server_connection = wait_for_then_send(
-            CoordinatorMessage::Stdout("true".into()),
-            ClientMessage::Ack,
-        );
-        let stderr = &Stdout { server_connection } as &dyn Implementation;
-        let (value, run_again) = stderr.run(&[value]).expect("run() failed");
-
+        let (stdout, rx) = make_stdout();
+        let handle = std::thread::spawn(move || stdout.run(&[json!(true)]));
+        respond(&rx, &CoordinatorMessage::Stdout(String::new()));
+        let (value, run_again) = handle.join().unwrap().expect("run() failed");
         assert_eq!(run_again, RUN_AGAIN);
         assert_eq!(value, None);
     }
+
     #[test]
-    #[serial]
     fn send_number() {
-        let number = 42;
-        let value = json!(number);
-        let server_connection =
-            wait_for_then_send(CoordinatorMessage::Stdout("42".into()), ClientMessage::Ack);
-        let stderr = &Stdout { server_connection } as &dyn Implementation;
-        let (value, run_again) = stderr.run(&[value]).expect("run() failed");
-
+        let (stdout, rx) = make_stdout();
+        let handle = std::thread::spawn(move || stdout.run(&[json!(42)]));
+        respond(&rx, &CoordinatorMessage::Stdout(String::new()));
+        let (value, run_again) = handle.join().unwrap().expect("run() failed");
         assert_eq!(run_again, RUN_AGAIN);
         assert_eq!(value, None);
     }
 
     #[test]
-    #[serial]
     fn send_array() {
-        let array = [1, 2, 3];
-        let value = json!(array);
-        let server_connection = wait_for_then_send(
-            CoordinatorMessage::Stdout("[1,2,3]".into()),
-            ClientMessage::Ack,
-        );
-        let stderr = &Stdout { server_connection } as &dyn Implementation;
-        let (value, run_again) = stderr.run(&[value]).expect("run() failed");
-
+        let (stdout, rx) = make_stdout();
+        let handle = std::thread::spawn(move || stdout.run(&[json!([1, 2, 3])]));
+        respond(&rx, &CoordinatorMessage::Stdout(String::new()));
+        let (value, run_again) = handle.join().unwrap().expect("run() failed");
         assert_eq!(run_again, RUN_AGAIN);
         assert_eq!(value, None);
     }
 
     #[test]
-    #[serial]
     fn send_object() {
         let mut map = HashMap::new();
         map.insert("number1", 42);
         map.insert("number2", 99);
-        let value = json!(map);
-        let server_connection = wait_for_then_send(
-            CoordinatorMessage::Stdout("{\"number1\":42,\"number2\":99}".into()),
-            ClientMessage::Ack,
-        );
-        let stderr = &Stdout { server_connection } as &dyn Implementation;
-        let (value, run_again) = stderr.run(&[value]).expect("run() failed");
-
+        let (stdout, rx) = make_stdout();
+        let handle = std::thread::spawn(move || stdout.run(&[json!(map)]));
+        respond(&rx, &CoordinatorMessage::Stdout(String::new()));
+        let (value, run_again) = handle.join().unwrap().expect("run() failed");
         assert_eq!(run_again, RUN_AGAIN);
         assert_eq!(value, None);
     }
