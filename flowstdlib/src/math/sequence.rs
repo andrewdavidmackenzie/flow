@@ -52,11 +52,9 @@ to = "stdout"
         assert_eq!(numbers, vec!(1, 2, 3, 4, 5, 6, 7, 8, 9, 10));
     }
 
+    #[cfg_attr(target_os = "windows", ignore)]
     #[test]
-    #[ignore = "Problem with propagating array initializers into functions inside flows, see\
-    https://github.com/andrewdavidmackenzie/flow/issues/1418, \
-    https://github.com/andrewdavidmackenzie/flow/issues/513 and \
-    https://github.com/andrewdavidmackenzie/flow/issues/743"]
+    #[serial]
     fn test_array_initializers() {
         let flow = r#"
 flow = "sequence-of-sequences"
