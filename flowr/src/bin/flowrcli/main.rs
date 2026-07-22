@@ -283,7 +283,7 @@ fn client_and_coordinator(
     let result = client(
         matches,
         lib_search_path,
-        &runtime_client_connection,
+        runtime_client_connection,
         #[cfg(feature = "debugger")]
         debug_this_flow,
     );
@@ -405,7 +405,7 @@ fn client_only(
     client(
         matches,
         lib_search_path,
-        &client_connection,
+        client_connection,
         #[cfg(feature = "debugger")]
         debug_this_flow,
     )
@@ -415,7 +415,7 @@ fn client_only(
 fn client(
     matches: &ArgMatches,
     lib_search_path: Simpath,
-    client_connection: &ClientConnection,
+    client_connection: ClientConnection,
     #[cfg(feature = "debugger")] debug_this_flow: bool,
 ) -> Result<()> {
     let override_args = Arc::new(Mutex::new(Vec::<String>::new()));
@@ -451,7 +451,9 @@ fn client(
     client_connection.send(ClientMessage::ClientSubmission(Box::new(submission)))?;
 
     trace!("Entering client event loop");
-    client.event_loop(client_connection)
+    let rt = tokio::runtime::Runtime::new()
+        .map_err(|e| format!("Could not create tokio runtime: {e}"))?;
+    rt.block_on(client.event_loop(client_connection))
 }
 
 /// Determine the number of threads to use to execute flows

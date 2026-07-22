@@ -7,6 +7,7 @@ use std::sync::{Arc, Mutex};
 
 use image::{ImageBuffer, ImageFormat, Rgb, RgbImage};
 use log::{debug, error, info};
+use tokio::sync::mpsc;
 
 use flowcore::errors::Result;
 
@@ -40,20 +41,72 @@ impl CliRuntimeClient {
         }
     }
 
-    /// Enter a loop where we receive events as a client and respond to them
-    pub fn event_loop(mut self, connection: &ClientConnection) -> Result<()> {
-        loop {
-            let event = connection.receive()?;
-            let response = self.process_coordinator_message(event);
-            if let ClientMessage::ClientExiting(coordinator_result) = response {
-                debug!("Client is exiting the event loop.");
-                if let Err(e) = connection.send(ClientMessage::ClientExiting(Ok(()))) {
-                    error!("Failed to send ClientExiting to coordinator: {e}");
+    /// Enter an async loop where we receive events as a client and respond to them.
+    ///
+    /// A background thread bridges the synchronous ZMQ `ClientConnection` to async
+    /// channels, allowing the event loop to be extended with additional async sources
+    /// (e.g. background stdin reading) in the future.
+    pub async fn event_loop(mut self, connection: ClientConnection) -> Result<()> {
+        let (event_tx, mut event_rx) = mpsc::channel::<CoordinatorMessage>(32);
+        let (response_tx, mut response_rx) = mpsc::channel::<ClientMessage>(32);
+
+        let bridge =
+            tokio::task::spawn_blocking(move || zmq_bridge(connection, event_tx, &mut response_rx));
+
+        let result = loop {
+            match event_rx.recv().await {
+                Some(event) => {
+                    let response = self.process_coordinator_message(event);
+                    if let ClientMessage::ClientExiting(ref coordinator_result) = response {
+                        debug!("Client is exiting the event loop.");
+                        let exit_result = coordinator_result.clone();
+                        if let Err(e) = response_tx.send(response).await {
+                            error!("Failed to send ClientExiting to bridge: {e}");
+                        }
+                        break exit_result;
+                    }
+                    if let Err(e) = response_tx.send(response).await {
+                        error!("Failed to send response to bridge: {e}");
+                        break Err("Bridge channel closed".into());
+                    }
                 }
-                return coordinator_result;
+                None => {
+                    break Err("ZMQ bridge closed unexpectedly".into());
+                }
             }
-            if let Err(e) = connection.send(response) {
-                error!("Failed to send message to coordinator: {e}");
+        };
+
+        drop(response_tx);
+        let _ = bridge.await;
+
+        result
+    }
+
+    /// Event loop driven by channels directly — used for testing without ZMQ.
+    #[cfg(test)]
+    pub async fn event_loop_on_channels(
+        mut self,
+        mut event_rx: mpsc::Receiver<CoordinatorMessage>,
+        response_tx: mpsc::Sender<ClientMessage>,
+    ) -> Result<()> {
+        loop {
+            match event_rx.recv().await {
+                Some(event) => {
+                    let response = self.process_coordinator_message(event);
+                    if let ClientMessage::ClientExiting(ref coordinator_result) = response {
+                        debug!("Client is exiting the event loop.");
+                        let exit_result = coordinator_result.clone();
+                        if let Err(e) = response_tx.send(response).await {
+                            error!("Failed to send ClientExiting: {e}");
+                        }
+                        return exit_result;
+                    }
+                    if let Err(e) = response_tx.send(response).await {
+                        error!("Failed to send response: {e}");
+                        return Err("Channel closed".into());
+                    }
+                }
+                None => return Err("Event channel closed".into()),
             }
         }
     }
@@ -215,6 +268,36 @@ impl CliRuntimeClient {
     }
 }
 
+#[allow(clippy::needless_pass_by_value)]
+fn zmq_bridge(
+    connection: ClientConnection,
+    event_tx: mpsc::Sender<CoordinatorMessage>,
+    response_rx: &mut mpsc::Receiver<ClientMessage>,
+) {
+    loop {
+        match connection.receive::<CoordinatorMessage>() {
+            Ok(event) => {
+                if event_tx.blocking_send(event).is_err() {
+                    break;
+                }
+                match response_rx.blocking_recv() {
+                    Some(response) => {
+                        if let Err(e) = connection.send(response) {
+                            error!("ZMQ bridge: failed to send response: {e}");
+                            break;
+                        }
+                    }
+                    None => break,
+                }
+            }
+            Err(e) => {
+                error!("ZMQ bridge: failed to receive: {e}");
+                break;
+            }
+        }
+    }
+}
+
 #[cfg(test)]
 #[allow(clippy::unwrap_used, clippy::expect_used)]
 mod test {
@@ -232,14 +315,18 @@ mod test {
 
     use super::CliRuntimeClient;
 
-    #[test]
-    fn test_arg_passing() {
-        let mut client = CliRuntimeClient::new(
+    fn make_client() -> CliRuntimeClient {
+        CliRuntimeClient::new(
             vec!["file:///test_flow.toml".to_string(), "1".to_string()],
             Arc::new(Mutex::new(vec![])),
             #[cfg(feature = "metrics")]
             false,
-        );
+        )
+    }
+
+    #[test]
+    fn test_arg_passing() {
+        let mut client = make_client();
 
         match client.process_coordinator_message(CoordinatorMessage::GetArgs) {
             ClientMessage::Args(args) => assert_eq!(
@@ -324,12 +411,7 @@ mod test {
 
     #[test]
     fn test_stdout() {
-        let mut client = CliRuntimeClient::new(
-            vec!["file:///test_flow.toml".to_string()],
-            Arc::new(Mutex::new(vec![])),
-            #[cfg(feature = "metrics")]
-            false,
-        );
+        let mut client = make_client();
         match client.process_coordinator_message(CoordinatorMessage::Stdout("Hello".into())) {
             ClientMessage::Ack => {}
             _ => panic!("Didn't get Stdout response as expected"),
@@ -338,12 +420,7 @@ mod test {
 
     #[test]
     fn test_stderr() {
-        let mut client = CliRuntimeClient::new(
-            vec!["file:///test_flow.toml".to_string()],
-            Arc::new(Mutex::new(vec![])),
-            #[cfg(feature = "metrics")]
-            false,
-        );
+        let mut client = make_client();
         match client.process_coordinator_message(CoordinatorMessage::Stderr("Hello".into())) {
             ClientMessage::Ack => {}
             _ => panic!("Didn't get Stderr response as expected"),
@@ -352,12 +429,7 @@ mod test {
 
     #[test]
     fn test_image_writing() {
-        let mut client = CliRuntimeClient::new(
-            vec!["file:///test_flow.toml".to_string()],
-            Arc::new(Mutex::new(vec![])),
-            #[cfg(feature = "metrics")]
-            false,
-        );
+        let mut client = make_client();
 
         let temp_dir = tempdir().expect("Couldn't get temporary directory").keep();
         let path = temp_dir.join("flow.png");
@@ -387,16 +459,52 @@ mod test {
 
     #[test]
     fn coordinator_exiting() {
-        let mut client = CliRuntimeClient::new(
-            vec!["file:///test_flow.toml".to_string()],
-            Arc::new(Mutex::new(vec![])),
-            #[cfg(feature = "metrics")]
-            false,
-        );
+        let mut client = make_client();
 
         match client.process_coordinator_message(CoordinatorMessage::CoordinatorExiting(Ok(()))) {
             ClientMessage::ClientExiting(_) => {}
             _ => panic!("Didn't get ClientExiting response as expected"),
         }
+    }
+
+    #[tokio::test]
+    async fn async_event_loop_processes_messages() {
+        let (event_tx, event_rx) = tokio::sync::mpsc::channel(10);
+        let (response_tx, mut response_rx) = tokio::sync::mpsc::channel(10);
+
+        let client = CliRuntimeClient::new(
+            vec!["file:///test.toml".to_string()],
+            Arc::new(Mutex::new(vec![])),
+            #[cfg(feature = "metrics")]
+            false,
+        );
+
+        let handle =
+            tokio::spawn(async move { client.event_loop_on_channels(event_rx, response_tx).await });
+
+        event_tx.send(CoordinatorMessage::FlowStart).await.unwrap();
+        let response = response_rx.recv().await.unwrap();
+        assert!(matches!(response, ClientMessage::Ack));
+
+        event_tx
+            .send(CoordinatorMessage::Stdout("hello".into()))
+            .await
+            .unwrap();
+        let response = response_rx.recv().await.unwrap();
+        assert!(matches!(response, ClientMessage::Ack));
+
+        #[cfg(not(feature = "metrics"))]
+        event_tx.send(CoordinatorMessage::FlowEnd).await.unwrap();
+        #[cfg(feature = "metrics")]
+        event_tx
+            .send(CoordinatorMessage::FlowEnd(Metrics::new(1, 1)))
+            .await
+            .unwrap();
+
+        let response = response_rx.recv().await.unwrap();
+        assert!(matches!(response, ClientMessage::ClientExiting(Ok(()))));
+
+        let result = handle.await.unwrap();
+        assert!(result.is_ok());
     }
 }
