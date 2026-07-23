@@ -183,6 +183,8 @@ fn coordinator_only(
     let coordinator_port = pick_unused_port().chain_err(|| "No ports free")?;
     let coordinator_connection =
         CoordinatorConnection::new(COORDINATOR_SERVICE_NAME, coordinator_port)?;
+    let blocking_io_port = pick_unused_port().chain_err(|| "No ports free")?;
+    let blocking_io_connection = CoordinatorConnection::new("blocking-io", blocking_io_port)?;
     let mut fullnames = vec![register_service(
         &mdns,
         COORDINATOR_SERVICE_NAME,
@@ -209,6 +211,7 @@ fn coordinator_only(
         lib_search_path,
         native_flowstdlib,
         coordinator_connection,
+        blocking_io_connection,
         #[cfg(feature = "debugger")]
         debug_server_connection,
         true,
@@ -239,6 +242,8 @@ fn client_and_coordinator(
     let runtime_port = pick_unused_port().chain_err(|| "No ports free")?;
     let coordinator_connection =
         CoordinatorConnection::new(COORDINATOR_SERVICE_NAME, runtime_port)?;
+    let blocking_io_port = pick_unused_port().chain_err(|| "No ports free")?;
+    let blocking_io_connection = CoordinatorConnection::new("blocking-io", blocking_io_port)?;
 
     let mut fullnames = vec![register_service(
         &mdns,
@@ -269,6 +274,7 @@ fn client_and_coordinator(
             coordinator_lib_search_path,
             native_flowstdlib,
             coordinator_connection,
+            blocking_io_connection,
             #[cfg(feature = "debugger")]
             debug_connection,
             false,
@@ -279,11 +285,14 @@ fn client_and_coordinator(
 
     let coordinator_address = discover_service_on(&mdns, COORDINATOR_SERVICE_NAME)?;
     let runtime_client_connection = ClientConnection::new(&coordinator_address)?;
+    let blocking_io_address = format!("127.0.0.1:{blocking_io_port}");
+    let blocking_io_client = ClientConnection::new(&blocking_io_address)?;
 
     let result = client(
         matches,
         lib_search_path,
         runtime_client_connection,
+        blocking_io_client,
         #[cfg(feature = "debugger")]
         debug_this_flow,
     );
@@ -300,26 +309,34 @@ fn client_and_coordinator(
 }
 
 /// Create a new `Coordinator`, preload any libraries in native format that we want to have before
-/// loading a flow, and it's library references, then enter the `submission_loop()` accepting and
+/// loading a flow, and its library references, then enter the `submission_loop()` accepting and
 /// executing flows submitted for execution, executing each one using the `Coordinator`
+#[allow(clippy::too_many_arguments)]
 fn coordinator(
     mdns: &ServiceDaemon,
     num_threads: usize,
     lib_search_path: Simpath,
     native_flowstdlib: bool,
     coordinator_connection: CoordinatorConnection,
+    blocking_io_connection: CoordinatorConnection,
     #[cfg(feature = "debugger")] debug_connection: CoordinatorConnection,
     loop_forever: bool,
 ) -> Result<()> {
-    // Create channels for context functions and submission handler to communicate
-    // with the bridge thread that owns the ZMQ CoordinatorConnection.
-    let (context_tx, context_rx) = std::sync::mpsc::channel();
+    // Two channels: non-blocking IO (stdout, etc.) and blocking IO (readline, stdin).
+    // Each has its own bridge thread and ZMQ socket so they operate independently.
+    let (nonblocking_tx, nonblocking_rx) = std::sync::mpsc::channel();
+    let (blocking_tx, blocking_rx) = std::sync::mpsc::channel();
     let (submission_tx, submission_rx) = std::sync::mpsc::channel();
-    let context_io = context::ContextIO::new(context_tx);
+    let context_io = context::ContextIO::new(blocking_tx, nonblocking_tx);
 
-    // Spawn bridge thread that owns the ZMQ socket
-    let bridge_handle = thread::spawn(move || {
-        coordinator_bridge(coordinator_connection, context_rx, submission_tx);
+    // Non-blocking bridge: handles stdout, stderr, file, image, args, and protocol messages
+    let nonblocking_bridge = thread::spawn(move || {
+        coordinator_bridge(coordinator_connection, nonblocking_rx, submission_tx);
+    });
+
+    // Blocking bridge: handles readline and stdin (can block indefinitely)
+    let blocking_bridge = thread::spawn(move || {
+        blocking_io_bridge(blocking_io_connection, blocking_rx);
     });
 
     #[cfg(feature = "debugger")]
@@ -367,7 +384,7 @@ fn coordinator(
     )?;
     context_executor.start(
         &provider,
-        1,
+        2,
         &context_job_source_name,
         &results_sink,
         &control_socket,
@@ -396,7 +413,8 @@ fn coordinator(
         unregister_service(mdns, fullname);
     }
 
-    let _ = bridge_handle.join();
+    let _ = nonblocking_bridge.join();
+    let _ = blocking_bridge.join();
 
     result
 }
@@ -497,6 +515,42 @@ fn coordinator_bridge(
     }
 }
 
+/// Bridge thread for blocking IO (`readline`, `stdin`).
+/// Simpler than `coordinator_bridge` — no submission handling, just forwards
+/// requests and responses on its own ZMQ socket.
+#[allow(clippy::needless_pass_by_value)]
+fn blocking_io_bridge(
+    mut connection: CoordinatorConnection,
+    context_rx: std::sync::mpsc::Receiver<context::ContextRequest>,
+) {
+    use crate::cli::coordinator_message::ClientMessage;
+    use flowrlib::connections::WAIT;
+
+    while let Ok(request) = context_rx.recv() {
+        if let Err(e) = connection.send(request.message) {
+            error!("Blocking bridge: failed to send: {e}");
+            if let Some(response_tx) = request.response_tx {
+                let _ = response_tx.send(ClientMessage::Error(format!("{e}")));
+            }
+            continue;
+        }
+
+        match connection.receive::<ClientMessage>(WAIT) {
+            Ok(response) => {
+                if let Some(response_tx) = request.response_tx {
+                    let _ = response_tx.send(response);
+                }
+            }
+            Err(e) => {
+                error!("Blocking bridge: failed to receive: {e}");
+                if let Some(response_tx) = request.response_tx {
+                    let _ = response_tx.send(ClientMessage::Error(format!("{e}")));
+                }
+            }
+        }
+    }
+}
+
 /// Start only a client in the calling thread. Discover the remote Coordinator using service discovery
 fn client_only(
     matches: &ArgMatches,
@@ -505,11 +559,14 @@ fn client_only(
 ) -> Result<()> {
     let coordinator_address = discover_service(COORDINATOR_SERVICE_NAME)?;
     let client_connection = ClientConnection::new(&coordinator_address)?;
+    // In remote mode, blocking IO uses the same connection (no concurrency yet)
+    let blocking_io_client = ClientConnection::new(&coordinator_address)?;
 
     client(
         matches,
         lib_search_path,
         client_connection,
+        blocking_io_client,
         #[cfg(feature = "debugger")]
         debug_this_flow,
     )
@@ -520,6 +577,7 @@ fn client(
     matches: &ArgMatches,
     lib_search_path: Simpath,
     client_connection: ClientConnection,
+    blocking_io_client: ClientConnection,
     #[cfg(feature = "debugger")] debug_this_flow: bool,
 ) -> Result<()> {
     let override_args = Arc::new(Mutex::new(Vec::<String>::new()));
@@ -557,7 +615,7 @@ fn client(
     trace!("Entering client event loop");
     let rt = tokio::runtime::Runtime::new()
         .map_err(|e| format!("Could not create tokio runtime: {e}"))?;
-    rt.block_on(client.event_loop(client_connection))
+    rt.block_on(client.event_loop(client_connection, blocking_io_client))
 }
 
 /// Determine the number of threads to use to execute flows

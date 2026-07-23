@@ -51,46 +51,42 @@ impl CliRuntimeClient {
     ///
     /// Stdin is read on a separate background thread so the event loop can
     /// continue processing stdout and other messages while waiting for user input.
-    pub async fn event_loop(mut self, connection: ClientConnection) -> Result<()> {
+    pub async fn event_loop(
+        mut self,
+        connection: ClientConnection,
+        blocking_io_connection: ClientConnection,
+    ) -> Result<()> {
+        // Non-blocking bridge: handles stdout, stderr, file, image, args, protocol
         let (event_tx, mut event_rx) = mpsc::channel::<CoordinatorMessage>(32);
         let (response_tx, mut response_rx) = mpsc::channel::<ClientMessage>(32);
-
         let bridge =
             tokio::task::spawn_blocking(move || zmq_bridge(connection, event_tx, &mut response_rx));
 
+        // Blocking IO bridge: handles GetLine/GetStdin on a separate ZMQ socket
+        let (bio_event_tx, mut bio_event_rx) = mpsc::channel::<CoordinatorMessage>(4);
+        let (bio_response_tx, mut bio_response_rx) = mpsc::channel::<ClientMessage>(4);
+        let bio_bridge = tokio::task::spawn_blocking(move || {
+            zmq_bridge(blocking_io_connection, bio_event_tx, &mut bio_response_rx);
+        });
+
+        // Background stdin reader
         let (stdin_req_tx, mut stdin_req_rx) = mpsc::channel::<StdinRequest>(1);
         let (stdin_resp_tx, mut stdin_resp_rx) = mpsc::channel::<ClientMessage>(1);
-
         let stdin_thread = tokio::task::spawn_blocking(move || {
             stdin_reader(&mut stdin_req_rx, &stdin_resp_tx);
         });
 
         let result = loop {
             tokio::select! {
+                // Non-blocking bridge: coordinator messages (stdout, protocol, etc.)
                 event = event_rx.recv() => {
                     match event {
-                        Some(CoordinatorMessage::GetLine(prompt)) => {
-                            if stdin_req_tx.send(StdinRequest::ReadLine(prompt)).await.is_err() {
-                                let _ = response_tx.send(
-                                    ClientMessage::Error("Stdin reader closed".into())
-                                ).await;
-                            }
-                        }
-                        Some(CoordinatorMessage::GetStdin) => {
-                            if stdin_req_tx.send(StdinRequest::ReadAll).await.is_err() {
-                                let _ = response_tx.send(
-                                    ClientMessage::Error("Stdin reader closed".into())
-                                ).await;
-                            }
-                        }
                         Some(event) => {
                             let response = self.process_coordinator_message(event);
                             if let ClientMessage::ClientExiting(ref coordinator_result) = response {
                                 debug!("Client is exiting the event loop.");
                                 let exit_result = coordinator_result.clone();
-                                if let Err(e) = response_tx.send(response).await {
-                                    error!("Failed to send ClientExiting to bridge: {e}");
-                                }
+                                let _ = response_tx.send(response).await;
                                 break exit_result;
                             }
                             if let Err(e) = response_tx.send(response).await {
@@ -101,11 +97,27 @@ impl CliRuntimeClient {
                         None => break Err("ZMQ bridge closed unexpectedly".into()),
                     }
                 }
+                // Blocking IO bridge: GetLine/GetStdin from the coordinator
+                bio_event = bio_event_rx.recv() => {
+                    match bio_event {
+                        Some(CoordinatorMessage::GetLine(prompt)) => {
+                            let _ = stdin_req_tx.send(StdinRequest::ReadLine(prompt)).await;
+                        }
+                        Some(CoordinatorMessage::GetStdin) => {
+                            let _ = stdin_req_tx.send(StdinRequest::ReadAll).await;
+                        }
+                        Some(other) => {
+                            let response = self.process_coordinator_message(other);
+                            let _ = bio_response_tx.send(response).await;
+                        }
+                        None => {}
+                    }
+                }
+                // Stdin reader completed — send response to blocking IO bridge
                 stdin_response = stdin_resp_rx.recv() => {
                     if let Some(response) = stdin_response {
-                        if let Err(e) = response_tx.send(response).await {
-                            error!("Failed to send stdin response to bridge: {e}");
-                            break Err("Bridge channel closed".into());
+                        if let Err(e) = bio_response_tx.send(response).await {
+                            error!("Failed to send stdin response: {e}");
                         }
                     }
                 }
@@ -113,8 +125,10 @@ impl CliRuntimeClient {
         };
 
         drop(response_tx);
+        drop(bio_response_tx);
         drop(stdin_req_tx);
         let _ = bridge.await;
+        let _ = bio_bridge.await;
         let _ = stdin_thread.await;
 
         result

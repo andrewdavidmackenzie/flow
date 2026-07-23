@@ -12,9 +12,7 @@ pub struct Stdin {
 
 impl Implementation for Stdin {
     fn run(&self, _inputs: &[Value]) -> Result<(Option<Value>, RunAgain)> {
-        let stdin_response = self
-            .context_io
-            .send_and_receive(CoordinatorMessage::GetStdin);
+        let stdin_response = self.context_io.send_blocking(CoordinatorMessage::GetStdin);
 
         match stdin_response {
             Ok(ClientMessage::Stdin(contents)) => {
@@ -53,9 +51,10 @@ mod test {
         std::sync::mpsc::Receiver<crate::context::ContextRequest>,
     ) {
         let (tx, rx) = std::sync::mpsc::channel();
+        let (dummy_tx, _dummy_rx) = std::sync::mpsc::channel();
         (
             Stdin {
-                context_io: ContextIO::new(tx),
+                context_io: ContextIO::new(tx, dummy_tx),
             },
             rx,
         )

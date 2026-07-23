@@ -34,7 +34,7 @@ impl SubmissionHandler for CLISubmissionHandler {
     fn flow_execution_starting(&mut self) -> Result<()> {
         let _ = self
             .context_io
-            .send_and_receive(CoordinatorMessage::FlowStart)?;
+            .send_nonblocking(CoordinatorMessage::FlowStart)?;
         Ok(())
     }
 
@@ -46,7 +46,7 @@ impl SubmissionHandler for CLISubmissionHandler {
     #[cfg(feature = "metrics")]
     fn flow_execution_ended(&mut self, state: &RunState, metrics: Metrics) -> Result<()> {
         self.context_io
-            .send_and_receive(CoordinatorMessage::FlowEnd(metrics))?;
+            .send_nonblocking(CoordinatorMessage::FlowEnd(metrics))?;
         debug!("{state}");
         Ok(())
     }
@@ -54,7 +54,7 @@ impl SubmissionHandler for CLISubmissionHandler {
     #[cfg(not(feature = "metrics"))]
     fn flow_execution_ended(&mut self, state: &RunState) -> Result<()> {
         self.context_io
-            .send_and_receive(CoordinatorMessage::FlowEnd)?;
+            .send_nonblocking(CoordinatorMessage::FlowEnd)?;
         debug!("{}", state);
         Ok(())
     }
@@ -63,7 +63,7 @@ impl SubmissionHandler for CLISubmissionHandler {
         info!("Coordinator is waiting to receive a 'Submission'");
         // Tell the bridge thread to switch to ZMQ receive mode for the next submission
         self.context_io
-            .send_and_receive(CoordinatorMessage::Invalid)?;
+            .send_nonblocking(CoordinatorMessage::Invalid)?;
         match self.submission_rx.recv() {
             Ok(submission) => {
                 info!("Coordinator received a submission for execution");
@@ -77,7 +77,7 @@ impl SubmissionHandler for CLISubmissionHandler {
     fn coordinator_is_exiting(&mut self, result: Result<()>) -> Result<()> {
         debug!("Coordinator exiting");
         self.context_io
-            .send_and_receive(CoordinatorMessage::CoordinatorExiting(result))
+            .send_nonblocking(CoordinatorMessage::CoordinatorExiting(result))
             .map(|_| ())
     }
 }

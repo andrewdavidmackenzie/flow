@@ -22,7 +22,7 @@ impl Implementation for ImageRead {
 
         let response = self
             .context_io
-            .send_and_receive(CoordinatorMessage::Read(filename.to_string()));
+            .send_nonblocking(CoordinatorMessage::Read(filename.to_string()));
 
         match response {
             Ok(ClientMessage::FileContents(_path, bytes)) => {

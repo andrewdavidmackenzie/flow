@@ -71,7 +71,7 @@ impl Implementation for ImageBuffer {
             .ok_or("Could not get h")?;
 
         self.context_io
-            .send_and_receive(CoordinatorMessage::PixelWrite(
+            .send_nonblocking(CoordinatorMessage::PixelWrite(
                 (
                     u32::try_from(x).map_err(|_| "Integer overflow in 'x'")?,
                     u32::try_from(y).map_err(|_| "Integer overflow in 'y'")?,
@@ -108,9 +108,10 @@ mod test {
         std::sync::mpsc::Receiver<crate::context::ContextRequest>,
     ) {
         let (tx, rx) = std::sync::mpsc::channel();
+        let (dummy_tx, _dummy_rx) = std::sync::mpsc::channel();
         (
             ImageBuffer {
-                context_io: ContextIO::new(tx),
+                context_io: ContextIO::new(dummy_tx, tx),
             },
             rx,
         )

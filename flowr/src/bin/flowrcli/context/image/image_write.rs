@@ -52,7 +52,7 @@ impl Implementation for ImageWrite {
         };
 
         self.context_io
-            .send_and_receive(CoordinatorMessage::ImageWrite(grid, filename.to_string()))?;
+            .send_nonblocking(CoordinatorMessage::ImageWrite(grid, filename.to_string()))?;
 
         Ok((None, RUN_AGAIN))
     }

@@ -15,7 +15,7 @@ impl Implementation for Get {
     fn run(&self, mut _inputs: &[Value]) -> Result<(Option<Value>, RunAgain)> {
         let response = self
             .context_io
-            .send_and_receive(CoordinatorMessage::GetArgs);
+            .send_nonblocking(CoordinatorMessage::GetArgs);
 
         match response {
             Ok(ClientMessage::Args(arg_vec)) => {
@@ -60,9 +60,10 @@ mod test {
         std::sync::mpsc::Receiver<crate::context::ContextRequest>,
     ) {
         let (tx, rx) = std::sync::mpsc::channel();
+        let (dummy_tx, _dummy_rx) = std::sync::mpsc::channel();
         (
             Get {
-                context_io: ContextIO::new(tx),
+                context_io: ContextIO::new(dummy_tx, tx),
             },
             rx,
         )
@@ -71,8 +72,9 @@ mod test {
     #[test]
     fn gets_args_no_client() {
         let (tx, rx) = std::sync::mpsc::channel();
+        let (dummy_tx, _dummy_rx) = std::sync::mpsc::channel();
         let getter = Get {
-            context_io: ContextIO::new(tx),
+            context_io: ContextIO::new(dummy_tx, tx),
         };
         drop(rx);
         let (value, run_again) = getter.run(&[]).expect("_get() failed");

@@ -25,45 +25,56 @@ pub struct ContextRequest {
     pub response_tx: Option<mpsc::Sender<ClientMessage>>,
 }
 
-/// Channel-based IO handle for context functions, replacing `Arc<Mutex<CoordinatorConnection>>`.
+/// Channel-based IO handle for context functions.
 ///
-/// Output functions (stdout, stderr, etc.) use `send_no_reply` for fire-and-forget.
-/// Input functions (readline, stdin, etc.) use `send_and_receive` to get a response.
+/// Uses two separate channels: one for blocking IO (readline, stdin) and one
+/// for non-blocking IO (stdout, stderr, file, image, args). Each channel has
+/// its own bridge thread and ZMQ socket, allowing non-blocking IO to proceed
+/// while blocking IO is waiting for user input.
 #[derive(Clone)]
 pub struct ContextIO {
-    tx: mpsc::Sender<ContextRequest>,
+    blocking_tx: mpsc::Sender<ContextRequest>,
+    nonblocking_tx: mpsc::Sender<ContextRequest>,
 }
 
 impl ContextIO {
-    /// Create a new `ContextIO` backed by the given channel sender.
-    pub fn new(tx: mpsc::Sender<ContextRequest>) -> Self {
-        ContextIO { tx }
+    /// Create a new `ContextIO` with separate channels for blocking and non-blocking IO.
+    pub fn new(
+        blocking_tx: mpsc::Sender<ContextRequest>,
+        nonblocking_tx: mpsc::Sender<ContextRequest>,
+    ) -> Self {
+        ContextIO {
+            blocking_tx,
+            nonblocking_tx,
+        }
     }
 
-    /// Send a message and wait for the client's response.
-    pub fn send_and_receive(&self, message: CoordinatorMessage) -> Result<ClientMessage> {
-        let (response_tx, response_rx) = mpsc::channel();
-        self.tx
-            .send(ContextRequest {
-                message,
-                response_tx: Some(response_tx),
-            })
-            .map_err(|e| format!("Could not send to bridge: {e}"))?;
-        response_rx
-            .recv()
-            .map_err(|e| format!("Could not receive from bridge: {e}").into())
+    /// Send a message on the blocking channel and wait for the response.
+    /// Used by readline and stdin which may block indefinitely.
+    pub fn send_blocking(&self, message: CoordinatorMessage) -> Result<ClientMessage> {
+        send_and_receive(&self.blocking_tx, message)
     }
 
-    /// Send a message without waiting for a response (fire-and-forget).
-    #[allow(dead_code)]
-    pub fn send_no_reply(&self, message: CoordinatorMessage) -> Result<()> {
-        self.tx
-            .send(ContextRequest {
-                message,
-                response_tx: None,
-            })
-            .map_err(|e| format!("Could not send to bridge: {e}").into())
+    /// Send a message on the non-blocking channel and wait for the response.
+    /// Used by stdout, stderr, file, image, args — these return quickly.
+    pub fn send_nonblocking(&self, message: CoordinatorMessage) -> Result<ClientMessage> {
+        send_and_receive(&self.nonblocking_tx, message)
     }
+}
+
+fn send_and_receive(
+    tx: &mpsc::Sender<ContextRequest>,
+    message: CoordinatorMessage,
+) -> Result<ClientMessage> {
+    let (response_tx, response_rx) = mpsc::channel();
+    tx.send(ContextRequest {
+        message,
+        response_tx: Some(response_tx),
+    })
+    .map_err(|e| format!("Could not send to bridge: {e}"))?;
+    response_rx
+        .recv()
+        .map_err(|e| format!("Could not receive from bridge: {e}").into())
 }
 
 /// Return a `LibraryManifest` for the context functions

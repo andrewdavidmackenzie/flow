@@ -18,7 +18,7 @@ impl Implementation for Readline {
 
         let readline_response = self
             .context_io
-            .send_and_receive(CoordinatorMessage::GetLine(prompt));
+            .send_blocking(CoordinatorMessage::GetLine(prompt));
 
         match readline_response {
             Ok(ClientMessage::Line(contents)) => {
@@ -50,9 +50,10 @@ mod test {
         std::sync::mpsc::Receiver<crate::context::ContextRequest>,
     ) {
         let (tx, rx) = std::sync::mpsc::channel();
+        let (dummy_tx, _dummy_rx) = std::sync::mpsc::channel();
         (
             Readline {
-                context_io: ContextIO::new(tx),
+                context_io: ContextIO::new(tx, dummy_tx),
             },
             rx,
         )

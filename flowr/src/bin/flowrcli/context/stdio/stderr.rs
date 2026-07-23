@@ -22,7 +22,7 @@ impl Implementation for Stderr {
             _ => CoordinatorMessage::Stderr(input.to_string()),
         };
 
-        self.context_io.send_and_receive(msg)?;
+        self.context_io.send_nonblocking(msg)?;
 
         Ok((None, RUN_AGAIN))
     }
@@ -46,9 +46,10 @@ mod test {
         std::sync::mpsc::Receiver<crate::context::ContextRequest>,
     ) {
         let (tx, rx) = std::sync::mpsc::channel();
+        let (dummy_tx, _dummy_rx) = std::sync::mpsc::channel();
         (
             Stderr {
-                context_io: ContextIO::new(tx),
+                context_io: ContextIO::new(dummy_tx, tx),
             },
             rx,
         )

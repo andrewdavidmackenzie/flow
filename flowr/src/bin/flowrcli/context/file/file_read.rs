@@ -14,7 +14,7 @@ impl Implementation for FileRead {
     fn run(&self, inputs: &[Value]) -> Result<(Option<Value>, RunAgain)> {
         let path = inputs.first().ok_or("Could not get path")?;
 
-        let response = self.context_io.send_and_receive(CoordinatorMessage::Read(
+        let response = self.context_io.send_nonblocking(CoordinatorMessage::Read(
             path.as_str().unwrap_or("").to_string(),
         ));
 
@@ -48,9 +48,10 @@ mod test {
         std::sync::mpsc::Receiver<crate::context::ContextRequest>,
     ) {
         let (tx, rx) = std::sync::mpsc::channel();
+        let (dummy_tx, _dummy_rx) = std::sync::mpsc::channel();
         (
             FileRead {
-                context_io: ContextIO::new(tx),
+                context_io: ContextIO::new(dummy_tx, tx),
             },
             rx,
         )

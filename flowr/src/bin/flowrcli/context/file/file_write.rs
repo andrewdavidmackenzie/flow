@@ -23,7 +23,7 @@ impl Implementation for FileWrite {
             .map(|byte_value| byte_value.as_u64().unwrap_or(0) as u8)
             .collect();
 
-        self.context_io.send_and_receive(CoordinatorMessage::Write(
+        self.context_io.send_nonblocking(CoordinatorMessage::Write(
             filename.as_str().unwrap_or("").to_string(),
             bytes,
         ))?;
@@ -48,9 +48,10 @@ mod test {
         std::sync::mpsc::Receiver<crate::context::ContextRequest>,
     ) {
         let (tx, rx) = std::sync::mpsc::channel();
+        let (dummy_tx, _dummy_rx) = std::sync::mpsc::channel();
         (
             FileWrite {
-                context_io: ContextIO::new(tx),
+                context_io: ContextIO::new(dummy_tx, tx),
             },
             rx,
         )
