@@ -16,6 +16,12 @@ use flowrlib::connections::ClientConnection;
 
 const DEFAULT_NAME: &str = "unknown";
 
+/// Request sent to the background stdin reader thread.
+enum StdinRequest {
+    ReadLine(String),
+    ReadAll,
+}
+
 #[derive(Debug, Clone)]
 pub struct CliRuntimeClient {
     args: Vec<String>,
@@ -43,9 +49,8 @@ impl CliRuntimeClient {
 
     /// Enter an async loop where we receive events as a client and respond to them.
     ///
-    /// A background thread bridges the synchronous ZMQ `ClientConnection` to async
-    /// channels, allowing the event loop to be extended with additional async sources
-    /// (e.g. background stdin reading) in the future.
+    /// Stdin is read on a separate background thread so the event loop can
+    /// continue processing stdout and other messages while waiting for user input.
     pub async fn event_loop(mut self, connection: ClientConnection) -> Result<()> {
         let (event_tx, mut event_rx) = mpsc::channel::<CoordinatorMessage>(32);
         let (response_tx, mut response_rx) = mpsc::channel::<ClientMessage>(32);
@@ -53,31 +58,64 @@ impl CliRuntimeClient {
         let bridge =
             tokio::task::spawn_blocking(move || zmq_bridge(connection, event_tx, &mut response_rx));
 
+        let (stdin_req_tx, mut stdin_req_rx) = mpsc::channel::<StdinRequest>(1);
+        let (stdin_resp_tx, mut stdin_resp_rx) = mpsc::channel::<ClientMessage>(1);
+
+        let stdin_thread = tokio::task::spawn_blocking(move || {
+            stdin_reader(&mut stdin_req_rx, &stdin_resp_tx);
+        });
+
         let result = loop {
-            match event_rx.recv().await {
-                Some(event) => {
-                    let response = self.process_coordinator_message(event);
-                    if let ClientMessage::ClientExiting(ref coordinator_result) = response {
-                        debug!("Client is exiting the event loop.");
-                        let exit_result = coordinator_result.clone();
-                        if let Err(e) = response_tx.send(response).await {
-                            error!("Failed to send ClientExiting to bridge: {e}");
+            tokio::select! {
+                event = event_rx.recv() => {
+                    match event {
+                        Some(CoordinatorMessage::GetLine(prompt)) => {
+                            if stdin_req_tx.send(StdinRequest::ReadLine(prompt)).await.is_err() {
+                                let _ = response_tx.send(
+                                    ClientMessage::Error("Stdin reader closed".into())
+                                ).await;
+                            }
                         }
-                        break exit_result;
-                    }
-                    if let Err(e) = response_tx.send(response).await {
-                        error!("Failed to send response to bridge: {e}");
-                        break Err("Bridge channel closed".into());
+                        Some(CoordinatorMessage::GetStdin) => {
+                            if stdin_req_tx.send(StdinRequest::ReadAll).await.is_err() {
+                                let _ = response_tx.send(
+                                    ClientMessage::Error("Stdin reader closed".into())
+                                ).await;
+                            }
+                        }
+                        Some(event) => {
+                            let response = self.process_coordinator_message(event);
+                            if let ClientMessage::ClientExiting(ref coordinator_result) = response {
+                                debug!("Client is exiting the event loop.");
+                                let exit_result = coordinator_result.clone();
+                                if let Err(e) = response_tx.send(response).await {
+                                    error!("Failed to send ClientExiting to bridge: {e}");
+                                }
+                                break exit_result;
+                            }
+                            if let Err(e) = response_tx.send(response).await {
+                                error!("Failed to send response to bridge: {e}");
+                                break Err("Bridge channel closed".into());
+                            }
+                        }
+                        None => break Err("ZMQ bridge closed unexpectedly".into()),
                     }
                 }
-                None => {
-                    break Err("ZMQ bridge closed unexpectedly".into());
+                stdin_response = stdin_resp_rx.recv() => {
+                    if let Some(response) = stdin_response {
+                        if let Err(e) = response_tx.send(response).await {
+                            error!("Failed to send stdin response to bridge: {e}");
+                            break Err("Bridge channel closed".into());
+                        }
+                    }
                 }
             }
         };
 
         drop(response_tx);
+        drop(stdin_req_tx);
         let _ = bridge.await;
+        let _ = stdin_thread.await;
 
         result
     }
@@ -131,11 +169,9 @@ impl CliRuntimeClient {
                     println!("\nMetrics: \n{metrics}");
                     let _ = io::stdout().flush();
                 }
-
                 self.flush_image_buffers();
                 ClientMessage::ClientExiting(Ok(()))
             }
-
             #[cfg(not(feature = "metrics"))]
             CoordinatorMessage::FlowEnd => {
                 debug!("=========================== Flow execution ended ======================================");
@@ -166,25 +202,8 @@ impl CliRuntimeClient {
                 let _ = io::stdout().flush();
                 ClientMessage::Ack
             }
-            CoordinatorMessage::GetStdin => {
-                let mut buffer = String::new();
-                if let Ok(size) = io::stdin().read_to_string(&mut buffer) {
-                    return if size > 0 {
-                        ClientMessage::Stdin(buffer.trim().to_string())
-                    } else {
-                        ClientMessage::GetStdinEof
-                    };
-                }
-                ClientMessage::Error("Could not read Stdin".into())
-            }
-            CoordinatorMessage::GetLine(_prompt) => {
-                let mut input = String::new();
-                let line = io::stdin().lock().read_line(&mut input);
-                match line {
-                    Ok(n) if n > 0 => ClientMessage::Line(input.trim().to_string()),
-                    Ok(0) => ClientMessage::GetLineEof,
-                    _ => ClientMessage::Error("Could not read Readline".into()),
-                }
+            CoordinatorMessage::GetStdin | CoordinatorMessage::GetLine(_) => {
+                unreachable!("Handled in event_loop before calling process_coordinator_message")
             }
             CoordinatorMessage::Read(file_path) => match File::open(&file_path) {
                 Ok(mut f) => {
@@ -248,8 +267,6 @@ impl CliRuntimeClient {
                     if override_args.is_empty() {
                         ClientMessage::Args(self.args.clone())
                     } else {
-                        // we want to retain arg[0] which is the flow name and replace all others
-                        // with the override args supplied
                         let arg_zero = self
                             .args
                             .first()
@@ -264,6 +281,33 @@ impl CliRuntimeClient {
                 }
             }
             CoordinatorMessage::Invalid => ClientMessage::Ack,
+        }
+    }
+}
+
+/// Background thread that reads from stdin when requested.
+fn stdin_reader(req_rx: &mut mpsc::Receiver<StdinRequest>, resp_tx: &mpsc::Sender<ClientMessage>) {
+    while let Some(request) = req_rx.blocking_recv() {
+        let response = match request {
+            StdinRequest::ReadLine(_prompt) => {
+                let mut input = String::new();
+                match io::stdin().lock().read_line(&mut input) {
+                    Ok(n) if n > 0 => ClientMessage::Line(input.trim().to_string()),
+                    Ok(0) => ClientMessage::GetLineEof,
+                    _ => ClientMessage::Error("Could not read Readline".into()),
+                }
+            }
+            StdinRequest::ReadAll => {
+                let mut buffer = String::new();
+                match io::stdin().read_to_string(&mut buffer) {
+                    Ok(size) if size > 0 => ClientMessage::Stdin(buffer.trim().to_string()),
+                    Ok(_) => ClientMessage::GetStdinEof,
+                    Err(_) => ClientMessage::Error("Could not read Stdin".into()),
+                }
+            }
+        };
+        if resp_tx.blocking_send(response).is_err() {
+            break;
         }
     }
 }
@@ -327,7 +371,6 @@ mod test {
     #[test]
     fn test_arg_passing() {
         let mut client = make_client();
-
         match client.process_coordinator_message(CoordinatorMessage::GetArgs) {
             ClientMessage::Args(args) => assert_eq!(
                 vec!("file:///test_flow.toml".to_string(), "1".to_string()),
@@ -346,12 +389,10 @@ mod test {
             #[cfg(feature = "metrics")]
             false,
         );
-
         {
             let mut overrides = override_args.lock().expect("Could not lock override args");
             overrides.push("override".into());
         }
-
         match client.process_coordinator_message(CoordinatorMessage::GetArgs) {
             ClientMessage::Args(args) => assert_eq!(
                 vec!("file:///test_flow.toml".to_string(), "override".to_string()),
@@ -364,13 +405,11 @@ mod test {
     #[test]
     fn test_file_reading() {
         let test_contents = b"The quick brown fox jumped over the lazy dog";
-
         let temp = tempdir().expect("Couldn't get temporary directory").keep();
         let file_path = temp.join("test_read").to_string_lossy().to_string();
         {
             let mut file = File::create(&file_path).expect("Could not create test file");
-            file.write_all(test_contents)
-                .expect("Could not write to test file");
+            file.write_all(test_contents).expect("Could not write");
         }
         let mut client = CliRuntimeClient::new(
             vec!["file:///test_flow.toml".to_string()],
@@ -378,7 +417,6 @@ mod test {
             #[cfg(feature = "metrics")]
             false,
         );
-
         match client.process_coordinator_message(CoordinatorMessage::Read(file_path.clone())) {
             ClientMessage::FileContents(path_read, contents) => {
                 assert_eq!(path_read, file_path);
@@ -392,14 +430,7 @@ mod test {
     fn test_file_writing() {
         let temp = tempdir().expect("Couldn't get temporary directory").keep();
         let file = temp.join("test");
-
-        let mut client = CliRuntimeClient::new(
-            vec!["file:///test_flow.toml".to_string()],
-            Arc::new(Mutex::new(vec![])),
-            #[cfg(feature = "metrics")]
-            false,
-        );
-
+        let mut client = make_client();
         match client.process_coordinator_message(CoordinatorMessage::Write(
             file.to_str().expect("Couldn't get filename").to_string(),
             b"Hello".to_vec(),
@@ -430,21 +461,18 @@ mod test {
     #[test]
     fn test_image_writing() {
         let mut client = make_client();
-
         let temp_dir = tempdir().expect("Couldn't get temporary directory").keep();
         let path = temp_dir.join("flow.png");
-
         let _ = fs::remove_file(&path);
         assert!(!path.exists());
 
         client.process_coordinator_message(CoordinatorMessage::FlowStart);
-        let pixel = CoordinatorMessage::PixelWrite(
+        match client.process_coordinator_message(CoordinatorMessage::PixelWrite(
             (0, 0),
             (255, 200, 20),
             (10, 10),
             path.display().to_string(),
-        );
-        match client.process_coordinator_message(pixel) {
+        )) {
             ClientMessage::Ack => {}
             _ => panic!("Didn't get pixel write response as expected"),
         }
@@ -460,7 +488,6 @@ mod test {
     #[test]
     fn coordinator_exiting() {
         let mut client = make_client();
-
         match client.process_coordinator_message(CoordinatorMessage::CoordinatorExiting(Ok(()))) {
             ClientMessage::ClientExiting(_) => {}
             _ => panic!("Didn't get ClientExiting response as expected"),
@@ -483,15 +510,19 @@ mod test {
             tokio::spawn(async move { client.event_loop_on_channels(event_rx, response_tx).await });
 
         event_tx.send(CoordinatorMessage::FlowStart).await.unwrap();
-        let response = response_rx.recv().await.unwrap();
-        assert!(matches!(response, ClientMessage::Ack));
+        assert!(matches!(
+            response_rx.recv().await.unwrap(),
+            ClientMessage::Ack
+        ));
 
         event_tx
             .send(CoordinatorMessage::Stdout("hello".into()))
             .await
             .unwrap();
-        let response = response_rx.recv().await.unwrap();
-        assert!(matches!(response, ClientMessage::Ack));
+        assert!(matches!(
+            response_rx.recv().await.unwrap(),
+            ClientMessage::Ack
+        ));
 
         #[cfg(not(feature = "metrics"))]
         event_tx.send(CoordinatorMessage::FlowEnd).await.unwrap();
@@ -501,10 +532,11 @@ mod test {
             .await
             .unwrap();
 
-        let response = response_rx.recv().await.unwrap();
-        assert!(matches!(response, ClientMessage::ClientExiting(Ok(()))));
+        assert!(matches!(
+            response_rx.recv().await.unwrap(),
+            ClientMessage::ClientExiting(Ok(()))
+        ));
 
-        let result = handle.await.unwrap();
-        assert!(result.is_ok());
+        assert!(handle.await.unwrap().is_ok());
     }
 }
