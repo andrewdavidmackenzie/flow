@@ -413,13 +413,19 @@ fn coordinator_bridge(
     use flowrlib::connections::WAIT;
     use log::debug;
 
+    debug!("[BRIDGE] started");
+
     while let Ok(request) = context_rx.recv() {
         let is_exiting = matches!(request.message, CoordinatorMessage::CoordinatorExiting(_));
         let wait_for_submission = matches!(request.message, CoordinatorMessage::Invalid);
 
+        debug!(
+            "[BRIDGE] received: {}, wait_sub={wait_for_submission}, exiting={is_exiting}",
+            request.message
+        );
+
         if wait_for_submission {
-            // The submission handler is asking the bridge to receive the next
-            // submission from the client via ZMQ.
+            debug!("[BRIDGE] waiting for submission on ZMQ...");
             loop {
                 match connection.receive::<ClientMessage>(WAIT) {
                     Ok(ClientMessage::ClientSubmission(submission)) => {
@@ -466,7 +472,9 @@ fn coordinator_bridge(
             return;
         }
 
+        debug!("[BRIDGE] sending on ZMQ...");
         if let Err(e) = connection.send(request.message) {
+            debug!("[BRIDGE] send failed: {e}");
             error!("Bridge: failed to send to client: {e}");
             if let Some(response_tx) = request.response_tx {
                 let _ = response_tx.send(ClientMessage::Error(format!("{e}")));
@@ -474,7 +482,17 @@ fn coordinator_bridge(
             continue;
         }
 
+        debug!("[BRIDGE] waiting for ZMQ response...");
         match connection.receive::<ClientMessage>(WAIT) {
+            Ok(ClientMessage::ClientExiting(_)) => {
+                debug!("[BRIDGE] got ClientExiting as response, sending ack on ZMQ");
+                // Client exited — complete the REP send/recv cycle so the
+                // socket is ready for the next receive (Phase 1).
+                let _ = connection.send(CoordinatorMessage::Invalid);
+                if let Some(response_tx) = request.response_tx {
+                    let _ = response_tx.send(ClientMessage::ClientExiting(Ok(())));
+                }
+            }
             Ok(response) => {
                 if let Some(response_tx) = request.response_tx {
                     let _ = response_tx.send(response);
