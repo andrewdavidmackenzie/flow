@@ -526,6 +526,11 @@ fn blocking_io_bridge(
     use crate::cli::coordinator_message::ClientMessage;
     use flowrlib::connections::WAIT;
 
+    // Receive the initial Ack that starts the REQ/REP cycle
+    if connection.receive::<ClientMessage>(WAIT).is_err() {
+        return;
+    }
+
     while let Ok(request) = context_rx.recv() {
         if let Err(e) = connection.send(request.message) {
             error!("Blocking bridge: failed to send: {e}");
@@ -611,6 +616,9 @@ fn client(
 
     info!("Client sending submission to coordinator");
     client_connection.send(ClientMessage::ClientSubmission(Box::new(submission)))?;
+
+    // Start the blocking IO REQ/REP cycle with an initial Ack
+    blocking_io_client.send(ClientMessage::Ack)?;
 
     trace!("Entering client event loop");
     let rt = tokio::runtime::Runtime::new()
