@@ -1,0 +1,28 @@
+flow = "concurrent-io"
+
+# get args, then:
+# - print args to stdout (fast, non-blocking)
+# - readline waits for user input
+# - print input to stderr when received
+#
+# If concurrent IO works, args should appear on stdout
+# while readline is still blocking.
+
+[[process]]
+source = "context://args/get"
+
+[[process]]
+source = "context://stdio/stdout"
+[[connection]]
+from = "get/string/0"
+to = "stdout"
+
+[[process]]
+source = "context://stdio/readline"
+input.prompt = {once = ""}
+
+[[process]]
+source = "context://stdio/stderr"
+[[connection]]
+from = "readline/string"
+to = "stderr"
