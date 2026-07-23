@@ -453,19 +453,10 @@ fn coordinator_bridge(
             continue;
         }
 
-        // For CoordinatorExiting, the client may have already exited after
-        // FlowEnd — set a receive timeout and handle the exit handshake.
         if is_exiting {
-            if let Err(e) = connection.set_receive_timeout(1000) {
-                error!("Bridge: could not set receive timeout: {e}");
-            }
-            match connection.receive::<ClientMessage>(WAIT) {
-                Ok(_) => debug!("Bridge: received client acknowledgement"),
-                Err(e) => debug!("Bridge: no client ack (expected): {e}"),
-            }
-            if let Err(e) = connection.send(request.message) {
-                error!("Bridge: failed to send CoordinatorExiting: {e}");
-            }
+            // The exit may have already been handled in the response path
+            // (ClientExiting received as response to FlowEnd). In that case
+            // the ZMQ socket already sent CoordinatorExiting. Just ack and return.
             if let Some(response_tx) = request.response_tx {
                 let _ = response_tx.send(ClientMessage::Ack);
             }
@@ -485,9 +476,7 @@ fn coordinator_bridge(
         debug!("[BRIDGE] waiting for ZMQ response...");
         match connection.receive::<ClientMessage>(WAIT) {
             Ok(ClientMessage::ClientExiting(_)) => {
-                debug!("[BRIDGE] got ClientExiting as response, sending ack on ZMQ");
-                // Client exited — complete the REP send/recv cycle so the
-                // socket is ready for the next receive (Phase 1).
+                debug!("[BRIDGE] client exited, completing REP cycle");
                 let _ = connection.send(CoordinatorMessage::CoordinatorExiting(Ok(())));
                 if let Some(response_tx) = request.response_tx {
                     let _ = response_tx.send(ClientMessage::ClientExiting(Ok(())));
