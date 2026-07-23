@@ -1,7 +1,6 @@
-use std::sync::{Arc, Mutex};
+use std::sync::mpsc;
 
-use error_chain::bail;
-use log::{debug, error, info, trace};
+use log::{debug, info, trace};
 
 use flowcore::errors::Result;
 #[cfg(feature = "metrics")]
@@ -10,23 +9,23 @@ use flowcore::model::submission::Submission;
 use flowrlib::run_state::RunState;
 use flowrlib::submission_handler::SubmissionHandler;
 
-#[cfg(feature = "debugger")]
-use flowrlib::connections::DONT_WAIT;
-use flowrlib::connections::{CoordinatorConnection, WAIT};
-
-use crate::cli::coordinator_message::ClientMessage;
 use crate::cli::coordinator_message::CoordinatorMessage;
+use crate::context::ContextIO;
 
-/// A [`SubmissionHandler`] to allow submitting flows for execution from the CLI
+/// A [`SubmissionHandler`] for the CLI runner.
+///
+/// Uses channel-based `ContextIO` to communicate with the bridge thread that
+/// owns the ZMQ `CoordinatorConnection`. No mutex needed.
 pub(crate) struct CLISubmissionHandler {
-    coordinator_connection: Arc<Mutex<CoordinatorConnection>>,
+    context_io: ContextIO,
+    submission_rx: mpsc::Receiver<Submission>,
 }
 
 impl CLISubmissionHandler {
-    /// Create a new Submission handler using the connection provided
-    pub fn new(connection: Arc<Mutex<CoordinatorConnection>>) -> Self {
+    pub fn new(context_io: ContextIO, submission_rx: mpsc::Receiver<Submission>) -> Self {
         CLISubmissionHandler {
-            coordinator_connection: connection,
+            context_io,
+            submission_rx,
         }
     }
 }
@@ -34,109 +33,51 @@ impl CLISubmissionHandler {
 impl SubmissionHandler for CLISubmissionHandler {
     fn flow_execution_starting(&mut self) -> Result<()> {
         let _ = self
-            .coordinator_connection
-            .lock()
-            .map_err(|_| "Could not lock coordinator connection")?
-            .send_and_receive_response::<CoordinatorMessage, ClientMessage>(
-                CoordinatorMessage::FlowStart,
-            )?;
-
+            .context_io
+            .send_and_receive(CoordinatorMessage::FlowStart)?;
         Ok(())
     }
 
-    // See if the runtime client has sent a message to request us to enter the debugger,
-    // if so, return Ok(true).
-    // A different message or Absence of a message returns Ok(false)
     #[cfg(feature = "debugger")]
     fn should_enter_debugger(&mut self) -> Result<bool> {
-        let msg = self
-            .coordinator_connection
-            .lock()
-            .map_err(|_| "Could not lock coordinator connection")?
-            .receive(DONT_WAIT);
-        match msg {
-            Ok(ClientMessage::EnterDebugger) => {
-                debug!("Got EnterDebugger message");
-                Ok(true)
-            }
-            Ok(m) => {
-                debug!("Got {m:?} message");
-                Ok(false)
-            }
-            _ => Ok(false),
-        }
+        Ok(false)
     }
 
     #[cfg(feature = "metrics")]
     fn flow_execution_ended(&mut self, state: &RunState, metrics: Metrics) -> Result<()> {
-        self.coordinator_connection
-            .lock()
-            .map_err(|_| "Could not lock coordinator connection")?
-            .send(CoordinatorMessage::FlowEnd(metrics))?;
+        self.context_io
+            .send_and_receive(CoordinatorMessage::FlowEnd(metrics))?;
         debug!("{state}");
         Ok(())
     }
 
     #[cfg(not(feature = "metrics"))]
     fn flow_execution_ended(&mut self, state: &RunState) -> Result<()> {
-        self.coordinator_connection
-            .lock()
-            .map_err(|_| "Could not lock coordinator connection")?
-            .send(CoordinatorMessage::FlowEnd)?;
+        self.context_io
+            .send_and_receive(CoordinatorMessage::FlowEnd)?;
         debug!("{}", state);
         Ok(())
     }
 
-    // Loop waiting for one of the following two messages from the client thread:
-    //  - `ClientSubmission` with a submission, then return Ok(Some(submission))
-    //  - `ClientExiting` then return Ok(None)
     fn wait_for_submission(&mut self) -> Result<Option<Submission>> {
-        loop {
-            info!("Coordinator is waiting to receive a 'Submission'");
-            let guard = self.coordinator_connection.lock();
-            #[allow(clippy::single_match_else)]
-            match guard {
-                Ok(locked) => {
-                    let received = locked.receive(WAIT);
-                    match received {
-                        Ok(ClientMessage::ClientSubmission(submission)) => {
-                            info!("Coordinator received a submission for execution");
-                            trace!("\n{submission}");
-                            return Ok(Some(*submission));
-                        }
-                        Ok(ClientMessage::ClientExiting(_)) => return Ok(None),
-                        Ok(r) => error!("Coordinator did not expect response from client: '{r:?}'"),
-                        Err(e) => bail!("Coordinator error while waiting for submission: '{}'", e),
-                    }
-                }
-                _ => {
-                    error!("Coordinator could not lock connection");
-                    return Ok(None);
-                }
+        info!("Coordinator is waiting to receive a 'Submission'");
+        // Tell the bridge thread to switch to ZMQ receive mode for the next submission
+        self.context_io
+            .send_and_receive(CoordinatorMessage::Invalid)?;
+        match self.submission_rx.recv() {
+            Ok(submission) => {
+                info!("Coordinator received a submission for execution");
+                trace!("\n{submission}");
+                Ok(Some(submission))
             }
+            Err(_) => Ok(None),
         }
     }
 
     fn coordinator_is_exiting(&mut self, result: Result<()>) -> Result<()> {
         debug!("Coordinator exiting");
-        let mut connection = self
-            .coordinator_connection
-            .lock()
-            .map_err(|e| format!("Could not lock Coordinator Connection: {e}"))?;
-
-        // After flow_execution_ended sends FlowEnd the REP socket is in "sent" state
-        // (client_and_coordinator mode). We need to receive the client's ClientExiting
-        // before we can send CoordinatorExiting.
-        // In server mode, wait_for_submission already consumed ClientExiting, so this
-        // recv may fail (EFSM or timeout) — either is fine, just proceed.
-        if let Err(e) = connection.set_receive_timeout(1000) {
-            error!("Could not set receive timeout: {e}");
-        }
-        match connection.receive::<ClientMessage>(WAIT) {
-            Ok(_) => debug!("Received client acknowledgement"),
-            Err(e) => debug!("No client acknowledgement (expected in server mode): {e}"),
-        }
-
-        connection.send(CoordinatorMessage::CoordinatorExiting(result))
+        self.context_io
+            .send_and_receive(CoordinatorMessage::CoordinatorExiting(result))
+            .map(|_| ())
     }
 }

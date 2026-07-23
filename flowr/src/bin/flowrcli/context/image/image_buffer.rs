@@ -1,16 +1,13 @@
-use std::sync::{Arc, Mutex};
-
 use flowcore::errors::Result;
 use flowcore::{Implementation, RunAgain, RUN_AGAIN};
 use serde_json::Value;
 
-use crate::cli::coordinator_message::{ClientMessage, CoordinatorMessage};
-use flowrlib::connections::CoordinatorConnection;
+use crate::cli::coordinator_message::CoordinatorMessage;
+use crate::context::ContextIO;
 
 /// `Implementation` struct for the `image_buffer` function
 pub struct ImageBuffer {
-    /// It holds a reference to the runtime client in order to send commands
-    pub server_connection: Arc<Mutex<CoordinatorConnection>>,
+    pub context_io: ContextIO,
 }
 
 impl Implementation for ImageBuffer {
@@ -36,11 +33,6 @@ impl Implementation for ImageBuffer {
             .ok_or("Could not get filename")?
             .as_str()
             .ok_or("Could not get filename")?;
-
-        let mut server = self
-            .server_connection
-            .lock()
-            .map_err(|_| "Could not lock server")?;
 
         let x = pixel
             .first()
@@ -78,8 +70,8 @@ impl Implementation for ImageBuffer {
             .as_u64()
             .ok_or("Could not get h")?;
 
-        let _: Result<ClientMessage> =
-            server.send_and_receive_response(CoordinatorMessage::PixelWrite(
+        self.context_io
+            .send_and_receive(CoordinatorMessage::PixelWrite(
                 (
                     u32::try_from(x).map_err(|_| "Integer overflow in 'x'")?,
                     u32::try_from(y).map_err(|_| "Integer overflow in 'y'")?,
@@ -94,7 +86,7 @@ impl Implementation for ImageBuffer {
                     u32::try_from(h).map_err(|_| "Integer overflow in 'h'")?,
                 ),
                 filename.to_string(),
-            ));
+            ))?;
 
         Ok((None, RUN_AGAIN))
     }
@@ -105,47 +97,61 @@ impl Implementation for ImageBuffer {
 mod test {
     use flowcore::{Implementation, RUN_AGAIN};
     use serde_json::json;
-    use serial_test::serial;
 
     use crate::cli::coordinator_message::{ClientMessage, CoordinatorMessage};
-    use crate::cli::test_helper::test::wait_for_then_send;
+    use crate::context::ContextIO;
 
     use super::ImageBuffer;
 
+    fn make_image_buffer() -> (
+        ImageBuffer,
+        std::sync::mpsc::Receiver<crate::context::ContextRequest>,
+    ) {
+        let (tx, rx) = std::sync::mpsc::channel();
+        (
+            ImageBuffer {
+                context_io: ContextIO::new(tx),
+            },
+            rx,
+        )
+    }
+
     #[test]
-    #[serial]
     fn invalid_parameters() {
+        let (buffer, _rx) = make_image_buffer();
         let pixel = (0, 0);
         let color = (1, 2, 3);
         let invalid_size = (1.2, 3.4); // invalid
-        let size = (1, 3);
-        let buffer_name = "image_buffer.png".into();
+        let buffer_name: String = "image_buffer.png".into();
         let inputs = [
             json!(pixel),
             json!(color),
             json!(invalid_size),
             json!(buffer_name),
         ];
-        let pixel = CoordinatorMessage::PixelWrite(pixel, color, size, buffer_name);
-
-        let server_connection = wait_for_then_send(pixel, ClientMessage::Ack);
-        let buffer = &ImageBuffer { server_connection } as &dyn Implementation;
         assert!(buffer.run(&inputs).is_err());
     }
 
     #[test]
-    #[serial]
     fn valid() {
+        let (buffer, rx) = make_image_buffer();
         let pixel = (0, 0);
         let color = (1, 2, 3);
         let size = (1, 3);
-        let buffer_name = "image_buffer.png".into();
+        let buffer_name: String = "image_buffer.png".into();
         let inputs = [json!(pixel), json!(color), json!(size), json!(buffer_name)];
-        let pixel = CoordinatorMessage::PixelWrite(pixel, color, size, buffer_name);
 
-        let server_connection = wait_for_then_send(pixel, ClientMessage::Ack);
-        let buffer = &ImageBuffer { server_connection } as &dyn Implementation;
-        let (value, run_again) = buffer.run(&inputs).expect("run() failed");
+        let handle = std::thread::spawn(move || buffer.run(&inputs));
+
+        let req = rx.recv().expect("No request received");
+        assert!(matches!(req.message, CoordinatorMessage::PixelWrite(..)));
+        if let Some(response_tx) = req.response_tx {
+            response_tx
+                .send(ClientMessage::Ack)
+                .expect("Could not send response");
+        }
+
+        let (value, run_again) = handle.join().unwrap().expect("run() failed");
         assert_eq!(run_again, RUN_AGAIN);
         assert_eq!(value, None);
     }

@@ -1,26 +1,20 @@
-use std::sync::{Arc, Mutex};
-
 use flowcore::errors::Result;
 use flowcore::{Implementation, RunAgain, DONT_RUN_AGAIN, RUN_AGAIN};
 use serde_json::Value;
 
 use crate::cli::coordinator_message::{ClientMessage, CoordinatorMessage};
-use flowrlib::connections::CoordinatorConnection;
+use crate::context::ContextIO;
 
 /// `Implementation` struct for the `Stdin` function
 pub struct Stdin {
-    /// It holds a reference to the runtime client in order to read input
-    pub server_connection: Arc<Mutex<CoordinatorConnection>>,
+    pub context_io: ContextIO,
 }
 
 impl Implementation for Stdin {
     fn run(&self, _inputs: &[Value]) -> Result<(Option<Value>, RunAgain)> {
-        let mut server = self
-            .server_connection
-            .lock()
-            .map_err(|_| "Could not lock server")?;
-
-        let stdin_response = server.send_and_receive_response(CoordinatorMessage::GetStdin);
+        let stdin_response = self
+            .context_io
+            .send_and_receive(CoordinatorMessage::GetStdin);
 
         match stdin_response {
             Ok(ClientMessage::Stdin(contents)) => {
@@ -48,25 +42,39 @@ mod test {
     use flowcore::{Implementation, DONT_RUN_AGAIN, RUN_AGAIN};
     use serde_json::json;
     use serde_json::Value;
-    use serial_test::serial;
 
     use crate::cli::coordinator_message::{ClientMessage, CoordinatorMessage};
-    use crate::cli::test_helper::test::wait_for_then_send;
+    use crate::context::ContextIO;
 
     use super::Stdin;
 
+    fn make_stdin() -> (
+        Stdin,
+        std::sync::mpsc::Receiver<crate::context::ContextRequest>,
+    ) {
+        let (tx, rx) = std::sync::mpsc::channel();
+        (
+            Stdin {
+                context_io: ContextIO::new(tx),
+            },
+            rx,
+        )
+    }
+
     #[test]
-    #[serial]
     fn gets_a_line_of_text() {
-        let server_connection = wait_for_then_send(
-            CoordinatorMessage::GetStdin,
-            ClientMessage::Stdin("line of text".into()),
-        );
-        let stdin = &Stdin { server_connection } as &dyn Implementation;
-        let (value, run_again) = stdin.run(&[]).expect("_stdin() failed");
+        let (stdin, rx) = make_stdin();
+        let handle = std::thread::spawn(move || stdin.run(&[]));
 
+        let req = rx.recv().expect("No request");
+        assert!(matches!(req.message, CoordinatorMessage::GetStdin));
+        req.response_tx
+            .unwrap()
+            .send(ClientMessage::Stdin("line of text".into()))
+            .unwrap();
+
+        let (value, run_again) = handle.join().unwrap().expect("run() failed");
         assert_eq!(run_again, RUN_AGAIN);
-
         let val = value.expect("Could not get value returned from implementation");
         let map = val.as_object().expect("Could not get map of output values");
         assert_eq!(
@@ -76,29 +84,31 @@ mod test {
     }
 
     #[test]
-    #[serial]
     fn bad_reply_message() {
-        let server_connection =
-            wait_for_then_send(CoordinatorMessage::GetStdin, ClientMessage::Ack);
-        let stdin = &Stdin { server_connection } as &dyn Implementation;
-        let (value, run_again) = stdin.run(&[]).expect("_stdin() failed");
+        let (stdin, rx) = make_stdin();
+        let handle = std::thread::spawn(move || stdin.run(&[]));
 
+        let req = rx.recv().expect("No request");
+        req.response_tx.unwrap().send(ClientMessage::Ack).unwrap();
+
+        let (value, run_again) = handle.join().unwrap().expect("run() failed");
         assert_eq!(run_again, DONT_RUN_AGAIN);
         assert_eq!(value, None);
     }
 
     #[test]
-    #[serial]
     fn gets_json() {
-        let server_connection = wait_for_then_send(
-            CoordinatorMessage::GetStdin,
-            ClientMessage::Stdin("\"json text\"".into()),
-        );
-        let stdin = &Stdin { server_connection } as &dyn Implementation;
-        let (value, run_again) = stdin.run(&[]).expect("_stdin() failed");
+        let (stdin, rx) = make_stdin();
+        let handle = std::thread::spawn(move || stdin.run(&[]));
 
+        let req = rx.recv().expect("No request");
+        req.response_tx
+            .unwrap()
+            .send(ClientMessage::Stdin("\"json text\"".into()))
+            .unwrap();
+
+        let (value, run_again) = handle.join().unwrap().expect("run() failed");
         assert_eq!(run_again, RUN_AGAIN);
-
         let val = value.expect("Could not get value returned from implementation");
         let map = val.as_object().expect("Could not get map of output values");
         assert_eq!(
@@ -108,13 +118,17 @@ mod test {
     }
 
     #[test]
-    #[serial]
     fn get_eof() {
-        let server_connection =
-            wait_for_then_send(CoordinatorMessage::GetStdin, ClientMessage::GetStdinEof);
-        let stdin = &Stdin { server_connection } as &dyn Implementation;
-        let (value, run_again) = stdin.run(&[]).expect("_stdin() failed");
+        let (stdin, rx) = make_stdin();
+        let handle = std::thread::spawn(move || stdin.run(&[]));
 
+        let req = rx.recv().expect("No request");
+        req.response_tx
+            .unwrap()
+            .send(ClientMessage::GetStdinEof)
+            .unwrap();
+
+        let (value, run_again) = handle.join().unwrap().expect("run() failed");
         assert_eq!(run_again, DONT_RUN_AGAIN);
         let val = value.expect("Could not get value returned from implementation");
         let map = val.as_object().expect("Could not get map of output values");

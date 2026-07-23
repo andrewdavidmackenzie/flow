@@ -311,7 +311,16 @@ fn coordinator(
     #[cfg(feature = "debugger")] debug_connection: CoordinatorConnection,
     loop_forever: bool,
 ) -> Result<()> {
-    let connection = Arc::new(Mutex::new(coordinator_connection));
+    // Create channels for context functions and submission handler to communicate
+    // with the bridge thread that owns the ZMQ CoordinatorConnection.
+    let (context_tx, context_rx) = std::sync::mpsc::channel();
+    let (submission_tx, submission_rx) = std::sync::mpsc::channel();
+    let context_io = context::ContextIO::new(context_tx);
+
+    // Spawn bridge thread that owns the ZMQ socket
+    let bridge_handle = thread::spawn(move || {
+        coordinator_bridge(coordinator_connection, context_rx, submission_tx);
+    });
 
     #[cfg(feature = "debugger")]
     let mut debug_server = DebugZmqHandler {
@@ -335,15 +344,12 @@ fn coordinator(
         get_connect_addresses(ports);
 
     let mut executor = Executor::new();
-    // if the command line options request loading native implementation of available native libs
-    // if not, the native implementation is not loaded and later when a flow is loaded its library
-    // references will be resolved and those libraries (WASM implementations) will be loaded at runtime
     #[cfg(feature = "flowstdlib")]
     if native_flowstdlib {
         executor.add_lib(
             flowstdlib::manifest::get()
                 .chain_err(|| "Could not get 'native' flowstdlib manifest")?,
-            Url::parse("memory://")?, // Statically linked library has no resolved Url
+            Url::parse("memory://")?,
         )?;
     }
     executor.start(
@@ -356,8 +362,8 @@ fn coordinator(
 
     let mut context_executor = Executor::new();
     context_executor.add_lib(
-        context::get_manifest(connection.clone())?,
-        Url::parse("memory://")?, // Statically linked library has no resolved Url
+        context::get_manifest(context_io.clone())?,
+        Url::parse("memory://")?,
     )?;
     context_executor.start(
         &provider,
@@ -368,7 +374,7 @@ fn coordinator(
     );
 
     #[cfg(feature = "submission")]
-    let mut submitter = CLISubmissionHandler::new(connection);
+    let mut submitter = CLISubmissionHandler::new(context_io, submission_rx);
 
     let mut coordinator = Coordinator::new(
         dispatcher,
@@ -390,7 +396,105 @@ fn coordinator(
         unregister_service(mdns, fullname);
     }
 
+    let _ = bridge_handle.join();
+
     result
+}
+
+/// Bridge thread that owns the ZMQ `CoordinatorConnection` and serializes all
+/// communication between context functions/submission handler and the client.
+#[allow(clippy::needless_pass_by_value)]
+fn coordinator_bridge(
+    mut connection: CoordinatorConnection,
+    context_rx: std::sync::mpsc::Receiver<context::ContextRequest>,
+    submission_tx: std::sync::mpsc::Sender<flowcore::model::submission::Submission>,
+) {
+    use crate::cli::coordinator_message::{ClientMessage, CoordinatorMessage};
+    use flowrlib::connections::WAIT;
+    use log::debug;
+
+    debug!("[BRIDGE] started");
+
+    while let Ok(request) = context_rx.recv() {
+        let is_exiting = matches!(request.message, CoordinatorMessage::CoordinatorExiting(_));
+        let wait_for_submission = matches!(request.message, CoordinatorMessage::Invalid);
+
+        debug!(
+            "[BRIDGE] received: {}, wait_sub={wait_for_submission}, exiting={is_exiting}",
+            request.message
+        );
+
+        if wait_for_submission {
+            debug!("[BRIDGE] waiting for submission on ZMQ...");
+            loop {
+                match connection.receive::<ClientMessage>(WAIT) {
+                    Ok(ClientMessage::ClientSubmission(submission)) => {
+                        if submission_tx.send(*submission).is_err() {
+                            return;
+                        }
+                        break;
+                    }
+                    Ok(ClientMessage::ClientExiting(_)) => {
+                        if let Some(response_tx) = request.response_tx {
+                            let _ = response_tx.send(ClientMessage::ClientExiting(Ok(())));
+                        }
+                        return;
+                    }
+                    Ok(_) => {}
+                    Err(e) => {
+                        error!("Bridge: error receiving submission: {e}");
+                        return;
+                    }
+                }
+            }
+            if let Some(response_tx) = request.response_tx {
+                let _ = response_tx.send(ClientMessage::Ack);
+            }
+            continue;
+        }
+
+        if is_exiting {
+            // The exit may have already been handled in the response path
+            // (ClientExiting received as response to FlowEnd). In that case
+            // the ZMQ socket already sent CoordinatorExiting. Just ack and return.
+            if let Some(response_tx) = request.response_tx {
+                let _ = response_tx.send(ClientMessage::Ack);
+            }
+            return;
+        }
+
+        debug!("[BRIDGE] sending on ZMQ...");
+        if let Err(e) = connection.send(request.message) {
+            debug!("[BRIDGE] send failed: {e}");
+            error!("Bridge: failed to send to client: {e}");
+            if let Some(response_tx) = request.response_tx {
+                let _ = response_tx.send(ClientMessage::Error(format!("{e}")));
+            }
+            continue;
+        }
+
+        debug!("[BRIDGE] waiting for ZMQ response...");
+        match connection.receive::<ClientMessage>(WAIT) {
+            Ok(ClientMessage::ClientExiting(_)) => {
+                debug!("[BRIDGE] client exited, completing REP cycle");
+                let _ = connection.send(CoordinatorMessage::CoordinatorExiting(Ok(())));
+                if let Some(response_tx) = request.response_tx {
+                    let _ = response_tx.send(ClientMessage::ClientExiting(Ok(())));
+                }
+            }
+            Ok(response) => {
+                if let Some(response_tx) = request.response_tx {
+                    let _ = response_tx.send(response);
+                }
+            }
+            Err(e) => {
+                error!("Bridge: failed to receive from client: {e}");
+                if let Some(response_tx) = request.response_tx {
+                    let _ = response_tx.send(ClientMessage::Error(format!("{e}")));
+                }
+            }
+        }
+    }
 }
 
 /// Start only a client in the calling thread. Discover the remote Coordinator using service discovery

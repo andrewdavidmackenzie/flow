@@ -1,5 +1,3 @@
-use std::sync::{Arc, Mutex};
-
 use flowcore::errors::Result;
 use flowcore::{Implementation, RunAgain, DONT_RUN_AGAIN};
 use image::ImageReader;
@@ -7,12 +5,11 @@ use serde_json::{json, Value};
 use std::io::Cursor;
 
 use crate::cli::coordinator_message::{ClientMessage, CoordinatorMessage};
-use flowrlib::connections::CoordinatorConnection;
+use crate::context::ContextIO;
 
 /// `Implementation` struct for the `image_read` function
 pub struct ImageRead {
-    /// It holds a reference to the runtime client in order to read files
-    pub server_connection: Arc<Mutex<CoordinatorConnection>>,
+    pub context_io: ContextIO,
 }
 
 impl Implementation for ImageRead {
@@ -23,14 +20,9 @@ impl Implementation for ImageRead {
             .as_str()
             .ok_or("Could not get filename as string")?;
 
-        let mut server = self
-            .server_connection
-            .lock()
-            .map_err(|_| "Could not lock server")?;
-
-        let response = server.send_and_receive_response::<CoordinatorMessage, ClientMessage>(
-            CoordinatorMessage::Read(filename.to_string()),
-        );
+        let response = self
+            .context_io
+            .send_and_receive(CoordinatorMessage::Read(filename.to_string()));
 
         match response {
             Ok(ClientMessage::FileContents(_path, bytes)) => {

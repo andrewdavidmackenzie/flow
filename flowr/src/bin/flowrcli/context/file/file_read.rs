@@ -1,30 +1,22 @@
-use std::sync::{Arc, Mutex};
-
 use flowcore::errors::Result;
 use flowcore::{Implementation, RunAgain, DONT_RUN_AGAIN, RUN_AGAIN};
 use serde_json::{json, Value};
 
 use crate::cli::coordinator_message::{ClientMessage, CoordinatorMessage};
-use flowrlib::connections::CoordinatorConnection;
+use crate::context::ContextIO;
 
 /// `Implementation` struct for the `file_read` function
 pub struct FileRead {
-    /// It holds a reference to the runtime client in order to get file contents
-    pub server_connection: Arc<Mutex<CoordinatorConnection>>,
+    pub context_io: ContextIO,
 }
 
 impl Implementation for FileRead {
     fn run(&self, inputs: &[Value]) -> Result<(Option<Value>, RunAgain)> {
         let path = inputs.first().ok_or("Could not get path")?;
 
-        let mut server = self
-            .server_connection
-            .lock()
-            .map_err(|_| "Could not lock server")?;
-
-        let response = server.send_and_receive_response::<CoordinatorMessage, ClientMessage>(
-            CoordinatorMessage::Read(path.as_str().unwrap_or("").to_string()),
-        );
+        let response = self.context_io.send_and_receive(CoordinatorMessage::Read(
+            path.as_str().unwrap_or("").to_string(),
+        ));
 
         match response {
             Ok(ClientMessage::FileContents(_path, bytes)) => {
@@ -45,16 +37,26 @@ impl Implementation for FileRead {
 mod test {
     use flowcore::{Implementation, RUN_AGAIN};
     use serde_json::{json, Value};
-    use serial_test::serial;
 
-    use crate::cli::coordinator_message::ClientMessage::FileContents;
-    use crate::cli::coordinator_message::CoordinatorMessage;
-    use crate::cli::test_helper::test::wait_for_then_send;
+    use crate::cli::coordinator_message::{ClientMessage, CoordinatorMessage};
+    use crate::context::ContextIO;
 
     use super::FileRead;
 
+    fn make_file_read() -> (
+        FileRead,
+        std::sync::mpsc::Receiver<crate::context::ContextRequest>,
+    ) {
+        let (tx, rx) = std::sync::mpsc::channel();
+        (
+            FileRead {
+                context_io: ContextIO::new(tx),
+            },
+            rx,
+        )
+    }
+
     #[test]
-    #[serial]
     fn read_file() {
         let file_path = "test_read";
         let file_contents: Vec<u8> = "test text".as_bytes().to_vec();
@@ -62,17 +64,21 @@ mod test {
             String::from_utf8(file_contents.clone()).expect("Could not create Utf8 String");
 
         let inputs = [json!(file_path)];
-        let file_read_message = CoordinatorMessage::Read(file_path.to_string());
 
-        let server_connection = wait_for_then_send(
-            file_read_message,
-            FileContents(file_path.to_string(), file_contents),
-        );
+        let (reader, rx) = make_file_read();
+        let handle = std::thread::spawn(move || reader.run(&inputs));
 
-        let reader = &FileRead { server_connection } as &dyn Implementation;
+        let req = rx.recv().expect("No request");
+        assert!(matches!(req.message, CoordinatorMessage::Read(_)));
+        req.response_tx
+            .unwrap()
+            .send(ClientMessage::FileContents(
+                file_path.to_string(),
+                file_contents,
+            ))
+            .unwrap();
 
-        let (value, run_again) = reader.run(&inputs).expect("_file_write() failed");
-
+        let (value, run_again) = handle.join().unwrap().expect("run() failed");
         assert_eq!(run_again, RUN_AGAIN);
         match value {
             Some(Value::Object(map)) => {
