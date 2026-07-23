@@ -27,20 +27,27 @@ pub struct ContextRequest {
 
 /// Channel-based IO handle for context functions, replacing `Arc<Mutex<CoordinatorConnection>>`.
 ///
-/// Output functions (stdout, stderr, etc.) use `send_no_reply` for fire-and-forget.
-/// Input functions (readline, stdin, etc.) use `send_and_receive` to get a response.
+/// Uses two channels: one for non-blocking IO (stdout, stderr, file, image, args)
+/// and one for blocking IO (readline, stdin). This allows blocking IO to be
+/// handled on a separate ZMQ socket so it doesn't block non-blocking IO.
 #[derive(Clone)]
 pub struct ContextIO {
+    /// Channel for non-blocking context function requests (stdout, stderr, etc.)
     tx: mpsc::Sender<ContextRequest>,
+    /// Channel for blocking context function requests (readline, stdin)
+    blocking_tx: mpsc::Sender<ContextRequest>,
 }
 
 impl ContextIO {
-    /// Create a new `ContextIO` backed by the given channel sender.
-    pub fn new(tx: mpsc::Sender<ContextRequest>) -> Self {
-        ContextIO { tx }
+    /// Create a new `ContextIO` backed by the given channel senders.
+    pub fn new(
+        tx: mpsc::Sender<ContextRequest>,
+        blocking_tx: mpsc::Sender<ContextRequest>,
+    ) -> Self {
+        ContextIO { tx, blocking_tx }
     }
 
-    /// Send a message and wait for the client's response.
+    /// Send a message on the non-blocking channel and wait for the client's response.
     pub fn send_and_receive(&self, message: CoordinatorMessage) -> Result<ClientMessage> {
         let (response_tx, response_rx) = mpsc::channel();
         self.tx
@@ -52,6 +59,21 @@ impl ContextIO {
         response_rx
             .recv()
             .map_err(|e| format!("Could not receive from bridge: {e}").into())
+    }
+
+    /// Send a message on the blocking IO channel and wait for the client's response.
+    /// Used by context functions that may block for user input (readline, stdin).
+    pub fn send_and_receive_blocking(&self, message: CoordinatorMessage) -> Result<ClientMessage> {
+        let (response_tx, response_rx) = mpsc::channel();
+        self.blocking_tx
+            .send(ContextRequest {
+                message,
+                response_tx: Some(response_tx),
+            })
+            .map_err(|e| format!("Could not send to blocking bridge: {e}"))?;
+        response_rx
+            .recv()
+            .map_err(|e| format!("Could not receive from blocking bridge: {e}").into())
     }
 
     /// Send a message without waiting for a response (fire-and-forget).
@@ -137,4 +159,123 @@ pub fn get_manifest(context_io: ContextIO) -> Result<LibraryManifest> {
     );
 
     Ok(manifest)
+}
+
+#[cfg(test)]
+#[allow(clippy::unwrap_used, clippy::expect_used)]
+mod test {
+    use super::{ContextIO, ContextRequest};
+    use crate::cli::coordinator_message::{ClientMessage, CoordinatorMessage};
+
+    /// `send_and_receive` should deliver the request through the non-blocking channel.
+    #[test]
+    fn send_and_receive_uses_nonblocking_channel() {
+        let (tx, rx) = std::sync::mpsc::channel::<ContextRequest>();
+        let (blocking_tx, blocking_rx) = std::sync::mpsc::channel::<ContextRequest>();
+        let context_io = ContextIO::new(tx, blocking_tx);
+
+        // Spawn because send_and_receive blocks waiting for the response
+        let handle =
+            std::thread::spawn(move || context_io.send_and_receive(CoordinatorMessage::GetArgs));
+
+        // The request must arrive on the non-blocking receiver
+        let req = rx.recv().expect("Expected request on non-blocking channel");
+        assert!(
+            matches!(req.message, CoordinatorMessage::GetArgs),
+            "Expected GetArgs on non-blocking channel"
+        );
+        // Nothing should arrive on the blocking receiver
+        assert!(
+            blocking_rx.try_recv().is_err(),
+            "Blocking channel should be empty"
+        );
+        // Respond so the thread can finish
+        req.response_tx.unwrap().send(ClientMessage::Ack).unwrap();
+        let result = handle.join().unwrap();
+        assert!(result.is_ok());
+    }
+
+    /// `send_and_receive_blocking` should deliver the request through the blocking channel.
+    #[test]
+    fn send_and_receive_blocking_uses_blocking_channel() {
+        let (tx, rx) = std::sync::mpsc::channel::<ContextRequest>();
+        let (blocking_tx, blocking_rx) = std::sync::mpsc::channel::<ContextRequest>();
+        let context_io = ContextIO::new(tx, blocking_tx);
+
+        let handle = std::thread::spawn(move || {
+            context_io.send_and_receive_blocking(CoordinatorMessage::GetLine("prompt".into()))
+        });
+
+        // The request must arrive on the blocking receiver
+        let req = blocking_rx
+            .recv()
+            .expect("Expected request on blocking channel");
+        assert!(
+            matches!(req.message, CoordinatorMessage::GetLine(_)),
+            "Expected GetLine on blocking channel"
+        );
+        // Nothing should arrive on the non-blocking receiver
+        assert!(
+            rx.try_recv().is_err(),
+            "Non-blocking channel should be empty"
+        );
+        req.response_tx
+            .unwrap()
+            .send(ClientMessage::Line("hello".into()))
+            .unwrap();
+        let result = handle
+            .join()
+            .unwrap()
+            .expect("send_and_receive_blocking failed");
+        assert!(matches!(result, ClientMessage::Line(_)));
+    }
+
+    /// When the non-blocking channel is disconnected, `send_and_receive` returns an error.
+    #[test]
+    fn send_and_receive_error_on_disconnected_channel() {
+        let (tx, rx) = std::sync::mpsc::channel::<ContextRequest>();
+        let (blocking_tx, _blocking_rx) = std::sync::mpsc::channel::<ContextRequest>();
+        let context_io = ContextIO::new(tx, blocking_tx);
+        drop(rx); // disconnect the receiver
+        let result = context_io.send_and_receive(CoordinatorMessage::GetArgs);
+        assert!(result.is_err());
+    }
+
+    /// When the blocking channel is disconnected, `send_and_receive_blocking` returns an error.
+    #[test]
+    fn send_and_receive_blocking_error_on_disconnected_channel() {
+        let (tx, _rx) = std::sync::mpsc::channel::<ContextRequest>();
+        let (blocking_tx, blocking_rx) = std::sync::mpsc::channel::<ContextRequest>();
+        let context_io = ContextIO::new(tx, blocking_tx);
+        drop(blocking_rx); // disconnect the receiver
+        let result =
+            context_io.send_and_receive_blocking(CoordinatorMessage::GetLine(String::new()));
+        assert!(result.is_err());
+    }
+
+    /// `send_no_reply` delivers through the non-blocking channel without expecting a response.
+    #[test]
+    fn send_no_reply_uses_nonblocking_channel() {
+        let (tx, rx) = std::sync::mpsc::channel::<ContextRequest>();
+        let (blocking_tx, blocking_rx) = std::sync::mpsc::channel::<ContextRequest>();
+        let context_io = ContextIO::new(tx, blocking_tx);
+
+        context_io
+            .send_no_reply(CoordinatorMessage::Stdout("hello".into()))
+            .expect("send_no_reply should succeed");
+
+        let req = rx.recv().expect("Expected request on non-blocking channel");
+        assert!(
+            matches!(req.message, CoordinatorMessage::Stdout(_)),
+            "Expected Stdout on non-blocking channel"
+        );
+        assert!(
+            req.response_tx.is_none(),
+            "send_no_reply should not set response_tx"
+        );
+        assert!(
+            blocking_rx.try_recv().is_err(),
+            "Blocking channel should be empty"
+        );
+    }
 }

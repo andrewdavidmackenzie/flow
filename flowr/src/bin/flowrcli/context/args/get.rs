@@ -60,9 +60,10 @@ mod test {
         std::sync::mpsc::Receiver<crate::context::ContextRequest>,
     ) {
         let (tx, rx) = std::sync::mpsc::channel();
+        let (blocking_tx, _blocking_rx) = std::sync::mpsc::channel();
         (
             Get {
-                context_io: ContextIO::new(tx),
+                context_io: ContextIO::new(tx, blocking_tx),
             },
             rx,
         )
@@ -71,8 +72,9 @@ mod test {
     #[test]
     fn gets_args_no_client() {
         let (tx, rx) = std::sync::mpsc::channel();
+        let (blocking_tx, _blocking_rx) = std::sync::mpsc::channel();
         let getter = Get {
-            context_io: ContextIO::new(tx),
+            context_io: ContextIO::new(tx, blocking_tx),
         };
         drop(rx);
         let (value, run_again) = getter.run(&[]).expect("_get() failed");

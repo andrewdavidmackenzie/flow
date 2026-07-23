@@ -51,12 +51,31 @@ impl CliRuntimeClient {
     ///
     /// Stdin is read on a separate background thread so the event loop can
     /// continue processing stdout and other messages while waiting for user input.
-    pub async fn event_loop(mut self, connection: ClientConnection) -> Result<()> {
+    pub async fn event_loop(
+        mut self,
+        connection: ClientConnection,
+        blocking_io_connection: ClientConnection,
+    ) -> Result<()> {
         let (event_tx, mut event_rx) = mpsc::channel::<CoordinatorMessage>(32);
         let (response_tx, mut response_rx) = mpsc::channel::<ClientMessage>(32);
 
         let bridge =
             tokio::task::spawn_blocking(move || zmq_bridge(connection, event_tx, &mut response_rx));
+
+        // Blocking IO bridge: separate ZMQ bridge for GetLine/GetStdin
+        let (blocking_event_tx, mut blocking_event_rx) = mpsc::channel::<CoordinatorMessage>(1);
+        let (blocking_response_tx, mut blocking_response_rx) = mpsc::channel::<ClientMessage>(1);
+
+        // Set a receive timeout so the blocking IO bridge can detect when
+        // the coordinator shuts down and exit cleanly
+        let _ = blocking_io_connection.set_receive_timeout(2000);
+        let blocking_bridge = tokio::task::spawn_blocking(move || {
+            blocking_io_zmq_bridge(
+                blocking_io_connection,
+                blocking_event_tx,
+                &mut blocking_response_rx,
+            );
+        });
 
         let (stdin_req_tx, mut stdin_req_rx) = mpsc::channel::<StdinRequest>(1);
         let (stdin_resp_tx, mut stdin_resp_rx) = mpsc::channel::<ClientMessage>(1);
@@ -69,20 +88,6 @@ impl CliRuntimeClient {
             tokio::select! {
                 event = event_rx.recv() => {
                     match event {
-                        Some(CoordinatorMessage::GetLine(prompt)) => {
-                            if stdin_req_tx.send(StdinRequest::ReadLine(prompt)).await.is_err() {
-                                let _ = response_tx.send(
-                                    ClientMessage::Error("Stdin reader closed".into())
-                                ).await;
-                            }
-                        }
-                        Some(CoordinatorMessage::GetStdin) => {
-                            if stdin_req_tx.send(StdinRequest::ReadAll).await.is_err() {
-                                let _ = response_tx.send(
-                                    ClientMessage::Error("Stdin reader closed".into())
-                                ).await;
-                            }
-                        }
                         Some(event) => {
                             let response = self.process_coordinator_message(event);
                             if let ClientMessage::ClientExiting(ref coordinator_result) = response {
@@ -101,11 +106,36 @@ impl CliRuntimeClient {
                         None => break Err("ZMQ bridge closed unexpectedly".into()),
                     }
                 }
+                blocking_event = blocking_event_rx.recv() => {
+                    match blocking_event {
+                        Some(CoordinatorMessage::GetLine(prompt)) => {
+                            if stdin_req_tx.send(StdinRequest::ReadLine(prompt)).await.is_err() {
+                                let _ = blocking_response_tx.send(
+                                    ClientMessage::Error("Stdin reader closed".into())
+                                ).await;
+                            }
+                        }
+                        Some(CoordinatorMessage::GetStdin) => {
+                            if stdin_req_tx.send(StdinRequest::ReadAll).await.is_err() {
+                                let _ = blocking_response_tx.send(
+                                    ClientMessage::Error("Stdin reader closed".into())
+                                ).await;
+                            }
+                        }
+                        Some(other) => {
+                            debug!("Unexpected message on blocking IO bridge: {other}");
+                            let _ = blocking_response_tx.send(ClientMessage::Ack).await;
+                        }
+                        None => {
+                            debug!("Blocking IO bridge closed");
+                        }
+                    }
+                }
                 stdin_response = stdin_resp_rx.recv() => {
                     if let Some(response) = stdin_response {
-                        if let Err(e) = response_tx.send(response).await {
-                            error!("Failed to send stdin response to bridge: {e}");
-                            break Err("Bridge channel closed".into());
+                        if let Err(e) = blocking_response_tx.send(response).await {
+                            error!("Failed to send stdin response to blocking bridge: {e}");
+                            break Err("Blocking bridge channel closed".into());
                         }
                     }
                 }
@@ -113,8 +143,10 @@ impl CliRuntimeClient {
         };
 
         drop(response_tx);
+        drop(blocking_response_tx);
         drop(stdin_req_tx);
         let _ = bridge.await;
+        let _ = blocking_bridge.await;
         let _ = stdin_thread.await;
 
         result
@@ -308,6 +340,65 @@ fn stdin_reader(req_rx: &mut mpsc::Receiver<StdinRequest>, resp_tx: &mpsc::Sende
         };
         if resp_tx.blocking_send(response).is_err() {
             break;
+        }
+    }
+}
+
+/// Client-side ZMQ bridge for blocking IO (readline/stdin) on a separate socket.
+///
+/// Protocol (2 REQ/REP round-trips per blocking IO operation):
+/// 1. Send `Ack` to coordinator (initiate polling)
+/// 2. Receive `GetLine`/`GetStdin` from coordinator
+/// 3. Forward to event loop, wait for stdin result
+/// 4. Send `Line`/`Stdin` result to coordinator
+/// 5. Receive `Invalid` acknowledgement from coordinator
+/// 6. Loop
+#[allow(clippy::needless_pass_by_value)]
+fn blocking_io_zmq_bridge(
+    connection: ClientConnection,
+    event_tx: mpsc::Sender<CoordinatorMessage>,
+    response_rx: &mut mpsc::Receiver<ClientMessage>,
+) {
+    loop {
+        // Send Ack to poll the coordinator for a blocking IO request
+        if let Err(e) = connection.send(ClientMessage::Ack) {
+            debug!("Blocking IO bridge: send failed (shutdown expected): {e}");
+            break;
+        }
+
+        // Receive the blocking IO request (GetLine/GetStdin)
+        match connection.receive::<CoordinatorMessage>() {
+            Ok(event) => {
+                // Forward to event loop
+                if event_tx.blocking_send(event).is_err() {
+                    break;
+                }
+
+                // Wait for the response from the event loop (stdin reader)
+                match response_rx.blocking_recv() {
+                    Some(response) => {
+                        // Send the result back to the coordinator
+                        if let Err(e) = connection.send(response) {
+                            debug!("Blocking IO bridge: send failed: {e}");
+                            break;
+                        }
+
+                        // Receive the coordinator's acknowledgement
+                        match connection.receive::<CoordinatorMessage>() {
+                            Ok(_) => {} // Expected: Invalid or similar ack
+                            Err(e) => {
+                                debug!("Blocking IO bridge: recv ack failed: {e}");
+                                break;
+                            }
+                        }
+                    }
+                    None => break,
+                }
+            }
+            Err(_) => {
+                // Expected during shutdown — receive timeout or coordinator gone
+                break;
+            }
         }
     }
 }

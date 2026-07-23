@@ -19,7 +19,6 @@ mod test {
     use std::sync::mpsc;
     use std::time::Duration;
 
-    #[ignore = "Blocked by #2918 — stdout blocked while readline is pending"]
     #[test]
     fn test_concurrent_stdout_while_readline_pending() {
         let example_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
@@ -57,17 +56,19 @@ mod test {
         // because printing args is non-blocking and has no dependency on readline
         let stdout_result = rx.recv_timeout(Duration::from_secs(5));
 
-        assert!(
-            stdout_result.is_ok(),
-            "Stdout should have received output while readline is pending, \
-             but it was blocked. This confirms the concurrent IO bug (#2918)."
-        );
-
         // Send stdin to unblock readline and let the flow complete
         if let Some(mut stdin) = child.stdin.take() {
             let _ = writeln!(stdin, "test input");
         }
 
+        // Kill child — we only care whether stdout appeared in time
+        let _ = child.kill();
         let _ = child.wait();
+
+        assert!(
+            stdout_result.is_ok(),
+            "Stdout should have received output while readline is pending, \
+             but it was blocked. This confirms the concurrent IO bug (#2918)."
+        );
     }
 }

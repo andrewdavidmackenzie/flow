@@ -84,6 +84,48 @@ impl Executor {
         results_service: &str,
         control_service: &str,
     ) {
+        self.start_with_options(
+            provider,
+            number_of_executors,
+            job_service,
+            results_service,
+            control_service,
+            false,
+        );
+    }
+
+    /// Like [`start`](Self::start) but with `spawn_jobs = true`, each job is
+    /// executed on a spawned thread so one blocking job doesn't prevent the
+    /// executor thread from picking up the next job. This is used by the context
+    /// executor where blocking IO (readline/stdin) must not prevent non-blocking
+    /// IO (stdout/stderr) from executing concurrently.
+    pub fn start_spawning(
+        &mut self,
+        provider: &Arc<dyn Provider>,
+        number_of_executors: usize,
+        job_service: &str,
+        results_service: &str,
+        control_service: &str,
+    ) {
+        self.start_with_options(
+            provider,
+            number_of_executors,
+            job_service,
+            results_service,
+            control_service,
+            true,
+        );
+    }
+
+    fn start_with_options(
+        &mut self,
+        provider: &Arc<dyn Provider>,
+        number_of_executors: usize,
+        job_service: &str,
+        results_service: &str,
+        control_service: &str,
+        spawn_jobs: bool,
+    ) {
         let loaded_implementations =
             Arc::new(RwLock::new(HashMap::<Url, Arc<dyn Implementation>>::new()));
 
@@ -107,6 +149,7 @@ impl Executor {
                     job_source,
                     results_sink,
                     control_address,
+                    spawn_jobs,
                 ) {
                     error!("Execution loop error: {e}");
                 }
@@ -122,7 +165,7 @@ impl Executor {
     }
 }
 
-#[allow(clippy::too_many_arguments)]
+#[allow(clippy::too_many_arguments, clippy::too_many_lines)]
 #[allow(clippy::needless_pass_by_value)]
 fn execution_loop(
     provider: &Arc<dyn Provider>,
@@ -133,6 +176,7 @@ fn execution_loop(
     job_service: String,
     results_service: String,
     control_address: String,
+    spawn_jobs: bool,
 ) -> Result<()> {
     let job_source = context
         .socket(zmq::PULL)
@@ -162,14 +206,37 @@ fn execution_loop(
 
     set_panic_hook();
 
+    // When spawning jobs, use a channel to relay results from spawned threads
+    // back to this thread (which owns the ZMQ results socket).
+    let spawn_result_tx = if spawn_jobs {
+        let (tx, rx) = std::sync::mpsc::channel::<String>();
+        // Leak the receiver into a static — it will be polled in the loop below.
+        // This is safe because the execution_loop runs for the lifetime of the thread.
+        Some((tx, rx))
+    } else {
+        None
+    };
+
     let mut items: Vec<zmq::PollItem> = vec![
         job_source.as_poll_item(zmq::POLLIN),
         control_socket.as_poll_item(zmq::POLLIN),
     ];
 
     while process_jobs {
+        // When spawning jobs, drain results from spawned threads first
+        if let Some((_, ref rx)) = spawn_result_tx {
+            while let Ok(serialized_result) = rx.try_recv() {
+                results_sink
+                    .send(serialized_result.as_bytes(), 0)
+                    .map_err(|_| "Could not send result of Job from spawned thread")?;
+            }
+        }
+
         trace!("{name} waiting for a job to execute or a DONE signal");
-        match zmq::poll(&mut items, -1).map_err(|_| "Error while polling for Jobs to execute") {
+        let poll_timeout = if spawn_jobs { 100 } else { -1 };
+        match zmq::poll(&mut items, poll_timeout)
+            .map_err(|_| "Error while polling for Jobs to execute")
+        {
             Ok(_) => {
                 if items
                     .first()
@@ -184,16 +251,43 @@ fn execution_loop(
                         .map_err(|_| "Could not deserialize Message to Job")?;
 
                     trace!("Job #{}: Received by {}", payload.job_id, name);
-                    match execute_job(
-                        provider,
-                        &payload,
-                        &results_sink,
-                        name,
-                        &loaded_implementations.clone(),
-                        &loaded_lib_manifests.clone(),
-                    ) {
-                        Ok(keep_processing) => process_jobs = keep_processing,
-                        Err(e) => error!("{e}"),
+
+                    let is_blocking_io = spawn_jobs
+                        && (payload.implementation_url.as_str() == "context://stdio/readline"
+                            || payload.implementation_url.as_str() == "context://stdio/stdin");
+                    if is_blocking_io {
+                        // Spawn blocking IO jobs on a separate thread so this
+                        // executor can pick up the next job immediately.
+                        // Only readline and stdin are spawned — all other jobs
+                        // run synchronously to preserve output ordering.
+                        let sp = provider.clone();
+                        let sn = name.to_string();
+                        let si = loaded_implementations.clone();
+                        let sm = loaded_lib_manifests.clone();
+                        let stx = spawn_result_tx
+                            .as_ref()
+                            .map(|(tx, _)| tx.clone())
+                            .ok_or("spawn_result_tx missing")?;
+                        thread::spawn(move || {
+                            match execute_job_to_string(&sp, &payload, &sn, &si, &sm) {
+                                Ok(serialized) => {
+                                    let _ = stx.send(serialized);
+                                }
+                                Err(e) => error!("{e}"),
+                            }
+                        });
+                    } else {
+                        match execute_job(
+                            provider,
+                            &payload,
+                            &results_sink,
+                            name,
+                            &loaded_implementations.clone(),
+                            &loaded_lib_manifests.clone(),
+                        ) {
+                            Ok(keep_processing) => process_jobs = keep_processing,
+                            Err(e) => error!("{e}"),
+                        }
                     }
                 }
 
@@ -224,6 +318,30 @@ fn execution_loop(
     Ok(())
 }
 
+/// Execute a job and return the serialized result string (for spawned execution).
+/// Like `execute_job` but does not send the result over ZMQ directly.
+fn execute_job_to_string(
+    provider: &Arc<dyn Provider>,
+    payload: &Payload,
+    name: &str,
+    loaded_implementations: &Arc<RwLock<HashMap<Url, Arc<dyn Implementation>>>>,
+    loaded_lib_manifests: &Arc<RwLock<HashMap<Url, (LibraryManifest, Url)>>>,
+) -> Result<String> {
+    let implementation = get_or_load_implementation(
+        provider,
+        payload,
+        loaded_implementations,
+        loaded_lib_manifests,
+    )?;
+
+    trace!("Job #{}: Started executing on '{name}'", payload.job_id);
+    let result = implementation.run(&payload.input_set);
+    trace!("Job #{}: Finished executing on '{name}'", payload.job_id);
+
+    serde_json::to_string(&(payload.job_id, result))
+        .map_err(|e| format!("Could not serialize job result: {e}").into())
+}
+
 // Replace the standard panic hook with one that just outputs the file and line of any panic.
 fn set_panic_hook() {
     panic::set_hook(Box::new(|panic_info| {
@@ -237,6 +355,81 @@ fn set_panic_hook() {
     }));
 }
 
+/// Get (or load) the implementation for a job, releasing the lock before returning.
+/// This is critical: `run()` may block (e.g. readline waiting for user input) and
+/// holding the lock would prevent other executor threads from running concurrently.
+fn get_or_load_implementation(
+    provider: &Arc<dyn Provider>,
+    payload: &Payload,
+    loaded_implementations: &Arc<RwLock<HashMap<Url, Arc<dyn Implementation>>>>,
+    loaded_lib_manifests: &Arc<RwLock<HashMap<Url, (LibraryManifest, Url)>>>,
+) -> Result<Arc<dyn Implementation>> {
+    // First try a read lock to avoid contention
+    let needs_load = {
+        let implementations = loaded_implementations
+            .read()
+            .map_err(|_| "Could not gain read access to loaded implementations map")?;
+        implementations.get(&payload.implementation_url).is_none()
+    };
+
+    if needs_load {
+        trace!(
+            "Implementation '{}' is not loaded",
+            payload.implementation_url
+        );
+        let mut implementations = loaded_implementations
+            .write()
+            .map_err(|_| "Could not gain write access to loaded implementations map")?;
+        // Double-check after acquiring write lock (another thread may have loaded it)
+        if implementations.get(&payload.implementation_url).is_none() {
+            let impl_arc = match payload.implementation_url.scheme() {
+                "lib" => {
+                    let mut lib_root_url = payload.implementation_url.clone();
+                    lib_root_url.set_path("");
+                    load_referenced_implementation(
+                        provider,
+                        &lib_root_url,
+                        loaded_lib_manifests,
+                        &payload.implementation_url,
+                    )?
+                }
+                "context" => {
+                    let mut lib_root_url = payload.implementation_url.clone();
+                    let _ = lib_root_url.set_host(Some(""));
+                    lib_root_url.set_path("");
+                    load_referenced_implementation(
+                        provider,
+                        &lib_root_url,
+                        loaded_lib_manifests,
+                        &payload.implementation_url,
+                    )?
+                }
+                "file" => Arc::new(wasm::load(provider, &payload.implementation_url)?),
+                _ => bail!("Unsupported scheme on implementation_url"),
+            };
+            implementations.insert(payload.implementation_url.clone(), impl_arc);
+            trace!(
+                "Implementation '{}' added to executor",
+                payload.implementation_url
+            );
+        }
+        Ok(Arc::clone(
+            implementations
+                .get(&payload.implementation_url)
+                .ok_or("Could not find implementation")?,
+        ))
+    } else {
+        let implementations = loaded_implementations
+            .read()
+            .map_err(|_| "Could not gain read access to loaded implementations map")?;
+        Ok(Arc::clone(
+            implementations
+                .get(&payload.implementation_url)
+                .ok_or("Could not find implementation")?,
+        ))
+    }
+}
+
 // Return Ok(keep_processing) flag as true or false to keep processing
 fn execute_job(
     provider: &Arc<dyn Provider>,
@@ -246,50 +439,12 @@ fn execute_job(
     loaded_implementations: &Arc<RwLock<HashMap<Url, Arc<dyn Implementation>>>>,
     loaded_lib_manifests: &Arc<RwLock<HashMap<Url, (LibraryManifest, Url)>>>,
 ) -> Result<bool> {
-    // TODO see if we can avoid write access until we know it's needed
-    let mut implementations = loaded_implementations
-        .write()
-        .map_err(|_| "Could not gain read access to loaded implementations map")?;
-    if implementations.get(&payload.implementation_url).is_none() {
-        trace!(
-            "Implementation '{}' is not loaded",
-            payload.implementation_url
-        );
-        let implementation = match payload.implementation_url.scheme() {
-            "lib" => {
-                let mut lib_root_url = payload.implementation_url.clone();
-                lib_root_url.set_path("");
-                load_referenced_implementation(
-                    provider,
-                    &lib_root_url,
-                    loaded_lib_manifests,
-                    &payload.implementation_url,
-                )?
-            }
-            "context" => {
-                let mut lib_root_url = payload.implementation_url.clone();
-                let _ = lib_root_url.set_host(Some(""));
-                lib_root_url.set_path("");
-                load_referenced_implementation(
-                    provider,
-                    &lib_root_url,
-                    loaded_lib_manifests,
-                    &payload.implementation_url,
-                )?
-            }
-            "file" => Arc::new(wasm::load(provider, &payload.implementation_url)?),
-            _ => bail!("Unsupported scheme on implementation_url"),
-        };
-        implementations.insert(payload.implementation_url.clone(), implementation);
-        trace!(
-            "Implementation '{}' added to executor",
-            payload.implementation_url
-        );
-    }
-
-    let implementation = implementations
-        .get(&payload.implementation_url)
-        .ok_or("Could not find implementation")?;
+    let implementation = get_or_load_implementation(
+        provider,
+        payload,
+        loaded_implementations,
+        loaded_lib_manifests,
+    )?;
 
     trace!("Job #{}: Started executing on '{name}'", payload.job_id);
     let result = implementation.run(&payload.input_set);
@@ -374,6 +529,8 @@ mod test {
     use std::collections::HashMap;
     use std::sync::{Arc, RwLock};
 
+    use portpicker::pick_unused_port;
+    use serial_test::serial;
     use url::Url;
 
     use flowcore::errors::Result;
@@ -974,5 +1131,306 @@ mod test {
             )
             .is_err());
         }
+    }
+
+    /// A trivial native implementation that returns its first input.
+    struct EchoImpl;
+
+    impl Implementation for EchoImpl {
+        fn run(
+            &self,
+            inputs: &[serde_json::Value],
+        ) -> flowcore::errors::Result<(Option<serde_json::Value>, bool)> {
+            Ok((inputs.first().cloned(), false))
+        }
+    }
+
+    /// Helper: pre-load a native implementation into the maps so tests can
+    /// call `get_or_load_implementation` / `execute_job_to_string` without
+    /// needing a real provider or manifest.
+    #[allow(clippy::type_complexity)]
+    fn preloaded_maps(
+        url: &Url,
+    ) -> (
+        Arc<RwLock<HashMap<Url, Arc<dyn Implementation>>>>,
+        Arc<RwLock<HashMap<Url, (LibraryManifest, Url)>>>,
+    ) {
+        let mut impls = HashMap::<Url, Arc<dyn Implementation>>::new();
+        impls.insert(url.clone(), Arc::new(EchoImpl));
+        (
+            Arc::new(RwLock::new(impls)),
+            Arc::new(RwLock::new(HashMap::new())),
+        )
+    }
+
+    #[test]
+    fn get_or_load_returns_cached_implementation() {
+        let url = Url::parse("context://test/echo").expect("bad url");
+        let (loaded_impls, loaded_manifests) = preloaded_maps(&url);
+        let provider = Arc::new(TestProvider { test_content: "" }) as Arc<dyn Provider>;
+        let payload = Payload {
+            job_id: 1,
+            input_set: vec![],
+            implementation_url: url.clone(),
+        };
+
+        // First call — should find the pre-loaded implementation
+        let impl1 = super::get_or_load_implementation(
+            &provider,
+            &payload,
+            &loaded_impls,
+            &loaded_manifests,
+        )
+        .expect("first get_or_load failed");
+
+        // Second call — should return the same Arc (no re-loading)
+        let impl2 = super::get_or_load_implementation(
+            &provider,
+            &payload,
+            &loaded_impls,
+            &loaded_manifests,
+        )
+        .expect("second get_or_load failed");
+
+        assert!(Arc::ptr_eq(&impl1, &impl2), "should return cached Arc");
+    }
+
+    #[test]
+    fn execute_job_to_string_returns_serialized_result() {
+        let url = Url::parse("context://test/echo").expect("bad url");
+        let (loaded_impls, loaded_manifests) = preloaded_maps(&url);
+        let provider = Arc::new(TestProvider { test_content: "" }) as Arc<dyn Provider>;
+        let payload = Payload {
+            job_id: 42,
+            input_set: vec![serde_json::json!("hello")],
+            implementation_url: url,
+        };
+
+        let serialized = super::execute_job_to_string(
+            &provider,
+            &payload,
+            "test",
+            &loaded_impls,
+            &loaded_manifests,
+        )
+        .expect("execute_job_to_string failed");
+
+        // The serialized string should be a JSON tuple (job_id, Result)
+        let parsed: (usize, Result<(Option<serde_json::Value>, bool)>) =
+            serde_json::from_str(&serialized).expect("could not parse result JSON");
+        assert_eq!(parsed.0, 42, "job_id should match");
+        let (value, run_again) = parsed.1.expect("inner result should be Ok");
+        assert_eq!(value, Some(serde_json::json!("hello")));
+        assert!(!run_again);
+    }
+
+    #[test]
+    fn get_or_load_fails_for_unknown_implementation() {
+        let url = Url::parse("context://nonexistent/function").expect("bad url");
+        let loaded_impls = Arc::new(RwLock::new(HashMap::<Url, Arc<dyn Implementation>>::new()));
+        let loaded_manifests = Arc::new(RwLock::new(HashMap::<Url, (LibraryManifest, Url)>::new()));
+        let provider = Arc::new(TestProvider { test_content: "" }) as Arc<dyn Provider>;
+        let payload = Payload {
+            job_id: 1,
+            input_set: vec![],
+            implementation_url: url,
+        };
+
+        let result = super::get_or_load_implementation(
+            &provider,
+            &payload,
+            &loaded_impls,
+            &loaded_manifests,
+        );
+        assert!(result.is_err(), "should fail for unknown implementation");
+    }
+
+    /// `get_or_load_implementation` loads from a pre-populated manifest when
+    /// the implementation is not yet cached, then caches it for later calls.
+    #[test]
+    fn get_or_load_loads_from_manifest_and_caches() {
+        let impl_url = Url::parse("context://test/echo").expect("bad url");
+        let lib_url = Url::parse("context://").expect("bad url");
+
+        // Build a manifest containing our EchoImpl at the impl_url
+        let mut manifest = LibraryManifest::new(lib_url.clone(), test_meta_data());
+        manifest.locators.insert(
+            impl_url.clone(),
+            flowcore::model::lib_manifest::ImplementationLocator::Native(Arc::new(EchoImpl)),
+        );
+        let resolved = Url::parse("memory://").expect("bad url");
+
+        // Pre-populate lib manifests but NOT the implementations map
+        let loaded_impls = Arc::new(RwLock::new(HashMap::<Url, Arc<dyn Implementation>>::new()));
+        let mut manifests_map = HashMap::new();
+        manifests_map.insert(lib_url, (manifest, resolved));
+        let loaded_manifests = Arc::new(RwLock::new(manifests_map));
+
+        let provider = Arc::new(TestProvider { test_content: "" }) as Arc<dyn Provider>;
+        let payload = Payload {
+            job_id: 1,
+            input_set: vec![],
+            implementation_url: impl_url.clone(),
+        };
+
+        // First call: needs_load = true, loads from manifest
+        let impl1 = super::get_or_load_implementation(
+            &provider,
+            &payload,
+            &loaded_impls,
+            &loaded_manifests,
+        )
+        .expect("first load from manifest failed");
+
+        // Verify it was cached
+        assert!(
+            loaded_impls.read().unwrap().contains_key(&impl_url),
+            "implementation should be cached after first load"
+        );
+
+        // Second call: needs_load = false, returns cached
+        let impl2 = super::get_or_load_implementation(
+            &provider,
+            &payload,
+            &loaded_impls,
+            &loaded_manifests,
+        )
+        .expect("second load (cached) failed");
+
+        assert!(Arc::ptr_eq(&impl1, &impl2), "should return same cached Arc");
+    }
+
+    /// `execute_job` succeeds with a pre-loaded native implementation and sends
+    /// the result to the results sink.
+    #[test]
+    #[serial]
+    fn execute_job_native_succeeds() {
+        let url = Url::parse("context://test/echo").expect("bad url");
+        let (loaded_impls, loaded_manifests) = preloaded_maps(&url);
+        let provider = Arc::new(TestProvider { test_content: "" }) as Arc<dyn Provider>;
+
+        let ports = (
+            pick_unused_port().expect("no port"),
+            pick_unused_port().expect("no port"),
+            pick_unused_port().expect("no port"),
+            pick_unused_port().expect("no port"),
+        );
+        let context = zmq::Context::new();
+
+        // Bind a PULL socket to receive the result
+        let results_pull = context.socket(zmq::PULL).expect("PULL socket");
+        results_pull
+            .bind(&format!("tcp://*:{}", ports.2))
+            .expect("bind PULL");
+
+        // Create the PUSH socket that execute_job will use
+        let results_sink = context.socket(zmq::PUSH).expect("PUSH socket");
+        results_sink
+            .connect(&format!("tcp://127.0.0.1:{}", ports.2))
+            .expect("connect PUSH");
+
+        let payload = Payload {
+            job_id: 7,
+            input_set: vec![serde_json::json!(42)],
+            implementation_url: url,
+        };
+
+        let keep = super::execute_job(
+            &provider,
+            &payload,
+            &results_sink,
+            "test",
+            &loaded_impls,
+            &loaded_manifests,
+        )
+        .expect("execute_job should succeed");
+
+        assert!(keep, "execute_job should return true to keep processing");
+
+        // Verify the result arrived on the PULL socket
+        let msg = results_pull.recv_msg(0).expect("should receive result");
+        let msg_str = msg.as_str().expect("result should be str");
+        let parsed: (usize, Result<(Option<serde_json::Value>, bool)>) =
+            serde_json::from_str(msg_str).expect("should parse result");
+        assert_eq!(parsed.0, 7);
+        let (value, run_again) = parsed.1.expect("inner should be Ok");
+        assert_eq!(value, Some(serde_json::json!(42)));
+        assert!(!run_again);
+    }
+
+    /// `execute_job_to_string` fails gracefully when the implementation is missing.
+    #[test]
+    fn execute_job_to_string_fails_for_missing_impl() {
+        let url = Url::parse("context://missing/impl").expect("bad url");
+        let loaded_impls = Arc::new(RwLock::new(HashMap::<Url, Arc<dyn Implementation>>::new()));
+        let loaded_manifests = Arc::new(RwLock::new(HashMap::<Url, (LibraryManifest, Url)>::new()));
+        let provider = Arc::new(TestProvider { test_content: "" }) as Arc<dyn Provider>;
+        let payload = Payload {
+            job_id: 1,
+            input_set: vec![],
+            implementation_url: url,
+        };
+
+        let result = super::execute_job_to_string(
+            &provider,
+            &payload,
+            "test",
+            &loaded_impls,
+            &loaded_manifests,
+        );
+        assert!(
+            result.is_err(),
+            "should fail when implementation is not loaded"
+        );
+    }
+
+    /// Verify `start_spawning` creates executor threads (they connect to ZMQ and
+    /// exit when DONE is sent on the control socket).
+    #[test]
+    #[serial]
+    fn start_spawning_creates_threads() {
+        let mut executor = Executor::new();
+        let provider = Arc::new(TestProvider { test_content: "" }) as Arc<dyn Provider>;
+
+        let ports = (
+            pick_unused_port().expect("no port"),
+            pick_unused_port().expect("no port"),
+            pick_unused_port().expect("no port"),
+            pick_unused_port().expect("no port"),
+        );
+
+        let context = zmq::Context::new();
+        // Bind sockets that the executor threads will connect to
+        let job_socket = context.socket(zmq::PUSH).expect("PUSH");
+        job_socket
+            .bind(&format!("tcp://*:{}", ports.0))
+            .expect("bind job");
+        let results_socket = context.socket(zmq::PULL).expect("PULL");
+        results_socket
+            .bind(&format!("tcp://*:{}", ports.2))
+            .expect("bind results");
+        let control_socket = context.socket(zmq::PUB).expect("PUB");
+        control_socket
+            .bind(&format!("tcp://*:{}", ports.3))
+            .expect("bind control");
+
+        executor.start_spawning(
+            &provider,
+            1,
+            &format!("tcp://127.0.0.1:{}", ports.0),
+            &format!("tcp://127.0.0.1:{}", ports.2),
+            &format!("tcp://127.0.0.1:{}", ports.3),
+        );
+
+        assert_eq!(executor.executors.len(), 1, "should have 1 executor thread");
+
+        // Give the thread time to connect, then send DONE
+        std::thread::sleep(std::time::Duration::from_millis(200));
+        control_socket
+            .send("DONE".as_bytes(), 0)
+            .expect("send DONE");
+
+        // Wait for the thread to exit
+        executor.wait();
     }
 }

@@ -14,7 +14,7 @@ impl Implementation for Stdin {
     fn run(&self, _inputs: &[Value]) -> Result<(Option<Value>, RunAgain)> {
         let stdin_response = self
             .context_io
-            .send_and_receive(CoordinatorMessage::GetStdin);
+            .send_and_receive_blocking(CoordinatorMessage::GetStdin);
 
         match stdin_response {
             Ok(ClientMessage::Stdin(contents)) => {
@@ -52,12 +52,13 @@ mod test {
         Stdin,
         std::sync::mpsc::Receiver<crate::context::ContextRequest>,
     ) {
-        let (tx, rx) = std::sync::mpsc::channel();
+        let (nonblocking_tx, _nonblocking_rx) = std::sync::mpsc::channel();
+        let (blocking_tx, blocking_rx) = std::sync::mpsc::channel();
         (
             Stdin {
-                context_io: ContextIO::new(tx),
+                context_io: ContextIO::new(nonblocking_tx, blocking_tx),
             },
-            rx,
+            blocking_rx,
         )
     }
 
