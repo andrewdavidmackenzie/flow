@@ -488,7 +488,7 @@ fn coordinator_bridge(
                 debug!("[BRIDGE] got ClientExiting as response, sending ack on ZMQ");
                 // Client exited — complete the REP send/recv cycle so the
                 // socket is ready for the next receive (Phase 1).
-                let _ = connection.send(CoordinatorMessage::Invalid);
+                let _ = connection.send(CoordinatorMessage::CoordinatorExiting(Ok(())));
                 if let Some(response_tx) = request.response_tx {
                     let _ = response_tx.send(ClientMessage::ClientExiting(Ok(())));
                 }
