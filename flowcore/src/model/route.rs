@@ -253,6 +253,11 @@ impl Route {
             return Some(Route::default());
         }
 
+        // rootedness must match for a valid prefix relationship
+        if self.rooted != other.rooted {
+            return None;
+        }
+
         // self must start with all of other's segments
         if self.segments.len() <= other.segments.len() {
             return None;
@@ -789,6 +794,14 @@ mod test {
     #[test]
     fn is_rooted_false() {
         assert!(!Route::from("relative").is_rooted());
+    }
+
+    #[test]
+    fn subroute_mixed_rootedness_not_matched() {
+        let rooted = Route::from("/root/function");
+        let unrooted = Route::from("root");
+        assert!(rooted.sub_route_of(&unrooted).is_none());
+        assert!(unrooted.sub_route_of(&rooted).is_none());
     }
 
     #[test]
