@@ -45,7 +45,6 @@ use flowcore::model::flow_manifest::FlowManifest;
 use flowcore::model::submission::Submission;
 use flowcore::provider::Provider;
 use flowcore::url_helper::url_from_string;
-use flowrlib::connections::CoordinatorConnection;
 #[cfg(feature = "debugger")]
 use flowrlib::debug_client::DebugClient;
 use flowrlib::info as flowrlib_info;
@@ -645,7 +644,11 @@ pub enum Message {
 #[allow(clippy::ignored_unit_patterns)]
 enum CoordinatorState {
     Disconnected(String),
-    Connected(tokio::sync::mpsc::Sender<ClientMessage>),
+    /// Connected with main and blocking IO response senders
+    Connected(
+        tokio::sync::mpsc::Sender<ClientMessage>,
+        tokio::sync::mpsc::Sender<ClientMessage>,
+    ),
 }
 
 /// Detect if the system prefers dark mode.
@@ -897,8 +900,8 @@ impl FlowrGui {
     #[allow(clippy::too_many_lines)]
     fn update(&mut self, message: Message) -> Task<Message> {
         match message {
-            Message::CoordinatorSent(CoordinatorMessage::Connected(sender)) => {
-                self.coordinator_state = CoordinatorState::Connected(sender);
+            Message::CoordinatorSent(CoordinatorMessage::Connected(sender, blocking_sender)) => {
+                self.coordinator_state = CoordinatorState::Connected(sender, blocking_sender);
                 if self.ui_settings.auto_start {
                     #[cfg(feature = "debugger")]
                     if self.submission_settings.debug_this_flow {
@@ -915,7 +918,7 @@ impl FlowrGui {
                 {
                     return Task::done(Message::DiscoverCoordinators);
                 }
-                if let CoordinatorState::Connected(sender) = &self.coordinator_state {
+                if let CoordinatorState::Connected(sender, _) = &self.coordinator_state {
                     return Task::perform(
                         Self::submit(sender.clone(), self.submission_settings.clone()),
                         |result| match result {
@@ -984,7 +987,7 @@ impl FlowrGui {
                 {
                     return Task::done(Message::DiscoverCoordinators);
                 }
-                if let CoordinatorState::Connected(sender) = &self.coordinator_state {
+                if let CoordinatorState::Connected(sender, _) = &self.coordinator_state {
                     let mut settings = self.submission_settings.clone();
                     settings.debug_this_flow = true;
                     self.submission_settings.debug_this_flow = true;
@@ -1224,7 +1227,7 @@ impl FlowrGui {
                             "LineOfStdin: responding to pending GetLine ({} chars)",
                             line.len()
                         );
-                        self.send(ClientMessage::Line(line));
+                        self.send_blocking(ClientMessage::Line(line));
                     }
                     self.pending_getline = false;
                     self.tab_set.stdin_tab.waiting_for_input = false;
@@ -1234,7 +1237,7 @@ impl FlowrGui {
                 debug!("SendEof: user clicked EOF button");
                 if self.pending_getline {
                     debug!("SendEof: responding to pending GetLine with EOF");
-                    self.send(ClientMessage::GetLineEof);
+                    self.send_blocking(ClientMessage::GetLineEof);
                     self.pending_getline = false;
                     self.tab_set.stdin_tab.waiting_for_input = false;
                 } else {
@@ -1527,7 +1530,7 @@ impl FlowrGui {
         .padding(theme::BUTTON_PAD);
 
         let is_client_mode = matches!(self.coordinator_settings, CoordinatorSettings::ClientOnly);
-        let can_run = (matches!(self.coordinator_state, CoordinatorState::Connected(_))
+        let can_run = (matches!(self.coordinator_state, CoordinatorState::Connected(_, _))
             || is_client_mode)
             && !self.running
             && !self.submitted;
@@ -2764,7 +2767,7 @@ impl FlowrGui {
             CoordinatorState::Disconnected(reason) => {
                 ("\u{1F534}", format!("Disconnected({reason})"))
             }
-            CoordinatorState::Connected(_) => match (self.submitted, self.running) {
+            CoordinatorState::Connected(_, _) => match (self.submitted, self.running) {
                 (false, false) => ("\u{1F7E2}", "Ready".to_string()),
                 (_, true) => {
                     #[cfg(feature = "debugger")]
@@ -3142,8 +3145,16 @@ impl FlowrGui {
     }
 
     fn send(&mut self, msg: ClientMessage) {
-        if let CoordinatorState::Connected(ref sender) = self.coordinator_state {
+        if let CoordinatorState::Connected(ref sender, _) = self.coordinator_state {
             let _ = sender.try_send(msg);
+        }
+    }
+
+    /// Send a response for a blocking IO request (GetLine/GetStdin) via the
+    /// dedicated blocking IO channel.
+    fn send_blocking(&mut self, msg: ClientMessage) {
+        if let CoordinatorState::Connected(_, ref blocking_sender) = self.coordinator_state {
+            let _ = blocking_sender.try_send(msg);
         }
     }
 
@@ -3434,7 +3445,7 @@ impl FlowrGui {
     #[allow(clippy::too_many_lines)]
     fn process_coordinator_message(&mut self, message: CoordinatorMessage) -> Task<Message> {
         match message {
-            CoordinatorMessage::Connected(_) => {
+            CoordinatorMessage::Connected(_, _) => {
                 self.error("Coordinator is already connected");
             }
             CoordinatorMessage::FlowStart => {
@@ -3519,7 +3530,7 @@ impl FlowrGui {
                     debug!("GetStdin: buffer empty, sending GetStdinEof");
                     ClientMessage::GetStdinEof
                 };
-                self.send(msg);
+                self.send_blocking(msg);
             }
             CoordinatorMessage::GetLine(_prompt) => {
                 debug!(
@@ -3542,10 +3553,10 @@ impl FlowrGui {
                 if let Some(line) = self.tab_set.stdin_tab.get_line() {
                     trace!("GetLine: returning buffered line: '{line}'");
                     debug!("GetLine: returning buffered line ({} chars)", line.len());
-                    self.send(ClientMessage::Line(line));
+                    self.send_blocking(ClientMessage::Line(line));
                 } else if self.ui_settings.auto_exit || self.tab_set.stdin_tab.eof_signaled {
                     debug!("GetLine: EOF (auto mode or user signaled)");
-                    self.send(ClientMessage::GetLineEof);
+                    self.send_blocking(ClientMessage::GetLineEof);
                     self.tab_set.stdin_tab.eof_signaled = false;
                 } else {
                     debug!("GetLine: buffer empty, waiting for input");

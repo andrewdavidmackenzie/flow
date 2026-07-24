@@ -12,8 +12,11 @@ use crate::gui::client_message::ClientMessage;
 pub enum CoordinatorMessage {
     #[serde(skip_deserializing, skip_serializing)]
     /// ** These messages are used to communicate to the app the connection status to the Coordinator
-    /// A connection has been made
-    Connected(tokio::sync::mpsc::Sender<ClientMessage>),
+    /// A connection has been made. Contains main and blocking IO response senders.
+    Connected(
+        tokio::sync::mpsc::Sender<ClientMessage>,
+        tokio::sync::mpsc::Sender<ClientMessage>,
+    ),
     /// Connection with the Coordinator has been lost
     Disconnected(String),
     /// ** These messages are used to implement the `SubmissionProtocol` between the coordinator
@@ -60,7 +63,7 @@ impl fmt::Display for CoordinatorMessage {
             f,
             "{}",
             match self {
-                CoordinatorMessage::Connected(_) => "Connected",
+                CoordinatorMessage::Connected(..) => "Connected",
                 CoordinatorMessage::Disconnected(_) => "Disconnected",
                 CoordinatorMessage::FlowEnd(_) => "FlowEnd",
                 CoordinatorMessage::FlowStart => "FlowStart",
