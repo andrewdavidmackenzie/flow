@@ -86,6 +86,20 @@ pub fn derive_short_name(source: &str) -> String {
     source.rsplit('/').next().unwrap_or(source).to_string()
 }
 
+/// Extract the base port name, stripping any trailing array index.
+///
+/// Uses [`Route::is_array_selector`][crate::model::route::Route::is_array_selector]
+/// to detect numeric array selectors properly, so `"string/1"` becomes `"string"`
+/// but `"array/number"` is left unchanged.
+#[must_use]
+pub fn base_port_name(port: &str) -> &str {
+    if crate::model::route::Route::from(port).is_array_selector() {
+        port.rsplit_once('/').map_or(port, |(base, _)| base)
+    } else {
+        port
+    }
+}
+
 /// Split a route like `"sequence/number"` into `("sequence", "number")`.
 #[must_use]
 pub fn split_route(route: &str) -> (String, String) {
@@ -522,6 +536,31 @@ mod test {
         let h_few = compute_node_height(2, 1);
         let h_many = compute_node_height(10, 1);
         assert!(h_many > h_few);
+    }
+
+    #[test]
+    fn base_port_name_strips_array_index() {
+        assert_eq!(base_port_name("string/1"), "string");
+    }
+
+    #[test]
+    fn base_port_name_preserves_non_array_subroute() {
+        assert_eq!(base_port_name("array/number"), "array/number");
+    }
+
+    #[test]
+    fn base_port_name_simple_name_unchanged() {
+        assert_eq!(base_port_name("value"), "value");
+    }
+
+    #[test]
+    fn base_port_name_empty_string() {
+        assert_eq!(base_port_name(""), "");
+    }
+
+    #[test]
+    fn base_port_name_deep_array_index() {
+        assert_eq!(base_port_name("json/2"), "json");
     }
 
     #[test]
