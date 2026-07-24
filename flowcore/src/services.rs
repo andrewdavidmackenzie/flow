@@ -14,6 +14,10 @@ pub const CONTROL_SERVICE_NAME: &str = "control";
 /// Use this to discover the coordinator service by name
 pub const COORDINATOR_SERVICE_NAME: &str = "runtime";
 
+/// Use this to discover the blocking IO service by name (separate socket for
+/// blocking context functions like readline and stdin)
+pub const BLOCKING_IO_SERVICE_NAME: &str = "blocking-io";
+
 /// Use this to discover the debug service by name
 #[cfg(feature = "debugger")]
 pub const DEBUG_SERVICE_NAME: &str = "debug";

@@ -1,0 +1,27 @@
+flow = "concurrent-io"
+
+# Two parallel paths from args:
+# Path 1: stdout prints the first arg (fast, non-blocking)
+# Path 2: readline waits for user input, then stderr prints it
+#
+# If concurrent IO works, path 1's stdout should complete
+# while path 2's readline is still blocking.
+
+[[process]]
+source = "context://args/get"
+
+[[process]]
+source = "context://stdio/stdout"
+[[connection]]
+from = "get/string/0"
+to = "stdout"
+
+[[process]]
+source = "context://stdio/readline"
+input.prompt = {once = ""}
+
+[[process]]
+source = "context://stdio/stderr"
+[[connection]]
+from = "readline/string"
+to = "stderr"

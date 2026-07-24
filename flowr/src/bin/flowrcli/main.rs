@@ -51,8 +51,8 @@ use flowrlib::coordinator::Coordinator;
 #[cfg(feature = "debugger")]
 use flowrlib::debug_zmq_handler::DebugZmqHandler;
 use flowrlib::discovery::{
-    create_service_daemon, discover_service, discover_service_on, register_service,
-    shutdown_service_daemon, unregister_service, ServiceDaemon,
+    create_service_daemon, discover_service, register_service, shutdown_service_daemon,
+    unregister_service, ServiceDaemon,
 };
 use flowrlib::dispatcher::Dispatcher;
 use flowrlib::executor::Executor;
@@ -60,7 +60,8 @@ use flowrlib::info as flowrlib_info;
 #[cfg(feature = "debugger")]
 use flowrlib::services::DEBUG_SERVICE_NAME;
 use flowrlib::services::{
-    CONTROL_SERVICE_NAME, COORDINATOR_SERVICE_NAME, JOB_SERVICE_NAME, RESULTS_JOB_SERVICE_NAME,
+    BLOCKING_IO_SERVICE_NAME, CONTROL_SERVICE_NAME, COORDINATOR_SERVICE_NAME, JOB_SERVICE_NAME,
+    RESULTS_JOB_SERVICE_NAME,
 };
 
 /// Include the module that implements the context functions
@@ -189,6 +190,15 @@ fn coordinator_only(
         coordinator_port,
     )?];
 
+    let blocking_io_port = pick_unused_port().chain_err(|| "No ports free")?;
+    let blocking_io_connection =
+        CoordinatorConnection::new(BLOCKING_IO_SERVICE_NAME, blocking_io_port)?;
+    fullnames.push(register_service(
+        &mdns,
+        BLOCKING_IO_SERVICE_NAME,
+        blocking_io_port,
+    )?);
+
     #[cfg(feature = "debugger")]
     let debug_port = pick_unused_port().chain_err(|| "No ports free")?;
     #[cfg(feature = "debugger")]
@@ -209,6 +219,7 @@ fn coordinator_only(
         lib_search_path,
         native_flowstdlib,
         coordinator_connection,
+        blocking_io_connection,
         #[cfg(feature = "debugger")]
         debug_server_connection,
         true,
@@ -246,6 +257,15 @@ fn client_and_coordinator(
         runtime_port,
     )?];
 
+    let blocking_io_port = pick_unused_port().chain_err(|| "No ports free")?;
+    let blocking_io_connection =
+        CoordinatorConnection::new(BLOCKING_IO_SERVICE_NAME, blocking_io_port)?;
+    fullnames.push(register_service(
+        &mdns,
+        BLOCKING_IO_SERVICE_NAME,
+        blocking_io_port,
+    )?);
+
     #[cfg(feature = "debugger")]
     let debug_port = pick_unused_port().chain_err(|| "No ports free")?;
     #[cfg(feature = "debugger")]
@@ -269,6 +289,7 @@ fn client_and_coordinator(
             coordinator_lib_search_path,
             native_flowstdlib,
             coordinator_connection,
+            blocking_io_connection,
             #[cfg(feature = "debugger")]
             debug_connection,
             false,
@@ -277,13 +298,17 @@ fn client_and_coordinator(
         }
     });
 
-    let coordinator_address = discover_service_on(&mdns, COORDINATOR_SERVICE_NAME)?;
-    let runtime_client_connection = ClientConnection::new(&coordinator_address)?;
+    // Connect directly using the known ports — avoids mDNS race conditions
+    // when both coordinator and client are in the same process
+    let runtime_client_connection = ClientConnection::new(&format!("localhost:{runtime_port}"))?;
+    let blocking_io_client_connection =
+        ClientConnection::new(&format!("localhost:{blocking_io_port}"))?;
 
     let result = client(
         matches,
         lib_search_path,
         runtime_client_connection,
+        blocking_io_client_connection,
         #[cfg(feature = "debugger")]
         debug_this_flow,
     );
@@ -302,24 +327,32 @@ fn client_and_coordinator(
 /// Create a new `Coordinator`, preload any libraries in native format that we want to have before
 /// loading a flow, and it's library references, then enter the `submission_loop()` accepting and
 /// executing flows submitted for execution, executing each one using the `Coordinator`
+#[allow(clippy::too_many_arguments)]
 fn coordinator(
     mdns: &ServiceDaemon,
     num_threads: usize,
     lib_search_path: Simpath,
     native_flowstdlib: bool,
     coordinator_connection: CoordinatorConnection,
+    blocking_io_connection: CoordinatorConnection,
     #[cfg(feature = "debugger")] debug_connection: CoordinatorConnection,
     loop_forever: bool,
 ) -> Result<()> {
     // Create channels for context functions and submission handler to communicate
     // with the bridge thread that owns the ZMQ CoordinatorConnection.
     let (context_tx, context_rx) = std::sync::mpsc::channel();
+    let (blocking_tx, blocking_rx) = std::sync::mpsc::channel();
     let (submission_tx, submission_rx) = std::sync::mpsc::channel();
-    let context_io = context::ContextIO::new(context_tx);
+    let context_io = context::ContextIO::new(context_tx, blocking_tx);
 
-    // Spawn bridge thread that owns the ZMQ socket
+    // Spawn bridge thread that owns the non-blocking ZMQ socket
     let bridge_handle = thread::spawn(move || {
         coordinator_bridge(coordinator_connection, context_rx, submission_tx);
+    });
+
+    // Spawn bridge thread that owns the blocking IO ZMQ socket
+    let blocking_bridge_handle = thread::spawn(move || {
+        blocking_io_bridge(blocking_io_connection, blocking_rx);
     });
 
     #[cfg(feature = "debugger")]
@@ -365,7 +398,10 @@ fn coordinator(
         context::get_manifest(context_io.clone())?,
         Url::parse("memory://")?,
     )?;
-    context_executor.start(
+    // Use start_spawning so blocking context functions (readline/stdin) don't
+    // prevent non-blocking ones (stdout/stderr) from executing concurrently.
+    // Each job is spawned on a separate thread within the executor.
+    context_executor.start_spawning(
         &provider,
         1,
         &context_job_source_name,
@@ -397,8 +433,110 @@ fn coordinator(
     }
 
     let _ = bridge_handle.join();
+    // The blocking IO bridge thread is not joined — it may be stuck waiting
+    // for a blocking IO request that never arrives (e.g. when no readline/stdin
+    // context function is used). It will exit when the process exits.
+    drop(blocking_bridge_handle);
 
     result
+}
+
+/// Bridge thread for blocking IO (readline/stdin) on a separate ZMQ socket.
+///
+/// Protocol:
+/// 1. Wait for a blocking IO request from a context function via `blocking_rx`
+/// 2. Wait for the client's `Ack` on ZMQ (client polls this socket)
+/// 3. Send the blocking IO request (GetLine/GetStdin) to the client
+/// 4. Wait for the client's response (Line/Stdin/etc.)
+/// 5. Forward the response to the context function
+#[allow(clippy::needless_pass_by_value)]
+fn blocking_io_bridge(
+    mut connection: CoordinatorConnection,
+    blocking_rx: std::sync::mpsc::Receiver<context::ContextRequest>,
+) {
+    use crate::cli::coordinator_message::{ClientMessage, CoordinatorMessage};
+    use flowrlib::connections::WAIT;
+    use log::debug;
+
+    debug!("[BLOCKING BRIDGE] started");
+
+    while let Ok(request) = blocking_rx.recv() {
+        debug!(
+            "[BLOCKING BRIDGE] received blocking request: {}",
+            request.message
+        );
+
+        // Wait for the client's Ack (client polls this socket)
+        debug!("[BLOCKING BRIDGE] waiting for client Ack on ZMQ...");
+        match connection.receive::<ClientMessage>(WAIT) {
+            Ok(ClientMessage::Ack) => {
+                debug!("[BLOCKING BRIDGE] got client Ack");
+            }
+            Ok(ClientMessage::ClientExiting(_)) => {
+                debug!("[BLOCKING BRIDGE] client exited");
+                if let Some(response_tx) = request.response_tx {
+                    let _ = response_tx.send(ClientMessage::ClientExiting(Ok(())));
+                }
+                return;
+            }
+            Ok(other) => {
+                debug!("[BLOCKING BRIDGE] unexpected message: {other}");
+                if let Some(response_tx) = request.response_tx {
+                    let _ = response_tx.send(ClientMessage::Error(format!(
+                        "Unexpected message on blocking IO socket: {other}"
+                    )));
+                }
+                continue;
+            }
+            Err(e) => {
+                error!("Blocking bridge: error receiving Ack: {e}");
+                if let Some(response_tx) = request.response_tx {
+                    let _ = response_tx.send(ClientMessage::Error(format!("{e}")));
+                }
+                return;
+            }
+        }
+
+        // Send the blocking IO request to the client
+        debug!("[BLOCKING BRIDGE] sending blocking request on ZMQ...");
+        if let Err(e) = connection.send(request.message) {
+            error!("Blocking bridge: failed to send to client: {e}");
+            if let Some(response_tx) = request.response_tx {
+                let _ = response_tx.send(ClientMessage::Error(format!("{e}")));
+            }
+            continue;
+        }
+
+        // Wait for the client's response (this blocks while user types input)
+        debug!("[BLOCKING BRIDGE] waiting for blocking IO response on ZMQ...");
+        match connection.receive::<ClientMessage>(WAIT) {
+            Ok(ClientMessage::ClientExiting(_)) => {
+                debug!("[BLOCKING BRIDGE] client exited during blocking IO");
+                let _ = connection.send(CoordinatorMessage::CoordinatorExiting(Ok(())));
+                if let Some(response_tx) = request.response_tx {
+                    let _ = response_tx.send(ClientMessage::ClientExiting(Ok(())));
+                }
+                return;
+            }
+            Ok(response) => {
+                debug!("[BLOCKING BRIDGE] got blocking IO response: {response}");
+                // Complete the REP cycle with an Ack
+                let _ = connection.send(CoordinatorMessage::Invalid);
+                if let Some(response_tx) = request.response_tx {
+                    let _ = response_tx.send(response);
+                }
+            }
+            Err(e) => {
+                error!("Blocking bridge: failed to receive response: {e}");
+                if let Some(response_tx) = request.response_tx {
+                    let _ = response_tx.send(ClientMessage::Error(format!("{e}")));
+                }
+                return;
+            }
+        }
+    }
+
+    debug!("[BLOCKING BRIDGE] channel closed, exiting");
 }
 
 /// Bridge thread that owns the ZMQ `CoordinatorConnection` and serializes all
@@ -506,10 +644,14 @@ fn client_only(
     let coordinator_address = discover_service(COORDINATOR_SERVICE_NAME)?;
     let client_connection = ClientConnection::new(&coordinator_address)?;
 
+    let blocking_io_address = discover_service(BLOCKING_IO_SERVICE_NAME)?;
+    let blocking_io_connection = ClientConnection::new(&blocking_io_address)?;
+
     client(
         matches,
         lib_search_path,
         client_connection,
+        blocking_io_connection,
         #[cfg(feature = "debugger")]
         debug_this_flow,
     )
@@ -520,6 +662,7 @@ fn client(
     matches: &ArgMatches,
     lib_search_path: Simpath,
     client_connection: ClientConnection,
+    blocking_io_connection: ClientConnection,
     #[cfg(feature = "debugger")] debug_this_flow: bool,
 ) -> Result<()> {
     let override_args = Arc::new(Mutex::new(Vec::<String>::new()));
@@ -557,7 +700,7 @@ fn client(
     trace!("Entering client event loop");
     let rt = tokio::runtime::Runtime::new()
         .map_err(|e| format!("Could not create tokio runtime: {e}"))?;
-    rt.block_on(client.event_loop(client_connection))
+    rt.block_on(client.event_loop(client_connection, blocking_io_connection))
 }
 
 /// Determine the number of threads to use to execute flows

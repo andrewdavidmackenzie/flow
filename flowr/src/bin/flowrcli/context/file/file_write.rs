@@ -48,9 +48,10 @@ mod test {
         std::sync::mpsc::Receiver<crate::context::ContextRequest>,
     ) {
         let (tx, rx) = std::sync::mpsc::channel();
+        let (blocking_tx, _blocking_rx) = std::sync::mpsc::channel();
         (
             FileWrite {
-                context_io: ContextIO::new(tx),
+                context_io: ContextIO::new(tx, blocking_tx),
             },
             rx,
         )
