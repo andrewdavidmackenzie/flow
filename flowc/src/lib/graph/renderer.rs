@@ -8,7 +8,7 @@ use std::collections::HashMap;
 use svg::node::element::{Group, Style};
 use svg::Document;
 
-use flowcore::graph::layout::{connection_label, split_route};
+use flowcore::graph::layout::{base_port_name, connection_label, derive_short_name, split_route};
 use flowcore::graph::style::NodeCategory;
 use flowcore::model::connection::Connection;
 use flowcore::model::flow_definition::FlowDefinition;
@@ -430,7 +430,7 @@ fn render_connection(
 
     // Resolve source position: boundary input port or internal node output
     let (x1, y1) = if from_node == "input" {
-        let port_base = from_port.split('/').next().unwrap_or(&from_port);
+        let port_base = base_port_name(&from_port);
         if let Some((x, y)) = boundary_ports.and_then(|bp| bp.inputs.get(port_base)) {
             (*x, *y)
         } else {
@@ -440,7 +440,7 @@ fn render_connection(
         let Some(from_layout) = layouts.get(&from_node) else {
             return group;
         };
-        let port_base = from_port.split('/').next().unwrap_or(&from_port);
+        let port_base = base_port_name(&from_port);
         let from_port_idx = from_layout
             .outputs
             .iter()
@@ -458,7 +458,7 @@ fn render_connection(
 
         // Resolve destination position: boundary output port or internal node input
         let (x2, y2) = if to_node == "output" {
-            let to_port_base = to_port.split('/').next().unwrap_or(&to_port);
+            let to_port_base = base_port_name(&to_port);
             if let Some((x, y)) = boundary_ports.and_then(|bp| bp.outputs.get(to_port_base)) {
                 (*x, *y)
             } else {
@@ -468,7 +468,7 @@ fn render_connection(
             let Some(to_layout) = layouts.get(&to_node) else {
                 continue;
             };
-            let to_port_base = to_port.split('/').next().unwrap_or(&to_port);
+            let to_port_base = base_port_name(&to_port);
             let to_port_idx = to_layout
                 .inputs
                 .iter()
@@ -529,7 +529,7 @@ fn render_initializers(
     let loopback_clearance = node_loopbacks as f32 * 25.0;
 
     for (input_path, initializer) in &pr.initializations {
-        let port_name = input_path.rsplit('/').next().unwrap_or(input_path);
+        let port_name = &derive_short_name(input_path);
         let port_idx = layout
             .inputs
             .iter()

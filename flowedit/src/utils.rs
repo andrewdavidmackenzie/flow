@@ -80,13 +80,9 @@ pub(crate) fn truncate_source(source: &str, max_len: usize) -> String {
 }
 
 /// Extract the base port name, stripping any trailing array index.
-/// Uses flowcore's Route to detect array selectors properly.
+/// Delegates to the shared implementation in flowcore.
 pub(crate) fn base_port_name(port: &str) -> &str {
-    if Route::from(port).is_array_selector() {
-        port.rsplit_once('/').map_or(port, |(base, _)| base)
-    } else {
-        port
-    }
+    flowcore::graph::layout::base_port_name(port)
 }
 
 /// Build a rounded rectangle path using quadratic bezier curves at corners.
