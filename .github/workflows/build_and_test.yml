@@ -257,7 +257,7 @@ jobs:
         if: runner.os != 'Windows'
         run: |
           cargo llvm-cov report --lcov --output-path lcov.info
-          lcov --ignore-errors inconsistent --remove lcov.info 'target/debug/build/**' '**/errors.rs' '*tests/*' -o lcov.info
+          lcov --ignore-errors inconsistent,unused --remove lcov.info 'target/debug/build/**' '**/errors.rs' '*tests/*' -o lcov.info
 
       - name: Upload coverage to Codecov
         if: runner.os != 'Windows'
