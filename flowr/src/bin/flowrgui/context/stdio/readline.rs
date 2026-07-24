@@ -1,33 +1,27 @@
-use std::sync::{Arc, Mutex};
-
 use flowcore::errors::Result;
 use flowcore::{Implementation, RunAgain, DONT_RUN_AGAIN, RUN_AGAIN};
 use serde_json::Value;
 
+use crate::context::ContextIO;
 use crate::gui::client_message::ClientMessage;
 use crate::gui::coordinator_message::CoordinatorMessage;
-use flowrlib::connections::CoordinatorConnection;
 
 /// `Implementation` struct for the `readline` function
 pub struct Readline {
     /// It holds a reference to the runtime client in order to read input
-    pub server_connection: Arc<Mutex<CoordinatorConnection>>,
+    pub context_io: ContextIO,
 }
 
 impl Implementation for Readline {
     fn run(&self, inputs: &[Value]) -> Result<(Option<Value>, RunAgain)> {
-        let mut server = self
-            .server_connection
-            .lock()
-            .map_err(|_| "Could not lock server")?;
-
         let prompt = match inputs.first() {
             Some(Value::String(prompt)) => prompt.clone(),
             _ => String::new(),
         };
 
-        let readline_response =
-            server.send_and_receive_response(CoordinatorMessage::GetLine(prompt));
+        let readline_response = self
+            .context_io
+            .send_and_receive_blocking(CoordinatorMessage::GetLine(prompt));
 
         match readline_response {
             Ok(ClientMessage::Line(contents)) => {
@@ -48,64 +42,76 @@ impl Implementation for Readline {
 mod test {
     use flowcore::{Implementation, DONT_RUN_AGAIN, RUN_AGAIN};
     use serde_json::json;
-    use serial_test::serial;
 
+    use crate::context::ContextIO;
     use crate::gui::client_message::ClientMessage;
     use crate::gui::coordinator_message::CoordinatorMessage;
-    use crate::gui::test_helper::test::wait_for_then_send;
 
     use super::Readline;
 
+    fn make_readline() -> (
+        Readline,
+        std::sync::mpsc::Receiver<crate::context::ContextRequest>,
+    ) {
+        let (nonblocking_tx, _nonblocking_rx) = std::sync::mpsc::channel();
+        let (blocking_tx, blocking_rx) = std::sync::mpsc::channel();
+        (
+            Readline {
+                context_io: ContextIO::new(nonblocking_tx, blocking_tx),
+            },
+            blocking_rx,
+        )
+    }
+
     #[test]
-    #[serial]
     fn gets_a_line_of_text() {
-        let server_connection = wait_for_then_send(
-            CoordinatorMessage::GetLine(String::new()),
-            ClientMessage::Line("line of text".into()),
-        );
-        let reader = &Readline { server_connection } as &dyn Implementation;
-        let (value, run_again) = reader.run(&[]).expect("_readline() failed");
+        let (reader, rx) = make_readline();
+        let handle = std::thread::spawn(move || reader.run(&[]));
 
+        let req = rx.recv().expect("No request");
+        assert!(matches!(req.message, CoordinatorMessage::GetLine(_)));
+        req.response_tx
+            .unwrap()
+            .send(ClientMessage::Line("line of text".into()))
+            .unwrap();
+
+        let (value, run_again) = handle.join().unwrap().expect("run() failed");
         assert_eq!(run_again, RUN_AGAIN);
-
-        let val = value.expect("Could not get value returned from implementation");
-        let map = val.as_object().expect("Could not get map of output values");
-        assert_eq!(
-            map.get("string").expect("Could not get string args"),
-            &json!("line of text")
-        );
+        let val = value.expect("No value");
+        let map = val.as_object().expect("Not an object");
+        assert_eq!(map.get("string").unwrap(), &json!("line of text"));
     }
 
     #[test]
-    #[serial]
     fn gets_json() {
-        let server_connection = wait_for_then_send(
-            CoordinatorMessage::GetLine(String::new()),
-            ClientMessage::Line("\"json text\"".into()),
-        );
-        let reader = &Readline { server_connection } as &dyn Implementation;
-        let (value, run_again) = reader.run(&[]).expect("_readline() failed");
+        let (reader, rx) = make_readline();
+        let handle = std::thread::spawn(move || reader.run(&[]));
 
+        let req = rx.recv().expect("No request");
+        req.response_tx
+            .unwrap()
+            .send(ClientMessage::Line("\"json text\"".into()))
+            .unwrap();
+
+        let (value, run_again) = handle.join().unwrap().expect("run() failed");
         assert_eq!(run_again, RUN_AGAIN);
-
-        let val = value.expect("Could not get value returned from implementation");
-        let map = val.as_object().expect("Could not get map of output values");
-        assert_eq!(
-            map.get("json").expect("Could not get json args"),
-            &json!("json text")
-        );
+        let val = value.expect("No value");
+        let map = val.as_object().expect("Not an object");
+        assert_eq!(map.get("json").unwrap(), &json!("json text"));
     }
 
     #[test]
-    #[serial]
     fn get_eof() {
-        let server_connection = wait_for_then_send(
-            CoordinatorMessage::GetLine(String::new()),
-            ClientMessage::GetLineEof,
-        );
-        let reader = &Readline { server_connection } as &dyn Implementation;
-        let (value, run_again) = reader.run(&[]).expect("_readline() failed");
+        let (reader, rx) = make_readline();
+        let handle = std::thread::spawn(move || reader.run(&[]));
 
+        let req = rx.recv().expect("No request");
+        req.response_tx
+            .unwrap()
+            .send(ClientMessage::GetLineEof)
+            .unwrap();
+
+        let (value, run_again) = handle.join().unwrap().expect("run() failed");
         assert_eq!(run_again, DONT_RUN_AGAIN);
         assert!(value.is_none());
     }

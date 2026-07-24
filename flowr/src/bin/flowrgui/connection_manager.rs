@@ -5,7 +5,7 @@ use std::thread;
 
 use iced::futures::SinkExt;
 use iced::Subscription;
-use log::{error, info, trace};
+use log::{debug, error, info, trace};
 use portpicker::pick_unused_port;
 use tokio::sync::mpsc::Receiver;
 use url::Url;
@@ -31,9 +31,9 @@ use flowrlib::discovery::{
     create_service_daemon, discover_service, register_service, shutdown_service_daemon,
     unregister_service, ServiceDaemon,
 };
-use flowrlib::services::COORDINATOR_SERVICE_NAME;
 #[cfg(feature = "debugger")]
 use flowrlib::services::DEBUG_SERVICE_NAME;
+use flowrlib::services::{BLOCKING_IO_SERVICE_NAME, COORDINATOR_SERVICE_NAME};
 
 #[cfg(feature = "debugger")]
 use flowcore::model::debug_command::DebugCommand;
@@ -156,6 +156,7 @@ pub fn subscribe(coordinator_settings: CoordinatorSettings) -> Subscription<Coor
     Subscription::run(coordinator_stream)
 }
 
+#[allow(clippy::too_many_lines)]
 fn coordinator_stream() -> impl iced::futures::Stream<Item = CoordinatorMessage> {
     let Some(settings) = COORDINATOR_SETTINGS.get().cloned() else {
         eprintln!("Error: Coordinator settings were not initialized before subscribing. This is a programming error.");
@@ -208,17 +209,65 @@ fn coordinator_stream() -> impl iced::futures::Stream<Item = CoordinatorMessage>
                     CoordinatorState::Discovered(address) => {
                         match ClientConnection::new(&address) {
                             Ok(connection) => {
+                                // Also discover and connect to the blocking IO socket
+                                let blocking_connection =
+                                    match discover_service(BLOCKING_IO_SERVICE_NAME) {
+                                        Ok(blocking_address) => {
+                                            match ClientConnection::new(&blocking_address) {
+                                                Ok(conn) => {
+                                                    // Set receive timeout for clean shutdown
+                                                    let _ = conn.set_receive_timeout(2000);
+                                                    conn
+                                                }
+                                                Err(e) => {
+                                                    let _ = app_sender
+                                                        .send(CoordinatorMessage::Disconnected(
+                                                            format!(
+                                                    "Could not connect to blocking IO: {e}"
+                                                ),
+                                                        ))
+                                                        .await;
+                                                    break;
+                                                }
+                                            }
+                                        }
+                                        Err(e) => {
+                                            let _ = app_sender
+                                                .send(CoordinatorMessage::Disconnected(format!(
+                                                    "Could not discover blocking IO service: {e}"
+                                                )))
+                                                .await;
+                                            break;
+                                        }
+                                    };
+
                                 let (app_side_sender, app_receiver) =
                                     tokio::sync::mpsc::channel(100);
+                                let (blocking_response_sender, blocking_response_receiver) =
+                                    tokio::sync::mpsc::channel(10);
 
                                 if app_sender
-                                    .send(CoordinatorMessage::Connected(app_side_sender))
+                                    .send(CoordinatorMessage::Connected(
+                                        app_side_sender,
+                                        blocking_response_sender,
+                                    ))
                                     .await
                                     .is_err()
                                 {
                                     error!("Could not send Connected message to app");
                                     break;
                                 }
+
+                                // Spawn the blocking IO bridge with its own response channel
+                                let blocking_conn = Arc::new(Mutex::new(blocking_connection));
+                                let mut blocking_sender = app_sender.clone();
+                                tokio::task::spawn_blocking(move || {
+                                    client_blocking_io_bridge(
+                                        blocking_conn,
+                                        &mut blocking_sender,
+                                        blocking_response_receiver,
+                                    );
+                                });
 
                                 state = CoordinatorState::Connected(
                                     app_receiver,
@@ -343,6 +392,15 @@ fn start_server(coordinator_settings: ServerSettings) -> Result<()> {
         runtime_port,
     )?];
 
+    let blocking_io_port = pick_unused_port().chain_err(|| "No ports free")?;
+    let blocking_io_connection =
+        CoordinatorConnection::new(BLOCKING_IO_SERVICE_NAME, blocking_io_port)?;
+    fullnames.push(register_service(
+        &mdns,
+        BLOCKING_IO_SERVICE_NAME,
+        blocking_io_port,
+    )?);
+
     #[cfg(feature = "debugger")]
     let debug_port = pick_unused_port().chain_err(|| "No ports free")?;
     #[cfg(feature = "debugger")]
@@ -364,6 +422,7 @@ fn start_server(coordinator_settings: ServerSettings) -> Result<()> {
             &coordinator_mdns,
             coordinator_settings,
             coordinator_connection,
+            blocking_io_connection,
             #[cfg(feature = "debugger")]
             debug_connection,
             true,
@@ -383,14 +442,31 @@ fn start_server(coordinator_settings: ServerSettings) -> Result<()> {
     Ok(())
 }
 
+#[allow(clippy::too_many_arguments)]
 fn coordinator(
     mdns: &ServiceDaemon,
     coordinator_settings: ServerSettings,
     coordinator_connection: CoordinatorConnection,
+    blocking_io_connection: CoordinatorConnection,
     #[cfg(feature = "debugger")] debug_connection: CoordinatorConnection,
     loop_forever: bool,
 ) -> Result<()> {
-    let connection = Arc::new(Mutex::new(coordinator_connection));
+    // Create channels for context functions and submission handler to communicate
+    // with the bridge thread that owns the ZMQ CoordinatorConnection.
+    let (context_tx, context_rx) = std::sync::mpsc::channel();
+    let (blocking_tx, blocking_rx) = std::sync::mpsc::channel();
+    let (submission_tx, submission_rx) = std::sync::mpsc::channel();
+    let context_io = context::ContextIO::new(context_tx, blocking_tx);
+
+    // Spawn bridge thread that owns the non-blocking ZMQ socket
+    let bridge_handle = thread::spawn(move || {
+        coordinator_bridge(coordinator_connection, context_rx, submission_tx);
+    });
+
+    // Spawn bridge thread that owns the blocking IO ZMQ socket
+    let blocking_bridge_handle = thread::spawn(move || {
+        blocking_io_bridge(blocking_io_connection, blocking_rx);
+    });
 
     #[cfg(feature = "debugger")]
     let mut debug_server = DebugZmqHandler {
@@ -416,15 +492,12 @@ fn coordinator(
         get_connect_addresses(ports);
 
     let mut executor = Executor::new();
-    // if the command line options request loading native implementation of available native libs
-    // if not, the native implementation is not loaded and later when a flow is loaded it's library
-    // references will be resolved and those libraries (WASM implementations) will be loaded at runtime
     #[cfg(feature = "flowstdlib")]
     if coordinator_settings.native_flowstdlib {
         executor.add_lib(
             flowstdlib::manifest::get()
                 .chain_err(|| "Could not get 'native' flowstdlib manifest")?,
-            Url::parse("memory://")?, // Statically linked library has no resolved Url
+            Url::parse("memory://")?,
         )?;
     }
     executor.start(
@@ -437,10 +510,12 @@ fn coordinator(
 
     let mut context_executor = Executor::new();
     context_executor.add_lib(
-        context::get_manifest(connection.clone())?,
-        Url::parse("memory://")?, // Statically linked library has no resolved Url
+        context::get_manifest(context_io.clone())?,
+        Url::parse("memory://")?,
     )?;
-    context_executor.start(
+    // Use start_spawning so blocking context functions (readline/stdin) don't
+    // prevent non-blocking ones (stdout/stderr) from executing concurrently.
+    context_executor.start_spawning(
         &provider,
         1,
         &context_job_source_name,
@@ -449,7 +524,7 @@ fn coordinator(
     );
 
     #[cfg(feature = "submission")]
-    let mut submitter = CLISubmissionHandler::new(connection);
+    let mut submitter = CLISubmissionHandler::new(context_io, submission_rx);
 
     let mut coordinator = Coordinator::new(
         dispatcher,
@@ -473,7 +548,233 @@ fn coordinator(
         unregister_service(mdns, fullname);
     }
 
+    let _ = bridge_handle.join();
+    // The blocking IO bridge thread is not joined — it may be stuck waiting
+    // for a blocking IO request that never arrives.
+    drop(blocking_bridge_handle);
+
     result
+}
+
+/// Client-side blocking IO bridge for the GUI. Runs as a `spawn_blocking` task.
+/// Polls the coordinator's blocking IO socket and forwards `GetLine`/`GetStdin`
+/// to the GUI. Receives responses from the GUI's blocking response channel.
+#[allow(clippy::needless_pass_by_value)]
+fn client_blocking_io_bridge(
+    connection: Arc<Mutex<ClientConnection>>,
+    app_sender: &mut iced::futures::channel::mpsc::Sender<CoordinatorMessage>,
+    mut response_rx: tokio::sync::mpsc::Receiver<ClientMessage>,
+) {
+    loop {
+        // Send Ack to poll the coordinator for a blocking IO request
+        if lock_and_send(&connection, ClientMessage::Ack).is_err() {
+            break;
+        }
+
+        // Receive the blocking IO request (GetLine/GetStdin)
+        match lock_and_receive(&connection) {
+            Ok(event) => {
+                // Forward to the GUI via app_sender
+                if app_sender.try_send(event).is_err() {
+                    break;
+                }
+
+                // Wait for the GUI's response
+                match response_rx.blocking_recv() {
+                    Some(response) => {
+                        // Send the result back to the coordinator
+                        if lock_and_send(&connection, response).is_err() {
+                            break;
+                        }
+
+                        // Receive the coordinator's acknowledgement
+                        if lock_and_receive(&connection).is_err() {
+                            break;
+                        }
+                    }
+                    None => break,
+                }
+            }
+            Err(_) => {
+                // Expected during shutdown — receive timeout or coordinator gone
+                break;
+            }
+        }
+    }
+}
+
+/// Bridge thread for blocking IO (readline/stdin) on a separate ZMQ socket.
+///
+/// Protocol:
+/// 1. Wait for a blocking IO request from a context function via `blocking_rx`
+/// 2. Wait for the client's `Ack` on ZMQ (client polls this socket)
+/// 3. Send the blocking IO request (GetLine/GetStdin) to the client
+/// 4. Wait for the client's response (Line/Stdin/etc.)
+/// 5. Forward the response to the context function
+#[allow(clippy::needless_pass_by_value)]
+fn blocking_io_bridge(
+    mut connection: CoordinatorConnection,
+    blocking_rx: std::sync::mpsc::Receiver<context::ContextRequest>,
+) {
+    use crate::gui::client_message::ClientMessage;
+    use crate::gui::coordinator_message::CoordinatorMessage;
+    use flowrlib::connections::WAIT;
+
+    debug!("[BLOCKING BRIDGE] started");
+
+    while let Ok(request) = blocking_rx.recv() {
+        debug!(
+            "[BLOCKING BRIDGE] received blocking request: {}",
+            request.message
+        );
+
+        // Wait for the client's Ack (client polls this socket)
+        match connection.receive::<ClientMessage>(WAIT) {
+            Ok(ClientMessage::Ack) => {}
+            Ok(ClientMessage::ClientExiting(_)) => {
+                if let Some(response_tx) = request.response_tx {
+                    let _ = response_tx.send(ClientMessage::ClientExiting(Ok(())));
+                }
+                return;
+            }
+            Ok(other) => {
+                debug!("[BLOCKING BRIDGE] unexpected message: {other:?}");
+                if let Some(response_tx) = request.response_tx {
+                    let _ = response_tx.send(ClientMessage::Error(format!(
+                        "Unexpected message on blocking IO socket: {other:?}"
+                    )));
+                }
+                continue;
+            }
+            Err(e) => {
+                error!("Blocking bridge: error receiving Ack: {e}");
+                if let Some(response_tx) = request.response_tx {
+                    let _ = response_tx.send(ClientMessage::Error(format!("{e}")));
+                }
+                return;
+            }
+        }
+
+        // Send the blocking IO request to the client
+        if let Err(e) = connection.send(request.message) {
+            error!("Blocking bridge: failed to send to client: {e}");
+            if let Some(response_tx) = request.response_tx {
+                let _ = response_tx.send(ClientMessage::Error(format!("{e}")));
+            }
+            continue;
+        }
+
+        // Wait for the client's response (this blocks while user types input)
+        match connection.receive::<ClientMessage>(WAIT) {
+            Ok(ClientMessage::ClientExiting(_)) => {
+                let _ = connection.send(CoordinatorMessage::CoordinatorExiting(Ok(())));
+                if let Some(response_tx) = request.response_tx {
+                    let _ = response_tx.send(ClientMessage::ClientExiting(Ok(())));
+                }
+                return;
+            }
+            Ok(response) => {
+                // Complete the REP cycle with an ack
+                let _ = connection.send(CoordinatorMessage::Invalid);
+                if let Some(response_tx) = request.response_tx {
+                    let _ = response_tx.send(response);
+                }
+            }
+            Err(e) => {
+                error!("Blocking bridge: failed to receive response: {e}");
+                if let Some(response_tx) = request.response_tx {
+                    let _ = response_tx.send(ClientMessage::Error(format!("{e}")));
+                }
+                return;
+            }
+        }
+    }
+
+    debug!("[BLOCKING BRIDGE] channel closed, exiting");
+}
+
+/// Bridge thread that owns the ZMQ `CoordinatorConnection` and serializes all
+/// communication between context functions/submission handler and the client.
+#[allow(clippy::needless_pass_by_value)]
+fn coordinator_bridge(
+    mut connection: CoordinatorConnection,
+    context_rx: std::sync::mpsc::Receiver<context::ContextRequest>,
+    submission_tx: std::sync::mpsc::Sender<flowcore::model::submission::Submission>,
+) {
+    use crate::gui::client_message::ClientMessage;
+    use crate::gui::coordinator_message::CoordinatorMessage;
+    use flowrlib::connections::WAIT;
+
+    debug!("[BRIDGE] started");
+
+    while let Ok(request) = context_rx.recv() {
+        let is_exiting = matches!(request.message, CoordinatorMessage::CoordinatorExiting(_));
+        let wait_for_submission = matches!(request.message, CoordinatorMessage::Invalid);
+
+        if wait_for_submission {
+            debug!("[BRIDGE] waiting for submission on ZMQ...");
+            loop {
+                match connection.receive::<ClientMessage>(WAIT) {
+                    Ok(ClientMessage::ClientSubmission(submission)) => {
+                        if submission_tx.send(*submission).is_err() {
+                            return;
+                        }
+                        break;
+                    }
+                    Ok(ClientMessage::ClientExiting(_)) => {
+                        if let Some(response_tx) = request.response_tx {
+                            let _ = response_tx.send(ClientMessage::ClientExiting(Ok(())));
+                        }
+                        return;
+                    }
+                    Ok(_) => {}
+                    Err(e) => {
+                        error!("Bridge: error receiving submission: {e}");
+                        return;
+                    }
+                }
+            }
+            if let Some(response_tx) = request.response_tx {
+                let _ = response_tx.send(ClientMessage::Ack);
+            }
+            continue;
+        }
+
+        if is_exiting {
+            if let Some(response_tx) = request.response_tx {
+                let _ = response_tx.send(ClientMessage::Ack);
+            }
+            return;
+        }
+
+        if let Err(e) = connection.send(request.message) {
+            error!("Bridge: failed to send to client: {e}");
+            if let Some(response_tx) = request.response_tx {
+                let _ = response_tx.send(ClientMessage::Error(format!("{e}")));
+            }
+            continue;
+        }
+
+        match connection.receive::<ClientMessage>(WAIT) {
+            Ok(ClientMessage::ClientExiting(_)) => {
+                let _ = connection.send(CoordinatorMessage::CoordinatorExiting(Ok(())));
+                if let Some(response_tx) = request.response_tx {
+                    let _ = response_tx.send(ClientMessage::ClientExiting(Ok(())));
+                }
+            }
+            Ok(response) => {
+                if let Some(response_tx) = request.response_tx {
+                    let _ = response_tx.send(response);
+                }
+            }
+            Err(e) => {
+                error!("Bridge: failed to receive from client: {e}");
+                if let Some(response_tx) = request.response_tx {
+                    let _ = response_tx.send(ClientMessage::Error(format!("{e}")));
+                }
+            }
+        }
+    }
 }
 
 /// Global sender for debug commands from GUI to the debug client subscription
