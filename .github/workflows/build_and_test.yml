@@ -175,11 +175,8 @@ jobs:
       - name: ConfigureCoverage
         if: runner.os != 'Windows'
         run: |
-          which grcov || cargo install grcov
+          which cargo-llvm-cov || cargo install cargo-llvm-cov
           rustup component add llvm-tools-preview
-          echo CARGO_INCREMENTAL=0 >> "$GITHUB_ENV"
-          echo RUSTFLAGS="-C instrument-coverage" >> "$GITHUB_ENV"
-          echo LLVM_PROFILE_FILE="flow-%p-%m.profraw" >> "$GITHUB_ENV"
 
       - name: cargo-build
         shell: bash
@@ -236,20 +233,40 @@ jobs:
           echo "RUST_LOG=error,sctk_adwaita=off" >> "$GITHUB_ENV"
           echo "XDG_RUNTIME_DIR=$XDG_RUNTIME_DIR" >> "$GITHUB_ENV"
 
+      - name: CleanCoverage
+        if: runner.os != 'Windows'
+        run: cargo llvm-cov clean --workspace
+
       - name: test
         shell: bash
         timeout-minutes: ${{ runner.os == 'Windows' && 25 || 20 }}
-        run: cargo test --features "online_tests"
+        run: |
+          if [[ "$RUNNER_OS" == "Windows" ]]; then
+            cargo test --features "online_tests"
+          else
+            cargo llvm-cov test --no-report --features "online_tests"
+          fi
 
       - name: test-examples
         shell: bash
         timeout-minutes: ${{ runner.os == 'Windows' && 20 || 15 }}
-        run: cargo test --examples
+        run: |
+          if [[ "$RUNNER_OS" == "Windows" ]]; then
+            cargo test --examples
+          else
+            cargo llvm-cov test --no-report --examples
+          fi
 
       - name: UploadCoverage
         if: runner.os != 'Windows'
         run: |
-          grcov . --binary-path target/debug/ -s . -t lcov --branch --ignore-not-existing --ignore "/*" -o lcov.info
-          lcov --ignore-errors inconsistent --remove lcov.info 'target/debug/build/**' '**/errors.rs' '*tests/*' -o lcov.info
-          bash <(curl -s https://codecov.io/bash) -f lcov.info
-          rm -f lcov.info
+          cargo llvm-cov report --lcov --output-path lcov.info
+          lcov --ignore-errors inconsistent,unused --remove lcov.info 'target/debug/build/**' '**/errors.rs' '*tests/*' -o lcov.info
+
+      - name: Upload coverage to Codecov
+        if: runner.os != 'Windows'
+        uses: codecov/codecov-action@v6
+        with:
+          files: lcov.info
+          token: ${{ secrets.CODECOV_TOKEN }}
+          fail_ci_if_error: false

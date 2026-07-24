@@ -106,6 +106,7 @@ fn cargo_build(
         .env_remove("RUSTFLAGS") // remove flags for coverage, incompatible with wasm build
         .env_remove("CARGO_BUILD_RUSTFLAGS") // remove flags for coverage, incompatible with wasm build
         .env_remove("CARGO_ENCODED_RUSTFLAGS") // remove flags for coverage, incompatible with wasm build
+        .env_remove("RUSTC_WRAPPER") // remove cargo-llvm-cov wrapper, incompatible with wasm build
         .output()
         .chain_err(|| "Error while attempting to spawn cargo to compile WASM")?;
 
