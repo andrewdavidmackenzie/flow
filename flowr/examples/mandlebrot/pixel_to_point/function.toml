@@ -8,15 +8,14 @@ edition = "2021"
 name = "pixel_to_point"
 crate-type = ["cdylib"]
 path = "pixel_to_point.rs"
-rustflags = ["-C", "link-arg=--gc-sections"]
 
 [profile.release]
 debug = false
 lto = true
 codegen-units = 1
-opt-level = 's' # Optimize for size
+opt-level = 'z' # Optimize for size
 panic = 'abort' # About unwinding code
-strip = "debuginfo"
+strip = true
 
 [dependencies]
 flowcore = {path = "../../../../flowcore", version = "1"}

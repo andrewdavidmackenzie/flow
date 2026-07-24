@@ -66,7 +66,8 @@ flowmacro = {path = "../../flowmacro", version = "1"}
 serde_json = { version = "1.0", default-features = false }
 
 [profile.release]
-opt-level = "s"
+opt-level = "z"
 lto = true
 codegen-units = 1
 strip = true
+panic = "abort"
