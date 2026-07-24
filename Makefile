@@ -229,21 +229,20 @@ else
 endif
 
 .PHONY: coverage
-coverage: clean-start
+coverage: clean-start build
 	@echo "coverage<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<"
-	@RUSTFLAGS="-C instrument-coverage" LLVM_PROFILE_FILE="flow-%p-%m.profraw" cargo build
 	@target/debug/flowc -d -g -O flowstdlib
 	@target/debug/flowc flowr/src/bin/flowrcli
 	@target/debug/flowc flowr/src/bin/flowrgui
 ifeq ($(CODESIGN),)
 	find target -perm +111 -type f | xargs codesign -fs self
 endif
-	@RUSTFLAGS="-C instrument-coverage" LLVM_PROFILE_FILE="flow-%p-%m.profraw" cargo test
-	@RUSTFLAGS="-C instrument-coverage" LLVM_PROFILE_FILE="flow-%p-%m.profraw" cargo test --examples
+	@cargo llvm-cov clean
+	@cargo llvm-cov test --no-report
+	@cargo llvm-cov test --no-report --examples
 	@echo "Gathering coverage information"
-	@grcov . --binary-path target/debug/ -s . -t lcov --branch --ignore-not-existing --ignore "/*" -o coverage.info
-	@lcov --remove coverage.info '/Applications/*' 'target/debug/build/**' 'target/release/build/**' '/usr*' '**/errors.rs' '**/build.rs' 'flowr/examples/**' '*tests/*' -o coverage.info
-	@find . -name "*.profraw" | xargs rm -f
+	@cargo llvm-cov report --lcov --output-path coverage.info
+	@lcov --ignore-errors unused --remove coverage.info '/Applications/*' 'target/debug/build/**' 'target/release/build/**' '/usr*' '**/errors.rs' '**/build.rs' 'flowr/examples/**' '*tests/*' -o coverage.info
 	@echo "Generating coverage report"
 	@genhtml -o target/coverage --quiet coverage.info
 	@echo "View coverage report using 'open target/coverage/index.html'"
