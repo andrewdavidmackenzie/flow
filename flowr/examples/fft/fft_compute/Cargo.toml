@@ -12,9 +12,9 @@ path = "fft_compute.rs"
 debug = false
 lto = true
 codegen-units = 1
-opt-level = 's'
+opt-level = 'z'
 panic = 'abort'
-strip = "debuginfo"
+strip = true
 
 [dependencies]
 flowcore = {path = "../../../../flowcore", version = "1"}

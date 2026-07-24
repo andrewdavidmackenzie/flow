@@ -94,7 +94,6 @@ jobs:
 
       - name: InstallWasmTools
         run: |
-          which wasm-gc || cargo install wasm-gc
           which wasm-snip || cargo install wasm-snip
 
       - name: cargo-build-flowc
@@ -169,7 +168,6 @@ jobs:
       - name: InstallWasmTools
         shell: bash
         run: |
-          which wasm-gc || cargo install wasm-gc
           which wasm-snip || cargo install wasm-snip
 
       - name: ConfigureCoverage

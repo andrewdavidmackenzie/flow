@@ -68,7 +68,7 @@ endif
 	@cargo install mdbook
 	@cargo install mdbook-linkcheck
 	@echo "installing wasm optimization tools"
-	@cargo install wasm-gc wasm-snip
+	@cargo install wasm-snip
 
 .PHONY: clean_examples
 clean_examples:

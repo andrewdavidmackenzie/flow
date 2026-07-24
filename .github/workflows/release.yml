@@ -83,7 +83,7 @@ jobs:
           rm -rf binaryen-${BINARYEN_VERSION} binaryen.tar.gz
 
       - name: Install WASM tools
-        run: cargo install wasm-gc wasm-snip
+        run: cargo install wasm-snip
 
       - name: Install cargo-packager
         run: cargo install cargo-packager --locked
