@@ -234,10 +234,10 @@ coverage: clean-start build
 	@target/debug/flowc -d -g -O flowstdlib
 	@target/debug/flowc flowr/src/bin/flowrcli
 	@target/debug/flowc flowr/src/bin/flowrgui
-ifeq ($(CODESIGN),)
+ifneq ($(CODESIGN),)
 	find target -perm +111 -type f | xargs codesign -fs self
 endif
-	@cargo llvm-cov clean
+	@cargo llvm-cov clean --workspace
 	@cargo llvm-cov test --no-report
 	@cargo llvm-cov test --no-report --examples
 	@echo "Gathering coverage information"
