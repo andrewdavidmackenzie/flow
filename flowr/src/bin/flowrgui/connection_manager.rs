@@ -2298,3 +2298,168 @@ fn format_output_connection(
     }
     b.finish()
 }
+
+#[cfg(test)]
+mod test {
+    use super::*;
+
+    #[test]
+    fn stop_request_default_is_false() {
+        // Clear any state from other tests
+        STOP_REQUESTED.store(false, Ordering::Relaxed);
+        assert!(!take_stop_request());
+    }
+
+    #[test]
+    fn stop_request_roundtrip() {
+        request_stop();
+        assert!(take_stop_request(), "Should be true after request_stop()");
+        assert!(!take_stop_request(), "Should be false after being consumed");
+    }
+
+    #[test]
+    fn discovered_address_default_is_none() {
+        // Clear any state from other tests
+        if let Ok(mut guard) = DISCOVERED_ADDRESS.write() {
+            *guard = None;
+        }
+        assert!(!has_discovered_address());
+        assert!(take_discovered_address().is_none());
+    }
+
+    #[test]
+    fn discovered_address_roundtrip() {
+        set_discovered_address("tcp://localhost:5555".to_string());
+        assert!(has_discovered_address());
+        let addr = take_discovered_address();
+        assert_eq!(addr.as_deref(), Some("tcp://localhost:5555"));
+        assert!(
+            !has_discovered_address(),
+            "Should be gone after being taken"
+        );
+    }
+
+    #[test]
+    fn job_count_default_is_zero() {
+        JOB_COUNT.store(0, Ordering::Relaxed);
+        assert_eq!(get_job_count(), 0);
+    }
+
+    #[test]
+    fn job_count_roundtrip() {
+        set_job_count(42);
+        assert_eq!(get_job_count(), 42);
+        set_job_count(0);
+    }
+
+    #[test]
+    fn rewrite_for_gui_replaces_cli_references() {
+        let input = "Use the 'b' command to set a breakpoint. Use 'h' for help.";
+        let output = rewrite_for_gui(input);
+        assert_eq!(output, "Use the 'Set BP' button to set a breakpoint.");
+    }
+
+    #[test]
+    fn rewrite_for_gui_replaces_inspect_reference() {
+        let input = "Use 'i n' or 'inspect n' to inspect the function number 'n'";
+        let output = rewrite_for_gui(input);
+        assert_eq!(
+            output,
+            "Enter a function number in the spec field and click 'Inspect'"
+        );
+    }
+
+    #[test]
+    fn rewrite_for_gui_replaces_reset_reference() {
+        let input = "Cannot run a process mid-execution. Reset first with 'r'.";
+        let output = rewrite_for_gui(input);
+        assert_eq!(
+            output,
+            "Cannot run a process mid-execution. Click Reset first."
+        );
+    }
+
+    #[test]
+    fn rewrite_for_gui_replaces_break_reference() {
+        let input = "'break' command must specify a breakpoint";
+        let output = rewrite_for_gui(input);
+        assert_eq!(output, "A breakpoint target must be specified");
+    }
+
+    #[test]
+    fn rewrite_for_gui_replaces_step_reference() {
+        let input = "To break on every Function, you can just single step using 's' command";
+        let output = rewrite_for_gui(input);
+        assert_eq!(output, "To break on every Function, use the Step button");
+    }
+
+    #[test]
+    fn rewrite_for_gui_replaces_run_args_reference() {
+        let input = "Supply them as arguments: r <target> <val1> <val2> ...";
+        let output = rewrite_for_gui(input);
+        assert_eq!(
+            output,
+            "Fill in values in the input panel and click Execute."
+        );
+    }
+
+    #[test]
+    fn rewrite_for_gui_passthrough_unmatched() {
+        let input = "some other message";
+        let output = rewrite_for_gui(input);
+        assert_eq!(output, "some other message");
+    }
+
+    #[cfg(feature = "debugger")]
+    #[test]
+    fn state_label_maps_all_variants() {
+        use flowrlib::run_state::State;
+        assert_eq!(state_label(&State::Ready), "ready");
+        assert_eq!(state_label(&State::Waiting), "waiting");
+        assert_eq!(state_label(&State::Running), "running");
+        assert_eq!(state_label(&State::Completed), "completed");
+    }
+
+    #[cfg(feature = "debugger")]
+    #[test]
+    fn state_link_type_maps_all_variants() {
+        use flowrlib::run_state::State;
+        assert_eq!(state_link_type(&State::Ready), crate::LinkType::StateReady);
+        assert_eq!(
+            state_link_type(&State::Waiting),
+            crate::LinkType::StateWaiting
+        );
+        assert_eq!(
+            state_link_type(&State::Running),
+            crate::LinkType::StateRunning
+        );
+        assert_eq!(
+            state_link_type(&State::Completed),
+            crate::LinkType::StateCompleted
+        );
+    }
+
+    #[cfg(feature = "debugger")]
+    #[test]
+    fn debug_port_default_is_zero() {
+        assert_eq!(get_debug_port(), 0);
+    }
+
+    #[cfg(feature = "debugger")]
+    #[test]
+    fn last_output_inspect_pid_default_is_none() {
+        LAST_OUTPUT_INSPECT_PID.store(usize::MAX, Ordering::Relaxed);
+        assert!(take_last_output_inspect_pid().is_none());
+    }
+
+    #[cfg(feature = "debugger")]
+    #[test]
+    fn last_output_inspect_pid_roundtrip() {
+        set_last_output_inspect_pid(7);
+        assert_eq!(take_last_output_inspect_pid(), Some(7));
+        assert!(
+            take_last_output_inspect_pid().is_none(),
+            "Should be consumed after take"
+        );
+    }
+}

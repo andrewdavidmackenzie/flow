@@ -464,3 +464,152 @@ pub(crate) fn canvas_height(data: &StateDiagramData) -> f32 {
         500.0
     }
 }
+
+#[cfg(test)]
+#[allow(clippy::unwrap_used, clippy::expect_used)]
+mod test {
+    use super::*;
+
+    fn empty_data() -> StateDiagramData {
+        StateDiagramData {
+            waiting_ids: vec![],
+            ready_ids: vec![],
+            running_ids: vec![],
+            completed_ids: vec![],
+            cached_functions: vec![],
+        }
+    }
+
+    fn sample_data() -> StateDiagramData {
+        StateDiagramData {
+            waiting_ids: vec![0, 1, 2],
+            ready_ids: vec![3],
+            running_ids: vec![4, 5],
+            completed_ids: vec![],
+            cached_functions: vec![],
+        }
+    }
+
+    #[test]
+    fn state_box_empty_has_minimum_height() {
+        let sb = StateBox::new("Test", Color::WHITE, vec![], 0.0);
+        assert!((sb.height - BOX_H_MIN).abs() < f32::EPSILON);
+    }
+
+    #[test]
+    fn state_box_with_chips_is_taller() {
+        let sb = StateBox::new("Test", Color::WHITE, vec![1, 2, 3], 0.0);
+        assert!(sb.height > BOX_H_MIN);
+    }
+
+    #[test]
+    fn state_box_bottom_equals_y_plus_height() {
+        let sb = StateBox::new("Test", Color::WHITE, vec![1], 10.0);
+        assert!((sb.bottom() - (10.0 + sb.height)).abs() < f32::EPSILON);
+    }
+
+    #[test]
+    fn state_box_rect_position_and_size() {
+        let sb = StateBox::new("Test", Color::WHITE, vec![], 50.0);
+        let r = sb.rect();
+        assert!((r.x - LEFT_X).abs() < f32::EPSILON);
+        assert!((r.y - 50.0).abs() < f32::EPSILON);
+        assert!((r.width - BOX_W).abs() < f32::EPSILON);
+        assert!((r.height - sb.height).abs() < f32::EPSILON);
+    }
+
+    #[test]
+    fn build_boxes_returns_four_boxes() {
+        let boxes = build_boxes(&empty_data());
+        assert_eq!(boxes.len(), 4);
+        assert_eq!(boxes[0].label, "Waiting");
+        assert_eq!(boxes[1].label, "Ready");
+        assert_eq!(boxes[2].label, "Running");
+        assert_eq!(boxes[3].label, "Completed");
+    }
+
+    #[test]
+    fn build_boxes_are_vertically_ordered() {
+        let boxes = build_boxes(&sample_data());
+        for i in 1..boxes.len() {
+            assert!(
+                boxes[i].y > boxes[i - 1].bottom(),
+                "{} should be below {}",
+                boxes[i].label,
+                boxes[i - 1].label
+            );
+        }
+    }
+
+    #[test]
+    fn build_boxes_propagate_ids() {
+        let boxes = build_boxes(&sample_data());
+        assert_eq!(boxes[0].ids, vec![0, 1, 2]); // waiting
+        assert_eq!(boxes[1].ids, vec![3]); // ready
+        assert_eq!(boxes[2].ids, vec![4, 5]); // running
+        assert!(boxes[3].ids.is_empty()); // completed
+    }
+
+    #[test]
+    fn compute_chip_bounds_empty_data() {
+        let bounds = compute_all_chip_bounds(&empty_data());
+        assert!(bounds.is_empty());
+    }
+
+    #[test]
+    fn compute_chip_bounds_matches_ids() {
+        let data = sample_data();
+        let bounds = compute_all_chip_bounds(&data);
+        let ids: Vec<usize> = bounds.iter().map(|(_, id)| *id).collect();
+        // All IDs from all state boxes should appear
+        assert_eq!(ids, vec![0, 1, 2, 3, 4, 5]);
+    }
+
+    #[test]
+    fn compute_chip_bounds_within_boxes() {
+        let data = sample_data();
+        let bounds = compute_all_chip_bounds(&data);
+        let boxes = build_boxes(&data);
+
+        for (rect, id) in &bounds {
+            // Find which box this chip belongs to
+            let parent_box = boxes
+                .iter()
+                .find(|sb| sb.ids.contains(id))
+                .expect("chip should belong to a box");
+            let box_rect = parent_box.rect();
+            assert!(
+                rect.x >= box_rect.x && rect.x + rect.width <= box_rect.x + box_rect.width,
+                "Chip for id {id} should be horizontally within its box"
+            );
+        }
+    }
+
+    #[test]
+    fn canvas_height_empty_data() {
+        let h = canvas_height(&empty_data());
+        assert!(h > 0.0);
+    }
+
+    #[test]
+    fn canvas_height_increases_with_more_ids() {
+        let small = canvas_height(&empty_data());
+        let large = canvas_height(&sample_data());
+        assert!(large > small, "More IDs should produce a taller canvas");
+    }
+
+    #[test]
+    fn many_chips_respects_max_limit() {
+        let data = StateDiagramData {
+            waiting_ids: (0..50).collect(),
+            ready_ids: vec![],
+            running_ids: vec![],
+            completed_ids: vec![],
+            cached_functions: vec![],
+        };
+        let bounds = compute_all_chip_bounds(&data);
+        // Only MAX_CHIPS chips should get bounds, not all 50
+        let waiting_bounds: Vec<_> = bounds.iter().filter(|(_, id)| *id < 50).collect();
+        assert_eq!(waiting_bounds.len(), MAX_CHIPS);
+    }
+}
