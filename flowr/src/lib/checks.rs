@@ -4,7 +4,7 @@ use log::error;
 use flowcore::errors::Result;
 use flowcore::model::runtime_function::RuntimeFunction;
 
-use crate::run_state::{RunState, State};
+use crate::run_state::RunState;
 
 fn runtime_error(
     state: &RunState,
@@ -39,13 +39,7 @@ fn ready_check(state: &RunState, job_id: usize, function: &RuntimeFunction) -> R
         );
     }
 
-    if !(state
-        .get_function_states(function.id())
-        .contains(&State::Ready)
-        || state
-            .get_function_states(function.id())
-            .contains(&State::Running))
-    {
+    if !(state.is_ready(function.id()) || state.is_running(function.id())) {
         return runtime_error(
             state,
             job_id,
@@ -90,21 +84,16 @@ fn waiting_check(_state: &RunState, _job_id: usize, _function: &RuntimeFunction)
     Ok(())
 }
 
-// If function has completed, its States should contain Completed and only Completed
-fn completed_check(
-    state: &RunState,
-    job_id: usize,
-    function: &RuntimeFunction,
-    function_states: &Vec<State>,
-) -> Result<()> {
-    if !(function_states.contains(&State::Completed) && function_states.len() == 1) {
+// If function has completed, it should not also be running or ready
+fn completed_check(state: &RunState, job_id: usize, function: &RuntimeFunction) -> Result<()> {
+    if state.is_running(function.id()) || state.is_ready(function.id()) {
         return runtime_error(
             state,
             job_id,
             &format!(
-                "Function #{} has Completed, but states are: {:?}",
+                "Function #{} has Completed, but is also Running or Ready: {:?}",
                 function.id(),
-                function_states
+                state.get_function_states(function.id())
             ),
             file!(),
             line!(),
@@ -118,14 +107,14 @@ fn function_state_checks(state: &RunState, job_id: usize) -> Result<()> {
     for function in state.get_functions().values() {
         running_check(state, job_id, function)?;
 
-        let function_states = &state.get_function_states(function.id());
-        for function_state in function_states {
-            match function_state {
-                State::Ready => ready_check(state, job_id, function)?,
-                State::Waiting => waiting_check(state, job_id, function)?,
-                State::Completed => completed_check(state, job_id, function, function_states)?,
-                State::Running => {}
-            }
+        if state.is_ready(function.id()) {
+            ready_check(state, job_id, function)?;
+        }
+        if state.is_waiting(function.id()) {
+            waiting_check(state, job_id, function)?;
+        }
+        if state.is_completed(function.id()) {
+            completed_check(state, job_id, function)?;
         }
     }
 
@@ -167,7 +156,7 @@ mod test {
     use flowcore::model::submission::Submission;
 
     use crate::checks::completed_check;
-    use crate::run_state::{RunState, State};
+    use crate::run_state::RunState;
 
     use super::ready_check;
     use super::running_check;
@@ -283,11 +272,10 @@ mod test {
         let function = test_function(0, 0);
         let mut state = test_state(vec![function]);
 
-        // Mark function #0 as completed
+        // Mark function #0 as completed (not running or ready)
         state.mark_as_completed(0);
-        let functions_states = vec![State::Completed];
 
-        // this completed check should pass
+        // this completed check should pass — completed and nothing else
         completed_check(
             &state,
             0,
@@ -295,7 +283,6 @@ mod test {
                 .get_function(0)
                 .ok_or("No function")
                 .expect("No function"),
-            &functions_states,
         )
         .expect("Should pass");
     }
@@ -303,12 +290,14 @@ mod test {
     #[test]
     fn test_completed_fails() {
         let function = test_function(0, 0);
-        let state = test_state(vec![function]);
+        let mut state = test_state(vec![function]);
 
-        // Do NOT mark function #0 as completed, use Ready state
-        let functions_states = vec![State::Ready];
+        // Mark function #0 as completed, but also create a ready job for it
+        // This simulates an invalid state: completed yet ready
+        state.mark_as_completed(0);
+        state.create_jobs(0, 0).expect("Couldn't create jobs");
 
-        // this completed check should fail
+        // this completed check should fail — completed but also ready
         assert!(completed_check(
             &state,
             0,
@@ -316,7 +305,6 @@ mod test {
                 .get_function(0)
                 .ok_or("No function")
                 .expect("No function"),
-            &functions_states
         )
         .is_err());
     }

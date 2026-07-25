@@ -177,6 +177,8 @@ pub struct RunState {
     jobs_per_function: Vec<usize>,
     /// Index: parent flow ID → function IDs in that flow (avoids full-manifest scans)
     functions_by_flow: HashMap<usize, Vec<usize>>,
+    /// Precomputed ancestor chains: flow ID → [self, parent, grandparent, ...root]
+    ancestors_by_flow: HashMap<usize, Vec<usize>>,
     #[cfg(feature = "trace")]
     #[serde(skip)]
     trace: flowcore::model::trace::Trace,
@@ -195,6 +197,21 @@ impl RunState {
                 .push(*id);
         }
 
+        let mut ancestors_by_flow = HashMap::<usize, Vec<usize>>::new();
+        for &flow_id in submission.manifest.flows().keys() {
+            let mut chain = vec![flow_id];
+            let mut current = flow_id;
+            while let Some(flow_info) = submission.manifest.flows().get(&current) {
+                if let Some(pid) = flow_info.parent_id {
+                    chain.push(pid);
+                    current = pid;
+                } else {
+                    break;
+                }
+            }
+            ancestors_by_flow.insert(flow_id, chain);
+        }
+
         #[cfg(feature = "metrics")]
         let num_processes =
             submission.manifest.functions().len() + submission.manifest.flows().len();
@@ -210,6 +227,7 @@ impl RunState {
             #[cfg(feature = "metrics")]
             jobs_per_function: vec![0; num_processes],
             functions_by_flow,
+            ancestors_by_flow,
             #[cfg(feature = "trace")]
             trace,
         }
@@ -305,6 +323,38 @@ impl RunState {
         states
     }
 
+    /// Returns `true` if the function has been marked as completed (will not run again)
+    #[cfg(any(debug_assertions, feature = "debugger", test))]
+    #[must_use]
+    pub fn is_completed(&self, function_id: usize) -> bool {
+        self.completed.contains(&function_id)
+    }
+
+    /// Returns `true` if the function has at least one job currently running
+    #[cfg(any(debug_assertions, feature = "debugger", test))]
+    #[must_use]
+    pub fn is_running(&self, function_id: usize) -> bool {
+        self.running_jobs
+            .values()
+            .any(|j| j.process_id == function_id)
+    }
+
+    /// Returns `true` if the function has at least one job ready to be dispatched
+    #[cfg(any(debug_assertions, feature = "debugger", test))]
+    #[must_use]
+    pub fn is_ready(&self, function_id: usize) -> bool {
+        self.ready_jobs.iter().any(|j| j.process_id == function_id)
+    }
+
+    /// Returns `true` if the function is waiting (not completed, not running, not ready)
+    #[cfg(any(debug_assertions, feature = "debugger", test))]
+    #[must_use]
+    pub fn is_waiting(&self, function_id: usize) -> bool {
+        !self.is_completed(function_id)
+            && !self.is_running(function_id)
+            && !self.is_ready(function_id)
+    }
+
     // See if the function is in only the specified state
     #[cfg(test)]
     pub(crate) fn function_state_is_only(&self, function_id: usize, state: &State) -> bool {
@@ -326,6 +376,10 @@ impl RunState {
         self.submission.manifest.functions().get(&id)
     }
 
+    /// Get a mutable reference to the [`RuntimeFunction`] with the given `id`.
+    ///
+    /// Used internally to mutate function state: sending values to inputs,
+    /// consuming input sets for job creation, and re-initializing after execution.
     pub(crate) fn get_mut(&mut self, id: usize) -> Option<&mut RuntimeFunction> {
         self.submission.manifest.get_functions().get_mut(&id)
     }
@@ -356,7 +410,10 @@ impl RunState {
         self.ready_jobs.remove(0)
     }
 
-    // Update the run_state to reflect that the job is now running
+    /// Record that a job has been dispatched for execution.
+    ///
+    /// Moves the job into the `running_jobs` map, keyed by `job_id`, so that
+    /// incoming results from executors can be matched back to the originating job.
     pub(crate) fn start_job(&mut self, job: Job) {
         self.running_jobs.insert(job.payload.job_id, job);
         #[cfg(feature = "trace")]
@@ -412,28 +469,27 @@ impl RunState {
         self.number_of_jobs_created
     }
 
-    // Complete a Job by taking its output and updating the run-list accordingly.
-    //
-    // If other functions were blocked trying to send to this one - we can now unblock them
-    // as it has consumed its inputs, and they are free to be sent to again.
-    //
-    // Then, take the output and send it to all destination IOs on different functions.
-    // If those other functions have all their inputs, then create jobs for them.
+    /// Complete a job by processing its result and updating the run-list accordingly.
+    ///
+    /// This removes the job from `running_jobs`, distributes output values to connected
+    /// functions, handles run-again vs completed state, and checks if any ancestor flows
+    /// have gone idle.
     #[allow(unused_variables, unused_assignments, unused_mut)]
-    pub(crate) fn retire_a_job(
+    pub(crate) fn retire_job(
         &mut self,
+        job_id: usize,
+        result: Result<(Option<Value>, RunAgain)>,
         #[cfg(feature = "metrics")] metrics: &mut Metrics,
-        result: (usize, Result<(Option<Value>, RunAgain)>),
         #[cfg(feature = "debugger")] debugger: &mut Debugger,
     ) -> Result<(DebugAction, Job)> {
         let mut action = DebugAction::Continue;
 
         let mut job = self
             .running_jobs
-            .remove(&result.0)
-            .ok_or_else(|| format!("Could not find Job#{} to retire it", result.0))?;
+            .remove(&job_id)
+            .ok_or_else(|| format!("Could not find Job#{job_id} to retire it"))?;
 
-        match &result.1 {
+        match &result {
             Ok((output_value, function_can_run_again)) => {
                 #[cfg(feature = "debugger")]
                 debug!(
@@ -506,9 +562,7 @@ impl RunState {
             }
         }
 
-        // unblock any senders from other flows that can now run due to this function completing
-        // causing the flow to be idle now
-        action = self.unblock_flows(
+        action = self.update_flow_busy_state(
             &job,
             #[cfg(feature = "debugger")]
             debugger,
@@ -521,7 +575,7 @@ impl RunState {
             "Job #{}: Completed-----------------------",
             job.payload.job_id
         );
-        job.result = result.1;
+        job.result = result;
 
         Ok((action, job))
     }
@@ -626,55 +680,6 @@ impl RunState {
         &self.ready_jobs
     }
 
-    /// An input blocker is another function that is the only function connected to an empty input
-    /// of the target function, and which is not ready to run, hence the target function cannot run.
-    ///
-    /// # Errors
-    /// Returns an error if the target function does not exist.
-    #[cfg(feature = "debugger")]
-    pub fn get_input_blockers(&self, target_id: usize) -> Result<Vec<usize>> {
-        let mut input_blockers = vec![];
-        let target_function = self.get_function(target_id).ok_or("No such function")?;
-
-        // for each empty input of the target function
-        for (target_io, input) in target_function.inputs().iter().enumerate() {
-            if input.values_available() == 0 {
-                let mut senders = Vec::<usize>::new();
-
-                // go through all functions to see if sends to the target function on this input
-                for sender_function in self.submission.manifest.functions().values() {
-                    // if the sender function is not ready to run
-                    let mut sender_is_ready = false;
-
-                    for ready_job in &self.ready_jobs {
-                        if ready_job.process_id == sender_function.id() {
-                            sender_is_ready = true;
-                        }
-                    }
-
-                    if !sender_is_ready {
-                        // for each output route of the sending function, see if the target is
-                        // the target function and input
-                        for destination in sender_function.get_output_connections() {
-                            if (destination.destination_id == target_id)
-                                && (destination.destination_io_number == target_io)
-                            {
-                                senders.push(sender_function.id());
-                            }
-                        }
-                    }
-                }
-
-                // If unique sender to this Input, then the target function is waiting for that value
-                if senders.len() == 1 {
-                    input_blockers.extend(senders);
-                }
-            }
-        }
-
-        Ok(input_blockers)
-    }
-
     // Create one or more new jobs for the function and mark it and ancestor flows as busy
     pub(crate) fn create_jobs(&mut self, process_id: usize, parent_id: usize) -> Result<()> {
         loop {
@@ -726,7 +731,8 @@ impl RunState {
                     debug!("process_id {process_id} out of range for jobs_per_function");
                 }
                 *self.busy_count.entry(process_id).or_insert(0) += 1;
-                for ancestor in self.ancestors(parent_id) {
+                let ancestors = self.ancestors(parent_id).to_vec();
+                for ancestor in ancestors {
                     *self.busy_count.entry(ancestor).or_insert(0) += 1;
                 }
                 #[cfg(feature = "trace")]
@@ -764,27 +770,22 @@ impl RunState {
         &self.jobs_per_function
     }
 
-    /// Return the ancestor flow ids starting from `parent_id` up to the root
-    fn ancestors(&self, parent_id: usize) -> Vec<usize> {
-        let mut result = vec![parent_id];
-        let mut current = parent_id;
-        while let Some(flow_info) = self.submission.manifest.flows().get(&current) {
-            if let Some(pid) = flow_info.parent_id {
-                result.push(pid);
-                current = pid;
-            } else {
-                break; // reached root
-            }
-        }
-        result
+    /// Return the ancestor flow IDs starting from `parent_id` up to the root.
+    ///
+    /// Uses a precomputed lookup table built in [`RunState::new()`], so this is
+    /// an O(1) `HashMap` lookup rather than walking the flow hierarchy each time.
+    fn ancestors(&self, parent_id: usize) -> &[usize] {
+        self.ancestors_by_flow
+            .get(&parent_id)
+            .map_or(&[], Vec::as_slice)
     }
 
-    // Check if ancestor flows have gone idle and run flow initializers if so
+    /// After a job completes, decrement busy counts and check if any ancestor
+    /// flow has gone idle. For each newly idle flow, either create jobs for
+    /// functions runnable on internal data, or clear internals and re-apply
+    /// flow initializers.
     #[allow(unused_variables, unused_assignments, unused_mut)]
-    /// After a job completes, decrement busy counts and check if any
-    /// ancestor flow has gone idle.  Matches the spec's `DecrBusy` +
-    /// `FlowGoesIdle` sequence.
-    fn unblock_flows(
+    fn update_flow_busy_state(
         &mut self,
         job: &Job,
         #[cfg(feature = "debugger")] debugger: &mut Debugger,
@@ -809,7 +810,8 @@ impl RunState {
     ) -> Result<DebugAction> {
         let mut action = DebugAction::Continue;
 
-        for ancestor_id in self.ancestors(job.parent_id) {
+        let ancestors = self.ancestors(job.parent_id).to_vec();
+        for ancestor_id in ancestors {
             if self.busy_count.contains_key(&ancestor_id) {
                 continue;
             }
@@ -872,7 +874,8 @@ impl RunState {
             }
         }
         // Decrement ancestor flow counts
-        for ancestor in self.ancestors(parent_id) {
+        let ancestors = self.ancestors(parent_id).to_vec();
+        for ancestor in ancestors {
             if let Some(count) = self.busy_count.get_mut(&ancestor) {
                 *count = count.saturating_sub(1);
                 if *count == 0 {
@@ -1304,7 +1307,7 @@ mod test {
         }
 
         #[test]
-        fn input_blocker() {
+        fn both_waiting_when_no_init() {
             let f_a = super::test_function_a_to_b_not_init();
             let f_b = test_function_b_not_init();
             let mut state = RunState::new(super::test_submission(vec![f_a, f_b]));
@@ -1320,14 +1323,6 @@ mod test {
             assert!(
                 state.function_state_is_only(1, &State::Waiting),
                 "f_b should be waiting for input"
-            );
-            #[cfg(feature = "debugger")]
-            assert!(
-                state
-                    .get_input_blockers(1)
-                    .expect("Could not get blockers")
-                    .contains(&0),
-                "There should be an input blocker"
             );
         }
 
@@ -1512,10 +1507,11 @@ mod test {
             // Event
             let job = test_job();
             state
-                .retire_a_job(
+                .retire_job(
+                    job.payload.job_id,
+                    job.result,
                     #[cfg(feature = "metrics")]
                     &mut metrics,
-                    (job.payload.job_id, job.result),
                     #[cfg(feature = "debugger")]
                     &mut debugger,
                 )
@@ -1559,10 +1555,11 @@ mod test {
             // Event
             let job = test_job();
             state
-                .retire_a_job(
+                .retire_job(
+                    job.payload.job_id,
+                    job.result,
                     #[cfg(feature = "metrics")]
                     &mut metrics,
-                    (job.payload.job_id, job.result),
                     #[cfg(feature = "debugger")]
                     &mut debugger,
                 )
@@ -1627,10 +1624,11 @@ mod test {
             state.start_job(job.clone());
 
             state
-                .retire_a_job(
+                .retire_job(
+                    job.payload.job_id,
+                    job.result,
                     #[cfg(feature = "metrics")]
                     &mut metrics,
-                    (job.payload.job_id, job.result),
                     #[cfg(feature = "debugger")]
                     &mut debugger,
                 )
@@ -1704,10 +1702,11 @@ mod test {
             state.start_job(job.clone());
 
             state
-                .retire_a_job(
+                .retire_job(
+                    job.payload.job_id,
+                    job.result,
                     #[cfg(feature = "metrics")]
                     &mut metrics,
-                    (job.payload.job_id, job.result),
                     #[cfg(feature = "debugger")]
                     &mut debugger,
                 )
@@ -1885,10 +1884,11 @@ mod test {
 
             // Test there is no problem producing an Output when no destinations to send it to
             state
-                .retire_a_job(
+                .retire_job(
+                    job.payload.job_id,
+                    job.result,
                     #[cfg(feature = "metrics")]
                     &mut metrics,
-                    (job.payload.job_id, job.result),
                     #[cfg(feature = "debugger")]
                     &mut debugger,
                 )
@@ -1973,10 +1973,11 @@ mod test {
             // Retire A's job — it sends output to B via external connection
             // Since B's parent flow (1) is busy, no job should be created for B
             state
-                .retire_a_job(
+                .retire_job(
+                    job.payload.job_id,
+                    Ok((Some(json!(42)), true)),
                     #[cfg(feature = "metrics")]
                     &mut metrics,
-                    (job.payload.job_id, Ok((Some(json!(42)), true))),
                     #[cfg(feature = "debugger")]
                     &mut debugger,
                 )

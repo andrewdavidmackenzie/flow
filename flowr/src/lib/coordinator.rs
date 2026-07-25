@@ -326,11 +326,12 @@ impl<'a> Coordinator<'a> {
         }
 
         match self.get_result(state) {
-            Ok(Some(result)) => {
-                let (mut action, job) = state.retire_a_job(
+            Ok(Some((job_id, result))) => {
+                let (mut action, job) = state.retire_job(
+                    job_id,
+                    result,
                     #[cfg(feature = "metrics")]
                     metrics,
-                    result,
                     #[cfg(feature = "debugger")]
                     &mut self.debugger,
                 )?;
