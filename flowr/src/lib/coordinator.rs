@@ -11,6 +11,7 @@ use flowcore::model::metrics::Metrics;
 use flowcore::model::submission::Submission;
 use flowcore::RunAgain;
 
+use crate::debug_action::DebugAction;
 #[cfg(feature = "debugger")]
 use crate::debugger::Debugger;
 #[cfg(feature = "debugger")]
@@ -42,6 +43,15 @@ pub struct Coordinator<'a> {
     debugger: Debugger<'a>,
     #[cfg(all(not(feature = "debugger"), not(feature = "submission")))]
     _data: PhantomData<&'a Dispatcher>,
+}
+
+/// Result of running the inner dispatch/retire loop for one iteration of flow execution.
+/// Tells the outer loop whether to restart (debugger reset) or finish.
+enum FlowIterationResult {
+    /// Flow execution completed normally or was stopped by the client
+    Done,
+    /// The debugger requested a restart of flow execution
+    Restart,
 }
 
 impl<'a> Coordinator<'a> {
@@ -84,22 +94,15 @@ impl<'a> Coordinator<'a> {
         self.submission_handler.coordinator_is_exiting(Ok(()))
     }
 
-    //noinspection RsReassignImmutable
-    /// Execute a flow by looping while there are jobs to be processed in an inner loop.
-    /// There is an outer loop for the case when you are using the debugger, to allow entering
-    /// the debugger when the flow ends and at any point resetting all the state and starting
-    /// execution again from the initial state
+    /// Execute a flow by looping while there are jobs to be processed.
+    ///
+    /// The outer loop exists for the debugger: it allows resetting all state and restarting
+    /// execution from scratch. The inner dispatch/retire cycle is in [`run_jobs`](Self::run_jobs).
     ///
     /// # Errors
     ///
     /// Returns an error if the execution of the flow did not complete normally.
-    ///
-    #[allow(
-        unused_variables,
-        unused_assignments,
-        unused_mut,
-        clippy::too_many_lines
-    )]
+    #[allow(unused_variables, unused_mut)]
     pub fn execute_flow(&mut self, submission: Submission) -> Result<()> {
         self.job_timeout = submission.job_timeout;
         self.dispatcher
@@ -125,108 +128,36 @@ impl<'a> Coordinator<'a> {
             self.debugger.start();
         }
 
-        let mut restart = false;
-        let mut display_next_output = false;
-
-        // This outer loop is just a way of restarting execution from scratch if the debugger requests it
-        'flow_execution: loop {
+        // Outer loop: allows the debugger to restart execution from scratch
+        loop {
             state.init()?;
             #[cfg(feature = "metrics")]
             metrics.reset();
 
-            // If debugging - then prior to starting execution - enter the debugger
-            #[cfg(feature = "debugger")]
-            if state.submission.debug_enabled {
-                (display_next_output, restart) = self.debugger.wait_for_command(&mut state)?;
-            }
+            let iteration_result = self.run_jobs(
+                &mut state,
+                #[cfg(feature = "metrics")]
+                &mut metrics,
+            )?;
 
-            #[cfg(feature = "submission")]
-            self.submission_handler.flow_execution_starting()?;
-
-            'jobs: loop {
-                trace!("{state}");
-
-                #[cfg(feature = "submission")]
-                if self.submission_handler.should_stop()? {
-                    break 'flow_execution;
-                }
-
-                #[cfg(all(feature = "debugger", feature = "submission"))]
-                if state.submission.debug_enabled
-                    && self.submission_handler.should_enter_debugger()?
-                {
-                    (display_next_output, restart) = self.debugger.wait_for_command(&mut state)?;
-                    if restart {
-                        break 'jobs;
-                    }
-                }
-
-                (display_next_output, restart) = self.dispatch_jobs(
+            // After execution ends, give the debugger a chance to inspect final state
+            // and potentially request a restart
+            let restart = matches!(iteration_result, FlowIterationResult::Restart)
+                || self.debugger_end_of_execution(
                     &mut state,
                     #[cfg(feature = "metrics")]
                     &mut metrics,
                 )?;
 
-                if restart {
-                    break 'jobs;
-                }
-
-                (display_next_output, restart) = self.retire_jobs(
-                    &mut state,
-                    #[cfg(feature = "metrics")]
-                    &mut metrics,
-                )?;
-
-                #[cfg(all(
-                    feature = "submission",
-                    any(feature = "metrics", feature = "debugger")
-                ))]
-                self.submission_handler
-                    .jobs_created(state.get_number_of_jobs_created());
-
-                if restart {
-                    break 'jobs;
-                }
-
-                if state.number_jobs_running() == 0 && state.number_jobs_ready() == 0 {
-                    // execution is done - but not returning here allows us to go into debugger
-                    // at the end of execution, inspect state and possibly reset and rerun
-                    break 'jobs;
-                }
-            } // jobs loop end
-
-            // flow execution has ended
-            #[cfg(feature = "metrics")]
             if !restart {
-                metrics.stop_timer();
-                metrics.set_jobs_created(state.get_number_of_jobs_created());
-                metrics.set_jobs_per_function(state.jobs_per_function());
-            }
-
-            #[allow(clippy::collapsible_if)]
-            #[cfg(feature = "debugger")]
-            if !restart {
-                {
-                    if state.submission.debug_enabled {
-                        (display_next_output, restart) = self.debugger.execution_ended(
-                            &mut state,
-                            #[cfg(feature = "metrics")]
-                            Some(&metrics),
-                        )?;
-                    }
-                }
-            }
-
-            // if no debugger then end execution always
-            // if a debugger - then end execution if the debugger has not requested a restart
-            if !restart {
-                break 'flow_execution;
+                break;
             }
         }
 
         #[cfg(feature = "trace")]
         state.write_trace()?;
 
+        // Finalize metrics and notify the submission handler that execution has ended
         #[cfg(feature = "metrics")]
         metrics.stop_timer();
         #[cfg(feature = "metrics")]
@@ -237,146 +168,258 @@ impl<'a> Coordinator<'a> {
         #[cfg(all(feature = "submission", not(feature = "metrics")))]
         self.submission_handler.flow_execution_ended(&state)?;
 
-        Ok(()) // Normal flow completion exit
+        Ok(())
     }
 
-    // Get a result back from an executor
+    /// Run the inner dispatch/retire loop until no more jobs remain or the debugger
+    /// requests a restart.
+    ///
+    /// Returns `FlowIterationResult::Restart` if the debugger requested a reset,
+    /// or `FlowIterationResult::Done` when execution finishes normally.
+    #[allow(unused_variables, unused_mut)]
+    fn run_jobs(
+        &mut self,
+        state: &mut RunState,
+        #[cfg(feature = "metrics")] metrics: &mut Metrics,
+    ) -> Result<FlowIterationResult> {
+        // If debugging, enter the debugger before starting execution
+        #[cfg(feature = "debugger")]
+        if state.submission.debug_enabled {
+            let action = self.debugger.wait_for_command(state)?;
+            if action.should_restart() {
+                return Ok(FlowIterationResult::Restart);
+            }
+        }
+
+        #[cfg(feature = "submission")]
+        self.submission_handler.flow_execution_starting()?;
+
+        loop {
+            trace!("{state}");
+
+            #[cfg(feature = "submission")]
+            if self.submission_handler.should_stop()? {
+                return Ok(FlowIterationResult::Done);
+            }
+
+            #[cfg(all(feature = "debugger", feature = "submission"))]
+            if state.submission.debug_enabled && self.submission_handler.should_enter_debugger()? {
+                let action = self.debugger.wait_for_command(state)?;
+                if action.should_restart() {
+                    return Ok(FlowIterationResult::Restart);
+                }
+            }
+
+            let action = self.dispatch_jobs(
+                state,
+                #[cfg(feature = "metrics")]
+                metrics,
+            )?;
+
+            if action.should_restart() {
+                return Ok(FlowIterationResult::Restart);
+            }
+
+            let action = self.retire_jobs(
+                state,
+                #[cfg(feature = "metrics")]
+                metrics,
+            )?;
+
+            #[cfg(all(feature = "submission", any(feature = "metrics", feature = "debugger")))]
+            self.submission_handler
+                .jobs_created(state.get_number_of_jobs_created());
+
+            if action.should_restart() {
+                return Ok(FlowIterationResult::Restart);
+            }
+
+            if state.number_jobs_running() == 0 && state.number_jobs_ready() == 0 {
+                return Ok(FlowIterationResult::Done);
+            }
+        }
+    }
+
+    /// After a flow execution iteration ends (without restart), finalize metrics and
+    /// give the debugger a chance to inspect final state and potentially request a restart.
+    ///
+    /// Returns `true` if the debugger requested a restart.
+    #[allow(unused_variables, unused_mut)]
+    fn debugger_end_of_execution(
+        &mut self,
+        state: &mut RunState,
+        #[cfg(feature = "metrics")] metrics: &mut Metrics,
+    ) -> Result<bool> {
+        #[cfg(feature = "metrics")]
+        {
+            metrics.stop_timer();
+            metrics.set_jobs_created(state.get_number_of_jobs_created());
+            metrics.set_jobs_per_function(state.jobs_per_function());
+        }
+
+        #[cfg(feature = "debugger")]
+        if state.submission.debug_enabled {
+            let action = self.debugger.execution_ended(
+                state,
+                #[cfg(feature = "metrics")]
+                Some(metrics),
+            )?;
+            return Ok(action.should_restart());
+        }
+
+        Ok(false)
+    }
+
+    /// Try to get a result back from an executor, using a strategy that avoids unnecessary
+    /// blocking:
+    ///
+    /// 1. First, attempt a **non-blocking** receive. If a result is already available,
+    ///    return it immediately.
+    /// 2. If no result is available but there are **ready jobs** waiting to be dispatched,
+    ///    return `None` so the caller can dispatch them first rather than blocking here.
+    ///    Those dispatched jobs may produce results faster than waiting for in-flight ones.
+    /// 3. If no result is available and there are **no ready jobs** to dispatch, then
+    ///    **block** waiting for the next result, since there is nothing else productive
+    ///    the coordinator can do.
     #[allow(clippy::type_complexity)]
     fn get_result(
         &mut self,
         state: &RunState,
     ) -> Result<Option<(usize, Result<(Option<Value>, RunAgain)>)>> {
+        // Step 1: Non-blocking attempt
         if let Ok(result) = self.dispatcher.get_next_result(false) {
             return Ok(Some(result));
         }
 
+        // Step 2: If there are ready jobs, don't block — let the caller dispatch them first
         if state.number_jobs_ready() > 0 {
             return Ok(None);
         }
 
+        // Step 3: Nothing else to do, so block waiting for the next result
         match self.dispatcher.get_next_result(true) {
             Ok(result) => Ok(Some(result)),
             Err(e) => Err(e),
         }
     }
 
-    // Retire as many jobs as possible, based on returned results.
-    // NOTE: This will block waiting for the last pending result
+    /// Retire as many jobs as possible, based on returned results.
+    ///
+    /// This may block waiting for results if no jobs are ready to be dispatched
+    /// (see [`get_result`](Self::get_result)).
     fn retire_jobs(
         &mut self,
         state: &mut RunState,
         #[cfg(feature = "metrics")] metrics: &mut Metrics,
-    ) -> Result<(bool, bool)> {
-        let mut display_next_output = false;
-        let mut restart = false;
-
-        if state.number_jobs_running() > 0 {
-            // Check for expired jobs and re-queue them
-            if self.job_timeout.is_some() {
-                state.requeue_expired_jobs(
-                    Self::MAX_JOB_RETRIES,
-                    #[cfg(feature = "metrics")]
-                    metrics,
-                )?;
-            }
-
-            match self.get_result(state) {
-                Ok(Some(result)) => {
-                    let job;
-
-                    (display_next_output, restart, job) = state.retire_a_job(
-                        #[cfg(feature = "metrics")]
-                        metrics,
-                        result,
-                        #[cfg(feature = "debugger")]
-                        &mut self.debugger,
-                    )?;
-                    #[cfg(feature = "debugger")]
-                    if display_next_output {
-                        (display_next_output, restart) = self.debugger.job_done(state, &job);
-                        if restart {
-                            return Ok((display_next_output, restart));
-                        }
-                    }
-                }
-
-                Ok(None) => {
-                    info!(
-                        "No result was immediately available, but jobs are ready to be dispatched.\
-                     So coordinator avoided blocking for result. Will be received next time around"
-                    );
-                }
-
-                Err(err) => {
-                    error!("\t{err}");
-                    #[cfg(feature = "debugger")]
-                    if state.submission.debug_enabled {
-                        return self.debugger.error(state, err.to_string());
-                    }
-                    return Ok((display_next_output, restart));
-                }
-            }
+    ) -> Result<DebugAction> {
+        if state.number_jobs_running() == 0 {
+            return Ok(DebugAction::Continue);
         }
 
-        Ok((display_next_output, restart))
+        // Check for expired jobs and re-queue them
+        if self.job_timeout.is_some() {
+            state.requeue_expired_jobs(
+                Self::MAX_JOB_RETRIES,
+                #[cfg(feature = "metrics")]
+                metrics,
+            )?;
+        }
+
+        match self.get_result(state) {
+            Ok(Some(result)) => {
+                let (mut action, job) = state.retire_a_job(
+                    #[cfg(feature = "metrics")]
+                    metrics,
+                    result,
+                    #[cfg(feature = "debugger")]
+                    &mut self.debugger,
+                )?;
+
+                #[cfg(feature = "debugger")]
+                if action.should_display() {
+                    action = self.debugger.job_done(state, &job);
+                    if action.should_restart() {
+                        return Ok(action);
+                    }
+                }
+
+                Ok(action)
+            }
+
+            Ok(None) => {
+                info!(
+                    "No result was immediately available, but jobs are ready to be dispatched. \
+                     So coordinator avoided blocking for result. Will be received next time around"
+                );
+                Ok(DebugAction::Continue)
+            }
+
+            Err(err) => {
+                error!("\t{err}");
+                #[cfg(feature = "debugger")]
+                if state.submission.debug_enabled {
+                    return self.debugger.error(state, err.to_string());
+                }
+                Ok(DebugAction::Continue)
+            }
+        }
     }
 
-    // Dispatch as many jobs as possible for parallel execution.
-    // Return if the debugger is requesting (display output, restart)
+    /// Dispatch as many jobs as possible for parallel execution.
+    ///
+    /// Returns a `DebugAction` indicating whether the debugger wants to display the
+    /// next output or restart execution.
     fn dispatch_jobs(
         &mut self,
         state: &mut RunState,
         #[cfg(feature = "metrics")] metrics: &mut Metrics,
-    ) -> Result<(bool, bool)> {
-        let mut display_next_output = false;
-        let mut restart = false;
+    ) -> Result<DebugAction> {
+        let mut action = DebugAction::Continue;
 
         while let Some(job) = state.get_next_job() {
             match self.dispatch_a_job(
-                job.clone(),
+                &job,
                 state,
                 #[cfg(feature = "metrics")]
                 metrics,
             ) {
-                Ok((display, rest)) => {
-                    display_next_output = display;
-                    restart = rest;
-                }
+                Ok(a) => action = a,
                 Err(err) => {
                     error!("Error sending on 'job_tx': {err}");
                     debug!("{state}");
 
                     #[cfg(feature = "debugger")]
-                    return self.debugger.job_error(state, &job); // TODO avoid above clone() ?
+                    return self.debugger.job_error(state, &job);
                 }
             }
         }
 
-        Ok((display_next_output, restart))
+        Ok(action)
     }
 
-    // Dispatch a job for execution
+    /// Dispatch a single job for execution via the dispatcher.
     fn dispatch_a_job(
         &mut self,
-        mut job: Job,
+        job: &Job,
         state: &mut RunState,
         #[cfg(feature = "metrics")] metrics: &mut Metrics,
-    ) -> Result<(bool, bool)> {
+    ) -> Result<DebugAction> {
         #[cfg(not(feature = "debugger"))]
-        let debug_options = (false, false);
+        let action = DebugAction::Continue;
 
         #[cfg(feature = "debugger")]
-        let debug_options = self.debugger.check_prior_to_job(state, &job)?;
+        let action = self.debugger.check_prior_to_job(state, job)?;
 
         self.dispatcher.send_job_for_execution(&job.payload)?;
 
+        let mut job = job.clone();
         job.ttl = self.job_timeout.and_then(|d| Instant::now().checked_add(d));
         state.start_job(job);
 
         #[cfg(feature = "metrics")]
         metrics.track_max_jobs(state.number_jobs_running());
 
-        Ok(debug_options)
+        Ok(action)
     }
 }
 
@@ -385,12 +428,9 @@ impl<'a> Coordinator<'a> {
 mod test {
     use std::time::Duration;
 
-    use portpicker::pick_unused_port;
     use serial_test::serial;
 
-    use flowcore::model::flow_manifest::FlowManifest;
     use flowcore::model::input::Input;
-    use flowcore::model::metadata::MetaData;
     #[cfg(feature = "metrics")]
     use flowcore::model::metrics::Metrics;
     use flowcore::model::output_connection::OutputConnection;
@@ -412,41 +452,7 @@ mod test {
     use super::Coordinator;
     use crate::dispatcher::Dispatcher;
     use crate::run_state::RunState;
-
-    fn get_bind_addresses(ports: (u16, u16, u16, u16)) -> (String, String, String, String) {
-        (
-            format!("tcp://*:{}", ports.0),
-            format!("tcp://*:{}", ports.1),
-            format!("tcp://*:{}", ports.2),
-            format!("tcp://*:{}", ports.3),
-        )
-    }
-
-    fn get_four_ports() -> (u16, u16, u16, u16) {
-        (
-            pick_unused_port().expect("No ports free"),
-            pick_unused_port().expect("No ports free"),
-            pick_unused_port().expect("No ports free"),
-            pick_unused_port().expect("No ports free"),
-        )
-    }
-
-    fn test_meta_data() -> MetaData {
-        MetaData {
-            name: "test".into(),
-            version: "0.0.0".into(),
-            description: "a test".into(),
-            authors: vec!["me".into()],
-        }
-    }
-
-    fn test_manifest(functions: Vec<RuntimeFunction>) -> FlowManifest {
-        let mut manifest = FlowManifest::new(test_meta_data());
-        for function in functions {
-            manifest.add_function(function);
-        }
-        manifest
-    }
+    use crate::test_helper::fixtures::{get_bind_addresses, get_four_ports, test_manifest};
 
     fn test_submission(functions: Vec<RuntimeFunction>) -> Submission {
         Submission::new(

@@ -9,6 +9,7 @@ use flowcore::errors::Result;
 use flowcore::model::output_connection::Source::{Input, Output};
 use flowcore::model::runtime_function::RuntimeFunction;
 
+use crate::debug_action::DebugAction;
 use crate::debug_command::BreakpointSpec;
 use crate::debug_command::DebugCommand;
 use crate::debug_command::DebugCommand::{
@@ -52,8 +53,7 @@ impl<'a> Debugger<'a> {
     }
 
     /// Check if there is a breakpoint at this job prior to starting executing it.
-    /// Return values are (display next output, reset execution)
-    pub fn check_prior_to_job(&mut self, state: &mut RunState, job: &Job) -> Result<(bool, bool)> {
+    pub fn check_prior_to_job(&mut self, state: &mut RunState, job: &Job) -> Result<DebugAction> {
         if self.break_at_job == job.payload.job_id
             || self.function_breakpoints.contains(&job.process_id)
         {
@@ -67,10 +67,10 @@ impl<'a> Debugger<'a> {
             return self.wait_for_command(state);
         }
 
-        Ok((false, false))
+        Ok(DebugAction::Continue)
     }
 
-    /// Called from flowrlib runtime prior to sending a value to another function,to see if there
+    /// Called from flowrlib runtime prior to sending a value to another function, to see if there
     /// is a breakpoint on that send.
     ///
     /// If there is, then enter the debug client and wait for a command.
@@ -82,7 +82,7 @@ impl<'a> Debugger<'a> {
         value: &Value,
         destination_id: usize,
         input_number: usize,
-    ) -> Result<(bool, bool)> {
+    ) -> Result<DebugAction> {
         if self
             .output_breakpoints
             .contains(&(source_function_id, output_route.to_string()))
@@ -114,7 +114,7 @@ impl<'a> Debugger<'a> {
             return self.wait_for_command(state);
         }
 
-        Ok((false, false))
+        Ok(DebugAction::Continue)
     }
 
     /// Called from flowrlib runtime prior to unblocking a flow to see if there is a breakpoint
@@ -125,7 +125,7 @@ impl<'a> Debugger<'a> {
         &mut self,
         state: &mut RunState,
         flow_being_unblocked_id: usize,
-    ) -> Result<(bool, bool)> {
+    ) -> Result<DebugAction> {
         if self
             .flow_unblock_breakpoints
             .contains(&flow_being_unblocked_id)
@@ -135,7 +135,7 @@ impl<'a> Debugger<'a> {
             return self.wait_for_command(state);
         }
 
-        Ok((false, false))
+        Ok(DebugAction::Continue)
     }
 
     /// An error occurred while executing a flow. Let the debug client know, enter the client
@@ -144,14 +144,13 @@ impl<'a> Debugger<'a> {
     /// This is useful for debugging a flow that has an error. Without setting any explicit
     /// breakpoint it will enter the debugger on an error and let the user inspect the flow's
     /// state etc.
-    pub fn job_error(&mut self, state: &mut RunState, job: &Job) -> Result<(bool, bool)> {
+    pub fn job_error(&mut self, state: &mut RunState, job: &Job) -> Result<DebugAction> {
         self.debug_server.job_error(job);
         self.wait_for_command(state)
     }
 
     /// Called from the flowrlib coordinator to inform the debug client that a job has completed
-    /// Return values are (display next output, reset execution)
-    pub fn job_done(&mut self, state: &mut RunState, job: &Job) -> (bool, bool) {
+    pub fn job_done(&mut self, state: &mut RunState, job: &Job) -> DebugAction {
         if job.result.is_err() {
             if state.submission.debug_enabled {
                 let _ = self.job_error(state, job);
@@ -165,13 +164,13 @@ impl<'a> Debugger<'a> {
                         function,
                         state.get_function_states(job.process_id),
                     );
-                    if let Ok(result) = self.wait_for_command(state) {
-                        return result;
+                    if let Ok(action) = self.wait_for_command(state) {
+                        return action;
                     }
                 }
             }
         }
-        (false, false)
+        DebugAction::Continue
     }
 
     /// An error occurred while executing a flow. Let the debug client know, enter the client
@@ -180,18 +179,17 @@ impl<'a> Debugger<'a> {
     /// This is useful for debugging a flow that has an error. Without setting any explicit
     /// breakpoint it will enter the debugger on an error and let the user inspect the flow's
     /// state etc.
-    pub fn error(&mut self, state: &mut RunState, error_message: String) -> Result<(bool, bool)> {
+    pub fn error(&mut self, state: &mut RunState, error_message: String) -> Result<DebugAction> {
         self.debug_server.panic(state, error_message);
         self.wait_for_command(state)
     }
 
     /// Execution of the flow ended, report it and wait for command
-    /// Return values are (display next output, reset execution)
     pub fn execution_ended(
         &mut self,
         state: &mut RunState,
         #[cfg(feature = "metrics")] metrics: Option<&flowcore::model::metrics::Metrics>,
-    ) -> Result<(bool, bool)> {
+    ) -> Result<DebugAction> {
         self.debug_server.execution_ended();
         #[cfg(feature = "metrics")]
         if let Some(m) = metrics {
@@ -200,16 +198,15 @@ impl<'a> Debugger<'a> {
         self.wait_for_command(state)
     }
 
-    /// The execution flow has entered the debugged based on some event.
+    /// The execution flow has entered the debugger based on some event.
     ///
     /// Now wait for and process commands from the `DebugClient`
     /// - execute and respond immediately those that require it
     /// - some commands will cause the command loop to exit.
     ///
-    /// When exiting return a set of booleans for the Coordinator to determine what to do:
-    /// (display next output, reset execution, `exit_debugger`)
+    /// When exiting return a `DebugAction` for the Coordinator to determine what to do.
     #[allow(clippy::too_many_lines)]
-    pub fn wait_for_command(&mut self, state: &mut RunState) -> Result<(bool, bool)> {
+    pub fn wait_for_command(&mut self, state: &mut RunState) -> Result<DebugAction> {
         loop {
             match self.debug_server.get_command(state) {
                 // *************************      The following are commands that send a response
@@ -348,17 +345,17 @@ impl<'a> Debugger<'a> {
                 // ************************** The following commands may exit the command loop
                 Ok(Continue) => {
                     if state.get_number_of_jobs_created() > 0 {
-                        return Ok((false, false));
+                        return Ok(DebugAction::Continue);
                     }
                 }
                 Ok(RunReset(None, _)) => {
                     return if state.get_number_of_jobs_created() > 0 {
                         self.reset();
                         self.debug_server.debugger_resetting();
-                        Ok((false, true))
+                        Ok(DebugAction::Restart)
                     } else {
                         self.debug_server.execution_starting();
-                        Ok((false, false))
+                        Ok(DebugAction::Continue)
                     };
                 }
                 Ok(RunReset(Some(target), args)) => {
@@ -370,7 +367,7 @@ impl<'a> Debugger<'a> {
                         Ok(process_id) => match self.run_process(state, process_id, &args) {
                             Ok(()) => {
                                 self.debug_server.execution_starting();
-                                return Ok((false, false));
+                                return Ok(DebugAction::Continue);
                             }
                             Err(e) => self.debug_server.debugger_error(e.to_string()),
                         },
@@ -379,7 +376,7 @@ impl<'a> Debugger<'a> {
                 }
                 Ok(Step(param)) => {
                     self.step(state, param);
-                    return Ok((true, false));
+                    return Ok(DebugAction::DisplayNextOutput);
                 }
                 Ok(ExitDebugger) => {
                     self.debug_server.debugger_exiting();
@@ -1043,10 +1040,8 @@ mod test {
     use url::Url;
 
     use flowcore::errors::Result;
-    use flowcore::model::flow_manifest::FlowManifest;
     use flowcore::model::input::Input;
     use flowcore::model::input::InputInitializer::Once;
-    use flowcore::model::metadata::MetaData;
     use flowcore::model::output_connection::OutputConnection;
     use flowcore::model::runtime_function::RuntimeFunction;
     use flowcore::model::submission::Submission;
@@ -1056,6 +1051,7 @@ mod test {
     use crate::debugger_handler::DebuggerHandler;
     use crate::job::{Job, Payload};
     use crate::run_state::{RunState, State};
+    use crate::test_helper::fixtures::test_manifest;
 
     struct DummyServer {
         job_breakpoint: usize,
@@ -1132,23 +1128,6 @@ mod test {
         fn get_command(&mut self, _state: &RunState) -> Result<DebugCommand> {
             Ok(DebugCommand::Step(None))
         }
-    }
-
-    fn test_meta_data() -> MetaData {
-        MetaData {
-            name: "test".into(),
-            version: "0.0.0".into(),
-            description: "a test".into(),
-            authors: vec!["me".into()],
-        }
-    }
-
-    fn test_manifest(functions: Vec<RuntimeFunction>) -> FlowManifest {
-        let mut manifest = FlowManifest::new(test_meta_data());
-        for function in functions {
-            manifest.add_function(function);
-        }
-        manifest
     }
 
     fn test_submission(functions: Vec<RuntimeFunction>) -> Submission {

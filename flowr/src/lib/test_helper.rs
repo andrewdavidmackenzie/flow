@@ -1,4 +1,51 @@
-//! Shared test helper for setting up client-coordinator test connections.
+//! Shared test helpers for `flowrlib` tests.
+
+/// Shared fixtures for manifest, submission and dispatcher construction used by
+/// multiple test modules.
+#[cfg(test)]
+#[allow(clippy::unwrap_used, clippy::expect_used)]
+pub(crate) mod fixtures {
+    use portpicker::pick_unused_port;
+
+    use flowcore::model::flow_manifest::FlowManifest;
+    use flowcore::model::metadata::MetaData;
+    use flowcore::model::runtime_function::RuntimeFunction;
+
+    pub fn get_four_ports() -> (u16, u16, u16, u16) {
+        (
+            pick_unused_port().expect("No ports free"),
+            pick_unused_port().expect("No ports free"),
+            pick_unused_port().expect("No ports free"),
+            pick_unused_port().expect("No ports free"),
+        )
+    }
+
+    pub fn get_bind_addresses(ports: (u16, u16, u16, u16)) -> (String, String, String, String) {
+        (
+            format!("tcp://*:{}", ports.0),
+            format!("tcp://*:{}", ports.1),
+            format!("tcp://*:{}", ports.2),
+            format!("tcp://*:{}", ports.3),
+        )
+    }
+
+    pub fn test_meta_data() -> MetaData {
+        MetaData {
+            name: "test".into(),
+            version: "0.0.0".into(),
+            description: "a test".into(),
+            authors: vec!["me".into()],
+        }
+    }
+
+    pub fn test_manifest(functions: Vec<RuntimeFunction>) -> FlowManifest {
+        let mut manifest = FlowManifest::new(test_meta_data());
+        for function in functions {
+            manifest.add_function(function);
+        }
+        manifest
+    }
+}
 
 #[allow(clippy::unwrap_used, clippy::expect_used)]
 #[doc(hidden)]

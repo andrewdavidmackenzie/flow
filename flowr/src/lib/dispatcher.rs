@@ -163,7 +163,6 @@ impl Drop for Dispatcher {
 mod test {
     use std::time::Duration;
 
-    use portpicker::pick_unused_port;
     use serde_json::Value;
     use serial_test::serial;
     use url::Url;
@@ -173,24 +172,7 @@ mod test {
     use flowcore::DONT_RUN_AGAIN;
 
     use crate::job::Payload;
-
-    fn get_bind_addresses(ports: (u16, u16, u16, u16)) -> (String, String, String, String) {
-        (
-            format!("tcp://*:{}", ports.0),
-            format!("tcp://*:{}", ports.1),
-            format!("tcp://*:{}", ports.2),
-            format!("tcp://*:{}", ports.3),
-        )
-    }
-
-    fn get_four_ports() -> (u16, u16, u16, u16) {
-        (
-            pick_unused_port().expect("No ports free"),
-            pick_unused_port().expect("No ports free"),
-            pick_unused_port().expect("No ports free"),
-            pick_unused_port().expect("No ports free"),
-        )
-    }
+    use crate::test_helper::fixtures::{get_bind_addresses, get_four_ports};
 
     #[test]
     #[serial]
