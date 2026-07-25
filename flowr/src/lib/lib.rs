@@ -82,6 +82,9 @@ pub mod debug_gui_handler;
 #[allow(dead_code)]
 mod coerce_value;
 
+/// The action a debugger interaction requests of the coordinator
+pub(crate) mod debug_action;
+
 #[cfg(feature = "debugger")]
 mod debugger;
 

@@ -19,6 +19,7 @@ use flowcore::RunAgain;
 
 #[cfg(debug_assertions)]
 use crate::checks;
+use crate::debug_action::DebugAction;
 #[cfg(feature = "debugger")]
 use crate::debugger::Debugger;
 use crate::job::{Job, Payload};
@@ -424,9 +425,8 @@ impl RunState {
         #[cfg(feature = "metrics")] metrics: &mut Metrics,
         result: (usize, Result<(Option<Value>, RunAgain)>),
         #[cfg(feature = "debugger")] debugger: &mut Debugger,
-    ) -> Result<(bool, bool, Job)> {
-        let mut display_next_output = false;
-        let mut restart = false;
+    ) -> Result<(DebugAction, Job)> {
+        let mut action = DebugAction::Continue;
 
         let mut job = self
             .running_jobs
@@ -460,7 +460,7 @@ impl RunState {
                     };
 
                     if let Some(value) = value_to_send {
-                        (display_next_output, restart) = self.send_a_value(
+                        action = self.send_a_value(
                             job.process_id,
                             job.parent_id,
                             connection,
@@ -508,7 +508,7 @@ impl RunState {
 
         // unblock any senders from other flows that can now run due to this function completing
         // causing the flow to be idle now
-        (display_next_output, restart) = self.unblock_flows(
+        action = self.unblock_flows(
             &job,
             #[cfg(feature = "debugger")]
             debugger,
@@ -523,7 +523,7 @@ impl RunState {
         );
         job.result = result.1;
 
-        Ok((display_next_output, restart, job))
+        Ok((action, job))
     }
 
     // Send a value produced as part of an output of running a job to a destination function on
@@ -536,9 +536,8 @@ impl RunState {
         output_value: Value,
         #[cfg(feature = "metrics")] metrics: &mut Metrics,
         #[cfg(feature = "debugger")] debugger: &mut Debugger,
-    ) -> Result<(bool, bool)> {
-        let mut display_next_output = false;
-        let mut restart = false;
+    ) -> Result<DebugAction> {
+        let mut action = DebugAction::Continue;
 
         let route_str = match &connection.source {
             Output(route) if route.is_empty() => String::new(),
@@ -560,7 +559,7 @@ impl RunState {
 
         #[cfg(feature = "debugger")]
         if let Output(route) = &connection.source {
-            (display_next_output, restart) = debugger.check_prior_to_send(
+            action = debugger.check_prior_to_send(
                 self,
                 source_id,
                 route,
@@ -591,7 +590,7 @@ impl RunState {
             self.try_create_destination_jobs(connection)?;
         }
 
-        Ok((display_next_output, restart))
+        Ok(action)
     }
 
     /// Create jobs for a destination function after receiving a value,
@@ -789,7 +788,7 @@ impl RunState {
         &mut self,
         job: &Job,
         #[cfg(feature = "debugger")] debugger: &mut Debugger,
-    ) -> Result<(bool, bool)> {
+    ) -> Result<DebugAction> {
         self.remove_from_busy(job.process_id, job.parent_id);
         self.handle_idle_flows(
             job,
@@ -807,9 +806,8 @@ impl RunState {
         &mut self,
         job: &Job,
         #[cfg(feature = "debugger")] debugger: &mut Debugger,
-    ) -> Result<(bool, bool)> {
-        let mut display_next_output = false;
-        let mut restart = false;
+    ) -> Result<DebugAction> {
+        let mut action = DebugAction::Continue;
 
         for ancestor_id in self.ancestors(job.parent_id) {
             if self.busy_count.contains_key(&ancestor_id) {
@@ -826,8 +824,7 @@ impl RunState {
 
                 #[cfg(feature = "debugger")]
                 {
-                    (display_next_output, restart) =
-                        debugger.check_prior_to_flow_unblock(self, ancestor_id)?;
+                    action = debugger.check_prior_to_flow_unblock(self, ancestor_id)?;
                 }
 
                 self.clear_flow_internal_inputs(ancestor_id);
@@ -837,7 +834,7 @@ impl RunState {
             }
         }
 
-        Ok((display_next_output, restart))
+        Ok(action)
     }
 
     /// Create jobs for all runnable functions in a flow that can run
@@ -1006,10 +1003,8 @@ mod test {
     use url::Url;
 
     use flowcore::errors::Result;
-    use flowcore::model::flow_manifest::FlowManifest;
     use flowcore::model::input::Input;
     use flowcore::model::input::InputInitializer::Once;
-    use flowcore::model::metadata::MetaData;
     use flowcore::model::output_connection::{OutputConnection, Source};
     use flowcore::model::runtime_function::RuntimeFunction;
     use flowcore::model::submission::Submission;
@@ -1020,6 +1015,7 @@ mod test {
     use crate::debugger::Debugger;
     #[cfg(feature = "debugger")]
     use crate::debugger_handler::DebuggerHandler;
+    use crate::test_helper::fixtures::test_manifest;
 
     use super::RunState;
     use super::State;
@@ -1214,23 +1210,6 @@ mod test {
     #[cfg(feature = "debugger")]
     fn dummy_debugger(server: &mut dyn DebuggerHandler) -> Debugger<'_> {
         Debugger::new(server)
-    }
-
-    fn test_meta_data() -> MetaData {
-        MetaData {
-            name: "test".into(),
-            version: "0.0.0".into(),
-            description: "a test".into(),
-            authors: vec!["me".into()],
-        }
-    }
-
-    fn test_manifest(functions: Vec<RuntimeFunction>) -> FlowManifest {
-        let mut manifest = FlowManifest::new(test_meta_data());
-        for function in functions {
-            manifest.add_function(function);
-        }
-        manifest
     }
 
     fn test_submission(functions: Vec<RuntimeFunction>) -> Submission {
