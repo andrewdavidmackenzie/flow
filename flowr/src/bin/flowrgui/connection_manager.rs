@@ -2462,4 +2462,418 @@ mod test {
             "Should be consumed after take"
         );
     }
+
+    #[cfg(feature = "debugger")]
+    #[allow(
+        clippy::indexing_slicing,
+        clippy::unwrap_used,
+        clippy::expect_used,
+        clippy::single_char_pattern
+    )]
+    mod format_debug_event_tests {
+        use serde_json::json;
+        use url::Url;
+
+        use flowcore::model::debug_command::BreakpointSpec;
+        use flowcore::model::input::Input;
+        use flowcore::model::output_connection::{OutputConnection, Source};
+        use flowcore::model::runtime_function::RuntimeFunction;
+        use flowrlib::debug_server_message::DebugServerMessage;
+        use flowrlib::job::{Job, Payload};
+
+        use super::format_debug_event;
+
+        fn test_job() -> Job {
+            Job {
+                process_id: 3,
+                parent_id: 0,
+                function_name: "add".to_string(),
+                payload: Payload {
+                    job_id: 42,
+                    input_set: vec![json!(1), json!(2)],
+                    implementation_url: Url::parse("lib://flowstdlib/math/add")
+                        .expect("Could not parse Url"),
+                },
+                result: Ok((Some(json!(3)), true)),
+                connections: vec![],
+                ttl: None,
+                attempt: 1,
+            }
+        }
+
+        fn test_function() -> RuntimeFunction {
+            RuntimeFunction::new(
+                "add",
+                "/root/add",
+                "lib://flowstdlib/math/add",
+                vec![Input::new("a", 0, false, None, None)],
+                5,
+                0,
+                &[],
+                false,
+            )
+        }
+
+        #[test]
+        fn job_completed_contains_job_and_function_ids() {
+            let lines = format_debug_event(&DebugServerMessage::JobCompleted(test_job()));
+            assert!(!lines.is_empty());
+            assert!(lines[0].text.contains("job #42"));
+            assert!(lines[0].text.contains("function #3"));
+            assert!(lines[0].text.contains("completed by"));
+        }
+
+        #[test]
+        fn job_completed_shows_output_value() {
+            let lines = format_debug_event(&DebugServerMessage::JobCompleted(test_job()));
+            assert!(lines.len() >= 2, "Should have output line");
+            assert!(lines[1].text.contains("Output:"));
+            assert!(lines[1].text.contains('3'));
+        }
+
+        #[test]
+        fn job_completed_no_output_line_when_none() {
+            let mut job = test_job();
+            job.result = Ok((None, true));
+            let lines = format_debug_event(&DebugServerMessage::JobCompleted(job));
+            assert_eq!(lines.len(), 1, "No output line when result is None");
+        }
+
+        #[test]
+        fn prior_to_sending_job_contains_ids() {
+            let lines = format_debug_event(&DebugServerMessage::PriorToSendingJob(test_job()));
+            assert_eq!(lines.len(), 2);
+            assert!(lines[0].text.contains("job #42"));
+            assert!(lines[0].text.contains("function #3"));
+            assert!(lines[1].text.contains("Inputs:"));
+        }
+
+        #[test]
+        fn job_error_contains_ids() {
+            let lines = format_debug_event(&DebugServerMessage::JobError(test_job()));
+            assert!(!lines.is_empty());
+            assert!(lines[0].text.contains("Error"));
+            assert!(lines[0].text.contains("job #42"));
+        }
+
+        #[test]
+        fn panic_contains_message_and_count() {
+            let lines =
+                format_debug_event(&DebugServerMessage::Panic("division by zero".into(), 10));
+            assert_eq!(lines.len(), 1);
+            assert!(lines[0].text.contains("division by zero"));
+            assert!(lines[0].text.contains("10"));
+        }
+
+        #[test]
+        fn deadlock_contains_message() {
+            let lines = format_debug_event(&DebugServerMessage::Deadlock("cycle detected".into()));
+            assert_eq!(lines.len(), 1);
+            assert!(lines[0].text.contains("cycle detected"));
+        }
+
+        #[test]
+        fn error_rewrites_for_gui() {
+            let lines = format_debug_event(&DebugServerMessage::Error(
+                "'break' command must specify a breakpoint".into(),
+            ));
+            assert_eq!(lines.len(), 1);
+            assert!(
+                lines[0].text.contains("target must be specified"),
+                "Should rewrite CLI message for GUI"
+            );
+        }
+
+        #[test]
+        fn message_rewrites_for_gui() {
+            let lines = format_debug_event(&DebugServerMessage::Message(
+                "Use the 'b' command to set a breakpoint. Use 'h' for help.".into(),
+            ));
+            assert_eq!(lines.len(), 1);
+            assert!(lines[0].text.contains("Set BP"));
+        }
+
+        #[test]
+        fn entering_debugger_returns_empty() {
+            let lines = format_debug_event(&DebugServerMessage::EnteringDebugger);
+            assert!(lines.is_empty());
+        }
+
+        #[test]
+        fn exiting_debugger_returns_message() {
+            let lines = format_debug_event(&DebugServerMessage::ExitingDebugger);
+            assert_eq!(lines.len(), 1);
+            assert!(lines[0].text.contains("exiting"));
+        }
+
+        #[test]
+        fn execution_started() {
+            let lines = format_debug_event(&DebugServerMessage::ExecutionStarted);
+            assert_eq!(lines.len(), 1);
+            assert!(lines[0].text.contains("Running"));
+        }
+
+        #[test]
+        fn execution_ended() {
+            let lines = format_debug_event(&DebugServerMessage::ExecutionEnded);
+            assert_eq!(lines.len(), 1);
+            assert!(lines[0].text.contains("completed"));
+        }
+
+        #[test]
+        fn resetting() {
+            let lines = format_debug_event(&DebugServerMessage::Resetting);
+            assert_eq!(lines.len(), 1);
+            assert!(lines[0].text.contains("Resetting"));
+        }
+
+        #[test]
+        fn invalid_returns_error() {
+            let lines = format_debug_event(&DebugServerMessage::Invalid);
+            assert_eq!(lines.len(), 1);
+            assert!(lines[0].text.contains("Invalid"));
+        }
+
+        #[test]
+        fn sending_value_contains_ids_and_value() {
+            let lines = format_debug_event(&DebugServerMessage::SendingValue(1, json!(42), 2, 0));
+            assert_eq!(lines.len(), 1);
+            assert!(lines[0].text.contains("function #1"));
+            assert!(lines[0].text.contains("function #2"));
+            assert!(lines[0].text.contains("42"));
+        }
+
+        #[test]
+        fn flow_unblock_breakpoint_contains_flow_id() {
+            let lines = format_debug_event(&DebugServerMessage::FlowUnblockBreakpoint(7));
+            assert_eq!(lines.len(), 1);
+            assert!(lines[0].text.contains("flow #7"));
+            assert!(lines[0].text.contains("idle"));
+        }
+
+        #[test]
+        fn waiting_for_command_contains_job_id() {
+            let lines = format_debug_event(&DebugServerMessage::WaitingForCommand(99));
+            assert_eq!(lines.len(), 1);
+            assert!(lines[0].text.contains("job #99"));
+        }
+
+        #[test]
+        fn data_breakpoint_contains_all_fields() {
+            let lines = format_debug_event(&DebugServerMessage::DataBreakpoint(
+                "source_fn".into(),
+                1,
+                "/output".into(),
+                json!(42),
+                2,
+                "dest_fn".into(),
+                "input_a".into(),
+                0,
+            ));
+            assert_eq!(lines.len(), 1);
+            assert!(lines[0].text.contains("function #1"));
+            assert!(lines[0].text.contains("function #2"));
+            assert!(lines[0].text.contains("42"));
+        }
+
+        #[test]
+        fn functions_list_produces_line_per_function() {
+            let funcs = vec![test_function()];
+            let lines = format_debug_event(&DebugServerMessage::Functions(funcs));
+            assert_eq!(lines.len(), 1);
+            assert!(lines[0].text.contains("function #5"));
+        }
+
+        #[test]
+        fn function_states_shows_entity_and_states() {
+            let func = test_function();
+            let states = vec![flowrlib::run_state::State::Ready];
+            let lines =
+                format_debug_event(&DebugServerMessage::FunctionStates((func, states, vec![])));
+            assert!(!lines.is_empty());
+            assert!(lines[0].text.contains("function #5"));
+            assert!(lines[0].text.contains("ready"));
+        }
+
+        #[test]
+        fn function_states_with_blockers() {
+            let func = test_function();
+            let states = vec![flowrlib::run_state::State::Waiting];
+            let lines = format_debug_event(&DebugServerMessage::FunctionStates((
+                func,
+                states,
+                vec![1, 2],
+            )));
+            assert!(lines.len() >= 2);
+            assert!(lines[1].text.contains("Waiting for"));
+            assert!(lines[1].text.contains("function #1"));
+            assert!(lines[1].text.contains("function #2"));
+        }
+
+        #[test]
+        fn flow_list_returns_empty() {
+            let lines = format_debug_event(&DebugServerMessage::FlowList(vec![]));
+            assert!(lines.is_empty());
+        }
+
+        #[test]
+        fn breakpoint_list_empty_returns_empty() {
+            let lines = format_debug_event(&DebugServerMessage::BreakpointList(vec![]));
+            assert!(lines.is_empty());
+        }
+
+        #[test]
+        fn breakpoint_list_numeric() {
+            let lines = format_debug_event(&DebugServerMessage::BreakpointList(vec![
+                BreakpointSpec::Numeric(3),
+            ]));
+            assert_eq!(lines.len(), 1);
+            assert!(lines[0].text.contains("function #3"));
+        }
+
+        #[test]
+        fn breakpoint_list_completed() {
+            let lines = format_debug_event(&DebugServerMessage::BreakpointList(vec![
+                BreakpointSpec::Completed(5),
+            ]));
+            assert_eq!(lines.len(), 1);
+            assert!(lines[0].text.contains("function #5"));
+        }
+
+        #[test]
+        fn breakpoint_list_input() {
+            let lines = format_debug_event(&DebugServerMessage::BreakpointList(vec![
+                BreakpointSpec::Input((2, 1)),
+            ]));
+            assert_eq!(lines.len(), 1);
+            assert!(lines[0].text.contains("input:1"));
+            assert!(lines[0].text.contains("function #2"));
+        }
+
+        #[test]
+        fn breakpoint_list_output() {
+            let lines = format_debug_event(&DebugServerMessage::BreakpointList(vec![
+                BreakpointSpec::Output((4, "/value".into())),
+            ]));
+            assert_eq!(lines.len(), 1);
+            assert!(lines[0].text.contains("output '/value'"));
+            assert!(lines[0].text.contains("function #4"));
+        }
+
+        #[test]
+        fn breakpoint_list_route() {
+            let lines = format_debug_event(&DebugServerMessage::BreakpointList(vec![
+                BreakpointSpec::Route("/root/add".into()),
+            ]));
+            assert_eq!(lines.len(), 1);
+            assert!(lines[0].text.contains("/root/add"));
+        }
+
+        #[test]
+        fn input_state_empty() {
+            let input = Input::new("value", 0, false, None, None);
+            let lines = format_debug_event(&DebugServerMessage::InputState(input));
+            assert_eq!(lines.len(), 1);
+            assert!(lines[0].text.contains("no values queued"));
+        }
+
+        #[test]
+        fn output_state_empty() {
+            let lines = format_debug_event(&DebugServerMessage::OutputState(vec![]));
+            assert_eq!(lines.len(), 1);
+            assert!(lines[0].text.contains("No output connections"));
+        }
+
+        #[test]
+        fn output_state_with_connection() {
+            let conn = OutputConnection::new(
+                Source::default(),
+                2,
+                0,
+                0,
+                true,
+                "/dest".to_string(),
+                String::default(),
+            );
+            // Clear the last output inspect PID so it returns None
+            super::LAST_OUTPUT_INSPECT_PID.store(usize::MAX, std::sync::atomic::Ordering::Relaxed);
+            let lines = format_debug_event(&DebugServerMessage::OutputState(vec![conn]));
+            assert_eq!(lines.len(), 1);
+            assert!(lines[0].text.contains("function #2"));
+        }
+
+        #[cfg(feature = "metrics")]
+        #[test]
+        fn execution_metrics_returns_empty() {
+            let metrics = flowcore::model::metrics::Metrics::new(0, 0);
+            let lines = format_debug_event(&DebugServerMessage::ExecutionMetrics(metrics));
+            assert!(lines.is_empty());
+        }
+
+        fn test_run_state() -> flowrlib::run_state::RunState {
+            use flowcore::model::flow_manifest::FlowManifest;
+            use flowcore::model::metadata::MetaData;
+            use flowcore::model::submission::Submission;
+
+            let metadata = MetaData {
+                name: "test".into(),
+                version: "0.0.0".into(),
+                description: "a test".into(),
+                authors: vec!["me".into()],
+            };
+            let mut manifest = FlowManifest::new(metadata);
+            manifest.add_function(test_function());
+            let submission = Submission::new(manifest, None, None, false);
+            flowrlib::run_state::RunState::new(submission)
+        }
+
+        #[test]
+        fn overall_state_produces_lines() {
+            let state = test_run_state();
+            let lines = format_debug_event(&DebugServerMessage::OverallState(state));
+            assert!(!lines.is_empty());
+        }
+
+        #[test]
+        fn inspect_function_produces_lines() {
+            let state = test_run_state();
+            let lines = format_debug_event(&DebugServerMessage::InspectFunction(5, state));
+            assert!(!lines.is_empty());
+            assert!(
+                lines.iter().any(|l| l.text.contains("5")),
+                "Should reference function #5"
+            );
+        }
+
+        #[test]
+        fn inspect_flow_produces_lines() {
+            let state = test_run_state();
+            let lines = format_debug_event(&DebugServerMessage::InspectFlow(0, state));
+            assert!(!lines.is_empty());
+        }
+
+        #[test]
+        fn process_tree_does_not_panic() {
+            super::STATES_ONLY.store(false, std::sync::atomic::Ordering::Relaxed);
+            super::FLOWS_ONLY.store(false, std::sync::atomic::Ordering::Relaxed);
+            let state = test_run_state();
+            // With a single function and no flow hierarchy, tree may be empty
+            let _lines = format_debug_event(&DebugServerMessage::ProcessTree(state));
+        }
+
+        #[test]
+        fn inspect_by_state_waiting() {
+            let state = test_run_state();
+            let lines =
+                format_debug_event(&DebugServerMessage::InspectByState("waiting".into(), state));
+            assert!(!lines.is_empty());
+        }
+
+        #[test]
+        fn job_inspect_produces_lines() {
+            let lines = format_debug_event(&DebugServerMessage::JobInspect(test_job()));
+            assert!(!lines.is_empty());
+            assert!(lines[0].text.contains("job #42"));
+        }
+    }
 }
