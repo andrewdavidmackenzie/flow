@@ -150,3 +150,85 @@ pub fn get_manifest(context_io: ContextIO) -> Result<LibraryManifest> {
 
     Ok(manifest)
 }
+
+#[cfg(test)]
+#[allow(clippy::unwrap_used, clippy::expect_used)]
+mod test {
+    use super::*;
+
+    fn test_context_io() -> ContextIO {
+        let (tx, _) = mpsc::channel();
+        let (blocking_tx, _) = mpsc::channel();
+        ContextIO::new(tx, blocking_tx)
+    }
+
+    #[test]
+    fn context_io_clone_works() {
+        let io = test_context_io();
+        let _clone = io.clone();
+    }
+
+    #[test]
+    fn send_and_receive_error_on_disconnected_channel() {
+        let (tx, rx) = mpsc::channel();
+        let (blocking_tx, blocking_rx) = mpsc::channel();
+        let io = ContextIO::new(tx, blocking_tx);
+
+        // Drop receivers to simulate disconnected channels
+        drop(rx);
+        drop(blocking_rx);
+
+        let result = io.send_and_receive(CoordinatorMessage::FlowStart);
+        assert!(result.is_err(), "Should fail on disconnected channel");
+    }
+
+    #[test]
+    fn send_and_receive_blocking_error_on_disconnected_channel() {
+        let (tx, _) = mpsc::channel();
+        let (blocking_tx, blocking_rx) = mpsc::channel();
+        let io = ContextIO::new(tx, blocking_tx);
+
+        drop(blocking_rx);
+
+        let result = io.send_and_receive_blocking(CoordinatorMessage::FlowStart);
+        assert!(
+            result.is_err(),
+            "Should fail on disconnected blocking channel"
+        );
+    }
+
+    #[test]
+    fn get_manifest_returns_all_context_functions() {
+        let io = test_context_io();
+        let manifest = get_manifest(io).expect("Could not create manifest");
+        let locators = &manifest.locators;
+
+        let expected = [
+            "context://args/get",
+            "context://file/file_write",
+            "context://file/file_read",
+            "context://image/image_buffer",
+            "context://image/image_read",
+            "context://image/image_write",
+            "context://stdio/readline",
+            "context://stdio/stdin",
+            "context://stdio/stdout",
+            "context://stdio/stderr",
+        ];
+
+        for url_str in &expected {
+            let url = Url::parse(url_str).expect("Could not parse URL");
+            assert!(
+                locators.contains_key(&url),
+                "Missing context function: {url_str}"
+            );
+        }
+
+        assert_eq!(
+            locators.len(),
+            expected.len(),
+            "Should have exactly {} context functions",
+            expected.len()
+        );
+    }
+}
