@@ -15,6 +15,7 @@ mod args;
 mod file;
 mod image;
 mod stdio;
+mod time;
 
 /// A request sent from a context function to the ZMQ bridge thread.
 pub struct ContextRequest {
@@ -156,6 +157,10 @@ pub fn get_manifest(context_io: ContextIO) -> Result<LibraryManifest> {
     manifest.locators.insert(
         Url::parse("context://stdio/stderr").chain_err(|| "Could not parse url")?,
         Native(Arc::new(stdio::stderr::Stderr { context_io })),
+    );
+    manifest.locators.insert(
+        Url::parse("context://time/get").chain_err(|| "Could not parse url")?,
+        Native(Arc::new(time::get::Get)),
     );
 
     Ok(manifest)
