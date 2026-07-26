@@ -5,34 +5,124 @@ docs = "DESCRIPTION.md"
 [[process]]
 source = "parse_args"
 
-# The core Game of Life step function
+####### Initial seed — use old game_step once to convert seed name to grid
+
 [[process]]
 source = "game_step"
 
-# Seed name feeds game_step on first iteration
 [[connection]]
 from = "parse_args/seed"
 to = "game_step/grid"
 
-# Size feeds game_step
 [[connection]]
 from = "parse_args/size"
 to = "game_step/size"
 
-# Loopback: keep size available
+####### Compute total cells (width * height) for accumulator chunk size
+
+[[process]]
+alias = "extract_height"
+source = "lib://flowstdlib/data/array_get"
+input.index = { always = 1 }
+
 [[connection]]
-from = "game_step/size"
-to = "game_step/size"
+from = "parse_args/size"
+to = "extract_height/array"
+
+[[process]]
+alias = "total_cells"
+source = "lib://flowstdlib/math/multiply"
+
+[[connection]]
+from = "extract_width/value"
+to = "total_cells/i1"
+
+[[connection]]
+from = "extract_height/value"
+to = "total_cells/i2"
+
+####### Phase 1: Extract 3x3 neighborhoods (sequential, one WASM job)
+
+[[process]]
+source = "extract_neighborhoods"
+
+# Initial grid from seed
+[[connection]]
+from = "game_step/grid"
+to = "extract_neighborhoods/grid"
+
+# Size needed for wrapping — loopback to persist
+[[connection]]
+from = "parse_args/size"
+to = "extract_neighborhoods/size"
+
+[[connection]]
+from = "extract_neighborhoods/size"
+to = "extract_neighborhoods/size"
+
+####### Phase 2: Apply Conway's rules (parallel, N WASM jobs)
+# The array of neighborhoods auto-decomposes into individual 3x3 arrays,
+# each triggering a separate apply_rules job that can run on any executor.
+
+[[process]]
+source = "apply_rules"
+
+[[connection]]
+from = "extract_neighborhoods"
+to = "apply_rules/neighborhood"
+
+####### Phase 3: Accumulate results back into flat grid
+
+[[process]]
+alias = "collect"
+source = "lib://flowstdlib/data/accumulate"
+input.partial = { once = [] }
+
+[[connection]]
+from = "apply_rules"
+to = "collect/values"
+
+# chunk_size = total cells — loopback to persist
+[[connection]]
+from = "total_cells"
+to = "collect/chunk_size"
+
+[[connection]]
+from = "collect/chunk_size"
+to = "collect/chunk_size"
+
+[[connection]]
+from = "collect/partial"
+to = "collect/partial"
+
+####### Extract width for image output
+
+[[process]]
+alias = "extract_width"
+source = "lib://flowstdlib/data/array_get"
+input.index = { always = 0 }
+
+[[connection]]
+from = "parse_args/size"
+to = "extract_width/array"
 
 ####### Write each generation's grid to the image
 
 [[process]]
 source = "context://image/image_write"
-input.width = { always = 16 }
 
 [[connection]]
-from = "game_step/grid"
+from = "collect/chunk"
 to = "image_write/grid"
+
+# Width from parsed size argument — loopback to persist
+[[connection]]
+from = "extract_width/value"
+to = "image_write/width"
+
+[[connection]]
+from = "image_write/width"
+to = "image_write/width"
 
 # Filename for image output — loopback to persist
 [[connection]]
@@ -42,6 +132,24 @@ to = "image_write/filename"
 [[connection]]
 from = "image_write/filename"
 to = "image_write/filename"
+
+####### Measure and print elapsed time per iteration
+
+[[process]]
+source = "context://time/get"
+
+# Counter triggers timing each iteration
+[[connection]]
+from = "counter"
+to = "get/format"
+
+# Print elapsed ms to stdout
+[[process]]
+source = "context://stdio/stdout"
+
+[[connection]]
+from = "get/elapsed_millis"
+to = "stdout"
 
 ####### Iteration control
 
@@ -74,13 +182,13 @@ from = "compare/gt"
 to = "grid-tap/control"
 
 [[connection]]
-from = "game_step/grid"
+from = "collect/chunk"
 to = "grid-tap/data"
 
-# Gated grid feeds back to game_step for next generation
+# Gated grid feeds back to extract_neighborhoods for next generation
 [[connection]]
 from = "grid-tap"
-to = "game_step/grid"
+to = "extract_neighborhoods/grid"
 
 # Counter tap: pass counter through only if iterations remain
 [[process]]

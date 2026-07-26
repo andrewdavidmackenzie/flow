@@ -1,5 +1,6 @@
 use std::collections::HashMap;
 use std::panic;
+use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::{Arc, RwLock};
 use std::thread;
 use std::thread::JoinHandle;
@@ -17,6 +18,33 @@ use flowcore::Implementation;
 
 use crate::job::Payload;
 use crate::wasm;
+
+/// Global counter of jobs currently being executed by executor threads.
+/// Incremented when an executor starts running a job, decremented when done.
+static JOBS_EXECUTING: AtomicUsize = AtomicUsize::new(0);
+
+/// Global high-water mark of jobs executing simultaneously.
+static MAX_JOBS_EXECUTING: AtomicUsize = AtomicUsize::new(0);
+
+/// Get the peak number of jobs that were actually executing simultaneously
+pub fn max_jobs_executing() -> usize {
+    MAX_JOBS_EXECUTING.load(Ordering::Relaxed)
+}
+
+/// Reset the peak counter (call before each flow execution)
+pub fn reset_max_jobs_executing() {
+    MAX_JOBS_EXECUTING.store(0, Ordering::Relaxed);
+    JOBS_EXECUTING.store(0, Ordering::Relaxed);
+}
+
+fn track_execution_start() {
+    let current = JOBS_EXECUTING.fetch_add(1, Ordering::Relaxed) + 1;
+    MAX_JOBS_EXECUTING.fetch_max(current, Ordering::Relaxed);
+}
+
+fn track_execution_end() {
+    JOBS_EXECUTING.fetch_sub(1, Ordering::Relaxed);
+}
 
 /// An `Executor` struct is used to receive jobs, execute them, and return results.
 /// It can load libraries and keep track of the `Function` `Implementations` loaded for use
@@ -336,7 +364,9 @@ fn execute_job_to_string(
     )?;
 
     trace!("Job #{}: Started executing on '{name}'", payload.job_id);
+    track_execution_start();
     let result = implementation.run(&payload.input_set);
+    track_execution_end();
     trace!("Job #{}: Finished executing on '{name}'", payload.job_id);
 
     serde_json::to_string(&(payload.job_id, result))
@@ -448,7 +478,9 @@ fn execute_job(
     )?;
 
     trace!("Job #{}: Started executing on '{name}'", payload.job_id);
+    track_execution_start();
     let result = implementation.run(&payload.input_set);
+    track_execution_end();
     trace!("Job #{}: Finished executing on '{name}'", payload.job_id);
 
     results_sink

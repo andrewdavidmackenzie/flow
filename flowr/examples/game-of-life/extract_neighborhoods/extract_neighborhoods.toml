@@ -1,0 +1,14 @@
+function = "extract_neighborhoods"
+description = "Extract 3x3 neighborhoods for every cell in a grid for parallel processing"
+source = "extract_neighborhoods.rs"
+type = "rust"
+
+[[input]]
+name = "grid"
+
+[[input]]
+name = "size"
+type = "array/number"
+
+[[output]]
+type = "array/array/number"

@@ -132,7 +132,10 @@ impl<'a> Coordinator<'a> {
         loop {
             state.init()?;
             #[cfg(feature = "metrics")]
-            metrics.reset();
+            {
+                metrics.reset();
+                crate::executor::reset_max_jobs_executing();
+            }
 
             let iteration_result = self.run_jobs(
                 &mut state,
@@ -418,7 +421,7 @@ impl<'a> Coordinator<'a> {
         state.start_job(job);
 
         #[cfg(feature = "metrics")]
-        metrics.track_max_jobs(state.number_jobs_running());
+        metrics.track_max_jobs(crate::executor::max_jobs_executing());
 
         Ok(action)
     }

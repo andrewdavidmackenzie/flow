@@ -150,7 +150,7 @@ pub fn get_manifest(context_io: ContextIO) -> Result<LibraryManifest> {
     );
     manifest.locators.insert(
         Url::parse("context://time/get").chain_err(|| "Could not parse url")?,
-        Native(Arc::new(time::get::Get)),
+        Native(Arc::new(time::get::Get::new())),
     );
 
     Ok(manifest)

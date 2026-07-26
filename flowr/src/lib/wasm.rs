@@ -30,7 +30,16 @@ impl Executor {
     // Return the offset of the data in linear memory and the data size in bytes
     fn send_inputs(&self, store: &mut Store<()>, inputs: &[Value]) -> Result<(i32, i32)> {
         let input_data = serde_json::to_vec(&inputs)?;
-        let alloc_size = max(i32::try_from(input_data.len())?, MAX_RESULT_SIZE);
+        let input_len = input_data.len();
+        let alloc_size = max(
+            i32::try_from(input_len).map_err(|e| {
+                format!(
+                    "Input data size {} exceeds i32::MAX for WASM '{}': {e}",
+                    input_len, self.source_url
+                )
+            })?,
+            MAX_RESULT_SIZE,
+        );
         let offset = self.alloc(alloc_size, store)?;
         self.memory
             .write(store, usize::try_from(offset)?, &input_data)

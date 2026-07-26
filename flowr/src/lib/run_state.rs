@@ -556,7 +556,10 @@ impl RunState {
                 }
             }
             Err(e) => {
-                error!("Error in Job #{}: {e}", job.payload.job_id);
+                error!(
+                    "Error in Job #{} (Function #{}, impl: {}): {e}",
+                    job.payload.job_id, job.process_id, job.payload.implementation_url
+                );
                 #[cfg(feature = "trace")]
                 self.record_trace("JobError");
             }
