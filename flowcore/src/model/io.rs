@@ -1,7 +1,7 @@
 use std::collections::HashSet;
 use std::fmt;
 
-use error_chain::bail;
+use crate::bail;
 //use log::warn;
 use serde_derive::{Deserialize, Serialize};
 

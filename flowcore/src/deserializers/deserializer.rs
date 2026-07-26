@@ -2,7 +2,8 @@ use serde::de::DeserializeOwned;
 use serde::Deserialize;
 use url::Url;
 
-use crate::errors::{bail, Result};
+use crate::bail;
+use crate::errors::Result;
 
 use super::json_deserializer::JsonDeserializer;
 use super::toml_deserializer::TomlDeserializer;

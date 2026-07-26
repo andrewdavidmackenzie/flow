@@ -5,8 +5,9 @@ use std::fmt;
 use std::marker::PhantomData;
 use std::str::FromStr;
 
+use crate::bail;
 use crate::errors;
-use crate::errors::{bail, Error, Result};
+use crate::errors::{Error, Result};
 use crate::model::io::IOType;
 use crate::model::name::Name;
 use crate::model::validation::Validate;

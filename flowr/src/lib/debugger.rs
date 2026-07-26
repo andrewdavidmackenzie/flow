@@ -1,7 +1,7 @@
 use std::collections::HashSet;
 use std::fmt::Write;
 
-use error_chain::bail;
+use flowcore::bail;
 use log::error;
 use serde_json::Value;
 
@@ -512,7 +512,7 @@ impl<'a> Debugger<'a> {
                         "Breakpoint on process #{process_number} was deleted"
                     ))
                 } else {
-                    bail!("No breakpoint number '{}' exists\n")
+                    bail!("No breakpoint number '{process_number}' exists\n")
                 }
             }
             Some(BreakpointSpec::Input((destination_id, input_number))) => {

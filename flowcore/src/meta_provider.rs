@@ -5,13 +5,14 @@ use std::path::PathBuf;
 use simpath::{FoundType, Simpath};
 use url::Url;
 
+use crate::bail;
 #[cfg(feature = "file_provider")]
 use crate::content::file_provider::FileProvider;
 #[cfg(feature = "http_provider")]
 use crate::content::http_provider::HttpProvider;
+use crate::errors::Result;
 #[cfg(any(feature = "context", feature = "file_provider"))]
 use crate::errors::ResultExt;
-use crate::errors::{bail, Result};
 use crate::provider::Provider;
 
 #[cfg(feature = "file_provider")]

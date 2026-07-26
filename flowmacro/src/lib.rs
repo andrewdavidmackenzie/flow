@@ -361,7 +361,7 @@ fn generate_code(
 
     let input_number_check = quote! {
         if inputs.len() != #number_of_defined_inputs {
-            flowcore::errors::bail!("'inputs' does not have the expected number of input values");
+            flowcore::bail!("'inputs' does not have the expected number of input values");
         }
     };
 

@@ -1,4 +1,4 @@
-use error_chain::bail;
+use flowcore::bail;
 use log::error;
 
 use flowcore::errors::Result;

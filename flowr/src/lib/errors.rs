@@ -1,18 +1,39 @@
-#![allow(missing_docs)]
-#![allow(unexpected_cfgs)]
+//! Error types for the `flowrlib` runtime library.
 
-pub use error_chain::bail;
-use error_chain::error_chain;
+pub use flowcore::bail;
+use thiserror::Error;
 
-error_chain! {
-    types {
-        Error, ErrorKind, ResultExt, Result;
+/// The error type for `flowrlib` operations.
+#[derive(Debug, Error)]
+pub enum Error {
+    /// An I/O error
+    #[error("{0}")]
+    Io(#[from] std::io::Error),
+    /// A JSON serialization/deserialization error
+    #[error("{0}")]
+    Serde(#[from] serde_json::error::Error),
+    /// A URL parsing error
+    #[error("{0}")]
+    Url(#[from] url::ParseError),
+    /// An error from flowcore
+    #[error("{0}")]
+    FlowrCore(#[from] flowcore::errors::Error),
+    /// A general error message
+    #[error("{0}")]
+    Msg(String),
+}
+
+/// A `Result` type alias using our [`Error`] type.
+pub type Result<T> = std::result::Result<T, Error>;
+
+impl From<String> for Error {
+    fn from(s: String) -> Self {
+        Error::Msg(s)
     }
+}
 
-    foreign_links {
-        Io(std::io::Error);
-        Serde(serde_json::error::Error);
-        Url(url::ParseError);
-        FlowrCore(flowcore::errors::Error);
+impl From<&str> for Error {
+    fn from(s: &str) -> Self {
+        Error::Msg(s.to_string())
     }
 }

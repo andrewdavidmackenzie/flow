@@ -6,7 +6,8 @@ use std::path::Path;
 use log::trace;
 use url::Url;
 
-use crate::errors::{bail, Result, ResultExt};
+use crate::bail;
+use crate::errors::{Result, ResultExt};
 use crate::provider::Provider;
 
 /// The `FileProvider` implements the `Provider` trait and takes care of fetching content located

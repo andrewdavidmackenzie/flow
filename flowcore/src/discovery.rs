@@ -10,7 +10,8 @@ use log::{debug, info};
 pub use mdns_sd::ServiceDaemon;
 use mdns_sd::{ServiceEvent, ServiceInfo};
 
-use crate::errors::{bail, Result};
+use crate::bail;
+use crate::errors::Result;
 
 use crate::services::FLOW_SERVICE_TYPE;
 

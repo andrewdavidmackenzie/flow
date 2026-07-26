@@ -1,17 +1,38 @@
-#![allow(missing_docs)]
-#![allow(unexpected_cfgs)]
+//! Error types for the `flowrcli` binary.
 
-use error_chain::error_chain;
+use thiserror::Error;
 
-error_chain! {
-    types {
-        Error, ErrorKind, ResultExt, Result;
+/// The error type for `flowrcli` operations.
+#[derive(Debug, Error)]
+pub enum Error {
+    /// A URL parsing error
+    #[error("{0}")]
+    Url(#[from] url::ParseError),
+    /// An error from flowcore
+    #[error("{0}")]
+    FlowCore(#[from] flowcore::errors::Error),
+    /// An error from the runtime library
+    #[error("{0}")]
+    Runtime(#[from] flowrlib::errors::Error),
+    /// An I/O error
+    #[error("{0}")]
+    Io(#[from] std::io::Error),
+    /// A general error message
+    #[error("{0}")]
+    Msg(String),
+}
+
+/// A `Result` type alias using our [`Error`] type.
+pub type Result<T> = std::result::Result<T, Error>;
+
+impl From<String> for Error {
+    fn from(s: String) -> Self {
+        Error::Msg(s)
     }
+}
 
-    foreign_links {
-        Url(url::ParseError);
-        FlowCore(flowcore::errors::Error);
-        Runtime(flowrlib::errors::Error);
-        Io(std::io::Error);
+impl From<&str> for Error {
+    fn from(s: &str) -> Self {
+        Error::Msg(s.to_string())
     }
 }

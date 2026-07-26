@@ -73,8 +73,8 @@ mod context;
 /// from the [`Coordinator`][`flowrlib::coordinator::Coordinator`]
 mod cli;
 
-/// provides [Error][errors::Error] that other modules in this crate will `use crate::errors::*;` to get
-/// access to everything `error_chain` creates.
+/// Error types for this binary (currently uses `flowcore::errors` directly)
+#[allow(dead_code)]
 mod errors;
 
 /// Main for flowr binary - call `run()` and print any error that results or exit silently if OK
@@ -84,14 +84,6 @@ fn main() {
 
     if let Err(ref e) = result {
         error!("{e}");
-        for e in e.iter().skip(1) {
-            error!("caused by: {e}");
-        }
-
-        // The backtrace is generated if env var `RUST_BACKTRACE` is set to `1` or `full`
-        if let Some(backtrace) = e.backtrace() {
-            error!("backtrace: {backtrace:?}");
-        }
 
         exit(1);
     }

@@ -2,12 +2,12 @@ use std::collections::{BTreeMap, BTreeSet};
 use std::fmt;
 use std::mem::take;
 
-use error_chain::bail;
+use crate::bail;
 use log::{debug, error, trace};
 use serde_derive::{Deserialize, Serialize};
 use url::Url;
 
-use crate::errors::{Result, ResultExt};
+use crate::errors::{Error, Result, ResultExt};
 use crate::model::connection::Connection;
 use crate::model::connection::Direction;
 use crate::model::connection::Direction::FROM;
@@ -363,7 +363,10 @@ impl FlowDefinition {
                     TO => function.inputs.find_by_subroute(sub_route),
                     FROM => function.outputs.find_by_subroute(sub_route).or_else(|e1| {
                         // for connections FROM the Input value copied at the output
-                        function.inputs.find_by_subroute(sub_route).chain_err(|| e1)
+                        function
+                            .inputs
+                            .find_by_subroute(sub_route)
+                            .map_err(|e2| Error::Msg(format!("{e1}: {e2}")))
                     }),
                 }
             }

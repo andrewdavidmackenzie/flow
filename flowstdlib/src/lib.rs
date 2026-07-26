@@ -38,7 +38,7 @@ pub mod fmt;
 
 /// Use `manifest::get` to get the natively/statically linked
 /// `LibraryManifest``flowcore::model::lib_manifest::LibraryManifest` for this library
-/// to get access to everything `error_chain` creates.
+/// to get access to everything `thiserror` creates.
 pub mod manifest;
 
 /// provides [Error][errors::Error] that other modules in this crate will `use errors::*;`

@@ -32,7 +32,7 @@ use flowrlib::info as flowrlib_info;
 use flowrlib::services::{CONTROL_SERVICE_NAME, JOB_SERVICE_NAME, RESULTS_JOB_SERVICE_NAME};
 
 /// We'll put our errors in an `errors` module, and other modules in this crate will
-/// `use crate::errors::*;` to get access to everything `error_chain` creates.
+/// `use crate::errors::*;` to get access to everything `thiserror` creates.
 pub mod errors;
 
 /// Main for flowrex binary - call `run()` and print any error that results or exit silently if OK
@@ -40,14 +40,6 @@ fn main() {
     match run() {
         Err(ref e) => {
             error!("{e}");
-            for e in e.iter().skip(1) {
-                error!("caused by: {e}");
-            }
-
-            // The backtrace is generated if env var `RUST_BACKTRACE` is set to `1` or `full`
-            if let Some(backtrace) = e.backtrace() {
-                error!("backtrace: {backtrace:?}");
-            }
 
             exit(1);
         }

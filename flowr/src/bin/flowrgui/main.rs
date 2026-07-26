@@ -70,7 +70,7 @@ mod icons;
 mod tabs;
 
 /// provides [Error][errors::Error] that other modules in this crate will `use crate::errors::*;`
-/// to get access to everything `error_chain` creates.
+/// to get access to everything `thiserror` creates.
 mod errors;
 
 #[cfg(feature = "debugger")]

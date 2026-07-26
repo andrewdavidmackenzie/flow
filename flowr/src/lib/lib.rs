@@ -23,7 +23,7 @@ pub use flowcore::model::debug_command;
 pub mod dispatcher;
 
 /// Holds all [Error][errors::Error] types, and other modules in this crate will `use errors::*;`
-/// to get access to everything `error_chain` creates.
+/// to get access to everything `thiserror` creates.
 pub mod errors;
 
 /// Provides [Executor][executor::Executor] that receives jobs for execution, executes them and returns results

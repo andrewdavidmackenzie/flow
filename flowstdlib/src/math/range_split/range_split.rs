@@ -1,4 +1,5 @@
-use flowcore::errors::{bail, Result};
+use flowcore::bail;
+use flowcore::errors::Result;
 use flowcore::flow_output;
 use flowcore::RunAgain;
 use flowmacro::flow_function;

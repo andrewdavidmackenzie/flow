@@ -191,7 +191,7 @@ fn execute_flow(filepath: &Path, options: &Options, runner_name: &str) -> Result
 
     match runner_output.status.code() {
         Some(0) | None => Ok(()),
-        Some(_) => {
+        Some(code) => {
             error!("Execution of '{runner_name}' failed");
             error!(
                 "'{}' STDOUT:\n{}",
