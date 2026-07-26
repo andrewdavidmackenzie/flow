@@ -3,7 +3,7 @@ use std::time::{SystemTime, UNIX_EPOCH};
 use serde_json::{json, Value};
 
 use flowcore::errors::Result;
-use flowcore::{Implementation, RunAgain, RUN_AGAIN};
+use flowcore::{Implementation, RunAgain, DONT_RUN_AGAIN};
 
 /// `Implementation` struct for the `time/get` context function.
 ///
@@ -48,7 +48,7 @@ impl Implementation for Get {
             "epoch_millis": epoch_millis,
         });
 
-        Ok((Some(output), RUN_AGAIN))
+        Ok((Some(output), DONT_RUN_AGAIN))
     }
 }
 
@@ -97,7 +97,7 @@ mod test {
     fn get_time_now_returns_iso8601() {
         let time_fn = Get;
         let (output, run_again) = time_fn.run(&[json!("now")]).expect("run failed");
-        assert!(run_again, "Should run again");
+        assert!(!run_again, "One-shot time lookup should not run again");
         let value = output.expect("Should have output");
         assert!(value.get("time").is_some(), "Should have 'time' key");
         assert!(
