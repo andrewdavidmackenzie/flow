@@ -178,7 +178,7 @@ jobs:
 
       - name: cargo-build
         shell: bash
-        run: cargo build
+        run: cargo build --features "online_tests"
 
       - name: find-flow-lib-dir
         shell: bash
