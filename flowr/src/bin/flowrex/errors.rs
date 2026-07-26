@@ -1,7 +1,6 @@
 //! Error types for the `flowrex` binary.
 
 pub use flowcore::bail;
-pub use flowcore::errors::ResultExt;
 use thiserror::Error;
 
 /// The error type for `flowrex` operations.

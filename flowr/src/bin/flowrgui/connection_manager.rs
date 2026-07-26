@@ -2483,6 +2483,7 @@ mod test {
     )]
     mod format_debug_event_tests {
         use serde_json::json;
+        use serial_test::serial;
         use url::Url;
 
         use flowcore::model::debug_command::BreakpointSpec;
@@ -2796,6 +2797,7 @@ mod test {
         }
 
         #[test]
+        #[serial]
         fn output_state_with_connection() {
             let conn = OutputConnection::new(
                 Source::default(),

@@ -1,7 +1,6 @@
 //! Error types for the `flowrlib` runtime library.
 
 pub use flowcore::bail;
-pub use flowcore::errors::ResultExt;
 use thiserror::Error;
 
 /// The error type for `flowrlib` operations.
