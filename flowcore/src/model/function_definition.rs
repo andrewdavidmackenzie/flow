@@ -1,7 +1,7 @@
 use std::collections::BTreeMap;
 use std::fmt;
 
-use error_chain::bail;
+use crate::bail;
 use serde_derive::{Deserialize, Serialize};
 use url::Url;
 

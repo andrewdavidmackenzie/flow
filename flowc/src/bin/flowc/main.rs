@@ -67,15 +67,6 @@ fn main() {
     match run() {
         Err(ref e) => {
             error!("{e}");
-            for e in e.iter().skip(1) {
-                error!("caused by: {e}");
-            }
-
-            // The backtrace is generated if env var `RUST_BACKTRACE` is set to `1` or `full`
-            if let Some(backtrace) = e.backtrace() {
-                error!("backtrace: {backtrace:?}");
-            }
-
             exit(1);
         }
         Ok(()) => exit(0),
@@ -179,13 +170,15 @@ fn run() -> Result<()> {
                 .to_string_lossy();
             lib_search_path.add(&output_dir_parent);
             let provider = &MetaProvider::new(lib_search_path, PathBuf::default());
-            build_lib(&options, provider, &output_dir).chain_err(|| "Could not build library")
+            build_lib(&options, provider, &output_dir).chain_err(|| "Could not build library")?;
+            Ok(())
         }
         CompileType::Runner(_) => {
             let output_dir =
                 source_arg::get_output_dir(&options.source_url, &options.output_dir, compile_type)
                     .chain_err(|| "Could not get the output directory")?;
-            build_runner(&options, &output_dir).chain_err(|| "Could not build runner")
+            build_runner(&options, &output_dir).chain_err(|| "Could not build runner")?;
+            Ok(())
         }
         CompileType::Flow => {
             let output_dir =

@@ -2301,9 +2301,12 @@ fn format_output_connection(
 
 #[cfg(test)]
 mod test {
+    use serial_test::serial;
+
     use super::*;
 
     #[test]
+    #[serial]
     fn stop_request_default_is_false() {
         // Clear any state from other tests
         STOP_REQUESTED.store(false, Ordering::Relaxed);
@@ -2311,6 +2314,7 @@ mod test {
     }
 
     #[test]
+    #[serial]
     fn stop_request_roundtrip() {
         request_stop();
         assert!(take_stop_request(), "Should be true after request_stop()");
@@ -2318,6 +2322,7 @@ mod test {
     }
 
     #[test]
+    #[serial]
     fn discovered_address_default_is_none() {
         // Clear any state from other tests
         if let Ok(mut guard) = DISCOVERED_ADDRESS.write() {
@@ -2328,6 +2333,7 @@ mod test {
     }
 
     #[test]
+    #[serial]
     fn discovered_address_roundtrip() {
         set_discovered_address("tcp://localhost:5555".to_string());
         assert!(has_discovered_address());
@@ -2340,12 +2346,14 @@ mod test {
     }
 
     #[test]
+    #[serial]
     fn job_count_default_is_zero() {
         JOB_COUNT.store(0, Ordering::Relaxed);
         assert_eq!(get_job_count(), 0);
     }
 
     #[test]
+    #[serial]
     fn job_count_roundtrip() {
         set_job_count(42);
         assert_eq!(get_job_count(), 42);
@@ -2441,12 +2449,14 @@ mod test {
 
     #[cfg(feature = "debugger")]
     #[test]
+    #[serial]
     fn debug_port_default_is_zero() {
         assert_eq!(get_debug_port(), 0);
     }
 
     #[cfg(feature = "debugger")]
     #[test]
+    #[serial]
     fn last_output_inspect_pid_default_is_none() {
         LAST_OUTPUT_INSPECT_PID.store(usize::MAX, Ordering::Relaxed);
         assert!(take_last_output_inspect_pid().is_none());
@@ -2454,6 +2464,7 @@ mod test {
 
     #[cfg(feature = "debugger")]
     #[test]
+    #[serial]
     fn last_output_inspect_pid_roundtrip() {
         set_last_output_inspect_pid(7);
         assert_eq!(take_last_output_inspect_pid(), Some(7));

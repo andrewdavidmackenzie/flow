@@ -491,7 +491,7 @@ mod test {
             &mut source_urls,
         ) {
             Ok(_tables) => panic!("Flow should not compile when it has no side-effects"),
-            Err(e) => assert_eq!("Flow has no side-effects", e.description()),
+            Err(e) => assert_eq!("Flow has no side-effects", e.to_string()),
         }
     }
 

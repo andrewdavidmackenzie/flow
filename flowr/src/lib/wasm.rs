@@ -7,7 +7,8 @@ use serde_json::Value;
 use url::Url;
 use wasmtime::{Config, Engine, Func, Instance, Memory, Module, Store, Val};
 
-use flowcore::errors::{bail, Result, ResultExt};
+use flowcore::bail;
+use flowcore::errors::{Result, ResultExt};
 use flowcore::provider::Provider;
 use flowcore::{Implementation, RunAgain};
 

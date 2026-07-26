@@ -137,8 +137,8 @@ fn cargo_build(
             wasm_destination.display()
         )
     })?;
-    fs::remove_file(&cargo_target_dir)
-        .chain_err(|| format!("Could not remove_file'{}'", cargo_target_dir.display()))
+    Ok(fs::remove_file(&cargo_target_dir)
+        .chain_err(|| format!("Could not remove_file'{}'", cargo_target_dir.display()))?)
 }
 
 /// Run the cargo build to compile wasm from function source

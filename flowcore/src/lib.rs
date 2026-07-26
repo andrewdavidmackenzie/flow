@@ -47,7 +47,7 @@ pub mod deserializers;
 pub mod serializers;
 
 /// contains [Error] that other modules in this crate will `use errors::*;`
-/// to get access to everything `error_chain` creates.
+/// to get access to everything `thiserror` creates.
 pub mod errors;
 
 /// `meta_provider` resolves library references of the type "lib://" and "context://"

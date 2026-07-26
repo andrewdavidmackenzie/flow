@@ -1,6 +1,6 @@
 use std::fmt;
 
-use error_chain::bail;
+use crate::bail;
 use serde_derive::{Deserialize, Serialize};
 use serde_json::Value;
 use std::marker::PhantomData;
