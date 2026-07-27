@@ -14,6 +14,30 @@ fn default_connections() -> Arc<[OutputConnection]> {
     Arc::from([])
 }
 
+mod arc_slice_serde {
+    use std::sync::Arc;
+
+    use serde::de::Deserialize as _;
+    use serde::ser::Serialize as _;
+    use serde::{Deserializer, Serializer};
+
+    use crate::model::output_connection::OutputConnection;
+
+    pub fn serialize<S: Serializer>(
+        data: &Arc<[OutputConnection]>,
+        serializer: S,
+    ) -> std::result::Result<S::Ok, S::Error> {
+        data.as_ref().serialize(serializer)
+    }
+
+    pub fn deserialize<'de, D: Deserializer<'de>>(
+        deserializer: D,
+    ) -> std::result::Result<Arc<[OutputConnection]>, D::Error> {
+        let vec = Vec::<OutputConnection>::deserialize(deserializer)?;
+        Ok(Arc::from(vec))
+    }
+}
+
 /// Conatins the minimum amount of information required to execute a [Job] and return the result
 #[derive(Serialize, Deserialize, Clone)]
 pub struct Payload {
@@ -42,7 +66,7 @@ pub struct Job {
     /// should be run again in the future
     pub result: Result<(Option<Value>, RunAgain)>,
     /// The destinations (other function's inputs) where any output should be sent
-    #[serde(skip, default = "default_connections")]
+    #[serde(with = "arc_slice_serde", default = "default_connections")]
     pub connections: Arc<[OutputConnection]>,
     /// When this job expires and should be considered lost (coordinator-local, not sent over wire)
     #[serde(skip)]
