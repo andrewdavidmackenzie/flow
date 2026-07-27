@@ -27,9 +27,17 @@ static TOTAL_CREATE_JOBS_US: AtomicU64 = AtomicU64::new(0);
 #[cfg(feature = "metrics")]
 static TOTAL_BUSY_STATE_US: AtomicU64 = AtomicU64::new(0);
 
-/// Log the `retire_job` sub-operation timing breakdown
+/// Log the `retire_job` sub-operation timing breakdown.
+///
+/// Timer boundaries:
+/// - `send_value`: distributing output values to downstream inputs, includes
+///   `try_create_destination_jobs` for functions that become ready from external sends
+/// - `create_jobs`: re-initializing inputs after execution, checking if the function
+///   can run again, and creating new jobs (excludes jobs created via `send_a_value`)
+/// - `busy_state`: decrementing busy counts and handling idle-flow transitions,
+///   which may also create jobs for functions runnable on internal data
 #[cfg(feature = "metrics")]
-pub fn log_retire_breakdown() {
+pub(crate) fn log_retire_breakdown() {
     let send_ms = TOTAL_SEND_VALUE_US.load(AtomicOrdering::Relaxed) / 1000;
     let create_ms = TOTAL_CREATE_JOBS_US.load(AtomicOrdering::Relaxed) / 1000;
     let busy_ms = TOTAL_BUSY_STATE_US.load(AtomicOrdering::Relaxed) / 1000;
@@ -40,7 +48,7 @@ pub fn log_retire_breakdown() {
 
 /// Reset `retire_job` timing counters
 #[cfg(feature = "metrics")]
-pub fn reset_retire_timers() {
+pub(crate) fn reset_retire_timers() {
     TOTAL_SEND_VALUE_US.store(0, AtomicOrdering::Relaxed);
     TOTAL_CREATE_JOBS_US.store(0, AtomicOrdering::Relaxed);
     TOTAL_BUSY_STATE_US.store(0, AtomicOrdering::Relaxed);
@@ -503,7 +511,12 @@ impl RunState {
     /// This removes the job from `running_jobs`, distributes output values to connected
     /// functions, handles run-again vs completed state, and checks if any ancestor flows
     /// have gone idle.
-    #[allow(unused_variables, unused_assignments, unused_mut, clippy::too_many_lines)]
+    #[allow(
+        unused_variables,
+        unused_assignments,
+        unused_mut,
+        clippy::too_many_lines
+    )]
     pub(crate) fn retire_job(
         &mut self,
         job_id: usize,
@@ -569,7 +582,11 @@ impl RunState {
 
                 #[cfg(feature = "metrics")]
                 TOTAL_SEND_VALUE_US.fetch_add(
-                    send_start.elapsed().as_micros().try_into().unwrap_or(u64::MAX),
+                    send_start
+                        .elapsed()
+                        .as_micros()
+                        .try_into()
+                        .unwrap_or(u64::MAX),
                     AtomicOrdering::Relaxed,
                 );
 
@@ -598,7 +615,11 @@ impl RunState {
 
                 #[cfg(feature = "metrics")]
                 TOTAL_CREATE_JOBS_US.fetch_add(
-                    create_start.elapsed().as_micros().try_into().unwrap_or(u64::MAX),
+                    create_start
+                        .elapsed()
+                        .as_micros()
+                        .try_into()
+                        .unwrap_or(u64::MAX),
                     AtomicOrdering::Relaxed,
                 );
             }
@@ -623,7 +644,11 @@ impl RunState {
 
         #[cfg(feature = "metrics")]
         TOTAL_BUSY_STATE_US.fetch_add(
-            busy_start.elapsed().as_micros().try_into().unwrap_or(u64::MAX),
+            busy_start
+                .elapsed()
+                .as_micros()
+                .try_into()
+                .unwrap_or(u64::MAX),
             AtomicOrdering::Relaxed,
         );
 

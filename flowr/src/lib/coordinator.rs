@@ -390,7 +390,11 @@ impl<'a> Coordinator<'a> {
             Ok(Some((job_id, result))) => {
                 #[cfg(feature = "metrics")]
                 TOTAL_GET_RESULT_US.fetch_add(
-                    get_result_start.elapsed().as_micros().try_into().unwrap_or(u64::MAX),
+                    get_result_start
+                        .elapsed()
+                        .as_micros()
+                        .try_into()
+                        .unwrap_or(u64::MAX),
                     std::sync::atomic::Ordering::Relaxed,
                 );
 
@@ -408,7 +412,11 @@ impl<'a> Coordinator<'a> {
 
                 #[cfg(feature = "metrics")]
                 TOTAL_RETIRE_JOB_US.fetch_add(
-                    retire_start.elapsed().as_micros().try_into().unwrap_or(u64::MAX),
+                    retire_start
+                        .elapsed()
+                        .as_micros()
+                        .try_into()
+                        .unwrap_or(u64::MAX),
                     std::sync::atomic::Ordering::Relaxed,
                 );
 
