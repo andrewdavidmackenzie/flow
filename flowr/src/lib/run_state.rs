@@ -34,10 +34,7 @@ pub fn log_retire_breakdown() {
     let create_ms = TOTAL_CREATE_JOBS_US.load(AtomicOrdering::Relaxed) / 1000;
     let busy_ms = TOTAL_BUSY_STATE_US.load(AtomicOrdering::Relaxed) / 1000;
     log::info!(
-        "retire_job breakdown: send_value: {}ms, create_jobs: {}ms, busy_state: {}ms",
-        send_ms,
-        create_ms,
-        busy_ms,
+        "retire_job breakdown: send_value: {send_ms}ms, create_jobs: {create_ms}ms, busy_state: {busy_ms}ms",
     );
 }
 
@@ -506,7 +503,7 @@ impl RunState {
     /// This removes the job from `running_jobs`, distributes output values to connected
     /// functions, handles run-again vs completed state, and checks if any ancestor flows
     /// have gone idle.
-    #[allow(unused_variables, unused_assignments, unused_mut)]
+    #[allow(unused_variables, unused_assignments, unused_mut, clippy::too_many_lines)]
     pub(crate) fn retire_job(
         &mut self,
         job_id: usize,
@@ -572,7 +569,7 @@ impl RunState {
 
                 #[cfg(feature = "metrics")]
                 TOTAL_SEND_VALUE_US.fetch_add(
-                    send_start.elapsed().as_micros() as u64,
+                    send_start.elapsed().as_micros().try_into().unwrap_or(u64::MAX),
                     AtomicOrdering::Relaxed,
                 );
 
@@ -601,7 +598,7 @@ impl RunState {
 
                 #[cfg(feature = "metrics")]
                 TOTAL_CREATE_JOBS_US.fetch_add(
-                    create_start.elapsed().as_micros() as u64,
+                    create_start.elapsed().as_micros().try_into().unwrap_or(u64::MAX),
                     AtomicOrdering::Relaxed,
                 );
             }
@@ -626,7 +623,7 @@ impl RunState {
 
         #[cfg(feature = "metrics")]
         TOTAL_BUSY_STATE_US.fetch_add(
-            busy_start.elapsed().as_micros() as u64,
+            busy_start.elapsed().as_micros().try_into().unwrap_or(u64::MAX),
             AtomicOrdering::Relaxed,
         );
 
