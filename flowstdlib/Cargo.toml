@@ -32,7 +32,7 @@ thiserror = "2"
 
 [dev-dependencies]
 tempfile = "3"
-serial_test = "3.5.0"
+serial_test = "4.0.1"
 flowcore = {path = "../flowcore", version = "1.2.0" }
 flowmacro = {path = "../flowmacro", version = "1.2.0" }
 serde_json = { version = "1.0", default-features = false }
