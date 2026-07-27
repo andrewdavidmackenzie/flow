@@ -1,0 +1,23 @@
+function = "get"
+description = "Get the current system time and elapsed time since last call"
+source = "get.rs"
+impure = true
+
+[[input]]
+name = "format"
+
+[[output]]
+name = "time"
+type = "string"
+
+[[output]]
+name = "epoch_secs"
+type = "number"
+
+[[output]]
+name = "epoch_millis"
+type = "number"
+
+[[output]]
+name = "elapsed_millis"
+type = "number"

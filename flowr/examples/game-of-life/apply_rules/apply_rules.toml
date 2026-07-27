@@ -1,0 +1,11 @@
+function = "apply_rules"
+description = "Apply Conway's Game of Life rules to a 3x3 neighborhood"
+source = "apply_rules.rs"
+type = "rust"
+
+[[input]]
+name = "neighborhood"
+type = "array/number"
+
+[[output]]
+type = "number"
