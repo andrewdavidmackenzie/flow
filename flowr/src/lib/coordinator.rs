@@ -11,6 +11,9 @@ use flowcore::model::metrics::Metrics;
 use flowcore::model::submission::Submission;
 use flowcore::RunAgain;
 
+#[cfg(feature = "metrics")]
+use std::sync::atomic::AtomicU64;
+
 use crate::debug_action::DebugAction;
 #[cfg(feature = "debugger")]
 use crate::debugger::Debugger;
@@ -44,6 +47,11 @@ pub struct Coordinator<'a> {
     #[cfg(all(not(feature = "debugger"), not(feature = "submission")))]
     _data: PhantomData<&'a Dispatcher>,
 }
+
+#[cfg(feature = "metrics")]
+static TOTAL_GET_RESULT_US: AtomicU64 = AtomicU64::new(0);
+#[cfg(feature = "metrics")]
+static TOTAL_RETIRE_JOB_US: AtomicU64 = AtomicU64::new(0);
 
 /// Result of running the inner dispatch/retire loop for one iteration of flow execution.
 /// Tells the outer loop whether to restart (debugger reset) or finish.
@@ -135,6 +143,9 @@ impl<'a> Coordinator<'a> {
             {
                 metrics.reset();
                 crate::executor::reset_max_jobs_executing();
+                TOTAL_GET_RESULT_US.store(0, std::sync::atomic::Ordering::Relaxed);
+                TOTAL_RETIRE_JOB_US.store(0, std::sync::atomic::Ordering::Relaxed);
+                crate::run_state::reset_retire_timers();
             }
 
             let iteration_result = self.run_jobs(
@@ -197,12 +208,19 @@ impl<'a> Coordinator<'a> {
         #[cfg(feature = "submission")]
         self.submission_handler.flow_execution_starting()?;
 
+        #[cfg(feature = "metrics")]
+        let mut total_dispatch_us: u128 = 0;
+        #[cfg(feature = "metrics")]
+        let mut total_retire_us: u128 = 0;
+        #[cfg(feature = "metrics")]
+        let mut loop_count: u64 = 0;
+
         loop {
             trace!("{state}");
 
             #[cfg(feature = "submission")]
             if self.submission_handler.should_stop()? {
-                return Ok(FlowIterationResult::Done);
+                break;
             }
 
             #[cfg(all(feature = "debugger", feature = "submission"))]
@@ -213,21 +231,38 @@ impl<'a> Coordinator<'a> {
                 }
             }
 
+            #[cfg(feature = "metrics")]
+            let dispatch_start = Instant::now();
+
             let action = self.dispatch_jobs(
                 state,
                 #[cfg(feature = "metrics")]
                 metrics,
             )?;
 
+            #[cfg(feature = "metrics")]
+            {
+                total_dispatch_us += dispatch_start.elapsed().as_micros();
+            }
+
             if action.should_restart() {
                 return Ok(FlowIterationResult::Restart);
             }
+
+            #[cfg(feature = "metrics")]
+            let retire_start = Instant::now();
 
             let action = self.retire_jobs(
                 state,
                 #[cfg(feature = "metrics")]
                 metrics,
             )?;
+
+            #[cfg(feature = "metrics")]
+            {
+                total_retire_us += retire_start.elapsed().as_micros();
+                loop_count += 1;
+            }
 
             #[cfg(all(feature = "submission", any(feature = "metrics", feature = "debugger")))]
             self.submission_handler
@@ -238,9 +273,29 @@ impl<'a> Coordinator<'a> {
             }
 
             if state.number_jobs_running() == 0 && state.number_jobs_ready() == 0 {
-                return Ok(FlowIterationResult::Done);
+                break;
             }
         }
+
+        #[cfg(feature = "metrics")]
+        {
+            let get_result_ms =
+                TOTAL_GET_RESULT_US.load(std::sync::atomic::Ordering::Relaxed) / 1000;
+            let retire_job_ms =
+                TOTAL_RETIRE_JOB_US.load(std::sync::atomic::Ordering::Relaxed) / 1000;
+            info!(
+                "Coordinator loop: {} iterations, dispatch: {}ms, retire: {}ms \
+                 (get_result: {}ms, retire_job: {}ms)",
+                loop_count,
+                total_dispatch_us / 1000,
+                total_retire_us / 1000,
+                get_result_ms,
+                retire_job_ms,
+            );
+            crate::run_state::log_retire_breakdown();
+        }
+
+        Ok(FlowIterationResult::Done)
     }
 
     /// After a flow execution iteration ends (without restart), finalize metrics and
@@ -328,8 +383,20 @@ impl<'a> Coordinator<'a> {
             )?;
         }
 
+        #[cfg(feature = "metrics")]
+        let get_result_start = Instant::now();
+
         match self.get_result(state) {
             Ok(Some((job_id, result))) => {
+                #[cfg(feature = "metrics")]
+                TOTAL_GET_RESULT_US.fetch_add(
+                    get_result_start.elapsed().as_micros() as u64,
+                    std::sync::atomic::Ordering::Relaxed,
+                );
+
+                #[cfg(feature = "metrics")]
+                let retire_start = Instant::now();
+
                 let (mut action, job) = state.retire_job(
                     job_id,
                     result,
@@ -338,6 +405,12 @@ impl<'a> Coordinator<'a> {
                     #[cfg(feature = "debugger")]
                     &mut self.debugger,
                 )?;
+
+                #[cfg(feature = "metrics")]
+                TOTAL_RETIRE_JOB_US.fetch_add(
+                    retire_start.elapsed().as_micros() as u64,
+                    std::sync::atomic::Ordering::Relaxed,
+                );
 
                 #[cfg(feature = "debugger")]
                 if action.should_display() {
