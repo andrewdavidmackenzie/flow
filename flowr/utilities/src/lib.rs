@@ -466,13 +466,19 @@ pub fn execute_flow_client_server(example_name: &str, manifest: PathBuf) {
         }
     }
 
+    // Wait for the client to finish and check its exit status
+    let client_status = runner.wait().expect("Failed to wait for client to exit");
+
     println!("Killing 'flowr' server");
     server.kill().expect("Failed to kill server child process");
     server.wait().expect("Failed to wait for child to exit");
 
-    if !actual_stderr.is_empty() {
+    if !client_status.success() {
         eprintln!("STDERR: {actual_stderr}");
-        panic!("Failed due to STDERR output")
+        panic!(
+            "Client process exited with non-zero status: {:?}",
+            client_status.code()
+        );
     }
 
     let contains_path = samples_dir.join(EXPECTED_CONTAINS_STDOUT_FILENAME);

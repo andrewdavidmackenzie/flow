@@ -11,6 +11,9 @@ use flowcore::model::metrics::Metrics;
 use flowcore::model::submission::Submission;
 use flowcore::RunAgain;
 
+#[cfg(feature = "metrics")]
+use std::sync::atomic::AtomicU64;
+
 use crate::debug_action::DebugAction;
 #[cfg(feature = "debugger")]
 use crate::debugger::Debugger;
@@ -44,6 +47,11 @@ pub struct Coordinator<'a> {
     #[cfg(all(not(feature = "debugger"), not(feature = "submission")))]
     _data: PhantomData<&'a Dispatcher>,
 }
+
+#[cfg(feature = "metrics")]
+static TOTAL_GET_RESULT_US: AtomicU64 = AtomicU64::new(0);
+#[cfg(feature = "metrics")]
+static TOTAL_RETIRE_JOB_US: AtomicU64 = AtomicU64::new(0);
 
 /// Result of running the inner dispatch/retire loop for one iteration of flow execution.
 /// Tells the outer loop whether to restart (debugger reset) or finish.
@@ -135,6 +143,9 @@ impl<'a> Coordinator<'a> {
             {
                 metrics.reset();
                 crate::executor::reset_max_jobs_executing();
+                TOTAL_GET_RESULT_US.store(0, std::sync::atomic::Ordering::Relaxed);
+                TOTAL_RETIRE_JOB_US.store(0, std::sync::atomic::Ordering::Relaxed);
+                crate::run_state::reset_retire_timers();
             }
 
             let iteration_result = self.run_jobs(
@@ -197,12 +208,19 @@ impl<'a> Coordinator<'a> {
         #[cfg(feature = "submission")]
         self.submission_handler.flow_execution_starting()?;
 
+        #[cfg(feature = "metrics")]
+        let mut total_dispatch_us: u128 = 0;
+        #[cfg(feature = "metrics")]
+        let mut total_retire_us: u128 = 0;
+        #[cfg(feature = "metrics")]
+        let mut loop_count: u64 = 0;
+
         loop {
             trace!("{state}");
 
             #[cfg(feature = "submission")]
             if self.submission_handler.should_stop()? {
-                return Ok(FlowIterationResult::Done);
+                break;
             }
 
             #[cfg(all(feature = "debugger", feature = "submission"))]
@@ -213,21 +231,38 @@ impl<'a> Coordinator<'a> {
                 }
             }
 
+            #[cfg(feature = "metrics")]
+            let dispatch_start = Instant::now();
+
             let action = self.dispatch_jobs(
                 state,
                 #[cfg(feature = "metrics")]
                 metrics,
             )?;
 
+            #[cfg(feature = "metrics")]
+            {
+                total_dispatch_us += dispatch_start.elapsed().as_micros();
+            }
+
             if action.should_restart() {
                 return Ok(FlowIterationResult::Restart);
             }
+
+            #[cfg(feature = "metrics")]
+            let retire_start = Instant::now();
 
             let action = self.retire_jobs(
                 state,
                 #[cfg(feature = "metrics")]
                 metrics,
             )?;
+
+            #[cfg(feature = "metrics")]
+            {
+                total_retire_us += retire_start.elapsed().as_micros();
+                loop_count += 1;
+            }
 
             #[cfg(all(feature = "submission", any(feature = "metrics", feature = "debugger")))]
             self.submission_handler
@@ -238,9 +273,29 @@ impl<'a> Coordinator<'a> {
             }
 
             if state.number_jobs_running() == 0 && state.number_jobs_ready() == 0 {
-                return Ok(FlowIterationResult::Done);
+                break;
             }
         }
+
+        #[cfg(feature = "metrics")]
+        {
+            let get_result_ms =
+                TOTAL_GET_RESULT_US.load(std::sync::atomic::Ordering::Relaxed) / 1000;
+            let retire_job_ms =
+                TOTAL_RETIRE_JOB_US.load(std::sync::atomic::Ordering::Relaxed) / 1000;
+            info!(
+                "Coordinator loop: {} iterations, dispatch: {}ms, retire: {}ms \
+                 (get_result: {}ms, retire_job: {}ms)",
+                loop_count,
+                total_dispatch_us / 1000,
+                total_retire_us / 1000,
+                get_result_ms,
+                retire_job_ms,
+            );
+            crate::run_state::log_retire_breakdown();
+        }
+
+        Ok(FlowIterationResult::Done)
     }
 
     /// After a flow execution iteration ends (without restart), finalize metrics and
@@ -306,10 +361,11 @@ impl<'a> Coordinator<'a> {
         }
     }
 
-    /// Retire as many jobs as possible, based on returned results.
+    /// Retire as many jobs as possible, draining all available results.
     ///
-    /// This may block waiting for results if no jobs are ready to be dispatched
-    /// (see [`get_result`](Self::get_result)).
+    /// Processes results in a tight loop: first blocking for one result if nothing
+    /// else is ready, then draining all immediately available results before
+    /// returning to the dispatch/retire outer loop.
     fn retire_jobs(
         &mut self,
         state: &mut RunState,
@@ -328,45 +384,105 @@ impl<'a> Coordinator<'a> {
             )?;
         }
 
-        match self.get_result(state) {
+        // Get the first result (may block if no ready jobs to dispatch)
+        #[cfg(feature = "metrics")]
+        let get_result_start = Instant::now();
+
+        let first_result = self.get_result(state);
+
+        #[cfg(feature = "metrics")]
+        TOTAL_GET_RESULT_US.fetch_add(
+            get_result_start
+                .elapsed()
+                .as_micros()
+                .try_into()
+                .unwrap_or(u64::MAX),
+            std::sync::atomic::Ordering::Relaxed,
+        );
+
+        match first_result {
             Ok(Some((job_id, result))) => {
-                let (mut action, job) = state.retire_job(
+                let action = self.retire_one_job(
+                    state,
                     job_id,
                     result,
                     #[cfg(feature = "metrics")]
                     metrics,
-                    #[cfg(feature = "debugger")]
-                    &mut self.debugger,
                 )?;
-
-                #[cfg(feature = "debugger")]
-                if action.should_display() {
-                    action = self.debugger.job_done(state, &job);
-                    if action.should_restart() {
-                        return Ok(action);
-                    }
+                if action.should_restart() || action.should_display() {
+                    return Ok(action);
                 }
-
-                Ok(action)
             }
-
-            Ok(None) => {
-                info!(
-                    "No result was immediately available, but jobs are ready to be dispatched. \
-                     So coordinator avoided blocking for result. Will be received next time around"
-                );
-                Ok(DebugAction::Continue)
-            }
-
+            Ok(None) => return Ok(DebugAction::Continue),
             Err(err) => {
                 error!("\t{err}");
                 #[cfg(feature = "debugger")]
                 if state.submission.debug_enabled {
                     return self.debugger.error(state, err.to_string());
                 }
-                Ok(DebugAction::Continue)
+                return Ok(DebugAction::Continue);
             }
         }
+
+        // Drain all immediately available results without blocking
+        while state.number_jobs_running() > 0 {
+            if let Ok(result) = self.dispatcher.get_next_result(false) {
+                let (job_id, job_result) = result;
+                let action = self.retire_one_job(
+                    state,
+                    job_id,
+                    job_result,
+                    #[cfg(feature = "metrics")]
+                    metrics,
+                )?;
+
+                if action.should_restart() || action.should_display() {
+                    return Ok(action);
+                }
+            } else {
+                break; // no more results immediately available
+            }
+        }
+
+        Ok(DebugAction::Continue)
+    }
+
+    /// Retire a single job result
+    fn retire_one_job(
+        &mut self,
+        state: &mut RunState,
+        job_id: usize,
+        result: Result<(Option<Value>, RunAgain)>,
+        #[cfg(feature = "metrics")] metrics: &mut Metrics,
+    ) -> Result<DebugAction> {
+        #[cfg(feature = "metrics")]
+        let retire_start = Instant::now();
+
+        let (mut action, job) = state.retire_job(
+            job_id,
+            result,
+            #[cfg(feature = "metrics")]
+            metrics,
+            #[cfg(feature = "debugger")]
+            &mut self.debugger,
+        )?;
+
+        #[cfg(feature = "metrics")]
+        TOTAL_RETIRE_JOB_US.fetch_add(
+            retire_start
+                .elapsed()
+                .as_micros()
+                .try_into()
+                .unwrap_or(u64::MAX),
+            std::sync::atomic::Ordering::Relaxed,
+        );
+
+        #[cfg(feature = "debugger")]
+        if action.should_display() {
+            action = self.debugger.job_done(state, &job);
+        }
+
+        Ok(action)
     }
 
     /// Dispatch as many jobs as possible for parallel execution.

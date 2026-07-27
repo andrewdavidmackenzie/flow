@@ -294,32 +294,30 @@ impl Input {
         if self.generic {
             self.received.push(value);
         } else {
-            match (
-                DataType::value_array_order(&value) - self.array_order(),
-                &value,
-            ) {
-                (0, _) => self.received.push(value),
-                (1, Value::Array(array)) => self.send_array_elements(array.clone()),
+            let order_diff = DataType::value_array_order(&value) - self.array_order();
+            match (order_diff, value) {
+                (0, v) => self.received.push(v),
+                (1, Value::Array(array)) => self.send_array_elements(array),
                 (2, Value::Array(array_2)) => {
-                    for array in array_2 {
-                        if let Value::Array(sub_array) = array {
-                            self.send_array_elements(sub_array.clone());
+                    for element in array_2 {
+                        if let Value::Array(sub_array) = element {
+                            self.send_array_elements(sub_array);
                         }
                     }
                 }
-                (-1, _) => {
+                (-1, v) => {
                     debug!(
-                        "\t\tSending value '{value}' wrapped in an Array: '{}'",
-                        json!([value])
+                        "\t\tSending value '{v}' wrapped in an Array: '{}'",
+                        json!([&v])
                     );
-                    self.received.push(json!([value]));
+                    self.received.push(json!([v]));
                 }
-                (-2, _) => {
+                (-2, v) => {
                     debug!(
-                        "\t\tSending value '{value}' wrapped in an Array of Array: '{}'",
-                        json!([[value]])
+                        "\t\tSending value '{v}' wrapped in an Array of Array: '{}'",
+                        json!([[&v]])
                     );
-                    self.received.push(json!([[value]]));
+                    self.received.push(json!([[v]]));
                 }
                 _ => return false,
             }
@@ -342,36 +340,34 @@ impl Input {
             self.received.insert(self.internal_count, value);
             self.internal_count += 1;
         } else {
-            match (
-                DataType::value_array_order(&value) - self.array_order(),
-                &value,
-            ) {
-                (0, _) => {
-                    self.received.insert(self.internal_count, value);
+            let order_diff = DataType::value_array_order(&value) - self.array_order();
+            match (order_diff, value) {
+                (0, v) => {
+                    self.received.insert(self.internal_count, v);
                     self.internal_count += 1;
                 }
                 (1, Value::Array(array)) => {
                     for v in array {
-                        self.received.insert(self.internal_count, v.clone());
+                        self.received.insert(self.internal_count, v);
                         self.internal_count += 1;
                     }
                 }
                 (2, Value::Array(array_2)) => {
-                    for array in array_2 {
-                        if let Value::Array(sub_array) = array {
+                    for element in array_2 {
+                        if let Value::Array(sub_array) = element {
                             for v in sub_array {
-                                self.received.insert(self.internal_count, v.clone());
+                                self.received.insert(self.internal_count, v);
                                 self.internal_count += 1;
                             }
                         }
                     }
                 }
-                (-1, _) => {
-                    self.received.insert(self.internal_count, json!([value]));
+                (-1, v) => {
+                    self.received.insert(self.internal_count, json!([v]));
                     self.internal_count += 1;
                 }
-                (-2, _) => {
-                    self.received.insert(self.internal_count, json!([[value]]));
+                (-2, v) => {
+                    self.received.insert(self.internal_count, json!([[v]]));
                     self.internal_count += 1;
                 }
                 _ => return false,

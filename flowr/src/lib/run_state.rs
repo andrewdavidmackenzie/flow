@@ -17,6 +17,43 @@ use flowcore::model::runtime_function::RuntimeFunction;
 use flowcore::model::submission::Submission;
 use flowcore::RunAgain;
 
+#[cfg(feature = "metrics")]
+use std::sync::atomic::{AtomicU64, Ordering as AtomicOrdering};
+
+#[cfg(feature = "metrics")]
+static TOTAL_SEND_VALUE_US: AtomicU64 = AtomicU64::new(0);
+#[cfg(feature = "metrics")]
+static TOTAL_CREATE_JOBS_US: AtomicU64 = AtomicU64::new(0);
+#[cfg(feature = "metrics")]
+static TOTAL_BUSY_STATE_US: AtomicU64 = AtomicU64::new(0);
+
+/// Log the `retire_job` sub-operation timing breakdown.
+///
+/// Timer boundaries:
+/// - `send_value`: distributing output values to downstream inputs, includes
+///   `try_create_destination_jobs` for functions that become ready from external sends
+/// - `create_jobs`: re-initializing inputs after execution, checking if the function
+///   can run again, and creating new jobs (excludes jobs created via `send_a_value`)
+/// - `busy_state`: decrementing busy counts and handling idle-flow transitions,
+///   which may also create jobs for functions runnable on internal data
+#[cfg(feature = "metrics")]
+pub(crate) fn log_retire_breakdown() {
+    let send_ms = TOTAL_SEND_VALUE_US.load(AtomicOrdering::Relaxed) / 1000;
+    let create_ms = TOTAL_CREATE_JOBS_US.load(AtomicOrdering::Relaxed) / 1000;
+    let busy_ms = TOTAL_BUSY_STATE_US.load(AtomicOrdering::Relaxed) / 1000;
+    log::info!(
+        "retire_job breakdown: send_value: {send_ms}ms, create_jobs: {create_ms}ms, busy_state: {busy_ms}ms",
+    );
+}
+
+/// Reset `retire_job` timing counters
+#[cfg(feature = "metrics")]
+pub(crate) fn reset_retire_timers() {
+    TOTAL_SEND_VALUE_US.store(0, AtomicOrdering::Relaxed);
+    TOTAL_CREATE_JOBS_US.store(0, AtomicOrdering::Relaxed);
+    TOTAL_BUSY_STATE_US.store(0, AtomicOrdering::Relaxed);
+}
+
 #[cfg(debug_assertions)]
 use crate::checks;
 use crate::debug_action::DebugAction;
@@ -474,7 +511,12 @@ impl RunState {
     /// This removes the job from `running_jobs`, distributes output values to connected
     /// functions, handles run-again vs completed state, and checks if any ancestor flows
     /// have gone idle.
-    #[allow(unused_variables, unused_assignments, unused_mut)]
+    #[allow(
+        unused_variables,
+        unused_assignments,
+        unused_mut,
+        clippy::too_many_lines
+    )]
     pub(crate) fn retire_job(
         &mut self,
         job_id: usize,
@@ -506,6 +548,9 @@ impl RunState {
                     job.payload.job_id, job.process_id, job.payload.input_set, output_value
                 );
 
+                #[cfg(feature = "metrics")]
+                let send_start = std::time::Instant::now();
+
                 for connection in &job.connections {
                     let value_to_send = match &connection.source {
                         Output(route) => match output_value {
@@ -535,6 +580,19 @@ impl RunState {
                     }
                 }
 
+                #[cfg(feature = "metrics")]
+                TOTAL_SEND_VALUE_US.fetch_add(
+                    send_start
+                        .elapsed()
+                        .as_micros()
+                        .try_into()
+                        .unwrap_or(u64::MAX),
+                    AtomicOrdering::Relaxed,
+                );
+
+                #[cfg(feature = "metrics")]
+                let create_start = std::time::Instant::now();
+
                 if *function_can_run_again {
                     let function = self.get_mut(job.process_id).ok_or("No such function")?;
 
@@ -554,6 +612,16 @@ impl RunState {
                     #[cfg(feature = "trace")]
                     self.record_trace("CompleteJob");
                 }
+
+                #[cfg(feature = "metrics")]
+                TOTAL_CREATE_JOBS_US.fetch_add(
+                    create_start
+                        .elapsed()
+                        .as_micros()
+                        .try_into()
+                        .unwrap_or(u64::MAX),
+                    AtomicOrdering::Relaxed,
+                );
             }
             Err(e) => {
                 error!(
@@ -565,11 +633,24 @@ impl RunState {
             }
         }
 
+        #[cfg(feature = "metrics")]
+        let busy_start = std::time::Instant::now();
+
         action = self.update_flow_busy_state(
             &job,
             #[cfg(feature = "debugger")]
             debugger,
         )?;
+
+        #[cfg(feature = "metrics")]
+        TOTAL_BUSY_STATE_US.fetch_add(
+            busy_start
+                .elapsed()
+                .as_micros()
+                .try_into()
+                .unwrap_or(u64::MAX),
+            AtomicOrdering::Relaxed,
+        );
 
         #[cfg(debug_assertions)]
         checks::check_invariants(self, job.payload.job_id)?;
