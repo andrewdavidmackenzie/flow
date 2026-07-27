@@ -677,13 +677,13 @@ impl RunState {
     ) -> Result<DebugAction> {
         let mut action = DebugAction::Continue;
 
+        let loopback = source_id == connection.destination_id;
+
         let route_str = match &connection.source {
             Output(route) if route.is_empty() => String::new(),
             Output(route) => format!(" from output route '{route}'"),
             Input(index) => format!(" from Job input #{index}"),
         };
-
-        let loopback = source_id == connection.destination_id;
 
         if loopback {
             info!("\t\tFunction #{source_id} loopback of value '{output_value}'{route_str} to Self:{}",
