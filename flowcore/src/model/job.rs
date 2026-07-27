@@ -1,4 +1,5 @@
 use std::fmt;
+use std::sync::Arc;
 use std::time::Instant;
 
 use serde_derive::{Deserialize, Serialize};
@@ -8,6 +9,10 @@ use url::Url;
 use crate::errors::Result;
 use crate::model::output_connection::OutputConnection;
 use crate::RunAgain;
+
+fn default_connections() -> Arc<[OutputConnection]> {
+    Arc::from([])
+}
 
 /// Conatins the minimum amount of information required to execute a [Job] and return the result
 #[derive(Serialize, Deserialize, Clone)]
@@ -37,7 +42,8 @@ pub struct Job {
     /// should be run again in the future
     pub result: Result<(Option<Value>, RunAgain)>,
     /// The destinations (other function's inputs) where any output should be sent
-    pub connections: Vec<OutputConnection>,
+    #[serde(skip, default = "default_connections")]
+    pub connections: Arc<[OutputConnection]>,
     /// When this job expires and should be considered lost (coordinator-local, not sent over wire)
     #[serde(skip)]
     pub ttl: Option<Instant>,
@@ -54,7 +60,7 @@ impl Job {
         parent_id: usize,
         #[cfg(feature = "debugger")] function_name: String,
         payload: Payload,
-        connections: Vec<OutputConnection>,
+        connections: Arc<[OutputConnection]>,
     ) -> Self {
         Self {
             process_id,
@@ -95,6 +101,7 @@ impl fmt::Display for Payload {
 #[allow(clippy::unwrap_used, clippy::expect_used)]
 mod test {
     use std::collections::HashMap;
+    use std::sync::Arc;
 
     use serde_json::json;
     use url::Url;
@@ -110,7 +117,7 @@ mod test {
             #[cfg(feature = "debugger")]
             function_name: String::new(),
             parent_id: 0,
-            connections: vec![],
+            connections: Arc::from([]),
             payload: Payload {
                 job_id: 0,
                 input_set: vec![],
@@ -131,7 +138,7 @@ mod test {
             #[cfg(feature = "debugger")]
             function_name: String::new(),
             parent_id: 0,
-            connections: vec![],
+            connections: Arc::from([]),
             payload: Payload {
                 job_id: 0,
                 input_set: vec![],
@@ -164,7 +171,7 @@ mod test {
             #[cfg(feature = "debugger")]
             function_name: String::new(),
             parent_id: 0,
-            connections: vec![],
+            connections: Arc::from([]),
             payload: Payload {
                 job_id: 0,
                 input_set: vec![],
