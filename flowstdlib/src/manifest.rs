@@ -32,6 +32,10 @@ pub fn get() -> Result<LibraryManifest> {
         Url::parse("lib://flowstdlib/charts/histogram")?,
         Native(Arc::new(charts::histogram::Histogram)),
     );
+    manifest.locators.insert(
+        Url::parse("lib://flowstdlib/charts/time_series")?,
+        Native(Arc::new(charts::time_series::TimeSeries)),
+    );
 
     // Control module functions
     manifest.locators.insert(
@@ -73,6 +77,18 @@ pub fn get() -> Result<LibraryManifest> {
     manifest.locators.insert(
         Url::parse("lib://flowstdlib/data/append")?,
         Native(Arc::new(data::append::Append)),
+    );
+    manifest.locators.insert(
+        Url::parse("lib://flowstdlib/data/array_extract")?,
+        Native(Arc::new(data::array_extract::ArrayExtract)),
+    );
+    manifest.locators.insert(
+        Url::parse("lib://flowstdlib/data/array_get")?,
+        Native(Arc::new(data::array_get::ArrayGet)),
+    );
+    manifest.locators.insert(
+        Url::parse("lib://flowstdlib/data/array_set")?,
+        Native(Arc::new(data::array_set::ArraySet)),
     );
     manifest.locators.insert(
         Url::parse("lib://flowstdlib/data/bin_count")?,
@@ -162,6 +178,10 @@ pub fn get() -> Result<LibraryManifest> {
         Url::parse("lib://flowstdlib/math/compare")?,
         Native(Arc::new(math::compare::Compare)),
     );
+    manifest.locators.insert(
+        Url::parse("lib://flowstdlib/math/cos")?,
+        Native(Arc::new(math::cos::Cos)),
+    );
 
     manifest.locators.insert(
         Url::parse("lib://flowstdlib/math/divide")?,
@@ -179,13 +199,20 @@ pub fn get() -> Result<LibraryManifest> {
     );
 
     manifest.locators.insert(
+        Url::parse("lib://flowstdlib/math/sin")?,
+        Native(Arc::new(math::sin::Sin)),
+    );
+    manifest.locators.insert(
         Url::parse("lib://flowstdlib/math/sqrt")?,
         Native(Arc::new(math::sqrt::Sqrt)),
     );
-
     manifest.locators.insert(
         Url::parse("lib://flowstdlib/math/subtract")?,
         Native(Arc::new(math::subtract::Subtract)),
+    );
+    manifest.locators.insert(
+        Url::parse("lib://flowstdlib/math/tan")?,
+        Native(Arc::new(math::tan::Tan)),
     );
 
     // Matrix module functions
@@ -210,4 +237,92 @@ pub fn get() -> Result<LibraryManifest> {
     );
 
     Ok(manifest)
+}
+
+#[cfg(test)]
+#[allow(clippy::unwrap_used)]
+mod test {
+    use super::*;
+
+    #[test]
+    fn native_manifest_loads() {
+        let manifest = get().unwrap();
+        assert!(
+            !manifest.locators.is_empty(),
+            "Native manifest should have locators"
+        );
+    }
+
+    #[test]
+    fn native_manifest_has_all_functions() {
+        let manifest = get().unwrap();
+
+        let expected = [
+            // charts
+            "lib://flowstdlib/charts/histogram",
+            "lib://flowstdlib/charts/time_series",
+            // control
+            "lib://flowstdlib/control/compare_switch",
+            "lib://flowstdlib/control/index",
+            "lib://flowstdlib/control/join",
+            "lib://flowstdlib/control/route",
+            "lib://flowstdlib/control/select",
+            "lib://flowstdlib/control/tap",
+            // data
+            "lib://flowstdlib/data/accumulate",
+            "lib://flowstdlib/data/append",
+            "lib://flowstdlib/data/array_extract",
+            "lib://flowstdlib/data/array_get",
+            "lib://flowstdlib/data/array_set",
+            "lib://flowstdlib/data/bin_count",
+            "lib://flowstdlib/data/count",
+            "lib://flowstdlib/data/duplicate",
+            "lib://flowstdlib/data/enumerate",
+            "lib://flowstdlib/data/info",
+            "lib://flowstdlib/data/max",
+            "lib://flowstdlib/data/min",
+            "lib://flowstdlib/data/avg",
+            "lib://flowstdlib/data/ordered_split",
+            "lib://flowstdlib/data/remove",
+            "lib://flowstdlib/data/sort",
+            "lib://flowstdlib/data/split",
+            "lib://flowstdlib/data/zip",
+            // fmt
+            "lib://flowstdlib/fmt/reverse",
+            "lib://flowstdlib/fmt/to_json",
+            "lib://flowstdlib/fmt/to_string",
+            // math
+            "lib://flowstdlib/math/add",
+            "lib://flowstdlib/math/compare",
+            "lib://flowstdlib/math/cos",
+            "lib://flowstdlib/math/divide",
+            "lib://flowstdlib/math/multiply",
+            "lib://flowstdlib/math/range_split",
+            "lib://flowstdlib/math/sin",
+            "lib://flowstdlib/math/sqrt",
+            "lib://flowstdlib/math/subtract",
+            "lib://flowstdlib/math/tan",
+            // matrix
+            "lib://flowstdlib/matrix/compose_matrix",
+            "lib://flowstdlib/matrix/duplicate_rows",
+            "lib://flowstdlib/matrix/multiply_row",
+            "lib://flowstdlib/matrix/transpose",
+        ];
+
+        for url_str in &expected {
+            let url = Url::parse(url_str).unwrap();
+            assert!(
+                manifest.locators.contains_key(&url),
+                "Missing native implementation: {url_str}"
+            );
+        }
+
+        assert_eq!(
+            manifest.locators.len(),
+            expected.len(),
+            "Native manifest has {} entries but expected {}",
+            manifest.locators.len(),
+            expected.len()
+        );
+    }
 }
