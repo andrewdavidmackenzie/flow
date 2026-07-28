@@ -119,16 +119,23 @@ impl Dispatcher {
             .map_err(|_| "Could not Deserialize from zmq message string".into())
     }
 
-    // Send a `Job` for execution to executors
+    // Send a `Job` for execution to executors.
+    //
+    // Jobs are routed to two executor pools:
+    // - `lib_job_socket`: library functions (lib://) and WASM functions (file://)
+    //   — these run on the multi-threaded executor pool for parallelism
+    // - `general_job_socket`: context functions (context://) — these interact with
+    //   the environment and run on a dedicated executor with spawn support
     pub(crate) fn send_job_for_execution(&mut self, payload: &Payload) -> Result<()> {
-        if payload.implementation_url.scheme() == "lib" {
+        let scheme = payload.implementation_url.scheme();
+        if scheme == "lib" || scheme == "file" {
             self.lib_job_socket
                 .send(serde_json::to_string(payload)?.as_bytes(), 0)
-                .map_err(|e| format!("Could not send context Job for execution: {e}"))?;
+                .map_err(|e| format!("Could not send Job for execution: {e}"))?;
         } else {
             self.general_job_socket
                 .send(serde_json::to_string(payload)?.as_bytes(), 0)
-                .map_err(|e| format!("Could not send Job for execution: {e}"))?;
+                .map_err(|e| format!("Could not send context Job for execution: {e}"))?;
         }
 
         trace!("Job #{}: Payload sent for execution", payload.job_id);
