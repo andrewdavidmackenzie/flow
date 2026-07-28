@@ -115,9 +115,30 @@ impl Executor {
     }
 }
 
+/// RAII guard that calls `track_execution_end` on drop,
+/// ensuring the counter is decremented even if execution fails.
+struct ExecutionGuard;
+
+impl ExecutionGuard {
+    fn new() -> Self {
+        super::executor::track_execution_start();
+        Self
+    }
+}
+
+impl Drop for ExecutionGuard {
+    fn drop(&mut self) {
+        super::executor::track_execution_end();
+    }
+}
+
 impl Implementation for Executor {
     fn run(&self, inputs: &[Value]) -> Result<(Option<Value>, RunAgain)> {
         let mut store = self.store.lock().map_err(|_| "Could not lock WASM store")?;
+        // Track execution AFTER acquiring the Mutex — so we count actual
+        // execution, not time spent waiting for the lock.
+        // The guard ensures the counter is decremented even if execution fails.
+        let _guard = ExecutionGuard::new();
         let (offset, length) = self.send_inputs(&mut store, inputs)?;
         let result_length = self.call(offset, length, &mut store)?;
         assert!(offset >= 0, "offset was negative");

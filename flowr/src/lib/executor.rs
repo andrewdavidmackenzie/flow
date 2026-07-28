@@ -37,12 +37,12 @@ pub fn reset_max_jobs_executing() {
     JOBS_EXECUTING.store(0, Ordering::Relaxed);
 }
 
-fn track_execution_start() {
+pub(crate) fn track_execution_start() {
     let current = JOBS_EXECUTING.fetch_add(1, Ordering::Relaxed) + 1;
     MAX_JOBS_EXECUTING.fetch_max(current, Ordering::Relaxed);
 }
 
-fn track_execution_end() {
+pub(crate) fn track_execution_end() {
     JOBS_EXECUTING.fetch_sub(1, Ordering::Relaxed);
 }
 
@@ -364,9 +364,7 @@ fn execute_job_to_string(
     )?;
 
     trace!("Job #{}: Started executing on '{name}'", payload.job_id);
-    track_execution_start();
     let result = implementation.run(&payload.input_set);
-    track_execution_end();
     trace!("Job #{}: Finished executing on '{name}'", payload.job_id);
 
     serde_json::to_string(&(payload.job_id, result))
@@ -478,9 +476,7 @@ fn execute_job(
     )?;
 
     trace!("Job #{}: Started executing on '{name}'", payload.job_id);
-    track_execution_start();
     let result = implementation.run(&payload.input_set);
-    track_execution_end();
     trace!("Job #{}: Finished executing on '{name}'", payload.job_id);
 
     results_sink
