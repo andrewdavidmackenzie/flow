@@ -6,7 +6,8 @@ type = "string"
 
 [[process]]
 source = "context://stdio/stdout"
+input.format = { always = "{}" }
 
 [[connection]]
 from = "input/only"
-to = "stdout"
+to = "stdout/value"

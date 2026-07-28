@@ -22,10 +22,11 @@ input.candidates = { once = [1] }
 # Output each Hamming number
 [[process]]
 source = "context://stdio/stdout"
+input.format = { always = "{}" }
 
 [[connection]]
 from = "hamming_step/next"
-to = "stdout"
+to = "stdout/value"
 
 ####### Iteration control: stop after N numbers
 

@@ -5,7 +5,8 @@ source = "initialize_flow_output"
 
 [[process]]
 source = "context://stdio/stdout"
+input.format = { always = "{}" }
 
 [[connection]]
 from = "initialize_flow_output"
-to = "stdout"
+to = "stdout/value"

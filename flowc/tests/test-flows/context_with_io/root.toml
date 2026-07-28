@@ -11,7 +11,8 @@ source = "context://args/get"
 
 [[process]]
 source = "context://stdio/stdout"
+input.format = { always = "{}" }
 
 [[connection]]
 from = "get/string/1"
-to = "stdout"
+to = "stdout/value"

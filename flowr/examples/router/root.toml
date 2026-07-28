@@ -126,7 +126,8 @@ source = "lib://flowstdlib/data/append"
 ######## Print out the shortest route and it's length to each point 'A'
 [[connection]]
 from = "append"
-to = "stdout"
+to = "stdout/value"
 
 [[process]]
 source = "context://stdio/stdout"
+input.format = { always = "{}" }

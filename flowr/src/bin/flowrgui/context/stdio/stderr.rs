@@ -13,14 +13,12 @@ pub struct Stderr {
 
 impl Implementation for Stderr {
     fn run(&self, inputs: &[Value]) -> Result<(Option<Value>, RunAgain)> {
-        let input = inputs.first().ok_or("Could not get input")?;
+        let value = inputs.first().ok_or("Could not get 'value' input")?;
+        let format = inputs.get(1).and_then(Value::as_str).unwrap_or("{}");
 
-        let msg = match input {
+        let msg = match value {
             Value::Null => CoordinatorMessage::StderrEof,
-            Value::String(string) => CoordinatorMessage::Stderr(string.clone()),
-            Value::Bool(boolean) => CoordinatorMessage::Stderr(boolean.to_string()),
-            Value::Number(number) => CoordinatorMessage::Stderr(number.to_string()),
-            _ => CoordinatorMessage::Stderr(input.to_string()),
+            _ => CoordinatorMessage::Stderr(super::format_output(value, format)),
         };
 
         self.context_io.send_and_receive(msg)?;
@@ -76,7 +74,7 @@ mod test {
     #[test]
     fn send_null() {
         let (stderr, rx) = make_stderr();
-        let handle = std::thread::spawn(move || stderr.run(&[Value::Null]));
+        let handle = std::thread::spawn(move || stderr.run(&[Value::Null, json!("{}")]));
         respond(&rx, &CoordinatorMessage::StderrEof);
         let (value, run_again) = handle.join().unwrap().expect("run() failed");
         assert_eq!(run_again, RUN_AGAIN);
@@ -86,8 +84,8 @@ mod test {
     #[test]
     fn send_string() {
         let (stderr, rx) = make_stderr();
-        let handle = std::thread::spawn(move || stderr.run(&[json!("hello")]));
-        respond(&rx, &CoordinatorMessage::Stderr(String::new()));
+        let handle = std::thread::spawn(move || stderr.run(&[json!("hello"), json!("{}")]));
+        respond(&rx, &CoordinatorMessage::Stderr("hello".into()));
         let (value, run_again) = handle.join().unwrap().expect("run() failed");
         assert_eq!(run_again, RUN_AGAIN);
         assert_eq!(value, None);
@@ -96,8 +94,8 @@ mod test {
     #[test]
     fn send_bool() {
         let (stderr, rx) = make_stderr();
-        let handle = std::thread::spawn(move || stderr.run(&[json!(true)]));
-        respond(&rx, &CoordinatorMessage::Stderr(String::new()));
+        let handle = std::thread::spawn(move || stderr.run(&[json!(true), json!("{}")]));
+        respond(&rx, &CoordinatorMessage::Stderr("true".into()));
         let (value, run_again) = handle.join().unwrap().expect("run() failed");
         assert_eq!(run_again, RUN_AGAIN);
         assert_eq!(value, None);
@@ -106,8 +104,8 @@ mod test {
     #[test]
     fn send_number() {
         let (stderr, rx) = make_stderr();
-        let handle = std::thread::spawn(move || stderr.run(&[json!(42)]));
-        respond(&rx, &CoordinatorMessage::Stderr(String::new()));
+        let handle = std::thread::spawn(move || stderr.run(&[json!(42), json!("{}")]));
+        respond(&rx, &CoordinatorMessage::Stderr("42".into()));
         let (value, run_again) = handle.join().unwrap().expect("run() failed");
         assert_eq!(run_again, RUN_AGAIN);
         assert_eq!(value, None);
@@ -116,8 +114,8 @@ mod test {
     #[test]
     fn send_array() {
         let (stderr, rx) = make_stderr();
-        let handle = std::thread::spawn(move || stderr.run(&[json!([1, 2, 3])]));
-        respond(&rx, &CoordinatorMessage::Stderr(String::new()));
+        let handle = std::thread::spawn(move || stderr.run(&[json!([1, 2, 3]), json!("{}")]));
+        respond(&rx, &CoordinatorMessage::Stderr("[1,2,3]".into()));
         let (value, run_again) = handle.join().unwrap().expect("run() failed");
         assert_eq!(run_again, RUN_AGAIN);
         assert_eq!(value, None);
@@ -129,8 +127,18 @@ mod test {
         map.insert("number1", 42);
         map.insert("number2", 99);
         let (stderr, rx) = make_stderr();
-        let handle = std::thread::spawn(move || stderr.run(&[json!(map)]));
+        let handle = std::thread::spawn(move || stderr.run(&[json!(map), json!("{}")]));
         respond(&rx, &CoordinatorMessage::Stderr(String::new()));
+        let (value, run_again) = handle.join().unwrap().expect("run() failed");
+        assert_eq!(run_again, RUN_AGAIN);
+        assert_eq!(value, None);
+    }
+
+    #[test]
+    fn send_with_format_prefix() {
+        let (stderr, rx) = make_stderr();
+        let handle = std::thread::spawn(move || stderr.run(&[json!(42), json!("Error: {}")]));
+        respond(&rx, &CoordinatorMessage::Stderr("Error: 42".into()));
         let (value, run_again) = handle.join().unwrap().expect("run() failed");
         assert_eq!(run_again, RUN_AGAIN);
         assert_eq!(value, None);

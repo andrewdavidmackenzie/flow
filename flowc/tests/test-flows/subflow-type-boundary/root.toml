@@ -10,8 +10,9 @@ input.pair = { once = [10, 20] }
 
 [[process]]
 source = "context://stdio/stdout"
+input.format = { always = "{}" }
 
 # We expect "10" (element 0 of [10,20]), not "[10,20]" (the whole array)
 [[connection]]
 from = "extract_first/first"
-to = "stdout"
+to = "stdout/value"

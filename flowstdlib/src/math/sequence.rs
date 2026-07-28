@@ -27,10 +27,11 @@ input.step = { once = 1 }
 
 [[process]]
 source = "context://stdio/stdout"
+input.format = { always = "{}" }
 
 [[connection]]
 from = "sequence/number"
-to = "stdout"
+to = "stdout/value"
 "#;
 
         let temp_dir = tempdir()
@@ -66,10 +67,11 @@ input.limit = {once = [1, 2]}
 
 [[process]]
 source = "context://stdio/stdout"
+input.format = { always = "{}" }
 
 [[connection]]
 from = "sequence/number"
-to = "stdout"
+to = "stdout/value"
 "#;
 
         let temp_dir = tempdir()

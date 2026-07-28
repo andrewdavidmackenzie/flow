@@ -5,8 +5,9 @@ source = "context://args/get"
 
 [[connection]]
 from = "get/string/1"
-to = "stdout"
+to = "stdout/value"
 
 [[process]]
 source = "context://stdio/stdout"
 input.default = { always = "OK" }
+input.format = { always = "{}" }

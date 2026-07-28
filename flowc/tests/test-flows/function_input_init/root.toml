@@ -3,3 +3,4 @@ flow = "function_input_init"
 [[process]]
 source = "context://stdio/stdout"
 input.default = {once =  "hello"}
+input.format = { always = "{}" }

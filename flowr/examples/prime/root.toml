@@ -37,8 +37,9 @@ to = "remove/array"
 
 [[connection]]
 from = "remove"
-to = "stdout"
+to = "stdout/value"
 
 ####### Output
 [[process]]
 source = "context://stdio/stdout"
+input.format = { always = "{}" }

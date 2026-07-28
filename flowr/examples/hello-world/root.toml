@@ -4,3 +4,4 @@ docs = "DESCRIPTION.md"
 [[process]]
 source = "context://stdio/stdout"
 input.default = {once =  "Hello World!"}
+input.format = { always = "{}" }

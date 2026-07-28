@@ -12,9 +12,10 @@ source = "context://args/get"
 
 [[process]]
 source = "context://stdio/stdout"
+input.format = { always = "{}" }
 [[connection]]
 from = "get/string/0"
-to = "stdout"
+to = "stdout/value"
 
 [[process]]
 source = "context://stdio/readline"
@@ -22,6 +23,7 @@ input.prompt = {once = ""}
 
 [[process]]
 source = "context://stdio/stderr"
+input.format = { always = "{}" }
 [[connection]]
 from = "readline/string"
-to = "stderr"
+to = "stderr/value"

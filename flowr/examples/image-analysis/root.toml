@@ -87,22 +87,23 @@ to = "histogram/partial"
 # Output statistics to stdout (accepts numbers directly)
 [[process]]
 source = "context://stdio/stdout"
+input.format = { always = "{}" }
 
 [[connection]]
 from = "find_min/result"
-to = "stdout"
+to = "stdout/value"
 
 [[connection]]
 from = "find_max/result"
-to = "stdout"
+to = "stdout/value"
 
 [[connection]]
 from = "find_avg/result"
-to = "stdout"
+to = "stdout/value"
 
 [[connection]]
 from = "find_avg/count"
-to = "stdout"
+to = "stdout/value"
 
 ########################################################################
 # Contrast stretch — (pixel - min) * 255 / (max - min)

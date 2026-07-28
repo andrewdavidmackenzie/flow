@@ -25,10 +25,11 @@ input.range = { once = [1, 10] }
 
 [[process]]
 source = \"context://stdio/stdout\"
+input.format = { always = \"{}\" }
 
 [[connection]]
 from = \"range/number\"
-to = \"stdout\"
+to = \"stdout/value\"
 ";
 
         let temp_dir = tempdir()

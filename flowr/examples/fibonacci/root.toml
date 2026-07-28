@@ -16,6 +16,7 @@ input.i2 = { once = 1 }
 
 [[process]]
 source = "context://stdio/stdout"
+input.format = { always = "{}" }
 x = 313.15073
 y = -63.635933
 width = 180
@@ -28,7 +29,7 @@ to = "add/i2"
 [[connection]]
 name = "next value"
 from = "add"
-to = "stdout"
+to = "stdout/value"
 
 [[connection]]
 name = "previous"

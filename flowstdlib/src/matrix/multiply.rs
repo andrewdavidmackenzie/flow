@@ -26,10 +26,11 @@ input.b = { once = [[5,6],[7,8]] }
 
 [[process]]
 source = \"context://stdio/stdout\"
+input.format = { always = \"{}\" }
 
 [[connection]]
 from = \"multiply/product\"
-to = \"stdout\"
+to = \"stdout/value\"
 ";
 
         let temp_dir = tempdir()
