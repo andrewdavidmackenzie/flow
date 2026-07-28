@@ -146,7 +146,7 @@ to = "get/format"
 # Print elapsed ms to stdout
 [[process]]
 source = "context://stdio/stdout"
-input.format = { always = "{}" }
+input.format = { always = "Iteration time: {}ms" }
 
 [[connection]]
 from = "get/elapsed_millis"

@@ -64,6 +64,14 @@ mod test {
             std::mem::discriminant(&req.message),
             std::mem::discriminant(expected)
         );
+        // Compare the payload string when the expected value is non-empty
+        if let (CoordinatorMessage::Stdout(actual), CoordinatorMessage::Stdout(exp)) =
+            (&req.message, expected)
+        {
+            if !exp.is_empty() {
+                assert_eq!(actual, exp, "Stdout payload mismatch");
+            }
+        }
         if let Some(response_tx) = req.response_tx {
             response_tx
                 .send(ClientMessage::Ack)
