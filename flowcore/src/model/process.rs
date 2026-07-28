@@ -53,27 +53,24 @@ impl HasRoute for Process {
 mod test {
     use url::Url;
 
-    use crate::deserializers::deserializer::get;
+    use crate::deserializers::deserializer::deserialize;
     use crate::errors::Result;
     use crate::model::process::Process;
     use crate::model::process::Process::FlowProcess;
 
     fn toml_from_str(content: &str) -> Result<Process> {
         let url = Url::parse("file:///fake.toml").expect("Could not parse URL");
-        let deserializer = get::<Process>(&url).expect("Could not get deserializer");
-        deserializer.deserialize(content, Some(&url))
+        deserialize(&url, content)
     }
 
     fn yaml_from_str(content: &str) -> Result<Process> {
         let url = Url::parse("file:///fake.yaml").expect("Could not parse URL");
-        let deserializer = get::<Process>(&url).expect("Could not get deserializer");
-        deserializer.deserialize(content, Some(&url))
+        deserialize(&url, content)
     }
 
     fn json_from_str(content: &str) -> Result<Process> {
         let url = Url::parse("file:///fake.json").expect("Could not parse URL");
-        let deserializer = get::<Process>(&url).expect("Could not get deserializer");
-        deserializer.deserialize(content, Some(&url))
+        deserialize(&url, content)
     }
 
     #[test]

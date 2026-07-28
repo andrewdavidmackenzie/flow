@@ -8,7 +8,7 @@ use std::fmt::Display;
 use serde_derive::{Deserialize, Serialize};
 use url::Url;
 
-use crate::deserializers::deserializer::get;
+use crate::deserializers::deserializer::deserialize;
 use crate::errors::{Result, ResultExt};
 use crate::model::flow_definition::FlowDefinition;
 use crate::model::metadata::MetaData;
@@ -237,9 +237,7 @@ impl FlowManifest {
         let url = resolved_url.clone();
         let content =
             String::from_utf8(contents).chain_err(|| "Could not convert from utf8 to String")?;
-        let deserializer = get::<FlowManifest>(&resolved_url)?;
-        let mut manifest = deserializer
-            .deserialize(&content, Some(&resolved_url))
+        let mut manifest: FlowManifest = deserialize(&resolved_url, &content)
             .chain_err(|| format!("Could not create a FlowManifest from '{manifest_url}'"))?;
 
         // normalize the implementation_locations into URLs.

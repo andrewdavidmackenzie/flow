@@ -8,7 +8,7 @@ use log::{debug, info};
 use serde_derive::{Deserialize, Serialize};
 use url::Url;
 
-use crate::deserializers::deserializer::get;
+use crate::deserializers::deserializer::deserialize;
 use crate::errors::{Result, ResultExt};
 use crate::model::metadata::MetaData;
 use crate::provider::Provider;
@@ -108,9 +108,7 @@ impl LibraryManifest {
         let url = resolved_url.clone();
         let content = String::from_utf8(manifest_content)
             .chain_err(|| "Could not convert from utf8 to String")?;
-        let deserializer = get::<LibraryManifest>(&resolved_url)?;
-        let manifest = deserializer
-            .deserialize(&content, Some(&resolved_url))
+        let manifest: LibraryManifest = deserialize(&resolved_url, &content)
             .chain_err(|| format!("Could not create a LibraryManifest from '{resolved_url}'"))?;
 
         Ok((manifest, url))

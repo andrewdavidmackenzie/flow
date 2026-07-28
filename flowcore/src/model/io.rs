@@ -381,7 +381,7 @@ impl Find for IOSet {
 mod test {
     use url::Url;
 
-    use crate::deserializers::deserializer::get;
+    use crate::deserializers::deserializer::deserialize;
     use crate::errors::Result;
     use crate::model::datatype::{DataType, GENERIC_TYPE, STRING_TYPE};
     use crate::model::input::InputInitializer;
@@ -396,8 +396,7 @@ mod test {
 
     fn toml_from_str(content: &str) -> Result<IO> {
         let url = Url::parse("file:///fake.toml").expect("Could not parse URL");
-        let deserializer = get::<IO>(&url).expect("Could not get deserializer");
-        deserializer.deserialize(content, Some(&url))
+        deserialize(&url, content)
     }
 
     #[test]

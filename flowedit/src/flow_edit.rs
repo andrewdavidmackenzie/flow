@@ -20,7 +20,7 @@ use flowcore::model::process::Process;
 use flowcore::model::process_reference::ProcessReference;
 use flowcore::model::route::Route;
 
-use flowcore::deserializers::deserializer::get;
+use flowcore::deserializers::deserializer::deserialize;
 use flowcore::meta_provider::MetaProvider;
 use flowcore::provider::Provider;
 use simpath::Simpath;
@@ -2065,11 +2065,7 @@ impl FlowEdit {
         let Ok(url) = Url::from_file_path(&path) else {
             return Task::none();
         };
-        let Ok(deserializer) = get::<Process>(&url) else {
-            return Task::none();
-        };
-
-        match deserializer.deserialize(&contents, Some(&url)) {
+        match deserialize::<Process>(&url, &contents) {
             Ok(Process::FunctionProcess(ref func)) => {
                 let Some(parent) = self.root_window else {
                     return Task::none();

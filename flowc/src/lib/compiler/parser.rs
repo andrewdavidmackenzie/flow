@@ -3,7 +3,7 @@ use std::collections::BTreeMap;
 use log::{debug, info, trace};
 use url::Url;
 
-use flowcore::deserializers::deserializer::get;
+use flowcore::deserializers::deserializer::{deserialize, format_name};
 use flowcore::model::flow_definition::FlowDefinition;
 use flowcore::model::flow_manifest::Cargo;
 use flowcore::model::input::InputInitializer;
@@ -109,13 +109,11 @@ fn parse_process(
     }
 
     let content = String::from_utf8(contents).chain_err(|| "Could not read UTF8 contents")?;
-    let deserializer = get::<Process>(&resolved_url)?;
     debug!(
         "Loading process from url = '{resolved_url}' with deserializer: '{}'",
-        deserializer.name()
+        format_name(&resolved_url).unwrap_or("unknown")
     );
-    let mut process = deserializer
-        .deserialize(&content, Some(&resolved_url))
+    let mut process: Process = deserialize(&resolved_url, &content)
         .chain_err(|| format!("Could not parse a valid flow process from '{url}'"))?;
 
     match process {
@@ -176,9 +174,7 @@ pub fn parse_metadata(url: &Url, provider: &dyn Provider) -> Result<(MetaData, L
         .chain_err(|| format!("Could not get contents of resolved url: '{resolved_url}'"))?;
     let content = String::from_utf8(contents).chain_err(|| "Could not read UTF8 contents")?;
 
-    let deserializer = get::<Cargo>(&resolved_url)?;
-
-    let cargo: Cargo = deserializer.deserialize(&content, Some(&resolved_url))?;
+    let cargo: Cargo = deserialize(&resolved_url, &content)?;
 
     Ok((cargo.package, LibType::RustLib))
 }
@@ -238,7 +234,7 @@ fn parse_process_refs(
 mod test {
     use url::Url;
 
-    use flowcore::deserializers::deserializer::get;
+    use flowcore::deserializers::deserializer::deserialize;
     use flowcore::model::flow_manifest::Cargo;
     use flowcore::model::metadata::MetaData;
 
@@ -252,10 +248,7 @@ description = "The standard library for 'flow' programs compiled with the 'flowc
 
 exclude = "../..""#;
         let url = Url::parse("file:///fake.toml").expect("Could not parse URL");
-        let deserializer = get::<Cargo>(&url).expect("Could not get deserializer");
-        let cargo: Cargo = deserializer
-            .deserialize(cargo_toml, Some(&url))
-            .expect("Could not deserialize");
+        let cargo: Cargo = deserialize(&url, cargo_toml).expect("Could not deserialize");
         let _: MetaData = cargo.package;
     }
 }

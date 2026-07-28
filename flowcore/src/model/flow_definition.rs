@@ -848,7 +848,7 @@ mod test {
 
     #[test]
     fn deserialize_with_description() {
-        use crate::deserializers::deserializer::get;
+        use crate::deserializers::deserializer::deserialize;
         use url::Url;
 
         let toml_str = r#"
@@ -857,16 +857,14 @@ mod test {
         "#;
 
         let url = Url::parse("file:///fake.toml").expect("Could not parse URL");
-        let deserializer = get::<FlowDefinition>(&url).expect("Could not get deserializer");
-        let flow: FlowDefinition = deserializer
-            .deserialize(toml_str, Some(&url))
+        let flow: FlowDefinition = deserialize(&url, toml_str)
             .expect("Could not deserialize FlowDefinition with description");
         assert_eq!(flow.description, "A flow that does something useful");
     }
 
     #[test]
     fn deserialize_without_description() {
-        use crate::deserializers::deserializer::get;
+        use crate::deserializers::deserializer::deserialize;
         use url::Url;
 
         let toml_str = r#"
@@ -874,9 +872,7 @@ mod test {
         "#;
 
         let url = Url::parse("file:///fake.toml").expect("Could not parse URL");
-        let deserializer = get::<FlowDefinition>(&url).expect("Could not get deserializer");
-        let flow: FlowDefinition = deserializer
-            .deserialize(toml_str, Some(&url))
+        let flow: FlowDefinition = deserialize(&url, toml_str)
             .expect("Could not deserialize FlowDefinition without description");
         assert_eq!(flow.description, "");
     }

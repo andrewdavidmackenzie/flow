@@ -81,7 +81,7 @@ mod test {
     use serde_json::json;
     use url::Url;
 
-    use crate::deserializers::deserializer::get;
+    use crate::deserializers::deserializer::deserialize;
     use crate::errors::Result;
     use crate::model::input::InputInitializer::{Always, Once};
 
@@ -89,8 +89,7 @@ mod test {
 
     fn toml_from_str(content: &str) -> Result<ProcessReference> {
         let url = Url::parse("file:///fake.toml").expect("Could not parse URL");
-        let deserializer = get::<ProcessReference>(&url).expect("Could not get deserializer");
-        deserializer.deserialize(content, Some(&url))
+        deserialize(&url, content)
     }
 
     #[test]
