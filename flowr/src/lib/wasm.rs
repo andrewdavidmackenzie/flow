@@ -159,13 +159,29 @@ impl Implementation for Executor {
         // The guard ensures the counter is decremented even if execution fails.
         let _guard = ExecutionGuard::new();
         let (offset, data_size, alloc_size) = self.send_inputs(&mut store, inputs)?;
-        let result_length = self.call(offset, data_size, &mut store)?;
-        assert!(offset >= 0, "offset was negative");
-        #[allow(clippy::cast_sign_loss)]
-        let result = self.get_result(result_length, offset as usize, &mut store)?;
-        // Free the buffer allocated by alloc() to prevent linear memory exhaustion
-        self.dealloc(offset, alloc_size, &mut store)?;
-        Ok(result)
+
+        // Run the WASM function and read the result. Always free the allocated
+        // buffer afterwards, even if call() or get_result() fails, to prevent
+        // linear memory exhaustion on repeated errors.
+        let run_result = self
+            .call(offset, data_size, &mut store)
+            .and_then(|result_length| {
+                assert!(offset >= 0, "offset was negative");
+                #[allow(clippy::cast_sign_loss)]
+                self.get_result(result_length, offset as usize, &mut store)
+            });
+
+        // Free the buffer allocated by alloc() — ignore dealloc errors if the
+        // main operation already failed (the original error is more useful).
+        let dealloc_result = self.dealloc(offset, alloc_size, &mut store);
+
+        match run_result {
+            Ok(result) => {
+                dealloc_result?;
+                Ok(result)
+            }
+            Err(e) => Err(e),
+        }
     }
 }
 
