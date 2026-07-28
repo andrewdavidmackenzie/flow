@@ -28,8 +28,6 @@ impl Implementation for Stdout {
 #[cfg(test)]
 #[allow(clippy::unwrap_used, clippy::expect_used)]
 mod test {
-    use std::collections::HashMap;
-
     use flowcore::{Implementation, RUN_AGAIN};
     use serde_json::{json, Value};
 
@@ -61,13 +59,11 @@ mod test {
             std::mem::discriminant(&req.message),
             std::mem::discriminant(expected)
         );
-        // Compare the payload string when the expected value is non-empty
+        // Compare the payload string content
         if let (CoordinatorMessage::Stdout(actual), CoordinatorMessage::Stdout(exp)) =
             (&req.message, expected)
         {
-            if !exp.is_empty() {
-                assert_eq!(actual, exp, "Stdout payload mismatch");
-            }
+            assert_eq!(actual, exp, "Stdout payload mismatch");
         }
         if let Some(response_tx) = req.response_tx {
             response_tx
@@ -128,12 +124,11 @@ mod test {
 
     #[test]
     fn send_object() {
-        let mut map = HashMap::new();
-        map.insert("number1", 42);
-        map.insert("number2", 99);
+        let obj = json!({"number1": 42, "number2": 99});
+        let expected = obj.to_string();
         let (stdout, rx) = make_stdout();
-        let handle = std::thread::spawn(move || stdout.run(&[json!(map), json!("{}")]));
-        respond(&rx, &CoordinatorMessage::Stdout(String::new()));
+        let handle = std::thread::spawn(move || stdout.run(&[obj, json!("{}")]));
+        respond(&rx, &CoordinatorMessage::Stdout(expected));
         let (value, run_again) = handle.join().unwrap().expect("run() failed");
         assert_eq!(run_again, RUN_AGAIN);
         assert_eq!(value, None);

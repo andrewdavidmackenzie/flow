@@ -30,8 +30,6 @@ impl Implementation for Stderr {
 #[cfg(test)]
 #[allow(clippy::unwrap_used, clippy::expect_used)]
 mod test {
-    use std::collections::HashMap;
-
     use flowcore::{Implementation, RUN_AGAIN};
     use serde_json::{json, Value};
 
@@ -131,12 +129,11 @@ mod test {
 
     #[test]
     fn send_object() {
-        let mut map = HashMap::new();
-        map.insert("number1", 42);
-        map.insert("number2", 99);
+        let obj = json!({"number1": 42, "number2": 99});
+        let expected = obj.to_string();
         let (stderr, rx) = make_stderr();
-        let handle = std::thread::spawn(move || stderr.run(&[json!(map), json!("{}")]));
-        respond(&rx, &CoordinatorMessage::Stderr(String::new()));
+        let handle = std::thread::spawn(move || stderr.run(&[obj, json!("{}")]));
+        respond(&rx, &CoordinatorMessage::Stderr(expected));
         let (value, run_again) = handle.join().unwrap().expect("run() failed");
         assert_eq!(run_again, RUN_AGAIN);
         assert_eq!(value, None);
