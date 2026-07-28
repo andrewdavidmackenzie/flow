@@ -117,22 +117,23 @@ to = "label_count/s2"
 # --- All stats to stdout ---
 [[process]]
 source = "context://stdio/stdout"
+input.format = { always = "{}" }
 
 [[connection]]
 from = "label_min"
-to = "stdout"
+to = "stdout/value"
 
 [[connection]]
 from = "label_max"
-to = "stdout"
+to = "stdout/value"
 
 [[connection]]
 from = "label_mean"
-to = "stdout"
+to = "stdout/value"
 
 [[connection]]
 from = "label_count"
-to = "stdout"
+to = "stdout/value"
 
 # --- Moving chart of mean values (updated on each reading) ---
 [[process]]

@@ -10,10 +10,11 @@ input.sample_rate = { once = 8000 }
 # Text output to stdout
 [[process]]
 source = "context://stdio/stdout"
+input.format = { always = "{}" }
 
 [[connection]]
 from = "fft_compute/text"
-to = "stdout"
+to = "stdout/value"
 
 # Visual spectrum: bins → histogram chart → image file
 [[process]]

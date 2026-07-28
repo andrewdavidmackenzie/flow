@@ -21,11 +21,12 @@ to = "child2/message"
 
 [[process]]
 source = "context://stdio/stdout"
+input.format = { always = "{}" }
 
 [[connection]]
 from = "child2/message"
-to = "stdout"
+to = "stdout/value"
 
 [[connection]]
 from = "child/message"
-to = "stdout"
+to = "stdout/value"

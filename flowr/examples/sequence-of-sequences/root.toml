@@ -29,7 +29,8 @@ to = ["sequence-of-sequences/step", "sequence-of-sequences/limit"]
 # Print the sequence-of-sequences to stdout
 [[process]]
 source = "context://stdio/stdout"
+input.format = { always = "{}" }
 
 [[connection]]
 from = "sequence-of-sequences/number"
-to = "stdout"
+to = "stdout/value"

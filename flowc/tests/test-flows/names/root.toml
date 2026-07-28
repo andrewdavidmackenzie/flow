@@ -7,7 +7,8 @@ source = "subflow"
 
 [[process]] # Function process_ref
 source = "context://stdio/stdout"
+input.format = { always = "{}" }
 
 [[connection]]
 from = "subflow/out"
-to = "stdout"
+to = "stdout/value"

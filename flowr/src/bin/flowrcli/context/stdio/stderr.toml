@@ -1,7 +1,12 @@
 function = "stderr"
-description = "Write a value to standard error"
+description = "Write a formatted value to standard error"
 source = "stderr.rs"
 docs = "stderr.md"
 impure = true
 
 [[input]]
+name = "value"
+
+[[input]]
+name = "format"
+type = "string"

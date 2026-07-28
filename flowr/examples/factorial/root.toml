@@ -60,7 +60,8 @@ to = "result-tap/data"
 
 [[process]]
 source = "context://stdio/stdout"
+input.format = { always = "{}" }
 
 [[connection]]
 from = "result-tap"
-to = "stdout"
+to = "stdout/value"

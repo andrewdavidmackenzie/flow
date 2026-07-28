@@ -30,10 +30,11 @@ to = "compare_switch/right"
 # GCD found when values are equal
 [[process]]
 source = "context://stdio/stdout"
+input.format = { always = "{}" }
 
 [[connection]]
 from = "compare_switch/equal"
-to = "stdout"
+to = "stdout/value"
 
 # Subtract: larger - smaller
 [[process]]

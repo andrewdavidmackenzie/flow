@@ -6,7 +6,8 @@ input.input = {once =  42}
 
 [[process]]
 source = "context://stdio/stdout"
+input.format = { always = "{}" }
 
 [[connection]]
 from = "sub_flow/output"
-to = "stdout"
+to = "stdout/value"

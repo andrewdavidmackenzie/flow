@@ -1,7 +1,12 @@
 function = "stdout"
-description = "Write a value to standard output"
+description = "Write a formatted value to standard output"
 source = "stdout.rs"
 docs = "stdout.md"
 impure = true
 
 [[input]]
+name = "value"
+
+[[input]]
+name = "format"
+type = "string"

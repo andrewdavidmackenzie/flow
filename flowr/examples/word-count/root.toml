@@ -46,7 +46,8 @@ to = "format"
 # Output the running word count
 [[process]]
 source = "context://stdio/stdout"
+input.format = { always = "{}" }
 
 [[connection]]
 from = "format"
-to = "stdout"
+to = "stdout/value"

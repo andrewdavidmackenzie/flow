@@ -5,8 +5,9 @@ source = "context://stdio/stdin"
 
 [[process]]
 source = "context://stdio/stdout"
+input.format = { always = "{}" }
 
 [[connection]]
 name = "echo"
 from = "stdin/string"
-to = "stdout"
+to = "stdout/value"

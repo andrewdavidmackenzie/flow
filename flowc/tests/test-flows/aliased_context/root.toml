@@ -6,7 +6,8 @@ source = "context://stdio/stdin"
 [[process]]
 alias = "print"
 source = "context://stdio/stdout"
+input.format = { always = "{}" }
 
 [[connection]]
 from = "stdin/string"
-to = "print"
+to = "print/value"

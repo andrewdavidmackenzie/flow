@@ -6,7 +6,8 @@ input.prompt = { always = ">"}
 
 [[process]]
 source = "context://stdio/stdout"
+input.format = { always = "{}" }
 
 [[connection]]
 from = "readline/json/0"
-to = "stdout"
+to = "stdout/value"
