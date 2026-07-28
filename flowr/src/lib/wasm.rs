@@ -22,13 +22,18 @@ pub struct Executor {
     memory: Memory,
     implementation: Func,
     alloc: Func,
+    dealloc: Option<Func>,
     source_url: Url,
 }
 
 impl Executor {
-    // Serialize the inputs into JSON and then write them into the linear memory for WASM to read
-    // Return the offset of the data in linear memory and the data size in bytes
-    fn send_inputs(&self, store: &mut Store<()>, inputs: &[Value]) -> Result<(i32, i32)> {
+    /// Serialize the inputs into JSON and write them into the WASM linear memory.
+    ///
+    /// Returns `(offset, data_size, alloc_size)`:
+    /// - `offset`: where the data was written in linear memory
+    /// - `data_size`: length of the serialized input data
+    /// - `alloc_size`: total bytes allocated (for `dealloc` after use)
+    fn send_inputs(&self, store: &mut Store<()>, inputs: &[Value]) -> Result<(i32, i32, i32)> {
         let input_data = serde_json::to_vec(&inputs)?;
         let input_len = input_data.len();
         let alloc_size = max(
@@ -45,7 +50,7 @@ impl Executor {
             .write(store, usize::try_from(offset)?, &input_data)
             .map_err(|_| "Could not write to WASM Linear Memory")?;
         let data_size = i32::try_from(input_data.len())?;
-        Ok((offset, data_size))
+        Ok((offset, data_size, alloc_size))
     }
 
     // Call the "alloc" wasm function
@@ -95,6 +100,20 @@ impl Executor {
         }
     }
 
+    /// Free a buffer previously allocated by `alloc` inside the WASM guest.
+    /// This is a no-op if the module was compiled without a `dealloc` export
+    /// (backward compatibility with older WASM modules).
+    fn dealloc(&self, offset: i32, size: i32, store: &mut Store<()>) -> Result<()> {
+        if let Some(ref dealloc_fn) = self.dealloc {
+            let params = [Val::I32(offset), Val::I32(size)];
+            let mut results: [Val; 0] = [];
+            dealloc_fn
+                .call(store, &params, &mut results)
+                .map_err(|e| format!("WASM dealloc() call failed: {e}"))?;
+        }
+        Ok(())
+    }
+
     fn get_result(
         &self,
         result_length: i32,
@@ -139,11 +158,14 @@ impl Implementation for Executor {
         // execution, not time spent waiting for the lock.
         // The guard ensures the counter is decremented even if execution fails.
         let _guard = ExecutionGuard::new();
-        let (offset, length) = self.send_inputs(&mut store, inputs)?;
-        let result_length = self.call(offset, length, &mut store)?;
+        let (offset, data_size, alloc_size) = self.send_inputs(&mut store, inputs)?;
+        let result_length = self.call(offset, data_size, &mut store)?;
         assert!(offset >= 0, "offset was negative");
         #[allow(clippy::cast_sign_loss)]
-        self.get_result(result_length, offset as usize, &mut store)
+        let result = self.get_result(result_length, offset as usize, &mut store)?;
+        // Free the buffer allocated by alloc() to prevent linear memory exhaustion
+        self.dealloc(offset, alloc_size, &mut store)?;
+        Ok(result)
     }
 }
 
@@ -172,10 +194,10 @@ pub fn load(provider: &Arc<dyn Provider>, source_url: &Url) -> Result<Executor> 
         .get_func(&mut store, "run_wasm")
         .ok_or("Could not get the WASM instance() function")?;
 
-    // TODO get typed function
     let alloc = instance
         .get_func(&mut store, "alloc")
         .ok_or("Could not get the WASM alloc() function")?;
+    let dealloc = instance.get_func(&mut store, "dealloc");
 
     info!("Loaded wasm module from: '{source_url}'");
 
@@ -184,6 +206,7 @@ pub fn load(provider: &Arc<dyn Provider>, source_url: &Url) -> Result<Executor> 
         memory,
         implementation,
         alloc,
+        dealloc,
         source_url: source_url.clone(),
     })
 }
@@ -248,17 +271,15 @@ mod test {
         }
     }
 
-    /// Directly test that alloc offsets do not grow without bound.
-    /// If alloc never frees, each 256KB allocation pushes the offset higher
-    /// until it wraps past `i32::MAX`.
+    /// Verify that alloc+dealloc keeps offsets bounded.
+    /// Without dealloc, each 256KB allocation pushes the offset higher
+    /// until it wraps past `i32::MAX` after ~8192 calls.
+    /// With dealloc, the guest allocator reclaims memory and offsets
+    /// stay bounded regardless of iteration count.
     ///
-    /// Currently expected to panic because the WASM guest `alloc` function
-    /// has no corresponding `dealloc` — memory leaks until exhaustion.
-    /// Once dealloc is added (#2948), remove `should_panic` and the test
-    /// should pass.
+    /// See: <https://github.com/andrewdavidmackenzie/flow/issues/2948>
     #[test]
-    #[should_panic(expected = "linear memory exhausted")]
-    fn wasm_alloc_offsets_stay_bounded() {
+    fn wasm_alloc_dealloc_offsets_stay_bounded() {
         let path = Path::new(env!("CARGO_MANIFEST_DIR"))
             .join("tests")
             .join("add.wasm");
@@ -268,30 +289,34 @@ mod test {
 
         let mut store = executor.store.lock().unwrap();
 
-        // Allocate MAX_RESULT_SIZE repeatedly and track the returned offsets
+        // 10_000 iterations × 256KB would exceed 2GB without dealloc
         let mut max_offset: i32 = 0;
         let iterations = 10_000;
         for i in 0..iterations {
             let offset = executor
                 .alloc(super::MAX_RESULT_SIZE, &mut store)
                 .unwrap_or_else(|e| panic!("alloc failed on iteration {i}: {e}"));
-            if offset > max_offset {
-                max_offset = offset;
-            }
-            // A negative offset means the pointer wrapped past i32::MAX
             assert!(
                 offset >= 0,
                 "alloc returned negative offset {offset} on iteration {i} \
                  (linear memory exhausted)"
             );
+            if offset > max_offset {
+                max_offset = offset;
+            }
+            executor
+                .dealloc(offset, super::MAX_RESULT_SIZE, &mut store)
+                .unwrap_or_else(|e| panic!("dealloc failed on iteration {i}: {e}"));
         }
-        eprintln!(
-            "After {iterations} allocations of {} bytes each, max offset = {max_offset} \
-             ({:.1} MB)",
-            super::MAX_RESULT_SIZE,
+        // With dealloc, the allocator reuses freed memory and max_offset
+        // stays well below 2GB regardless of how many iterations we run.
+        // Allow some allocator overhead (dlmalloc metadata, alignment, etc).
+        let ten_mb = 10 * 1024 * 1024;
+        assert!(
+            max_offset < ten_mb,
+            "max_offset {max_offset} ({:.1} MB) is unexpectedly large — \
+             dealloc may not be freeing memory",
             f64::from(max_offset) / (1024.0 * 1024.0)
         );
-        // After the fix, offsets should stay bounded (memory is reused).
-        // Before the fix, max_offset would grow to ~2.5 GB and wrap negative.
     }
 }
