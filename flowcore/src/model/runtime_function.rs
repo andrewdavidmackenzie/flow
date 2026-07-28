@@ -1,5 +1,6 @@
 #[cfg(feature = "debugger")]
 use std::fmt;
+use std::sync::Arc;
 
 use log::debug;
 use serde_derive::{Deserialize, Serialize};
@@ -48,6 +49,10 @@ pub struct RuntimeFunction {
 
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     output_connections: Vec<OutputConnection>,
+
+    /// Cached Arc for cheap sharing of output connections with Jobs
+    #[serde(skip)]
+    output_connections_arc: Option<Arc<[OutputConnection]>>,
 }
 
 fn is_default_url(url: &Url) -> bool {
@@ -130,6 +135,7 @@ impl RuntimeFunction {
             implementation_location: implementation_location.into(),
             implementation_url: default_url(),
             output_connections: connections,
+            output_connections_arc: None,
             inputs,
         }
     }
@@ -240,8 +246,21 @@ impl RuntimeFunction {
 
     /// Accessor for a `RuntimeFunction` `output_connections` field
     #[must_use]
-    pub fn get_output_connections(&self) -> &Vec<OutputConnection> {
+    pub fn get_output_connections(&self) -> &[OutputConnection] {
         &self.output_connections
+    }
+
+    /// Get a shared Arc reference to the output connections, suitable for
+    /// cheap cloning into Job structs without deep-copying the connections.
+    /// The Arc is lazily initialized on first call.
+    pub fn get_output_connections_arc(&mut self) -> Arc<[OutputConnection]> {
+        if let Some(ref arc) = self.output_connections_arc {
+            Arc::clone(arc)
+        } else {
+            let arc: Arc<[OutputConnection]> = self.output_connections.clone().into();
+            self.output_connections_arc = Some(Arc::clone(&arc));
+            arc
+        }
     }
 
     /// Get a reference to the `implementation_location`

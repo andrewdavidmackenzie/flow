@@ -551,7 +551,7 @@ impl RunState {
                 #[cfg(feature = "metrics")]
                 let send_start = std::time::Instant::now();
 
-                for connection in &job.connections {
+                for connection in job.connections.iter() {
                     let value_to_send = match &connection.source {
                         Output(route) => match output_value {
                             Some(output_v) => output_v.pointer(route),
@@ -802,7 +802,7 @@ impl RunState {
                         input_set,
                         implementation_url,
                     },
-                    function.get_output_connections().clone(),
+                    function.get_output_connections_arc(),
                 );
 
                 // avoid getting stuck in a loop generating jobs for a function - generate just one
@@ -1086,6 +1086,8 @@ impl fmt::Display for RunState {
 #[cfg(test)]
 #[allow(clippy::unwrap_used, clippy::expect_used)]
 mod test {
+    use std::sync::Arc;
+
     use serde_json::{json, Value};
     use url::Url;
 
@@ -1233,7 +1235,7 @@ mod test {
             parent_id: 0,
             #[cfg(feature = "debugger")]
             function_name: String::new(),
-            connections: vec![out_conn],
+            connections: Arc::from([out_conn]),
             payload: Payload {
                 job_id: 1,
                 implementation_url: Url::parse("file://test").expect("Could not parse Url"),
@@ -1352,6 +1354,8 @@ mod test {
 
     /********************************* State Transition Tests *********************************/
     mod state_transitions {
+        use std::sync::Arc;
+
         use serde_json::json;
         use serial_test::serial;
         use url::Url;
@@ -1528,7 +1532,7 @@ mod test {
                 #[cfg(feature = "debugger")]
                 function_name: String::new(),
                 parent_id: 0,
-                connections: vec![],
+                connections: Arc::from([]),
                 payload: Payload {
                     job_id: 1,
                     implementation_url: Url::parse("file://test").expect("Could not parse Url"),

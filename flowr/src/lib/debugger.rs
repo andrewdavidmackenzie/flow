@@ -1036,6 +1036,8 @@ impl<'a> Debugger<'a> {
 #[cfg(test)]
 #[allow(clippy::unwrap_used, clippy::expect_used)]
 mod test {
+    use std::sync::Arc;
+
     use serde_json::{json, Value};
     use url::Url;
 
@@ -1168,7 +1170,7 @@ mod test {
             #[cfg(feature = "debugger")]
             function_name: String::new(),
             parent_id: 0,
-            connections: vec![],
+            connections: Arc::from([]),
             payload: Payload {
                 job_id: 0,
                 implementation_url: Url::parse("file://test").expect("Could not parse Url"),

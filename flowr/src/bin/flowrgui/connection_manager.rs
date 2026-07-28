@@ -1998,7 +1998,7 @@ fn format_inspect_job(job: &flowcore::model::job::Job) -> Vec<crate::DebugEventL
             format!("  Output connections ({}):", job.connections.len()),
             None,
         ));
-        for conn in &job.connections {
+        for conn in job.connections.iter() {
             lines.push(format_output_connection(conn, Some(job.process_id), "    "));
         }
     }
@@ -2482,6 +2482,8 @@ mod test {
         clippy::single_char_pattern
     )]
     mod format_debug_event_tests {
+        use std::sync::Arc;
+
         use serde_json::json;
         use serial_test::serial;
         use url::Url;
@@ -2507,7 +2509,7 @@ mod test {
                         .expect("Could not parse Url"),
                 },
                 result: Ok((Some(json!(3)), true)),
-                connections: vec![],
+                connections: Arc::from([]),
                 ttl: None,
                 attempt: 1,
             }

@@ -1095,7 +1095,7 @@ mod test {
             #[cfg(feature = "debugger")]
             function_name: String::new(),
             parent_id: 0,
-            connections: vec![],
+            connections: Arc::from([]),
             payload: Payload {
                 job_id: 0,
                 input_set: vec![],
@@ -1112,7 +1112,7 @@ mod test {
             #[cfg(feature = "debugger")]
             function_name: String::new(),
             parent_id: 0,
-            connections: vec![],
+            connections: Arc::from([]),
             payload: Payload {
                 job_id: 0,
                 input_set: vec![],
@@ -1129,7 +1129,7 @@ mod test {
             #[cfg(feature = "debugger")]
             function_name: String::new(),
             parent_id: 0,
-            connections: vec![],
+            connections: Arc::from([]),
             payload: Payload {
                 job_id: 0,
                 input_set: vec![],
