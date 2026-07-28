@@ -405,6 +405,20 @@ fn generate_code(
             return ptr as *mut std::os::raw::c_void;
         }
 
+        /// Free a buffer previously allocated by `alloc`.
+        ///
+        /// Reconstructs the `Vec` from the raw pointer and capacity so Rust's
+        /// allocator can reclaim the memory. The host must call this after
+        /// reading the result from `run_wasm` to prevent linear-memory
+        /// exhaustion.
+        #[cfg(target_arch = "wasm32")]
+        #[no_mangle]
+        pub extern "C" fn dealloc(ptr: *mut std::os::raw::c_void, size: usize) {
+            unsafe {
+                let _ = Vec::from_raw_parts(ptr as *mut u8, 0, size);
+            }
+        }
+
         #[cfg(target_arch = "wasm32")]
         #[no_mangle]
         pub extern "C" fn run_wasm(input_data_ptr: *mut std::os::raw::c_void, input_data_length: i32) -> i32 {
