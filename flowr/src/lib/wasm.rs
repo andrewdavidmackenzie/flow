@@ -201,20 +201,97 @@ mod test {
     use flowcore::provider::Provider;
     use flowcore::Implementation;
 
-    #[test]
-    fn load_test_wasm() {
+    fn load_adder() -> Box<dyn Implementation> {
         let path = Path::new(env!("CARGO_MANIFEST_DIR"))
             .join("tests")
             .join("add.wasm");
         let url = Url::from_file_path(path).expect("Could not convert path to Url");
         let provider = Arc::new(FileProvider {}) as Arc<dyn Provider>;
-        let adder = &super::load(&provider, &url).expect("Could not load test_wasm.wasm")
-            as &dyn Implementation;
+        Box::new(super::load(&provider, &url).expect("Could not load add.wasm"))
+    }
+
+    #[test]
+    fn load_test_wasm() {
+        let adder = load_adder();
 
         let inputs = vec![json!(1), json!(2)];
         let (value, run_again) = adder.run(&inputs).expect("Could not call run");
 
         assert_eq!(value, Some(json!(3)));
         assert!(run_again);
+    }
+
+    /// Verify that a WASM executor can be called many times without exhausting
+    /// linear memory. Each call allocates at least `MAX_RESULT_SIZE` (256KB) via
+    /// the guest `alloc` function. Without a corresponding `dealloc`, repeated
+    /// calls will eventually overflow the i32 address space (~2GB) and cause
+    /// `TryFromIntError`.
+    ///
+    /// See: <https://github.com/andrewdavidmackenzie/flow/issues/2948>
+    #[test]
+    fn repeated_wasm_calls_do_not_exhaust_memory() {
+        let adder = load_adder();
+        let inputs = vec![json!(1), json!(2)];
+
+        // Each alloc leaks MAX_RESULT_SIZE (256KB) of WASM linear memory.
+        // After ~8192 calls the cumulative offset exceeds i32::MAX (~2GB),
+        // causing alloc to return a pointer that cannot be represented as a
+        // positive i32 offset. Use 10_000 iterations for margin.
+        let iterations = 10_000;
+
+        for i in 0..iterations {
+            let (value, run_again) = adder
+                .run(&inputs)
+                .unwrap_or_else(|e| panic!("WASM call failed on iteration {i}: {e}"));
+            assert_eq!(value, Some(json!(3)), "Wrong result on iteration {i}");
+            assert!(run_again, "run_again was false on iteration {i}");
+        }
+    }
+
+    /// Directly test that alloc offsets do not grow without bound.
+    /// If alloc never frees, each 256KB allocation pushes the offset higher
+    /// until it wraps past `i32::MAX`.
+    ///
+    /// Currently expected to panic because the WASM guest `alloc` function
+    /// has no corresponding `dealloc` — memory leaks until exhaustion.
+    /// Once dealloc is added (#2948), remove `should_panic` and the test
+    /// should pass.
+    #[test]
+    #[should_panic(expected = "linear memory exhausted")]
+    fn wasm_alloc_offsets_stay_bounded() {
+        let path = Path::new(env!("CARGO_MANIFEST_DIR"))
+            .join("tests")
+            .join("add.wasm");
+        let url = Url::from_file_path(path).expect("Could not convert path to Url");
+        let provider = Arc::new(FileProvider {}) as Arc<dyn Provider>;
+        let executor = super::load(&provider, &url).expect("Could not load add.wasm");
+
+        let mut store = executor.store.lock().unwrap();
+
+        // Allocate MAX_RESULT_SIZE repeatedly and track the returned offsets
+        let mut max_offset: i32 = 0;
+        let iterations = 10_000;
+        for i in 0..iterations {
+            let offset = executor
+                .alloc(super::MAX_RESULT_SIZE, &mut store)
+                .unwrap_or_else(|e| panic!("alloc failed on iteration {i}: {e}"));
+            if offset > max_offset {
+                max_offset = offset;
+            }
+            // A negative offset means the pointer wrapped past i32::MAX
+            assert!(
+                offset >= 0,
+                "alloc returned negative offset {offset} on iteration {i} \
+                 (linear memory exhausted)"
+            );
+        }
+        eprintln!(
+            "After {iterations} allocations of {} bytes each, max offset = {max_offset} \
+             ({:.1} MB)",
+            super::MAX_RESULT_SIZE,
+            f64::from(max_offset) / (1024.0 * 1024.0)
+        );
+        // After the fix, offsets should stay bounded (memory is reused).
+        // Before the fix, max_offset would grow to ~2.5 GB and wrap negative.
     }
 }
