@@ -1,5 +1,8 @@
+use std::cell::RefCell;
 use std::cmp::max;
-use std::sync::{Arc, Mutex};
+use std::collections::hash_map::Entry;
+use std::collections::HashMap;
+use std::sync::Arc;
 
 use log::info;
 use log::trace;
@@ -16,52 +19,74 @@ const DEFAULT_WASM_FILENAME: &str = "module";
 
 const MAX_RESULT_SIZE: i32 = 256 * 1024;
 
-#[derive(Debug)]
-pub struct Executor {
-    store: Arc<Mutex<Store<()>>>,
+/// Thread-local WASM execution state. Each executor thread gets its own
+/// Store/Instance pair, avoiding Mutex contention.
+struct ThreadLocalWasm {
+    store: Store<()>,
     memory: Memory,
     implementation: Func,
     alloc: Func,
     dealloc: Option<Func>,
-    source_url: Url,
 }
 
-impl Executor {
+impl ThreadLocalWasm {
+    /// Create a new thread-local WASM instance from a compiled module
+    fn new(engine: &Engine, module: &Module) -> Result<Self> {
+        let mut store = Store::new(engine, ());
+        let instance = Instance::new(&mut store, module, &[])
+            .map_err(|e| format!("Could not create WASM Instance: {e}"))?;
+        let memory = instance
+            .get_memory(&mut store, "memory")
+            .ok_or("Could not get WASM linear memory")?;
+        let implementation = instance
+            .get_func(&mut store, "run_wasm")
+            .ok_or("Could not get the WASM run_wasm() function")?;
+        let alloc = instance
+            .get_func(&mut store, "alloc")
+            .ok_or("Could not get the WASM alloc() function")?;
+        let dealloc = instance.get_func(&mut store, "dealloc");
+
+        Ok(Self {
+            store,
+            memory,
+            implementation,
+            alloc,
+            dealloc,
+        })
+    }
+
     /// Serialize the inputs into JSON and write them into the WASM linear memory.
     ///
     /// Returns `(offset, data_size, alloc_size)`:
     /// - `offset`: where the data was written in linear memory
     /// - `data_size`: length of the serialized input data
     /// - `alloc_size`: total bytes allocated (for `dealloc` after use)
-    fn send_inputs(&self, store: &mut Store<()>, inputs: &[Value]) -> Result<(i32, i32, i32)> {
+    fn send_inputs(&mut self, inputs: &[Value], source_url: &Url) -> Result<(i32, i32, i32)> {
         let input_data = serde_json::to_vec(&inputs)?;
         let input_len = input_data.len();
-        let alloc_size = max(
-            i32::try_from(input_len).map_err(|e| {
-                format!(
-                    "Input data size {} exceeds i32::MAX for WASM '{}': {e}",
-                    input_len, self.source_url
-                )
-            })?,
-            MAX_RESULT_SIZE,
-        );
-        let offset = self.alloc(alloc_size, store)?;
+        let alloc_size =
+            max(
+                i32::try_from(input_len).map_err(|e| {
+                    format!(
+                        "Input data size {input_len} exceeds i32::MAX for WASM '{source_url}': {e}",
+                    )
+                })?,
+                MAX_RESULT_SIZE,
+            );
+        let offset = self.alloc_mem(alloc_size)?;
         self.memory
-            .write(store, usize::try_from(offset)?, &input_data)
+            .write(&mut self.store, usize::try_from(offset)?, &input_data)
             .map_err(|_| "Could not write to WASM Linear Memory")?;
         let data_size = i32::try_from(input_data.len())?;
         Ok((offset, data_size, alloc_size))
     }
 
-    // Call the "alloc" wasm function
-    // - `length` is the length of block of memory to allocate
-    // - returns the offset to the allocated memory
-    fn alloc(&self, length: i32, store: &mut Store<()>) -> Result<i32> {
+    fn alloc_mem(&mut self, length: i32) -> Result<i32> {
         let mut results: [Val; 1] = [Val::I32(0)];
         let params = [Val::I32(length)];
         self.alloc
-            .call(store, &params, &mut results)
-            .map_err(|_| "WASM alloc() call failed")?;
+            .call(&mut self.store, &params, &mut results)
+            .map_err(|e| format!("WASM alloc() call failed: {e}"))?;
 
         match results[0] {
             Val::I32(offset) => Ok(offset),
@@ -69,20 +94,13 @@ impl Executor {
         }
     }
 
-    // Call the "implementation" wasm function
-    // - `offset` is the offset to the input values (json), and the length of the json
-    // - `length` is the length of the input json
-    // - returns the length of the resulting json, at the same offset
-    fn call(&self, offset: i32, length: i32, store: &mut Store<()>) -> Result<i32> {
+    fn call(&mut self, offset: i32, length: i32, source_url: &Url) -> Result<i32> {
         let mut results: [Val; 1] = [Val::I32(0)];
         let params = [Val::I32(offset), Val::I32(length)];
         self.implementation
-            .call(store, &params, &mut results)
+            .call(&mut self.store, &params, &mut results)
             .map_err(|e| {
-                format!(
-                    "Error returned by WASM implementation.call() for {:?} => '{}'",
-                    self.source_url, e
-                )
+                format!("Error returned by WASM implementation.call() for {source_url:?} => '{e}'")
             })?;
 
         match results[0] {
@@ -103,28 +121,29 @@ impl Executor {
     /// Free a buffer previously allocated by `alloc` inside the WASM guest.
     /// This is a no-op if the module was compiled without a `dealloc` export
     /// (backward compatibility with older WASM modules).
-    fn dealloc(&self, offset: i32, size: i32, store: &mut Store<()>) -> Result<()> {
+    fn dealloc_mem(&mut self, offset: i32, size: i32) -> Result<()> {
         if let Some(ref dealloc_fn) = self.dealloc {
             let params = [Val::I32(offset), Val::I32(size)];
             let mut results: [Val; 0] = [];
             dealloc_fn
-                .call(store, &params, &mut results)
+                .call(&mut self.store, &params, &mut results)
                 .map_err(|e| format!("WASM dealloc() call failed: {e}"))?;
         }
         Ok(())
     }
 
     fn get_result(
-        &self,
+        &mut self,
         result_length: i32,
         offset: usize,
-        store: &mut Store<()>,
     ) -> Result<(Option<Value>, RunAgain)> {
-        assert!(result_length >= 0, "result_length was negative");
+        if result_length < 0 {
+            bail!("WASM function returned negative result length: {result_length}");
+        }
         #[allow(clippy::cast_sign_loss)]
         let mut buffer: Vec<u8> = vec![0u8; result_length as usize];
         self.memory
-            .read(store, offset, &mut buffer)
+            .read(&mut self.store, offset, &mut buffer)
             .map_err(|_| "could not read return value from WASM linear memory")?;
 
         let result_returned = serde_json::from_slice(buffer.as_slice())
@@ -132,6 +151,53 @@ impl Executor {
         trace!("WASM run() function invocation Result = {result_returned:?}");
         result_returned
     }
+
+    fn run(&mut self, inputs: &[Value], source_url: &Url) -> Result<(Option<Value>, RunAgain)> {
+        let (offset, data_size, alloc_size) = self.send_inputs(inputs, source_url)?;
+
+        // Run the WASM function and read the result. Always free the allocated
+        // buffer afterwards, even if call() or get_result() fails, to prevent
+        // linear memory exhaustion on repeated errors.
+        let run_result = self
+            .call(offset, data_size, source_url)
+            .and_then(|result_length| {
+                if offset < 0 {
+                    bail!("WASM alloc returned negative offset: {offset}");
+                }
+                #[allow(clippy::cast_sign_loss)]
+                self.get_result(result_length, offset as usize)
+            });
+
+        // Free the buffer allocated by alloc() — ignore dealloc errors if the
+        // main operation already failed (the original error is more useful).
+        let dealloc_result = self.dealloc_mem(offset, alloc_size);
+
+        match run_result {
+            Ok(result) => {
+                dealloc_result?;
+                Ok(result)
+            }
+            Err(e) => Err(e),
+        }
+    }
+}
+
+/// A WASM implementation that uses thread-local Store instances for parallel execution.
+///
+/// The compiled `Engine` and `Module` are shared (thread-safe). Each executor thread
+/// lazily creates its own `Store`/`Instance` on the first WASM job it receives,
+/// avoiding Mutex contention.
+#[derive(Debug)]
+pub struct Executor {
+    engine: Engine,
+    module: Module,
+    source_url: Url,
+}
+
+// Thread-local storage for per-thread WASM instances keyed by source URL
+thread_local! {
+    static THREAD_WASM: RefCell<HashMap<Url, ThreadLocalWasm>> =
+        RefCell::new(HashMap::new());
 }
 
 /// RAII guard that calls `track_execution_end` on drop,
@@ -153,39 +219,39 @@ impl Drop for ExecutionGuard {
 
 impl Implementation for Executor {
     fn run(&self, inputs: &[Value]) -> Result<(Option<Value>, RunAgain)> {
-        let mut store = self.store.lock().map_err(|_| "Could not lock WASM store")?;
-        // Track execution AFTER acquiring the Mutex — so we count actual
-        // execution, not time spent waiting for the lock.
-        // The guard ensures the counter is decremented even if execution fails.
         let _guard = ExecutionGuard::new();
-        let (offset, data_size, alloc_size) = self.send_inputs(&mut store, inputs)?;
 
-        // Run the WASM function and read the result. Always free the allocated
-        // buffer afterwards, even if call() or get_result() fails, to prevent
-        // linear memory exhaustion on repeated errors.
-        let run_result = self
-            .call(offset, data_size, &mut store)
-            .and_then(|result_length| {
-                assert!(offset >= 0, "offset was negative");
-                #[allow(clippy::cast_sign_loss)]
-                self.get_result(result_length, offset as usize, &mut store)
-            });
+        THREAD_WASM.with(|cell| {
+            let mut map = cell.borrow_mut();
 
-        // Free the buffer allocated by alloc() — ignore dealloc errors if the
-        // main operation already failed (the original error is more useful).
-        let dealloc_result = self.dealloc(offset, alloc_size, &mut store);
+            // Lazily create a thread-local Store/Instance for this WASM module
+            let tl = match map.entry(self.source_url.clone()) {
+                Entry::Occupied(o) => o.into_mut(),
+                Entry::Vacant(v) => {
+                    let tl = ThreadLocalWasm::new(&self.engine, &self.module).chain_err(|| {
+                        format!(
+                            "Failed to create thread-local WASM instance for '{}'",
+                            self.source_url
+                        )
+                    })?;
+                    trace!(
+                        "Created thread-local WASM instance for '{}'",
+                        self.source_url
+                    );
+                    v.insert(tl)
+                }
+            };
 
-        match run_result {
-            Ok(result) => {
-                dealloc_result?;
-                Ok(result)
-            }
-            Err(e) => Err(e),
-        }
+            tl.run(inputs, &self.source_url)
+        })
     }
 }
 
-/// load a Wasm module from the specified Url and return it wrapped in a `WasmExecutor` `Implementation`
+/// Load a WASM module from the specified URL and return it as an `Implementation`.
+///
+/// The compiled `Engine` and `Module` are stored in the returned `Executor`.
+/// Each executor thread will lazily create its own `Store`/`Instance` from the
+/// shared Module on first use, enabling true parallel WASM execution.
 pub fn load(provider: &Arc<dyn Provider>, source_url: &Url) -> Result<Executor> {
     trace!("Attempting to load WASM module from '{source_url}'");
     let (resolved_url, _) = provider
@@ -198,31 +264,14 @@ pub fn load(provider: &Arc<dyn Provider>, source_url: &Url) -> Result<Executor> 
     let mut config = Config::new();
     config.max_wasm_stack(2 * 1024 * 1024);
     let engine = Engine::new(&config).map_err(|e| format!("Could not create WASM Engine: {e}"))?;
-    let mut store: Store<()> = Store::new(&engine, ());
     let module = Module::from_binary(&engine, &content)
         .map_err(|e| format!("Could not create WASM Module: {e}"))?;
-    let instance = Instance::new(&mut store, &module, &[])
-        .map_err(|e| format!("Could not create WASM Instance: {e}"))?;
-    let memory = instance
-        .get_memory(&mut store, "memory")
-        .ok_or("Could not get WASM linear memory")?;
-    let implementation = instance
-        .get_func(&mut store, "run_wasm")
-        .ok_or("Could not get the WASM instance() function")?;
-
-    let alloc = instance
-        .get_func(&mut store, "alloc")
-        .ok_or("Could not get the WASM alloc() function")?;
-    let dealloc = instance.get_func(&mut store, "dealloc");
 
     info!("Loaded wasm module from: '{source_url}'");
 
     Ok(Executor {
-        store: Arc::new(Mutex::new(store)),
-        memory,
-        implementation,
-        alloc,
-        dealloc,
+        engine,
+        module,
         source_url: source_url.clone(),
     })
 }
@@ -287,6 +336,44 @@ mod test {
         }
     }
 
+    /// Verify that multiple threads can execute the same WASM module concurrently.
+    /// Each thread lazily creates its own Store/Instance via thread-local storage.
+    #[test]
+    fn multi_threaded_wasm_execution() {
+        use std::thread;
+
+        let path = Path::new(env!("CARGO_MANIFEST_DIR"))
+            .join("tests")
+            .join("add.wasm");
+        let url = Url::from_file_path(path).expect("Could not convert path to Url");
+        let provider = Arc::new(FileProvider {}) as Arc<dyn Provider>;
+        let executor = Arc::new(super::load(&provider, &url).expect("Could not load add.wasm"));
+
+        let num_threads = 4;
+        let jobs_per_thread = 100;
+
+        let handles: Vec<_> = (0..num_threads)
+            .map(|t| {
+                let exec = Arc::clone(&executor);
+                thread::spawn(move || {
+                    let inputs = vec![json!(t), json!(1)];
+                    for j in 0..jobs_per_thread {
+                        let (value, run_again) = exec
+                            .run(&inputs)
+                            .unwrap_or_else(|e| panic!("Thread {t} job {j} failed: {e}"));
+                        assert_eq!(value, Some(json!(t + 1)), "Thread {t} job {j} wrong result");
+                        assert!(run_again, "Thread {t} job {j} run_again was false");
+                    }
+                })
+            })
+            .collect();
+
+        for (i, h) in handles.into_iter().enumerate() {
+            h.join()
+                .unwrap_or_else(|e| panic!("Thread {i} panicked: {e:?}"));
+        }
+    }
+
     /// Verify that alloc+dealloc keeps offsets bounded.
     /// Without dealloc, each 256KB allocation pushes the offset higher
     /// until it wraps past `i32::MAX` after ~8192 calls.
@@ -303,14 +390,16 @@ mod test {
         let provider = Arc::new(FileProvider {}) as Arc<dyn Provider>;
         let executor = super::load(&provider, &url).expect("Could not load add.wasm");
 
-        let mut store = executor.store.lock().unwrap();
+        // Create a ThreadLocalWasm directly for testing alloc/dealloc
+        let mut tl =
+            super::ThreadLocalWasm::new(&executor.engine, &executor.module).expect("new failed");
 
         // 10_000 iterations × 256KB would exceed 2GB without dealloc
         let mut max_offset: i32 = 0;
         let iterations = 10_000;
         for i in 0..iterations {
-            let offset = executor
-                .alloc(super::MAX_RESULT_SIZE, &mut store)
+            let offset = tl
+                .alloc_mem(super::MAX_RESULT_SIZE)
                 .unwrap_or_else(|e| panic!("alloc failed on iteration {i}: {e}"));
             assert!(
                 offset >= 0,
@@ -320,8 +409,7 @@ mod test {
             if offset > max_offset {
                 max_offset = offset;
             }
-            executor
-                .dealloc(offset, super::MAX_RESULT_SIZE, &mut store)
+            tl.dealloc_mem(offset, super::MAX_RESULT_SIZE)
                 .unwrap_or_else(|e| panic!("dealloc failed on iteration {i}: {e}"));
         }
         // With dealloc, the allocator reuses freed memory and max_offset
