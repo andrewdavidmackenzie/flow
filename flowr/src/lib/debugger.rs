@@ -386,9 +386,6 @@ impl<'a> Debugger<'a> {
 
     /****************************** Implementations of Debugger Commands *************************/
 
-    /*
-       Add a breakpoint to the debugger according to the Optional `Param`
-    */
     /// Return a human-readable label for a process ID (function or flow).
     fn process_label(
         state: &RunState,
@@ -407,6 +404,9 @@ impl<'a> Debugger<'a> {
         }
     }
 
+    /*
+       Add a breakpoint to the debugger according to the Optional `Param`
+    */
     fn add_breakpoint(
         &mut self,
         state: &RunState,
@@ -505,9 +505,7 @@ impl<'a> Debugger<'a> {
                     bail!("There is no Function or Flow with id '{process_number}' to delete a breakpoint from");
                 }
 
-                let removed_process = self.process_breakpoints.remove(&process_number);
-                let removed_completed = self.completed_breakpoints.remove(&process_number);
-                if removed_process || removed_completed {
+                if self.process_breakpoints.remove(&process_number) {
                     Ok(format!(
                         "Breakpoint on process #{process_number} was deleted"
                     ))
@@ -542,20 +540,15 @@ impl<'a> Debugger<'a> {
                 Ok("Output breakpoint removed\n".into())
             }
             Some(BreakpointSpec::Completed(process_id)) => {
-                if state.get_function(process_id).is_none()
-                    && !state.submission.manifest.flows().contains_key(&process_id)
-                {
-                    bail!(format!(
-                        "There is no Function or Flow with id '{process_id}' to delete a completion breakpoint from"
-                    ));
-                }
+                let (kind, _, _) = Self::process_label(state, process_id)?;
+                let action = if kind == "Flow" { "Idle" } else { "Completion" };
 
                 if self.completed_breakpoints.remove(&process_id) {
                     Ok(format!(
-                        "Completion breakpoint on process #{process_id} was deleted"
+                        "{action} breakpoint on {kind} #{process_id} was deleted"
                     ))
                 } else {
-                    bail!("No completion breakpoint on process #{process_id} exists\n")
+                    bail!("No {action} breakpoint on {kind} #{process_id} exists\n")
                 }
             }
             Some(BreakpointSpec::Route(route)) => {
