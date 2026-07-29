@@ -1,8 +1,6 @@
 #[cfg(all(not(feature = "debugger"), not(feature = "submission")))]
 use std::marker::PhantomData;
-use std::time::Duration;
-#[cfg(feature = "metrics")]
-use std::time::Instant;
+use std::time::{Duration, Instant};
 
 use log::{debug, error, info, trace};
 use serde_json::Value;
