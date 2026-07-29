@@ -53,6 +53,37 @@ static TOTAL_GET_RESULT_US: AtomicU64 = AtomicU64::new(0);
 #[cfg(feature = "metrics")]
 static TOTAL_RETIRE_JOB_US: AtomicU64 = AtomicU64::new(0);
 
+/// RAII guard that accumulates elapsed microseconds into an `AtomicU64` on drop.
+#[cfg(feature = "metrics")]
+struct MetricsTimer {
+    start: Instant,
+    target: &'static AtomicU64,
+}
+
+#[cfg(feature = "metrics")]
+impl MetricsTimer {
+    fn new(target: &'static AtomicU64) -> Self {
+        Self {
+            start: Instant::now(),
+            target,
+        }
+    }
+}
+
+#[cfg(feature = "metrics")]
+impl Drop for MetricsTimer {
+    fn drop(&mut self) {
+        self.target.fetch_add(
+            self.start
+                .elapsed()
+                .as_micros()
+                .try_into()
+                .unwrap_or(u64::MAX),
+            std::sync::atomic::Ordering::Relaxed,
+        );
+    }
+}
+
 /// Result of running the inner dispatch/retire loop for one iteration of flow execution.
 /// Tells the outer loop whether to restart (debugger reset) or finish.
 enum FlowIterationResult {
@@ -60,6 +91,74 @@ enum FlowIterationResult {
     Done,
     /// The debugger requested a restart of flow execution
     Restart,
+}
+
+// --- Debugger wrapper methods ---
+// Encapsulate `#[cfg(feature = "debugger")]` branching so the main coordinator
+// logic reads cleanly without conditional compilation noise.
+#[allow(unused_variables)]
+impl Coordinator<'_> {
+    fn debugger_start(&mut self, state: &RunState) {
+        #[cfg(feature = "debugger")]
+        if state.submission.debug_enabled {
+            self.debugger.start();
+        }
+    }
+
+    fn debugger_wait_if_enabled(&mut self, state: &mut RunState) -> Result<bool> {
+        #[cfg(feature = "debugger")]
+        if state.submission.debug_enabled {
+            let action = self.debugger.wait_for_command(state)?;
+            return Ok(action.should_restart());
+        }
+        Ok(false)
+    }
+
+    fn debugger_check_mid_loop(&mut self, state: &mut RunState) -> Result<bool> {
+        #[cfg(all(feature = "debugger", feature = "submission"))]
+        if state.submission.debug_enabled && self.submission_handler.should_enter_debugger()? {
+            let action = self.debugger.wait_for_command(state)?;
+            return Ok(action.should_restart());
+        }
+        Ok(false)
+    }
+
+    fn debugger_check_before_job(
+        &mut self,
+        state: &mut RunState,
+        job: &Job,
+    ) -> Result<DebugAction> {
+        #[cfg(feature = "debugger")]
+        return self.debugger.check_prior_to_job(state, job);
+        #[cfg(not(feature = "debugger"))]
+        Ok(DebugAction::Continue)
+    }
+
+    fn debugger_job_done(&mut self, action: &mut DebugAction, state: &mut RunState, job: &Job) {
+        #[cfg(feature = "debugger")]
+        if action.should_display() {
+            *action = self.debugger.job_done(state, job);
+        }
+    }
+
+    fn debugger_error(
+        &mut self,
+        state: &mut RunState,
+        err: &flowcore::errors::Error,
+    ) -> Result<DebugAction> {
+        #[cfg(feature = "debugger")]
+        if state.submission.debug_enabled {
+            return self.debugger.error(state, err.to_string());
+        }
+        Ok(DebugAction::Continue)
+    }
+
+    fn debugger_job_error(&mut self, state: &mut RunState, job: &Job) -> Result<DebugAction> {
+        #[cfg(feature = "debugger")]
+        return self.debugger.job_error(state, job);
+        #[cfg(not(feature = "debugger"))]
+        Ok(DebugAction::Continue)
+    }
 }
 
 impl<'a> Coordinator<'a> {
@@ -131,10 +230,7 @@ impl<'a> Coordinator<'a> {
             metrics.set_function_names(names);
         }
 
-        #[cfg(feature = "debugger")]
-        if state.submission.debug_enabled {
-            self.debugger.start();
-        }
+        self.debugger_start(&state);
 
         // Outer loop: allows the debugger to restart execution from scratch
         loop {
@@ -196,13 +292,8 @@ impl<'a> Coordinator<'a> {
         state: &mut RunState,
         #[cfg(feature = "metrics")] metrics: &mut Metrics,
     ) -> Result<FlowIterationResult> {
-        // If debugging, enter the debugger before starting execution
-        #[cfg(feature = "debugger")]
-        if state.submission.debug_enabled {
-            let action = self.debugger.wait_for_command(state)?;
-            if action.should_restart() {
-                return Ok(FlowIterationResult::Restart);
-            }
+        if self.debugger_wait_if_enabled(state)? {
+            return Ok(FlowIterationResult::Restart);
         }
 
         #[cfg(feature = "submission")]
@@ -223,12 +314,8 @@ impl<'a> Coordinator<'a> {
                 break;
             }
 
-            #[cfg(all(feature = "debugger", feature = "submission"))]
-            if state.submission.debug_enabled && self.submission_handler.should_enter_debugger()? {
-                let action = self.debugger.wait_for_command(state)?;
-                if action.should_restart() {
-                    return Ok(FlowIterationResult::Restart);
-                }
+            if self.debugger_check_mid_loop(state)? {
+                return Ok(FlowIterationResult::Restart);
             }
 
             #[cfg(feature = "metrics")]
@@ -385,20 +472,14 @@ impl<'a> Coordinator<'a> {
         }
 
         // Get the first result (may block if no ready jobs to dispatch)
-        #[cfg(feature = "metrics")]
-        let get_result_start = Instant::now();
-
-        let first_result = self.get_result(state);
-
-        #[cfg(feature = "metrics")]
-        TOTAL_GET_RESULT_US.fetch_add(
-            get_result_start
-                .elapsed()
-                .as_micros()
-                .try_into()
-                .unwrap_or(u64::MAX),
-            std::sync::atomic::Ordering::Relaxed,
-        );
+        let first_result = {
+            #[cfg(feature = "metrics")]
+            let timer = MetricsTimer::new(&TOTAL_GET_RESULT_US);
+            let result = self.get_result(state);
+            #[cfg(feature = "metrics")]
+            drop(timer);
+            result
+        };
 
         match first_result {
             Ok(Some((job_id, result))) => {
@@ -416,11 +497,7 @@ impl<'a> Coordinator<'a> {
             Ok(None) => return Ok(DebugAction::Continue),
             Err(err) => {
                 error!("\t{err}");
-                #[cfg(feature = "debugger")]
-                if state.submission.debug_enabled {
-                    return self.debugger.error(state, err.to_string());
-                }
-                return Ok(DebugAction::Continue);
+                return self.debugger_error(state, &err);
             }
         }
 
@@ -456,7 +533,7 @@ impl<'a> Coordinator<'a> {
         #[cfg(feature = "metrics")] metrics: &mut Metrics,
     ) -> Result<DebugAction> {
         #[cfg(feature = "metrics")]
-        let retire_start = Instant::now();
+        let _retire_timer = MetricsTimer::new(&TOTAL_RETIRE_JOB_US);
 
         let (mut action, job) = state.retire_job(
             job_id,
@@ -467,20 +544,7 @@ impl<'a> Coordinator<'a> {
             &mut self.debugger,
         )?;
 
-        #[cfg(feature = "metrics")]
-        TOTAL_RETIRE_JOB_US.fetch_add(
-            retire_start
-                .elapsed()
-                .as_micros()
-                .try_into()
-                .unwrap_or(u64::MAX),
-            std::sync::atomic::Ordering::Relaxed,
-        );
-
-        #[cfg(feature = "debugger")]
-        if action.should_display() {
-            action = self.debugger.job_done(state, &job);
-        }
+        self.debugger_job_done(&mut action, state, &job);
 
         Ok(action)
     }
@@ -507,9 +571,7 @@ impl<'a> Coordinator<'a> {
                 Err(err) => {
                     error!("Error sending on 'job_tx': {err}");
                     debug!("{state}");
-
-                    #[cfg(feature = "debugger")]
-                    return self.debugger.job_error(state, &job);
+                    return self.debugger_job_error(state, &job);
                 }
             }
         }
@@ -524,11 +586,7 @@ impl<'a> Coordinator<'a> {
         state: &mut RunState,
         #[cfg(feature = "metrics")] metrics: &mut Metrics,
     ) -> Result<DebugAction> {
-        #[cfg(not(feature = "debugger"))]
-        let action = DebugAction::Continue;
-
-        #[cfg(feature = "debugger")]
-        let action = self.debugger.check_prior_to_job(state, job)?;
+        let action = self.debugger_check_before_job(state, job)?;
 
         self.dispatcher.send_job_for_execution(&job.payload)?;
 
@@ -574,6 +632,24 @@ mod test {
     use crate::run_state::RunState;
     use crate::test_helper::fixtures::{get_bind_addresses, get_four_ports, test_manifest};
 
+    #[cfg(feature = "metrics")]
+    #[test]
+    fn metrics_timer_accumulates() {
+        use std::sync::atomic::Ordering;
+        // Leak a Box to get a &'static AtomicU64 for the timer
+        let counter: &'static std::sync::atomic::AtomicU64 =
+            Box::leak(Box::new(std::sync::atomic::AtomicU64::new(0)));
+        {
+            let _timer = super::MetricsTimer::new(counter);
+            std::thread::sleep(Duration::from_millis(1));
+        }
+        // Timer dropped — counter should have accumulated some microseconds
+        assert!(
+            counter.load(Ordering::Relaxed) > 0,
+            "MetricsTimer should accumulate elapsed time on drop"
+        );
+    }
+
     fn test_submission(functions: Vec<RuntimeFunction>) -> Submission {
         Submission::new(
             test_manifest(functions),
@@ -589,7 +665,10 @@ mod test {
     }
 
     #[cfg(feature = "debugger")]
-    struct DummyDebugServer;
+    struct DummyDebugServer {
+        /// If true, return `ExitDebugger` (for empty flows that can't `Continue`)
+        exit_immediately: bool,
+    }
 
     #[cfg(feature = "debugger")]
     impl DebuggerHandler for DummyDebugServer {
@@ -633,7 +712,11 @@ mod test {
         fn execution_metrics(&mut self, _: flowcore::model::metrics::Metrics) {}
         fn flow_list(&mut self, _: &[usize], _: &RunState) {}
         fn get_command(&mut self, _state: &RunState) -> flowcore::errors::Result<DebugCommand> {
-            Ok(DebugCommand::Continue)
+            if self.exit_immediately {
+                Ok(DebugCommand::ExitDebugger)
+            } else {
+                Ok(DebugCommand::Continue)
+            }
         }
     }
 
@@ -678,7 +761,9 @@ mod test {
         #[cfg(feature = "submission")]
         let mut submission_handler = DummySubmissionHandler;
         #[cfg(feature = "debugger")]
-        let mut debug_server = DummyDebugServer;
+        let mut debug_server = DummyDebugServer {
+            exit_immediately: false,
+        };
 
         let _coordinator = Coordinator::new(
             dispatcher,
@@ -696,7 +781,9 @@ mod test {
         #[cfg(feature = "submission")]
         let mut submission_handler = DummySubmissionHandler;
         #[cfg(feature = "debugger")]
-        let mut debug_server = DummyDebugServer;
+        let mut debug_server = DummyDebugServer {
+            exit_immediately: false,
+        };
 
         let mut coordinator = Coordinator::new(
             dispatcher,
@@ -718,7 +805,9 @@ mod test {
         #[cfg(feature = "submission")]
         let mut submission_handler = DummySubmissionHandler;
         #[cfg(feature = "debugger")]
-        let mut debug_server = DummyDebugServer;
+        let mut debug_server = DummyDebugServer {
+            exit_immediately: false,
+        };
 
         let mut coordinator = Coordinator::new(
             dispatcher,
@@ -749,7 +838,9 @@ mod test {
         #[cfg(feature = "submission")]
         let mut submission_handler = DummySubmissionHandler;
         #[cfg(feature = "debugger")]
-        let mut debug_server = DummyDebugServer;
+        let mut debug_server = DummyDebugServer {
+            exit_immediately: false,
+        };
 
         let mut coordinator = Coordinator::new(
             dispatcher,
@@ -773,6 +864,39 @@ mod test {
         );
     }
 
+    #[cfg(feature = "debugger")]
+    #[test]
+    #[serial]
+    fn execute_empty_flow_with_debugger() {
+        let dispatcher = test_dispatcher();
+        #[cfg(feature = "submission")]
+        let mut submission_handler = DummySubmissionHandler;
+        let mut debug_server = DummyDebugServer {
+            exit_immediately: true,
+        };
+
+        let mut coordinator = Coordinator::new(
+            dispatcher,
+            #[cfg(feature = "submission")]
+            &mut submission_handler,
+            &mut debug_server,
+        );
+
+        let submission = Submission::new(
+            test_manifest(vec![]),
+            None,
+            Some(Duration::from_millis(100)),
+            true, // debug_enabled
+        );
+        // ExitDebugger causes a "Debugger Exit" error — expected for empty flows
+        // since Continue loops forever when no jobs have been created
+        let result = coordinator.execute_flow(submission);
+        assert!(
+            result.is_err(),
+            "Empty flow with debugger should exit via debugger"
+        );
+    }
+
     #[cfg(feature = "submission")]
     #[test]
     #[serial]
@@ -780,7 +904,9 @@ mod test {
         let dispatcher = test_dispatcher();
         let mut submission_handler = DummySubmissionHandler;
         #[cfg(feature = "debugger")]
-        let mut debug_server = DummyDebugServer;
+        let mut debug_server = DummyDebugServer {
+            exit_immediately: false,
+        };
 
         let mut coordinator = Coordinator::new(
             dispatcher,
