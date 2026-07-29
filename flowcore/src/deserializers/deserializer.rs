@@ -4,6 +4,37 @@ use url::Url;
 use crate::bail;
 use crate::errors::{Result, ResultExt};
 
+/// Supported deserialization formats, determined by file extension.
+enum Format {
+    Toml,
+    Yaml,
+    Json,
+}
+
+impl Format {
+    /// Determine the format from a URL's file extension.
+    fn from_url(url: &Url) -> Result<Self> {
+        match get_file_extension(url) {
+            Some("toml") => Ok(Format::Toml),
+            Some("yaml" | "yml") => Ok(Format::Yaml),
+            Some("json") => Ok(Format::Json),
+            Some(_) => {
+                bail!("Unknown file extension so cannot determine which deserializer to use")
+            }
+            None => bail!("No file extension so cannot determine which deserializer to use"),
+        }
+    }
+
+    /// Return a human-readable name for this format.
+    fn name(&self) -> &'static str {
+        match self {
+            Format::Toml => "Toml",
+            Format::Yaml => "Yaml",
+            Format::Json => "Json",
+        }
+    }
+}
+
 /// Deserialize `contents` loaded from `url` into type `T`, selecting the format
 /// (TOML, JSON, or YAML) based on the file extension of `url`.
 ///
@@ -15,16 +46,15 @@ pub fn deserialize<T>(url: &Url, contents: &str) -> Result<T>
 where
     T: DeserializeOwned + 'static,
 {
-    match get_file_extension(url) {
-        Some("toml") => {
+    let format = Format::from_url(url)?;
+    match format {
+        Format::Toml => {
             toml::from_str(contents).chain_err(|| format!("Error deserializing Toml from: '{url}'"))
         }
-        Some("yaml" | "yml") => serde_yml::from_str(contents)
+        Format::Yaml => serde_yml::from_str(contents)
             .chain_err(|| format!("Error deserializing Yaml from: '{url}'")),
-        Some("json") => serde_json::from_str(contents)
+        Format::Json => serde_json::from_str(contents)
             .chain_err(|| format!("Error deserializing Json from: '{url}'")),
-        Some(_) => bail!("Unknown file extension so cannot determine which deserializer to use"),
-        None => bail!("No file extension so cannot determine which deserializer to use"),
     }
 }
 
@@ -35,13 +65,7 @@ where
 ///
 /// Returns `Err` if the file extension is missing or unrecognized.
 pub fn format_name(url: &Url) -> Result<&'static str> {
-    match get_file_extension(url) {
-        Some("toml") => Ok("Toml"),
-        Some("yaml" | "yml") => Ok("Yaml"),
-        Some("json") => Ok("Json"),
-        Some(_) => bail!("Unknown file extension"),
-        None => bail!("No file extension"),
-    }
+    Format::from_url(url).map(|f| f.name())
 }
 
 /// Get the file extension of the resource referred to by `url`
@@ -171,5 +195,11 @@ mod test {
     fn invalid_json_content() {
         let url = Url::parse("file:///test.json").expect("Could not create Url");
         assert!(deserialize::<TestStruct>(&url, "{invalid").is_err());
+    }
+
+    #[test]
+    fn invalid_yaml_content() {
+        let url = Url::parse("file:///test.yaml").expect("Could not create Url");
+        assert!(deserialize::<TestStruct>(&url, "\t invalid: [yaml").is_err());
     }
 }
