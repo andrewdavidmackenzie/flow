@@ -632,6 +632,24 @@ mod test {
     use crate::run_state::RunState;
     use crate::test_helper::fixtures::{get_bind_addresses, get_four_ports, test_manifest};
 
+    #[cfg(feature = "metrics")]
+    #[test]
+    fn metrics_timer_accumulates() {
+        use std::sync::atomic::Ordering;
+        // Leak a Box to get a &'static AtomicU64 for the timer
+        let counter: &'static std::sync::atomic::AtomicU64 =
+            Box::leak(Box::new(std::sync::atomic::AtomicU64::new(0)));
+        {
+            let _timer = super::MetricsTimer::new(counter);
+            std::thread::sleep(Duration::from_millis(1));
+        }
+        // Timer dropped — counter should have accumulated some microseconds
+        assert!(
+            counter.load(Ordering::Relaxed) > 0,
+            "MetricsTimer should accumulate elapsed time on drop"
+        );
+    }
+
     fn test_submission(functions: Vec<RuntimeFunction>) -> Submission {
         Submission::new(
             test_manifest(functions),
@@ -647,7 +665,10 @@ mod test {
     }
 
     #[cfg(feature = "debugger")]
-    struct DummyDebugServer;
+    struct DummyDebugServer {
+        /// If true, return `ExitDebugger` (for empty flows that can't `Continue`)
+        exit_immediately: bool,
+    }
 
     #[cfg(feature = "debugger")]
     impl DebuggerHandler for DummyDebugServer {
@@ -691,7 +712,11 @@ mod test {
         fn execution_metrics(&mut self, _: flowcore::model::metrics::Metrics) {}
         fn flow_list(&mut self, _: &[usize], _: &RunState) {}
         fn get_command(&mut self, _state: &RunState) -> flowcore::errors::Result<DebugCommand> {
-            Ok(DebugCommand::Continue)
+            if self.exit_immediately {
+                Ok(DebugCommand::ExitDebugger)
+            } else {
+                Ok(DebugCommand::Continue)
+            }
         }
     }
 
@@ -736,7 +761,9 @@ mod test {
         #[cfg(feature = "submission")]
         let mut submission_handler = DummySubmissionHandler;
         #[cfg(feature = "debugger")]
-        let mut debug_server = DummyDebugServer;
+        let mut debug_server = DummyDebugServer {
+            exit_immediately: false,
+        };
 
         let _coordinator = Coordinator::new(
             dispatcher,
@@ -754,7 +781,9 @@ mod test {
         #[cfg(feature = "submission")]
         let mut submission_handler = DummySubmissionHandler;
         #[cfg(feature = "debugger")]
-        let mut debug_server = DummyDebugServer;
+        let mut debug_server = DummyDebugServer {
+            exit_immediately: false,
+        };
 
         let mut coordinator = Coordinator::new(
             dispatcher,
@@ -776,7 +805,9 @@ mod test {
         #[cfg(feature = "submission")]
         let mut submission_handler = DummySubmissionHandler;
         #[cfg(feature = "debugger")]
-        let mut debug_server = DummyDebugServer;
+        let mut debug_server = DummyDebugServer {
+            exit_immediately: false,
+        };
 
         let mut coordinator = Coordinator::new(
             dispatcher,
@@ -807,7 +838,9 @@ mod test {
         #[cfg(feature = "submission")]
         let mut submission_handler = DummySubmissionHandler;
         #[cfg(feature = "debugger")]
-        let mut debug_server = DummyDebugServer;
+        let mut debug_server = DummyDebugServer {
+            exit_immediately: false,
+        };
 
         let mut coordinator = Coordinator::new(
             dispatcher,
@@ -831,6 +864,39 @@ mod test {
         );
     }
 
+    #[cfg(feature = "debugger")]
+    #[test]
+    #[serial]
+    fn execute_empty_flow_with_debugger() {
+        let dispatcher = test_dispatcher();
+        #[cfg(feature = "submission")]
+        let mut submission_handler = DummySubmissionHandler;
+        let mut debug_server = DummyDebugServer {
+            exit_immediately: true,
+        };
+
+        let mut coordinator = Coordinator::new(
+            dispatcher,
+            #[cfg(feature = "submission")]
+            &mut submission_handler,
+            &mut debug_server,
+        );
+
+        let submission = Submission::new(
+            test_manifest(vec![]),
+            None,
+            Some(Duration::from_millis(100)),
+            true, // debug_enabled
+        );
+        // ExitDebugger causes a "Debugger Exit" error — expected for empty flows
+        // since Continue loops forever when no jobs have been created
+        let result = coordinator.execute_flow(submission);
+        assert!(
+            result.is_err(),
+            "Empty flow with debugger should exit via debugger"
+        );
+    }
+
     #[cfg(feature = "submission")]
     #[test]
     #[serial]
@@ -838,7 +904,9 @@ mod test {
         let dispatcher = test_dispatcher();
         let mut submission_handler = DummySubmissionHandler;
         #[cfg(feature = "debugger")]
-        let mut debug_server = DummyDebugServer;
+        let mut debug_server = DummyDebugServer {
+            exit_immediately: false,
+        };
 
         let mut coordinator = Coordinator::new(
             dispatcher,
