@@ -136,6 +136,19 @@ impl<'a> Debugger<'a> {
         Ok(DebugAction::Continue)
     }
 
+    /// Check if any newly-busy flows have breakpoints set. If so, enter the debugger.
+    /// Called after `create_jobs` populates `newly_busy_flows`.
+    pub fn check_flow_restarts(&mut self, state: &mut RunState) -> Result<DebugAction> {
+        let newly_busy = state.drain_newly_busy_flows();
+        for flow_id in newly_busy {
+            if self.process_breakpoints.contains(&flow_id) {
+                self.debug_server.flow_unblock_breakpoint(flow_id);
+                return self.wait_for_command(state);
+            }
+        }
+        Ok(DebugAction::Continue)
+    }
+
     /// An error occurred while executing a flow. Let the debug client know, enter the client
     /// and wait for a user command.
     ///
@@ -1050,6 +1063,7 @@ mod test {
     use flowcore::model::runtime_function::RuntimeFunction;
     use flowcore::model::submission::Submission;
 
+    use crate::debug_action::DebugAction;
     use crate::debug_command::{BreakpointSpec, DebugCommand};
     use crate::debugger::Debugger;
     use crate::debugger_handler::DebuggerHandler;
@@ -1244,6 +1258,34 @@ mod test {
         let _ = debugger.check_prior_to_flow_unblock(&mut state, 0);
 
         // check the breakpoint triggered when the flow was unblocked as expected
+        assert_eq!(server.flow_unblock_breakpoint, 0);
+    }
+
+    #[test]
+    fn test_check_flow_restarts_no_breakpoint() {
+        let mut state = RunState::new(test_submission(vec![test_function(0)]));
+        let mut server = DummyServer::new();
+        let mut debugger = Debugger::new(&mut server);
+
+        // Simulate flow #5 becoming busy — no breakpoint set
+        state.newly_busy_flows.push(5);
+        let action = debugger
+            .check_flow_restarts(&mut state)
+            .expect("check_flow_restarts failed");
+        assert_eq!(action, DebugAction::Continue);
+    }
+
+    #[test]
+    fn test_check_flow_restarts_with_breakpoint() {
+        let mut state = RunState::new(test_submission(vec![test_function(0)]));
+        let mut server = DummyServer::new();
+        let mut debugger = Debugger::new(&mut server);
+
+        // Set a process breakpoint on flow #0, then simulate it becoming busy
+        debugger.process_breakpoints.insert(0);
+        state.newly_busy_flows.push(0);
+        let _ = debugger.check_flow_restarts(&mut state);
+        // The breakpoint should have triggered
         assert_eq!(server.flow_unblock_breakpoint, 0);
     }
 

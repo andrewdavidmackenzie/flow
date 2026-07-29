@@ -216,6 +216,10 @@ pub struct RunState {
     functions_by_flow: HashMap<usize, Vec<usize>>,
     /// Precomputed ancestor chains: flow ID → [self, parent, grandparent, ...root]
     ancestors_by_flow: HashMap<usize, Vec<usize>>,
+    /// Flow IDs that transitioned from idle to busy during the last `create_jobs` call.
+    /// Drained by the caller to check debugger breakpoints.
+    #[cfg(feature = "debugger")]
+    pub(crate) newly_busy_flows: Vec<usize>,
     #[cfg(feature = "trace")]
     #[serde(skip)]
     trace: flowcore::model::trace::Trace,
@@ -265,6 +269,8 @@ impl RunState {
             jobs_per_function: vec![0; num_processes],
             functions_by_flow,
             ancestors_by_flow,
+            #[cfg(feature = "debugger")]
+            newly_busy_flows: Vec::new(),
             #[cfg(feature = "trace")]
             trace,
         }
@@ -661,6 +667,12 @@ impl RunState {
         );
         job.result = result;
 
+        // Check for flow restart breakpoints after all job creation is done
+        #[cfg(feature = "debugger")]
+        if action == DebugAction::Continue {
+            action = debugger.check_flow_restarts(self)?;
+        }
+
         Ok((action, job))
     }
 
@@ -751,6 +763,13 @@ impl RunState {
         self.running_jobs.len()
     }
 
+    /// Drain and return the IDs of flows that transitioned from idle to busy
+    /// since the last drain. Used by the debugger for flow restart breakpoints.
+    #[cfg(feature = "debugger")]
+    pub(crate) fn drain_newly_busy_flows(&mut self) -> Vec<usize> {
+        std::mem::take(&mut self.newly_busy_flows)
+    }
+
     /// Return how many jobs are ready to be run, but not running yet
     #[must_use]
     pub fn number_jobs_ready(&self) -> usize {
@@ -817,7 +836,14 @@ impl RunState {
                 *self.busy_count.entry(process_id).or_insert(0) += 1;
                 let ancestors = self.ancestors(parent_id).to_vec();
                 for ancestor in ancestors {
-                    *self.busy_count.entry(ancestor).or_insert(0) += 1;
+                    let count = self.busy_count.entry(ancestor).or_insert(0);
+                    #[cfg(feature = "debugger")]
+                    let was_idle = *count == 0;
+                    *count += 1;
+                    #[cfg(feature = "debugger")]
+                    if was_idle {
+                        self.newly_busy_flows.push(ancestor);
+                    }
                 }
                 #[cfg(feature = "trace")]
                 self.record_trace("CreateJob");
@@ -1920,6 +1946,24 @@ mod test {
             state.create_jobs(0, 0).expect("Could not create jobs");
 
             state.get_next_job().expect("Couldn't get next job");
+        }
+
+        #[cfg(feature = "debugger")]
+        #[test]
+        fn drain_newly_busy_flows_works() {
+            let mut state = RunState::new(super::test_submission(test_functions()));
+
+            // Initially empty
+            assert!(state.drain_newly_busy_flows().is_empty());
+
+            // Manually simulate flows becoming busy
+            state.newly_busy_flows.push(1);
+            state.newly_busy_flows.push(2);
+            let busy = state.drain_newly_busy_flows();
+            assert_eq!(busy, vec![1, 2]);
+
+            // Draining again should return empty
+            assert!(state.drain_newly_busy_flows().is_empty());
         }
 
         #[test]
