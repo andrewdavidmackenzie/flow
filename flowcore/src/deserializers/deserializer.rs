@@ -1,44 +1,71 @@
 use serde::de::DeserializeOwned;
-use serde::Deserialize;
 use url::Url;
 
 use crate::bail;
-use crate::errors::Result;
+use crate::errors::{Result, ResultExt};
 
-use super::json_deserializer::JsonDeserializer;
-use super::toml_deserializer::TomlDeserializer;
-use super::yaml_deserializer::YamlDeserializer;
-
-/// All deserializers have to implement this trait for content deserialization, plus a method
-/// to return their name to be able to inform the user of which deserializer was used
-pub trait Deserializer<'a, T: Deserialize<'a>> {
-    /// Deserialize the supplied `content` that was loaded from `url` into a `P`
-    /// # Errors
-    ///
-    /// Will return `Err` if `contents` cannot be deserialized into the type `T`
-    fn deserialize(&self, contents: &'a str, url: Option<&Url>) -> Result<T>;
-    /// Return the name of the serializer implementing this trait
-    fn name(&self) -> &str;
+/// Supported deserialization formats, determined by file extension.
+enum Format {
+    Toml,
+    Yaml,
+    Json,
 }
 
-/// Return a Deserializer based on the file extension of the resource referred to from `url` input
+impl Format {
+    /// Determine the format from a URL's file extension.
+    fn from_url(url: &Url) -> Result<Self> {
+        match get_file_extension(url) {
+            Some("toml") => Ok(Format::Toml),
+            Some("yaml" | "yml") => Ok(Format::Yaml),
+            Some("json") => Ok(Format::Json),
+            Some(_) => {
+                bail!("Unknown file extension so cannot determine which deserializer to use")
+            }
+            None => bail!("No file extension so cannot determine which deserializer to use"),
+        }
+    }
+
+    /// Return a human-readable name for this format.
+    fn name(&self) -> &'static str {
+        match self {
+            Format::Toml => "Toml",
+            Format::Yaml => "Yaml",
+            Format::Json => "Json",
+        }
+    }
+}
+
+/// Deserialize `contents` loaded from `url` into type `T`, selecting the format
+/// (TOML, JSON, or YAML) based on the file extension of `url`.
+///
 /// # Errors
 ///
-/// Will return `Err` if a deserializer cannot be found that can deserialize the content type
-/// identified by the extension of the last segment of `url`
-pub fn get<'a, T>(url: &'a Url) -> Result<Box<dyn Deserializer<'a, T> + 'a>>
+/// Returns `Err` if the file extension is missing or unrecognized, or if
+/// deserialization fails.
+pub fn deserialize<T>(url: &Url, contents: &str) -> Result<T>
 where
     T: DeserializeOwned + 'static,
 {
-    match get_file_extension(url) {
-        Some(ext) => match ext {
-            "toml" => Ok(Box::new(TomlDeserializer::new())),
-            "yaml" | "yml" => Ok(Box::new(YamlDeserializer::new())),
-            "json" => Ok(Box::new(JsonDeserializer::new())),
-            _ => bail!("Unknown file extension so cannot determine which deserializer to use"),
-        },
-        None => bail!("No file extension so cannot determine which deserializer to use"),
+    let format = Format::from_url(url)?;
+    match format {
+        Format::Toml => {
+            toml::from_str(contents).chain_err(|| format!("Error deserializing Toml from: '{url}'"))
+        }
+        Format::Yaml => serde_yml::from_str(contents)
+            .chain_err(|| format!("Error deserializing Yaml from: '{url}'")),
+        Format::Json => serde_json::from_str(contents)
+            .chain_err(|| format!("Error deserializing Json from: '{url}'")),
     }
+}
+
+/// Return the name of the deserializer format that would be used for `url`,
+/// based on its file extension.
+///
+/// # Errors
+///
+/// Returns `Err` if the file extension is missing or unrecognized.
+pub fn format_name(url: &Url) -> Result<&'static str> {
+    Format::from_url(url).map(|f| f.name())
 }
 
 /// Get the file extension of the resource referred to by `url`
@@ -55,17 +82,11 @@ mod test {
     use serde_derive::{Deserialize, Serialize};
     use url::Url;
 
-    use super::get;
-    use super::get_file_extension;
+    use super::{deserialize, format_name, get_file_extension};
 
-    #[derive(Serialize, Deserialize, Debug, Clone)]
-    #[serde(untagged)]
-    #[allow(clippy::module_name_repetitions)]
-    pub enum TestStruct {
-        /// The process is actually a `Flow`
-        FlowProcess(String),
-        /// The process is actually a `Function`
-        FunctionProcess(String),
+    #[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
+    struct TestStruct {
+        name: String,
     }
 
     #[test]
@@ -98,52 +119,87 @@ mod test {
 
     #[test]
     fn invalid_extension() {
+        let url = Url::parse("file:///extension.wrong").expect("Could not create Url");
         assert!(
-            get::<TestStruct>(
-                &Url::parse("file:///extension.wrong").expect("Could not create Url")
-            )
-            .is_err(),
+            deserialize::<TestStruct>(&url, "").is_err(),
             "Unknown file extension should not find a deserializer"
         );
     }
 
     #[test]
-    fn toml_extension_loader() {
+    fn toml_format_name() {
+        let url = Url::parse("file:///filename.toml").expect("Could not create Url");
         assert_eq!(
-            get::<TestStruct>(&Url::parse("file:///filename.toml").expect("Could not create Url"))
-                .expect("Could not get a deserializer")
-                .name(),
+            format_name(&url).expect("Could not get format name"),
             "Toml"
         );
     }
 
     #[test]
-    fn yaml_extension_loader() {
+    fn yaml_format_name() {
+        let url = Url::parse("file:///filename.yaml").expect("Could not create Url");
         assert_eq!(
-            get::<TestStruct>(&Url::parse("file:///filename.yaml").expect("Could not create Url"))
-                .expect("Could not get a deserializer")
-                .name(),
+            format_name(&url).expect("Could not get format name"),
             "Yaml"
         );
     }
 
     #[test]
-    fn yml_extension_loader() {
+    fn yml_format_name() {
+        let url = Url::parse("file:///filename.yml").expect("Could not create Url");
         assert_eq!(
-            get::<TestStruct>(&Url::parse("file:///filename.yml").expect("Could not create Url"))
-                .expect("Could not get a deserializer")
-                .name(),
+            format_name(&url).expect("Could not get format name"),
             "Yaml"
         );
     }
 
     #[test]
-    fn json_extension_loader() {
+    fn json_format_name() {
+        let url = Url::parse("file:///filename.json").expect("Could not create Url");
         assert_eq!(
-            get::<TestStruct>(&Url::parse("file:///filename.json").expect("Could not create Url"))
-                .expect("Could not get a deserializer")
-                .name(),
+            format_name(&url).expect("Could not get format name"),
             "Json"
         );
+    }
+
+    #[test]
+    fn deserialize_toml() {
+        let url = Url::parse("file:///test.toml").expect("Could not create Url");
+        let result: TestStruct =
+            deserialize(&url, "name = \"hello\"").expect("Could not deserialize");
+        assert_eq!(result.name, "hello");
+    }
+
+    #[test]
+    fn deserialize_json() {
+        let url = Url::parse("file:///test.json").expect("Could not create Url");
+        let result: TestStruct =
+            deserialize(&url, r#"{"name": "hello"}"#).expect("Could not deserialize");
+        assert_eq!(result.name, "hello");
+    }
+
+    #[test]
+    fn deserialize_yaml() {
+        let url = Url::parse("file:///test.yaml").expect("Could not create Url");
+        let result: TestStruct = deserialize(&url, "name: hello").expect("Could not deserialize");
+        assert_eq!(result.name, "hello");
+    }
+
+    #[test]
+    fn invalid_toml_content() {
+        let url = Url::parse("file:///test.toml").expect("Could not create Url");
+        assert!(deserialize::<TestStruct>(&url, "{invalid").is_err());
+    }
+
+    #[test]
+    fn invalid_json_content() {
+        let url = Url::parse("file:///test.json").expect("Could not create Url");
+        assert!(deserialize::<TestStruct>(&url, "{invalid").is_err());
+    }
+
+    #[test]
+    fn invalid_yaml_content() {
+        let url = Url::parse("file:///test.yaml").expect("Could not create Url");
+        assert!(deserialize::<TestStruct>(&url, "\t invalid: [yaml").is_err());
     }
 }

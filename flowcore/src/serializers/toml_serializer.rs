@@ -379,10 +379,7 @@ mod test {
         let toml = flow.to_toml();
 
         let url = url::Url::parse("file:///fake.toml").expect("valid url");
-        let deserializer =
-            crate::deserializers::deserializer::get::<FlowDefinition>(&url).expect("deserializer");
-        let parsed = deserializer
-            .deserialize(&toml, Some(&url))
+        let parsed: FlowDefinition = crate::deserializers::deserializer::deserialize(&url, &toml)
             .expect("roundtrip parse failed");
         assert_eq!(parsed.name, "roundtrip");
         assert_eq!(parsed.description, "Test roundtrip");
@@ -449,12 +446,9 @@ mod test {
         let toml = func.to_toml();
 
         let url = url::Url::parse("file:///fake.toml").expect("valid url");
-        let deserializer =
-            crate::deserializers::deserializer::get::<crate::model::process::Process>(&url)
-                .expect("deserializer");
-        let parsed = deserializer
-            .deserialize(&toml, Some(&url))
-            .expect("roundtrip parse failed");
+        let parsed: crate::model::process::Process =
+            crate::deserializers::deserializer::deserialize(&url, &toml)
+                .expect("roundtrip parse failed");
         if let crate::model::process::Process::FunctionProcess(f) = parsed {
             assert_eq!(f.name, "roundtrip");
             assert_eq!(f.source, "roundtrip.rs");
