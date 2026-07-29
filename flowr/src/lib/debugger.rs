@@ -29,9 +29,8 @@ pub struct Debugger<'a> {
     input_breakpoints: HashSet<(usize, usize)>,
     output_breakpoints: HashSet<(usize, String)>,
     break_at_job: usize,
-    function_breakpoints: HashSet<usize>,
+    process_breakpoints: HashSet<usize>,
     completed_breakpoints: HashSet<usize>,
-    flow_unblock_breakpoints: HashSet<usize>,
 }
 
 impl<'a> Debugger<'a> {
@@ -41,9 +40,8 @@ impl<'a> Debugger<'a> {
             input_breakpoints: HashSet::<(usize, usize)>::new(),
             output_breakpoints: HashSet::<(usize, String)>::new(),
             break_at_job: usize::MAX,
-            function_breakpoints: HashSet::<usize>::new(),
+            process_breakpoints: HashSet::<usize>::new(),
             completed_breakpoints: HashSet::<usize>::new(),
-            flow_unblock_breakpoints: HashSet::<usize>::new(),
         }
     }
 
@@ -55,7 +53,7 @@ impl<'a> Debugger<'a> {
     /// Check if there is a breakpoint at this job prior to starting executing it.
     pub fn check_prior_to_job(&mut self, state: &mut RunState, job: &Job) -> Result<DebugAction> {
         if self.break_at_job == job.payload.job_id
-            || self.function_breakpoints.contains(&job.process_id)
+            || self.process_breakpoints.contains(&job.process_id)
         {
             self.debug_server.job_breakpoint(
                 job,
@@ -127,7 +125,7 @@ impl<'a> Debugger<'a> {
         flow_being_unblocked_id: usize,
     ) -> Result<DebugAction> {
         if self
-            .flow_unblock_breakpoints
+            .completed_breakpoints
             .contains(&flow_being_unblocked_id)
         {
             self.debug_server
@@ -391,6 +389,24 @@ impl<'a> Debugger<'a> {
     /*
        Add a breakpoint to the debugger according to the Optional `Param`
     */
+    /// Return a human-readable label for a process ID (function or flow).
+    fn process_label(
+        state: &RunState,
+        process_id: usize,
+    ) -> Result<(&'static str, String, String)> {
+        if let Some(function) = state.get_function(process_id) {
+            Ok((
+                "Function",
+                function.name().to_string(),
+                function.route().to_string(),
+            ))
+        } else if let Some(flow_info) = state.submission.manifest.flows().get(&process_id) {
+            Ok(("Flow", flow_info.name.clone(), flow_info.route.clone()))
+        } else {
+            bail!("There is no Function or Flow with id {process_id}")
+        }
+    }
+
     fn add_breakpoint(
         &mut self,
         state: &RunState,
@@ -402,19 +418,10 @@ impl<'a> Debugger<'a> {
                 bail!("To break on every Function, you can just single step using 's' command\n")
             }
             Some(BreakpointSpec::Numeric(process_id)) => {
-                if state.get_function(process_id).is_none() {
-                    bail!("There is no Function with id {process_id} to set a breakpoint on");
-                }
-
-                self.function_breakpoints.insert(process_id);
-                let function = state
-                    .get_function(process_id)
-                    .ok_or("Could not get function")?;
+                let (kind, name, route) = Self::process_label(state, process_id)?;
+                self.process_breakpoints.insert(process_id);
                 Ok(format!(
-                    "Breakpoint set on Function #{} ({}) @ '{}'",
-                    process_id,
-                    function.name(),
-                    function.route()
+                    "Breakpoint set on {kind} #{process_id} ('{name}') @ '{route}'"
                 ))
             }
             Some(BreakpointSpec::Input((destination_id, input_number))) => {
@@ -451,36 +458,21 @@ impl<'a> Debugger<'a> {
                 ))
             }
             Some(BreakpointSpec::Completed(process_id)) => {
-                if state.get_function(process_id).is_none() {
-                    bail!("There is no Function with id {process_id} to set a completion breakpoint on");
-                }
-
+                let (kind, name, route) = Self::process_label(state, process_id)?;
                 self.completed_breakpoints.insert(process_id);
-                let function = state
-                    .get_function(process_id)
-                    .ok_or("Could not get function")?;
+                let action = if kind == "Flow" { "Idle" } else { "Completion" };
                 Ok(format!(
-                    "Completion breakpoint set on Function #{} ({}) @ '{}'",
-                    process_id,
-                    function.name(),
-                    function.route()
+                    "{action} breakpoint set on {kind} #{process_id} ('{name}') @ '{route}'"
                 ))
             }
             Some(BreakpointSpec::Route(route)) => {
-                if let Some(process_id) = Self::find_by_route(state, &route) {
-                    self.function_breakpoints.insert(process_id);
-                    let function = state
-                        .get_function(process_id)
-                        .ok_or("Could not get function")?;
-                    Ok(format!(
-                        "Breakpoint set on Function #{} ({}) @ '{}'",
-                        process_id,
-                        function.name(),
-                        function.route()
-                    ))
-                } else {
-                    bail!(format!("No function or flow found at route '{route}'"))
-                }
+                let process_id = Self::find_by_route(state, &route)
+                    .ok_or_else(|| format!("No function or flow found at route '{route}'"))?;
+                let (kind, name, route) = Self::process_label(state, process_id)?;
+                self.process_breakpoints.insert(process_id);
+                Ok(format!(
+                    "Breakpoint set on {kind} #{process_id} ('{name}') @ '{route}'"
+                ))
             }
         }
     }
@@ -498,16 +490,24 @@ impl<'a> Debugger<'a> {
             Some(BreakpointSpec::All) => {
                 self.output_breakpoints.clear();
                 self.input_breakpoints.clear();
-                self.function_breakpoints.clear();
+                self.process_breakpoints.clear();
                 self.completed_breakpoints.clear();
                 Ok("Deleted all breakpoints\n".into())
             }
             Some(BreakpointSpec::Numeric(process_number)) => {
-                if state.get_function(process_number).is_none() {
-                    bail!("There is no Function with id '{process_number}' to delete a breakpoint from");
+                if state.get_function(process_number).is_none()
+                    && !state
+                        .submission
+                        .manifest
+                        .flows()
+                        .contains_key(&process_number)
+                {
+                    bail!("There is no Function or Flow with id '{process_number}' to delete a breakpoint from");
                 }
 
-                if self.function_breakpoints.remove(&process_number) {
+                let removed_process = self.process_breakpoints.remove(&process_number);
+                let removed_completed = self.completed_breakpoints.remove(&process_number);
+                if removed_process || removed_completed {
                     Ok(format!(
                         "Breakpoint on process #{process_number} was deleted"
                     ))
@@ -542,25 +542,27 @@ impl<'a> Debugger<'a> {
                 Ok("Output breakpoint removed\n".into())
             }
             Some(BreakpointSpec::Completed(process_id)) => {
-                if state.get_function(process_id).is_none() {
+                if state.get_function(process_id).is_none()
+                    && !state.submission.manifest.flows().contains_key(&process_id)
+                {
                     bail!(format!(
-                        "There is no Function with id '{process_id}' to delete a completion breakpoint from"
+                        "There is no Function or Flow with id '{process_id}' to delete a completion breakpoint from"
                     ));
                 }
 
                 if self.completed_breakpoints.remove(&process_id) {
                     Ok(format!(
-                        "Completion breakpoint on Function #{process_id} was deleted"
+                        "Completion breakpoint on process #{process_id} was deleted"
                     ))
                 } else {
-                    bail!("No completion breakpoint on Function #{process_id} exists\n")
+                    bail!("No completion breakpoint on process #{process_id} exists\n")
                 }
             }
             Some(BreakpointSpec::Route(route)) => {
                 if let Some(process_id) = Self::find_by_route(state, &route) {
-                    if self.function_breakpoints.remove(&process_id) {
+                    if self.process_breakpoints.remove(&process_id) {
                         Ok(format!(
-                            "Breakpoint on '{route}' (Function #{process_id}) was deleted"
+                            "Breakpoint on '{route}' (process #{process_id}) was deleted"
                         ))
                     } else {
                         bail!(format!("No breakpoint on '{route}' exists"))
@@ -578,7 +580,7 @@ impl<'a> Debugger<'a> {
     */
     fn collect_breakpoint_specs(&self) -> Vec<BreakpointSpec> {
         let mut specs = Vec::new();
-        for &id in &self.function_breakpoints {
+        for &id in &self.process_breakpoints {
             specs.push(BreakpointSpec::Numeric(id));
         }
         for &id in &self.completed_breakpoints {
@@ -594,11 +596,18 @@ impl<'a> Debugger<'a> {
     }
 
     fn find_by_route(state: &RunState, route: &str) -> Option<usize> {
+        // Search functions first
+        if let Some(func) = state.get_functions().values().find(|f| f.route() == route) {
+            return Some(func.id());
+        }
+        // Then search flows by route
         state
-            .get_functions()
+            .submission
+            .manifest
+            .flows()
             .values()
-            .find(|f| f.route() == route)
-            .map(RuntimeFunction::id)
+            .find(|flow_info| flow_info.route == route)
+            .map(|flow_info| flow_info.process_id)
     }
 
     fn resolve_target(state: &RunState, target: &ProcessTarget) -> Result<usize> {
@@ -1236,8 +1245,8 @@ mod test {
         let mut server = DummyServer::new();
         let mut debugger = Debugger::new(&mut server);
 
-        // Set up a breakpoint on the unblocking of flow #0
-        debugger.flow_unblock_breakpoints.insert(0);
+        // Set up a completed breakpoint on flow #0 (triggers on unblock)
+        debugger.completed_breakpoints.insert(0);
 
         let _ = debugger.check_prior_to_flow_unblock(&mut state, 0);
 
@@ -1255,14 +1264,14 @@ mod test {
         debugger.break_at_job = job.payload.job_id;
         debugger.output_breakpoints.insert((0, String::new()));
         debugger.input_breakpoints.insert((0, 0));
-        debugger.flow_unblock_breakpoints.insert(0);
+        debugger.completed_breakpoints.insert(0);
 
         debugger.reset();
 
         assert_eq!(debugger.break_at_job, usize::MAX);
         assert_eq!(debugger.output_breakpoints.len(), 1);
         assert_eq!(debugger.input_breakpoints.len(), 1);
-        assert_eq!(debugger.flow_unblock_breakpoints.len(), 1);
+        assert_eq!(debugger.completed_breakpoints.len(), 1);
     }
 
     #[test]
@@ -1600,7 +1609,7 @@ mod test {
         let mut debugger = Debugger::new(&mut server);
         let result = debugger.add_breakpoint(&state, Some(BreakpointSpec::Route("/fA".into())));
         assert!(result.is_ok());
-        assert!(debugger.function_breakpoints.contains(&0));
+        assert!(debugger.process_breakpoints.contains(&0));
     }
 
     #[test]

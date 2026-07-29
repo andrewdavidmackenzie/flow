@@ -31,11 +31,11 @@ const FLOWDB_HISTORY_FILENAME: &str = ".flowrdb_history";
 
 const HELP_STRING: &str = "Debugger commands:
 'b' | 'breakpoint' {spec}     - Set a breakpoint using spec:
-                                 - on a function by function_id (integer)
-                                 - on job completion by function_id+ (e.g. '3+')
+                                 - on a function or flow by process_id (integer)
+                                 - on completion/idle by process_id+ (e.g. '3+')
                                  - on an output by source_id/output_route ('source_id/' for default output)
                                  - on an input by destination_id:input_number
-                                 - on a function by route path (e.g. '/my-flow/add')
+                                 - on a function or flow by route path (e.g. '/my-flow/add')
 'c' | 'continue'              - Continue execution after a breakpoint
 'd' | 'delete' {spec} or '*'  - Delete the breakpoint matching {spec} or all with '*'
 'e' | 'exit'                  - Stop flow execution and exit debugger

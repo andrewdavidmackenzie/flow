@@ -355,7 +355,7 @@ mod test {
             "No Function #1+ in list:\n{stdout}"
         );
         assert!(
-            stdout.contains("Completion breakpoint on Function #1 was deleted"),
+            stdout.contains("Completion breakpoint on process #1 was deleted"),
             "No deletion confirmation:\n{stdout}"
         );
     }
