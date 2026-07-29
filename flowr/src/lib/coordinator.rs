@@ -152,13 +152,6 @@ impl Coordinator<'_> {
         }
         Ok(DebugAction::Continue)
     }
-
-    fn debugger_job_error(&mut self, state: &mut RunState, job: &Job) -> Result<DebugAction> {
-        #[cfg(feature = "debugger")]
-        return self.debugger.job_error(state, job);
-        #[cfg(not(feature = "debugger"))]
-        Ok(DebugAction::Continue)
-    }
 }
 
 impl<'a> Coordinator<'a> {
@@ -553,6 +546,7 @@ impl<'a> Coordinator<'a> {
     ///
     /// Returns a `DebugAction` indicating whether the debugger wants to display the
     /// next output or restart execution.
+    #[allow(clippy::unnecessary_wraps)]
     fn dispatch_jobs(
         &mut self,
         state: &mut RunState,
@@ -562,16 +556,15 @@ impl<'a> Coordinator<'a> {
 
         while let Some(job) = state.get_next_job() {
             match self.dispatch_a_job(
-                &job,
+                job,
                 state,
                 #[cfg(feature = "metrics")]
                 metrics,
             ) {
                 Ok(a) => action = a,
                 Err(err) => {
-                    error!("Error sending on 'job_tx': {err}");
+                    error!("Error dispatching job: {err}");
                     debug!("{state}");
-                    return self.debugger_job_error(state, &job);
                 }
             }
         }
@@ -580,17 +573,17 @@ impl<'a> Coordinator<'a> {
     }
 
     /// Dispatch a single job for execution via the dispatcher.
+    /// Takes `Job` by value to avoid cloning on the success path.
     fn dispatch_a_job(
         &mut self,
-        job: &Job,
+        mut job: Job,
         state: &mut RunState,
         #[cfg(feature = "metrics")] metrics: &mut Metrics,
     ) -> Result<DebugAction> {
-        let action = self.debugger_check_before_job(state, job)?;
+        let action = self.debugger_check_before_job(state, &job)?;
 
         self.dispatcher.send_job_for_execution(&job.payload)?;
 
-        let mut job = job.clone();
         job.ttl = self.job_timeout.and_then(|d| Instant::now().checked_add(d));
         state.start_job(job);
 
