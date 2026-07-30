@@ -9,6 +9,7 @@ enum Format {
     Toml,
     Yaml,
     Json,
+    Ron,
 }
 
 impl Format {
@@ -18,6 +19,7 @@ impl Format {
             Some("toml") => Ok(Format::Toml),
             Some("yaml" | "yml") => Ok(Format::Yaml),
             Some("json") => Ok(Format::Json),
+            Some("ron") => Ok(Format::Ron),
             Some(_) => {
                 bail!("Unknown file extension so cannot determine which deserializer to use")
             }
@@ -31,6 +33,7 @@ impl Format {
             Format::Toml => "Toml",
             Format::Yaml => "Yaml",
             Format::Json => "Json",
+            Format::Ron => "Ron",
         }
     }
 }
@@ -55,6 +58,9 @@ where
             .chain_err(|| format!("Error deserializing Yaml from: '{url}'")),
         Format::Json => serde_json::from_str(contents)
             .chain_err(|| format!("Error deserializing Json from: '{url}'")),
+        Format::Ron => {
+            ron::from_str(contents).chain_err(|| format!("Error deserializing Ron from: '{url}'"))
+        }
     }
 }
 
@@ -201,5 +207,25 @@ mod test {
     fn invalid_yaml_content() {
         let url = Url::parse("file:///test.yaml").expect("Could not create Url");
         assert!(deserialize::<TestStruct>(&url, "\t invalid: [yaml").is_err());
+    }
+
+    #[test]
+    fn ron_format_name() {
+        let url = Url::parse("file:///filename.ron").expect("Could not create Url");
+        assert_eq!(format_name(&url).expect("Could not get format name"), "Ron");
+    }
+
+    #[test]
+    fn deserialize_ron() {
+        let url = Url::parse("file:///test.ron").expect("Could not create Url");
+        let result: TestStruct =
+            deserialize(&url, "(name: \"hello\")").expect("Could not deserialize");
+        assert_eq!(result.name, "hello");
+    }
+
+    #[test]
+    fn invalid_ron_content() {
+        let url = Url::parse("file:///test.ron").expect("Could not create Url");
+        assert!(deserialize::<TestStruct>(&url, "{invalid ron").is_err());
     }
 }
