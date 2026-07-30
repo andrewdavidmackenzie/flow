@@ -4,6 +4,7 @@ use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::{Arc, RwLock};
 use std::thread;
 use std::thread::JoinHandle;
+use std::time::Instant;
 
 use log::{debug, error, info, trace};
 use url::Url;
@@ -207,6 +208,9 @@ fn execution_loop(
     control_address: String,
     spawn_jobs: bool,
 ) -> Result<()> {
+    // After this many seconds of silence, assume the coordinator is gone and exit.
+    const IDLE_EXIT_SECS: u64 = 60;
+
     let job_source = context
         .socket(zmq::PULL)
         .map_err(|e| format!("Could not create PULL end of job socket: {e}"))?;
@@ -250,6 +254,7 @@ fn execution_loop(
         job_source.as_poll_item(zmq::POLLIN),
         control_socket.as_poll_item(zmq::POLLIN),
     ];
+    let mut last_activity = Instant::now();
 
     while process_jobs {
         // When spawning jobs, drain results from spawned threads first
@@ -262,11 +267,25 @@ fn execution_loop(
         }
 
         trace!("{name} waiting for a job to execute or a DONE signal");
-        let poll_timeout = if spawn_jobs { 100 } else { -1 };
+        // Use a finite poll timeout so executor threads can detect when the
+        // coordinator has disappeared (e.g., crashed without sending DONE).
+        // Spawn-mode uses 100ms for responsive draining of spawned results;
+        // non-spawn mode uses 5s to balance responsiveness with CPU usage.
+        let poll_timeout = if spawn_jobs { 100 } else { 5000 };
         match zmq::poll(&mut items, poll_timeout)
             .map_err(|_| "Error while polling for Jobs to execute")
         {
+            Ok(0) => {
+                // Poll timed out — no messages received
+                if last_activity.elapsed().as_secs() >= IDLE_EXIT_SECS {
+                    info!(
+                        "{name}: no messages for {IDLE_EXIT_SECS}s, assuming coordinator is gone"
+                    );
+                    return Ok(());
+                }
+            }
             Ok(_) => {
+                last_activity = Instant::now();
                 if items
                     .first()
                     .ok_or("Could not get poll item 0")?

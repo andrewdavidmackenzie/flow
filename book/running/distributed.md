@@ -42,51 +42,78 @@ The `flowrcli` flow runner and the `flowrex` job executor discover each other us
 and then jobs are distributed out over the network and results are sent back
 to the coordinator running in `flowrcli` also over the network.
 
+### Dynamic Executor Addition
+
+Executors can join and leave during flow execution. The ZMQ PUSH/PULL architecture
+distributes jobs automatically to all connected executors via round-robin, so
+adding executors mid-run immediately increases parallelism.
+
+#### Flexible startup order
+
+`flowrex` retries service discovery indefinitely, so it can be started **before**
+the coordinator. It will wait until `flowrcli` advertises its services, then connect
+and start processing jobs. This means startup order does not matter.
+
+#### Mid-run scaling
+
+Starting additional `flowrex` instances while a flow is running works immediately:
+1. The new instance discovers the coordinator's services via mDNS
+2. It connects to the job and results ZMQ sockets
+3. ZMQ round-robins new jobs across all connected executors (including the new one)
+4. No coordinator restart or reconfiguration needed
+
+#### Graceful shutdown
+
+Executor threads use a poll timeout to detect when the coordinator has disappeared.
+If no jobs or control messages are received for 60 seconds, executor threads exit
+gracefully and `flowrex` loops back to wait for a new coordinator.
+
 ### TODO
-It is pending to allow `flowrec` to also execute provided functions, by distributing the architecture-neutral WASM 
-function implementations to other nodes and hence allow them to load and run those functions also.
+It is pending to allow `flowrex` to also execute provided functions, by distributing
+the architecture-neutral WASM function implementations to other nodes and hence allow
+them to load and run those functions also.
 
 ### Example of distributed execution
 This can be done in two terminals on the same machine, or across two machines of the same or different CPU architecture.
 
-Terminal 1
+#### Starting flowrex first (new: flexible startup order)
 
-Start an instance of `flowrex` that will wait for jobs to execute.
-(we start with debug logging level to see what's happening)
+Terminal 1 — start `flowrex` (it will wait for the coordinator):
 
-`> flowrex -v debug`
+`> flowrex -v info`
 
-The log output should end with
+The output will show:
 
-`INFO    - Waiting for beacon matching 'jobs._flowr._tcp.local'`
+`INFO    - Waiting for coordinator to advertise 'jobs' service...`
 
-indicating that it is waiting to discover the `flowrcli` process on the network.
-
-Terminal 2
-
-First let's compile the fibonacci example (but not run it) by using `flowc` with the `-c, --compile` option:
+Terminal 2 — compile and run a flow:
 
 `>  flowc -c -C flowr/src/bin/flowrcli flowr/examples/fibonacci`
 
-Let's check that worked:
+`> flowrcli -t 0 flowr/examples/fibonacci`
 
-```
-> ls flowr/examples/fibonacci/manifest.json
-flowr/examples/fibonacci/manifest.json
-```
+Terminal 1 will show `flowrex` discovering the services and executing jobs.
 
-Then let's run the example fibonacci flow, forcing zero executors threads so that we 
-see `flowrex` executing all (non context) jobs
+#### Starting coordinator first (classic order)
 
-`> flowr -t 0 flowr/examples/fibonacci`
+Terminal 1 — compile and run a flow with zero local executors:
 
-That will produce the usual fibonacci series on the STDOUT of Terminal 2, then `flowrcli` exiting
+`> flowrcli -t 0 flowr/examples/fibonacci`
 
-Logs of what is happening in order to execute the flow jobs will be produced in Terminal 1, ending with the same line
-as before:
+Terminal 2 — start `flowrex` to execute the jobs:
 
-`INFO    - Waiting for beacon matching 'jobs._flowr._tcp.local'`
+`> flowrex -v debug`
 
-Indicating that it has returned to the initial state and is ready to discover a new flowr dispatcher of jobs to it.
+`flowrex` discovers the coordinator, connects, and begins executing jobs.
+
+#### Adding a second executor mid-run
+
+While a flow is already running with one `flowrex` instance, start another in a
+third terminal:
+
+`> flowrex -v info`
+
+It will discover the same coordinator services and join the job pool immediately.
+ZMQ distributes subsequent jobs across both executor instances.
 
 

@@ -16,7 +16,7 @@ use std::{env, thread};
 
 use clap::{Arg, ArgMatches, Command};
 use env_logger::Builder;
-use flowrlib::discovery::discover_service;
+use flowrlib::discovery::discover_service_with_retry;
 use log::{error, info, trace, LevelFilter};
 use simpath::Simpath;
 #[cfg(feature = "flowstdlib")]
@@ -89,13 +89,18 @@ fn start_executors(num_threads: usize) -> Result<()> {
 
         let provider =
             Arc::new(MetaProvider::new(Simpath::new(""), PathBuf::default())) as Arc<dyn Provider>;
+        // Discover services with retry — allows starting before the coordinator
+        let job_service = format!("tcp://{}", discover_service_with_retry(JOB_SERVICE_NAME)?);
+        let results_service = format!(
+            "tcp://{}",
+            discover_service_with_retry(RESULTS_JOB_SERVICE_NAME)?
+        );
+        let control_service = format!(
+            "tcp://{}",
+            discover_service_with_retry(CONTROL_SERVICE_NAME)?
+        );
 
-        let job_service = format!("tcp://{}", discover_service(JOB_SERVICE_NAME)?);
-        let results_service = format!("tcp://{}", discover_service(RESULTS_JOB_SERVICE_NAME)?);
-
-        let control_service = format!("tcp://{}", discover_service(CONTROL_SERVICE_NAME)?);
-
-        trace!("Starting '{}' executors", env!("CARGO_PKG_NAME"));
+        info!("Connected to coordinator services");
         executor.start(
             &provider,
             num_threads,
@@ -104,9 +109,9 @@ fn start_executors(num_threads: usize) -> Result<()> {
             &control_service,
         );
 
-        trace!("Waiting for all executors to complete");
+        info!("Waiting for flow execution to complete");
         executor.wait();
-        trace!("All executors completed, exiting");
+        info!("Flow execution completed, waiting for next run");
     }
 }
 

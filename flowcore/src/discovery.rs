@@ -197,6 +197,28 @@ pub fn discover_service_on(mdns: &ServiceDaemon, name: &str) -> Result<String> {
     }
 }
 
+/// Discover a service by name, retrying on timeout errors.
+///
+/// This allows an executor to start before the coordinator — it will keep
+/// trying until the coordinator advertises its services via mDNS.
+/// Non-timeout errors (e.g., mDNS daemon creation failure) are propagated
+/// immediately.
+///
+/// # Errors
+/// - Non-timeout errors from [`discover_service`] are propagated
+pub fn discover_service_with_retry(name: &str) -> Result<String> {
+    loop {
+        match discover_service(name) {
+            Ok(address) => return Ok(address),
+            Err(ref e) if e.to_string().contains("timed out") => {
+                info!("Waiting for coordinator to advertise '{name}' service...");
+                std::thread::sleep(Duration::from_secs(1));
+            }
+            Err(e) => return Err(e),
+        }
+    }
+}
+
 /// Discover all instances of a service by name using mDNS-SD.
 ///
 /// Scans for the given timeout and returns all matching services found as
