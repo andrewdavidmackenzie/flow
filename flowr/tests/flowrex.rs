@@ -40,7 +40,7 @@ fn test_fibonacci_with_flowrex_mid_run() {
     assert!(compile_status.success(), "flowc compilation failed");
 
     // Start coordinator with 0 threads — no local executors
-    let coordinator = Command::new("flowrcli")
+    let mut coordinator = Command::new("flowrcli")
         .args(["--threads", "0", "manifest.json"])
         .current_dir(
             example_dir
@@ -64,10 +64,27 @@ fn test_fibonacci_with_flowrex_mid_run() {
         .spawn()
         .expect("Could not spawn flowrex");
 
-    // Wait for coordinator to finish (fibonacci is fast)
-    let output = coordinator
-        .wait_with_output()
-        .expect("Could not wait for coordinator");
+    // Wait for coordinator with a timeout to avoid hanging CI
+    let deadline = std::time::Instant::now() + Duration::from_mins(1);
+    let exit_status = loop {
+        if std::time::Instant::now() > deadline {
+            coordinator.kill().ok();
+            flowrex.kill().ok();
+            coordinator.wait().ok();
+            flowrex.wait().ok();
+            panic!("Coordinator did not finish within 60 seconds");
+        }
+        match coordinator.try_wait().expect("Could not check coordinator") {
+            Some(status) => break status,
+            None => thread::sleep(Duration::from_secs(1)),
+        }
+    };
+
+    // Read stdout before killing flowrex
+    let mut stdout_bytes = Vec::new();
+    if let Some(mut out) = coordinator.stdout.take() {
+        std::io::Read::read_to_end(&mut out, &mut stdout_bytes).ok();
+    }
 
     // Kill flowrex
     flowrex.kill().ok();
@@ -75,15 +92,22 @@ fn test_fibonacci_with_flowrex_mid_run() {
 
     // Verify the coordinator ran successfully
     assert!(
-        output.status.success(),
-        "Coordinator failed: {}",
-        String::from_utf8_lossy(&output.stderr)
+        exit_status.success(),
+        "Coordinator failed with status: {exit_status}"
     );
 
-    // Verify fibonacci output contains expected values
-    let stdout = String::from_utf8_lossy(&output.stdout);
+    // Verify fibonacci output matches expected first lines
+    let stdout = String::from_utf8_lossy(&stdout_bytes);
+    let lines: Vec<&str> = stdout.lines().collect();
     assert!(
-        stdout.contains('1') && stdout.contains('2'),
-        "Expected fibonacci output, got: {stdout}"
+        lines.len() > 5,
+        "Expected fibonacci output lines, got {}: {stdout}",
+        lines.len()
     );
+    // Check the known fibonacci sequence start
+    assert_eq!(lines.first().copied(), Some("1"), "First fibonacci number");
+    assert_eq!(lines.get(1).copied(), Some("2"), "Second fibonacci number");
+    assert_eq!(lines.get(2).copied(), Some("3"), "Third fibonacci number");
+    assert_eq!(lines.get(3).copied(), Some("5"), "Fourth fibonacci number");
+    assert_eq!(lines.get(4).copied(), Some("8"), "Fifth fibonacci number");
 }
