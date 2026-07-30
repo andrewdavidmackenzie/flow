@@ -197,6 +197,42 @@ pub fn discover_service_on(mdns: &ServiceDaemon, name: &str) -> Result<String> {
     }
 }
 
+/// Check if a discovery error is a retryable timeout.
+fn is_discovery_timeout(err: &crate::errors::Error) -> bool {
+    err.to_string().contains("timed out")
+}
+
+/// Core retry logic: call `discover_fn` repeatedly, retrying on timeout errors.
+/// Returns immediately on success or non-timeout errors.
+fn retry_on_timeout<F>(name: &str, mut discover_fn: F) -> Result<String>
+where
+    F: FnMut(&str) -> Result<String>,
+{
+    loop {
+        match discover_fn(name) {
+            Ok(address) => return Ok(address),
+            Err(ref e) if is_discovery_timeout(e) => {
+                info!("Waiting for coordinator to advertise '{name}' service...");
+                std::thread::sleep(Duration::from_secs(1));
+            }
+            Err(e) => return Err(e),
+        }
+    }
+}
+
+/// Discover a service by name, retrying on timeout errors.
+///
+/// This allows an executor to start before the coordinator — it will keep
+/// trying until the coordinator advertises its services via mDNS.
+/// Only discovery timeouts are retried; other errors (e.g., mDNS daemon
+/// creation failure) are propagated immediately.
+///
+/// # Errors
+/// - Non-timeout errors from [`discover_service`] are propagated
+pub fn discover_service_with_retry(name: &str) -> Result<String> {
+    retry_on_timeout(name, discover_service)
+}
+
 /// Discover all instances of a service by name using mDNS-SD.
 ///
 /// Scans for the given timeout and returns all matching services found as
@@ -244,4 +280,54 @@ pub fn discover_services(name: &str, timeout: Duration) -> Result<Vec<(String, u
 
     mdns.shutdown().ok();
     Ok(results)
+}
+
+#[cfg(test)]
+#[allow(clippy::unwrap_used)]
+mod test {
+    use super::is_discovery_timeout;
+    use crate::errors::Error;
+
+    #[test]
+    fn timeout_error_is_retryable() {
+        let err = Error::Msg("mDNS discovery timed out after 30s for 'jobs'".into());
+        assert!(is_discovery_timeout(&err));
+    }
+
+    #[test]
+    fn non_timeout_error_is_not_retryable() {
+        let err = Error::Msg("Could not create mDNS daemon: permission denied".into());
+        assert!(!is_discovery_timeout(&err));
+    }
+
+    #[test]
+    fn retry_returns_on_success() {
+        let result = super::retry_on_timeout("test", |_| Ok("127.0.0.1:8080".into()));
+        assert_eq!(result.unwrap(), "127.0.0.1:8080");
+    }
+
+    #[test]
+    fn retry_propagates_non_timeout_error() {
+        let result =
+            super::retry_on_timeout("test", |_| Err(Error::Msg("daemon creation failed".into())));
+        assert!(result.is_err());
+        assert!(result.unwrap_err().to_string().contains("daemon creation"));
+    }
+
+    #[test]
+    fn retry_retries_timeout_then_succeeds() {
+        use std::cell::Cell;
+        let attempt = Cell::new(0);
+        let result = super::retry_on_timeout("test", |_| {
+            let n = attempt.get();
+            attempt.set(n + 1);
+            if n < 2 {
+                Err(Error::Msg("mDNS discovery timed out after 30s".into()))
+            } else {
+                Ok("127.0.0.1:9090".into())
+            }
+        });
+        assert_eq!(result.unwrap(), "127.0.0.1:9090");
+        assert_eq!(attempt.get(), 3); // called 3 times: 2 timeouts + 1 success
+    }
 }
