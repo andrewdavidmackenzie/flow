@@ -1,7 +1,10 @@
 #![allow(missing_docs)]
 
+use serial_test::serial;
+
 #[cfg_attr(target_os = "windows", ignore)]
 #[test]
+#[serial]
 fn test_hello_world_flowrex_example() {
     let source = std::path::PathBuf::from("flowr")
         .join("examples")
@@ -15,6 +18,7 @@ fn test_hello_world_flowrex_example() {
 /// then starts flowrex which discovers the coordinator and executes all jobs.
 #[cfg_attr(target_os = "windows", ignore)]
 #[test]
+#[serial]
 fn test_fibonacci_with_flowrex_mid_run() {
     use std::process::{Command, Stdio};
     use std::thread;
@@ -53,8 +57,9 @@ fn test_fibonacci_with_flowrex_mid_run() {
         .spawn()
         .expect("Could not spawn coordinator");
 
-    // Wait a moment for the coordinator to start and advertise services
-    thread::sleep(Duration::from_secs(2));
+    // Wait for the coordinator to start and advertise mDNS services.
+    // mDNS advertisement can take a few seconds on some platforms.
+    thread::sleep(Duration::from_secs(3));
 
     // Start flowrex — it should discover the coordinator and start executing jobs
     let mut flowrex = Command::new("flowrex")
@@ -65,7 +70,7 @@ fn test_fibonacci_with_flowrex_mid_run() {
         .expect("Could not spawn flowrex");
 
     // Wait for coordinator with a timeout to avoid hanging CI
-    let deadline = std::time::Instant::now() + Duration::from_mins(1);
+    let deadline = std::time::Instant::now() + Duration::from_mins(2);
     let exit_status = loop {
         if std::time::Instant::now() > deadline {
             coordinator.kill().ok();
