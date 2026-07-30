@@ -138,10 +138,15 @@ impl<'a> Debugger<'a> {
 
     /// Check if any newly-busy flows have breakpoints set. If so, enter the debugger.
     /// Called after `create_jobs` populates `newly_busy_flows`.
+    /// Unprocessed flow IDs are preserved for future checks.
     pub fn check_flow_restarts(&mut self, state: &mut RunState) -> Result<DebugAction> {
         let newly_busy = state.drain_newly_busy_flows();
-        for flow_id in newly_busy {
+        for (i, &flow_id) in newly_busy.iter().enumerate() {
             if self.process_breakpoints.contains(&flow_id) {
+                // Preserve remaining unprocessed IDs for future checks
+                if let Some(remaining) = newly_busy.get(i + 1..) {
+                    state.newly_busy_flows.extend_from_slice(remaining);
+                }
                 self.debug_server.flow_unblock_breakpoint(flow_id);
                 return self.wait_for_command(state);
             }

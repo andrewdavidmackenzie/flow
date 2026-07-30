@@ -300,6 +300,8 @@ impl RunState {
         self.completed.clear();
         self.number_of_jobs_created = 0;
         self.busy_count.clear();
+        #[cfg(feature = "debugger")]
+        self.newly_busy_flows.clear();
         #[cfg(feature = "trace")]
         self.trace.events.clear();
     }
