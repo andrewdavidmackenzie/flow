@@ -197,12 +197,17 @@ pub fn discover_service_on(mdns: &ServiceDaemon, name: &str) -> Result<String> {
     }
 }
 
+/// Check if a discovery error is a retryable timeout.
+fn is_discovery_timeout(err: &crate::errors::Error) -> bool {
+    err.to_string().contains("timed out")
+}
+
 /// Discover a service by name, retrying on timeout errors.
 ///
 /// This allows an executor to start before the coordinator — it will keep
 /// trying until the coordinator advertises its services via mDNS.
-/// Non-timeout errors (e.g., mDNS daemon creation failure) are propagated
-/// immediately.
+/// Only discovery timeouts are retried; other errors (e.g., mDNS daemon
+/// creation failure) are propagated immediately.
 ///
 /// # Errors
 /// - Non-timeout errors from [`discover_service`] are propagated
@@ -210,7 +215,7 @@ pub fn discover_service_with_retry(name: &str) -> Result<String> {
     loop {
         match discover_service(name) {
             Ok(address) => return Ok(address),
-            Err(ref e) if e.to_string().contains("timed out") => {
+            Err(ref e) if is_discovery_timeout(e) => {
                 info!("Waiting for coordinator to advertise '{name}' service...");
                 std::thread::sleep(Duration::from_secs(1));
             }
@@ -266,4 +271,22 @@ pub fn discover_services(name: &str, timeout: Duration) -> Result<Vec<(String, u
 
     mdns.shutdown().ok();
     Ok(results)
+}
+
+#[cfg(test)]
+mod test {
+    use super::is_discovery_timeout;
+    use crate::errors::Error;
+
+    #[test]
+    fn timeout_error_is_retryable() {
+        let err = Error::Msg("mDNS discovery timed out after 30s for 'jobs'".into());
+        assert!(is_discovery_timeout(&err));
+    }
+
+    #[test]
+    fn non_timeout_error_is_not_retryable() {
+        let err = Error::Msg("Could not create mDNS daemon: permission denied".into());
+        assert!(!is_discovery_timeout(&err));
+    }
 }

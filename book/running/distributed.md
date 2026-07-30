@@ -50,9 +50,11 @@ adding executors mid-run immediately increases parallelism.
 
 #### Flexible startup order
 
-`flowrex` retries service discovery indefinitely, so it can be started **before**
+`flowrex` retries service discovery on timeout, so it can be started **before**
 the coordinator. It will wait until `flowrcli` advertises its services, then connect
-and start processing jobs. This means startup order does not matter.
+and start processing jobs. Only discovery timeouts are retried — other errors
+(e.g., mDNS daemon failure) are reported immediately. This means startup order
+does not matter.
 
 #### Mid-run scaling
 

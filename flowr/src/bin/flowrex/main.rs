@@ -100,7 +100,7 @@ fn start_executors(num_threads: usize) -> Result<()> {
             discover_service_with_retry(CONTROL_SERVICE_NAME)?
         );
 
-        info!("Connected to coordinator services");
+        info!("Discovered coordinator services");
         executor.start(
             &provider,
             num_threads,
@@ -109,9 +109,9 @@ fn start_executors(num_threads: usize) -> Result<()> {
             &control_service,
         );
 
-        info!("Waiting for flow execution to complete");
+        info!("Executor threads started, processing jobs");
         executor.wait();
-        info!("Flow execution completed, waiting for next run");
+        info!("Executor threads exited, waiting for next coordinator");
     }
 }
 

@@ -263,6 +263,7 @@ fn execution_loop(
                 results_sink
                     .send(serialized_result.as_bytes(), 0)
                     .map_err(|_| "Could not send result of Job from spawned thread")?;
+                last_activity = Instant::now();
             }
         }
 
