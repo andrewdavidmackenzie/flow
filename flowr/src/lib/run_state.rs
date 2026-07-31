@@ -1123,14 +1123,22 @@ impl RunState {
         )
     }
 
-    /// Write the trace to the path specified by the `FLOW_TRACE` env var
+    /// Write the trace to the path from the submission's `trace_file` option,
+    /// falling back to the `FLOW_TRACE` environment variable.
     #[cfg(feature = "trace")]
     pub(crate) fn write_trace(&mut self) -> flowcore::errors::Result<()> {
-        if let Ok(trace_path) = std::env::var("FLOW_TRACE") {
+        let trace_path = self
+            .submission
+            .trace_file
+            .clone()
+            .or_else(|| std::env::var("FLOW_TRACE").ok());
+
+        if let Some(path) = trace_path {
             let trace = self.take_trace();
             let trace_json = trace.to_json();
-            std::fs::write(&trace_path, &trace_json)
-                .map_err(|e| format!("Could not write trace to {trace_path}: {e}"))?;
+            std::fs::write(&path, &trace_json)
+                .map_err(|e| format!("Could not write trace to {path}: {e}"))?;
+            info!("Trace written to '{path}'");
         }
         Ok(())
     }
@@ -1382,6 +1390,8 @@ mod test {
             None,
             #[cfg(feature = "debugger")]
             true,
+            #[cfg(feature = "trace")]
+            None,
         )
     }
 

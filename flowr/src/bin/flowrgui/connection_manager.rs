@@ -2838,7 +2838,14 @@ mod test {
             };
             let mut manifest = FlowManifest::new(metadata);
             manifest.add_function(test_function());
-            let submission = Submission::new(manifest, None, None, false);
+            let submission = Submission::new(
+                manifest,
+                None,
+                None,
+                false,
+                #[cfg(feature = "trace")]
+                None,
+            );
             flowrlib::run_state::RunState::new(submission)
         }
 

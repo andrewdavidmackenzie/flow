@@ -676,6 +676,10 @@ fn client(
         job_timeout,
         #[cfg(feature = "debugger")]
         debug_this_flow,
+        #[cfg(feature = "trace")]
+        matches
+            .get_one::<String>("trace")
+            .map(std::string::ToString::to_string),
     );
 
     trace!("Creating CliRuntimeClient");
@@ -796,6 +800,15 @@ fn get_matches() -> ArgMatches {
             .num_args(0..)
             .trailing_var_arg(true)
             .help("A list of arguments to pass to the flow."));
+
+    #[cfg(feature = "trace")]
+    let app = app.arg(
+        Arg::new("trace")
+            .long("trace")
+            .number_of_values(1)
+            .value_name("TRACE_FILE")
+            .help("Write execution trace to the specified file (JSON format)"),
+    );
 
     app.get_matches()
 }
