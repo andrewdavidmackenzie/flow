@@ -188,6 +188,8 @@ mod test {
             None,
             #[cfg(feature = "debugger")]
             true,
+            #[cfg(feature = "trace")]
+            None,
         )
     }
 

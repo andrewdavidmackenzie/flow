@@ -559,7 +559,14 @@ mod test {
     }
 
     fn test_submission(functions: Vec<RuntimeFunction>) -> Submission {
-        Submission::new(test_manifest(functions), None, None, true)
+        Submission::new(
+            test_manifest(functions),
+            None,
+            None,
+            true,
+            #[cfg(feature = "trace")]
+            None,
+        )
     }
 
     #[test]

@@ -19,6 +19,9 @@ pub struct Submission {
     /// Whether debugging is enabled or not for the flow
     #[cfg(feature = "debugger")]
     pub debug_enabled: bool,
+    /// Optional file path to write the execution trace to
+    #[cfg(feature = "trace")]
+    pub trace_file: Option<String>,
 }
 
 impl Submission {
@@ -31,6 +34,7 @@ impl Submission {
         max_parallel_jobs: Option<usize>,
         job_timeout: Option<Duration>,
         #[cfg(feature = "debugger")] debug: bool,
+        #[cfg(feature = "trace")] trace_file: Option<String>,
     ) -> Submission {
         if let Some(limit) = max_parallel_jobs {
             info!("Maximum jobs in parallel limited to {limit}");
@@ -42,6 +46,8 @@ impl Submission {
             job_timeout,
             #[cfg(feature = "debugger")]
             debug_enabled: debug,
+            #[cfg(feature = "trace")]
+            trace_file,
         }
     }
 }

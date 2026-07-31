@@ -70,7 +70,7 @@ metrics = []
 # feature to include ability to receive a submission of a flow
 submission = []
 # feature to emit structured trace events during execution
-trace = []
+trace = ["flowcore/trace"]
 # feature to include context functions, make sure flowcore is compiled with it if we plan to use it
 context = ["flowcore/context"]
 

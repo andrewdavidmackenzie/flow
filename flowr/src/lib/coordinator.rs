@@ -650,6 +650,8 @@ mod test {
             Some(Duration::from_millis(100)),
             #[cfg(feature = "debugger")]
             false,
+            #[cfg(feature = "trace")]
+            None,
         )
     }
 
@@ -816,6 +818,8 @@ mod test {
             None,
             #[cfg(feature = "debugger")]
             false,
+            #[cfg(feature = "trace")]
+            None,
         );
         let result = coordinator.execute_flow(submission);
         assert!(
@@ -849,6 +853,8 @@ mod test {
             Some(Duration::from_millis(100)),
             #[cfg(feature = "debugger")]
             false,
+            #[cfg(feature = "trace")]
+            None,
         );
         let result = coordinator.execute_flow(submission);
         assert!(
@@ -880,6 +886,8 @@ mod test {
             None,
             Some(Duration::from_millis(100)),
             true, // debug_enabled
+            #[cfg(feature = "trace")]
+            None,
         );
         // ExitDebugger causes a "Debugger Exit" error — expected for empty flows
         // since Continue loops forever when no jobs have been created

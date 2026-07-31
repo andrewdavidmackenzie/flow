@@ -676,6 +676,10 @@ fn client(
         job_timeout,
         #[cfg(feature = "debugger")]
         debug_this_flow,
+        #[cfg(feature = "trace")]
+        matches
+            .get_one::<String>("trace")
+            .map(std::string::ToString::to_string),
     );
 
     trace!("Creating CliRuntimeClient");
@@ -783,6 +787,11 @@ fn get_matches() -> ArgMatches {
             .value_parser(clap::value_parser!(usize))
             .value_name("THREADS")
             .help("Set number of threads to use to execute jobs (min: 1, default: cores available)"))
+        .arg(Arg::new("trace")
+            .long("trace")
+            .number_of_values(1)
+            .value_name("TRACE_FILE")
+            .help("Write execution trace to the specified file (JSON format)"))
         .arg(Arg::new("verbosity")
             .short('v')
             .long("verbosity")

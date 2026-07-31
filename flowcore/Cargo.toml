@@ -24,6 +24,7 @@ path = "src/lib.rs"
 default = []
 context = []  # whether this library is aware of the flow context functions or not
 debugger = [] # feature to add the debugger
+trace = [] # feature to enable execution tracing
 online_tests = []
 meta_provider = []
 file_provider = []

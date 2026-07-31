@@ -1481,6 +1481,8 @@ impl FlowrGui {
             job_timeout,
             #[cfg(feature = "debugger")]
             settings.debug_this_flow,
+            #[cfg(feature = "trace")]
+            None, // flowrgui doesn't support trace file via CLI yet
         );
 
         info!("Sending submission to Coordinator");
