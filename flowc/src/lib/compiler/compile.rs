@@ -184,7 +184,10 @@ fn compile_supplied_implementations(
     #[cfg(feature = "debugger")] source_urls: &mut BTreeMap<String, Url>,
 ) -> Result<String> {
     for function in tables.functions.values_mut() {
-        if function.get_lib_reference().is_none() && function.get_context_reference().is_none() {
+        if matches!(
+            function.reference(),
+            flowcore::model::function_definition::FunctionReference::Supplied(_)
+        ) {
             let (implementation_source_path, wasm_destination) = get_paths(out_dir, function)?;
             let mut cargo_target_dir = implementation_source_path
                 .parent()
@@ -332,7 +335,7 @@ mod test {
 
     use flowcore::model::datatype::STRING_TYPE;
     use flowcore::model::flow_definition::FlowDefinition;
-    use flowcore::model::function_definition::FunctionDefinition;
+    use flowcore::model::function_definition::{FunctionDefinition, FunctionReference};
     use flowcore::model::io::IO;
     use flowcore::model::name::{HasName, Name};
     use flowcore::model::output_connection::{OutputConnection, Source};
@@ -450,8 +453,9 @@ mod test {
             vec![],
             Url::parse("context://stdio/stdout.toml").expect("Could not parse Url"),
             Route::from("/print"),
-            None,
-            Some(Url::parse("context://stdio/stdout.toml").expect("Could not parse Url")),
+            FunctionReference::Context(
+                Url::parse("context://stdio/stdout.toml").expect("Could not parse Url"),
+            ),
             vec![],
             0,
             0,
@@ -512,8 +516,9 @@ mod test {
             )
             .expect("Could not create source Url"),
             Route::from("/flow0/stdout"),
-            Some(Url::parse("lib::/tests/test-functions/test/test").expect("Could not parse Url")),
-            None,
+            FunctionReference::Library(
+                Url::parse("lib::/tests/test-functions/test/test").expect("Could not parse Url"),
+            ),
             vec![OutputConnection::new(
                 Source::default(),
                 1,

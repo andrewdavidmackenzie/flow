@@ -121,7 +121,7 @@ mod test {
     use url::Url;
 
     use flowcore::model::connection::Connection;
-    use flowcore::model::function_definition::FunctionDefinition;
+    use flowcore::model::function_definition::{FunctionDefinition, FunctionReference};
     use flowcore::model::io::{IOSet, IOType};
 
     use crate::compiler::compile::CompilerTables;
@@ -137,8 +137,7 @@ mod test {
             IOSet::new(),
             Url::parse("file:///fake/pure").expect("Could not parse Url"),
             "/root/pure_function".into(),
-            None,
-            None,
+            FunctionReference::Supplied(String::new()),
             vec![],
             0,
             0,
@@ -155,8 +154,7 @@ mod test {
             IOSet::new(),
             Url::parse("file:///fake/impure").expect("Could not parse Url"),
             "/root/impure_function".into(),
-            None,
-            None,
+            FunctionReference::Supplied(String::new()),
             vec![],
             1,
             0,

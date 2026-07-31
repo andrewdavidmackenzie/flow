@@ -2349,7 +2349,9 @@ mod test {
 
     fn lib_function() -> FunctionDefinition {
         let mut f = FunctionDefinition::default();
-        f.lib_reference = Some(Url::parse("lib://test").expect("valid url"));
+        f.reference = flowcore::model::function_definition::FunctionReference::Library(
+            Url::parse("lib://test").expect("valid url"),
+        );
         f
     }
 

@@ -207,11 +207,15 @@ fn parse_process_refs(
 
         match &process {
             FunctionProcess(function) => {
-                if let Some(lib_ref) = function.get_lib_reference() {
-                    flow.lib_references.insert(lib_ref.clone());
-                }
-                if let Some(context_ref) = function.get_context_reference() {
-                    flow.context_references.insert(context_ref.clone());
+                use flowcore::model::function_definition::FunctionReference;
+                match function.reference() {
+                    FunctionReference::Library(url) => {
+                        flow.lib_references.insert(url.clone());
+                    }
+                    FunctionReference::Context(url) => {
+                        flow.context_references.insert(url.clone());
+                    }
+                    FunctionReference::Supplied(_) => {}
                 }
             }
             FlowProcess(sub_flow) => {

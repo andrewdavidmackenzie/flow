@@ -145,8 +145,10 @@ impl FlowHierarchy {
                         col = col.push(self.view_flow(sub_flow, &child_path));
                     }
                     Some(Process::FunctionProcess(func)) => {
-                        let is_library = func.get_lib_reference().is_some()
-                            || func.get_context_reference().is_some();
+                        let is_library = !matches!(
+                            func.reference(),
+                            flowcore::model::function_definition::FunctionReference::Supplied(_)
+                        );
                         col = col.push(view_leaf(
                             &alias,
                             func.route.clone(),

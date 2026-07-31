@@ -23,6 +23,23 @@ fn is_false(b: &bool) -> bool {
     !b
 }
 
+/// Describes where a function's implementation comes from.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub enum FunctionReference {
+    /// From a library (lib:// URL)
+    Library(Url),
+    /// From a context provider (context:// URL)
+    Context(Url),
+    /// Supplied implementation compiled to WASM (relative path to .wasm)
+    Supplied(String),
+}
+
+impl Default for FunctionReference {
+    fn default() -> Self {
+        FunctionReference::Supplied(String::new())
+    }
+}
+
 /// `FunctionDefinition` defines a Function (compile time) that implements some processing in the flow hierarchy
 #[derive(Serialize, Deserialize, Debug, Clone)]
 #[serde(deny_unknown_fields)]
@@ -60,15 +77,9 @@ pub struct FunctionDefinition {
     /// the `route` in the flow hierarchy where this function is located
     #[serde(skip)]
     pub route: Route,
-    /// Implementation is the relative path from the lib root to the compiled wasm implementation
+    /// Where this function's implementation comes from
     #[serde(skip)]
-    pub implementation: String,
-    /// Is the function being used part of a library and where is it found
-    #[serde(skip)]
-    pub lib_reference: Option<Url>,
-    /// Is the function a context function and where is it found
-    #[serde(skip)]
-    pub context_reference: Option<Url>,
+    pub reference: FunctionReference,
     /// The output connections from this function to other processes (functions or flows)
     #[serde(skip)]
     pub output_connections: Vec<OutputConnection>,
@@ -94,9 +105,7 @@ impl Default for FunctionDefinition {
             alias: String::default(),
             source_url: FunctionDefinition::default_url(),
             route: Route::default(),
-            implementation: String::new(),
-            lib_reference: None,
-            context_reference: None,
+            reference: FunctionReference::Supplied(String::new()),
             output_connections: vec![],
             process_id: 0,
             parent_id: 0,
@@ -140,8 +149,7 @@ impl FunctionDefinition {
         outputs: IOSet,
         source_url: Url,
         route: Route,
-        lib_reference: Option<Url>,
-        context_reference: Option<Url>,
+        reference: FunctionReference,
         output_connections: Vec<OutputConnection>,
         id: usize,
         parent_id: usize,
@@ -156,9 +164,7 @@ impl FunctionDefinition {
             outputs,
             source_url,
             route,
-            implementation: String::default(),
-            lib_reference,
-            context_reference,
+            reference,
             output_connections,
             process_id: id,
             parent_id,
@@ -192,9 +198,9 @@ impl FunctionDefinition {
                     if !alias.is_empty() {
                         bail!("context:// functions cannot be aliased");
                     }
-                    self.set_context_reference(Some(function_reference));
+                    self.reference = FunctionReference::Context(function_reference);
                 }
-                "lib" => self.set_lib_reference(Some(function_reference)),
+                "lib" => self.reference = FunctionReference::Library(function_reference),
                 _ => {}
             }
         }
@@ -275,15 +281,24 @@ impl FunctionDefinition {
         &self.output_connections
     }
 
-    /// Get a reference to the implementation of this function
+    /// Get the implementation path if this is a supplied function
     #[must_use]
-    pub fn get_implementation(&self) -> &str {
-        &self.implementation
+    pub fn implementation(&self) -> Option<&str> {
+        match &self.reference {
+            FunctionReference::Supplied(s) => Some(s),
+            _ => None,
+        }
     }
 
-    /// Set the implementation location of this function
-    pub fn set_implementation(&mut self, implementation: &str) {
-        implementation.clone_into(&mut self.implementation);
+    /// Set the implementation location of this function (marks it as Supplied)
+    pub fn set_implementation(&mut self, impl_path: &str) {
+        self.reference = FunctionReference::Supplied(impl_path.to_string());
+    }
+
+    /// Get a reference to this function's `FunctionReference`
+    #[must_use]
+    pub fn reference(&self) -> &FunctionReference {
+        &self.reference
     }
 
     /// Set the source field of the function
@@ -356,26 +371,22 @@ impl FunctionDefinition {
             .set_flow_initializer(flow_initializer)
     }
 
-    // Set the lib reference of this function
-    fn set_lib_reference(&mut self, lib_reference: Option<Url>) {
-        self.lib_reference = lib_reference;
-    }
-
-    /// Get the lib reference of this function
+    /// Get the lib reference of this function, if it is a library function
     #[must_use]
-    pub fn get_lib_reference(&self) -> &Option<Url> {
-        &self.lib_reference
+    pub fn lib_reference(&self) -> Option<&Url> {
+        match &self.reference {
+            FunctionReference::Library(url) => Some(url),
+            _ => None,
+        }
     }
 
-    // Set the context reference of this function
-    fn set_context_reference(&mut self, context_reference: Option<Url>) {
-        self.context_reference = context_reference;
-    }
-
-    /// Get the context reference of this function
+    /// Get the context reference of this function, if it is a context function
     #[must_use]
-    pub fn get_context_reference(&self) -> &Option<Url> {
-        &self.context_reference
+    pub fn context_reference(&self) -> Option<&Url> {
+        match &self.reference {
+            FunctionReference::Context(url) => Some(url),
+            _ => None,
+        }
     }
 
     /// Convert a `FunctionDefinition` filename into the name of the struct used to implement it
@@ -472,7 +483,7 @@ mod test {
     use crate::model::route::SetRoute;
     use crate::model::validation::Validate;
 
-    use super::FunctionDefinition;
+    use super::{FunctionDefinition, FunctionReference};
 
     #[test]
     fn function_with_no_io_not_valid() {
@@ -698,9 +709,7 @@ mod test {
         func.alias = "my_alias".into();
         func.set_source_url(&Url::parse("file:///tmp/test.toml").expect("valid url"));
         func.route = Route::from("/flow/my_alias");
-        func.implementation = "test.wasm".into();
-        func.lib_reference = Some(Url::parse("lib://testlib").expect("valid url"));
-        func.context_reference = Some(Url::parse("context://stdio").expect("valid url"));
+        func.reference = FunctionReference::Supplied("test.wasm".into());
         func.set_id(42);
 
         let serialized = toml::to_string(&func).expect("serialization failed");
@@ -717,16 +726,8 @@ mod test {
             "route should not be serialized"
         );
         assert!(
-            !serialized.contains("implementation"),
-            "implementation should not be serialized"
-        );
-        assert!(
-            !serialized.contains("lib_reference"),
-            "lib_reference should not be serialized"
-        );
-        assert!(
-            !serialized.contains("context_reference"),
-            "context_reference should not be serialized"
+            !serialized.contains("reference"),
+            "reference should not be serialized"
         );
         assert!(
             !serialized.contains("output_connections"),
