@@ -410,7 +410,6 @@ impl Input {
     }
 
     /// Get the queued values for inspection
-    #[cfg(feature = "debugger")]
     #[must_use]
     pub fn received_values(&self) -> &[Value] {
         &self.received
