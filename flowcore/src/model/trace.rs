@@ -73,7 +73,11 @@ pub struct TraceTopology {
     pub parent: BTreeMap<usize, Option<usize>>,
 }
 
-/// A complete execution trace: topology plus sequence of state transitions
+/// A complete execution trace: topology plus sequence of state transitions.
+///
+/// **Note:** Trace files may contain the actual data values flowing through
+/// the system (input/output values of every job). When writing traces via
+/// `FLOW_TRACE`, be aware the file may contain sensitive data from the flow.
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub struct Trace {
     /// The static flow topology
@@ -141,5 +145,85 @@ mod test {
         assert_eq!(parsed.events[0].action, "Init");
         assert_eq!(parsed.events[0].state.ready, vec![[0, 1]]);
         assert_eq!(parsed.topology.procs.len(), 2);
+    }
+
+    #[test]
+    fn state_only_event_omits_job_fields() {
+        let event = TraceEvent {
+            action: "Init".to_string(),
+            job_id: None,
+            process_id: None,
+            job_inputs: None,
+            job_output: None,
+            state: TraceState {
+                input_q: BTreeMap::new(),
+                int_count: BTreeMap::new(),
+                busy_count: BTreeMap::new(),
+                ready: vec![],
+                running: vec![],
+                done: BTreeSet::new(),
+                job_counter: 0,
+            },
+        };
+        let json = serde_json::to_string(&event).unwrap();
+        // None fields should be omitted, not serialized as null
+        assert!(!json.contains("job_id"), "job_id should be omitted");
+        assert!(!json.contains("process_id"), "process_id should be omitted");
+        assert!(!json.contains("job_inputs"), "job_inputs should be omitted");
+        assert!(!json.contains("job_output"), "job_output should be omitted");
+    }
+
+    #[test]
+    fn job_event_roundtrips_with_values() {
+        use serde_json::json;
+
+        let event = TraceEvent {
+            action: "RetireAndSend".to_string(),
+            job_id: Some(42),
+            process_id: Some(3),
+            job_inputs: Some(vec![json!(1), json!([0, 1, 0])]),
+            job_output: Some(json!({"chunk": [1, 0, 1], "partial": []})),
+            state: TraceState {
+                input_q: BTreeMap::new(),
+                int_count: BTreeMap::new(),
+                busy_count: BTreeMap::new(),
+                ready: vec![],
+                running: vec![],
+                done: BTreeSet::new(),
+                job_counter: 42,
+            },
+        };
+        let json = serde_json::to_string_pretty(&event).unwrap();
+        let parsed: TraceEvent = serde_json::from_str(&json).unwrap();
+        assert_eq!(parsed.job_id, Some(42));
+        assert_eq!(parsed.process_id, Some(3));
+        assert_eq!(parsed.job_inputs.as_ref().unwrap().len(), 2);
+        assert!(parsed.job_output.is_some());
+    }
+
+    #[test]
+    fn job_output_with_real_value_roundtrips() {
+        use serde_json::json;
+
+        let event = TraceEvent {
+            action: "RetireAndSend".to_string(),
+            job_id: Some(1),
+            process_id: Some(0),
+            job_inputs: Some(vec![json!(1)]),
+            job_output: Some(json!(42)),
+            state: TraceState {
+                input_q: BTreeMap::new(),
+                int_count: BTreeMap::new(),
+                busy_count: BTreeMap::new(),
+                ready: vec![],
+                running: vec![],
+                done: BTreeSet::new(),
+                job_counter: 1,
+            },
+        };
+        let json = serde_json::to_string(&event).unwrap();
+        assert!(json.contains("job_output"), "Some(42) should be serialized");
+        let parsed: TraceEvent = serde_json::from_str(&json).unwrap();
+        assert_eq!(parsed.job_output, Some(json!(42)));
     }
 }
