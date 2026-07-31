@@ -63,6 +63,17 @@ impl ContextIO {
             .map_err(|e| format!("Could not receive from bridge: {e}").into())
     }
 
+    /// Send a message without waiting for a response (fire-and-forget).
+    /// The bridge thread still completes the ZMQ round-trip.
+    pub fn send_no_reply(&self, message: CoordinatorMessage) -> Result<()> {
+        self.tx
+            .send(ContextRequest {
+                message,
+                response_tx: None,
+            })
+            .map_err(|e| format!("Could not send to bridge: {e}").into())
+    }
+
     /// Send a message on the blocking IO channel and wait for the client's response.
     /// Used by context functions that may block for user input (readline, stdin).
     pub fn send_and_receive_blocking(&self, message: CoordinatorMessage) -> Result<ClientMessage> {
