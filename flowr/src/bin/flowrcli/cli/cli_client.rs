@@ -184,16 +184,16 @@ impl CliRuntimeClient {
         }
     }
 
-    fn flush_image_buffers(&mut self) {
-        // Render any pending grids into image buffers
-        for (name, grid) in self.pending_grids.drain() {
+    /// Render a pending grid into the image buffer for the given name.
+    fn materialize_pending_grid(&mut self, name: &str) {
+        if let Some(grid) = self.pending_grids.remove(name) {
             let height = u32::try_from(grid.len()).unwrap_or(0);
             let width = grid
                 .first()
                 .map_or(0, |row| u32::try_from(row.len()).unwrap_or(0));
             let image = self
                 .image_buffers
-                .entry(name)
+                .entry(name.to_string())
                 .or_insert_with(|| RgbImage::new(width, height));
             for (y, row) in grid.iter().enumerate() {
                 for (x, &val) in row.iter().enumerate() {
@@ -204,6 +204,14 @@ impl CliRuntimeClient {
                     );
                 }
             }
+        }
+    }
+
+    fn flush_image_buffers(&mut self) {
+        // Render any remaining pending grids into image buffers
+        let names: Vec<String> = self.pending_grids.keys().cloned().collect();
+        for name in names {
+            self.materialize_pending_grid(&name);
         }
 
         // Save all image buffers to disk
@@ -291,6 +299,9 @@ impl CliRuntimeClient {
             },
             #[allow(clippy::many_single_char_names)]
             CoordinatorMessage::PixelWrite((x, y), (r, g, b), (width, height), name) => {
+                // Materialize any pending grid for this image before applying
+                // pixel writes, preserving message ordering.
+                self.materialize_pending_grid(&name);
                 let image = self
                     .image_buffers
                     .entry(name)
@@ -640,5 +651,65 @@ mod test {
         ));
 
         assert!(handle.await.unwrap().is_ok());
+    }
+
+    #[test]
+    fn test_image_write_stores_pending_grid() {
+        let mut client = make_client();
+        let grid = vec![vec![0, 128, 255], vec![64, 192, 32]];
+        client.process_coordinator_message(CoordinatorMessage::ImageWrite(
+            grid.clone(),
+            "test.png".into(),
+        ));
+        assert!(
+            client.pending_grids.contains_key("test.png"),
+            "Grid should be stored in pending_grids"
+        );
+        assert!(
+            client.image_buffers.is_empty(),
+            "Image buffer should not be created yet"
+        );
+    }
+
+    #[test]
+    fn test_image_write_latest_frame_wins() {
+        let mut client = make_client();
+        let grid1 = vec![vec![0, 0], vec![0, 0]];
+        let grid2 = vec![vec![255, 255], vec![255, 255]];
+        client
+            .process_coordinator_message(CoordinatorMessage::ImageWrite(grid1, "test.png".into()));
+        client.process_coordinator_message(CoordinatorMessage::ImageWrite(
+            grid2.clone(),
+            "test.png".into(),
+        ));
+        assert_eq!(
+            client.pending_grids.get("test.png"),
+            Some(&grid2),
+            "Latest grid should overwrite previous"
+        );
+    }
+
+    #[test]
+    fn test_pixel_write_materializes_pending_grid() {
+        let mut client = make_client();
+        let grid = vec![vec![0, 0], vec![0, 0]];
+        // Store a grid via ImageWrite
+        client.process_coordinator_message(CoordinatorMessage::ImageWrite(grid, "test.png".into()));
+        // PixelWrite should materialize the grid first
+        client.process_coordinator_message(CoordinatorMessage::PixelWrite(
+            (0, 0),
+            (255, 0, 0),
+            (2, 2),
+            "test.png".into(),
+        ));
+        // Grid should be materialized and no longer pending
+        assert!(
+            !client.pending_grids.contains_key("test.png"),
+            "Grid should have been materialized"
+        );
+        assert!(
+            client.image_buffers.contains_key("test.png"),
+            "Image buffer should exist after materialization"
+        );
     }
 }
