@@ -3706,14 +3706,19 @@ impl FlowrGui {
                         height,
                         data: RgbaImage::new(width, height),
                     });
+                // Bulk row copy — writes RGBA pixels directly to the image buffer
+                // instead of calling put_pixel for each pixel individually
+                let buf = data.data.as_mut();
                 for (y, row) in grid.iter().enumerate() {
+                    let row_offset = y * (width as usize) * 4;
                     for (x, &val) in row.iter().enumerate() {
-                        let gray = val;
-                        data.data.put_pixel(
-                            u32::try_from(x).unwrap_or(0),
-                            u32::try_from(y).unwrap_or(0),
-                            Rgba([gray, gray, gray, 255]),
-                        );
+                        let offset = row_offset + x * 4;
+                        if let Some([r, g, b, a]) = buf.get_mut(offset..offset + 4) {
+                            *r = val;
+                            *g = val;
+                            *b = val;
+                            *a = 255;
+                        }
                     }
                 }
                 if self.tab_set.active_tab != 3 {

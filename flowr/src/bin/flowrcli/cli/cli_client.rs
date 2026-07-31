@@ -195,13 +195,17 @@ impl CliRuntimeClient {
                 .image_buffers
                 .entry(name.to_string())
                 .or_insert_with(|| RgbImage::new(width, height));
+            // Bulk row copy — writes RGB pixels directly to the buffer
+            let buf = image.as_mut();
             for (y, row) in grid.iter().enumerate() {
+                let row_offset = y * (width as usize) * 3;
                 for (x, &val) in row.iter().enumerate() {
-                    image.put_pixel(
-                        u32::try_from(x).unwrap_or(0),
-                        u32::try_from(y).unwrap_or(0),
-                        Rgb([val, val, val]),
-                    );
+                    let offset = row_offset + x * 3;
+                    if let Some([r, g, b]) = buf.get_mut(offset..offset + 3) {
+                        *r = val;
+                        *g = val;
+                        *b = val;
+                    }
                 }
             }
         }
