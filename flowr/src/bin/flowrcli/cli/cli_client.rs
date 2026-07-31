@@ -27,6 +27,8 @@ pub struct CliRuntimeClient {
     args: Vec<String>,
     override_args: Arc<Mutex<Vec<String>>>,
     image_buffers: HashMap<String, ImageBuffer<Rgb<u8>, Vec<u8>>>,
+    /// Latest grid data per image name — rendered only at flush time
+    pending_grids: HashMap<String, Vec<Vec<u8>>>,
     #[cfg(feature = "metrics")]
     display_metrics: bool,
 }
@@ -42,6 +44,7 @@ impl CliRuntimeClient {
             args,
             override_args,
             image_buffers: HashMap::<String, ImageBuffer<Rgb<u8>, Vec<u8>>>::new(),
+            pending_grids: HashMap::new(),
             #[cfg(feature = "metrics")]
             display_metrics,
         }
@@ -182,6 +185,28 @@ impl CliRuntimeClient {
     }
 
     fn flush_image_buffers(&mut self) {
+        // Render any pending grids into image buffers
+        for (name, grid) in self.pending_grids.drain() {
+            let height = u32::try_from(grid.len()).unwrap_or(0);
+            let width = grid
+                .first()
+                .map_or(0, |row| u32::try_from(row.len()).unwrap_or(0));
+            let image = self
+                .image_buffers
+                .entry(name)
+                .or_insert_with(|| RgbImage::new(width, height));
+            for (y, row) in grid.iter().enumerate() {
+                for (x, &val) in row.iter().enumerate() {
+                    image.put_pixel(
+                        u32::try_from(x).unwrap_or(0),
+                        u32::try_from(y).unwrap_or(0),
+                        Rgb([val, val, val]),
+                    );
+                }
+            }
+        }
+
+        // Save all image buffers to disk
         for (filename, image_buffer) in self.image_buffers.drain() {
             info!("Flushing ImageBuffer to file: {filename}");
             if let Err(e) = image_buffer.save_with_format(Path::new(&filename), ImageFormat::Png) {
@@ -274,24 +299,10 @@ impl CliRuntimeClient {
                 ClientMessage::Ack
             }
             CoordinatorMessage::ImageWrite(grid, name) => {
-                let height = u32::try_from(grid.len()).unwrap_or(0);
-                let width = grid
-                    .first()
-                    .map_or(0, |row| u32::try_from(row.len()).unwrap_or(0));
-                let image = self
-                    .image_buffers
-                    .entry(name)
-                    .or_insert_with(|| RgbImage::new(width, height));
-                for (y, row) in grid.iter().enumerate() {
-                    for (x, &val) in row.iter().enumerate() {
-                        let gray = val;
-                        image.put_pixel(
-                            u32::try_from(x).unwrap_or(0),
-                            u32::try_from(y).unwrap_or(0),
-                            Rgb([gray, gray, gray]),
-                        );
-                    }
-                }
+                // Store the latest grid — rendering is deferred to flush_image_buffers.
+                // This avoids per-pixel rendering on every frame when only the final
+                // frame is saved to disk.
+                self.pending_grids.insert(name, grid);
                 ClientMessage::Ack
             }
             CoordinatorMessage::GetArgs => {
