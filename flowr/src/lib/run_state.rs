@@ -1094,6 +1094,7 @@ impl RunState {
         self.record_trace_with_job(action, None);
     }
 
+    #[cfg(feature = "trace")]
     fn record_trace_with_job(
         &mut self,
         action: &str,
