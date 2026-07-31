@@ -3,12 +3,13 @@
 use std::collections::{BTreeMap, BTreeSet};
 
 use serde_derive::{Deserialize, Serialize};
+use serde_json::Value;
 
 /// Snapshot of runtime state variables at a point in execution
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct TraceState {
-    /// Per-process, per-input queue contents (each value represented as 1)
-    pub input_q: BTreeMap<usize, BTreeMap<usize, Vec<i64>>>,
+    /// Per-process, per-input queue contents (actual values)
+    pub input_q: BTreeMap<usize, BTreeMap<usize, Vec<Value>>>,
     /// Per-process, per-input count of internal values at front of queue
     pub int_count: BTreeMap<usize, BTreeMap<usize, usize>>,
     /// Reference count of busy markers per process/flow ID
@@ -28,6 +29,18 @@ pub struct TraceState {
 pub struct TraceEvent {
     /// Name of the action (e.g. "Init", "Dispatch")
     pub action: String,
+    /// Job ID that triggered this event (if applicable)
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub job_id: Option<usize>,
+    /// Process (function) ID associated with this event (if applicable)
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub process_id: Option<usize>,
+    /// Input values the job was executed with (for Retire/Complete/Error events)
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub job_inputs: Option<Vec<Value>>,
+    /// Output value produced by the job (for Retire/Complete events)
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub job_output: Option<Value>,
     /// State snapshot after the action
     pub state: TraceState,
 }
@@ -107,6 +120,10 @@ mod test {
         trace.topology.flows.insert(10);
         trace.events.push(TraceEvent {
             action: "Init".to_string(),
+            job_id: None,
+            process_id: None,
+            job_inputs: None,
+            job_output: None,
             state: TraceState {
                 input_q: BTreeMap::new(),
                 int_count: BTreeMap::new(),

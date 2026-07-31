@@ -460,9 +460,21 @@ impl RunState {
     /// Moves the job into the `running_jobs` map, keyed by `job_id`, so that
     /// incoming results from executors can be matched back to the originating job.
     pub(crate) fn start_job(&mut self, job: Job) {
-        self.running_jobs.insert(job.payload.job_id, job);
+        let job_id = job.payload.job_id;
+        let process_id = job.process_id;
         #[cfg(feature = "trace")]
-        self.record_trace("Dispatch");
+        let job_inputs = job.payload.input_set.clone();
+        self.running_jobs.insert(job_id, job);
+        #[cfg(feature = "trace")]
+        self.record_trace_with_job(
+            "Dispatch",
+            Some(&crate::trace::JobContext {
+                job_id,
+                process_id,
+                inputs: job_inputs,
+                output: None,
+            }),
+        );
     }
 
     /// Check for running jobs that have exceeded their TTL.
@@ -613,12 +625,28 @@ impl RunState {
                         self.create_jobs(job.process_id, job.parent_id)?;
                     }
                     #[cfg(feature = "trace")]
-                    self.record_trace("RetireAndSend");
+                    self.record_trace_with_job(
+                        "RetireAndSend",
+                        Some(&crate::trace::JobContext {
+                            job_id: job.payload.job_id,
+                            process_id: job.process_id,
+                            inputs: job.payload.input_set.clone(),
+                            output: output_value.clone(),
+                        }),
+                    );
                 } else {
                     // otherwise mark it as completed as it will never run again
                     self.mark_as_completed(job.process_id);
                     #[cfg(feature = "trace")]
-                    self.record_trace("CompleteJob");
+                    self.record_trace_with_job(
+                        "CompleteJob",
+                        Some(&crate::trace::JobContext {
+                            job_id: job.payload.job_id,
+                            process_id: job.process_id,
+                            inputs: job.payload.input_set.clone(),
+                            output: output_value.clone(),
+                        }),
+                    );
                 }
 
                 #[cfg(feature = "metrics")]
@@ -637,7 +665,15 @@ impl RunState {
                     job.payload.job_id, job.process_id, job.payload.implementation_url
                 );
                 #[cfg(feature = "trace")]
-                self.record_trace("JobError");
+                self.record_trace_with_job(
+                    "JobError",
+                    Some(&crate::trace::JobContext {
+                        job_id: job.payload.job_id,
+                        process_id: job.process_id,
+                        inputs: job.payload.input_set.clone(),
+                        output: None,
+                    }),
+                );
             }
         }
 
@@ -1055,6 +1091,14 @@ impl RunState {
 
     #[cfg(feature = "trace")]
     fn record_trace(&mut self, action: &str) {
+        self.record_trace_with_job(action, None);
+    }
+
+    fn record_trace_with_job(
+        &mut self,
+        action: &str,
+        job_context: Option<&crate::trace::JobContext>,
+    ) {
         crate::trace::record_event(
             &mut self.trace,
             action,
@@ -1064,6 +1108,7 @@ impl RunState {
             &self.running_jobs,
             &self.completed,
             self.number_of_jobs_created,
+            job_context,
         );
     }
 

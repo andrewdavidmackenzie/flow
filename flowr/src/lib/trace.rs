@@ -55,6 +55,15 @@ pub(crate) fn topology_from_submission(submission: &Submission) -> Trace {
 /// Takes individual fields to avoid borrowing the entire `RunState`
 /// (which would conflict with the mutable borrow of the `trace` field).
 #[allow(clippy::too_many_arguments)]
+/// Job context for trace events — captures the job that triggered the event.
+pub(crate) struct JobContext {
+    pub job_id: usize,
+    pub process_id: usize,
+    pub inputs: Vec<serde_json::Value>,
+    pub output: Option<serde_json::Value>,
+}
+
+#[allow(clippy::too_many_arguments)]
 pub(crate) fn record_event(
     trace: &mut Trace,
     action: &str,
@@ -64,6 +73,7 @@ pub(crate) fn record_event(
     running_jobs: &HashMap<usize, Job>,
     completed: &HashSet<usize>,
     number_of_jobs_created: usize,
+    job_context: Option<&JobContext>,
 ) {
     let state = capture_state(
         manifest,
@@ -75,6 +85,10 @@ pub(crate) fn record_event(
     );
     trace.events.push(TraceEvent {
         action: action.to_string(),
+        job_id: job_context.map(|j| j.job_id),
+        process_id: job_context.map(|j| j.process_id),
+        job_inputs: job_context.map(|j| j.inputs.clone()),
+        job_output: job_context.and_then(|j| j.output.clone()),
         state,
     });
 }
@@ -94,7 +108,7 @@ fn capture_state(
         let mut q_map = BTreeMap::new();
         let mut ic_map = BTreeMap::new();
         for (idx, input) in function.inputs().iter().enumerate() {
-            q_map.insert(idx, vec![1i64; input.values_available()]);
+            q_map.insert(idx, input.received_values().to_vec());
             ic_map.insert(idx, input.internal_count());
         }
         input_q.insert(*id, q_map);

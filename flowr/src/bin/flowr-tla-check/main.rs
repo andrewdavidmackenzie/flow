@@ -260,22 +260,16 @@ fn format_input_queues(state: &TraceState, topo: &TraceTopology) -> String {
                 let input_parts: Vec<String> = inputs
                     .iter()
                     .map(|i| {
-                        let q = state
+                        let q_len = state
                             .input_q
                             .get(p)
                             .and_then(|m| m.get(i))
-                            .cloned()
-                            .unwrap_or_default();
-                        let seq = if q.is_empty() {
+                            .map_or(0, Vec::len);
+                        let seq = if q_len == 0 {
                             "<<>>".to_string()
                         } else {
-                            format!(
-                                "<<{}>>",
-                                q.iter()
-                                    .map(ToString::to_string)
-                                    .collect::<Vec<_>>()
-                                    .join(", ")
-                            )
+                            // TLA+ only needs queue lengths, not actual values
+                            format!("<<{}>>", vec!["1"; q_len].join(", "))
                         };
                         format!("{i} :> {seq}")
                     })
