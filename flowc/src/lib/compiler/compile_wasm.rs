@@ -309,6 +309,7 @@ mod test {
     }
 
     fn test_function() -> FunctionDefinition {
+        use flowcore::model::function_definition::FunctionReference;
         FunctionDefinition::new(
             "Stdout".into(),
             false,
@@ -325,8 +326,9 @@ mod test {
             )
             .expect("Could not create source Url"),
             Route::from("/flow0/stdout"),
-            Some(Url::parse("lib::/tests/test-functions/test/test").expect("Could not parse Url")),
-            None,
+            FunctionReference::Library(
+                Url::parse("lib::/tests/test-functions/test/test").expect("Could not parse Url"),
+            ),
             vec![OutputConnection::new(
                 Source::default(),
                 1,

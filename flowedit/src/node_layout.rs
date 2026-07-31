@@ -144,7 +144,10 @@ impl<'a> NodeLayout<'a> {
         match &self.process {
             Some(Process::FlowProcess(_)) => true,
             Some(Process::FunctionProcess(f)) => {
-                f.get_lib_reference().is_none() && f.get_context_reference().is_none()
+                matches!(
+                    f.reference(),
+                    flowcore::model::function_definition::FunctionReference::Supplied(_)
+                )
             }
             None => {
                 !self.source().starts_with("lib://") && !self.source().starts_with("context://")
@@ -340,7 +343,7 @@ pub(crate) fn compute_topological_layout(
 #[allow(clippy::indexing_slicing)]
 mod test {
     use super::*;
-    use flowcore::model::function_definition::FunctionDefinition;
+    use flowcore::model::function_definition::{FunctionDefinition, FunctionReference};
     use flowcore::model::io::IO;
     use flowcore::model::route::Route;
     use iced::Point;
@@ -375,13 +378,14 @@ mod test {
 
     fn lib_function() -> FunctionDefinition {
         let mut f = FunctionDefinition::default();
-        f.lib_reference = Some(Url::parse("lib://test").expect("valid url"));
+        f.reference = FunctionReference::Library(Url::parse("lib://test").expect("valid url"));
         f
     }
 
     fn context_function() -> FunctionDefinition {
         let mut f = FunctionDefinition::default();
-        f.context_reference = Some(Url::parse("context://stdio/stdout").expect("valid url"));
+        f.reference =
+            FunctionReference::Context(Url::parse("context://stdio/stdout").expect("valid url"));
         f
     }
 

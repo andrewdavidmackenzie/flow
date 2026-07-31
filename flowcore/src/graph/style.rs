@@ -122,12 +122,11 @@ impl NodeCategory {
         match process {
             Some(Process::FlowProcess(_)) => Self::Subflow,
             Some(Process::FunctionProcess(f)) => {
-                if f.get_lib_reference().is_some() {
-                    Self::Library
-                } else if f.get_context_reference().is_some() {
-                    Self::Context
-                } else {
-                    Self::Custom
+                use crate::model::function_definition::FunctionReference;
+                match f.reference() {
+                    FunctionReference::Library(_) => Self::Library,
+                    FunctionReference::Context(_) => Self::Context,
+                    FunctionReference::Supplied(_) => Self::Custom,
                 }
             }
             None => Self::classify_from_source(source),
@@ -155,18 +154,20 @@ impl NodeCategory {
 mod test {
     use super::*;
     use crate::model::flow_definition::FlowDefinition;
-    use crate::model::function_definition::FunctionDefinition;
+    use crate::model::function_definition::{FunctionDefinition, FunctionReference};
     use url::Url;
 
     fn lib_function() -> FunctionDefinition {
         let mut f = FunctionDefinition::default();
-        f.lib_reference = Some(Url::parse("lib://flowstdlib/math/add").expect("valid url"));
+        f.reference =
+            FunctionReference::Library(Url::parse("lib://flowstdlib/math/add").expect("valid url"));
         f
     }
 
     fn context_function() -> FunctionDefinition {
         let mut f = FunctionDefinition::default();
-        f.context_reference = Some(Url::parse("context://stdio/stdout").expect("valid url"));
+        f.reference =
+            FunctionReference::Context(Url::parse("context://stdio/stdout").expect("valid url"));
         f
     }
 

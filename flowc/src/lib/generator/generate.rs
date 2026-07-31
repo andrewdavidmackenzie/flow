@@ -189,28 +189,29 @@ fn implementation_location_relative(
     function: &FunctionDefinition,
     manifest_url: &Url,
 ) -> Result<String> {
-    if let Some(ref lib_reference) = function.get_lib_reference() {
-        Ok(lib_reference.to_string())
-    } else if let Some(ref context_reference) = function.get_context_reference() {
-        Ok(context_reference.to_string())
-    } else {
-        let implementation_path = function.get_implementation();
-        let implementation_url = Url::from_file_path(implementation_path)
-            .map_err(|()| format!("Could not create Url from file path: {implementation_path}"))?
-            .to_string();
+    use flowcore::model::function_definition::FunctionReference;
+    match function.reference() {
+        FunctionReference::Library(url) | FunctionReference::Context(url) => Ok(url.to_string()),
+        FunctionReference::Supplied(implementation_path) => {
+            let implementation_url = Url::from_file_path(implementation_path)
+                .map_err(|()| {
+                    format!("Could not create Url from file path: {implementation_path}")
+                })?
+                .to_string();
 
-        let mut manifest_base_url = manifest_url.clone();
-        manifest_base_url
-            .path_segments_mut()
-            .map_err(|()| "cannot be base")?
-            .pop();
+            let mut manifest_base_url = manifest_url.clone();
+            manifest_base_url
+                .path_segments_mut()
+                .map_err(|()| "cannot be base")?
+                .pop();
 
-        info!("Manifest base = '{manifest_base_url}'");
-        info!("Absolute implementation path = '{implementation_path}'");
-        let relative_path =
-            implementation_url.replace(&format!("{}/", manifest_base_url.as_str()), "");
-        info!("Relative implementation path = '{relative_path}'");
-        Ok(relative_path)
+            info!("Manifest base = '{manifest_base_url}'");
+            info!("Absolute implementation path = '{implementation_path}'");
+            let relative_path =
+                implementation_url.replace(&format!("{}/", manifest_base_url.as_str()), "");
+            info!("Relative implementation path = '{relative_path}'");
+            Ok(relative_path)
+        }
     }
 }
 
@@ -221,7 +222,7 @@ mod test {
     use url::Url;
 
     use flowcore::model::datatype::{ARRAY_TYPE, GENERIC_TYPE, STRING_TYPE};
-    use flowcore::model::function_definition::FunctionDefinition;
+    use flowcore::model::function_definition::{FunctionDefinition, FunctionReference};
     use flowcore::model::input::InputInitializer;
     use flowcore::model::io::IO;
     use flowcore::model::name::Name;
@@ -245,8 +246,9 @@ mod test {
             ],
             Url::parse("file:///fake/file").expect("Could not parse Url"),
             Route::from("/flow0/stdout"),
-            None,
-            Some(Url::parse("context://stdio/stdout").expect("Could not parse Url")),
+            FunctionReference::Context(
+                Url::parse("context://stdio/stdout").expect("Could not parse Url"),
+            ),
             vec![
                 OutputConnection::new(
                     Source::default(),
@@ -319,8 +321,9 @@ mod test {
             vec![IO::new(vec![STRING_TYPE.into()], Route::default())],
             Url::parse("file:///fake/file").expect("Could not parse Url"),
             Route::from("/flow0/stdout"),
-            None,
-            Some(Url::parse("context://stdio/stdout").expect("Could not parse Url")),
+            FunctionReference::Context(
+                Url::parse("context://stdio/stdout").expect("Could not parse Url"),
+            ),
             vec![OutputConnection::new(
                 Source::default(),
                 1,
@@ -377,8 +380,9 @@ mod test {
             vec![],
             Url::parse("file:///fake/file").expect("Could not parse Url"),
             Route::from("/flow0/stdout"),
-            None,
-            Some(Url::parse("context://stdio/stdout").expect("Could not parse Url")),
+            FunctionReference::Context(
+                Url::parse("context://stdio/stdout").expect("Could not parse Url"),
+            ),
             vec![],
             0,
             0,
@@ -425,8 +429,9 @@ mod test {
             vec![],
             Url::parse("file:///fake/file").expect("Could not parse Url"),
             Route::from("/flow0/stdout"),
-            None,
-            Some(Url::parse("context://stdio/stdout").expect("Could not parse Url")),
+            FunctionReference::Context(
+                Url::parse("context://stdio/stdout").expect("Could not parse Url"),
+            ),
             vec![],
             0,
             0,
@@ -471,8 +476,9 @@ mod test {
             vec![],
             Url::parse("file:///fake/file").expect("Could not parse Url"),
             Route::from("/flow0/stdout"),
-            None,
-            Some(Url::parse("context://stdio/stdout").expect("Could not parse Url")),
+            FunctionReference::Context(
+                Url::parse("context://stdio/stdout").expect("Could not parse Url"),
+            ),
             vec![],
             0,
             0,
@@ -512,8 +518,9 @@ mod test {
             vec![IO::new(vec![STRING_TYPE.into()], Route::default())],
             Url::parse("file:///fake/file").expect("Could not parse Url"),
             Route::from("/flow0/stdout"),
-            None,
-            Some(Url::parse("context://stdio/stdout").expect("Could not parse Url")),
+            FunctionReference::Context(
+                Url::parse("context://stdio/stdout").expect("Could not parse Url"),
+            ),
             vec![OutputConnection::new(
                 Source::default(),
                 1,
@@ -586,8 +593,9 @@ mod test {
             vec![IO::new(vec![ARRAY_TYPE.into()], Route::default())],
             Url::parse("file:///fake/file").expect("Could not parse Url"),
             Route::from("/flow0/stdout"),
-            None,
-            Some(Url::parse("context://stdio/stdout").expect("Could not parse Url")),
+            FunctionReference::Context(
+                Url::parse("context://stdio/stdout").expect("Could not parse Url"),
+            ),
             vec![OutputConnection::new(
                 Output("/0".into()),
                 1,
