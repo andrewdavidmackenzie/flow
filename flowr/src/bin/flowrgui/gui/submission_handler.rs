@@ -60,9 +60,13 @@ impl SubmissionHandler for CLISubmissionHandler {
         state: &RunState,
         #[cfg(feature = "metrics")] metrics: Metrics,
     ) -> Result<()> {
+        // Use send_no_reply so the bridge sends FlowEnd on the ZMQ REP socket
+        // but does NOT call recv afterwards. This leaves the REP socket in
+        // "must-recv" state, ready for wait_for_submission to receive the
+        // next ClientSubmission on re-run.
         #[cfg(feature = "metrics")]
         self.context_io
-            .send_and_receive(CoordinatorMessage::FlowEnd(metrics))?;
+            .send_no_reply(CoordinatorMessage::FlowEnd(metrics))?;
         debug!("{state}");
         Ok(())
     }

@@ -342,6 +342,9 @@ async fn handle_running(
     }
 
     if is_flow_end {
+        // No ZMQ response for FlowEnd — the coordinator uses send_no_reply,
+        // so the REP socket stays in "must-recv" state, ready for the next
+        // ClientSubmission when the user clicks Run again.
         *running = false;
         return Ok(());
     }
@@ -755,21 +758,20 @@ fn coordinator_bridge(
             continue;
         }
 
-        match connection.receive::<ClientMessage>(WAIT) {
-            Ok(ClientMessage::ClientExiting(_)) => {
-                let _ = connection.send(CoordinatorMessage::CoordinatorExiting(Ok(())));
-                if let Some(response_tx) = request.response_tx {
+        // When response_tx is None (send_no_reply), skip the recv so the ZMQ
+        // REP socket stays in "must-recv" state — used by FlowEnd to allow
+        // wait_for_submission to receive the next ClientSubmission on re-run.
+        if let Some(response_tx) = request.response_tx {
+            match connection.receive::<ClientMessage>(WAIT) {
+                Ok(ClientMessage::ClientExiting(_)) => {
+                    let _ = connection.send(CoordinatorMessage::CoordinatorExiting(Ok(())));
                     let _ = response_tx.send(ClientMessage::ClientExiting(Ok(())));
                 }
-            }
-            Ok(response) => {
-                if let Some(response_tx) = request.response_tx {
+                Ok(response) => {
                     let _ = response_tx.send(response);
                 }
-            }
-            Err(e) => {
-                error!("Bridge: failed to receive from client: {e}");
-                if let Some(response_tx) = request.response_tx {
+                Err(e) => {
+                    error!("Bridge: failed to receive from client: {e}");
                     let _ = response_tx.send(ClientMessage::Error(format!("{e}")));
                 }
             }
