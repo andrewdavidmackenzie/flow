@@ -195,11 +195,16 @@ impl CliRuntimeClient {
                 .image_buffers
                 .entry(name.to_string())
                 .or_insert_with(|| RgbImage::new(width, height));
-            // Bulk row copy — writes RGB pixels directly to the buffer
+            // Recreate the buffer when dimensions change
+            if image.width() != width || image.height() != height {
+                *image = RgbImage::new(width, height);
+            }
+            // Use buffer width for row stride, not grid row length
+            let buf_width = image.width() as usize;
             let buf = image.as_mut();
             for (y, row) in grid.iter().enumerate() {
-                let row_offset = y * (width as usize) * 3;
-                for (x, &val) in row.iter().enumerate() {
+                let row_offset = y * buf_width * 3;
+                for (x, &val) in row.iter().take(buf_width).enumerate() {
                     let offset = row_offset + x * 3;
                     if let Some([r, g, b]) = buf.get_mut(offset..offset + 3) {
                         *r = val;
@@ -715,5 +720,44 @@ mod test {
             client.image_buffers.contains_key("test.png"),
             "Image buffer should exist after materialization"
         );
+    }
+
+    #[test]
+    fn test_image_write_recreates_on_dimension_change() {
+        use image::Rgb;
+        let mut client = make_client();
+        // First write: 2x1
+        let grid1 = vec![vec![10, 20]];
+        client
+            .process_coordinator_message(CoordinatorMessage::ImageWrite(grid1, "test.png".into()));
+        client.materialize_pending_grid("test.png");
+        let img = client.image_buffers.get("test.png").unwrap();
+        assert_eq!(img.width(), 2);
+        assert_eq!(img.height(), 1);
+        assert_eq!(*img.get_pixel(0, 0), Rgb([10, 10, 10]));
+        // Second write: 3x2 — buffer should be recreated
+        let grid2 = vec![vec![1, 2, 3], vec![4, 5, 6]];
+        client
+            .process_coordinator_message(CoordinatorMessage::ImageWrite(grid2, "test.png".into()));
+        client.materialize_pending_grid("test.png");
+        let img = client.image_buffers.get("test.png").unwrap();
+        assert_eq!(img.width(), 3);
+        assert_eq!(img.height(), 2);
+        assert_eq!(*img.get_pixel(2, 1), Rgb([6, 6, 6]));
+    }
+
+    #[test]
+    fn test_image_write_truncates_long_rows() {
+        use image::Rgb;
+        let mut client = make_client();
+        // Grid where second row is longer than the first
+        let grid = vec![vec![10, 20], vec![30, 40, 50]];
+        client.process_coordinator_message(CoordinatorMessage::ImageWrite(grid, "test.png".into()));
+        client.materialize_pending_grid("test.png");
+        let img = client.image_buffers.get("test.png").unwrap();
+        assert_eq!(img.width(), 2);
+        // Only first 2 values of each row should be written
+        assert_eq!(*img.get_pixel(0, 1), Rgb([30, 30, 30]));
+        assert_eq!(*img.get_pixel(1, 1), Rgb([40, 40, 40]));
     }
 }
