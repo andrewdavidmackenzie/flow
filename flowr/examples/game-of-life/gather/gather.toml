@@ -1,0 +1,28 @@
+function = "gather"
+description = "Gather [x, y, value] triples into a flat grid, emitting the complete grid when all cells received"
+source = "gather.rs"
+type = "rust"
+
+[[input]]
+name = "cell"
+type = "array/number"
+
+[[input]]
+name = "partial"
+type = "array/"
+
+[[input]]
+name = "size"
+type = "array/number"
+
+[[output]]
+name = "grid"
+type = "array/"
+
+[[output]]
+name = "partial"
+type = "array/"
+
+[[output]]
+name = "size"
+type = "array/number"

@@ -18,29 +18,6 @@ to = "game_step/grid"
 from = "parse_args/size"
 to = "game_step/size"
 
-####### Compute total cells (width * height) for accumulator chunk size
-
-[[process]]
-alias = "extract_height"
-source = "lib://flowstdlib/data/array_get"
-input.index = { always = 1 }
-
-[[connection]]
-from = "parse_args/size"
-to = "extract_height/array"
-
-[[process]]
-alias = "total_cells"
-source = "lib://flowstdlib/math/multiply"
-
-[[connection]]
-from = "extract_width/value"
-to = "total_cells/i1"
-
-[[connection]]
-from = "extract_height/value"
-to = "total_cells/i2"
-
 ####### Phase 1: Extract 3x3 neighborhoods (sequential, one WASM job)
 
 [[process]]
@@ -61,8 +38,9 @@ from = "extract_neighborhoods/size"
 to = "extract_neighborhoods/size"
 
 ####### Phase 2: Apply Conway's rules (parallel, N WASM jobs)
-# The array of neighborhoods auto-decomposes into individual 3x3 arrays,
+# The array of neighborhoods auto-decomposes into individual [index, n0..n8] arrays,
 # each triggering a separate apply_rules job that can run on any executor.
+# Results carry their cell index so they can be reassembled in correct order.
 
 [[process]]
 source = "apply_rules"
@@ -71,25 +49,25 @@ source = "apply_rules"
 from = "extract_neighborhoods"
 to = "apply_rules/neighborhood"
 
-####### Phase 3: Accumulate results back into flat grid
+####### Phase 3: Gather results back into flat grid by (x,y) position
 
 [[process]]
 alias = "collect"
-source = "lib://flowstdlib/data/accumulate"
+source = "gather"
 input.partial = { once = [] }
 
 [[connection]]
 from = "apply_rules"
-to = "collect/values"
+to = "collect/cell"
 
-# chunk_size = total cells — loopback to persist
+# size needed for grid dimensions — loopback to persist
 [[connection]]
-from = "total_cells"
-to = "collect/chunk_size"
+from = "parse_args/size"
+to = "collect/size"
 
 [[connection]]
-from = "collect/chunk_size"
-to = "collect/chunk_size"
+from = "collect/size"
+to = "collect/size"
 
 [[connection]]
 from = "collect/partial"
@@ -112,7 +90,7 @@ to = "extract_width/array"
 source = "context://image/image_write"
 
 [[connection]]
-from = "collect/chunk"
+from = "collect/grid"
 to = "image_write/grid"
 
 # Width from parsed size argument — loopback to persist
@@ -183,7 +161,7 @@ from = "compare/gt"
 to = "grid-tap/control"
 
 [[connection]]
-from = "collect/chunk"
+from = "collect/grid"
 to = "grid-tap/data"
 
 # Gated grid feeds back to extract_neighborhoods for next generation

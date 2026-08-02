@@ -51,11 +51,8 @@ impl Implementation for ImageWrite {
             flat.chunks(width).map(<[u8]>::to_vec).collect()
         };
 
-        // Fire-and-forget: the bridge thread completes the ZMQ round-trip,
-        // but the context executor thread is freed immediately to process
-        // other context jobs. image_write produces no output value.
         self.context_io
-            .send_no_reply(CoordinatorMessage::ImageWrite(grid, filename.to_string()))?;
+            .send_and_receive(CoordinatorMessage::ImageWrite(grid, filename.to_string()))?;
 
         Ok((None, RUN_AGAIN))
     }

@@ -50,11 +50,14 @@ fn extract(grid: &Value, size: &Value) -> Result<(Option<Value>, RunAgain)> {
             .collect()
     };
 
-    // Build array of 3x3 neighborhoods, one per cell
+    // Build array of [x, y, n0..n8] arrays, one per cell.
+    // The (x, y) tag ensures correct grid reconstruction after parallel processing.
     let mut neighborhoods: Vec<Value> = Vec::with_capacity(total);
     for y in 0..height {
         for x in 0..width {
-            let mut hood = Vec::with_capacity(9);
+            let mut hood = Vec::with_capacity(11);
+            hood.push(json!(x));
+            hood.push(json!(y));
             for dy in [-1i32, 0, 1] {
                 for dx in [-1i32, 0, 1] {
                     let nx = (x as i32 + dx).rem_euclid(width as i32) as usize;
@@ -85,8 +88,8 @@ mod test {
         let hoods = output.unwrap();
         let hoods = hoods.as_array().unwrap();
         assert_eq!(hoods.len(), 9); // one neighborhood per cell
-        // Each neighborhood is a 9-element array
-        assert_eq!(hoods[0].as_array().unwrap().len(), 9);
+        // Each neighborhood is an 11-element array: [x, y, n0..n8]
+        assert_eq!(hoods[0].as_array().unwrap().len(), 11);
     }
 
     #[test]
@@ -97,7 +100,7 @@ mod test {
         let (output, _) = extract(&grid, &size).expect("extract failed");
         let hoods = output.unwrap();
         let center_hood = hoods.as_array().unwrap()[4].as_array().unwrap();
-        // Center of neighborhood (index 4) should be 1
-        assert_eq!(center_hood[4].as_u64().unwrap(), 1);
+        // Center of neighborhood is at index 6 (offset 2 for x,y + offset 4 for center of 3x3)
+        assert_eq!(center_hood[6].as_u64().unwrap(), 1);
     }
 }
