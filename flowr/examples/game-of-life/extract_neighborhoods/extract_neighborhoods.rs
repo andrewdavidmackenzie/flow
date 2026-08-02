@@ -88,8 +88,8 @@ mod test {
         let hoods = output.unwrap();
         let hoods = hoods.as_array().unwrap();
         assert_eq!(hoods.len(), 9); // one neighborhood per cell
-        // Each neighborhood is a 9-element array
-        assert_eq!(hoods[0].as_array().unwrap().len(), 9);
+        // Each neighborhood is an 11-element array: [x, y, n0..n8]
+        assert_eq!(hoods[0].as_array().unwrap().len(), 11);
     }
 
     #[test]
@@ -100,7 +100,7 @@ mod test {
         let (output, _) = extract(&grid, &size).expect("extract failed");
         let hoods = output.unwrap();
         let center_hood = hoods.as_array().unwrap()[4].as_array().unwrap();
-        // Center of neighborhood (index 4) should be 1
-        assert_eq!(center_hood[4].as_u64().unwrap(), 1);
+        // Center of neighborhood is at index 6 (offset 2 for x,y + offset 4 for center of 3x3)
+        assert_eq!(center_hood[6].as_u64().unwrap(), 1);
     }
 }
