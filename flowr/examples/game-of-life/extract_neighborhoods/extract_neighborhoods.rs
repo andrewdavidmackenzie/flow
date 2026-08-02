@@ -50,11 +50,14 @@ fn extract(grid: &Value, size: &Value) -> Result<(Option<Value>, RunAgain)> {
             .collect()
     };
 
-    // Build array of 3x3 neighborhoods, one per cell
+    // Build array of [x, y, n0..n8] arrays, one per cell.
+    // The (x, y) tag ensures correct grid reconstruction after parallel processing.
     let mut neighborhoods: Vec<Value> = Vec::with_capacity(total);
     for y in 0..height {
         for x in 0..width {
-            let mut hood = Vec::with_capacity(9);
+            let mut hood = Vec::with_capacity(11);
+            hood.push(json!(x));
+            hood.push(json!(y));
             for dy in [-1i32, 0, 1] {
                 for dx in [-1i32, 0, 1] {
                     let nx = (x as i32 + dx).rem_euclid(width as i32) as usize;

@@ -8,4 +8,4 @@ name = "neighborhood"
 type = "array/number"
 
 [[output]]
-type = "number"
+type = "array/number"
