@@ -79,6 +79,7 @@ impl ContextIO {
 
     /// Send a message without waiting for a response (fire-and-forget).
     /// The bridge thread still completes the ZMQ round-trip.
+    #[allow(dead_code)]
     pub fn send_no_reply(&self, message: CoordinatorMessage) -> Result<()> {
         self.tx
             .send(ContextRequest {
