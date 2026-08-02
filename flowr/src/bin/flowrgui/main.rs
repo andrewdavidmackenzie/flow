@@ -3706,14 +3706,25 @@ impl FlowrGui {
                         height,
                         data: RgbaImage::new(width, height),
                     });
+                // Recreate the buffer when dimensions change
+                if data.width != width || data.height != height {
+                    data.width = width;
+                    data.height = height;
+                    data.data = RgbaImage::new(width, height);
+                }
+                // Use buffer width for row stride, not grid row length
+                let buf_width = data.width as usize;
+                let buf = data.data.as_mut();
                 for (y, row) in grid.iter().enumerate() {
-                    for (x, &val) in row.iter().enumerate() {
-                        let gray = val;
-                        data.data.put_pixel(
-                            u32::try_from(x).unwrap_or(0),
-                            u32::try_from(y).unwrap_or(0),
-                            Rgba([gray, gray, gray, 255]),
-                        );
+                    let row_offset = y * buf_width * 4;
+                    for (x, &val) in row.iter().take(buf_width).enumerate() {
+                        let offset = row_offset + x * 4;
+                        if let Some([r, g, b, a]) = buf.get_mut(offset..offset + 4) {
+                            *r = val;
+                            *g = val;
+                            *b = val;
+                            *a = 255;
+                        }
                     }
                 }
                 if self.tab_set.active_tab != 3 {
@@ -4277,5 +4288,75 @@ mod test {
         );
         assert!(!gui.running);
         assert!(gui.last_metrics.is_some());
+    }
+
+    #[test]
+    fn image_write_stores_pixels() {
+        let mut gui = test_gui();
+        gui.running = true;
+        let grid = vec![vec![255, 0], vec![0, 128]];
+        drop(
+            gui.update(Message::CoordinatorSent(CoordinatorMessage::ImageWrite(
+                grid,
+                "test.png".into(),
+            ))),
+        );
+        let img = gui.tab_set.images_tab.images.get("test.png").unwrap();
+        assert_eq!(img.width, 2);
+        assert_eq!(img.height, 2);
+        // Top-left pixel should be (255,255,255,255)
+        assert_eq!(img.data.get_pixel(0, 0), &Rgba([255, 255, 255, 255]));
+        // Top-right pixel should be (0,0,0,255)
+        assert_eq!(img.data.get_pixel(1, 0), &Rgba([0, 0, 0, 255]));
+        // Bottom-right pixel should be (128,128,128,255)
+        assert_eq!(img.data.get_pixel(1, 1), &Rgba([128, 128, 128, 255]));
+    }
+
+    #[test]
+    fn image_write_recreates_on_dimension_change() {
+        let mut gui = test_gui();
+        gui.running = true;
+        // First write: 2x1
+        let grid1 = vec![vec![10, 20]];
+        drop(
+            gui.update(Message::CoordinatorSent(CoordinatorMessage::ImageWrite(
+                grid1,
+                "test.png".into(),
+            ))),
+        );
+        let img = gui.tab_set.images_tab.images.get("test.png").unwrap();
+        assert_eq!(img.width, 2);
+        assert_eq!(img.height, 1);
+        // Second write: 3x2 — should recreate the buffer
+        let grid2 = vec![vec![1, 2, 3], vec![4, 5, 6]];
+        drop(
+            gui.update(Message::CoordinatorSent(CoordinatorMessage::ImageWrite(
+                grid2,
+                "test.png".into(),
+            ))),
+        );
+        let img = gui.tab_set.images_tab.images.get("test.png").unwrap();
+        assert_eq!(img.width, 3);
+        assert_eq!(img.height, 2);
+        assert_eq!(img.data.get_pixel(2, 1), &Rgba([6, 6, 6, 255]));
+    }
+
+    #[test]
+    fn image_write_truncates_long_rows() {
+        let mut gui = test_gui();
+        gui.running = true;
+        // Grid with a row longer than the first row — should truncate
+        let grid = vec![vec![10, 20], vec![30, 40, 50]];
+        drop(
+            gui.update(Message::CoordinatorSent(CoordinatorMessage::ImageWrite(
+                grid,
+                "test.png".into(),
+            ))),
+        );
+        let img = gui.tab_set.images_tab.images.get("test.png").unwrap();
+        assert_eq!(img.width, 2);
+        // Only first 2 values of the second row should be written
+        assert_eq!(img.data.get_pixel(0, 1), &Rgba([30, 30, 30, 255]));
+        assert_eq!(img.data.get_pixel(1, 1), &Rgba([40, 40, 40, 255]));
     }
 }
