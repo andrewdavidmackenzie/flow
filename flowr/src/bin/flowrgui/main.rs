@@ -3467,7 +3467,9 @@ impl FlowrGui {
                 connection_manager::set_job_count(0);
                 self.tab_set.stdin_tab.waiting_for_input = false;
                 self.last_metrics = Some(metrics);
-                // NO response - so we can use next request sent to submit another flow
+                // No Ack response — the coordinator uses send_no_reply for FlowEnd,
+                // so the ZMQ REP socket stays in "must-recv" state, ready for the
+                // next ClientSubmission on re-run.
                 if self.ui_settings.auto_exit {
                     self.info("Auto exiting on flow completion");
                     let _ = std::io::stdout().flush();

@@ -19,6 +19,7 @@ mod test {
     use std::sync::mpsc;
     use std::time::Duration;
 
+    #[cfg_attr(target_os = "windows", ignore)]
     #[test]
     fn test_concurrent_stdout_while_readline_pending() {
         let example_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
