@@ -48,9 +48,13 @@ pub(crate) fn track_execution_end() {
     JOBS_EXECUTING.fetch_sub(1, Ordering::Relaxed);
 }
 
+/// Global counter for generating unique executor thread IDs across all `Executor` instances.
+static NEXT_EXECUTOR_ID: AtomicUsize = AtomicUsize::new(0);
+
 /// Generate a unique executor ID for a thread: `pid-N`
-fn make_executor_id(thread_number: usize) -> String {
-    format!("{}-{thread_number}", process::id())
+fn make_executor_id() -> String {
+    let n = NEXT_EXECUTOR_ID.fetch_add(1, Ordering::Relaxed);
+    format!("{}-{n}", process::id())
 }
 
 /// An `Executor` struct is used to receive jobs, execute them, and return results.
@@ -166,7 +170,7 @@ impl Executor {
             Arc::new(RwLock::new(HashMap::<Url, Arc<dyn Implementation>>::new()));
 
         info!("Starting {number_of_executors} executor threads");
-        for executor_number in 0..number_of_executors {
+        for _executor_number in 0..number_of_executors {
             let thread_provider = provider.clone();
             let thread_context = zmq::Context::new();
             let thread_implementations = loaded_implementations.clone();
@@ -174,7 +178,7 @@ impl Executor {
             let results_sink = results_service.into();
             let job_source = job_service.into();
             let control_address = control_service.into();
-            let executor_id = make_executor_id(executor_number);
+            let executor_id = make_executor_id();
             self.executors.push(thread::spawn(move || {
                 trace!("Executor {executor_id} entering execution loop");
                 if let Err(e) = execution_loop(
