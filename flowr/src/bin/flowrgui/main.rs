@@ -32,9 +32,11 @@ use clap::Command as ClapCommand;
 use clap::{Arg, ArgMatches};
 use env_logger::Builder;
 use iced::widget::operation::{self, RelativeOffset};
-use iced::widget::{center, mouse_area, opaque, stack, text_input, Button, Column, Id, Row, Text};
-use iced::{Center, Element, Fill, Subscription, Task};
-use iced_aw::Card;
+use iced::widget::{
+    center, mouse_area, opaque, stack, text_input, Button, Column, Container, Id, Row, Text,
+};
+use iced::{Center, Color, Element, Fill, Subscription, Task};
+
 use image::{ImageBuffer, Rgba, RgbaImage};
 use log::{debug, info, trace, LevelFilter};
 use simpath::Simpath;
@@ -1355,19 +1357,26 @@ impl FlowrGui {
         }
 
         if self.show_modal {
-            let modal_card = Card::new(
-                Text::new(self.modal_content.clone().0),
-                Text::new(self.modal_content.clone().1),
+            let modal_card = Container::new(
+                Column::new()
+                    .spacing(theme::SPACE_MD)
+                    .padding(theme::SPACE_LG)
+                    .push(
+                        Text::new(self.modal_content.clone().0)
+                            .size(theme::FONT_DEFAULT)
+                            .color(Color::WHITE),
+                    )
+                    .push(Text::new(self.modal_content.clone().1))
+                    .push(
+                        Row::new().spacing(10).padding(5).width(Fill).push(
+                            Button::new(Text::new("OK").align_x(Center))
+                                .width(Fill)
+                                .style(theme::pill_button)
+                                .on_press(Message::CloseModal),
+                        ),
+                    ),
             )
-            .foot(
-                Row::new().spacing(10).padding(5).width(Fill).push(
-                    Button::new(Text::new("OK").align_x(Center))
-                        .width(Fill)
-                        .style(theme::pill_button)
-                        .on_press(Message::CloseModal),
-                ),
-            )
-            .style(theme::popup_card)
+            .style(theme::modal_dialog)
             .max_width(300.0);
 
             stack![
@@ -1582,7 +1591,7 @@ impl FlowrGui {
             .push(debug_play)
     }
 
-    fn coordinator_picker_card(&self) -> Card<'_, Message> {
+    fn coordinator_picker_card(&self) -> Container<'_, Message> {
         use iced::widget::scrollable::Scrollable;
         use iced::Length;
 
@@ -1634,16 +1643,26 @@ impl FlowrGui {
 
         let body = Column::new().spacing(8).push(list);
 
-        Card::new(Text::new("Discover Coordinators"), body)
-            .foot(
-                Button::new(Text::new("Close").align_x(Center))
-                    .width(Fill)
-                    .on_press(Message::CloseCoordinatorPicker)
-                    .style(theme::pill_button)
-                    .padding([4.0, 8.0]),
-            )
-            .style(theme::popup_card)
-            .max_width(450.0)
+        Container::new(
+            Column::new()
+                .spacing(theme::SPACE_MD)
+                .padding(theme::SPACE_LG)
+                .push(
+                    Text::new("Discover Coordinators")
+                        .size(theme::FONT_DEFAULT)
+                        .color(Color::WHITE),
+                )
+                .push(body)
+                .push(
+                    Button::new(Text::new("Close").align_x(Center))
+                        .width(Fill)
+                        .on_press(Message::CloseCoordinatorPicker)
+                        .style(theme::pill_button)
+                        .padding([4.0, 8.0]),
+                ),
+        )
+        .style(theme::modal_dialog)
+        .max_width(450.0)
     }
 
     #[cfg(feature = "debugger")]

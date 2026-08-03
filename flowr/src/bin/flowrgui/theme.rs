@@ -473,22 +473,26 @@ pub fn pill_input(
     }
 }
 
-// ── Card/popup style ────────────────────────────────────────────────────────
+// ── Dialog/popup style ──────────────────────────────────────────────────────
 
-pub fn popup_card(theme: &Theme, _status: iced_aw::style::Status) -> iced_aw::style::card::Style {
-    let palette = theme.palette();
-    iced_aw::style::card::Style {
-        background: Background::Color(SURFACE_BUTTON),
-        border_radius: RADIUS_MD,
-        border_width: 2.0,
-        border_color: Color { a: 0.7, ..ACCENT },
-        head_background: Background::Color(Color::TRANSPARENT),
-        head_text_color: Color::WHITE,
-        body_background: Background::Color(SURFACE_BUTTON),
-        body_text_color: palette.text,
-        foot_background: Background::Color(SURFACE_BUTTON),
-        foot_text_color: palette.text,
-        close_color: Color::WHITE,
+/// Container style for modal dialogs — single continuous border with rounded corners.
+pub fn modal_dialog(_theme: &Theme) -> iced::widget::container::Style {
+    iced::widget::container::Style {
+        background: Some(Background::Color(SURFACE_BUTTON)),
+        border: Border {
+            radius: RADIUS_MD.into(),
+            width: 2.0,
+            color: Color { a: 0.7, ..ACCENT },
+        },
+        shadow: Shadow {
+            color: Color {
+                a: 0.4,
+                ..Color::BLACK
+            },
+            offset: Vector::new(0.0, 4.0),
+            blur_radius: 12.0,
+        },
+        ..iced::widget::container::Style::default()
     }
 }
 
