@@ -93,3 +93,50 @@ impl SubmissionHandler for CLISubmissionHandler {
             .map(|_| ())
     }
 }
+
+#[cfg(test)]
+#[allow(clippy::unwrap_used)]
+mod test {
+    use super::*;
+    use flowrlib::submission_handler::SubmissionHandler;
+
+    /// Verify that `flow_execution_ended` uses `send_no_reply` (`response_tx` is None)
+    /// so the bridge skips the ZMQ recv and leaves the REP socket in "must-recv"
+    /// state, enabling re-run.
+    #[test]
+    fn flow_end_uses_send_no_reply() {
+        use flowcore::model::flow_manifest::FlowManifest;
+        use flowcore::model::metadata::MetaData;
+
+        let (context_tx, context_rx) = mpsc::channel();
+        let (blocking_tx, _blocking_rx) = mpsc::channel();
+        let (_submission_tx, submission_rx) = mpsc::channel();
+        let context_io = ContextIO::new(context_tx, blocking_tx);
+        let mut handler = CLISubmissionHandler::new(context_io, submission_rx);
+
+        let manifest = FlowManifest::new(MetaData::default());
+        let submission = Submission::new(
+            manifest,
+            None,
+            None,
+            #[cfg(feature = "debugger")]
+            false,
+            #[cfg(feature = "trace")]
+            None,
+        );
+        let state = RunState::new(submission);
+        handler
+            .flow_execution_ended(&state, Metrics::new(0, 0))
+            .unwrap();
+
+        let request = context_rx.try_recv().unwrap();
+        assert!(
+            matches!(request.message, CoordinatorMessage::FlowEnd(_)),
+            "Expected FlowEnd message"
+        );
+        assert!(
+            request.response_tx.is_none(),
+            "FlowEnd must use send_no_reply (response_tx should be None)"
+        );
+    }
+}
