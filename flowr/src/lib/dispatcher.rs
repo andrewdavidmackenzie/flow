@@ -181,26 +181,35 @@ mod test {
     use crate::job::Payload;
     use crate::test_helper::fixtures::{get_bind_addresses, get_four_ports};
 
+    /// Create a `Dispatcher` for testing, re-picking ports and retrying a few times to
+    /// tolerate the occasional race where another process grabs a freshly picked port.
+    fn new_dispatcher() -> (super::Dispatcher, (u16, u16, u16, u16)) {
+        for _ in 0..10 {
+            let ports = get_four_ports();
+            if let Ok(dispatcher) = super::Dispatcher::new(&get_bind_addresses(ports)) {
+                return (dispatcher, ports);
+            }
+        }
+        panic!("Could not create dispatcher after 10 attempts");
+    }
+
     #[test]
     #[serial]
     fn test_constructor() {
-        let dispatcher = super::Dispatcher::new(&get_bind_addresses(get_four_ports()));
-        assert!(dispatcher.is_ok());
+        let (_dispatcher, _ports) = new_dispatcher();
     }
 
     #[test]
     #[serial]
     fn set_timeout_to_none() {
-        let mut dispatcher = super::Dispatcher::new(&get_bind_addresses(get_four_ports()))
-            .expect("Could not create dispatcher");
+        let (mut dispatcher, _ports) = new_dispatcher();
         assert!(dispatcher.set_results_timeout(None).is_ok());
     }
 
     #[test]
     #[serial]
     fn set_timeout() {
-        let mut dispatcher = super::Dispatcher::new(&get_bind_addresses(get_four_ports()))
-            .expect("Could not create dispatcher");
+        let (mut dispatcher, _ports) = new_dispatcher();
         assert!(dispatcher
             .set_results_timeout(Some(Duration::from_millis(10)))
             .is_ok());
@@ -216,9 +225,7 @@ mod test {
                 .expect("Could not parse Url"),
         };
 
-        let ports = get_four_ports();
-        let mut dispatcher = super::Dispatcher::new(&get_bind_addresses(ports))
-            .expect("Could not create dispatcher");
+        let (mut dispatcher, ports) = new_dispatcher();
 
         let context = zmq::Context::new();
         let job_source = context
@@ -240,9 +247,7 @@ mod test {
             implementation_url: Url::parse("context://stdio/stdout").expect("Could not parse Url"),
         };
 
-        let ports = get_four_ports();
-        let mut dispatcher = super::Dispatcher::new(&get_bind_addresses(ports))
-            .expect("Could not create dispatcher");
+        let (mut dispatcher, ports) = new_dispatcher();
 
         let context = zmq::Context::new();
         let context_job_source = context
@@ -258,9 +263,7 @@ mod test {
     #[test]
     #[serial]
     fn get_job() {
-        let ports = get_four_ports();
-        let mut dispatcher = super::Dispatcher::new(&get_bind_addresses(ports))
-            .expect("Could not create dispatcher");
+        let (mut dispatcher, ports) = new_dispatcher();
 
         let context = zmq::Context::new();
         let results_sink = context
