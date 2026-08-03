@@ -1,5 +1,6 @@
 use std::collections::HashMap;
 use std::panic;
+use std::process;
 use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::{Arc, RwLock};
 use std::thread;
@@ -45,6 +46,15 @@ pub(crate) fn track_execution_start() {
 
 pub(crate) fn track_execution_end() {
     JOBS_EXECUTING.fetch_sub(1, Ordering::Relaxed);
+}
+
+/// Global counter for generating unique executor thread IDs across all `Executor` instances.
+static NEXT_EXECUTOR_ID: AtomicUsize = AtomicUsize::new(0);
+
+/// Generate a unique executor ID for a thread: `pid-N`
+fn make_executor_id() -> String {
+    let n = NEXT_EXECUTOR_ID.fetch_add(1, Ordering::Relaxed);
+    format!("{}-{n}", process::id())
 }
 
 /// An `Executor` struct is used to receive jobs, execute them, and return results.
@@ -160,7 +170,7 @@ impl Executor {
             Arc::new(RwLock::new(HashMap::<Url, Arc<dyn Implementation>>::new()));
 
         info!("Starting {number_of_executors} executor threads");
-        for executor_number in 0..number_of_executors {
+        for _executor_number in 0..number_of_executors {
             let thread_provider = provider.clone();
             let thread_context = zmq::Context::new();
             let thread_implementations = loaded_implementations.clone();
@@ -168,11 +178,12 @@ impl Executor {
             let results_sink = results_service.into();
             let job_source = job_service.into();
             let control_address = control_service.into();
+            let executor_id = make_executor_id();
             self.executors.push(thread::spawn(move || {
-                trace!("Executor #{executor_number} entering execution loop");
+                trace!("Executor {executor_id} entering execution loop");
                 if let Err(e) = execution_loop(
                     &thread_provider,
-                    &format!("Executor #{executor_number}"),
+                    &executor_id,
                     &thread_context,
                     &thread_implementations,
                     &thread_loaded_manifests,
@@ -372,7 +383,7 @@ fn execution_loop(
 fn execute_job_to_string(
     provider: &Arc<dyn Provider>,
     payload: &Payload,
-    name: &str,
+    executor_id: &str,
     loaded_implementations: &Arc<RwLock<HashMap<Url, Arc<dyn Implementation>>>>,
     loaded_lib_manifests: &Arc<RwLock<HashMap<Url, (LibraryManifest, Url)>>>,
 ) -> Result<String> {
@@ -383,11 +394,17 @@ fn execute_job_to_string(
         loaded_lib_manifests,
     )?;
 
-    trace!("Job #{}: Started executing on '{name}'", payload.job_id);
+    trace!(
+        "Job #{}: Started executing on '{executor_id}'",
+        payload.job_id
+    );
     let result = implementation.run(&payload.input_set);
-    trace!("Job #{}: Finished executing on '{name}'", payload.job_id);
+    trace!(
+        "Job #{}: Finished executing on '{executor_id}'",
+        payload.job_id
+    );
 
-    serde_json::to_string(&(payload.job_id, result))
+    serde_json::to_string(&(payload.job_id, executor_id, result))
         .map_err(|e| format!("Could not serialize job result: {e}").into())
 }
 
@@ -484,7 +501,7 @@ fn execute_job(
     provider: &Arc<dyn Provider>,
     payload: &Payload,
     results_sink: &zmq::Socket,
-    name: &str,
+    executor_id: &str,
     loaded_implementations: &Arc<RwLock<HashMap<Url, Arc<dyn Implementation>>>>,
     loaded_lib_manifests: &Arc<RwLock<HashMap<Url, (LibraryManifest, Url)>>>,
 ) -> Result<bool> {
@@ -495,13 +512,19 @@ fn execute_job(
         loaded_lib_manifests,
     )?;
 
-    trace!("Job #{}: Started executing on '{name}'", payload.job_id);
+    trace!(
+        "Job #{}: Started executing on '{executor_id}'",
+        payload.job_id
+    );
     let result = implementation.run(&payload.input_set);
-    trace!("Job #{}: Finished executing on '{name}'", payload.job_id);
+    trace!(
+        "Job #{}: Finished executing on '{executor_id}'",
+        payload.job_id
+    );
 
     results_sink
         .send(
-            serde_json::to_string(&(payload.job_id, result))?.as_bytes(),
+            serde_json::to_string(&(payload.job_id, executor_id, result))?.as_bytes(),
             0,
         )
         .map_err(|_| "Could not send result of Job")?;
@@ -1264,11 +1287,12 @@ mod test {
         )
         .expect("execute_job_to_string failed");
 
-        // The serialized string should be a JSON tuple (job_id, Result)
-        let parsed: (usize, Result<(Option<serde_json::Value>, bool)>) =
+        // The serialized string should be a JSON tuple (job_id, executor_id, Result)
+        let parsed: (usize, String, Result<(Option<serde_json::Value>, bool)>) =
             serde_json::from_str(&serialized).expect("could not parse result JSON");
         assert_eq!(parsed.0, 42, "job_id should match");
-        let (value, run_again) = parsed.1.expect("inner result should be Ok");
+        assert_eq!(parsed.1, "test", "executor_id should match");
+        let (value, run_again) = parsed.2.expect("inner result should be Ok");
         assert_eq!(value, Some(serde_json::json!("hello")));
         assert!(!run_again);
     }
@@ -1399,10 +1423,11 @@ mod test {
         // Verify the result arrived on the PULL socket
         let msg = results_pull.recv_msg(0).expect("should receive result");
         let msg_str = msg.as_str().expect("result should be str");
-        let parsed: (usize, Result<(Option<serde_json::Value>, bool)>) =
+        let parsed: (usize, String, Result<(Option<serde_json::Value>, bool)>) =
             serde_json::from_str(msg_str).expect("should parse result");
         assert_eq!(parsed.0, 7);
-        let (value, run_again) = parsed.1.expect("inner should be Ok");
+        assert_eq!(parsed.1, "test");
+        let (value, run_again) = parsed.2.expect("inner should be Ok");
         assert_eq!(value, Some(serde_json::json!(42)));
         assert!(!run_again);
     }

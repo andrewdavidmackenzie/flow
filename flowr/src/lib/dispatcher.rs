@@ -102,12 +102,13 @@ impl Dispatcher {
         .map_err(|e| format!("Error setting results timeout: {e}").into())
     }
 
-    // Wait for, then return the next Result returned from executors
+    /// Wait for, then return the next Result returned from executors.
+    /// Returns `(job_id, executor_id, result)`.
     #[allow(clippy::type_complexity)]
     pub(crate) fn get_next_result(
         &mut self,
         block: bool,
-    ) -> Result<(usize, Result<(Option<Value>, RunAgain)>)> {
+    ) -> Result<(usize, String, Result<(Option<Value>, RunAgain)>)> {
         let flags = if block { WAIT } else { DONTWAIT };
 
         let msg = self
@@ -272,13 +273,17 @@ mod test {
         let result: Result<(Option<Value>, RunAgain)> = Ok((None, DONT_RUN_AGAIN));
         results_sink
             .send(
-                serde_json::to_string(&(0, result))
+                serde_json::to_string(&(0, "test-executor", result))
                     .expect("Could not convert to serde")
                     .as_bytes(),
                 0,
             )
             .expect("Could not send result of Job");
 
-        assert!(dispatcher.get_next_result(true).is_ok());
+        let received = dispatcher.get_next_result(true);
+        assert!(received.is_ok());
+        let (job_id, executor_id, _) = received.unwrap();
+        assert_eq!(job_id, 0);
+        assert_eq!(executor_id, "test-executor");
     }
 }

@@ -1,4 +1,5 @@
 use std::cmp::max;
+use std::collections::HashMap;
 use std::fmt;
 use std::time::Instant;
 
@@ -19,6 +20,8 @@ pub struct Metrics {
     jobs_retried: usize,
     jobs_per_function: Vec<usize>,
     function_names: Vec<(String, String)>,
+    /// Per-executor job counts, keyed by executor ID
+    jobs_per_executor: HashMap<String, usize>,
 }
 
 impl Metrics {
@@ -35,6 +38,7 @@ impl Metrics {
             jobs_retried: 0,
             jobs_per_function: vec![0; num_processes],
             function_names: Vec::new(),
+            jobs_per_executor: HashMap::new(),
         }
     }
 
@@ -61,6 +65,7 @@ impl Metrics {
         self.max_simultaneous_jobs = 0;
         self.jobs_retried = 0;
         self.jobs_per_function.fill(0);
+        self.jobs_per_executor.clear();
     }
 
     /// Set the number of jobs created in `Metrics` to the `jobs` value
@@ -104,6 +109,20 @@ impl Metrics {
         self.max_simultaneous_jobs = max(self.max_simultaneous_jobs, jobs_running);
     }
 
+    /// Record that an executor completed a job, incrementing its per-executor count
+    pub fn record_executor(&mut self, executor_id: &str) {
+        *self
+            .jobs_per_executor
+            .entry(executor_id.to_string())
+            .or_insert(0) += 1;
+    }
+
+    /// Get the per-executor job counts
+    #[must_use]
+    pub fn jobs_per_executor(&self) -> &HashMap<String, usize> {
+        &self.jobs_per_executor
+    }
+
     /// Return the start time for flow execution - used for tracking wall-clock time for
     /// the execution
     #[must_use]
@@ -131,6 +150,16 @@ impl fmt::Display for Metrics {
         for (id, &count) in self.jobs_per_function.iter().enumerate() {
             if count > 0 {
                 write!(f, "  #{id}:{count}")?;
+            }
+        }
+        if !self.jobs_per_executor.is_empty() {
+            writeln!(f)?;
+            writeln!(f, "Executors: {}", self.jobs_per_executor.len())?;
+            write!(f, "Jobs per Executor:")?;
+            let mut executors: Vec<_> = self.jobs_per_executor.iter().collect();
+            executors.sort_by_key(|(id, _)| (*id).clone());
+            for (id, count) in &executors {
+                write!(f, "  {id}:{count}")?;
             }
         }
         Ok(())
