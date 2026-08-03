@@ -116,8 +116,10 @@ impl Dispatcher {
             .recv_msg(flags)
             .map_err(|_| "Error receiving result")?;
         let message_string = msg.as_str().ok_or("Could not get message as str")?;
-        serde_json::from_str(message_string)
-            .map_err(|_| "Could not Deserialize from zmq message string".into())
+        serde_json::from_str(message_string).map_err(|e| {
+            error!("Could not deserialize result from executor (version mismatch?): {e}");
+            "Could not Deserialize from zmq message string".into()
+        })
     }
 
     // Send a `Job` for execution to executors.
