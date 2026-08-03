@@ -461,6 +461,7 @@ impl RunState {
     /// incoming results from executors can be matched back to the originating job.
     pub(crate) fn start_job(&mut self, job: Job) {
         let job_id = job.payload.job_id;
+        #[cfg(feature = "trace")]
         let process_id = job.process_id;
         #[cfg(feature = "trace")]
         let job_inputs = job.payload.input_set.clone();
