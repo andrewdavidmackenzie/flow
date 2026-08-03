@@ -492,6 +492,7 @@ pub fn modal_dialog(_theme: &Theme) -> iced::widget::container::Style {
             offset: Vector::new(0.0, 4.0),
             blur_radius: 12.0,
         },
+        text_color: Some(Color::WHITE),
         ..iced::widget::container::Style::default()
     }
 }

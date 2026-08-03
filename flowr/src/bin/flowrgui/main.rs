@@ -35,7 +35,7 @@ use iced::widget::operation::{self, RelativeOffset};
 use iced::widget::{
     center, mouse_area, opaque, stack, text_input, Button, Column, Container, Id, Row, Text,
 };
-use iced::{Center, Color, Element, Fill, Subscription, Task};
+use iced::{Center, Element, Fill, Subscription, Task};
 
 use image::{ImageBuffer, Rgba, RgbaImage};
 use log::{debug, info, trace, LevelFilter};
@@ -1361,11 +1361,7 @@ impl FlowrGui {
                 Column::new()
                     .spacing(theme::SPACE_MD)
                     .padding(theme::SPACE_LG)
-                    .push(
-                        Text::new(self.modal_content.clone().0)
-                            .size(theme::FONT_DEFAULT)
-                            .color(Color::WHITE),
-                    )
+                    .push(Text::new(self.modal_content.clone().0).size(theme::FONT_DEFAULT))
                     .push(Text::new(self.modal_content.clone().1))
                     .push(
                         Row::new().spacing(10).padding(5).width(Fill).push(
@@ -1647,11 +1643,7 @@ impl FlowrGui {
             Column::new()
                 .spacing(theme::SPACE_MD)
                 .padding(theme::SPACE_LG)
-                .push(
-                    Text::new("Discover Coordinators")
-                        .size(theme::FONT_DEFAULT)
-                        .color(Color::WHITE),
-                )
+                .push(Text::new("Discover Coordinators").size(theme::FONT_DEFAULT))
                 .push(body)
                 .push(
                     Button::new(Text::new("Close").align_x(Center))
