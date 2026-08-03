@@ -409,7 +409,7 @@ impl<'a> Coordinator<'a> {
     }
 
     /// Try to get a result back from an executor, using a strategy that avoids unnecessary
-    /// blocking:
+    /// blocking. Returns the next result tuple or `None` if there are ready jobs to dispatch.
     ///
     /// 1. First, attempt a **non-blocking** receive. If a result is already available,
     ///    return it immediately.
@@ -423,7 +423,7 @@ impl<'a> Coordinator<'a> {
     fn get_result(
         &mut self,
         state: &RunState,
-    ) -> Result<Option<(usize, Result<(Option<Value>, RunAgain)>)>> {
+    ) -> Result<Option<(usize, String, Result<(Option<Value>, RunAgain)>)>> {
         // Step 1: Non-blocking attempt
         if let Ok(result) = self.dispatcher.get_next_result(false) {
             return Ok(Some(result));
@@ -475,7 +475,9 @@ impl<'a> Coordinator<'a> {
         };
 
         match first_result {
-            Ok(Some((job_id, result))) => {
+            Ok(Some((job_id, executor_id, result))) => {
+                #[cfg(feature = "metrics")]
+                metrics.record_executor(&executor_id);
                 let action = self.retire_one_job(
                     state,
                     job_id,
@@ -497,7 +499,9 @@ impl<'a> Coordinator<'a> {
         // Drain all immediately available results without blocking
         while state.number_jobs_running() > 0 {
             if let Ok(result) = self.dispatcher.get_next_result(false) {
-                let (job_id, job_result) = result;
+                let (job_id, executor_id, job_result) = result;
+                #[cfg(feature = "metrics")]
+                metrics.record_executor(&executor_id);
                 let action = self.retire_one_job(
                     state,
                     job_id,
