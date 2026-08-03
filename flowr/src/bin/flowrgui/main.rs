@@ -2011,8 +2011,10 @@ impl FlowrGui {
                 let exec_max = executor_counts.values().copied().max().unwrap_or(1).max(1);
                 let mut sorted_executors: Vec<_> = executor_counts.iter().collect();
                 sorted_executors.sort_by_key(|(id, _)| (*id).clone());
+                let id_width = sorted_executors.last().map_or(1, |(id, _)| id.len());
 
                 for (exec_id, &count) in &sorted_executors {
+                    let label = format!("{exec_id:>id_width$}");
                     #[allow(clippy::cast_possible_truncation)]
                     let portion = (count.saturating_mul(100) / exec_max).max(1) as u16;
                     let bar = Container::new(Text::new("").size(1))
@@ -2031,7 +2033,7 @@ impl FlowrGui {
                         .spacing(4)
                         .align_y(iced::alignment::Vertical::Center)
                         .push(
-                            Text::new(*exec_id)
+                            Text::new(label)
                                 .size(theme::FONT_SM)
                                 .font(iced::Font::MONOSPACE)
                                 .color(theme::EXECUTOR_COLOR),
@@ -4210,6 +4212,25 @@ mod test {
         use iced_test::simulator::simulator;
         let mut gui = test_gui();
         gui.active_panel = Some(PanelKind::Metrics);
+        let view = gui.view();
+        let _ui = simulator(view);
+    }
+
+    #[test]
+    fn view_renders_metrics_with_executors() {
+        use flowcore::model::metrics::Metrics;
+        use iced_test::simulator::simulator;
+        let mut gui = test_gui();
+        gui.active_panel = Some(PanelKind::Metrics);
+        let mut metrics = Metrics::new(3, 3);
+        metrics.set_jobs_created(10);
+        metrics.record_executor("100-0");
+        metrics.record_executor("100-0");
+        metrics.record_executor("100-1");
+        metrics.record_executor("100-1");
+        metrics.record_executor("100-1");
+        metrics.record_executor("200-0");
+        gui.last_metrics = Some(metrics);
         let view = gui.view();
         let _ui = simulator(view);
     }
