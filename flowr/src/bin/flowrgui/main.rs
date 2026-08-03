@@ -2022,6 +2022,10 @@ impl FlowrGui {
                 sorted_executors.sort_by_key(|(id, _)| (*id).clone());
                 let id_width = sorted_executors.last().map_or(1, |(id, _)| id.len());
 
+                // Fixed label width in pixels based on longest ID
+                #[allow(clippy::cast_precision_loss)]
+                let label_px = Length::Fixed(id_width as f32 * 7.5 + 4.0);
+
                 for (exec_id, &count) in &sorted_executors {
                     let label = format!("{exec_id:>id_width$}");
                     #[allow(clippy::cast_possible_truncation)]
@@ -2042,10 +2046,14 @@ impl FlowrGui {
                         .spacing(4)
                         .align_y(iced::alignment::Vertical::Center)
                         .push(
-                            Text::new(label)
-                                .size(theme::FONT_SM)
-                                .font(iced::Font::MONOSPACE)
-                                .color(theme::EXECUTOR_COLOR),
+                            Container::new(
+                                Text::new(label)
+                                    .size(theme::FONT_SM)
+                                    .font(iced::Font::MONOSPACE)
+                                    .color(theme::EXECUTOR_COLOR),
+                            )
+                            .width(label_px)
+                            .align_x(iced::alignment::Horizontal::Right),
                         )
                         .push(bar)
                         .push(
