@@ -93,6 +93,20 @@ enum FlowIterationResult {
     Restart,
 }
 
+/// Returns true if `err` is the error raised when the debug client ends the debug session
+/// (e.g. the 'e' command). This is handled specially so the client is still notified that the
+/// flow has ended and can exit cleanly.
+#[cfg(feature = "debugger")]
+fn is_debugger_exit_error(err: &flowcore::errors::Error) -> bool {
+    err.to_string() == crate::debugger::DEBUGGER_EXIT_MESSAGE
+}
+
+/// When the debugger feature is disabled this error can never be raised, so never matches.
+#[cfg(not(feature = "debugger"))]
+fn is_debugger_exit_error(_err: &flowcore::errors::Error) -> bool {
+    false
+}
+
 // --- Debugger wrapper methods ---
 // Encapsulate `#[cfg(feature = "debugger")]` branching so the main coordinator
 // logic reads cleanly without conditional compilation noise.
@@ -226,7 +240,7 @@ impl<'a> Coordinator<'a> {
         self.debugger_start(&state);
 
         // Outer loop: allows the debugger to restart execution from scratch
-        loop {
+        let flow_result = loop {
             state.init()?;
             #[cfg(feature = "metrics")]
             {
@@ -237,30 +251,46 @@ impl<'a> Coordinator<'a> {
                 crate::run_state::reset_retire_timers();
             }
 
-            let iteration_result = self.run_jobs(
+            // If the debug client ended the session (e.g. the 'e' command), stop the outer
+            // loop rather than returning immediately, so the client can still be notified
+            // that execution has ended.
+            let iteration_result = match self.run_jobs(
                 &mut state,
                 #[cfg(feature = "metrics")]
                 &mut metrics,
-            )?;
+            ) {
+                Ok(result) => result,
+                Err(err) if is_debugger_exit_error(&err) => break Err(err),
+                Err(err) => return Err(err),
+            };
 
             // After execution ends, give the debugger a chance to inspect final state
             // and potentially request a restart
-            let restart = matches!(iteration_result, FlowIterationResult::Restart)
-                || self.debugger_end_of_execution(
+            let restart = if matches!(iteration_result, FlowIterationResult::Restart) {
+                true
+            } else {
+                match self.debugger_end_of_execution(
                     &mut state,
                     #[cfg(feature = "metrics")]
                     &mut metrics,
-                )?;
+                ) {
+                    Ok(restart) => restart,
+                    Err(err) if is_debugger_exit_error(&err) => break Err(err),
+                    Err(err) => return Err(err),
+                }
+            };
 
             if !restart {
-                break;
+                break Ok(());
             }
-        }
+        };
 
         #[cfg(feature = "trace")]
         state.write_trace()?;
 
-        // Finalize metrics and notify the submission handler that execution has ended
+        // Finalize metrics and notify the submission handler that execution has ended, even
+        // when the debug client ended the session early — the client needs the notification
+        // to exit cleanly (e.g. flowrcli)
         #[cfg(feature = "metrics")]
         metrics.stop_timer();
         #[cfg(feature = "metrics")]
@@ -271,7 +301,7 @@ impl<'a> Coordinator<'a> {
         #[cfg(all(feature = "submission", not(feature = "metrics")))]
         self.submission_handler.flow_execution_ended(&state)?;
 
-        Ok(())
+        flow_result
     }
 
     /// Run the inner dispatch/retire loop until no more jobs remain or the debugger
