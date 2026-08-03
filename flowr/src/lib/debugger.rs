@@ -22,6 +22,12 @@ use crate::debugger_handler::DebuggerHandler;
 use crate::job::Job;
 use crate::run_state::{RunState, State};
 
+/// Error message raised when the debug client ends the debug session (e.g. the 'e' command).
+///
+/// The coordinator uses this to distinguish a normal end of the debug session from other
+/// execution errors, so it can still notify the client that the flow has ended.
+pub const DEBUGGER_EXIT_MESSAGE: &str = "Debugger Exit";
+
 /// Debugger struct contains all the info necessary to conduct a debugging session, storing
 /// set breakpoints, connections to the debug client etc
 pub struct Debugger<'a> {
@@ -396,7 +402,7 @@ impl<'a> Debugger<'a> {
                 }
                 Ok(ExitDebugger) => {
                     self.debug_server.debugger_exiting();
-                    bail!("Debugger Exit");
+                    bail!(DEBUGGER_EXIT_MESSAGE);
                 }
             }
         }

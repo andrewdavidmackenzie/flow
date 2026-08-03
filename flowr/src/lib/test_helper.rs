@@ -12,11 +12,18 @@ pub(crate) mod fixtures {
     use flowcore::model::runtime_function::RuntimeFunction;
 
     pub fn get_four_ports() -> (u16, u16, u16, u16) {
+        let mut ports = Vec::with_capacity(4);
+        while ports.len() < 4 {
+            let port = pick_unused_port().expect("No ports free");
+            if !ports.contains(&port) {
+                ports.push(port);
+            }
+        }
         (
-            pick_unused_port().expect("No ports free"),
-            pick_unused_port().expect("No ports free"),
-            pick_unused_port().expect("No ports free"),
-            pick_unused_port().expect("No ports free"),
+            ports.first().copied().expect("Four ports must be picked"),
+            ports.get(1).copied().expect("Four ports must be picked"),
+            ports.get(2).copied().expect("Four ports must be picked"),
+            ports.get(3).copied().expect("Four ports must be picked"),
         )
     }
 
