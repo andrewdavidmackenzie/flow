@@ -1999,17 +1999,26 @@ impl FlowrGui {
                 }
             }
 
-            // Executor bar chart
+            // Executor bar chart — filter out context executors (prefixed with "ctx:")
             let executor_counts = metrics.jobs_per_executor();
-            if !executor_counts.is_empty() {
+            let job_executors: Vec<_> = executor_counts
+                .iter()
+                .filter(|(id, _)| !id.starts_with("ctx:"))
+                .collect();
+            if !job_executors.is_empty() {
                 col = col.push(
-                    Text::new(format!("Executors: {}", executor_counts.len()))
+                    Text::new(format!("Executors: {}", job_executors.len()))
                         .size(theme::FONT_MD)
                         .color(theme::TEXT_SECONDARY),
                 );
 
-                let exec_max = executor_counts.values().copied().max().unwrap_or(1).max(1);
-                let mut sorted_executors: Vec<_> = executor_counts.iter().collect();
+                let exec_max = job_executors
+                    .iter()
+                    .map(|(_, &c)| c)
+                    .max()
+                    .unwrap_or(1)
+                    .max(1);
+                let mut sorted_executors = job_executors;
                 sorted_executors.sort_by_key(|(id, _)| (*id).clone());
                 let id_width = sorted_executors.last().map_or(1, |(id, _)| id.len());
 
