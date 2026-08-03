@@ -52,6 +52,13 @@ pub const ACCENT: Color = Color {
     a: 1.0,
 };
 
+pub const EXECUTOR_COLOR: Color = Color {
+    r: 0.2,
+    g: 0.7,
+    b: 0.5,
+    a: 1.0,
+};
+
 // ── Entity type colors (consistent across the app) ──────────────────────────
 
 #[allow(dead_code)]

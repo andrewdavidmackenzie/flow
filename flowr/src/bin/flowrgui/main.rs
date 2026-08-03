@@ -1998,6 +1998,58 @@ impl FlowrGui {
                     col = col.push(row);
                 }
             }
+
+            // Executor bar chart
+            let executor_counts = metrics.jobs_per_executor();
+            if !executor_counts.is_empty() {
+                col = col.push(
+                    Text::new(format!("Executors: {}", executor_counts.len()))
+                        .size(theme::FONT_MD)
+                        .color(theme::TEXT_SECONDARY),
+                );
+
+                let exec_max = executor_counts.values().copied().max().unwrap_or(1).max(1);
+                let mut sorted_executors: Vec<_> = executor_counts.iter().collect();
+                sorted_executors.sort_by_key(|(id, _)| (*id).clone());
+
+                for (exec_id, &count) in &sorted_executors {
+                    #[allow(clippy::cast_possible_truncation)]
+                    let portion = (count.saturating_mul(100) / exec_max).max(1) as u16;
+                    let bar = Container::new(Text::new("").size(1))
+                        .width(Length::FillPortion(portion))
+                        .height(Length::Fixed(14.0))
+                        .style(move |_: &iced::Theme| iced::widget::container::Style {
+                            background: Some(iced::Background::Color(theme::EXECUTOR_COLOR)),
+                            border: iced::Border {
+                                radius: 3.0.into(),
+                                ..Default::default()
+                            },
+                            ..Default::default()
+                        });
+                    let spacer_portion = (100 - portion).max(1);
+                    let row = Row::new()
+                        .spacing(4)
+                        .align_y(iced::alignment::Vertical::Center)
+                        .push(
+                            Text::new(*exec_id)
+                                .size(theme::FONT_SM)
+                                .font(iced::Font::MONOSPACE)
+                                .color(theme::EXECUTOR_COLOR),
+                        )
+                        .push(bar)
+                        .push(
+                            iced::widget::container(Text::new("").size(1))
+                                .width(Length::FillPortion(spacer_portion)),
+                        )
+                        .push(
+                            Text::new(count.to_string())
+                                .size(theme::FONT_SM)
+                                .color(theme::TEXT_SECONDARY),
+                        );
+                    col = col.push(row);
+                }
+            }
+
             col
         } else {
             Column::new().push(
