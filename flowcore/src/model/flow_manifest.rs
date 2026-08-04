@@ -2,6 +2,7 @@
 use std::collections::BTreeMap;
 use std::collections::BTreeSet;
 use std::collections::HashMap;
+use std::collections::HashSet;
 use std::fmt;
 use std::fmt::Display;
 
@@ -217,6 +218,114 @@ impl FlowManifest {
         &self.source_urls
     }
 
+    /// Extract a sub-flow and all its descendants into a standalone `FlowManifest`.
+    ///
+    /// The target flow becomes the root of the new manifest (`parent_id` = `None`).
+    /// All functions belonging to the target flow or any of its descendant sub-flows
+    /// are included. Output connections that reference functions outside the extracted
+    /// sub-flow are removed (they become the sub-flow's boundary).
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the target `flow_id` is not found in the manifest.
+    pub fn extract_subflow(&self, flow_id: usize) -> Result<FlowManifest> {
+        if !self.flows.contains_key(&flow_id) {
+            crate::bail!("Flow #{flow_id} not found in manifest");
+        }
+
+        // Collect all descendant flow IDs (including the target itself)
+        let mut flow_ids = HashSet::new();
+        Self::collect_descendant_flows(flow_id, &self.flows, &mut flow_ids);
+
+        // Collect all functions belonging to the target flow or its descendants
+        let mut extracted_functions = HashMap::new();
+        let function_ids: HashSet<usize> = self
+            .functions
+            .iter()
+            .filter(|(_, f)| flow_ids.contains(&f.get_parent_id()))
+            .map(|(&id, _)| id)
+            .collect();
+
+        for &func_id in &function_ids {
+            if let Some(func) = self.functions.get(&func_id) {
+                let mut cloned = func.clone();
+                // Remove output connections that target functions outside the sub-flow
+                cloned.retain_connections(|conn| function_ids.contains(&conn.destination_id));
+                extracted_functions.insert(func_id, cloned);
+            }
+        }
+
+        // Build the flow hierarchy for the extracted sub-flow
+        let mut extracted_flows = HashMap::new();
+        for &fid in &flow_ids {
+            if let Some(flow_info) = self.flows.get(&fid) {
+                let mut cloned = flow_info.clone();
+                // Make the target flow the root
+                if fid == flow_id {
+                    cloned.parent_id = None;
+                }
+                // Keep only sub-flow IDs that are in the extracted set
+                cloned.sub_flow_ids.retain(|id| flow_ids.contains(id));
+                extracted_flows.insert(fid, cloned);
+            }
+        }
+
+        // Collect lib and context references from extracted functions
+        let mut lib_refs = BTreeSet::new();
+        let mut context_refs = BTreeSet::new();
+        for func in extracted_functions.values() {
+            let url = func.get_implementation_url();
+            match url.scheme() {
+                "lib" => {
+                    lib_refs.insert(url.clone());
+                }
+                "context" => {
+                    context_refs.insert(url.clone());
+                }
+                _ => {}
+            }
+        }
+
+        #[cfg(feature = "debugger")]
+        let flow_name = self
+            .flows
+            .get(&flow_id)
+            .map_or_else(String::new, |f| f.name.clone());
+        #[cfg(not(feature = "debugger"))]
+        let flow_name = String::new();
+        let metadata = MetaData {
+            name: flow_name,
+            ..MetaData::default()
+        };
+
+        let mut manifest = FlowManifest {
+            metadata,
+            lib_references: lib_refs,
+            context_references: context_refs,
+            functions: extracted_functions,
+            flows: extracted_flows,
+            #[cfg(feature = "debugger")]
+            source_urls: BTreeMap::new(),
+        };
+
+        manifest.mark_internal_inputs();
+        Ok(manifest)
+    }
+
+    /// Recursively collect all descendant flow IDs (including the given flow itself).
+    fn collect_descendant_flows(
+        flow_id: usize,
+        flows: &HashMap<usize, FlowInfo>,
+        result: &mut HashSet<usize>,
+    ) {
+        result.insert(flow_id);
+        if let Some(flow_info) = flows.get(&flow_id) {
+            for &child_id in &flow_info.sub_flow_ids {
+                Self::collect_descendant_flows(child_id, flows, result);
+            }
+        }
+    }
+
     /// Load, or Deserialize, a manifest from a `source` Url using `provider`
     /// Sets all `location_url` fields to be URLs, a file URL for provided implementations
     ///
@@ -362,5 +471,148 @@ mod test {
             &Url::parse("http://ibm.com/fake.json").expect("Could not parse URL"),
         )
         .expect("Could not load manifest");
+    }
+
+    #[test]
+    #[allow(clippy::too_many_lines)]
+    fn extract_subflow_basic() {
+        use super::FlowInfo;
+        use crate::model::output_connection::{OutputConnection, Source};
+
+        let mut manifest = FlowManifest::new(test_meta_data());
+
+        // Flow hierarchy: root (#0) contains child (#1)
+        // Root has function #10, child has functions #20 and #21
+        manifest.add_flow_info(FlowInfo {
+            process_id: 0,
+            parent_id: None,
+            sub_flow_ids: vec![1],
+            #[cfg(feature = "debugger")]
+            name: "root".into(),
+            #[cfg(feature = "debugger")]
+            route: "/root".into(),
+        });
+        manifest.add_flow_info(FlowInfo {
+            process_id: 1,
+            parent_id: Some(0),
+            sub_flow_ids: vec![],
+            #[cfg(feature = "debugger")]
+            name: "child".into(),
+            #[cfg(feature = "debugger")]
+            route: "/root/child".into(),
+        });
+
+        // Function #10 in root, connects to #20 in child (cross-flow)
+        manifest.add_function(RuntimeFunction::new(
+            #[cfg(feature = "debugger")]
+            "func10",
+            #[cfg(feature = "debugger")]
+            "/root/func10",
+            "lib://flowstdlib/math/add",
+            vec![Input::new(
+                #[cfg(feature = "debugger")]
+                "a",
+                0,
+                false,
+                None,
+                None,
+            )],
+            10,
+            0,
+            &[OutputConnection::new(
+                Source::default(),
+                20,
+                0,
+                1,
+                false,
+                String::new(),
+                #[cfg(feature = "debugger")]
+                String::new(),
+            )],
+            false,
+        ));
+
+        // Function #20 in child, connects to #21 (internal)
+        manifest.add_function(RuntimeFunction::new(
+            #[cfg(feature = "debugger")]
+            "func20",
+            #[cfg(feature = "debugger")]
+            "/root/child/func20",
+            "file://test/func20.wasm",
+            vec![Input::new(
+                #[cfg(feature = "debugger")]
+                "in",
+                0,
+                false,
+                None,
+                None,
+            )],
+            20,
+            1,
+            &[OutputConnection::new(
+                Source::default(),
+                21,
+                0,
+                1,
+                true,
+                String::new(),
+                #[cfg(feature = "debugger")]
+                String::new(),
+            )],
+            false,
+        ));
+
+        // Function #21 in child, no outputs
+        manifest.add_function(RuntimeFunction::new(
+            #[cfg(feature = "debugger")]
+            "func21",
+            #[cfg(feature = "debugger")]
+            "/root/child/func21",
+            "file://test/func21.wasm",
+            vec![Input::new(
+                #[cfg(feature = "debugger")]
+                "in",
+                0,
+                false,
+                None,
+                None,
+            )],
+            21,
+            1,
+            &[],
+            false,
+        ));
+
+        manifest.mark_internal_inputs();
+
+        // Extract child flow #1
+        let extracted = manifest.extract_subflow(1).expect("extract failed");
+
+        // Should contain functions #20 and #21 only
+        assert_eq!(extracted.functions().len(), 2);
+        assert!(extracted.functions().contains_key(&20));
+        assert!(extracted.functions().contains_key(&21));
+        assert!(!extracted.functions().contains_key(&10));
+
+        // Child flow should be root (parent_id = None)
+        assert_eq!(extracted.flows().len(), 1);
+        assert!(extracted.flows().get(&1).unwrap().parent_id.is_none());
+
+        // Internal connection #20 -> #21 should be preserved
+        assert_eq!(
+            extracted
+                .functions()
+                .get(&20)
+                .unwrap()
+                .get_output_connections()
+                .len(),
+            1
+        );
+    }
+
+    #[test]
+    fn extract_subflow_not_found() {
+        let manifest = FlowManifest::new(test_meta_data());
+        assert!(manifest.extract_subflow(99).is_err());
     }
 }
