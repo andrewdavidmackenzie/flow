@@ -537,6 +537,20 @@ fn coordinator(
         &mut debug_server,
     );
 
+    // Start WASM HTTP server so remote executors can fetch file:// WASM modules
+    let _wasm_server = match flowrlib::wasm_server::WasmServer::start(std::path::Path::new("/")) {
+        Ok(server) => {
+            if let Ok(url) = url::Url::parse(server.base_url()) {
+                coordinator.set_wasm_base_url(url);
+            }
+            Some(server)
+        }
+        Err(e) => {
+            log::warn!("Could not start WASM server: {e}");
+            None
+        }
+    };
+
     #[cfg(feature = "submission")]
     let result: Result<()> = coordinator
         .submission_loop(loop_forever)

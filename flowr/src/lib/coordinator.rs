@@ -41,6 +41,10 @@ pub struct Coordinator<'a> {
     dispatcher: Dispatcher,
     /// Maximum time to wait for a job result before considering it lost
     job_timeout: Option<Duration>,
+    /// Base URL of the WASM HTTP server. When set, `file://` implementation
+    /// URLs in job payloads are rewritten to `http://` URLs so remote executors
+    /// can fetch WASM modules.
+    wasm_base_url: Option<url::Url>,
     #[cfg(feature = "debugger")]
     /// A `Debugger` to communicate with debug clients
     debugger: Debugger<'a>,
@@ -182,11 +186,19 @@ impl<'a> Coordinator<'a> {
             submission_handler: submitter,
             dispatcher,
             job_timeout: None,
+            wasm_base_url: None,
             #[cfg(feature = "debugger")]
             debugger: Debugger::new(debug_server),
             #[cfg(all(not(feature = "debugger"), not(feature = "submission")))]
             _data: PhantomData,
         }
+    }
+
+    /// Set the WASM HTTP server base URL. When set, `file://` implementation
+    /// URLs in dispatched job payloads are rewritten to `http://` URLs so
+    /// remote executors can fetch WASM modules.
+    pub fn set_wasm_base_url(&mut self, base_url: url::Url) {
+        self.wasm_base_url = Some(base_url);
     }
 
     /// Enter a loop - waiting for a submission from the client, or disconnection of the client
@@ -614,6 +626,21 @@ impl<'a> Coordinator<'a> {
         #[cfg(feature = "metrics")] metrics: &mut Metrics,
     ) -> Result<DebugAction> {
         let action = self.debugger_check_before_job(state, &job)?;
+
+        // Rewrite file:// URLs to http:// for remote executor access
+        if job.payload.implementation_url.scheme() == "file" {
+            if let Some(ref base_url) = self.wasm_base_url {
+                // Convert file:///path/to/file.wasm -> http://host:port/path/to/file.wasm
+                let path = job.payload.implementation_url.path();
+                if let Ok(http_url) = base_url.join(path) {
+                    trace!(
+                        "Rewriting WASM URL: {} -> {http_url}",
+                        job.payload.implementation_url
+                    );
+                    job.payload.implementation_url = http_url;
+                }
+            }
+        }
 
         self.dispatcher.send_job_for_execution(&job.payload)?;
 
