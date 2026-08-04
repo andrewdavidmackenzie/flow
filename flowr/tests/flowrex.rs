@@ -43,9 +43,9 @@ fn test_fibonacci_with_flowrex_mid_run() {
         .expect("Could not run flowc to compile example");
     assert!(compile_status.success(), "flowc compilation failed");
 
-    // Start coordinator with 0 threads — no local executors
+    // Start coordinator with 0 threads and metrics — no local executors
     let mut coordinator = Command::new("flowrcli")
-        .args(["--threads", "0", "manifest.json"])
+        .args(["--threads", "0", "-m", "manifest.json"])
         .current_dir(
             example_dir
                 .canonicalize()
@@ -56,6 +56,8 @@ fn test_fibonacci_with_flowrex_mid_run() {
         .stderr(Stdio::piped())
         .spawn()
         .expect("Could not spawn coordinator");
+
+    let coordinator_pid = coordinator.id();
 
     // Wait for the coordinator to start and advertise mDNS services.
     // mDNS advertisement can take a few seconds on some platforms.
@@ -68,6 +70,8 @@ fn test_fibonacci_with_flowrex_mid_run() {
         .stderr(Stdio::null())
         .spawn()
         .expect("Could not spawn flowrex");
+
+    let flowrex_pid = flowrex.id();
 
     // Wait for coordinator with a timeout to avoid hanging CI
     let deadline = std::time::Instant::now() + Duration::from_mins(2);
@@ -115,4 +119,18 @@ fn test_fibonacci_with_flowrex_mid_run() {
     assert_eq!(lines.get(2).copied(), Some("3"), "Third fibonacci number");
     assert_eq!(lines.get(3).copied(), Some("5"), "Fourth fibonacci number");
     assert_eq!(lines.get(4).copied(), Some("8"), "Fifth fibonacci number");
+
+    // Verify flowrex executor IDs appear in metrics (format: "pid-N:count")
+    let flowrex_prefix = format!("{flowrex_pid}-");
+    let coordinator_prefix = format!("{coordinator_pid}-");
+    assert!(
+        stdout.contains(&flowrex_prefix),
+        "Metrics should contain flowrex executor IDs (prefix '{flowrex_prefix}'), \
+         but stdout was:\n{stdout}"
+    );
+    assert!(
+        !stdout.contains(&coordinator_prefix),
+        "With --threads 0, no coordinator executor IDs (prefix '{coordinator_prefix}') \
+         should appear in metrics, but stdout was:\n{stdout}"
+    );
 }

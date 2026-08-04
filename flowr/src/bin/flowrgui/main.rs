@@ -2024,7 +2024,7 @@ impl FlowrGui {
 
                 // Fixed label width in pixels based on longest ID
                 #[allow(clippy::cast_precision_loss)]
-                let label_px = Length::Fixed(id_width as f32 * 7.5 + 4.0);
+                let label_px = Length::Fixed(id_width as f32 * 8.5 + 8.0);
 
                 for (exec_id, &count) in &sorted_executors {
                     let label = format!("{exec_id:>id_width$}");
