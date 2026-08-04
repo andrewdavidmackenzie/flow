@@ -2084,7 +2084,7 @@ impl FlowrGui {
             .push(iced::widget::Scrollable::new(content).height(Length::Fill));
 
         Container::new(panel_content)
-            .width(Length::Fixed(300.0))
+            .width(Length::Fixed(350.0))
             .height(Length::Fill)
             .padding(theme::SPACE_MD)
             .style(|_: &iced::Theme| iced::widget::container::Style {
