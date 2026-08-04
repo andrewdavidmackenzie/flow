@@ -135,14 +135,15 @@ fn test_fibonacci_with_flowrex_mid_run() {
     );
 }
 
-/// Test that flowrex and local executor threads share work when both are active.
-/// Starts the coordinator with 1 local thread for a long-running flow (mandlebrot),
-/// then starts flowrex with 2 threads. Verifies that both the coordinator's and
-/// flowrex's executor IDs appear in the metrics output.
+/// Test that flowrex can execute WASM jobs fetched over HTTP from the coordinator.
+/// Uses mandlebrot which has user-supplied WASM functions (`escapes.wasm`, `pixel_to_point.wasm`).
+/// Starts the coordinator with 0 local executor threads, so ALL jobs (including WASM) must
+/// be executed by flowrex. The coordinator's WASM HTTP server rewrites file:// URLs to
+/// http:// so flowrex can fetch the WASM modules.
 #[cfg_attr(target_os = "windows", ignore)]
 #[test]
 #[serial]
-fn test_flowrex_shares_work_with_local_executors() {
+fn test_flowrex_executes_wasm_over_http() {
     use std::process::{Command, Stdio};
     use std::thread;
     use std::time::Duration;
@@ -165,18 +166,16 @@ fn test_flowrex_shares_work_with_local_executors() {
         .expect("Could not run flowc to compile example");
     assert!(compile_status.success(), "flowc compilation failed");
 
-    // Start coordinator with 1 local thread and metrics.
-    // Use a 200x150 mandlebrot to generate enough jobs (~90k) that the flow
-    // runs long enough for flowrex to discover and join mid-run.
+    // Start coordinator with 0 local threads — ALL jobs go to flowrex
     let mut coordinator = Command::new("flowrcli")
         .args([
             "--threads",
-            "1",
+            "0",
             "-m",
             "manifest.json",
             "--",
             "/dev/null",
-            "[200,150]",
+            "[20,15]",
             "[[-1.20,0.35],[-1,0.20]]",
         ])
         .current_dir(
@@ -192,9 +191,28 @@ fn test_flowrex_shares_work_with_local_executors() {
 
     let coordinator_pid = coordinator.id();
 
-    // Start flowrex immediately — it will discover the coordinator via mDNS
-    // while the flow is running. With ~90k jobs and 1 local thread, the flow
-    // takes long enough for flowrex to connect and pick up jobs.
+    // Drain stdout and stderr in background threads to prevent pipe deadlocks
+    let stdout_handle = {
+        let out = coordinator.stdout.take().expect("stdout");
+        thread::spawn(move || {
+            let mut bytes = Vec::new();
+            std::io::Read::read_to_end(&mut { out }, &mut bytes).ok();
+            bytes
+        })
+    };
+    let stderr_handle = {
+        let err = coordinator.stderr.take().expect("stderr");
+        thread::spawn(move || {
+            let mut bytes = Vec::new();
+            std::io::Read::read_to_end(&mut { err }, &mut bytes).ok();
+            bytes
+        })
+    };
+
+    // Wait for coordinator to advertise mDNS services
+    thread::sleep(Duration::from_secs(3));
+
+    // Start flowrex with 2 threads
     let mut flowrex = Command::new("flowrex")
         .args(["--threads", "2"])
         .stdout(Stdio::null())
@@ -220,17 +238,8 @@ fn test_flowrex_shares_work_with_local_executors() {
         }
     };
 
-    // Read stdout
-    let mut stdout_bytes = Vec::new();
-    if let Some(mut out) = coordinator.stdout.take() {
-        std::io::Read::read_to_end(&mut out, &mut stdout_bytes).ok();
-    }
-
-    // Read stderr for error diagnostics
-    let mut stderr_bytes = Vec::new();
-    if let Some(mut err) = coordinator.stderr.take() {
-        std::io::Read::read_to_end(&mut err, &mut stderr_bytes).ok();
-    }
+    let stdout_bytes = stdout_handle.join().unwrap_or_default();
+    let stderr_bytes = stderr_handle.join().unwrap_or_default();
     let stderr = String::from_utf8_lossy(&stderr_bytes);
 
     // Kill flowrex
@@ -244,20 +253,23 @@ fn test_flowrex_shares_work_with_local_executors() {
 
     let stdout = String::from_utf8_lossy(&stdout_bytes);
 
-    // Verify both coordinator and flowrex executor IDs appear in metrics
-    let coordinator_prefix = format!("{coordinator_pid}-");
+    // Verify flowrex executor IDs appear in metrics — proves WASM jobs ran remotely
     let flowrex_prefix = format!("{flowrex_pid}-");
-    assert!(
-        stdout.contains(&coordinator_prefix),
-        "Metrics should contain coordinator executor IDs (prefix '{coordinator_prefix}'), \
-         but stdout was:\n{stdout}\nstderr: {stderr}"
-    );
     assert!(
         stdout.contains(&flowrex_prefix),
         "Metrics should contain flowrex executor IDs (prefix '{flowrex_prefix}'), \
-         but stdout was:\n{stdout}\nstderr: {stderr}"
+         proving WASM was fetched over HTTP and executed remotely.\n\
+         stdout:\n{stdout}\nstderr: {stderr}"
     );
 
-    // Allow mDNS goodbye packets to propagate before the next serial test
+    // Verify no coordinator executors (--threads 0)
+    let coordinator_prefix = format!("{coordinator_pid}-");
+    assert!(
+        !stdout.contains(&coordinator_prefix),
+        "With --threads 0, no coordinator executor IDs should appear.\n\
+         stdout:\n{stdout}\nstderr: {stderr}"
+    );
+
+    // Allow mDNS goodbye packets to propagate
     thread::sleep(Duration::from_secs(3));
 }

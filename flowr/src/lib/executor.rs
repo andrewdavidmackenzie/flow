@@ -474,7 +474,9 @@ fn get_or_load_implementation(
                         &payload.implementation_url,
                     )?
                 }
-                "file" => Arc::new(wasm::load(provider, &payload.implementation_url)?),
+                "file" | "http" | "https" => {
+                    Arc::new(wasm::load(provider, &payload.implementation_url)?)
+                }
                 _ => bail!("Unsupported scheme on implementation_url"),
             };
             implementations.insert(payload.implementation_url.clone(), impl_arc);
@@ -827,7 +829,7 @@ mod test {
         let payload = Payload {
             job_id: 0,
             input_set: vec![],
-            implementation_url: Url::parse("http://example.com/some/impl")
+            implementation_url: Url::parse("ftp://example.com/some/impl")
                 .expect("Could not parse Url"),
         };
 

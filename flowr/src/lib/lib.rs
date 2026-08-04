@@ -91,6 +91,9 @@ mod debugger;
 /// `wasmtime` module contains a number of implementations of the wasm execution
 mod wasm;
 
+/// Minimal HTTP server for serving WASM implementations to remote executors
+pub mod wasm_server;
+
 #[cfg(debug_assertions)]
 mod checks;
 
