@@ -245,7 +245,6 @@ impl<'a> Coordinator<'a> {
             #[cfg(feature = "metrics")]
             {
                 metrics.reset();
-                crate::executor::reset_max_jobs_executing();
                 TOTAL_GET_RESULT_US.store(0, std::sync::atomic::Ordering::Relaxed);
                 TOTAL_RETIRE_JOB_US.store(0, std::sync::atomic::Ordering::Relaxed);
                 crate::run_state::reset_retire_timers();
@@ -622,7 +621,7 @@ impl<'a> Coordinator<'a> {
         state.start_job(job);
 
         #[cfg(feature = "metrics")]
-        metrics.track_max_jobs(crate::executor::max_jobs_executing());
+        metrics.track_max_jobs(state.number_jobs_running());
 
         Ok(action)
     }

@@ -152,11 +152,17 @@ impl fmt::Display for Metrics {
                 write!(f, "  #{id}:{count}")?;
             }
         }
-        if !self.jobs_per_executor.is_empty() {
+        // Filter out context executors (prefixed with "ctx:")
+        let job_executors: Vec<_> = self
+            .jobs_per_executor
+            .iter()
+            .filter(|(id, _)| !id.starts_with("ctx:"))
+            .collect();
+        if !job_executors.is_empty() {
             writeln!(f)?;
-            writeln!(f, "Executors: {}", self.jobs_per_executor.len())?;
+            writeln!(f, "Executors: {}", job_executors.len())?;
             write!(f, "Jobs per Executor:")?;
-            let mut executors: Vec<_> = self.jobs_per_executor.iter().collect();
+            let mut executors = job_executors;
             executors.sort_by_key(|(id, _)| (*id).clone());
             for (id, count) in &executors {
                 write!(f, "  {id}:{count}")?;

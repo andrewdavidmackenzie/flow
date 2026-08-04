@@ -178,7 +178,11 @@ impl Executor {
             let results_sink = results_service.into();
             let job_source = job_service.into();
             let control_address = control_service.into();
-            let executor_id = make_executor_id();
+            let executor_id = if spawn_jobs {
+                format!("ctx:{}", make_executor_id())
+            } else {
+                make_executor_id()
+            };
             self.executors.push(thread::spawn(move || {
                 trace!("Executor {executor_id} entering execution loop");
                 if let Err(e) = execution_loop(

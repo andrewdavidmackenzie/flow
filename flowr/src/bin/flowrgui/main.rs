@@ -1998,6 +1998,77 @@ impl FlowrGui {
                     col = col.push(row);
                 }
             }
+
+            // Executor bar chart — filter out context executors (prefixed with "ctx:")
+            let executor_counts = metrics.jobs_per_executor();
+            let job_executors: Vec<_> = executor_counts
+                .iter()
+                .filter(|(id, _)| !id.starts_with("ctx:"))
+                .collect();
+            if !job_executors.is_empty() {
+                col = col.push(
+                    Text::new(format!("Executors: {}", job_executors.len()))
+                        .size(theme::FONT_MD)
+                        .color(theme::TEXT_SECONDARY),
+                );
+
+                let exec_max = job_executors
+                    .iter()
+                    .map(|(_, &c)| c)
+                    .max()
+                    .unwrap_or(1)
+                    .max(1);
+                let mut sorted_executors = job_executors;
+                sorted_executors.sort_by_key(|(id, _)| (*id).clone());
+                let id_width = sorted_executors.last().map_or(1, |(id, _)| id.len());
+
+                // Fixed label width in pixels based on longest ID
+                #[allow(clippy::cast_precision_loss)]
+                let label_px = Length::Fixed(id_width as f32 * 8.5 + 8.0);
+
+                for (exec_id, &count) in &sorted_executors {
+                    let label = format!("{exec_id:>id_width$}");
+                    #[allow(clippy::cast_possible_truncation)]
+                    let portion = (count.saturating_mul(100) / exec_max).max(1) as u16;
+                    let bar = Container::new(Text::new("").size(1))
+                        .width(Length::FillPortion(portion))
+                        .height(Length::Fixed(14.0))
+                        .style(move |_: &iced::Theme| iced::widget::container::Style {
+                            background: Some(iced::Background::Color(theme::EXECUTOR_COLOR)),
+                            border: iced::Border {
+                                radius: 3.0.into(),
+                                ..Default::default()
+                            },
+                            ..Default::default()
+                        });
+                    let spacer_portion = (100 - portion).max(1);
+                    let row = Row::new()
+                        .spacing(4)
+                        .align_y(iced::alignment::Vertical::Center)
+                        .push(
+                            Container::new(
+                                Text::new(label)
+                                    .size(theme::FONT_SM)
+                                    .font(iced::Font::MONOSPACE)
+                                    .color(theme::EXECUTOR_COLOR),
+                            )
+                            .width(label_px)
+                            .align_x(iced::alignment::Horizontal::Right),
+                        )
+                        .push(bar)
+                        .push(
+                            iced::widget::container(Text::new("").size(1))
+                                .width(Length::FillPortion(spacer_portion)),
+                        )
+                        .push(
+                            Text::new(count.to_string())
+                                .size(theme::FONT_SM)
+                                .color(theme::TEXT_SECONDARY),
+                        );
+                    col = col.push(row);
+                }
+            }
+
             col
         } else {
             Column::new().push(
@@ -2013,7 +2084,7 @@ impl FlowrGui {
             .push(iced::widget::Scrollable::new(content).height(Length::Fill));
 
         Container::new(panel_content)
-            .width(Length::Fixed(300.0))
+            .width(Length::Fixed(350.0))
             .height(Length::Fill)
             .padding(theme::SPACE_MD)
             .style(|_: &iced::Theme| iced::widget::container::Style {
@@ -4158,6 +4229,25 @@ mod test {
         use iced_test::simulator::simulator;
         let mut gui = test_gui();
         gui.active_panel = Some(PanelKind::Metrics);
+        let view = gui.view();
+        let _ui = simulator(view);
+    }
+
+    #[test]
+    fn view_renders_metrics_with_executors() {
+        use flowcore::model::metrics::Metrics;
+        use iced_test::simulator::simulator;
+        let mut gui = test_gui();
+        gui.active_panel = Some(PanelKind::Metrics);
+        let mut metrics = Metrics::new(3, 3);
+        metrics.set_jobs_created(10);
+        metrics.record_executor("100-0");
+        metrics.record_executor("100-0");
+        metrics.record_executor("100-1");
+        metrics.record_executor("100-1");
+        metrics.record_executor("100-1");
+        metrics.record_executor("200-0");
+        gui.last_metrics = Some(metrics);
         let view = gui.view();
         let _ui = simulator(view);
     }
