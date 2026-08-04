@@ -270,19 +270,21 @@ impl FlowManifest {
             }
         }
 
-        // Collect lib and context references from extracted functions
+        // Collect lib and context references from extracted functions.
+        // Use implementation_location (the source string) rather than
+        // implementation_url, which is only populated after manifest loading.
         let mut lib_refs = BTreeSet::new();
         let mut context_refs = BTreeSet::new();
         for func in extracted_functions.values() {
-            let url = func.get_implementation_url();
-            match url.scheme() {
-                "lib" => {
-                    lib_refs.insert(url.clone());
+            let loc = func.get_implementation_location();
+            if loc.starts_with("lib://") {
+                if let Ok(url) = Url::parse(loc) {
+                    lib_refs.insert(url);
                 }
-                "context" => {
-                    context_refs.insert(url.clone());
+            } else if loc.starts_with("context://") {
+                if let Ok(url) = Url::parse(loc) {
+                    context_refs.insert(url);
                 }
-                _ => {}
             }
         }
 
@@ -312,16 +314,20 @@ impl FlowManifest {
         Ok(manifest)
     }
 
-    /// Recursively collect all descendant flow IDs (including the given flow itself).
+    /// Collect all descendant flow IDs (including the given flow itself).
+    /// Uses an iterative work list to avoid stack overflow on deep hierarchies
+    /// and skips already-visited IDs to handle cycles safely.
     fn collect_descendant_flows(
         flow_id: usize,
         flows: &HashMap<usize, FlowInfo>,
         result: &mut HashSet<usize>,
     ) {
-        result.insert(flow_id);
-        if let Some(flow_info) = flows.get(&flow_id) {
-            for &child_id in &flow_info.sub_flow_ids {
-                Self::collect_descendant_flows(child_id, flows, result);
+        let mut work = vec![flow_id];
+        while let Some(id) = work.pop() {
+            if result.insert(id) {
+                if let Some(flow_info) = flows.get(&id) {
+                    work.extend(&flow_info.sub_flow_ids);
+                }
             }
         }
     }
@@ -614,5 +620,38 @@ mod test {
     fn extract_subflow_not_found() {
         let manifest = FlowManifest::new(test_meta_data());
         assert!(manifest.extract_subflow(99).is_err());
+    }
+
+    #[test]
+    fn extract_subflow_handles_cycle() {
+        use super::FlowInfo;
+
+        let mut manifest = FlowManifest::new(test_meta_data());
+
+        // Create a cycle: flow #0 -> flow #1 -> flow #0
+        manifest.add_flow_info(FlowInfo {
+            process_id: 0,
+            parent_id: None,
+            sub_flow_ids: vec![1],
+            #[cfg(feature = "debugger")]
+            name: "a".into(),
+            #[cfg(feature = "debugger")]
+            route: "/a".into(),
+        });
+        manifest.add_flow_info(FlowInfo {
+            process_id: 1,
+            parent_id: Some(0),
+            sub_flow_ids: vec![0], // cycle back to root
+            #[cfg(feature = "debugger")]
+            name: "b".into(),
+            #[cfg(feature = "debugger")]
+            route: "/b".into(),
+        });
+
+        // Should not hang or panic — cycle is handled by visited set
+        let result = manifest.extract_subflow(0);
+        assert!(result.is_ok());
+        let extracted = result.unwrap();
+        assert_eq!(extracted.flows().len(), 2);
     }
 }
