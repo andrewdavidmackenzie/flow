@@ -318,6 +318,24 @@ fn test_flowrex_executes_wasm_over_http() {
 
     let coordinator_pid = coordinator.id();
 
+    // Drain stdout and stderr in background threads to prevent pipe deadlocks
+    let stdout_handle = {
+        let out = coordinator.stdout.take().expect("stdout");
+        thread::spawn(move || {
+            let mut bytes = Vec::new();
+            std::io::Read::read_to_end(&mut { out }, &mut bytes).ok();
+            bytes
+        })
+    };
+    let stderr_handle = {
+        let err = coordinator.stderr.take().expect("stderr");
+        thread::spawn(move || {
+            let mut bytes = Vec::new();
+            std::io::Read::read_to_end(&mut { err }, &mut bytes).ok();
+            bytes
+        })
+    };
+
     // Wait for coordinator to advertise mDNS services
     thread::sleep(Duration::from_secs(3));
 
@@ -347,17 +365,8 @@ fn test_flowrex_executes_wasm_over_http() {
         }
     };
 
-    // Read stdout
-    let mut stdout_bytes = Vec::new();
-    if let Some(mut out) = coordinator.stdout.take() {
-        std::io::Read::read_to_end(&mut out, &mut stdout_bytes).ok();
-    }
-
-    // Read stderr
-    let mut stderr_bytes = Vec::new();
-    if let Some(mut err) = coordinator.stderr.take() {
-        std::io::Read::read_to_end(&mut err, &mut stderr_bytes).ok();
-    }
+    let stdout_bytes = stdout_handle.join().unwrap_or_default();
+    let stderr_bytes = stderr_handle.join().unwrap_or_default();
     let stderr = String::from_utf8_lossy(&stderr_bytes);
 
     // Kill flowrex

@@ -49,6 +49,10 @@ impl WasmServer {
         thread::spawn(move || {
             for stream in listener.incoming() {
                 if let Ok(stream) = stream {
+                    // Set timeouts to prevent hung connections
+                    let timeout = Some(std::time::Duration::from_secs(30));
+                    let _ = stream.set_read_timeout(timeout);
+                    let _ = stream.set_write_timeout(timeout);
                     let root = serve_root.clone();
                     thread::spawn(move || {
                         if let Err(e) = handle_request(stream, &root) {
@@ -117,6 +121,11 @@ fn handle_request(mut stream: std::net::TcpStream, root: &Path) -> Result<(), St
     // Resolve URL path against root (strip leading slash)
     let relative_path = path.trim_start_matches('/');
     let file_path = root.join(relative_path);
+
+    // Security: only serve .wasm files
+    if file_path.extension().is_none_or(|ext| ext != "wasm") {
+        return send_error(&mut stream, 403, "Forbidden");
+    }
 
     // Security: ensure the resolved path is under root
     let canonical_root = root

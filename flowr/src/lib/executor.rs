@@ -829,7 +829,7 @@ mod test {
         let payload = Payload {
             job_id: 0,
             input_set: vec![],
-            implementation_url: Url::parse("http://example.com/some/impl")
+            implementation_url: Url::parse("ftp://example.com/some/impl")
                 .expect("Could not parse Url"),
         };
 
