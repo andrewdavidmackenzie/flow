@@ -134,3 +134,130 @@ fn test_fibonacci_with_flowrex_mid_run() {
          should appear in metrics, but stdout was:\n{stdout}"
     );
 }
+
+/// Test that flowrex and local executor threads share work when both are active.
+/// Starts the coordinator with 1 local thread for a long-running flow (mandlebrot),
+/// then starts flowrex with 2 threads. Verifies that both the coordinator's and
+/// flowrex's executor IDs appear in the metrics output.
+#[cfg_attr(target_os = "windows", ignore)]
+#[test]
+#[serial]
+fn test_flowrex_shares_work_with_local_executors() {
+    use std::process::{Command, Stdio};
+    use std::thread;
+    use std::time::Duration;
+
+    let manifest_dir = std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+    let project_root = manifest_dir.parent().expect("Could not find project root");
+
+    let example_dir = project_root
+        .join("flowr")
+        .join("examples")
+        .join("mandlebrot");
+
+    // Compile the example
+    let compile_status = Command::new("flowc")
+        .args(["-d", "-g", "-c", "-O", "-r", "flowrcli"])
+        .arg(example_dir.to_str().expect("path"))
+        .stdout(Stdio::null())
+        .stderr(Stdio::null())
+        .status()
+        .expect("Could not run flowc to compile example");
+    assert!(compile_status.success(), "flowc compilation failed");
+
+    // Start coordinator with 1 local thread and metrics.
+    // Use a 200x150 mandlebrot to generate enough jobs (~90k) that the flow
+    // runs long enough for flowrex to discover and join mid-run.
+    let mut coordinator = Command::new("flowrcli")
+        .args([
+            "--threads",
+            "1",
+            "-m",
+            "manifest.json",
+            "--",
+            "/dev/null",
+            "[200,150]",
+            "[[-1.20,0.35],[-1,0.20]]",
+        ])
+        .current_dir(
+            example_dir
+                .canonicalize()
+                .expect("Could not canonicalize path"),
+        )
+        .stdin(Stdio::null())
+        .stdout(Stdio::piped())
+        .stderr(Stdio::piped())
+        .spawn()
+        .expect("Could not spawn coordinator");
+
+    let coordinator_pid = coordinator.id();
+
+    // Start flowrex immediately — it will discover the coordinator via mDNS
+    // while the flow is running. With ~90k jobs and 1 local thread, the flow
+    // takes long enough for flowrex to connect and pick up jobs.
+    let mut flowrex = Command::new("flowrex")
+        .args(["--threads", "2"])
+        .stdout(Stdio::null())
+        .stderr(Stdio::null())
+        .spawn()
+        .expect("Could not spawn flowrex");
+
+    let flowrex_pid = flowrex.id();
+
+    // Wait for coordinator with a timeout
+    let deadline = std::time::Instant::now() + Duration::from_mins(2);
+    let exit_status = loop {
+        if std::time::Instant::now() > deadline {
+            coordinator.kill().ok();
+            flowrex.kill().ok();
+            coordinator.wait().ok();
+            flowrex.wait().ok();
+            panic!("Coordinator did not finish within 120 seconds");
+        }
+        match coordinator.try_wait().expect("Could not check coordinator") {
+            Some(status) => break status,
+            None => thread::sleep(Duration::from_secs(1)),
+        }
+    };
+
+    // Read stdout
+    let mut stdout_bytes = Vec::new();
+    if let Some(mut out) = coordinator.stdout.take() {
+        std::io::Read::read_to_end(&mut out, &mut stdout_bytes).ok();
+    }
+
+    // Read stderr for error diagnostics
+    let mut stderr_bytes = Vec::new();
+    if let Some(mut err) = coordinator.stderr.take() {
+        std::io::Read::read_to_end(&mut err, &mut stderr_bytes).ok();
+    }
+    let stderr = String::from_utf8_lossy(&stderr_bytes);
+
+    // Kill flowrex
+    flowrex.kill().ok();
+    flowrex.wait().ok();
+
+    assert!(
+        exit_status.success(),
+        "Coordinator failed with status: {exit_status}\nstderr: {stderr}"
+    );
+
+    let stdout = String::from_utf8_lossy(&stdout_bytes);
+
+    // Verify both coordinator and flowrex executor IDs appear in metrics
+    let coordinator_prefix = format!("{coordinator_pid}-");
+    let flowrex_prefix = format!("{flowrex_pid}-");
+    assert!(
+        stdout.contains(&coordinator_prefix),
+        "Metrics should contain coordinator executor IDs (prefix '{coordinator_prefix}'), \
+         but stdout was:\n{stdout}\nstderr: {stderr}"
+    );
+    assert!(
+        stdout.contains(&flowrex_prefix),
+        "Metrics should contain flowrex executor IDs (prefix '{flowrex_prefix}'), \
+         but stdout was:\n{stdout}\nstderr: {stderr}"
+    );
+
+    // Allow mDNS goodbye packets to propagate before the next serial test
+    thread::sleep(Duration::from_secs(3));
+}
