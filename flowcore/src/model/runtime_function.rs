@@ -231,6 +231,18 @@ impl RuntimeFunction {
         }
     }
 
+    /// Set a flow initializer on a specific input, used to inject values
+    /// into sub-flow boundary functions.
+    pub fn set_flow_initializer(
+        &mut self,
+        io_number: usize,
+        initializer: crate::model::input::InputInitializer,
+    ) {
+        if let Some(input) = self.inputs.get_mut(io_number) {
+            input.set_flow_initializer(initializer);
+        }
+    }
+
     /// Clear all internal values from all inputs of this function
     pub fn clear_internal_inputs(&mut self) {
         for input in &mut self.inputs {

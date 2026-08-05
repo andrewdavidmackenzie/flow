@@ -23,24 +23,45 @@ use crate::debugger_handler::DebuggerHandler;
 #[cfg(feature = "submission")]
 use crate::submission_handler::SubmissionHandler;
 
+/// Describes one input to a sub-flow's external interface.
+#[derive(Clone, Debug)]
+pub struct InterfaceInput {
+    /// The function inside the sub-flow that receives this input
+    pub destination_id: usize,
+    /// Which input number on the destination function
+    pub destination_io_number: usize,
+}
+
 /// An `Implementation` that executes a sub-flow by running a nested coordinator.
 ///
 /// When `run()` is called, it:
-/// 1. Creates a Dispatcher with ZMQ sockets on random ports
-/// 2. Starts executor threads to process jobs
-/// 3. Creates a Coordinator and calls `execute_flow()`
-/// 4. Returns `(None, RUN_AGAIN)` on success (sub-flow outputs flow
-///    through the coordinator's normal connection routing)
+/// 1. Clones the manifest and injects input values as initializers
+/// 2. Creates a Dispatcher with ZMQ sockets on random ports
+/// 3. Starts executor threads to process jobs
+/// 4. Creates a Coordinator and calls `execute_flow()`
+/// 5. Returns `(None, RUN_AGAIN)` on success
 pub struct SubFlowImplementation {
     manifest: FlowManifest,
     provider: Arc<dyn Provider>,
+    /// Mapping from input index (position in `input_set`) to the boundary
+    /// function input where the value should be injected.
+    interface_inputs: Vec<InterfaceInput>,
 }
 
 impl SubFlowImplementation {
-    /// Create a new sub-flow implementation from an extracted manifest.
+    /// Create a new sub-flow implementation from an extracted manifest
+    /// and its interface input mapping.
     #[must_use]
-    pub fn new(manifest: FlowManifest, provider: Arc<dyn Provider>) -> Self {
-        SubFlowImplementation { manifest, provider }
+    pub fn new(
+        manifest: FlowManifest,
+        provider: Arc<dyn Provider>,
+        interface_inputs: Vec<InterfaceInput>,
+    ) -> Self {
+        SubFlowImplementation {
+            manifest,
+            provider,
+            interface_inputs,
+        }
     }
 }
 
@@ -51,11 +72,25 @@ impl Implementation for SubFlowImplementation {
             inputs.len()
         );
 
-        // TODO: inject inputs at the sub-flow's boundary functions
-        // For now, just create the submission and run it
+        // Clone the manifest and inject input values as Once initializers
+        // on the boundary function inputs
+        let mut manifest = self.manifest.clone();
+        for (i, iface_input) in self.interface_inputs.iter().enumerate() {
+            if let Some(value) = inputs.get(i) {
+                if let Some(func) = manifest
+                    .get_functions()
+                    .get_mut(&iface_input.destination_id)
+                {
+                    func.set_flow_initializer(
+                        iface_input.destination_io_number,
+                        flowcore::model::input::InputInitializer::Once(value.clone()),
+                    );
+                }
+            }
+        }
 
         let submission = Submission::new(
-            self.manifest.clone(),
+            manifest,
             None,
             None,
             #[cfg(feature = "debugger")]

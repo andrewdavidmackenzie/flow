@@ -298,13 +298,94 @@ fn subflow_implementation_executes() {
     manifest.add_function(func);
 
     let provider = Arc::new(TestProvider) as Arc<dyn Provider>;
-    let implementation = SubFlowImplementation::new(manifest, provider);
+    // No interface inputs — the function has its own Once initializers
+    let implementation = SubFlowImplementation::new(manifest, provider, vec![]);
 
     // Run it — the add function should compute 2 + 3 = 5
     let result = implementation.run(&[]);
     assert!(
         result.is_ok(),
         "SubFlowImplementation::run() failed: {:?}",
+        result.err()
+    );
+}
+
+/// Test that `SubFlowImplementation` can receive injected inputs through the interface.
+#[cfg_attr(target_os = "windows", ignore)]
+#[test]
+fn subflow_implementation_with_injected_inputs() {
+    use flowcore::model::flow_manifest::FlowInfo;
+    use flowcore::model::input::Input;
+    use flowcore::model::metadata::MetaData;
+    use flowcore::model::runtime_function::RuntimeFunction;
+    use flowcore::Implementation;
+    use flowrlib::subflow::{InterfaceInput, SubFlowImplementation};
+    use std::sync::Arc;
+
+    // Build a minimal manifest: add function with NO initializers
+    // Inputs will be injected via the interface
+    let mut manifest = FlowManifest::new(MetaData::default());
+    manifest.add_flow_info(FlowInfo {
+        process_id: 0,
+        parent_id: None,
+        sub_flow_ids: vec![],
+        #[cfg(feature = "debugger")]
+        name: "test".into(),
+        #[cfg(feature = "debugger")]
+        route: "/test".into(),
+    });
+
+    let mut func = RuntimeFunction::new(
+        #[cfg(feature = "debugger")]
+        "add",
+        #[cfg(feature = "debugger")]
+        "/test/add",
+        "lib://flowstdlib/math/add",
+        vec![
+            Input::new(
+                #[cfg(feature = "debugger")]
+                "i1",
+                0,
+                false,
+                None, // no initializer — will be injected
+                None,
+            ),
+            Input::new(
+                #[cfg(feature = "debugger")]
+                "i2",
+                0,
+                false,
+                None, // no initializer — will be injected
+                None,
+            ),
+        ],
+        1, // process_id
+        0, // parent_id
+        &[],
+        false,
+    );
+    let dummy_url = url::Url::parse("file:///dummy/manifest.json").expect("URL");
+    func.set_implementation_url(&dummy_url).expect("set URL");
+    manifest.add_function(func);
+
+    let provider = Arc::new(TestProvider) as Arc<dyn Provider>;
+    let interface_inputs = vec![
+        InterfaceInput {
+            destination_id: 1,
+            destination_io_number: 0,
+        },
+        InterfaceInput {
+            destination_id: 1,
+            destination_io_number: 1,
+        },
+    ];
+    let implementation = SubFlowImplementation::new(manifest, provider, interface_inputs);
+
+    // Inject inputs: 10 + 20 = 30
+    let result = implementation.run(&[serde_json::json!(10), serde_json::json!(20)]);
+    assert!(
+        result.is_ok(),
+        "SubFlowImplementation with injected inputs failed: {:?}",
         result.err()
     );
 }

@@ -207,6 +207,11 @@ impl Input {
         &self.flow_initializer
     }
 
+    /// Set a flow initializer on this input, replacing any existing one.
+    pub fn set_flow_initializer(&mut self, initializer: InputInitializer) {
+        self.flow_initializer = Some(initializer);
+    }
+
     /// Whether this input can receive values from internal connections
     #[must_use]
     pub fn receives_internal(&self) -> bool {
