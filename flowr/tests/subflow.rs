@@ -14,6 +14,7 @@ use flowrlib::run_state::RunState;
 /// wrapped in a `Submission`, and used to construct a `RunState` that
 /// initializes correctly.
 #[test]
+#[allow(clippy::too_many_lines)]
 fn extract_and_init_subflow() {
     let manifest_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
     let project_root = manifest_dir.parent().expect("Could not find project root");
@@ -90,15 +91,46 @@ fn extract_and_init_subflow() {
         "Root of extracted manifest should be the target sub-flow"
     );
 
-    // All functions should belong to the extracted flow or its descendants
-    let flow_ids: std::collections::HashSet<usize> = extracted.flows().keys().copied().collect();
+    // Verify the extracted manifest contains ONLY the target flow and its
+    // descendants — not sibling flows or extra roots from the source manifest
+    let extracted_flow_ids: std::collections::HashSet<usize> =
+        extracted.flows().keys().copied().collect();
+
+    // Build the expected set: target flow + all descendants from the source
+    let mut expected_flow_ids = std::collections::HashSet::new();
+    let mut work = vec![subflow_id];
+    while let Some(id) = work.pop() {
+        if expected_flow_ids.insert(id) {
+            if let Some(info) = manifest.flows().get(&id) {
+                work.extend(&info.sub_flow_ids);
+            }
+        }
+    }
+    assert_eq!(
+        extracted_flow_ids, expected_flow_ids,
+        "Extracted flows should be exactly the target and its descendants"
+    );
+
+    // All functions should belong to the extracted flow hierarchy
     for func in extracted.functions().values() {
         assert!(
-            flow_ids.contains(&func.get_parent_id()),
+            extracted_flow_ids.contains(&func.get_parent_id()),
             "Function #{} has parent_id {} which is not in the extracted flows",
             func.id(),
             func.get_parent_id()
         );
+    }
+
+    // Functions from outside the sub-flow should NOT be present
+    let extracted_func_ids: std::collections::HashSet<usize> =
+        extracted.functions().keys().copied().collect();
+    for (&func_id, func) in manifest.functions() {
+        if !expected_flow_ids.contains(&func.get_parent_id()) {
+            assert!(
+                !extracted_func_ids.contains(&func_id),
+                "Function #{func_id} from outside the sub-flow should not be extracted"
+            );
+        }
     }
 
     // Create a Submission from the extracted manifest
