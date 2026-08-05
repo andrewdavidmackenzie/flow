@@ -263,6 +263,16 @@ impl RuntimeFunction {
         }
     }
 
+    /// Retain only output connections that satisfy the predicate.
+    /// Invalidates the cached `output_connections_arc`.
+    pub fn retain_connections<F>(&mut self, f: F)
+    where
+        F: FnMut(&OutputConnection) -> bool,
+    {
+        self.output_connections.retain(f);
+        self.output_connections_arc = None;
+    }
+
     /// Get a reference to the `implementation_location`
     #[must_use]
     pub fn get_implementation_location(&self) -> &str {
