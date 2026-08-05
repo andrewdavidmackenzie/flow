@@ -545,6 +545,32 @@ fn subflow_captures_boundary_outputs() {
     );
 }
 
+/// Test that `Executor::add_subflow` registers a manifest that can be used
+/// for `subflow://` URL resolution.
+#[test]
+fn executor_registers_subflow_manifest() {
+    use flowcore::model::flow_manifest::FlowInfo;
+    use flowcore::model::metadata::MetaData;
+    use flowrlib::executor::Executor;
+
+    let mut manifest = FlowManifest::new(MetaData::default());
+    manifest.add_flow_info(FlowInfo {
+        process_id: 0,
+        parent_id: None,
+        sub_flow_ids: vec![],
+        #[cfg(feature = "debugger")]
+        name: "test".into(),
+        #[cfg(feature = "debugger")]
+        route: "/test".into(),
+    });
+
+    let mut executor = Executor::new();
+    let subflow_url = url::Url::parse("subflow://0").expect("subflow URL");
+    executor
+        .add_subflow(subflow_url, manifest)
+        .expect("add_subflow should succeed");
+}
+
 /// Minimal provider that reads files from the filesystem.
 struct TestProvider;
 
