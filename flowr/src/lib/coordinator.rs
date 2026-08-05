@@ -244,6 +244,7 @@ impl<'a> Coordinator<'a> {
         self.dispatcher
             .set_results_timeout(submission.job_timeout)?;
         let mut state = RunState::new(submission);
+        state.set_subflow();
 
         #[cfg(feature = "metrics")]
         let mut metrics = Metrics::new(state.num_functions(), state.num_processes());

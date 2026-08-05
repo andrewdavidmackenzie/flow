@@ -223,9 +223,11 @@ pub struct RunState {
     #[cfg(feature = "trace")]
     #[serde(skip)]
     trace: flowcore::model::trace::Trace,
+    /// Whether this `RunState` is for a sub-flow (allows boundary output capture).
+    #[serde(skip)]
+    is_subflow: bool,
     /// Values produced on boundary connections (destinations outside this flow).
-    /// Used when running an extracted sub-flow: values that would normally flow
-    /// to functions in the parent flow are collected here instead.
+    /// Only populated when `is_subflow` is true.
     #[serde(skip)]
     boundary_outputs: Vec<BoundaryOutput>,
 }
@@ -306,8 +308,14 @@ impl RunState {
             newly_busy_flows: Vec::new(),
             #[cfg(feature = "trace")]
             trace,
+            is_subflow: false,
             boundary_outputs: Vec::new(),
         }
+    }
+
+    /// Mark this `RunState` as a sub-flow execution, enabling boundary output capture.
+    pub fn set_subflow(&mut self) {
+        self.is_subflow = true;
     }
 
     /// Get a reference to the submission
@@ -338,6 +346,7 @@ impl RunState {
         self.newly_busy_flows.clear();
         #[cfg(feature = "trace")]
         self.trace.events.clear();
+        self.boundary_outputs.clear();
     }
 
     /// The `ìnit()` function is responsible for initializing all functions, and it returns a
@@ -792,20 +801,26 @@ impl RunState {
             )?;
         }
 
-        // If the destination function doesn't exist in this RunState, this is
-        // a boundary output — the value is destined for a function in the parent
-        // flow. Collect it for relay back to the parent coordinator.
+        // If the destination function doesn't exist and this is a sub-flow,
+        // the value is a boundary output destined for the parent flow.
         let Some(function) = self.get_mut(connection.destination_id) else {
-            info!(
-                "\t\tBoundary output: value '{output_value}'{route_str} -> \
-                 parent function #{}:{}",
-                connection.destination_id, connection.destination_io_number
-            );
-            self.boundary_outputs.push(BoundaryOutput {
-                connection: connection.clone(),
-                value: output_value,
-            });
-            return Ok(action);
+            if self.is_subflow {
+                info!(
+                    "\t\tBoundary output: value '{output_value}'{route_str} -> \
+                     parent function #{}:{}",
+                    connection.destination_id, connection.destination_io_number
+                );
+                self.boundary_outputs.push(BoundaryOutput {
+                    connection: connection.clone(),
+                    value: output_value,
+                });
+                return Ok(action);
+            }
+            return Err(format!(
+                "Destination function #{} not found",
+                connection.destination_id
+            )
+            .into());
         };
 
         let job_count_before = function.input_sets_available();

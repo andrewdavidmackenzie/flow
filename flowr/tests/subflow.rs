@@ -176,12 +176,14 @@ fn subflow_interface_identifies_boundary_connections() {
         .join("mandlebrot");
 
     // Compile if needed
-    let _ = Command::new("flowc")
+    let compile_status = Command::new("flowc")
         .args(["-d", "-g", "-c", "-O", "-r", "flowrcli"])
         .arg(example_dir.to_str().expect("path"))
         .stdout(Stdio::null())
         .stderr(Stdio::null())
-        .status();
+        .status()
+        .expect("Could not run flowc");
+    assert!(compile_status.success(), "flowc compilation failed");
 
     let manifest_path = example_dir.join("manifest.json");
     let manifest_url =
@@ -212,10 +214,11 @@ fn subflow_interface_identifies_boundary_connections() {
         .subflow_interface(render_flow_id)
         .expect("subflow_interface failed");
 
-    // Render sub-flow should have external inputs (from get and enumerate)
-    assert!(
-        !inputs.is_empty(),
-        "Render sub-flow should have external inputs"
+    // Render sub-flow should have 5 external inputs (from get and enumerate)
+    assert_eq!(
+        inputs.len(),
+        5,
+        "Render sub-flow should have 5 external inputs"
     );
 
     // Render sub-flow is a sink (writes to image_buffer context function) —

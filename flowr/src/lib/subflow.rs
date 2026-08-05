@@ -10,7 +10,7 @@ use flowcore::model::flow_manifest::FlowManifest;
 use flowcore::model::submission::Submission;
 use flowcore::provider::Provider;
 use flowcore::{Implementation, RunAgain, RUN_AGAIN};
-use log::info;
+use log::{error, info};
 use serde_json::Value;
 use url::Url;
 
@@ -35,11 +35,11 @@ pub struct InterfaceInput {
 /// An `Implementation` that executes a sub-flow by running a nested coordinator.
 ///
 /// When `run()` is called, it:
-/// 1. Clones the manifest and injects input values as initializers
+/// 1. Clones the manifest and injects input values as flow initializers
 /// 2. Creates a Dispatcher with ZMQ sockets on random ports
 /// 3. Starts executor threads to process jobs
-/// 4. Creates a Coordinator and calls `execute_flow()`
-/// 5. Returns `(None, RUN_AGAIN)` on success
+/// 4. Creates a Coordinator and calls `execute_subflow()`
+/// 5. Returns boundary outputs (values destined for the parent flow)
 pub struct SubFlowImplementation {
     manifest: FlowManifest,
     provider: Arc<dyn Provider>,
@@ -138,11 +138,15 @@ impl Implementation for SubFlowImplementation {
             &mut sub_debugger,
         );
 
-        let mut state = coordinator.execute_subflow(submission)?;
+        let result = coordinator.execute_subflow(submission);
 
-        // Signal executors to stop
-        let _ = coordinator.send_done();
+        // Always signal executors to stop, even on error
+        if let Err(e) = coordinator.send_done() {
+            error!("Failed to send DONE to sub-flow executors: {e}");
+        }
         drop(executor);
+
+        let mut state = result?;
 
         // Collect boundary outputs — values destined for parent flow functions
         let boundary_outputs = state.drain_boundary_outputs();
