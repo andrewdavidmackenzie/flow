@@ -27,7 +27,7 @@ endif
 #NOTE: Linux distros may also have brew installed - so I put it last. WIll probably only be used for mac
 .PHONY: config
 config: rustup
-	@export PATH="$$PATH:~/.cargo/bin"
+	@export PATH="$$PATH:$(HOME)/.cargo/bin"
 	@echo "Installing stable toolchain with rustup"
 	@echo "Installing clippy component using rustup"
 	@rustup --quiet component add clippy
@@ -64,11 +64,16 @@ else ifneq ($(BREW),)
 endif
 	@echo "Installing grcov using cargo"
 	@cargo install grcov
-	@echo "Installing mdbook and mdbook-linkcheck using cargo"
-	@cargo install mdbook
-	@cargo install mdbook-linkcheck
+	@echo "Installing book building tools"
+	@$(MAKE) book-tools
 	@echo "installing wasm optimization tools"
 	@cargo install wasm-snip
+
+.PHONY: book-tools
+book-tools:
+	@echo "Installing mdbook and mdbook-linkcheck2 using cargo"
+	@cargo install mdbook
+	@cargo install mdbook-linkcheck2
 
 .PHONY: clean_examples
 clean_examples:
