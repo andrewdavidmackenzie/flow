@@ -253,9 +253,26 @@ impl RunState {
             ancestors_by_flow.insert(flow_id, chain);
         }
 
+        // Use max process_id + 1 for Vec sizing (not count) to handle
+        // sparse IDs from extracted sub-flows where IDs are preserved
         #[cfg(feature = "metrics")]
-        let num_processes =
-            submission.manifest.functions().len() + submission.manifest.flows().len();
+        let num_processes = {
+            let max_func = submission
+                .manifest
+                .functions()
+                .keys()
+                .max()
+                .copied()
+                .unwrap_or(0);
+            let max_flow = submission
+                .manifest
+                .flows()
+                .keys()
+                .max()
+                .copied()
+                .unwrap_or(0);
+            max_func.max(max_flow) + 1
+        };
         #[cfg(feature = "trace")]
         let trace = crate::trace::topology_from_submission(&submission);
         RunState {
@@ -906,10 +923,27 @@ impl RunState {
         self.submission.manifest.functions().len()
     }
 
-    /// Total number of processes (functions + flows) in the manifest
+    /// Maximum process ID + 1, for sizing per-process arrays.
+    /// Uses max ID rather than count to handle sparse IDs from extracted sub-flows.
     #[must_use]
     pub fn num_processes(&self) -> usize {
-        self.submission.manifest.functions().len() + self.submission.manifest.flows().len()
+        let max_func = self
+            .submission
+            .manifest
+            .functions()
+            .keys()
+            .max()
+            .copied()
+            .unwrap_or(0);
+        let max_flow = self
+            .submission
+            .manifest
+            .flows()
+            .keys()
+            .max()
+            .copied()
+            .unwrap_or(0);
+        max_func.max(max_flow) + 1
     }
 
     /// Per-function job creation counts (index = `process_id`)
