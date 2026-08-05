@@ -27,7 +27,7 @@ endif
 #NOTE: Linux distros may also have brew installed - so I put it last. WIll probably only be used for mac
 .PHONY: config
 config: rustup
-	@export PATH="$$PATH:~/.cargo/bin"
+	@export PATH="$$PATH:$(HOME)/.cargo/bin"
 	@echo "Installing stable toolchain with rustup"
 	@echo "Installing clippy component using rustup"
 	@rustup --quiet component add clippy
