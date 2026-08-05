@@ -164,6 +164,76 @@ fn extract_and_init_subflow() {
     );
 }
 
+/// Test that `subflow_interface` correctly identifies the external connections
+/// crossing a sub-flow's boundary.
+#[test]
+fn subflow_interface_identifies_boundary_connections() {
+    let manifest_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+    let project_root = manifest_dir.parent().expect("Could not find project root");
+    let example_dir = project_root
+        .join("flowr")
+        .join("examples")
+        .join("mandlebrot");
+
+    // Compile if needed
+    let _ = Command::new("flowc")
+        .args(["-d", "-g", "-c", "-O", "-r", "flowrcli"])
+        .arg(example_dir.to_str().expect("path"))
+        .stdout(Stdio::null())
+        .stderr(Stdio::null())
+        .status();
+
+    let manifest_path = example_dir.join("manifest.json");
+    let manifest_url =
+        url::Url::from_file_path(&manifest_path).expect("Could not create manifest URL");
+    let provider = TestProvider;
+    let (manifest, _) =
+        FlowManifest::load(&provider, &manifest_url).expect("Could not load manifest");
+
+    // Find the render sub-flow (flow #4)
+    let render_flow_id = manifest
+        .flows()
+        .iter()
+        .find(|(_, f)| {
+            #[cfg(feature = "debugger")]
+            {
+                f.name == "render"
+            }
+            #[cfg(not(feature = "debugger"))]
+            {
+                // Find render by having parent_id = root and no sub-flows
+                f.parent_id == Some(0) && f.sub_flow_ids.is_empty()
+            }
+        })
+        .map(|(&id, _)| id)
+        .expect("Could not find render sub-flow");
+
+    let (inputs, outputs) = manifest
+        .subflow_interface(render_flow_id)
+        .expect("subflow_interface failed");
+
+    // Render sub-flow should have external inputs (from get and enumerate)
+    assert!(
+        !inputs.is_empty(),
+        "Render sub-flow should have external inputs"
+    );
+
+    // Render sub-flow is a sink (writes to image_buffer context function) —
+    // all its output connections are internal, so no external outputs
+    assert!(
+        outputs.is_empty(),
+        "Render sub-flow should have no external outputs (it's a sink), \
+         but found {} outputs",
+        outputs.len()
+    );
+
+    println!(
+        "Render sub-flow #{render_flow_id} interface: {} inputs, {} outputs",
+        inputs.len(),
+        outputs.len()
+    );
+}
+
 /// Minimal provider that reads files from the filesystem.
 struct TestProvider;
 
