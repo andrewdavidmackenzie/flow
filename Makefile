@@ -64,11 +64,16 @@ else ifneq ($(BREW),)
 endif
 	@echo "Installing grcov using cargo"
 	@cargo install grcov
-	@echo "Installing mdbook and mdbook-linkcheck using cargo"
-	@cargo install mdbook
-	@cargo install mdbook-linkcheck
+	@echo "Installing book building tools"
+	@$(MAKE) book-tools
 	@echo "installing wasm optimization tools"
 	@cargo install wasm-snip
+
+.PHONY: book-tools
+book-tools:
+	@echo "Installing mdbook and mdbook-linkcheck2 using cargo"
+	@cargo install mdbook
+	@cargo install mdbook-linkcheck2
 
 .PHONY: clean_examples
 clean_examples:

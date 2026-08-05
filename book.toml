@@ -2,7 +2,6 @@
 title = "The 'flow' book"
 authors = ["Andrew Mackenzie"]
 description = "What is 'flow' and how to use it?"
-multilingual = false
 src = "."
 
 [build]
@@ -13,4 +12,4 @@ use-default-preprocessors = false
 [output.html]
 [preprocessor.links]
 
-[output.linkcheck]
+[output.linkcheck2]
