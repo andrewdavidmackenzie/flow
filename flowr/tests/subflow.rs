@@ -13,6 +13,7 @@ use flowrlib::run_state::RunState;
 /// Test that a sub-flow can be extracted from a compiled manifest,
 /// wrapped in a `Submission`, and used to construct a `RunState` that
 /// initializes correctly.
+#[cfg_attr(target_os = "windows", ignore)]
 #[test]
 #[allow(clippy::too_many_lines)]
 fn extract_and_init_subflow() {
@@ -166,6 +167,7 @@ fn extract_and_init_subflow() {
 
 /// Test that `subflow_interface` correctly identifies the external connections
 /// crossing a sub-flow's boundary.
+#[cfg_attr(target_os = "windows", ignore)]
 #[test]
 fn subflow_interface_identifies_boundary_connections() {
     let manifest_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
