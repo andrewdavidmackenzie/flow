@@ -318,7 +318,7 @@ impl FlowManifest {
             .get(&flow_id)
             .and_then(|f| f.parent_id)
             .unwrap_or(0);
-        let proxy = crate::model::runtime_function::RuntimeFunction::new(
+        let mut proxy = crate::model::runtime_function::RuntimeFunction::new(
             #[cfg(feature = "debugger")]
             format!("subflow_{flow_id}"),
             #[cfg(feature = "debugger")]
@@ -330,6 +330,10 @@ impl FlowManifest {
             &[], // no output connections — routing is in the boundary outputs
             false,
         );
+        // Set the implementation_url from implementation_location.
+        // subflow:// URLs parse directly, no manifest base URL needed.
+        let dummy_base = Url::parse("file:///").map_err(|e| format!("{e}"))?;
+        proxy.set_implementation_url(&dummy_base)?;
         self.functions.insert(flow_id, proxy);
 
         Ok(extracted)
@@ -882,8 +886,9 @@ mod test {
         assert!(manifest.functions().contains_key(&10));
         assert!(manifest.functions().contains_key(&1)); // proxy replaces flow
 
-        // Proxy function should use subflow:// URL
+        // Proxy function should use subflow:// URL in both location and url
         let proxy = manifest.functions().get(&1).unwrap();
         assert_eq!(proxy.get_implementation_location(), "subflow://1");
+        assert_eq!(proxy.get_implementation_url().scheme(), "subflow");
     }
 }
