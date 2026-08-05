@@ -269,6 +269,76 @@ impl FlowManifest {
         Ok((inputs, outputs))
     }
 
+    /// Delegate a sub-flow: remove its internal functions and replace with a
+    /// single proxy function that uses a `subflow://` implementation URL.
+    ///
+    /// The proxy function inherits the sub-flow's external input connections
+    /// (as flow initializers) and the sub-flow's flow hierarchy entry is preserved
+    /// but its `sub_flow_ids` are cleared.
+    ///
+    /// Returns the extracted sub-flow manifest for registration with executors.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the `flow_id` is not found.
+    pub fn delegate_subflow(&mut self, flow_id: usize) -> Result<FlowManifest> {
+        // Extract the sub-flow manifest first
+        let extracted = self.extract_subflow(flow_id)?;
+
+        // Find all function IDs inside the sub-flow
+        let mut flow_ids = HashSet::new();
+        Self::collect_descendant_flows(flow_id, &self.flows, &mut flow_ids);
+        let inside_func_ids: Vec<usize> = self
+            .functions
+            .iter()
+            .filter(|(_, f)| flow_ids.contains(&f.get_parent_id()))
+            .map(|(&id, _)| id)
+            .collect();
+
+        // Remove internal functions
+        for func_id in &inside_func_ids {
+            self.functions.remove(func_id);
+        }
+
+        // Remove descendant flow entries (but keep the target flow itself)
+        for &fid in &flow_ids {
+            if fid != flow_id {
+                self.flows.remove(&fid);
+            }
+        }
+        // Clear sub-flow IDs on the target flow
+        if let Some(flow_info) = self.flows.get_mut(&flow_id) {
+            flow_info.sub_flow_ids.clear();
+        }
+
+        // Create a proxy function with subflow:// URL
+        let subflow_url = format!("subflow://{flow_id}");
+        let parent_id = self
+            .flows
+            .get(&flow_id)
+            .and_then(|f| f.parent_id)
+            .unwrap_or(0);
+        let mut proxy = crate::model::runtime_function::RuntimeFunction::new(
+            #[cfg(feature = "debugger")]
+            format!("subflow_{flow_id}"),
+            #[cfg(feature = "debugger")]
+            format!("/subflow/{flow_id}"),
+            &subflow_url,
+            vec![],  // inputs will be injected by the sub-flow implementation
+            flow_id, // use the flow's process_id for the proxy
+            parent_id,
+            &[], // no output connections — routing is in the boundary outputs
+            false,
+        );
+        // Set the implementation_url from implementation_location.
+        // subflow:// URLs parse directly, no manifest base URL needed.
+        let dummy_base = Url::parse("file:///").map_err(|e| format!("{e}"))?;
+        proxy.set_implementation_url(&dummy_base)?;
+        self.functions.insert(flow_id, proxy);
+
+        Ok(extracted)
+    }
+
     /// Extract a sub-flow and all its descendants into a standalone `FlowManifest`.
     ///
     /// The target flow becomes the root of the new manifest (`parent_id` = `None`).
@@ -705,5 +775,120 @@ mod test {
         assert!(result.is_ok());
         let extracted = result.unwrap();
         assert_eq!(extracted.flows().len(), 2);
+    }
+
+    #[test]
+    fn delegate_subflow_replaces_with_proxy() {
+        use super::FlowInfo;
+        use crate::model::output_connection::{OutputConnection, Source};
+
+        let mut manifest = FlowManifest::new(test_meta_data());
+
+        // Root flow with function #10, child flow with functions #20 and #21
+        manifest.add_flow_info(FlowInfo {
+            process_id: 0,
+            parent_id: None,
+            sub_flow_ids: vec![1],
+            #[cfg(feature = "debugger")]
+            name: "root".into(),
+            #[cfg(feature = "debugger")]
+            route: "/root".into(),
+        });
+        manifest.add_flow_info(FlowInfo {
+            process_id: 1,
+            parent_id: Some(0),
+            sub_flow_ids: vec![],
+            #[cfg(feature = "debugger")]
+            name: "child".into(),
+            #[cfg(feature = "debugger")]
+            route: "/root/child".into(),
+        });
+
+        manifest.add_function(RuntimeFunction::new(
+            #[cfg(feature = "debugger")]
+            "func10",
+            #[cfg(feature = "debugger")]
+            "/root/func10",
+            "lib://flowstdlib/math/add",
+            vec![Input::new(
+                #[cfg(feature = "debugger")]
+                "a",
+                0,
+                false,
+                None,
+                None,
+            )],
+            10,
+            0,
+            &[],
+            false,
+        ));
+
+        manifest.add_function(RuntimeFunction::new(
+            #[cfg(feature = "debugger")]
+            "func20",
+            #[cfg(feature = "debugger")]
+            "/root/child/func20",
+            "file://test/func20.wasm",
+            vec![Input::new(
+                #[cfg(feature = "debugger")]
+                "in",
+                0,
+                false,
+                None,
+                None,
+            )],
+            20,
+            1,
+            &[OutputConnection::new(
+                Source::default(),
+                21,
+                0,
+                1,
+                true,
+                String::new(),
+                #[cfg(feature = "debugger")]
+                String::new(),
+            )],
+            false,
+        ));
+
+        manifest.add_function(RuntimeFunction::new(
+            #[cfg(feature = "debugger")]
+            "func21",
+            #[cfg(feature = "debugger")]
+            "/root/child/func21",
+            "file://test/func21.wasm",
+            vec![Input::new(
+                #[cfg(feature = "debugger")]
+                "in",
+                0,
+                false,
+                None,
+                None,
+            )],
+            21,
+            1,
+            &[],
+            false,
+        ));
+
+        // Delegate child flow #1
+        let extracted = manifest.delegate_subflow(1).expect("delegate failed");
+
+        // Extracted manifest should have the original child functions
+        assert_eq!(extracted.functions().len(), 2);
+        assert!(extracted.functions().contains_key(&20));
+        assert!(extracted.functions().contains_key(&21));
+
+        // Parent manifest should have func10 + proxy at flow_id 1
+        assert_eq!(manifest.functions().len(), 2);
+        assert!(manifest.functions().contains_key(&10));
+        assert!(manifest.functions().contains_key(&1)); // proxy replaces flow
+
+        // Proxy function should use subflow:// URL in both location and url
+        let proxy = manifest.functions().get(&1).unwrap();
+        assert_eq!(proxy.get_implementation_location(), "subflow://1");
+        assert_eq!(proxy.get_implementation_url().scheme(), "subflow");
     }
 }

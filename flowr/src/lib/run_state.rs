@@ -615,32 +615,68 @@ impl RunState {
                 #[cfg(feature = "metrics")]
                 let send_start = std::time::Instant::now();
 
-                for connection in job.connections.iter() {
-                    let value_to_send = match &connection.source {
-                        Output(route) => match output_value {
-                            Some(output_v) => output_v.pointer(route),
-                            None => None,
-                        },
-                        Input(index) => job.payload.input_set.get(*index),
-                    };
+                // Sub-flow results contain boundary outputs with embedded
+                // routing info. Unpack each and deliver via send_a_value.
+                if job.payload.implementation_url.scheme() == "subflow" {
+                    if let Some(Value::Array(boundary_outputs)) = output_value {
+                        for bo in boundary_outputs {
+                            if let (Some(dest_id), Some(dest_io), Some(value)) = (
+                                bo.get("destination_id").and_then(Value::as_u64),
+                                bo.get("destination_io_number").and_then(Value::as_u64),
+                                bo.get("value"),
+                            ) {
+                                #[allow(clippy::cast_possible_truncation)]
+                                let conn = OutputConnection::new(
+                                    Output(String::new()),
+                                    dest_id as usize,
+                                    dest_io as usize,
+                                    job.parent_id,
+                                    false,
+                                    String::new(),
+                                    #[cfg(feature = "debugger")]
+                                    String::new(),
+                                );
+                                action = self.send_a_value(
+                                    job.process_id,
+                                    job.parent_id,
+                                    &conn,
+                                    value.clone(),
+                                    #[cfg(feature = "metrics")]
+                                    metrics,
+                                    #[cfg(feature = "debugger")]
+                                    debugger,
+                                )?;
+                            }
+                        }
+                    }
+                } else {
+                    for connection in job.connections.iter() {
+                        let value_to_send = match &connection.source {
+                            Output(route) => match output_value {
+                                Some(output_v) => output_v.pointer(route),
+                                None => None,
+                            },
+                            Input(index) => job.payload.input_set.get(*index),
+                        };
 
-                    if let Some(value) = value_to_send {
-                        action = self.send_a_value(
-                            job.process_id,
-                            job.parent_id,
-                            connection,
-                            value.clone(),
-                            #[cfg(feature = "metrics")]
-                            metrics,
-                            #[cfg(feature = "debugger")]
-                            debugger,
-                        )?;
-                    } else {
-                        trace!(
-                            "Job #{}:\t\tNo value found at '{}'",
-                            job.payload.job_id,
-                            connection.source
-                        );
+                        if let Some(value) = value_to_send {
+                            action = self.send_a_value(
+                                job.process_id,
+                                job.parent_id,
+                                connection,
+                                value.clone(),
+                                #[cfg(feature = "metrics")]
+                                metrics,
+                                #[cfg(feature = "debugger")]
+                                debugger,
+                            )?;
+                        } else {
+                            trace!(
+                                "Job #{}:\t\tNo value found at '{}'",
+                                job.payload.job_id,
+                                connection.source
+                            );
+                        }
                     }
                 }
 
