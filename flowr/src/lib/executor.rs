@@ -65,6 +65,10 @@ pub struct Executor {
     // (e.g. lib:://flowstdlib), and the entry is a tuple of the LibraryManifest
     // and the resolved Url of where the manifest was read from
     loaded_lib_manifests: Arc<RwLock<HashMap<Url, (LibraryManifest, Url)>>>,
+    // HashMap of registered sub-flow manifests for sub-flow execution.
+    // Key is the subflow:// URL (e.g. subflow://4), value is the FlowManifest.
+    loaded_subflow_manifests:
+        Arc<RwLock<HashMap<Url, flowcore::model::flow_manifest::FlowManifest>>>,
     executors: Vec<JoinHandle<()>>,
 }
 
@@ -82,6 +86,7 @@ impl Executor {
             loaded_lib_manifests: Arc::new(RwLock::new(
                 HashMap::<Url, (LibraryManifest, Url)>::new(),
             )),
+            loaded_subflow_manifests: Arc::new(RwLock::new(HashMap::new())),
             executors: vec![],
         }
     }
@@ -108,6 +113,25 @@ impl Executor {
 
         lib_manifests.insert(lib_manifest.lib_url.clone(), (lib_manifest, resolved_url));
 
+        Ok(())
+    }
+
+    /// Register a sub-flow manifest for execution via `subflow://` URLs.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the manifest cannot be registered.
+    pub fn add_subflow(
+        &mut self,
+        subflow_url: Url,
+        manifest: flowcore::model::flow_manifest::FlowManifest,
+    ) -> Result<()> {
+        let mut manifests = self
+            .loaded_subflow_manifests
+            .write()
+            .map_err(|_| "Could not gain write access to subflow manifests")?;
+        info!("Sub-flow manifest registered at '{subflow_url}'");
+        manifests.insert(subflow_url, manifest);
         Ok(())
     }
 
@@ -175,6 +199,7 @@ impl Executor {
             let thread_context = zmq::Context::new();
             let thread_implementations = loaded_implementations.clone();
             let thread_loaded_manifests = self.loaded_lib_manifests.clone();
+            let thread_subflow_manifests = self.loaded_subflow_manifests.clone();
             let results_sink = results_service.into();
             let job_source = job_service.into();
             let control_address = control_service.into();
@@ -191,6 +216,7 @@ impl Executor {
                     &thread_context,
                     &thread_implementations,
                     &thread_loaded_manifests,
+                    &thread_subflow_manifests,
                     job_source,
                     results_sink,
                     control_address,
@@ -218,6 +244,9 @@ fn execution_loop(
     context: &zmq::Context,
     loaded_implementations: &Arc<RwLock<HashMap<Url, Arc<dyn Implementation>>>>,
     loaded_lib_manifests: &Arc<RwLock<HashMap<Url, (LibraryManifest, Url)>>>,
+    loaded_subflow_manifests: &Arc<
+        RwLock<HashMap<Url, flowcore::model::flow_manifest::FlowManifest>>,
+    >,
     job_service: String,
     results_service: String,
     control_address: String,
@@ -328,12 +357,13 @@ fn execution_loop(
                         let sn = name.to_string();
                         let si = loaded_implementations.clone();
                         let sm = loaded_lib_manifests.clone();
+                        let ssm = loaded_subflow_manifests.clone();
                         let stx = spawn_result_tx
                             .as_ref()
                             .map(|(tx, _)| tx.clone())
                             .ok_or("spawn_result_tx missing")?;
                         thread::spawn(move || {
-                            match execute_job_to_string(&sp, &payload, &sn, &si, &sm) {
+                            match execute_job_to_string(&sp, &payload, &sn, &si, &sm, &ssm) {
                                 Ok(serialized) => {
                                     let _ = stx.send(serialized);
                                 }
@@ -348,6 +378,7 @@ fn execution_loop(
                             name,
                             &loaded_implementations.clone(),
                             &loaded_lib_manifests.clone(),
+                            &loaded_subflow_manifests.clone(),
                         ) {
                             Ok(keep_processing) => process_jobs = keep_processing,
                             Err(e) => error!("{e}"),
@@ -390,12 +421,16 @@ fn execute_job_to_string(
     executor_id: &str,
     loaded_implementations: &Arc<RwLock<HashMap<Url, Arc<dyn Implementation>>>>,
     loaded_lib_manifests: &Arc<RwLock<HashMap<Url, (LibraryManifest, Url)>>>,
+    loaded_subflow_manifests: &Arc<
+        RwLock<HashMap<Url, flowcore::model::flow_manifest::FlowManifest>>,
+    >,
 ) -> Result<String> {
     let implementation = get_or_load_implementation(
         provider,
         payload,
         loaded_implementations,
         loaded_lib_manifests,
+        loaded_subflow_manifests,
     )?;
 
     trace!(
@@ -433,6 +468,9 @@ fn get_or_load_implementation(
     payload: &Payload,
     loaded_implementations: &Arc<RwLock<HashMap<Url, Arc<dyn Implementation>>>>,
     loaded_lib_manifests: &Arc<RwLock<HashMap<Url, (LibraryManifest, Url)>>>,
+    loaded_subflow_manifests: &Arc<
+        RwLock<HashMap<Url, flowcore::model::flow_manifest::FlowManifest>>,
+    >,
 ) -> Result<Arc<dyn Implementation>> {
     // First try a read lock to avoid contention
     let needs_load = {
@@ -477,6 +515,22 @@ fn get_or_load_implementation(
                 "file" | "http" | "https" => {
                     Arc::new(wasm::load(provider, &payload.implementation_url)?)
                 }
+                "subflow" => {
+                    let manifests = loaded_subflow_manifests
+                        .read()
+                        .map_err(|_| "Could not read subflow manifests")?;
+                    let manifest = manifests.get(&payload.implementation_url).ok_or_else(|| {
+                        format!(
+                            "Sub-flow manifest not registered: {}",
+                            payload.implementation_url
+                        )
+                    })?;
+                    Arc::new(crate::subflow::SubFlowImplementation::new(
+                        manifest.clone(),
+                        provider.clone(),
+                        vec![], // TODO: interface inputs from parent
+                    ))
+                }
                 _ => bail!("Unsupported scheme on implementation_url"),
             };
             implementations.insert(payload.implementation_url.clone(), impl_arc);
@@ -510,12 +564,16 @@ fn execute_job(
     executor_id: &str,
     loaded_implementations: &Arc<RwLock<HashMap<Url, Arc<dyn Implementation>>>>,
     loaded_lib_manifests: &Arc<RwLock<HashMap<Url, (LibraryManifest, Url)>>>,
+    loaded_subflow_manifests: &Arc<
+        RwLock<HashMap<Url, flowcore::model::flow_manifest::FlowManifest>>,
+    >,
 ) -> Result<bool> {
     let implementation = get_or_load_implementation(
         provider,
         payload,
         loaded_implementations,
         loaded_lib_manifests,
+        loaded_subflow_manifests,
     )?;
 
     trace!(
@@ -617,7 +675,13 @@ mod test {
     use flowcore::provider::Provider;
     use flowcore::Implementation;
 
+    use flowcore::model::flow_manifest::FlowManifest;
+
     use crate::job::{Job, Payload};
+
+    fn empty_subflow_manifests() -> Arc<RwLock<HashMap<Url, FlowManifest>>> {
+        Arc::new(RwLock::new(HashMap::new()))
+    }
 
     use super::Executor;
 
@@ -853,6 +917,7 @@ mod test {
             "test executor",
             &loaded_implementations,
             &loaded_lib_manifests,
+            &empty_subflow_manifests(),
         );
 
         assert!(result.is_err(), "Unsupported scheme should return an error");
@@ -907,6 +972,7 @@ mod test {
             "test executor",
             &loaded_implementations,
             &loaded_lib_manifests,
+            &empty_subflow_manifests(),
         );
 
         assert!(
@@ -963,6 +1029,7 @@ mod test {
             "test executor",
             &loaded_implementations,
             &loaded_lib_manifests,
+            &empty_subflow_manifests(),
         );
 
         assert!(
@@ -1016,6 +1083,7 @@ mod test {
             "test executor",
             &loaded_implementations,
             &loaded_lib_manifests,
+            &empty_subflow_manifests(),
         );
 
         assert!(
@@ -1206,6 +1274,7 @@ mod test {
                 "test executor",
                 &loaded_implementations,
                 &loaded_lib_manifests,
+                &empty_subflow_manifests(),
             )
             .is_err());
         }
@@ -1258,6 +1327,7 @@ mod test {
             &payload,
             &loaded_impls,
             &loaded_manifests,
+            &empty_subflow_manifests(),
         )
         .expect("first get_or_load failed");
 
@@ -1267,6 +1337,7 @@ mod test {
             &payload,
             &loaded_impls,
             &loaded_manifests,
+            &empty_subflow_manifests(),
         )
         .expect("second get_or_load failed");
 
@@ -1290,6 +1361,7 @@ mod test {
             "test",
             &loaded_impls,
             &loaded_manifests,
+            &empty_subflow_manifests(),
         )
         .expect("execute_job_to_string failed");
 
@@ -1320,6 +1392,7 @@ mod test {
             &payload,
             &loaded_impls,
             &loaded_manifests,
+            &empty_subflow_manifests(),
         );
         assert!(result.is_err(), "should fail for unknown implementation");
     }
@@ -1358,6 +1431,7 @@ mod test {
             &payload,
             &loaded_impls,
             &loaded_manifests,
+            &empty_subflow_manifests(),
         )
         .expect("first load from manifest failed");
 
@@ -1373,6 +1447,7 @@ mod test {
             &payload,
             &loaded_impls,
             &loaded_manifests,
+            &empty_subflow_manifests(),
         )
         .expect("second load (cached) failed");
 
@@ -1421,6 +1496,7 @@ mod test {
             "test",
             &loaded_impls,
             &loaded_manifests,
+            &empty_subflow_manifests(),
         )
         .expect("execute_job should succeed");
 
@@ -1457,6 +1533,7 @@ mod test {
             "test",
             &loaded_impls,
             &loaded_manifests,
+            &empty_subflow_manifests(),
         );
         assert!(
             result.is_err(),
