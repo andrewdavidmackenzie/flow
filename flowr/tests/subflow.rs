@@ -390,6 +390,156 @@ fn subflow_implementation_with_injected_inputs() {
     );
 }
 
+/// Test that boundary outputs are captured when a sub-flow function produces
+/// output on a connection targeting a function outside the sub-flow.
+#[cfg_attr(target_os = "windows", ignore)]
+#[test]
+#[allow(clippy::too_many_lines)]
+fn subflow_captures_boundary_outputs() {
+    use flowcore::model::flow_manifest::FlowInfo;
+    use flowcore::model::input::{Input, InputInitializer};
+    use flowcore::model::metadata::MetaData;
+    use flowcore::model::output_connection::{OutputConnection, Source};
+    use flowcore::model::runtime_function::RuntimeFunction;
+    use flowcore::Implementation;
+    use flowrlib::subflow::SubFlowImplementation;
+    use std::sync::Arc;
+
+    // Build a manifest with:
+    //   Flow #0 (root) has function #10
+    //   Flow #1 (child, inside root) has function #20
+    //   Function #20 (add) has Once initializers and connects to #10 (boundary output)
+    let mut full_manifest = FlowManifest::new(MetaData::default());
+    full_manifest.add_flow_info(FlowInfo {
+        process_id: 0,
+        parent_id: None,
+        sub_flow_ids: vec![1],
+        #[cfg(feature = "debugger")]
+        name: "root".into(),
+        #[cfg(feature = "debugger")]
+        route: "/root".into(),
+    });
+    full_manifest.add_flow_info(FlowInfo {
+        process_id: 1,
+        parent_id: Some(0),
+        sub_flow_ids: vec![],
+        #[cfg(feature = "debugger")]
+        name: "child".into(),
+        #[cfg(feature = "debugger")]
+        route: "/root/child".into(),
+    });
+
+    // Function #10 in root (the boundary output destination)
+    full_manifest.add_function(RuntimeFunction::new(
+        #[cfg(feature = "debugger")]
+        "target",
+        #[cfg(feature = "debugger")]
+        "/root/target",
+        "lib://flowstdlib/math/add",
+        vec![Input::new(
+            #[cfg(feature = "debugger")]
+            "in",
+            0,
+            false,
+            None,
+            None,
+        )],
+        10,
+        0,
+        &[],
+        false,
+    ));
+
+    // Function #20 in child flow — has initializers and outputs to #10
+    let mut func20 = RuntimeFunction::new(
+        #[cfg(feature = "debugger")]
+        "add",
+        #[cfg(feature = "debugger")]
+        "/root/child/add",
+        "lib://flowstdlib/math/add",
+        vec![
+            Input::new(
+                #[cfg(feature = "debugger")]
+                "i1",
+                0,
+                false,
+                Some(InputInitializer::Once(serde_json::json!(7))),
+                None,
+            ),
+            Input::new(
+                #[cfg(feature = "debugger")]
+                "i2",
+                0,
+                false,
+                Some(InputInitializer::Once(serde_json::json!(3))),
+                None,
+            ),
+        ],
+        20,
+        1, // parent = child flow
+        &[OutputConnection::new(
+            Source::default(),
+            10,    // destination = function #10 in root (OUTSIDE sub-flow)
+            0,     // destination_io_number
+            0,     // destination_parent_id = root
+            false, // not internal (crosses flow boundary)
+            String::new(),
+            #[cfg(feature = "debugger")]
+            String::new(),
+        )],
+        false,
+    );
+    let dummy_url = url::Url::parse("file:///dummy/manifest.json").expect("URL");
+    func20.set_implementation_url(&dummy_url).expect("set URL");
+    full_manifest.add_function(func20);
+
+    // Extract child flow #1 — this preserves the boundary output connection
+    let extracted = full_manifest
+        .extract_subflow(1)
+        .expect("extract_subflow failed");
+
+    // Verify the boundary output connection is preserved
+    let func20_extracted = extracted.functions().get(&20).expect("func 20");
+    assert_eq!(
+        func20_extracted.get_output_connections().len(),
+        1,
+        "Boundary output connection should be preserved"
+    );
+
+    // Run the extracted sub-flow
+    let provider = Arc::new(TestProvider) as Arc<dyn Provider>;
+    let implementation = SubFlowImplementation::new(extracted, provider, vec![]);
+
+    let result = implementation.run(&[]).expect("run failed");
+
+    // The output should contain boundary outputs (7 + 3 = 10 sent to #10:0)
+    let (output, _run_again) = result;
+    let outputs = output.expect("Sub-flow should produce boundary outputs");
+    let arr = outputs.as_array().expect("outputs should be array");
+    assert!(!arr.is_empty(), "Should have at least one boundary output");
+
+    // Check the first output targets function #10, input 0, value = 10
+    let first = arr.first().expect("should have first element");
+    assert_eq!(
+        first
+            .get("destination_id")
+            .and_then(serde_json::Value::as_u64),
+        Some(10),
+        "Output should target function #10"
+    );
+    assert_eq!(
+        first
+            .get("destination_io_number")
+            .and_then(serde_json::Value::as_u64),
+        Some(0),
+    );
+    assert_eq!(
+        first.get("value").and_then(serde_json::Value::as_i64),
+        Some(10), // 7 + 3 = 10
+        "Output value should be 10 (7 + 3)"
+    );
+}
+
 /// Minimal provider that reads files from the filesystem.
 struct TestProvider;
 

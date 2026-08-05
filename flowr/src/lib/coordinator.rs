@@ -229,6 +229,36 @@ impl<'a> Coordinator<'a> {
         self.submission_handler.coordinator_is_exiting(Ok(()))
     }
 
+    /// Execute a sub-flow and return its `RunState`, which may contain boundary
+    /// outputs (values destined for functions in the parent flow).
+    ///
+    /// Unlike `execute_flow`, this does not notify a submission handler and
+    /// returns the `RunState` so the caller can drain boundary outputs.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the execution did not complete normally.
+    #[allow(unused_variables, unused_mut)]
+    pub fn execute_subflow(&mut self, submission: Submission) -> Result<RunState> {
+        self.job_timeout = submission.job_timeout;
+        self.dispatcher
+            .set_results_timeout(submission.job_timeout)?;
+        let mut state = RunState::new(submission);
+
+        #[cfg(feature = "metrics")]
+        let mut metrics = Metrics::new(state.num_functions(), state.num_processes());
+
+        state.init()?;
+
+        self.run_jobs(
+            &mut state,
+            #[cfg(feature = "metrics")]
+            &mut metrics,
+        )?;
+
+        Ok(state)
+    }
+
     /// Execute a flow by looping while there are jobs to be processed.
     ///
     /// The outer loop exists for the debugger: it allows resetting all state and restarting

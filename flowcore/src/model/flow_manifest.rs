@@ -299,10 +299,11 @@ impl FlowManifest {
 
         for &func_id in &function_ids {
             if let Some(func) = self.functions.get(&func_id) {
-                let mut cloned = func.clone();
-                // Remove output connections that target functions outside the sub-flow
-                cloned.retain_connections(|conn| function_ids.contains(&conn.destination_id));
-                extracted_functions.insert(func_id, cloned);
+                // Preserve all connections, including those targeting functions
+                // outside the sub-flow (boundary outputs). The sub-flow executor
+                // will intercept values sent to non-existent destinations and
+                // relay them back to the parent coordinator.
+                extracted_functions.insert(func_id, func.clone());
             }
         }
 

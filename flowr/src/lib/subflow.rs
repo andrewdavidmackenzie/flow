@@ -138,13 +138,30 @@ impl Implementation for SubFlowImplementation {
             &mut sub_debugger,
         );
 
-        coordinator.execute_flow(submission)?;
+        let mut state = coordinator.execute_subflow(submission)?;
 
-        // Signal executors to stop — don't wait, let threads exit naturally
+        // Signal executors to stop
         let _ = coordinator.send_done();
         drop(executor);
 
-        Ok((None, RUN_AGAIN))
+        // Collect boundary outputs — values destined for parent flow functions
+        let boundary_outputs = state.drain_boundary_outputs();
+        if boundary_outputs.is_empty() {
+            Ok((None, RUN_AGAIN))
+        } else {
+            // Package boundary outputs as a JSON array for the parent
+            let outputs: Vec<Value> = boundary_outputs
+                .into_iter()
+                .map(|bo| {
+                    serde_json::json!({
+                        "destination_id": bo.connection.destination_id,
+                        "destination_io_number": bo.connection.destination_io_number,
+                        "value": bo.value,
+                    })
+                })
+                .collect();
+            Ok((Some(Value::Array(outputs)), RUN_AGAIN))
+        }
     }
 }
 
