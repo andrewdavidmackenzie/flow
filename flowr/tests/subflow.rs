@@ -234,6 +234,81 @@ fn subflow_interface_identifies_boundary_connections() {
     );
 }
 
+/// Test that a `SubFlowImplementation` can execute a simple sub-flow.
+/// Creates a minimal flow with one flowstdlib function (add) that has
+/// initializers, so it can run to completion without external inputs.
+#[cfg_attr(target_os = "windows", ignore)]
+#[test]
+fn subflow_implementation_executes() {
+    use flowcore::model::flow_manifest::FlowInfo;
+    use flowcore::model::input::{Input, InputInitializer};
+    use flowcore::model::metadata::MetaData;
+    use flowcore::model::runtime_function::RuntimeFunction;
+    use flowcore::Implementation;
+    use flowrlib::subflow::SubFlowImplementation;
+    use std::sync::Arc;
+
+    // Build a minimal manifest: one flow with one function (add)
+    // add has two inputs, both initialized with Once values
+    let mut manifest = FlowManifest::new(MetaData::default());
+    manifest.add_flow_info(FlowInfo {
+        process_id: 0,
+        parent_id: None,
+        sub_flow_ids: vec![],
+        #[cfg(feature = "debugger")]
+        name: "test".into(),
+        #[cfg(feature = "debugger")]
+        route: "/test".into(),
+    });
+
+    let mut func = RuntimeFunction::new(
+        #[cfg(feature = "debugger")]
+        "add",
+        #[cfg(feature = "debugger")]
+        "/test/add",
+        "lib://flowstdlib/math/add",
+        vec![
+            Input::new(
+                #[cfg(feature = "debugger")]
+                "i1",
+                0,
+                false,
+                Some(InputInitializer::Once(serde_json::json!(2))),
+                None,
+            ),
+            Input::new(
+                #[cfg(feature = "debugger")]
+                "i2",
+                0,
+                false,
+                Some(InputInitializer::Once(serde_json::json!(3))),
+                None,
+            ),
+        ],
+        1, // process_id
+        0, // parent_id
+        &[],
+        false,
+    );
+    // Set the implementation URL (normally done during manifest loading)
+    let dummy_manifest_url =
+        url::Url::parse("file:///dummy/manifest.json").expect("Could not parse URL");
+    func.set_implementation_url(&dummy_manifest_url)
+        .expect("Could not set implementation URL");
+    manifest.add_function(func);
+
+    let provider = Arc::new(TestProvider) as Arc<dyn Provider>;
+    let implementation = SubFlowImplementation::new(manifest, provider);
+
+    // Run it — the add function should compute 2 + 3 = 5
+    let result = implementation.run(&[]);
+    assert!(
+        result.is_ok(),
+        "SubFlowImplementation::run() failed: {:?}",
+        result.err()
+    );
+}
+
 /// Minimal provider that reads files from the filesystem.
 struct TestProvider;
 

@@ -201,6 +201,15 @@ impl<'a> Coordinator<'a> {
         self.wasm_base_url = Some(base_url);
     }
 
+    /// Send a DONE signal to all connected executors, telling them to exit.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the DONE message could not be sent.
+    pub fn send_done(&mut self) -> Result<()> {
+        self.dispatcher.send_done()
+    }
+
     /// Enter a loop - waiting for a submission from the client, or disconnection of the client
     ///
     /// # Errors
