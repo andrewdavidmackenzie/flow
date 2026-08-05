@@ -88,6 +88,9 @@ pub(crate) mod debug_action;
 #[cfg(feature = "debugger")]
 mod debugger;
 
+/// Sub-flow execution: run an extracted sub-flow through a nested coordinator
+pub mod subflow;
+
 /// `wasmtime` module contains a number of implementations of the wasm execution
 mod wasm;
 

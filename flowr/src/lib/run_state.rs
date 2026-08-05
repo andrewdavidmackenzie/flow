@@ -223,6 +223,24 @@ pub struct RunState {
     #[cfg(feature = "trace")]
     #[serde(skip)]
     trace: flowcore::model::trace::Trace,
+    /// Whether this `RunState` is for a sub-flow (allows boundary output capture).
+    #[serde(skip)]
+    is_subflow: bool,
+    /// Values produced on boundary connections (destinations outside this flow).
+    /// Only populated when `is_subflow` is true.
+    #[serde(skip)]
+    boundary_outputs: Vec<BoundaryOutput>,
+}
+
+/// A value produced on a boundary connection of a sub-flow.
+/// Contains all the routing information needed for the parent coordinator
+/// to deliver the value to the correct destination function.
+#[derive(Clone, Debug)]
+pub struct BoundaryOutput {
+    /// The output connection that produced this value
+    pub connection: OutputConnection,
+    /// The value produced
+    pub value: Value,
 }
 
 impl RunState {
@@ -290,7 +308,14 @@ impl RunState {
             newly_busy_flows: Vec::new(),
             #[cfg(feature = "trace")]
             trace,
+            is_subflow: false,
+            boundary_outputs: Vec::new(),
         }
+    }
+
+    /// Mark this `RunState` as a sub-flow execution, enabling boundary output capture.
+    pub fn set_subflow(&mut self) {
+        self.is_subflow = true;
     }
 
     /// Get a reference to the submission
@@ -321,6 +346,7 @@ impl RunState {
         self.newly_busy_flows.clear();
         #[cfg(feature = "trace")]
         self.trace.events.clear();
+        self.boundary_outputs.clear();
     }
 
     /// The `ìnit()` function is responsible for initializing all functions, and it returns a
@@ -775,9 +801,28 @@ impl RunState {
             )?;
         }
 
-        let function = self
-            .get_mut(connection.destination_id)
-            .ok_or("Could not get function")?;
+        // If the destination function doesn't exist and this is a sub-flow,
+        // the value is a boundary output destined for the parent flow.
+        let Some(function) = self.get_mut(connection.destination_id) else {
+            if self.is_subflow {
+                info!(
+                    "\t\tBoundary output: value '{output_value}'{route_str} -> \
+                     parent function #{}:{}",
+                    connection.destination_id, connection.destination_io_number
+                );
+                self.boundary_outputs.push(BoundaryOutput {
+                    connection: connection.clone(),
+                    value: output_value,
+                });
+                return Ok(action);
+            }
+            return Err(format!(
+                "Destination function #{} not found",
+                connection.destination_id
+            )
+            .into());
+        };
+
         let job_count_before = function.input_sets_available();
         if connection.internal {
             function.send_internal(connection.destination_io_number, output_value)?;
@@ -951,6 +996,13 @@ impl RunState {
     #[must_use]
     pub fn jobs_per_function(&self) -> &[usize] {
         &self.jobs_per_function
+    }
+
+    /// Drain all boundary outputs collected during sub-flow execution.
+    /// Each output contains the connection routing info and the value,
+    /// ready for the parent coordinator to relay to the destination function.
+    pub fn drain_boundary_outputs(&mut self) -> Vec<BoundaryOutput> {
+        std::mem::take(&mut self.boundary_outputs)
     }
 
     /// Return the ancestor flow IDs starting from `parent_id` up to the root.

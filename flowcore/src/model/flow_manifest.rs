@@ -13,6 +13,7 @@ use crate::deserializers::deserializer::deserialize;
 use crate::errors::{Result, ResultExt};
 use crate::model::flow_definition::FlowDefinition;
 use crate::model::metadata::MetaData;
+use crate::model::output_connection::OutputConnection;
 use crate::model::runtime_function::RuntimeFunction;
 use crate::provider::Provider;
 
@@ -218,6 +219,56 @@ impl FlowManifest {
         &self.source_urls
     }
 
+    /// Compute the external interface of a sub-flow: the connections that cross
+    /// its boundary from/to the rest of the flow.
+    ///
+    /// Returns `(inputs, outputs)` where:
+    /// - `inputs`: connections from functions outside the sub-flow to functions inside it
+    /// - `outputs`: connections from functions inside the sub-flow to functions outside it
+    ///
+    /// Each entry is a clone of the `OutputConnection` from the source function.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the target `flow_id` is not found in the manifest.
+    pub fn subflow_interface(
+        &self,
+        flow_id: usize,
+    ) -> Result<(Vec<OutputConnection>, Vec<OutputConnection>)> {
+        if !self.flows.contains_key(&flow_id) {
+            crate::bail!("Flow #{flow_id} not found in manifest");
+        }
+
+        // Collect all function IDs inside the sub-flow (recursively)
+        let mut flow_ids = HashSet::new();
+        Self::collect_descendant_flows(flow_id, &self.flows, &mut flow_ids);
+        let inside: HashSet<usize> = self
+            .functions
+            .iter()
+            .filter(|(_, f)| flow_ids.contains(&f.get_parent_id()))
+            .map(|(&id, _)| id)
+            .collect();
+
+        let mut inputs = Vec::new();
+        let mut outputs = Vec::new();
+
+        for func in self.functions.values() {
+            let source_inside = inside.contains(&func.id());
+            for conn in func.get_output_connections() {
+                let dest_inside = inside.contains(&conn.destination_id);
+                if !source_inside && dest_inside {
+                    // External -> Internal: sub-flow input
+                    inputs.push(conn.clone());
+                } else if source_inside && !dest_inside {
+                    // Internal -> External: sub-flow output
+                    outputs.push(conn.clone());
+                }
+            }
+        }
+
+        Ok((inputs, outputs))
+    }
+
     /// Extract a sub-flow and all its descendants into a standalone `FlowManifest`.
     ///
     /// The target flow becomes the root of the new manifest (`parent_id` = `None`).
@@ -248,10 +299,11 @@ impl FlowManifest {
 
         for &func_id in &function_ids {
             if let Some(func) = self.functions.get(&func_id) {
-                let mut cloned = func.clone();
-                // Remove output connections that target functions outside the sub-flow
-                cloned.retain_connections(|conn| function_ids.contains(&conn.destination_id));
-                extracted_functions.insert(func_id, cloned);
+                // Preserve all connections, including those targeting functions
+                // outside the sub-flow (boundary outputs). The sub-flow executor
+                // will intercept values sent to non-existent destinations and
+                // relay them back to the parent coordinator.
+                extracted_functions.insert(func_id, func.clone());
             }
         }
 
