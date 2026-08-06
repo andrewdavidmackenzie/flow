@@ -571,6 +571,177 @@ fn executor_registers_subflow_manifest() {
         .expect("add_subflow should succeed");
 }
 
+/// End-to-end test: submit a sub-flow to a peer coordinator running in
+/// a background thread, verify boundary outputs come back.
+#[cfg_attr(target_os = "windows", ignore)]
+#[test]
+#[allow(clippy::too_many_lines)]
+fn peer_coordinator_executes_subflow() {
+    use flowcore::model::flow_manifest::FlowInfo;
+    use flowcore::model::input::{Input, InputInitializer};
+    use flowcore::model::metadata::MetaData;
+    use flowcore::model::output_connection::{OutputConnection, Source};
+    use flowcore::model::runtime_function::RuntimeFunction;
+    use flowrlib::peer_client::PeerClient;
+    use std::sync::Arc;
+
+    // Build a sub-flow: add(7,3)=10 with boundary output to #10:0
+    let mut manifest = FlowManifest::new(MetaData::default());
+    manifest.add_flow_info(FlowInfo {
+        process_id: 0,
+        parent_id: None,
+        sub_flow_ids: vec![],
+        #[cfg(feature = "debugger")]
+        name: "subflow".into(),
+        #[cfg(feature = "debugger")]
+        route: "/subflow".into(),
+    });
+
+    let mut func = RuntimeFunction::new(
+        #[cfg(feature = "debugger")]
+        "add",
+        #[cfg(feature = "debugger")]
+        "/subflow/add",
+        "lib://flowstdlib/math/add",
+        vec![
+            Input::new(
+                #[cfg(feature = "debugger")]
+                "i1",
+                0,
+                false,
+                Some(InputInitializer::Once(serde_json::json!(7))),
+                None,
+            ),
+            Input::new(
+                #[cfg(feature = "debugger")]
+                "i2",
+                0,
+                false,
+                Some(InputInitializer::Once(serde_json::json!(3))),
+                None,
+            ),
+        ],
+        1,
+        0,
+        &[OutputConnection::new(
+            Source::default(),
+            10,
+            0,
+            0,
+            false,
+            String::new(),
+            #[cfg(feature = "debugger")]
+            String::new(),
+        )],
+        false,
+    );
+    let dummy_url = url::Url::parse("file:///dummy/manifest.json").expect("URL");
+    func.set_implementation_url(&dummy_url).expect("set URL");
+    manifest.add_function(func);
+
+    // Start a peer coordinator in a background thread
+    let peer_port = portpicker::pick_unused_port().expect("port");
+    let bind_address = format!("tcp://*:{peer_port}");
+    let peer_thread = std::thread::spawn(move || {
+        let zmq_context = zmq::Context::new();
+        let mut handler = flowrlib::peer_submission_handler::PeerSubmissionHandler::new(
+            &zmq_context,
+            &bind_address,
+        )
+        .expect("handler");
+
+        // Set up coordinator infrastructure
+        let ports = (
+            portpicker::pick_unused_port().expect("port"),
+            portpicker::pick_unused_port().expect("port"),
+            portpicker::pick_unused_port().expect("port"),
+            portpicker::pick_unused_port().expect("port"),
+        );
+        let bind_addrs = (
+            format!("tcp://*:{}", ports.0),
+            format!("tcp://*:{}", ports.1),
+            format!("tcp://*:{}", ports.2),
+            format!("tcp://*:{}", ports.3),
+        );
+        let connect_addrs = (
+            format!("tcp://127.0.0.1:{}", ports.0),
+            format!("tcp://127.0.0.1:{}", ports.1),
+            format!("tcp://127.0.0.1:{}", ports.2),
+            format!("tcp://127.0.0.1:{}", ports.3),
+        );
+
+        let dispatcher = flowrlib::dispatcher::Dispatcher::new(&bind_addrs).expect("dispatcher");
+        let provider = Arc::new(TestProvider) as Arc<dyn flowcore::provider::Provider>;
+
+        let mut executor = flowrlib::executor::Executor::new();
+        #[cfg(feature = "flowstdlib")]
+        executor
+            .add_lib(
+                flowstdlib::manifest::get().expect("flowstdlib"),
+                url::Url::parse("memory://").expect("url"),
+            )
+            .expect("add_lib");
+        executor.start(
+            &provider,
+            1,
+            &connect_addrs.0,
+            &connect_addrs.2,
+            &connect_addrs.3,
+        );
+
+        std::thread::sleep(std::time::Duration::from_millis(100));
+
+        #[cfg(feature = "debugger")]
+        let mut debug_handler = flowrlib::subflow::NoOpDebugHandler;
+
+        let mut coordinator = flowrlib::coordinator::Coordinator::new(
+            dispatcher,
+            #[cfg(feature = "submission")]
+            &mut handler,
+            #[cfg(feature = "debugger")]
+            &mut debug_handler,
+        );
+
+        // Run one submission then exit
+        let _ = coordinator.submission_loop(false);
+        let _ = coordinator.send_done();
+        executor.wait();
+    });
+
+    // Give peer coordinator time to start
+    std::thread::sleep(std::time::Duration::from_millis(200));
+
+    // Connect as parent and submit the sub-flow
+    let zmq_context = zmq::Context::new();
+    let peer_address = format!("127.0.0.1:{peer_port}");
+    let client = PeerClient::connect(&zmq_context, &peer_address).expect("connect");
+
+    let outputs = client
+        .submit_subflow(manifest, vec![])
+        .expect("submit failed");
+
+    // Should have boundary output: add(7,3)=10 -> #10:0
+    assert!(
+        !outputs.is_empty(),
+        "Should have boundary outputs from peer"
+    );
+    assert_eq!(
+        outputs.first().map(|o| &o.value),
+        Some(&serde_json::json!(10))
+    );
+    assert_eq!(
+        outputs.first().map(|o| o.connection.destination_id),
+        Some(10)
+    );
+
+    // Peer exits after one submission (loop_forever = false), no need to signal done.
+    // Drop the client to close the socket.
+    drop(client);
+
+    // Wait for peer thread
+    let _ = peer_thread.join();
+}
+
 /// Minimal provider that reads files from the filesystem.
 struct TestProvider;
 
