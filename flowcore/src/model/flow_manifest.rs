@@ -831,6 +831,7 @@ mod test {
     }
 
     #[test]
+    #[allow(clippy::too_many_lines)]
     fn delegate_subflow_replaces_with_proxy() {
         use super::FlowInfo;
         use crate::model::output_connection::{OutputConnection, Source};
@@ -873,7 +874,17 @@ mod test {
             )],
             10,
             0,
-            &[],
+            // Connection from func10 (parent) into func20 (child flow)
+            &[OutputConnection::new(
+                Source::default(),
+                20,
+                0,
+                1,
+                false,
+                String::new(),
+                #[cfg(feature = "debugger")]
+                String::new(),
+            )],
             false,
         ));
 
@@ -927,7 +938,7 @@ mod test {
         ));
 
         // Delegate child flow #1
-        let (extracted, _input_map) = manifest.delegate_subflow(1).expect("delegate failed");
+        let (extracted, input_map) = manifest.delegate_subflow(1).expect("delegate failed");
 
         // Extracted manifest should have the original child functions
         assert_eq!(extracted.functions().len(), 2);
@@ -939,9 +950,25 @@ mod test {
         assert!(manifest.functions().contains_key(&10));
         assert!(manifest.functions().contains_key(&1)); // proxy replaces flow
 
-        // Proxy function should use subflow:// URL in both location and url
+        // Proxy function should use subflow:// URL
         let proxy = manifest.functions().get(&1).unwrap();
         assert_eq!(proxy.get_implementation_location(), "subflow://1");
         assert_eq!(proxy.get_implementation_url().scheme(), "subflow");
+
+        // input_map should map proxy input 0 to (func20, input 0)
+        assert_eq!(input_map, vec![(20, 0)]);
+
+        // Proxy should have one input (matching the one boundary connection)
+        assert_eq!(proxy.inputs().len(), 1);
+
+        // func10's connection should now target the proxy (id=1, io=0)
+        // instead of func20 (id=20, io=0)
+        let func10 = manifest.functions().get(&10).unwrap();
+        let conns = func10.get_output_connections();
+        assert_eq!(conns.len(), 1);
+        let conn = conns.first().expect("should have one connection");
+        assert_eq!(conn.destination_id, 1);
+        assert_eq!(conn.destination_io_number, 0);
+        assert!(!conn.internal);
     }
 }

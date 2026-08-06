@@ -264,7 +264,7 @@ impl RuntimeFunction {
 
     /// Get a mutable reference to the output connections.
     /// Invalidates the cached `output_connections_arc`.
-    pub fn get_output_connections_mut(&mut self) -> &mut Vec<OutputConnection> {
+    pub(crate) fn get_output_connections_mut(&mut self) -> &mut Vec<OutputConnection> {
         self.output_connections_arc = None;
         &mut self.output_connections
     }

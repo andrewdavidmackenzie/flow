@@ -48,20 +48,7 @@ pub struct Coordinator<'a> {
     /// Peer client for delegated sub-flow communication.
     peer_client: Option<crate::peer_client::PeerClient>,
     /// Shared sub-flow manifest registry from the executor.
-    #[allow(clippy::type_complexity)]
-    subflow_registry: Option<
-        std::sync::Arc<
-            std::sync::RwLock<
-                std::collections::HashMap<
-                    url::Url,
-                    (
-                        flowcore::model::flow_manifest::FlowManifest,
-                        Vec<(usize, usize)>,
-                    ),
-                >,
-            >,
-        >,
-    >,
+    subflow_registry: Option<crate::executor::SubflowRegistry>,
     #[cfg(feature = "debugger")]
     /// A `Debugger` to communicate with debug clients
     debugger: Debugger<'a>,
@@ -226,21 +213,7 @@ impl<'a> Coordinator<'a> {
     }
 
     /// Set the sub-flow registry shared with the executor.
-    #[allow(clippy::type_complexity)]
-    pub fn set_subflow_registry(
-        &mut self,
-        registry: std::sync::Arc<
-            std::sync::RwLock<
-                std::collections::HashMap<
-                    url::Url,
-                    (
-                        flowcore::model::flow_manifest::FlowManifest,
-                        Vec<(usize, usize)>,
-                    ),
-                >,
-            >,
-        >,
-    ) {
+    pub fn set_subflow_registry(&mut self, registry: crate::executor::SubflowRegistry) {
         self.subflow_registry = Some(registry);
     }
 
@@ -315,24 +288,25 @@ impl<'a> Coordinator<'a> {
     pub fn execute_flow(&mut self, mut submission: Submission) -> Result<()> {
         // Handle sub-flow delegation if requested
         if let Some(flow_id) = submission.delegate_flow_id.take() {
-            if let Some(ref registry) = self.subflow_registry {
-                info!("Delegating sub-flow #{flow_id}");
-                match submission.manifest.delegate_subflow(flow_id) {
-                    Ok((extracted, input_map)) => {
-                        let subflow_url = url::Url::parse(&format!("subflow://{flow_id}"))
-                            .map_err(|e| format!("Invalid subflow URL: {e}"))?;
-
-                        if let Ok(mut manifests) = registry.write() {
-                            info!(
-                                "Registered sub-flow #{flow_id} with {} functions",
-                                extracted.functions().len()
-                            );
-                            manifests.insert(subflow_url, (extracted, input_map));
-                        }
-                    }
-                    Err(e) => error!("Could not delegate sub-flow #{flow_id}: {e}"),
-                }
-            }
+            let registry = self
+                .subflow_registry
+                .as_ref()
+                .ok_or("Sub-flow delegation requested but no sub-flow registry is configured")?;
+            info!("Delegating sub-flow #{flow_id}");
+            let (extracted, input_map) = submission
+                .manifest
+                .delegate_subflow(flow_id)
+                .map_err(|e| format!("Could not delegate sub-flow #{flow_id}: {e}"))?;
+            let subflow_url = url::Url::parse(&format!("subflow://{flow_id}"))
+                .map_err(|e| format!("Invalid subflow URL: {e}"))?;
+            let mut manifests = registry
+                .write()
+                .map_err(|_| "Could not gain write access to the sub-flow registry")?;
+            info!(
+                "Registered sub-flow #{flow_id} with {} functions",
+                extracted.functions().len()
+            );
+            manifests.insert(subflow_url, (extracted, input_map));
         }
 
         self.job_timeout = submission.job_timeout;

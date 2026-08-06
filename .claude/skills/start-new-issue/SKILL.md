@@ -37,9 +37,9 @@ push the branch and create a PR from it.
 
 Before committing new work to a branch, the following checks should pass:
 
-- `make clippy` if that Makefile target exists or `cargo clippy` if not
+- `make clippy` (always use the Makefile target, not `cargo clippy`)
 - `cargo fmt` either to check or directly to reformat code.
-- tests pass via `make test` if that Makefile target exists, or `cargo test` if not
+- `make test` (always use the Makefile target, not `cargo test`)
 - Look at coverage numbers and expect the CI code coverage check for the project overall and for the patch to pass
 
 Expect the PR checks to check for:

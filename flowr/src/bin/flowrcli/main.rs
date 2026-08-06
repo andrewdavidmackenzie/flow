@@ -689,8 +689,8 @@ fn client(
         .get_one::<u64>("job-timeout")
         .map(|secs| Duration::from_secs(*secs));
     // If --delegate is set, find the best sub-flow to delegate.
-    // We pick the outermost sub-flow whose entire subtree (all descendant
-    // functions) uses only lib:// implementations.
+    // We pick the sub-flow with the largest function subtree whose entire
+    // descendant tree uses only lib:// implementations.
     let mut delegate_flow_id = None;
     if matches.get_flag("delegate") {
         let mut best: Option<(usize, usize)> = None; // (flow_id, function_count)

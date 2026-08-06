@@ -266,6 +266,30 @@ mod test {
 
     #[test]
     #[serial]
+    fn send_subflow_job() {
+        let payload = Payload {
+            job_id: 0,
+            input_set: vec![],
+            implementation_url: Url::parse("subflow://1").expect("Could not parse Url"),
+        };
+
+        let (mut dispatcher, ports) = new_dispatcher();
+
+        // subflow:// jobs should be routed to the lib job socket (ports.0),
+        // not the context job socket (ports.1).
+        let context = zmq::Context::new();
+        let job_source = context
+            .socket(zmq::PULL)
+            .expect("Could not create PULL end of job socket");
+        job_source
+            .connect(&format!("tcp://127.0.0.1:{}", ports.0))
+            .expect("Could not bind to PULL end of job socket");
+
+        assert!(dispatcher.send_job_for_execution(&payload).is_ok());
+    }
+
+    #[test]
+    #[serial]
     fn get_job() {
         let (mut dispatcher, ports) = new_dispatcher();
 

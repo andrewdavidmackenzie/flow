@@ -22,7 +22,6 @@ use crate::job::Payload;
 use crate::wasm;
 
 /// Registered sub-flow manifests with their input mappings.
-#[allow(dead_code)]
 pub(crate) type SubflowManifests = HashMap<
     Url,
     (
@@ -30,6 +29,9 @@ pub(crate) type SubflowManifests = HashMap<
         Vec<(usize, usize)>,
     ),
 >;
+
+/// Thread-safe shared registry of sub-flow manifests.
+pub type SubflowRegistry = Arc<RwLock<SubflowManifests>>;
 
 /// Global counter of jobs currently being executed by executor threads.
 /// Incremented when an executor starts running a job, decremented when done.
@@ -70,7 +72,6 @@ fn make_executor_id() -> String {
 /// An `Executor` struct is used to receive jobs, execute them, and return results.
 /// It can load libraries and keep track of the `Function` `Implementations` loaded for use
 /// in job execution.
-#[allow(clippy::type_complexity)]
 pub struct Executor {
     // HashMap of library manifests already loaded. The key is the library reference Url
     // (e.g. lib:://flowstdlib), and the entry is a tuple of the LibraryManifest
@@ -78,17 +79,7 @@ pub struct Executor {
     loaded_lib_manifests: Arc<RwLock<HashMap<Url, (LibraryManifest, Url)>>>,
     // Registered sub-flow manifests: URL -> (manifest, input_map).
     // input_map: [(dest_func_id, dest_io_number)] maps proxy inputs to sub-flow inputs.
-    loaded_subflow_manifests: Arc<
-        RwLock<
-            HashMap<
-                Url,
-                (
-                    flowcore::model::flow_manifest::FlowManifest,
-                    Vec<(usize, usize)>,
-                ),
-            >,
-        >,
-    >,
+    loaded_subflow_manifests: SubflowRegistry,
     executors: Vec<JoinHandle<()>>,
 }
 
@@ -136,35 +127,17 @@ impl Executor {
         Ok(())
     }
 
-    /// Register a sub-flow manifest for execution via `subflow://` URLs.
-    ///
-    /// The `input_map` specifies how the proxy function's inputs map to the
-    /// sub-flow's internal function inputs: `[(dest_func_id, dest_io_number)]`.
-    ///
-    /// # Errors
-    ///
-    /// Returns an error if the manifest cannot be registered.
     /// Get a shared reference to the sub-flow manifest registry.
     /// Used by the coordinator to register sub-flows at runtime.
-    #[allow(clippy::type_complexity)]
     #[must_use]
-    pub fn subflow_registry(
-        &self,
-    ) -> std::sync::Arc<
-        std::sync::RwLock<
-            std::collections::HashMap<
-                Url,
-                (
-                    flowcore::model::flow_manifest::FlowManifest,
-                    Vec<(usize, usize)>,
-                ),
-            >,
-        >,
-    > {
+    pub fn subflow_registry(&self) -> SubflowRegistry {
         self.loaded_subflow_manifests.clone()
     }
 
     /// Register a sub-flow manifest for `subflow://` URL execution.
+    ///
+    /// The `input_map` specifies how the proxy function's inputs map to the
+    /// sub-flow's internal function inputs: `[(dest_func_id, dest_io_number)]`.
     ///
     /// # Errors
     ///
@@ -285,11 +258,7 @@ impl Executor {
     }
 }
 
-#[allow(
-    clippy::too_many_arguments,
-    clippy::too_many_lines,
-    clippy::type_complexity
-)]
+#[allow(clippy::too_many_arguments, clippy::too_many_lines)]
 #[allow(clippy::needless_pass_by_value)]
 fn execution_loop(
     provider: &Arc<dyn Provider>,
@@ -297,17 +266,7 @@ fn execution_loop(
     context: &zmq::Context,
     loaded_implementations: &Arc<RwLock<HashMap<Url, Arc<dyn Implementation>>>>,
     loaded_lib_manifests: &Arc<RwLock<HashMap<Url, (LibraryManifest, Url)>>>,
-    loaded_subflow_manifests: &Arc<
-        RwLock<
-            HashMap<
-                Url,
-                (
-                    flowcore::model::flow_manifest::FlowManifest,
-                    Vec<(usize, usize)>,
-                ),
-            >,
-        >,
-    >,
+    loaded_subflow_manifests: &SubflowRegistry,
     job_service: String,
     results_service: String,
     control_address: String,
@@ -476,24 +435,13 @@ fn execution_loop(
 
 /// Execute a job and return the serialized result string (for spawned execution).
 /// Like `execute_job` but does not send the result over ZMQ directly.
-#[allow(clippy::type_complexity)]
 fn execute_job_to_string(
     provider: &Arc<dyn Provider>,
     payload: &Payload,
     executor_id: &str,
     loaded_implementations: &Arc<RwLock<HashMap<Url, Arc<dyn Implementation>>>>,
     loaded_lib_manifests: &Arc<RwLock<HashMap<Url, (LibraryManifest, Url)>>>,
-    loaded_subflow_manifests: &Arc<
-        RwLock<
-            HashMap<
-                Url,
-                (
-                    flowcore::model::flow_manifest::FlowManifest,
-                    Vec<(usize, usize)>,
-                ),
-            >,
-        >,
-    >,
+    loaded_subflow_manifests: &SubflowRegistry,
 ) -> Result<String> {
     let implementation = get_or_load_implementation(
         provider,
@@ -533,23 +481,12 @@ fn set_panic_hook() {
 /// Get (or load) the implementation for a job, releasing the lock before returning.
 /// This is critical: `run()` may block (e.g. readline waiting for user input) and
 /// holding the lock would prevent other executor threads from running concurrently.
-#[allow(clippy::type_complexity)]
 fn get_or_load_implementation(
     provider: &Arc<dyn Provider>,
     payload: &Payload,
     loaded_implementations: &Arc<RwLock<HashMap<Url, Arc<dyn Implementation>>>>,
     loaded_lib_manifests: &Arc<RwLock<HashMap<Url, (LibraryManifest, Url)>>>,
-    loaded_subflow_manifests: &Arc<
-        RwLock<
-            HashMap<
-                Url,
-                (
-                    flowcore::model::flow_manifest::FlowManifest,
-                    Vec<(usize, usize)>,
-                ),
-            >,
-        >,
-    >,
+    loaded_subflow_manifests: &SubflowRegistry,
 ) -> Result<Arc<dyn Implementation>> {
     // First try a read lock to avoid contention
     let needs_load = {
@@ -644,7 +581,6 @@ fn get_or_load_implementation(
 }
 
 // Return Ok(keep_processing) flag as true or false to keep processing
-#[allow(clippy::type_complexity)]
 fn execute_job(
     provider: &Arc<dyn Provider>,
     payload: &Payload,
@@ -652,17 +588,7 @@ fn execute_job(
     executor_id: &str,
     loaded_implementations: &Arc<RwLock<HashMap<Url, Arc<dyn Implementation>>>>,
     loaded_lib_manifests: &Arc<RwLock<HashMap<Url, (LibraryManifest, Url)>>>,
-    loaded_subflow_manifests: &Arc<
-        RwLock<
-            HashMap<
-                Url,
-                (
-                    flowcore::model::flow_manifest::FlowManifest,
-                    Vec<(usize, usize)>,
-                ),
-            >,
-        >,
-    >,
+    loaded_subflow_manifests: &SubflowRegistry,
 ) -> Result<bool> {
     let implementation = get_or_load_implementation(
         provider,
@@ -773,7 +699,7 @@ mod test {
 
     use crate::job::{Job, Payload};
 
-    fn empty_subflow_manifests() -> Arc<RwLock<super::SubflowManifests>> {
+    fn empty_subflow_manifests() -> super::SubflowRegistry {
         Arc::new(RwLock::new(HashMap::new()))
     }
 
