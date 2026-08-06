@@ -31,7 +31,7 @@ use std::{env, thread};
 
 use clap::{Arg, ArgMatches, Command};
 use env_logger::Builder;
-use log::{error, info, trace, LevelFilter};
+use log::{error, info, trace, warn, LevelFilter};
 use portpicker::pick_unused_port;
 use simpath::Simpath;
 use url::Url;
@@ -684,6 +684,44 @@ fn client(
     let job_timeout = matches
         .get_one::<u64>("job-timeout")
         .map(|secs| Duration::from_secs(*secs));
+    // If --delegate is set, try to delegate a sub-flow to a peer coordinator
+    if matches.get_flag("delegate") {
+        let sub_flow_ids: Vec<usize> = flow_manifest
+            .flows()
+            .iter()
+            .filter(|(_, f)| f.parent_id.is_some()) // skip root flow
+            .map(|(&id, _)| id)
+            .collect();
+
+        if let Some(&subflow_id) = sub_flow_ids.first() {
+            info!("Attempting to delegate sub-flow #{subflow_id} to a peer coordinator");
+            match flowrlib::delegation::delegate_subflow(&flow_manifest, subflow_id, None, vec![]) {
+                Ok(Some(result)) => {
+                    info!(
+                        "Sub-flow #{} delegated to peer at {}: {} boundary outputs",
+                        result.flow_id,
+                        result.peer_address,
+                        result.boundary_outputs.len()
+                    );
+                    for output in &result.boundary_outputs {
+                        info!(
+                            "  Boundary output: -> #{}:{} = {}",
+                            output.connection.destination_id,
+                            output.connection.destination_io_number,
+                            output.value
+                        );
+                    }
+                }
+                Ok(None) => {
+                    info!("No peer coordinators available for delegation");
+                }
+                Err(e) => {
+                    warn!("Delegation failed: {e}");
+                }
+            }
+        }
+    }
+
     let submission = Submission::new(
         flow_manifest,
         parallel_jobs_limit,
@@ -822,6 +860,13 @@ fn get_matches() -> ArgMatches {
             .number_of_values(1)
             .value_name("TRACE_FILE")
             .help("Write execution trace to the specified file (JSON format)"),
+    );
+
+    let app = app.arg(
+        Arg::new("delegate")
+            .long("delegate")
+            .action(clap::ArgAction::SetTrue)
+            .help("Delegate sub-flows to peer coordinators on the network"),
     );
 
     app.get_matches()
