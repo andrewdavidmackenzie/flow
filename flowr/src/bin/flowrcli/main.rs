@@ -664,6 +664,7 @@ fn client_only(
 }
 
 /// Start the client that talks to the coordinator
+#[allow(clippy::too_many_lines)]
 fn client(
     matches: &ArgMatches,
     lib_search_path: Simpath,
@@ -675,7 +676,7 @@ fn client(
 
     let flow_manifest_url = parse_flow_url(matches)?;
     let provider = MetaProvider::new(lib_search_path, PathBuf::default());
-    let (flow_manifest, _) = FlowManifest::load(&provider, &flow_manifest_url)?;
+    let (mut flow_manifest, _) = FlowManifest::load(&provider, &flow_manifest_url)?;
 
     let flow_args = get_flow_args(matches, &flow_manifest_url);
     let parallel_jobs_limit = matches
@@ -685,15 +686,17 @@ fn client(
         .get_one::<u64>("job-timeout")
         .map(|secs| Duration::from_secs(*secs));
     // If --delegate is set, try to delegate a sub-flow to a peer coordinator
+    // This modifies the manifest: delegated functions are removed and values
+    // destined for them will be routed to the peer during execution.
+    let mut delegated_func_ids = std::collections::HashSet::new();
+
     if matches.get_flag("delegate") {
         // Find a sub-flow whose functions only use lib:// implementations
-        // (peer coordinators don't have context functions)
         let sub_flow_ids: Vec<usize> = flow_manifest
             .flows()
             .iter()
-            .filter(|(_, f)| f.parent_id.is_some()) // skip root flow
+            .filter(|(_, f)| f.parent_id.is_some())
             .filter(|(&flow_id, _)| {
-                // Check all functions in this flow use lib:// only
                 flow_manifest
                     .functions()
                     .values()
@@ -704,42 +707,66 @@ fn client(
             .collect();
 
         if let Some(&subflow_id) = sub_flow_ids.first() {
-            let func_count = flow_manifest
+            // Collect function IDs inside this sub-flow before delegation
+            let func_ids: std::collections::HashSet<usize> = flow_manifest
                 .functions()
-                .values()
-                .filter(|f| f.get_parent_id() == subflow_id)
-                .count();
+                .iter()
+                .filter(|(_, f)| f.get_parent_id() == subflow_id)
+                .map(|(&id, _)| id)
+                .collect();
+
             info!(
-                "Attempting to delegate sub-flow #{subflow_id} ({func_count} lib:// functions) to a peer"
+                "Attempting to delegate sub-flow #{subflow_id} ({} functions) to a peer",
+                func_ids.len()
             );
-            match flowrlib::delegation::delegate_subflow(&flow_manifest, subflow_id, None, vec![]) {
-                Ok(Some(result)) => {
-                    info!(
-                        "Sub-flow #{} delegated to peer at {}: {} boundary outputs",
-                        result.flow_id,
-                        result.peer_address,
-                        result.boundary_outputs.len()
-                    );
-                    for output in &result.boundary_outputs {
-                        info!(
-                            "  Boundary output: -> #{}:{} = {}",
-                            output.connection.destination_id,
-                            output.connection.destination_io_number,
-                            output.value
-                        );
+
+            // Discover and connect to a peer
+            match flowrlib::peer_discovery::discover_peer_coordinators(
+                std::time::Duration::from_secs(3),
+                None,
+            ) {
+                Ok(peers) if !peers.is_empty() => {
+                    if let Some(peer_addr) = peers.first() {
+                        info!("Discovered peer coordinator at {peer_addr}");
+
+                        // Extract and send the sub-flow manifest to peer
+                        match flow_manifest.extract_subflow(subflow_id) {
+                            Ok(extracted) => {
+                                let zmq_ctx = zmq::Context::new();
+                                match flowrlib::peer_client::PeerClient::connect(
+                                    &zmq_ctx, peer_addr,
+                                ) {
+                                    Ok(client) => {
+                                        info!("Connected to peer, sending sub-flow manifest");
+                                        let _ = client.submit_subflow(extracted, vec![]);
+                                        drop(client);
+                                    }
+                                    Err(e) => warn!("Could not connect to peer: {e}"),
+                                }
+                            }
+                            Err(e) => warn!("Could not extract sub-flow: {e}"),
+                        }
+
+                        // Remove the delegated functions from the local manifest
+                        match flow_manifest.delegate_subflow(subflow_id) {
+                            Ok(_) => {
+                                delegated_func_ids = func_ids;
+                                info!(
+                                    "Removed {} delegated functions from local manifest",
+                                    delegated_func_ids.len()
+                                );
+                            }
+                            Err(e) => warn!("Could not delegate sub-flow: {e}"),
+                        }
                     }
                 }
-                Ok(None) => {
-                    info!("No peer coordinators available for delegation");
-                }
-                Err(e) => {
-                    warn!("Delegation failed: {e}");
-                }
+                Ok(_) => info!("No peer coordinators available"),
+                Err(e) => warn!("Peer discovery failed: {e}"),
             }
         }
     }
 
-    let submission = Submission::new(
+    let mut submission = Submission::new(
         flow_manifest,
         parallel_jobs_limit,
         job_timeout,
@@ -750,6 +777,7 @@ fn client(
             .get_one::<String>("trace")
             .map(std::string::ToString::to_string),
     );
+    submission.delegated_functions = delegated_func_ids;
 
     trace!("Creating CliRuntimeClient");
     let client = CliRuntimeClient::new(

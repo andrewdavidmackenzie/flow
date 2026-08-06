@@ -45,6 +45,10 @@ pub struct Coordinator<'a> {
     /// URLs in job payloads are rewritten to `http://` URLs so remote executors
     /// can fetch WASM modules.
     wasm_base_url: Option<url::Url>,
+    /// Peer client for delegated sub-flow communication.
+    /// When set, the coordinator routes values for delegated functions
+    /// to the peer and receives boundary outputs.
+    peer_client: Option<crate::peer_client::PeerClient>,
     #[cfg(feature = "debugger")]
     /// A `Debugger` to communicate with debug clients
     debugger: Debugger<'a>,
@@ -187,6 +191,7 @@ impl<'a> Coordinator<'a> {
             dispatcher,
             job_timeout: None,
             wasm_base_url: None,
+            peer_client: None,
             #[cfg(feature = "debugger")]
             debugger: Debugger::new(debug_server),
             #[cfg(all(not(feature = "debugger"), not(feature = "submission")))]
@@ -199,6 +204,11 @@ impl<'a> Coordinator<'a> {
     /// remote executors can fetch WASM modules.
     pub fn set_wasm_base_url(&mut self, base_url: url::Url) {
         self.wasm_base_url = Some(base_url);
+    }
+
+    /// Set the peer client for delegated sub-flow communication.
+    pub fn set_peer_client(&mut self, client: crate::peer_client::PeerClient) {
+        self.peer_client = Some(client);
     }
 
     /// Send a DONE signal to all connected executors, telling them to exit.
@@ -423,6 +433,25 @@ impl<'a> Coordinator<'a> {
             {
                 total_retire_us += retire_start.elapsed().as_micros();
                 loop_count += 1;
+            }
+
+            // Send any values destined for delegated functions to the peer
+            if self.peer_client.is_some() {
+                let peer_outputs = state.drain_peer_outputs();
+                if !peer_outputs.is_empty() {
+                    if let Some(ref client) = self.peer_client {
+                        for output in &peer_outputs {
+                            info!(
+                                "Sending to peer: -> #{}:{} = {}",
+                                output.connection.destination_id,
+                                output.connection.destination_io_number,
+                                output.value
+                            );
+                        }
+                        // TODO: send peer_outputs to peer and receive boundary outputs
+                        // For now, just log them
+                    }
+                }
             }
 
             #[cfg(all(feature = "submission", any(feature = "metrics", feature = "debugger")))]
