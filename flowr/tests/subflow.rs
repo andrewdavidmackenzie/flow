@@ -768,7 +768,7 @@ fn flowrex_peer_coordinator_end_to_end() {
         .expect("Could not spawn flowrex");
 
     // Wait for flowrex to start and advertise its peer-coordinator service
-    std::thread::sleep(Duration::from_secs(5));
+    std::thread::sleep(Duration::from_secs(3));
 
     // Discover the peer coordinator
     let peers = discover_peer_coordinators(Duration::from_secs(5), None).expect("discovery failed");
@@ -883,7 +883,7 @@ fn delegate_subflow_to_peer() {
         .spawn()
         .expect("Could not spawn flowrex");
 
-    std::thread::sleep(Duration::from_secs(5));
+    std::thread::sleep(Duration::from_secs(3));
 
     // Build manifest with root flow containing a child sub-flow
     let mut manifest = FlowManifest::new(MetaData::default());
