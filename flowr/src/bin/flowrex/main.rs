@@ -1,12 +1,14 @@
 #![deny(clippy::unwrap_used, clippy::expect_used)]
 
-//! `flowrex` is the minimal executor of flow jobs. It loads a native version of 'flowstdlib'
-//! flow library to allow execution of jobs using functions provided by 'flowstdlib', but it does
-//! *not* load 'context' and hence will not execute any jobs interacting with the context.
-//! It attempts to be as small as possible, and only accepts jobs for execution over the network
-//! and does not load flows, accept flow submissions run a coordinator or access the file system.
-//! Any implementations are either preloaded static linked binary functions or loaded from WASM
-//! from peers.
+//! `flowrex` is a remote executor and peer coordinator for flow execution.
+//!
+//! It operates in two modes simultaneously:
+//! - **Executor mode**: pulls individual jobs from a parent coordinator's ZMQ PUSH socket
+//! - **Peer coordinator mode**: accepts sub-flow submissions from parent coordinators,
+//!   runs them through its own coordinator loop, and relays boundary outputs back
+//!
+//! It loads a native version of `flowstdlib` for executing library functions, and can
+//! load WASM implementations via HTTP from the parent coordinator's WASM server.
 
 use core::str::FromStr;
 use std::path::PathBuf;
@@ -20,6 +22,7 @@ use flowrlib::discovery::discover_service_with_retry;
 use log::{error, info, trace, LevelFilter};
 use simpath::Simpath;
 #[cfg(feature = "flowstdlib")]
+#[cfg(feature = "flowstdlib")]
 use url::Url;
 
 use flowcore::errors::Result;
@@ -30,6 +33,21 @@ use flowcore::provider::Provider;
 use flowrlib::executor::Executor;
 use flowrlib::info as flowrlib_info;
 use flowrlib::services::{CONTROL_SERVICE_NAME, JOB_SERVICE_NAME, RESULTS_JOB_SERVICE_NAME};
+
+#[cfg(feature = "submission")]
+use flowcore::discovery::{create_service_daemon, register_service, shutdown_service_daemon};
+#[cfg(feature = "submission")]
+use flowrlib::coordinator::Coordinator;
+#[cfg(feature = "submission")]
+use flowrlib::dispatcher::Dispatcher;
+#[cfg(feature = "submission")]
+use flowrlib::peer_submission_handler::PeerSubmissionHandler;
+#[cfg(feature = "submission")]
+use flowrlib::services::PEER_COORDINATOR_SERVICE_NAME;
+#[cfg(feature = "submission")]
+use flowrlib::wasm_server::WasmServer;
+#[cfg(feature = "submission")]
+use portpicker::pick_unused_port;
 
 /// We'll put our errors in an `errors` module, and other modules in this crate will
 /// `use crate::errors::*;` to get access to everything `thiserror` creates.
@@ -47,6 +65,7 @@ fn main() {
     }
 }
 
+#[allow(clippy::unnecessary_wraps)]
 fn run() -> Result<()> {
     let matches = get_matches();
 
@@ -63,11 +82,118 @@ fn run() -> Result<()> {
     );
     info!("'flowrlib' version {}", flowrlib_info::version());
 
-    start_executors(num_threads(&matches))?;
+    let num_threads = num_threads(&matches);
+
+    // Use a channel so either thread can signal the main thread to exit
+    let (exit_tx, exit_rx) = std::sync::mpsc::channel::<String>();
+
+    // Start executor threads for pulling individual jobs (existing behavior)
+    let exit_tx_exec = exit_tx.clone();
+    thread::spawn(move || {
+        if let Err(e) = start_executors(num_threads) {
+            let _ = exit_tx_exec.send(format!("Executor error: {e}"));
+        }
+    });
+
+    // Start peer coordinator for accepting sub-flow submissions
+    #[cfg(feature = "submission")]
+    thread::spawn(move || {
+        if let Err(e) = run_peer_coordinator() {
+            let _ = exit_tx.send(format!("Peer coordinator error: {e}"));
+        }
+    });
+    #[cfg(not(feature = "submission"))]
+    drop(exit_tx);
+
+    // Wait for either thread to signal an error
+    // Both threads loop forever in normal operation
+    if let Ok(msg) = exit_rx.recv() {
+        error!("{msg}");
+    }
 
     info!("'{}' has exited", env!("CARGO_PKG_NAME"));
 
     Ok(())
+}
+
+/// Run a peer coordinator that accepts sub-flow submissions from parent
+/// coordinators. Advertises itself via mDNS and listens on a ZMQ REP socket.
+#[cfg(feature = "submission")]
+fn run_peer_coordinator() -> Result<()> {
+    let peer_port = pick_unused_port().ok_or("No ports free for peer coordinator")?;
+    let bind_address = format!("tcp://*:{peer_port}");
+
+    let mdns = create_service_daemon()?;
+    let fullname = register_service(&mdns, PEER_COORDINATOR_SERVICE_NAME, peer_port)?;
+    info!("Peer coordinator advertised on port {peer_port}");
+
+    let zmq_context = zmq::Context::new();
+    let mut peer_handler = PeerSubmissionHandler::new(&zmq_context, &bind_address)?;
+
+    // Set up dispatcher and executor for running received sub-flows
+    let ports = (
+        pick_unused_port().ok_or("No ports free")?,
+        pick_unused_port().ok_or("No ports free")?,
+        pick_unused_port().ok_or("No ports free")?,
+        pick_unused_port().ok_or("No ports free")?,
+    );
+    let bind_addrs = (
+        format!("tcp://*:{}", ports.0),
+        format!("tcp://*:{}", ports.1),
+        format!("tcp://*:{}", ports.2),
+        format!("tcp://*:{}", ports.3),
+    );
+    let connect_addrs = (
+        format!("tcp://127.0.0.1:{}", ports.0),
+        format!("tcp://127.0.0.1:{}", ports.1),
+        format!("tcp://127.0.0.1:{}", ports.2),
+        format!("tcp://127.0.0.1:{}", ports.3),
+    );
+
+    let dispatcher = Dispatcher::new(&bind_addrs)?;
+
+    let provider =
+        Arc::new(MetaProvider::new(Simpath::new(""), PathBuf::default())) as Arc<dyn Provider>;
+
+    let mut executor = Executor::new();
+    #[cfg(feature = "flowstdlib")]
+    executor.add_lib(
+        flowstdlib::manifest::get().chain_err(|| "Could not get 'native' flowstdlib manifest")?,
+        Url::parse("memory://")?,
+    )?;
+    executor.start(
+        &provider,
+        thread::available_parallelism().map_or(1, std::num::NonZero::get),
+        &connect_addrs.0,
+        &connect_addrs.2,
+        &connect_addrs.3,
+    );
+
+    // Start WASM server for sub-flow WASM files
+    let _wasm_server = WasmServer::start(std::path::Path::new("/")).ok();
+
+    #[cfg(feature = "debugger")]
+    let mut debug_handler = flowrlib::subflow::NoOpDebugHandler;
+
+    let mut coordinator = Coordinator::new(
+        dispatcher,
+        #[cfg(feature = "submission")]
+        &mut peer_handler,
+        #[cfg(feature = "debugger")]
+        &mut debug_handler,
+    );
+
+    info!("Peer coordinator entering submission loop");
+    let result = coordinator.submission_loop(true);
+
+    // Cleanup
+    let _ = coordinator.send_done();
+    executor.wait();
+    if let Err(e) = shutdown_service_daemon(&mdns, &[fullname]) {
+        error!("Could not shut down peer mDNS: {e}");
+    }
+
+    result
 }
 
 fn start_executors(num_threads: usize) -> Result<()> {

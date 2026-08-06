@@ -21,3 +21,6 @@ pub const BLOCKING_IO_SERVICE_NAME: &str = "blocking-io";
 /// Use this to discover the debug service by name
 #[cfg(feature = "debugger")]
 pub const DEBUG_SERVICE_NAME: &str = "debug";
+
+/// Use this to discover a peer coordinator that can accept sub-flow submissions
+pub const PEER_COORDINATOR_SERVICE_NAME: &str = "peer-coordinator";

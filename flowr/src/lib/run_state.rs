@@ -293,6 +293,7 @@ impl RunState {
         };
         #[cfg(feature = "trace")]
         let trace = crate::trace::topology_from_submission(&submission);
+        let is_subflow = submission.is_subflow;
         RunState {
             submission,
             ready_jobs: VecDeque::<Job>::new(),
@@ -308,7 +309,7 @@ impl RunState {
             newly_busy_flows: Vec::new(),
             #[cfg(feature = "trace")]
             trace,
-            is_subflow: false,
+            is_subflow,
             boundary_outputs: Vec::new(),
         }
     }
@@ -1032,6 +1033,12 @@ impl RunState {
     #[must_use]
     pub fn jobs_per_function(&self) -> &[usize] {
         &self.jobs_per_function
+    }
+
+    /// Get a reference to the boundary outputs collected during sub-flow execution.
+    #[must_use]
+    pub fn boundary_outputs(&self) -> &[BoundaryOutput] {
+        &self.boundary_outputs
     }
 
     /// Drain all boundary outputs collected during sub-flow execution.
