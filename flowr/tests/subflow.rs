@@ -761,7 +761,7 @@ fn flowrex_peer_coordinator_end_to_end() {
 
     // Start flowrex as a peer coordinator
     let mut flowrex = ProcessCommand::new("flowrex")
-        .args(["--threads", "1", "-v", "info"])
+        .args(["--threads", "0", "-v", "info"])
         .stdout(Stdio::null())
         .stderr(Stdio::null())
         .spawn()
