@@ -745,7 +745,7 @@ fn peer_coordinator_executes_subflow() {
 /// End-to-end test with a real flowrex process as peer coordinator.
 /// Starts flowrex, discovers its peer-coordinator service via mDNS,
 /// submits a sub-flow, and verifies boundary outputs.
-#[ignore] // Spawns flowrex process + mDNS discovery — too slow for CI timeout
+#[ignore = "Spawns flowrex process + mDNS discovery, too slow for CI"]
 #[test]
 #[allow(clippy::too_many_lines)]
 fn flowrex_peer_coordinator_end_to_end() {
@@ -862,7 +862,7 @@ fn flowrex_peer_coordinator_end_to_end() {
 }
 
 /// Test `delegate_subflow` with a real flowrex peer coordinator.
-#[ignore] // Spawns flowrex process + mDNS discovery — too slow for CI timeout
+#[ignore = "Spawns flowrex process + mDNS discovery, too slow for CI"]
 #[test]
 #[allow(clippy::too_many_lines)]
 fn delegate_subflow_to_peer() {
