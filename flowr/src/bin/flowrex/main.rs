@@ -77,25 +77,29 @@ fn run() -> Result<()> {
 
     let num_threads = num_threads(&matches);
 
-    // Start executor threads for pulling individual jobs (existing behavior)
-    let executor_handle = {
-        thread::spawn(move || {
-            if let Err(e) = start_executors(num_threads) {
-                error!("Executor error: {e}");
-            }
-        })
-    };
+    // Use a channel so either thread can signal the main thread to exit
+    let (exit_tx, exit_rx) = std::sync::mpsc::channel::<String>();
 
-    // Start peer coordinator for accepting sub-flow submissions
-    let peer_handle = thread::spawn(|| {
-        if let Err(e) = run_peer_coordinator() {
-            error!("Peer coordinator error: {e}");
+    // Start executor threads for pulling individual jobs (existing behavior)
+    let exit_tx_exec = exit_tx.clone();
+    thread::spawn(move || {
+        if let Err(e) = start_executors(num_threads) {
+            let _ = exit_tx_exec.send(format!("Executor error: {e}"));
         }
     });
 
-    // Wait for either thread to finish (normally they loop forever)
-    let _ = executor_handle.join();
-    let _ = peer_handle.join();
+    // Start peer coordinator for accepting sub-flow submissions
+    thread::spawn(move || {
+        if let Err(e) = run_peer_coordinator() {
+            let _ = exit_tx.send(format!("Peer coordinator error: {e}"));
+        }
+    });
+
+    // Wait for either thread to signal an error
+    // Both threads loop forever in normal operation
+    if let Ok(msg) = exit_rx.recv() {
+        error!("{msg}");
+    }
 
     info!("'{}' has exited", env!("CARGO_PKG_NAME"));
 
