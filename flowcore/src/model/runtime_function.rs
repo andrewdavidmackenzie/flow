@@ -262,6 +262,13 @@ impl RuntimeFunction {
         &self.output_connections
     }
 
+    /// Get a mutable reference to the output connections.
+    /// Invalidates the cached `output_connections_arc`.
+    pub fn get_output_connections_mut(&mut self) -> &mut Vec<OutputConnection> {
+        self.output_connections_arc = None;
+        &mut self.output_connections
+    }
+
     /// Get a shared Arc reference to the output connections, suitable for
     /// cheap cloning into Job structs without deep-copying the connections.
     /// The Arc is lazily initialized on first call.

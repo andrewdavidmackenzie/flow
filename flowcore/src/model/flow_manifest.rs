@@ -282,7 +282,10 @@ impl FlowManifest {
     ///
     /// Returns an error if the `flow_id` is not found.
     pub fn delegate_subflow(&mut self, flow_id: usize) -> Result<FlowManifest> {
-        // Extract the sub-flow manifest first
+        // Compute the interface BEFORE removing functions
+        let (interface_inputs, _interface_outputs) = self.subflow_interface(flow_id)?;
+
+        // Extract the sub-flow manifest
         let extracted = self.extract_subflow(flow_id)?;
 
         // Find all function IDs inside the sub-flow
@@ -306,12 +309,58 @@ impl FlowManifest {
                 self.flows.remove(&fid);
             }
         }
-        // Clear sub-flow IDs on the target flow
         if let Some(flow_info) = self.flows.get_mut(&flow_id) {
             flow_info.sub_flow_ids.clear();
         }
 
-        // Create a proxy function with subflow:// URL
+        // Build proxy inputs — one for each unique interface input
+        // Group by (destination_id, destination_io_number) to avoid duplicates
+        let mut input_map: Vec<(usize, usize)> = interface_inputs
+            .iter()
+            .map(|c| (c.destination_id, c.destination_io_number))
+            .collect();
+        input_map.sort_unstable();
+        input_map.dedup();
+
+        let proxy_inputs: Vec<crate::model::input::Input> = input_map
+            .iter()
+            .enumerate()
+            .map(|(input_idx, _)| {
+                let _ = input_idx; // used only with debugger feature
+                crate::model::input::Input::new(
+                    #[cfg(feature = "debugger")]
+                    format!("input_{input_idx}"),
+                    0,
+                    false,
+                    None,
+                    None,
+                )
+            })
+            .collect();
+
+        // Rewrite connections that targeted the delegated functions to
+        // target the proxy function instead
+        let inside_set: HashSet<usize> = inside_func_ids.iter().copied().collect();
+        for func in self.functions.values_mut() {
+            for conn in func.get_output_connections_mut() {
+                if inside_set.contains(&conn.destination_id) {
+                    // Find which proxy input this maps to
+                    let key = (conn.destination_id, conn.destination_io_number);
+                    if let Some(proxy_input_idx) = input_map.iter().position(|k| *k == key) {
+                        conn.destination_id = flow_id;
+                        conn.destination_io_number = proxy_input_idx;
+                        conn.destination_parent_id = self
+                            .flows
+                            .get(&flow_id)
+                            .and_then(|f| f.parent_id)
+                            .unwrap_or(0);
+                        conn.internal = false;
+                    }
+                }
+            }
+        }
+
+        // Create proxy function
         let subflow_url = format!("subflow://{flow_id}");
         let parent_id = self
             .flows
@@ -324,17 +373,17 @@ impl FlowManifest {
             #[cfg(feature = "debugger")]
             format!("/subflow/{flow_id}"),
             &subflow_url,
-            vec![],  // inputs will be injected by the sub-flow implementation
-            flow_id, // use the flow's process_id for the proxy
+            proxy_inputs,
+            flow_id,
             parent_id,
-            &[], // no output connections — routing is in the boundary outputs
+            &[], // output connections are in the boundary outputs
             false,
         );
-        // Set the implementation_url from implementation_location.
-        // subflow:// URLs parse directly, no manifest base URL needed.
         let dummy_base = Url::parse("file:///").map_err(|e| format!("{e}"))?;
         proxy.set_implementation_url(&dummy_base)?;
         self.functions.insert(flow_id, proxy);
+
+        self.mark_internal_inputs();
 
         Ok(extracted)
     }

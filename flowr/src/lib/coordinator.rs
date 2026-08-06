@@ -436,20 +436,28 @@ impl<'a> Coordinator<'a> {
             }
 
             // Send any values destined for delegated functions to the peer
+            // and receive boundary outputs back into the local flow
             if self.peer_client.is_some() {
                 let peer_outputs = state.drain_peer_outputs();
                 if !peer_outputs.is_empty() {
-                    if let Some(ref client) = self.peer_client {
-                        for output in &peer_outputs {
-                            info!(
-                                "Sending to peer: -> #{}:{} = {}",
-                                output.connection.destination_id,
-                                output.connection.destination_io_number,
-                                output.value
-                            );
-                        }
-                        // TODO: send peer_outputs to peer and receive boundary outputs
-                        // For now, just log them
+                    info!("Sending {} values to peer coordinator", peer_outputs.len());
+                    // Convert peer_outputs to input tuples for the peer
+                    let inputs: Vec<(usize, usize, serde_json::Value)> = peer_outputs
+                        .iter()
+                        .map(|o| {
+                            (
+                                o.connection.destination_id,
+                                o.connection.destination_io_number,
+                                o.value.clone(),
+                            )
+                        })
+                        .collect();
+
+                    // TODO: submit to peer and receive boundary outputs
+                    // This requires maintaining the peer connection across the
+                    // dispatch/retire loop. For now, log what would be sent.
+                    for (dest_id, dest_io, value) in &inputs {
+                        info!("  -> #{dest_id}:{dest_io} = {value}");
                     }
                 }
             }

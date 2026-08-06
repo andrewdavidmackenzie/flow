@@ -567,7 +567,7 @@ fn executor_registers_subflow_manifest() {
     let mut executor = Executor::new();
     let subflow_url = url::Url::parse("subflow://0").expect("subflow URL");
     executor
-        .add_subflow(subflow_url, manifest)
+        .add_subflow(subflow_url, manifest, vec![])
         .expect("add_subflow should succeed");
 }
 
