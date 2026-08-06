@@ -25,21 +25,28 @@ use simpath::Simpath;
 #[cfg(feature = "flowstdlib")]
 use url::Url;
 
-use flowcore::discovery::{create_service_daemon, register_service, shutdown_service_daemon};
 use flowcore::errors::Result;
 #[cfg(feature = "flowstdlib")]
 use flowcore::errors::ResultExt;
 use flowcore::meta_provider::MetaProvider;
 use flowcore::provider::Provider;
-use flowrlib::coordinator::Coordinator;
-use flowrlib::dispatcher::Dispatcher;
 use flowrlib::executor::Executor;
 use flowrlib::info as flowrlib_info;
+use flowrlib::services::{CONTROL_SERVICE_NAME, JOB_SERVICE_NAME, RESULTS_JOB_SERVICE_NAME};
+
+#[cfg(feature = "submission")]
+use flowcore::discovery::{create_service_daemon, register_service, shutdown_service_daemon};
+#[cfg(feature = "submission")]
+use flowrlib::coordinator::Coordinator;
+#[cfg(feature = "submission")]
+use flowrlib::dispatcher::Dispatcher;
+#[cfg(feature = "submission")]
 use flowrlib::peer_submission_handler::PeerSubmissionHandler;
-use flowrlib::services::{
-    CONTROL_SERVICE_NAME, JOB_SERVICE_NAME, PEER_COORDINATOR_SERVICE_NAME, RESULTS_JOB_SERVICE_NAME,
-};
+#[cfg(feature = "submission")]
+use flowrlib::services::PEER_COORDINATOR_SERVICE_NAME;
+#[cfg(feature = "submission")]
 use flowrlib::wasm_server::WasmServer;
+#[cfg(feature = "submission")]
 use portpicker::pick_unused_port;
 
 /// We'll put our errors in an `errors` module, and other modules in this crate will
@@ -89,11 +96,14 @@ fn run() -> Result<()> {
     });
 
     // Start peer coordinator for accepting sub-flow submissions
+    #[cfg(feature = "submission")]
     thread::spawn(move || {
         if let Err(e) = run_peer_coordinator() {
             let _ = exit_tx.send(format!("Peer coordinator error: {e}"));
         }
     });
+    #[cfg(not(feature = "submission"))]
+    drop(exit_tx);
 
     // Wait for either thread to signal an error
     // Both threads loop forever in normal operation
@@ -108,6 +118,7 @@ fn run() -> Result<()> {
 
 /// Run a peer coordinator that accepts sub-flow submissions from parent
 /// coordinators. Advertises itself via mDNS and listens on a ZMQ REP socket.
+#[cfg(feature = "submission")]
 fn run_peer_coordinator() -> Result<()> {
     let peer_port = pick_unused_port().ok_or("No ports free for peer coordinator")?;
     let bind_address = format!("tcp://*:{peer_port}");
