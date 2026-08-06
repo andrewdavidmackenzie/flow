@@ -30,7 +30,7 @@ pub(crate) type SubflowManifests = HashMap<
     ),
 >;
 
-/// Thread-safe shared registry of sub-flow manifests.
+/// Thread-safe shared registry of sub-flow manifests, keyed by `subflow://` URL.
 pub type SubflowRegistry = Arc<RwLock<SubflowManifests>>;
 
 /// Global counter of jobs currently being executed by executor threads.
