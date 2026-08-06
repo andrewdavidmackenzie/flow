@@ -861,6 +861,136 @@ fn flowrex_peer_coordinator_end_to_end() {
     flowrex.wait().ok();
 }
 
+/// Test `delegate_subflow` with a real flowrex peer coordinator.
+#[cfg_attr(target_os = "windows", ignore)]
+#[test]
+#[allow(clippy::too_many_lines)]
+fn delegate_subflow_to_peer() {
+    use flowcore::model::flow_manifest::FlowInfo;
+    use flowcore::model::input::{Input, InputInitializer};
+    use flowcore::model::metadata::MetaData;
+    use flowcore::model::output_connection::{OutputConnection, Source};
+    use flowcore::model::runtime_function::RuntimeFunction;
+    use flowrlib::delegation::delegate_subflow;
+    use std::process::{Command as ProcessCommand, Stdio};
+    use std::time::Duration;
+
+    // Start flowrex as peer coordinator
+    let mut flowrex = ProcessCommand::new("flowrex")
+        .args(["--threads", "0", "-v", "info"])
+        .stdout(Stdio::null())
+        .stderr(Stdio::null())
+        .spawn()
+        .expect("Could not spawn flowrex");
+
+    std::thread::sleep(Duration::from_secs(5));
+
+    // Build manifest with root flow containing a child sub-flow
+    let mut manifest = FlowManifest::new(MetaData::default());
+    manifest.add_flow_info(FlowInfo {
+        process_id: 0,
+        parent_id: None,
+        sub_flow_ids: vec![1],
+        #[cfg(feature = "debugger")]
+        name: "root".into(),
+        #[cfg(feature = "debugger")]
+        route: "/root".into(),
+    });
+    manifest.add_flow_info(FlowInfo {
+        process_id: 1,
+        parent_id: Some(0),
+        sub_flow_ids: vec![],
+        #[cfg(feature = "debugger")]
+        name: "child".into(),
+        #[cfg(feature = "debugger")]
+        route: "/root/child".into(),
+    });
+
+    // Function #10 in root
+    manifest.add_function(RuntimeFunction::new(
+        #[cfg(feature = "debugger")]
+        "target",
+        #[cfg(feature = "debugger")]
+        "/root/target",
+        "lib://flowstdlib/math/add",
+        vec![Input::new(
+            #[cfg(feature = "debugger")]
+            "in",
+            0,
+            false,
+            None,
+            None,
+        )],
+        10,
+        0,
+        &[],
+        false,
+    ));
+
+    // Function #20 in child — add(7,3)=10, outputs to #10:0
+    let mut func20 = RuntimeFunction::new(
+        #[cfg(feature = "debugger")]
+        "add",
+        #[cfg(feature = "debugger")]
+        "/root/child/add",
+        "lib://flowstdlib/math/add",
+        vec![
+            Input::new(
+                #[cfg(feature = "debugger")]
+                "i1",
+                0,
+                false,
+                Some(InputInitializer::Once(serde_json::json!(7))),
+                None,
+            ),
+            Input::new(
+                #[cfg(feature = "debugger")]
+                "i2",
+                0,
+                false,
+                Some(InputInitializer::Once(serde_json::json!(3))),
+                None,
+            ),
+        ],
+        20,
+        1,
+        &[OutputConnection::new(
+            Source::default(),
+            10,
+            0,
+            0,
+            false,
+            String::new(),
+            #[cfg(feature = "debugger")]
+            String::new(),
+        )],
+        false,
+    );
+    let dummy_url = url::Url::parse("file:///dummy/manifest.json").expect("URL");
+    func20.set_implementation_url(&dummy_url).expect("set URL");
+    manifest.add_function(func20);
+
+    // Delegate child flow #1 to the peer
+    let result = delegate_subflow(&manifest, 1, None, vec![]);
+
+    // Clean up flowrex
+    flowrex.kill().ok();
+    flowrex.wait().ok();
+
+    let result = result.expect("delegate_subflow failed");
+    let delegation = result.expect("Should have delegated to a peer");
+    assert_eq!(delegation.flow_id, 1);
+    assert!(
+        !delegation.boundary_outputs.is_empty(),
+        "Should have boundary outputs"
+    );
+    assert_eq!(
+        delegation.boundary_outputs.first().map(|o| &o.value),
+        Some(&serde_json::json!(10)),
+        "Boundary output should be 10 (7+3)"
+    );
+}
+
 /// Minimal provider that reads files from the filesystem.
 struct TestProvider;
 
