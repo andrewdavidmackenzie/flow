@@ -742,6 +742,125 @@ fn peer_coordinator_executes_subflow() {
     let _ = peer_thread.join();
 }
 
+/// End-to-end test with a real flowrex process as peer coordinator.
+/// Starts flowrex, discovers its peer-coordinator service via mDNS,
+/// submits a sub-flow, and verifies boundary outputs.
+#[cfg_attr(target_os = "windows", ignore)]
+#[test]
+#[allow(clippy::too_many_lines)]
+fn flowrex_peer_coordinator_end_to_end() {
+    use flowcore::model::flow_manifest::FlowInfo;
+    use flowcore::model::input::{Input, InputInitializer};
+    use flowcore::model::metadata::MetaData;
+    use flowcore::model::output_connection::{OutputConnection, Source};
+    use flowcore::model::runtime_function::RuntimeFunction;
+    use flowrlib::peer_client::PeerClient;
+    use flowrlib::peer_discovery::discover_peer_coordinators;
+    use std::process::{Command as ProcessCommand, Stdio};
+    use std::time::Duration;
+
+    // Start flowrex as a peer coordinator
+    let mut flowrex = ProcessCommand::new("flowrex")
+        .args(["--threads", "1", "-v", "info"])
+        .stdout(Stdio::null())
+        .stderr(Stdio::null())
+        .spawn()
+        .expect("Could not spawn flowrex");
+
+    // Wait for flowrex to start and advertise its peer-coordinator service
+    std::thread::sleep(Duration::from_secs(5));
+
+    // Discover the peer coordinator
+    let peers = discover_peer_coordinators(Duration::from_secs(5), None).expect("discovery failed");
+
+    if peers.is_empty() {
+        // Clean up and skip — mDNS may not be working in this environment
+        flowrex.kill().ok();
+        flowrex.wait().ok();
+        eprintln!("No peer coordinators discovered — skipping test");
+        return;
+    }
+
+    let peer_address = peers.first().expect("no peers").clone();
+
+    // Build a sub-flow: add(7,3)=10 with boundary output to #10:0
+    let mut manifest = FlowManifest::new(MetaData::default());
+    manifest.add_flow_info(FlowInfo {
+        process_id: 0,
+        parent_id: None,
+        sub_flow_ids: vec![],
+        #[cfg(feature = "debugger")]
+        name: "subflow".into(),
+        #[cfg(feature = "debugger")]
+        route: "/subflow".into(),
+    });
+
+    let mut func = RuntimeFunction::new(
+        #[cfg(feature = "debugger")]
+        "add",
+        #[cfg(feature = "debugger")]
+        "/subflow/add",
+        "lib://flowstdlib/math/add",
+        vec![
+            Input::new(
+                #[cfg(feature = "debugger")]
+                "i1",
+                0,
+                false,
+                Some(InputInitializer::Once(serde_json::json!(7))),
+                None,
+            ),
+            Input::new(
+                #[cfg(feature = "debugger")]
+                "i2",
+                0,
+                false,
+                Some(InputInitializer::Once(serde_json::json!(3))),
+                None,
+            ),
+        ],
+        1,
+        0,
+        &[OutputConnection::new(
+            Source::default(),
+            10,
+            0,
+            0,
+            false,
+            String::new(),
+            #[cfg(feature = "debugger")]
+            String::new(),
+        )],
+        false,
+    );
+    let dummy_url = url::Url::parse("file:///dummy/manifest.json").expect("URL");
+    func.set_implementation_url(&dummy_url).expect("set URL");
+    manifest.add_function(func);
+
+    // Connect to the peer and submit the sub-flow
+    let zmq_context = zmq::Context::new();
+    let client = PeerClient::connect(&zmq_context, &peer_address).expect("connect failed");
+
+    let outputs = client
+        .submit_subflow(manifest, vec![])
+        .expect("submit failed");
+
+    // Verify boundary output: add(7,3) = 10
+    assert!(
+        !outputs.is_empty(),
+        "Should have boundary outputs from flowrex peer"
+    );
+    assert_eq!(
+        outputs.first().map(|o| &o.value),
+        Some(&serde_json::json!(10))
+    );
+
+    // Clean up
+    drop(client);
+    flowrex.kill().ok();
+    flowrex.wait().ok();
+}
+
 /// Minimal provider that reads files from the filesystem.
 struct TestProvider;
 

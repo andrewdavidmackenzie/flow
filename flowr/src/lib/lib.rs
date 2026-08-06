@@ -102,6 +102,9 @@ pub mod peer_submission_handler;
 /// Client for connecting to peer coordinators and delegating sub-flows
 pub mod peer_client;
 
+/// Discovery of peer coordinators on the network
+pub mod peer_discovery;
+
 /// `wasmtime` module contains a number of implementations of the wasm execution
 mod wasm;
 
