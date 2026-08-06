@@ -28,6 +28,8 @@ Then a branch name could be `analyse_on_config_change_103`
 As we work on the branch, we will commit changes once pre-commit checks pass and then later
 push the branch and create a PR from it.
 
+###
+
 ## Pre-commit checks
 
 Before committing new work to a branch, the following checks should pass:
