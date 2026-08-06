@@ -86,10 +86,21 @@ impl SubmissionHandler for PeerSubmissionHandler {
 
     fn flow_execution_ended(
         &mut self,
-        _state: &RunState,
+        state: &RunState,
         #[cfg(feature = "metrics")] _metrics: Metrics,
     ) -> Result<()> {
         debug!("Peer coordinator: flow execution ended");
+
+        // Relay boundary outputs to parent before signaling idle
+        let outputs = state.boundary_outputs();
+        if !outputs.is_empty() {
+            info!(
+                "Peer coordinator relaying {} boundary outputs",
+                outputs.len()
+            );
+            self.relay_boundary_outputs(outputs)?;
+        }
+
         // Signal idle to parent
         self.send_response(&PeerResponse::Idle)?;
         Ok(())
@@ -121,7 +132,7 @@ impl SubmissionHandler for PeerSubmissionHandler {
 
                 // TODO: inject inputs into the manifest's boundary functions
 
-                let submission = Submission::new(
+                let mut submission = Submission::new(
                     manifest,
                     None,
                     None,
@@ -130,6 +141,7 @@ impl SubmissionHandler for PeerSubmissionHandler {
                     #[cfg(feature = "trace")]
                     None,
                 );
+                submission.is_subflow = true;
 
                 Ok(Some(submission))
             }

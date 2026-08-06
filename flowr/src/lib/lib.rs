@@ -99,6 +99,9 @@ pub mod peer_protocol;
 #[cfg(feature = "submission")]
 pub mod peer_submission_handler;
 
+/// Client for connecting to peer coordinators and delegating sub-flows
+pub mod peer_client;
+
 /// `wasmtime` module contains a number of implementations of the wasm execution
 mod wasm;
 

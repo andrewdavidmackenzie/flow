@@ -22,6 +22,9 @@ pub struct Submission {
     /// Optional file path to write the execution trace to
     #[cfg(feature = "trace")]
     pub trace_file: Option<String>,
+    /// Whether this is a sub-flow submission (enables boundary output capture)
+    #[serde(default)]
+    pub is_subflow: bool,
 }
 
 impl Submission {
@@ -48,6 +51,7 @@ impl Submission {
             debug_enabled: debug,
             #[cfg(feature = "trace")]
             trace_file,
+            is_subflow: false,
         }
     }
 }
