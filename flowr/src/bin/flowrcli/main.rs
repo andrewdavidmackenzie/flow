@@ -686,15 +686,32 @@ fn client(
         .map(|secs| Duration::from_secs(*secs));
     // If --delegate is set, try to delegate a sub-flow to a peer coordinator
     if matches.get_flag("delegate") {
+        // Find a sub-flow whose functions only use lib:// implementations
+        // (peer coordinators don't have context functions)
         let sub_flow_ids: Vec<usize> = flow_manifest
             .flows()
             .iter()
             .filter(|(_, f)| f.parent_id.is_some()) // skip root flow
+            .filter(|(&flow_id, _)| {
+                // Check all functions in this flow use lib:// only
+                flow_manifest
+                    .functions()
+                    .values()
+                    .filter(|func| func.get_parent_id() == flow_id)
+                    .all(|func| func.get_implementation_location().starts_with("lib://"))
+            })
             .map(|(&id, _)| id)
             .collect();
 
         if let Some(&subflow_id) = sub_flow_ids.first() {
-            info!("Attempting to delegate sub-flow #{subflow_id} to a peer coordinator");
+            let func_count = flow_manifest
+                .functions()
+                .values()
+                .filter(|f| f.get_parent_id() == subflow_id)
+                .count();
+            info!(
+                "Attempting to delegate sub-flow #{subflow_id} ({func_count} lib:// functions) to a peer"
+            );
             match flowrlib::delegation::delegate_subflow(&flow_manifest, subflow_id, None, vec![]) {
                 Ok(Some(result)) => {
                     info!(
