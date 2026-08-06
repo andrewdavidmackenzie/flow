@@ -91,6 +91,14 @@ mod debugger;
 /// Sub-flow execution: run an extracted sub-flow through a nested coordinator
 pub mod subflow;
 
+/// Protocol messages for peer coordinator communication
+pub mod peer_protocol;
+
+/// [`SubmissionHandler`][submission_handler::SubmissionHandler] for receiving
+/// sub-flow submissions from a parent coordinator
+#[cfg(feature = "submission")]
+pub mod peer_submission_handler;
+
 /// `wasmtime` module contains a number of implementations of the wasm execution
 mod wasm;
 
