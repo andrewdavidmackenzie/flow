@@ -46,9 +46,22 @@ pub struct Coordinator<'a> {
     /// can fetch WASM modules.
     wasm_base_url: Option<url::Url>,
     /// Peer client for delegated sub-flow communication.
-    /// When set, the coordinator routes values for delegated functions
-    /// to the peer and receives boundary outputs.
     peer_client: Option<crate::peer_client::PeerClient>,
+    /// Shared sub-flow manifest registry from the executor.
+    #[allow(clippy::type_complexity)]
+    subflow_registry: Option<
+        std::sync::Arc<
+            std::sync::RwLock<
+                std::collections::HashMap<
+                    url::Url,
+                    (
+                        flowcore::model::flow_manifest::FlowManifest,
+                        Vec<(usize, usize)>,
+                    ),
+                >,
+            >,
+        >,
+    >,
     #[cfg(feature = "debugger")]
     /// A `Debugger` to communicate with debug clients
     debugger: Debugger<'a>,
@@ -192,6 +205,7 @@ impl<'a> Coordinator<'a> {
             job_timeout: None,
             wasm_base_url: None,
             peer_client: None,
+            subflow_registry: None,
             #[cfg(feature = "debugger")]
             debugger: Debugger::new(debug_server),
             #[cfg(all(not(feature = "debugger"), not(feature = "submission")))]
@@ -209,6 +223,25 @@ impl<'a> Coordinator<'a> {
     /// Set the peer client for delegated sub-flow communication.
     pub fn set_peer_client(&mut self, client: crate::peer_client::PeerClient) {
         self.peer_client = Some(client);
+    }
+
+    /// Set the sub-flow registry shared with the executor.
+    #[allow(clippy::type_complexity)]
+    pub fn set_subflow_registry(
+        &mut self,
+        registry: std::sync::Arc<
+            std::sync::RwLock<
+                std::collections::HashMap<
+                    url::Url,
+                    (
+                        flowcore::model::flow_manifest::FlowManifest,
+                        Vec<(usize, usize)>,
+                    ),
+                >,
+            >,
+        >,
+    ) {
+        self.subflow_registry = Some(registry);
     }
 
     /// Send a DONE signal to all connected executors, telling them to exit.
@@ -279,7 +312,29 @@ impl<'a> Coordinator<'a> {
     ///
     /// Returns an error if the execution of the flow did not complete normally.
     #[allow(unused_variables, unused_mut)]
-    pub fn execute_flow(&mut self, submission: Submission) -> Result<()> {
+    pub fn execute_flow(&mut self, mut submission: Submission) -> Result<()> {
+        // Handle sub-flow delegation if requested
+        if let Some(flow_id) = submission.delegate_flow_id.take() {
+            if let Some(ref registry) = self.subflow_registry {
+                info!("Delegating sub-flow #{flow_id}");
+                match submission.manifest.delegate_subflow(flow_id) {
+                    Ok((extracted, input_map)) => {
+                        let subflow_url = url::Url::parse(&format!("subflow://{flow_id}"))
+                            .map_err(|e| format!("Invalid subflow URL: {e}"))?;
+
+                        if let Ok(mut manifests) = registry.write() {
+                            info!(
+                                "Registered sub-flow #{flow_id} with {} functions",
+                                extracted.functions().len()
+                            );
+                            manifests.insert(subflow_url, (extracted, input_map));
+                        }
+                    }
+                    Err(e) => error!("Could not delegate sub-flow #{flow_id}: {e}"),
+                }
+            }
+        }
+
         self.job_timeout = submission.job_timeout;
         self.dispatcher
             .set_results_timeout(submission.job_timeout)?;

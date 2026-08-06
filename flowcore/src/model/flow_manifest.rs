@@ -276,12 +276,16 @@ impl FlowManifest {
     /// (as flow initializers) and the sub-flow's flow hierarchy entry is preserved
     /// but its `sub_flow_ids` are cleared.
     ///
-    /// Returns the extracted sub-flow manifest for registration with executors.
+    /// Returns `(extracted_manifest, input_map)` where `input_map` maps proxy
+    /// input indices to `(destination_func_id, destination_io_number)` in the sub-flow.
     ///
     /// # Errors
     ///
     /// Returns an error if the `flow_id` is not found.
-    pub fn delegate_subflow(&mut self, flow_id: usize) -> Result<FlowManifest> {
+    pub fn delegate_subflow(
+        &mut self,
+        flow_id: usize,
+    ) -> Result<(FlowManifest, Vec<(usize, usize)>)> {
         // Compute the interface BEFORE removing functions
         let (interface_inputs, _interface_outputs) = self.subflow_interface(flow_id)?;
 
@@ -385,7 +389,7 @@ impl FlowManifest {
 
         self.mark_internal_inputs();
 
-        Ok(extracted)
+        Ok((extracted, input_map))
     }
 
     /// Extract a sub-flow and all its descendants into a standalone `FlowManifest`.
@@ -923,7 +927,7 @@ mod test {
         ));
 
         // Delegate child flow #1
-        let extracted = manifest.delegate_subflow(1).expect("delegate failed");
+        let (extracted, _input_map) = manifest.delegate_subflow(1).expect("delegate failed");
 
         // Extracted manifest should have the original child functions
         assert_eq!(extracted.functions().len(), 2);

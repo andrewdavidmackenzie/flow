@@ -643,17 +643,25 @@ impl RunState {
                 if job.payload.implementation_url.scheme() == "subflow" {
                     if let Some(Value::Array(boundary_outputs)) = output_value {
                         for bo in boundary_outputs {
-                            if let (Some(dest_id), Some(dest_io), Some(value)) = (
+                            if let (Some(dest_func_id), Some(dest_input_num), Some(value)) = (
                                 bo.get("destination_id").and_then(Value::as_u64),
                                 bo.get("destination_io_number").and_then(Value::as_u64),
                                 bo.get("value"),
                             ) {
                                 #[allow(clippy::cast_possible_truncation)]
+                                let dest_func_id = dest_func_id as usize;
+                                #[allow(clippy::cast_possible_truncation)]
+                                let dest_input_num = dest_input_num as usize;
+                                // Look up the destination function's actual parent
+                                // so flow-busy gating works correctly.
+                                let dest_parent = self
+                                    .get_mut(dest_func_id)
+                                    .map_or(job.parent_id, |f| f.get_parent_id());
                                 let conn = OutputConnection::new(
                                     Output(String::new()),
-                                    dest_id as usize,
-                                    dest_io as usize,
-                                    job.parent_id,
+                                    dest_func_id,
+                                    dest_input_num,
+                                    dest_parent,
                                     false,
                                     String::new(),
                                     #[cfg(feature = "debugger")]

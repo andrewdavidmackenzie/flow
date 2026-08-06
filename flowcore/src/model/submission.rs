@@ -28,6 +28,9 @@ pub struct Submission {
     /// Function IDs that have been delegated to a peer coordinator.
     #[serde(default)]
     pub delegated_functions: std::collections::HashSet<usize>,
+    /// Sub-flow ID to delegate via `SubFlowImplementation`.
+    #[serde(default)]
+    pub delegate_flow_id: Option<usize>,
 }
 
 impl Submission {
@@ -56,6 +59,7 @@ impl Submission {
             trace_file,
             is_subflow: false,
             delegated_functions: std::collections::HashSet::new(),
+            delegate_flow_id: None,
         }
     }
 }

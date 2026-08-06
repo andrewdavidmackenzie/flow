@@ -31,7 +31,7 @@ use std::{env, thread};
 
 use clap::{Arg, ArgMatches, Command};
 use env_logger::Builder;
-use log::{error, info, trace, warn, LevelFilter};
+use log::{error, info, trace, LevelFilter};
 use portpicker::pick_unused_port;
 use simpath::Simpath;
 use url::Url;
@@ -426,6 +426,9 @@ fn coordinator(
         }
     };
 
+    // Share the executor's sub-flow registry with the coordinator
+    coordinator.set_subflow_registry(executor.subflow_registry());
+
     #[cfg(feature = "submission")]
     let result = coordinator.submission_loop(loop_forever);
     #[cfg(not(feature = "submission"))]
@@ -676,7 +679,7 @@ fn client(
 
     let flow_manifest_url = parse_flow_url(matches)?;
     let provider = MetaProvider::new(lib_search_path, PathBuf::default());
-    let (mut flow_manifest, _) = FlowManifest::load(&provider, &flow_manifest_url)?;
+    let (flow_manifest, _) = FlowManifest::load(&provider, &flow_manifest_url)?;
 
     let flow_args = get_flow_args(matches, &flow_manifest_url);
     let parallel_jobs_limit = matches
@@ -685,84 +688,49 @@ fn client(
     let job_timeout = matches
         .get_one::<u64>("job-timeout")
         .map(|secs| Duration::from_secs(*secs));
-    // If --delegate is set, try to delegate a sub-flow to a peer coordinator
-    // This modifies the manifest: delegated functions are removed and values
-    // destined for them will be routed to the peer during execution.
-    let mut delegated_func_ids = std::collections::HashSet::new();
-
+    // If --delegate is set, find the best sub-flow to delegate.
+    // We pick the outermost sub-flow whose entire subtree (all descendant
+    // functions) uses only lib:// implementations.
+    let mut delegate_flow_id = None;
     if matches.get_flag("delegate") {
-        // Find a sub-flow whose functions only use lib:// implementations
-        let sub_flow_ids: Vec<usize> = flow_manifest
-            .flows()
-            .iter()
-            .filter(|(_, f)| f.parent_id.is_some())
-            .filter(|(&flow_id, _)| {
-                flow_manifest
-                    .functions()
-                    .values()
-                    .filter(|func| func.get_parent_id() == flow_id)
-                    .all(|func| func.get_implementation_location().starts_with("lib://"))
-            })
-            .map(|(&id, _)| id)
-            .collect();
-
-        if let Some(&subflow_id) = sub_flow_ids.first() {
-            // Collect function IDs inside this sub-flow before delegation
-            let func_ids: std::collections::HashSet<usize> = flow_manifest
-                .functions()
-                .iter()
-                .filter(|(_, f)| f.get_parent_id() == subflow_id)
-                .map(|(&id, _)| id)
-                .collect();
-
-            info!(
-                "Attempting to delegate sub-flow #{subflow_id} ({} functions) to a peer",
-                func_ids.len()
-            );
-
-            // Discover and connect to a peer
-            match flowrlib::peer_discovery::discover_peer_coordinators(
-                std::time::Duration::from_secs(3),
-                None,
-            ) {
-                Ok(peers) if !peers.is_empty() => {
-                    if let Some(peer_addr) = peers.first() {
-                        info!("Discovered peer coordinator at {peer_addr}");
-
-                        // Extract and send the sub-flow manifest to peer
-                        match flow_manifest.extract_subflow(subflow_id) {
-                            Ok(extracted) => {
-                                let zmq_ctx = zmq::Context::new();
-                                match flowrlib::peer_client::PeerClient::connect(
-                                    &zmq_ctx, peer_addr,
-                                ) {
-                                    Ok(client) => {
-                                        info!("Connected to peer, sending sub-flow manifest");
-                                        let _ = client.submit_subflow(extracted, vec![]);
-                                        drop(client);
-                                    }
-                                    Err(e) => warn!("Could not connect to peer: {e}"),
-                                }
-                            }
-                            Err(e) => warn!("Could not extract sub-flow: {e}"),
-                        }
-
-                        // Remove the delegated functions from the local manifest
-                        match flow_manifest.delegate_subflow(subflow_id) {
-                            Ok(_) => {
-                                delegated_func_ids = func_ids;
-                                info!(
-                                    "Removed {} delegated functions from local manifest",
-                                    delegated_func_ids.len()
-                                );
-                            }
-                            Err(e) => warn!("Could not delegate sub-flow: {e}"),
-                        }
+        let mut best: Option<(usize, usize)> = None; // (flow_id, function_count)
+        for (&flow_id, flow_info) in flow_manifest.flows() {
+            if flow_info.parent_id.is_none() {
+                continue; // skip root
+            }
+            // Collect all descendant flow IDs (including this one)
+            let mut descendant_flows = vec![flow_id];
+            let mut idx = 0;
+            while let Some(&parent) = descendant_flows.get(idx) {
+                for (&child_id, child_info) in flow_manifest.flows() {
+                    if child_info.parent_id == Some(parent) && !descendant_flows.contains(&child_id)
+                    {
+                        descendant_flows.push(child_id);
                     }
                 }
-                Ok(_) => info!("No peer coordinators available"),
-                Err(e) => warn!("Peer discovery failed: {e}"),
+                idx += 1;
             }
+            // Check all functions in the subtree
+            let subtree_funcs: Vec<_> = flow_manifest
+                .functions()
+                .values()
+                .filter(|f| descendant_flows.contains(&f.get_parent_id()))
+                .collect();
+            let all_lib = subtree_funcs
+                .iter()
+                .all(|f| f.get_implementation_location().starts_with("lib://"));
+            if all_lib && !subtree_funcs.is_empty() {
+                let count = subtree_funcs.len();
+                if best.is_none_or(|(_, best_count)| count > best_count) {
+                    best = Some((flow_id, count));
+                }
+            }
+        }
+        if let Some((flow_id, count)) = best {
+            info!(
+                "Will delegate sub-flow #{flow_id} ({count} functions) via SubFlowImplementation"
+            );
+            delegate_flow_id = Some(flow_id);
         }
     }
 
@@ -777,7 +745,7 @@ fn client(
             .get_one::<String>("trace")
             .map(std::string::ToString::to_string),
     );
-    submission.delegated_functions = delegated_func_ids;
+    submission.delegate_flow_id = delegate_flow_id;
 
     trace!("Creating CliRuntimeClient");
     let client = CliRuntimeClient::new(

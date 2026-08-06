@@ -144,6 +144,31 @@ impl Executor {
     /// # Errors
     ///
     /// Returns an error if the manifest cannot be registered.
+    /// Get a shared reference to the sub-flow manifest registry.
+    /// Used by the coordinator to register sub-flows at runtime.
+    #[allow(clippy::type_complexity)]
+    #[must_use]
+    pub fn subflow_registry(
+        &self,
+    ) -> std::sync::Arc<
+        std::sync::RwLock<
+            std::collections::HashMap<
+                Url,
+                (
+                    flowcore::model::flow_manifest::FlowManifest,
+                    Vec<(usize, usize)>,
+                ),
+            >,
+        >,
+    > {
+        self.loaded_subflow_manifests.clone()
+    }
+
+    /// Register a sub-flow manifest for `subflow://` URL execution.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the manifest cannot be registered.
     pub fn add_subflow(
         &mut self,
         subflow_url: Url,
@@ -260,7 +285,11 @@ impl Executor {
     }
 }
 
-#[allow(clippy::too_many_arguments, clippy::too_many_lines, clippy::type_complexity)]
+#[allow(
+    clippy::too_many_arguments,
+    clippy::too_many_lines,
+    clippy::type_complexity
+)]
 #[allow(clippy::needless_pass_by_value)]
 fn execution_loop(
     provider: &Arc<dyn Provider>,
