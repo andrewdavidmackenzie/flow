@@ -172,7 +172,8 @@ impl Implementation for SubFlowImplementation {
 // --- No-op handlers for sub-flow coordinator ---
 
 #[cfg(feature = "submission")]
-struct NoOpSubmissionHandler;
+/// No-op submission handler for sub-flow execution (used by `SubFlowImplementation`).
+pub struct NoOpSubmissionHandler;
 
 #[cfg(feature = "submission")]
 impl SubmissionHandler for NoOpSubmissionHandler {
@@ -208,7 +209,8 @@ impl SubmissionHandler for NoOpSubmissionHandler {
 }
 
 #[cfg(feature = "debugger")]
-struct NoOpDebugHandler;
+/// No-op debugger handler for sub-flow and peer coordinator execution.
+pub struct NoOpDebugHandler;
 
 #[cfg(feature = "debugger")]
 impl DebuggerHandler for NoOpDebugHandler {
