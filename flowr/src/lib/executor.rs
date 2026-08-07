@@ -545,6 +545,12 @@ fn get_or_load_implementation(
                                 payload.implementation_url
                             )
                         })?;
+                    let addr = peer_address.as_ref().ok_or_else(|| {
+                        format!(
+                            "Sub-flow {} has no peer address — delegation requires a remote peer",
+                            payload.implementation_url
+                        )
+                    })?;
                     let interface_inputs: Vec<crate::subflow::InterfaceInput> = input_map
                         .iter()
                         .map(|(dest_id, dest_io)| crate::subflow::InterfaceInput {
@@ -552,20 +558,12 @@ fn get_or_load_implementation(
                             destination_io_number: *dest_io,
                         })
                         .collect();
-                    if let Some(addr) = peer_address {
-                        info!("Creating remote sub-flow implementation for peer at {addr}");
-                        Arc::new(crate::subflow::RemoteSubFlowImplementation::new(
-                            manifest.clone(),
-                            interface_inputs,
-                            addr.clone(),
-                        )) as Arc<dyn Implementation>
-                    } else {
-                        Arc::new(crate::subflow::SubFlowImplementation::new(
-                            manifest.clone(),
-                            provider.clone(),
-                            interface_inputs,
-                        )) as Arc<dyn Implementation>
-                    }
+                    info!("Creating remote sub-flow implementation for peer at {addr}");
+                    Arc::new(crate::subflow::RemoteSubFlowImplementation::new(
+                        manifest.clone(),
+                        interface_inputs,
+                        addr.clone(),
+                    )) as Arc<dyn Implementation>
                 }
                 _ => bail!("Unsupported scheme on implementation_url"),
             };
