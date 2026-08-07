@@ -743,20 +743,20 @@ fn client(
             .get_one::<String>("trace")
             .map(std::string::ToString::to_string),
     );
-    submission.delegate_flow_id = delegate_flow_id;
 
-    // If delegating, try to discover a peer coordinator for remote execution
-    if delegate_flow_id.is_some() {
+    // Only delegate if a peer coordinator is available — otherwise run normally
+    if let Some(flow_id) = delegate_flow_id {
         match flowrlib::peer_discovery::discover_peer_coordinators(Duration::from_secs(3), None) {
             Ok(peers) => {
                 if let Some(addr) = peers.into_iter().next() {
-                    info!("Discovered peer coordinator at {addr} — will delegate remotely");
+                    info!("Discovered peer coordinator at {addr} — delegating sub-flow #{flow_id}");
+                    submission.delegate_flow_id = Some(flow_id);
                     submission.peer_address = Some(addr);
                 } else {
-                    info!("No peer coordinators found — will delegate locally");
+                    info!("No peer coordinators found — running flow normally");
                 }
             }
-            Err(e) => info!("Peer discovery failed ({e}) — will delegate locally"),
+            Err(e) => info!("Peer discovery failed ({e}) — running flow normally"),
         }
     }
 
