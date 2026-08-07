@@ -234,7 +234,7 @@ impl RemoteSubFlowImplementation {
             .map_err(|e| format!("Could not connect to peer at {}: {e}", self.peer_address))?;
 
         let mut output_count = 0usize;
-        client.submit_subflow_streaming(
+        let stream_result = client.submit_subflow_streaming(
             self.manifest.clone(),
             input_triples,
             |boundary_output| {
@@ -253,7 +253,19 @@ impl RemoteSubFlowImplementation {
                 output_count += 1;
                 Ok(())
             },
-        )?;
+        );
+
+        // On error, send an error result to terminate the proxy job
+        // so it doesn't stay in running_jobs forever.
+        if let Err(ref e) = stream_result {
+            error!("Peer sub-flow streaming failed: {e}");
+            let err_result: flowcore::errors::Result<(Option<Value>, flowcore::RunAgain)> =
+                Err(format!("Peer sub-flow failed: {e}").into());
+            if let Ok(msg) = serde_json::to_string(&(job_id, executor_id, err_result)) {
+                let _ = results_sink.send(msg.as_bytes(), 0);
+            }
+            return stream_result;
+        }
 
         info!("RemoteSubFlowImplementation: streamed {output_count} boundary outputs from peer");
 
