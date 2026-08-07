@@ -173,7 +173,7 @@ impl Implementation for SubFlowImplementation {
 ///
 /// When `run()` is called, it connects to the peer via ZMQ, sends the
 /// sub-flow manifest with input values, and receives boundary outputs.
-pub struct RemoteSubFlowImplementation {
+pub(crate) struct RemoteSubFlowImplementation {
     manifest: FlowManifest,
     interface_inputs: Vec<InterfaceInput>,
     peer_address: String,
@@ -182,7 +182,7 @@ pub struct RemoteSubFlowImplementation {
 impl RemoteSubFlowImplementation {
     /// Create a new remote sub-flow implementation.
     #[must_use]
-    pub fn new(
+    pub(crate) fn new(
         manifest: FlowManifest,
         interface_inputs: Vec<InterfaceInput>,
         peer_address: String,

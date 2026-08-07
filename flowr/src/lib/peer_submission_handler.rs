@@ -132,12 +132,18 @@ impl SubmissionHandler for PeerSubmissionHandler {
 
                 // Inject inputs as Once initializers on boundary functions
                 for (dest_func_id, dest_io_number, value) in &inputs {
-                    if let Some(func) = manifest.get_functions().get_mut(dest_func_id) {
-                        func.set_flow_initializer(
-                            *dest_io_number,
-                            flowcore::model::input::InputInitializer::Once(value.clone()),
-                        );
-                    }
+                    let func = manifest
+                        .get_functions()
+                        .get_mut(dest_func_id)
+                        .ok_or_else(|| {
+                            format!(
+                                "Input destination function #{dest_func_id} not found in sub-flow"
+                            )
+                        })?;
+                    func.set_flow_initializer(
+                        *dest_io_number,
+                        flowcore::model::input::InputInitializer::Once(value.clone()),
+                    );
                 }
 
                 let mut submission = Submission::new(

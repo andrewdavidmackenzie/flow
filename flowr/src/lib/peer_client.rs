@@ -23,7 +23,7 @@ impl PeerClient {
     /// # Errors
     ///
     /// Returns an error if the ZMQ socket cannot be created, connected,
-    /// or if the receive timeout cannot be configured.
+    /// or if the send/receive timeouts cannot be configured.
     pub fn connect(context: &zmq::Context, address: &str) -> Result<Self> {
         let socket = context
             .socket(zmq::REQ)
@@ -32,11 +32,14 @@ impl PeerClient {
         socket
             .connect(&tcp_address)
             .map_err(|e| format!("Could not connect to peer coordinator at {tcp_address}: {e}"))?;
-        // Set a 30-second receive timeout so we don't block forever
-        // if the peer stops responding.
+        // Set 30-second send and receive timeouts so we don't block
+        // forever if the peer stops responding.
         socket
             .set_rcvtimeo(30_000)
             .map_err(|e| format!("Could not set receive timeout: {e}"))?;
+        socket
+            .set_sndtimeo(30_000)
+            .map_err(|e| format!("Could not set send timeout: {e}"))?;
         info!("Connected to peer coordinator at {address}");
         Ok(PeerClient {
             socket,
