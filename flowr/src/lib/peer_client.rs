@@ -31,6 +31,11 @@ impl PeerClient {
         socket
             .connect(&tcp_address)
             .map_err(|e| format!("Could not connect to peer coordinator at {tcp_address}: {e}"))?;
+        // Set a 30-second receive timeout so we don't block forever
+        // if the peer stops responding.
+        socket
+            .set_rcvtimeo(30_000)
+            .map_err(|e| format!("Could not set receive timeout: {e}"))?;
         info!("Connected to peer coordinator at {address}");
         Ok(PeerClient {
             socket,
