@@ -82,10 +82,16 @@ fn main() {
     let result = run();
     let _ = std::io::stdout().flush();
 
-    if let Err(ref e) = result {
-        error!("{e}");
-
-        exit(1);
+    match result {
+        Err(ref e) => {
+            error!("{e}");
+            exit(1);
+        }
+        Ok(()) => {
+            // Force exit to terminate background threads (peer coordinator,
+            // mDNS daemons) that would otherwise block process shutdown.
+            exit(0);
+        }
     }
 }
 
