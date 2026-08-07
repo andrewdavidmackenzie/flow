@@ -22,7 +22,8 @@ impl PeerClient {
     ///
     /// # Errors
     ///
-    /// Returns an error if the ZMQ socket cannot be created or connected.
+    /// Returns an error if the ZMQ socket cannot be created, connected,
+    /// or if the receive timeout cannot be configured.
     pub fn connect(context: &zmq::Context, address: &str) -> Result<Self> {
         let socket = context
             .socket(zmq::REQ)
