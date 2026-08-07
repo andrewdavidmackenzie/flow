@@ -235,14 +235,18 @@ impl<'a> Coordinator<'a> {
     ///
     #[cfg(feature = "submission")]
     pub fn submission_loop(&mut self, loop_forever: bool) -> Result<()> {
+        let mut last_result: Result<()> = Ok(());
         while let Some(submission) = self.submission_handler.wait_for_submission()? {
-            let _ = self.execute_flow(submission);
+            last_result = self.execute_flow(submission);
+            if let Err(ref e) = last_result {
+                error!("Flow execution failed: {e}");
+            }
             if !loop_forever {
                 break;
             }
         }
 
-        self.submission_handler.coordinator_is_exiting(Ok(()))
+        self.submission_handler.coordinator_is_exiting(last_result)
     }
 
     /// Execute a sub-flow and return its `RunState`, which may contain boundary
@@ -277,12 +281,17 @@ impl<'a> Coordinator<'a> {
     }
 
     /// Connect to a peer coordinator at the given address.
+    /// If already connected to a different peer, reconnects to the new one.
     ///
     /// # Errors
     ///
     /// Returns an error if the connection cannot be established.
     fn connect_to_peer(&mut self, peer_addr: &str) -> Result<()> {
-        if self.peer_client.is_none() {
+        let needs_connect = self
+            .peer_client
+            .as_ref()
+            .is_none_or(|client| client.address() != peer_addr);
+        if needs_connect {
             let zmq_ctx = zmq::Context::new();
             let client = crate::peer_client::PeerClient::connect(&zmq_ctx, peer_addr)
                 .map_err(|e| format!("Could not connect to peer at {peer_addr}: {e}"))?;
@@ -1117,6 +1126,72 @@ mod test {
         assert!(
             result.is_ok(),
             "submission_loop should return Ok when no submission is available"
+        );
+    }
+
+    #[test]
+    #[serial]
+    fn delegate_without_registry_fails() {
+        let dispatcher = test_dispatcher();
+        #[cfg(feature = "submission")]
+        let mut submission_handler = DummySubmissionHandler;
+        #[cfg(feature = "debugger")]
+        let mut debug_server = DummyDebugServer {
+            exit_immediately: false,
+        };
+
+        let mut coordinator = Coordinator::new(
+            dispatcher,
+            #[cfg(feature = "submission")]
+            &mut submission_handler,
+            #[cfg(feature = "debugger")]
+            &mut debug_server,
+        );
+
+        // Set peer_address but no subflow_registry → should fail
+        let mut submission = test_submission(vec![]);
+        submission.delegate_flow_id = Some(1);
+        submission.peer_address = Some("127.0.0.1:9999".to_string());
+        let result = coordinator.execute_flow(submission);
+        assert!(
+            result.is_err(),
+            "Delegation without a subflow registry should fail"
+        );
+    }
+
+    #[test]
+    #[serial]
+    fn delegate_without_peer_fails() {
+        let dispatcher = test_dispatcher();
+        #[cfg(feature = "submission")]
+        let mut submission_handler = DummySubmissionHandler;
+        #[cfg(feature = "debugger")]
+        let mut debug_server = DummyDebugServer {
+            exit_immediately: false,
+        };
+
+        let mut coordinator = Coordinator::new(
+            dispatcher,
+            #[cfg(feature = "submission")]
+            &mut submission_handler,
+            #[cfg(feature = "debugger")]
+            &mut debug_server,
+        );
+
+        // Set up registry but no peer_address → delegate_flow_id is set
+        // but connect_to_peer is never called, so peer_client is None
+        let executor = crate::executor::Executor::new();
+        coordinator.set_subflow_registry(executor.subflow_registry());
+
+        let mut submission = test_submission(vec![]);
+        submission.delegate_flow_id = Some(1);
+        // No peer_address set → connect_to_peer not called
+        // delegate_subflow will fail because flow_id 1 doesn't exist
+        // in the empty manifest, but that's the first error hit
+        let result = coordinator.execute_flow(submission);
+        assert!(
+            result.is_err(),
+            "Delegation without a valid sub-flow should fail"
         );
     }
 }
