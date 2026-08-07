@@ -28,13 +28,19 @@ Then a branch name could be `analyse_on_config_change_103`
 As we work on the branch, we will commit changes once pre-commit checks pass and then later
 push the branch and create a PR from it.
 
+### Things explicitly prohibited
+- Merging a PR without my approval at the time, or an advanced approval for a specific number of merges
+- changing the thresholds and goals for test coverage in codevoc.io
+- Ignoring or removing tests to make CI pass, or run quicker, without my explicit approval.
+
 ## Pre-commit checks
 
 Before committing new work to a branch, the following checks should pass:
 
-- `make clippy` if that Makefile target exists or `cargo clippy` if not
+- `make clippy` (always use the Makefile target, not `cargo clippy`)
 - `cargo fmt` either to check or directly to reformat code.
-- tests pass via `make test` if that Makefile target exists, or `cargo test` if not
+- `make test` (always use the Makefile target, not `cargo test`)
+- Look at coverage numbers and expect the CI code coverage check for the project overall and for the patch to pass
 
 Expect the PR checks to check for:
 - non-reducing code coverage of the project and the patch (lines changed), add tests to reduce the possibility
@@ -55,4 +61,4 @@ A PR can be considered ready to be merged when:
 If code coverage checks or code review fails in the PR checks, then iterate with fixes until the PR
 is green, all checks pass, and it is ready to be considered for merge.
 
-Don't suggest merging until the above list is met.
+You should iterate on a PR, working to get it green, addressing all the above points before suggesting to merge it.

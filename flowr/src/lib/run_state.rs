@@ -230,6 +230,14 @@ pub struct RunState {
     /// Only populated when `is_subflow` is true.
     #[serde(skip)]
     boundary_outputs: Vec<BoundaryOutput>,
+    /// Function IDs that have been delegated to a peer coordinator.
+    /// Values destined for these functions are collected in `peer_outputs`
+    /// instead of being delivered locally.
+    #[serde(skip)]
+    delegated_functions: std::collections::HashSet<usize>,
+    /// Values destined for delegated functions, to be sent to the peer.
+    #[serde(skip)]
+    peer_outputs: Vec<BoundaryOutput>,
 }
 
 /// A value produced on a boundary connection of a sub-flow.
@@ -294,6 +302,7 @@ impl RunState {
         #[cfg(feature = "trace")]
         let trace = crate::trace::topology_from_submission(&submission);
         let is_subflow = submission.is_subflow;
+        let delegated_functions = submission.delegated_functions.clone();
         RunState {
             submission,
             ready_jobs: VecDeque::<Job>::new(),
@@ -311,12 +320,25 @@ impl RunState {
             trace,
             is_subflow,
             boundary_outputs: Vec::new(),
+            delegated_functions,
+            peer_outputs: Vec::new(),
         }
     }
 
     /// Mark this `RunState` as a sub-flow execution, enabling boundary output capture.
     pub fn set_subflow(&mut self) {
         self.is_subflow = true;
+    }
+
+    /// Mark function IDs as delegated to a peer coordinator.
+    /// Values destined for these functions will be collected in `peer_outputs`.
+    pub fn set_delegated_functions(&mut self, func_ids: std::collections::HashSet<usize>) {
+        self.delegated_functions = func_ids;
+    }
+
+    /// Drain values destined for delegated functions, to be sent to the peer.
+    pub fn drain_peer_outputs(&mut self) -> Vec<BoundaryOutput> {
+        std::mem::take(&mut self.peer_outputs)
     }
 
     /// Get a reference to the submission
@@ -621,17 +643,25 @@ impl RunState {
                 if job.payload.implementation_url.scheme() == "subflow" {
                     if let Some(Value::Array(boundary_outputs)) = output_value {
                         for bo in boundary_outputs {
-                            if let (Some(dest_id), Some(dest_io), Some(value)) = (
+                            if let (Some(dest_func_id), Some(dest_input_num), Some(value)) = (
                                 bo.get("destination_id").and_then(Value::as_u64),
                                 bo.get("destination_io_number").and_then(Value::as_u64),
                                 bo.get("value"),
                             ) {
                                 #[allow(clippy::cast_possible_truncation)]
+                                let dest_func_id = dest_func_id as usize;
+                                #[allow(clippy::cast_possible_truncation)]
+                                let dest_input_num = dest_input_num as usize;
+                                // Look up the destination function's actual parent
+                                // so flow-busy gating works correctly.
+                                let dest_parent = self
+                                    .get_mut(dest_func_id)
+                                    .map_or(job.parent_id, |f| f.get_parent_id());
                                 let conn = OutputConnection::new(
                                     Output(String::new()),
-                                    dest_id as usize,
-                                    dest_io as usize,
-                                    job.parent_id,
+                                    dest_func_id,
+                                    dest_input_num,
+                                    dest_parent,
                                     false,
                                     String::new(),
                                     #[cfg(feature = "debugger")]
@@ -836,6 +866,24 @@ impl RunState {
                 connection.destination_id,
                 connection.destination_io_number,
             )?;
+        }
+
+        // If the destination is a delegated function, capture the value
+        // for sending to the peer coordinator.
+        if self
+            .delegated_functions
+            .contains(&connection.destination_id)
+        {
+            info!(
+                "\t\tPeer output: value '{output_value}'{route_str} -> \
+                 delegated function #{}:{}",
+                connection.destination_id, connection.destination_io_number
+            );
+            self.peer_outputs.push(BoundaryOutput {
+                connection: connection.clone(),
+                value: output_value,
+            });
+            return Ok(action);
         }
 
         // If the destination function doesn't exist and this is a sub-flow,

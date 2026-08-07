@@ -45,6 +45,10 @@ pub struct Coordinator<'a> {
     /// URLs in job payloads are rewritten to `http://` URLs so remote executors
     /// can fetch WASM modules.
     wasm_base_url: Option<url::Url>,
+    /// Peer client for delegated sub-flow communication.
+    peer_client: Option<crate::peer_client::PeerClient>,
+    /// Shared sub-flow manifest registry from the executor.
+    subflow_registry: Option<crate::executor::SubflowRegistry>,
     #[cfg(feature = "debugger")]
     /// A `Debugger` to communicate with debug clients
     debugger: Debugger<'a>,
@@ -187,6 +191,8 @@ impl<'a> Coordinator<'a> {
             dispatcher,
             job_timeout: None,
             wasm_base_url: None,
+            peer_client: None,
+            subflow_registry: None,
             #[cfg(feature = "debugger")]
             debugger: Debugger::new(debug_server),
             #[cfg(all(not(feature = "debugger"), not(feature = "submission")))]
@@ -199,6 +205,16 @@ impl<'a> Coordinator<'a> {
     /// remote executors can fetch WASM modules.
     pub fn set_wasm_base_url(&mut self, base_url: url::Url) {
         self.wasm_base_url = Some(base_url);
+    }
+
+    /// Set the peer client for delegated sub-flow communication.
+    pub fn set_peer_client(&mut self, client: crate::peer_client::PeerClient) {
+        self.peer_client = Some(client);
+    }
+
+    /// Set the sub-flow registry shared with the executor.
+    pub fn set_subflow_registry(&mut self, registry: crate::executor::SubflowRegistry) {
+        self.subflow_registry = Some(registry);
     }
 
     /// Send a DONE signal to all connected executors, telling them to exit.
@@ -269,7 +285,30 @@ impl<'a> Coordinator<'a> {
     ///
     /// Returns an error if the execution of the flow did not complete normally.
     #[allow(unused_variables, unused_mut)]
-    pub fn execute_flow(&mut self, submission: Submission) -> Result<()> {
+    pub fn execute_flow(&mut self, mut submission: Submission) -> Result<()> {
+        // Handle sub-flow delegation if requested
+        if let Some(flow_id) = submission.delegate_flow_id.take() {
+            let registry = self
+                .subflow_registry
+                .as_ref()
+                .ok_or("Sub-flow delegation requested but no sub-flow registry is configured")?;
+            info!("Delegating sub-flow #{flow_id}");
+            let (extracted, input_map) = submission
+                .manifest
+                .delegate_subflow(flow_id)
+                .map_err(|e| format!("Could not delegate sub-flow #{flow_id}: {e}"))?;
+            let subflow_url = url::Url::parse(&format!("subflow://{flow_id}"))
+                .map_err(|e| format!("Invalid subflow URL: {e}"))?;
+            let mut manifests = registry
+                .write()
+                .map_err(|_| "Could not gain write access to the sub-flow registry")?;
+            info!(
+                "Registered sub-flow #{flow_id} with {} functions",
+                extracted.functions().len()
+            );
+            manifests.insert(subflow_url, (extracted, input_map));
+        }
+
         self.job_timeout = submission.job_timeout;
         self.dispatcher
             .set_results_timeout(submission.job_timeout)?;
@@ -423,6 +462,33 @@ impl<'a> Coordinator<'a> {
             {
                 total_retire_us += retire_start.elapsed().as_micros();
                 loop_count += 1;
+            }
+
+            // Send any values destined for delegated functions to the peer
+            // and receive boundary outputs back into the local flow
+            if self.peer_client.is_some() {
+                let peer_outputs = state.drain_peer_outputs();
+                if !peer_outputs.is_empty() {
+                    info!("Sending {} values to peer coordinator", peer_outputs.len());
+                    // Convert peer_outputs to input tuples for the peer
+                    let inputs: Vec<(usize, usize, serde_json::Value)> = peer_outputs
+                        .iter()
+                        .map(|o| {
+                            (
+                                o.connection.destination_id,
+                                o.connection.destination_io_number,
+                                o.value.clone(),
+                            )
+                        })
+                        .collect();
+
+                    // TODO: submit to peer and receive boundary outputs
+                    // This requires maintaining the peer connection across the
+                    // dispatch/retire loop. For now, log what would be sent.
+                    for (dest_id, dest_io, value) in &inputs {
+                        info!("  -> #{dest_id}:{dest_io} = {value}");
+                    }
+                }
             }
 
             #[cfg(all(feature = "submission", any(feature = "metrics", feature = "debugger")))]

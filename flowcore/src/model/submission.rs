@@ -25,6 +25,12 @@ pub struct Submission {
     /// Whether this is a sub-flow submission (enables boundary output capture)
     #[serde(default)]
     pub is_subflow: bool,
+    /// Function IDs that have been delegated to a peer coordinator.
+    #[serde(default)]
+    pub delegated_functions: std::collections::HashSet<usize>,
+    /// Sub-flow ID to delegate via `SubFlowImplementation`.
+    #[serde(default)]
+    pub delegate_flow_id: Option<usize>,
 }
 
 impl Submission {
@@ -52,6 +58,8 @@ impl Submission {
             #[cfg(feature = "trace")]
             trace_file,
             is_subflow: false,
+            delegated_functions: std::collections::HashSet::new(),
+            delegate_flow_id: None,
         }
     }
 }

@@ -21,6 +21,18 @@ use flowcore::Implementation;
 use crate::job::Payload;
 use crate::wasm;
 
+/// Registered sub-flow manifests with their input mappings.
+pub(crate) type SubflowManifests = HashMap<
+    Url,
+    (
+        flowcore::model::flow_manifest::FlowManifest,
+        Vec<(usize, usize)>,
+    ),
+>;
+
+/// Thread-safe shared registry of sub-flow manifests, keyed by `subflow://` URL.
+pub type SubflowRegistry = Arc<RwLock<SubflowManifests>>;
+
 /// Global counter of jobs currently being executed by executor threads.
 /// Incremented when an executor starts running a job, decremented when done.
 static JOBS_EXECUTING: AtomicUsize = AtomicUsize::new(0);
@@ -65,10 +77,9 @@ pub struct Executor {
     // (e.g. lib:://flowstdlib), and the entry is a tuple of the LibraryManifest
     // and the resolved Url of where the manifest was read from
     loaded_lib_manifests: Arc<RwLock<HashMap<Url, (LibraryManifest, Url)>>>,
-    // HashMap of registered sub-flow manifests for sub-flow execution.
-    // Key is the subflow:// URL (e.g. subflow://4), value is the FlowManifest.
-    loaded_subflow_manifests:
-        Arc<RwLock<HashMap<Url, flowcore::model::flow_manifest::FlowManifest>>>,
+    // Registered sub-flow manifests: URL -> (manifest, input_map).
+    // input_map: [(dest_func_id, dest_io_number)] maps proxy inputs to sub-flow inputs.
+    loaded_subflow_manifests: SubflowRegistry,
     executors: Vec<JoinHandle<()>>,
 }
 
@@ -116,7 +127,17 @@ impl Executor {
         Ok(())
     }
 
-    /// Register a sub-flow manifest for execution via `subflow://` URLs.
+    /// Get a shared reference to the sub-flow manifest registry.
+    /// Used by the coordinator to register sub-flows at runtime.
+    #[must_use]
+    pub fn subflow_registry(&self) -> SubflowRegistry {
+        self.loaded_subflow_manifests.clone()
+    }
+
+    /// Register a sub-flow manifest for `subflow://` URL execution.
+    ///
+    /// The `input_map` specifies how the proxy function's inputs map to the
+    /// sub-flow's internal function inputs: `[(dest_func_id, dest_io_number)]`.
     ///
     /// # Errors
     ///
@@ -125,13 +146,14 @@ impl Executor {
         &mut self,
         subflow_url: Url,
         manifest: flowcore::model::flow_manifest::FlowManifest,
+        input_map: Vec<(usize, usize)>,
     ) -> Result<()> {
         let mut manifests = self
             .loaded_subflow_manifests
             .write()
             .map_err(|_| "Could not gain write access to subflow manifests")?;
         info!("Sub-flow manifest registered at '{subflow_url}'");
-        manifests.insert(subflow_url, manifest);
+        manifests.insert(subflow_url, (manifest, input_map));
         Ok(())
     }
 
@@ -244,9 +266,7 @@ fn execution_loop(
     context: &zmq::Context,
     loaded_implementations: &Arc<RwLock<HashMap<Url, Arc<dyn Implementation>>>>,
     loaded_lib_manifests: &Arc<RwLock<HashMap<Url, (LibraryManifest, Url)>>>,
-    loaded_subflow_manifests: &Arc<
-        RwLock<HashMap<Url, flowcore::model::flow_manifest::FlowManifest>>,
-    >,
+    loaded_subflow_manifests: &SubflowRegistry,
     job_service: String,
     results_service: String,
     control_address: String,
@@ -421,9 +441,7 @@ fn execute_job_to_string(
     executor_id: &str,
     loaded_implementations: &Arc<RwLock<HashMap<Url, Arc<dyn Implementation>>>>,
     loaded_lib_manifests: &Arc<RwLock<HashMap<Url, (LibraryManifest, Url)>>>,
-    loaded_subflow_manifests: &Arc<
-        RwLock<HashMap<Url, flowcore::model::flow_manifest::FlowManifest>>,
-    >,
+    loaded_subflow_manifests: &SubflowRegistry,
 ) -> Result<String> {
     let implementation = get_or_load_implementation(
         provider,
@@ -468,9 +486,7 @@ fn get_or_load_implementation(
     payload: &Payload,
     loaded_implementations: &Arc<RwLock<HashMap<Url, Arc<dyn Implementation>>>>,
     loaded_lib_manifests: &Arc<RwLock<HashMap<Url, (LibraryManifest, Url)>>>,
-    loaded_subflow_manifests: &Arc<
-        RwLock<HashMap<Url, flowcore::model::flow_manifest::FlowManifest>>,
-    >,
+    loaded_subflow_manifests: &SubflowRegistry,
 ) -> Result<Arc<dyn Implementation>> {
     // First try a read lock to avoid contention
     let needs_load = {
@@ -519,16 +535,24 @@ fn get_or_load_implementation(
                     let manifests = loaded_subflow_manifests
                         .read()
                         .map_err(|_| "Could not read subflow manifests")?;
-                    let manifest = manifests.get(&payload.implementation_url).ok_or_else(|| {
-                        format!(
-                            "Sub-flow manifest not registered: {}",
-                            payload.implementation_url
-                        )
-                    })?;
+                    let (manifest, input_map) =
+                        manifests.get(&payload.implementation_url).ok_or_else(|| {
+                            format!(
+                                "Sub-flow manifest not registered: {}",
+                                payload.implementation_url
+                            )
+                        })?;
+                    let interface_inputs = input_map
+                        .iter()
+                        .map(|(dest_id, dest_io)| crate::subflow::InterfaceInput {
+                            destination_id: *dest_id,
+                            destination_io_number: *dest_io,
+                        })
+                        .collect();
                     Arc::new(crate::subflow::SubFlowImplementation::new(
                         manifest.clone(),
                         provider.clone(),
-                        vec![], // TODO: interface inputs from parent
+                        interface_inputs,
                     ))
                 }
                 _ => bail!("Unsupported scheme on implementation_url"),
@@ -564,9 +588,7 @@ fn execute_job(
     executor_id: &str,
     loaded_implementations: &Arc<RwLock<HashMap<Url, Arc<dyn Implementation>>>>,
     loaded_lib_manifests: &Arc<RwLock<HashMap<Url, (LibraryManifest, Url)>>>,
-    loaded_subflow_manifests: &Arc<
-        RwLock<HashMap<Url, flowcore::model::flow_manifest::FlowManifest>>,
-    >,
+    loaded_subflow_manifests: &SubflowRegistry,
 ) -> Result<bool> {
     let implementation = get_or_load_implementation(
         provider,
@@ -675,11 +697,9 @@ mod test {
     use flowcore::provider::Provider;
     use flowcore::Implementation;
 
-    use flowcore::model::flow_manifest::FlowManifest;
-
     use crate::job::{Job, Payload};
 
-    fn empty_subflow_manifests() -> Arc<RwLock<HashMap<Url, FlowManifest>>> {
+    fn empty_subflow_manifests() -> super::SubflowRegistry {
         Arc::new(RwLock::new(HashMap::new()))
     }
 

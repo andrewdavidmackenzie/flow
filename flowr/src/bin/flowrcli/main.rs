@@ -426,6 +426,9 @@ fn coordinator(
         }
     };
 
+    // Share the executor's sub-flow registry with the coordinator
+    coordinator.set_subflow_registry(executor.subflow_registry());
+
     #[cfg(feature = "submission")]
     let result = coordinator.submission_loop(loop_forever);
     #[cfg(not(feature = "submission"))]
@@ -664,6 +667,7 @@ fn client_only(
 }
 
 /// Start the client that talks to the coordinator
+#[allow(clippy::too_many_lines)]
 fn client(
     matches: &ArgMatches,
     lib_search_path: Simpath,
@@ -684,7 +688,53 @@ fn client(
     let job_timeout = matches
         .get_one::<u64>("job-timeout")
         .map(|secs| Duration::from_secs(*secs));
-    let submission = Submission::new(
+    // If --delegate is set, find the best sub-flow to delegate.
+    // We pick the sub-flow with the largest function subtree whose entire
+    // descendant tree uses only lib:// implementations.
+    let mut delegate_flow_id = None;
+    if matches.get_flag("delegate") {
+        let mut best: Option<(usize, usize)> = None; // (flow_id, function_count)
+        for (&flow_id, flow_info) in flow_manifest.flows() {
+            if flow_info.parent_id.is_none() {
+                continue; // skip root
+            }
+            // Collect all descendant flow IDs (including this one)
+            let mut descendant_flows = vec![flow_id];
+            let mut idx = 0;
+            while let Some(&parent) = descendant_flows.get(idx) {
+                for (&child_id, child_info) in flow_manifest.flows() {
+                    if child_info.parent_id == Some(parent) && !descendant_flows.contains(&child_id)
+                    {
+                        descendant_flows.push(child_id);
+                    }
+                }
+                idx += 1;
+            }
+            // Check all functions in the subtree
+            let subtree_funcs: Vec<_> = flow_manifest
+                .functions()
+                .values()
+                .filter(|f| descendant_flows.contains(&f.get_parent_id()))
+                .collect();
+            let all_lib = subtree_funcs
+                .iter()
+                .all(|f| f.get_implementation_location().starts_with("lib://"));
+            if all_lib && !subtree_funcs.is_empty() {
+                let count = subtree_funcs.len();
+                if best.is_none_or(|(_, best_count)| count > best_count) {
+                    best = Some((flow_id, count));
+                }
+            }
+        }
+        if let Some((flow_id, count)) = best {
+            info!(
+                "Will delegate sub-flow #{flow_id} ({count} functions) via SubFlowImplementation"
+            );
+            delegate_flow_id = Some(flow_id);
+        }
+    }
+
+    let mut submission = Submission::new(
         flow_manifest,
         parallel_jobs_limit,
         job_timeout,
@@ -695,6 +745,7 @@ fn client(
             .get_one::<String>("trace")
             .map(std::string::ToString::to_string),
     );
+    submission.delegate_flow_id = delegate_flow_id;
 
     trace!("Creating CliRuntimeClient");
     let client = CliRuntimeClient::new(
@@ -822,6 +873,13 @@ fn get_matches() -> ArgMatches {
             .number_of_values(1)
             .value_name("TRACE_FILE")
             .help("Write execution trace to the specified file (JSON format)"),
+    );
+
+    let app = app.arg(
+        Arg::new("delegate")
+            .long("delegate")
+            .action(clap::ArgAction::SetTrue)
+            .help("Delegate sub-flows to peer coordinators on the network"),
     );
 
     app.get_matches()

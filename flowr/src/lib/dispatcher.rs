@@ -125,13 +125,14 @@ impl Dispatcher {
     // Send a `Job` for execution to executors.
     //
     // Jobs are routed to two executor pools:
-    // - `lib_job_socket`: library functions (lib://) and WASM functions (file://)
-    //   — these run on the multi-threaded executor pool for parallelism
+    // - `lib_job_socket`: library functions (lib://), WASM functions (file://),
+    //   and sub-flow functions (subflow://) — these run on the multi-threaded
+    //   executor pool for parallelism
     // - `general_job_socket`: context functions (context://) — these interact with
     //   the environment and run on a dedicated executor with spawn support
     pub(crate) fn send_job_for_execution(&mut self, payload: &Payload) -> Result<()> {
         let scheme = payload.implementation_url.scheme();
-        if scheme == "lib" || scheme == "file" {
+        if scheme == "lib" || scheme == "file" || scheme == "subflow" {
             self.lib_job_socket
                 .send(serde_json::to_string(payload)?.as_bytes(), 0)
                 .map_err(|e| format!("Could not send Job for execution: {e}"))?;
@@ -259,6 +260,30 @@ mod test {
         context_job_source
             .connect(&format!("tcp://127.0.0.1:{}", ports.1))
             .expect("Could not bind to PULL end of job-source socket");
+
+        assert!(dispatcher.send_job_for_execution(&payload).is_ok());
+    }
+
+    #[test]
+    #[serial]
+    fn send_subflow_job() {
+        let payload = Payload {
+            job_id: 0,
+            input_set: vec![],
+            implementation_url: Url::parse("subflow://1").expect("Could not parse Url"),
+        };
+
+        let (mut dispatcher, ports) = new_dispatcher();
+
+        // subflow:// jobs should be routed to the lib job socket (ports.0),
+        // not the context job socket (ports.1).
+        let context = zmq::Context::new();
+        let job_source = context
+            .socket(zmq::PULL)
+            .expect("Could not create PULL end of job socket");
+        job_source
+            .connect(&format!("tcp://127.0.0.1:{}", ports.0))
+            .expect("Could not bind to PULL end of job socket");
 
         assert!(dispatcher.send_job_for_execution(&payload).is_ok());
     }
