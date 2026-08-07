@@ -311,6 +311,7 @@ fn flowrex_peer_coordinator_end_to_end() {
         // Clean up and skip — mDNS may not be working in this environment
         flowrex.kill().ok();
         flowrex.wait().ok();
+        thread::sleep(Duration::from_secs(3));
         eprintln!("No peer coordinators discovered — skipping test");
         return;
     }
@@ -673,4 +674,7 @@ fn test_delegate_to_remote_flowrex() {
 
     // Clean up
     std::fs::remove_file(&output_file).ok();
+
+    // Allow mDNS goodbye packets to propagate
+    thread::sleep(Duration::from_secs(3));
 }
