@@ -22,11 +22,14 @@ use crate::job::Payload;
 use crate::wasm;
 
 /// Registered sub-flow manifests with their input mappings.
+/// Each entry is `(manifest, input_map, optional_peer_address)`.
+/// When `peer_address` is `Some`, the sub-flow should be executed remotely.
 pub(crate) type SubflowManifests = HashMap<
     Url,
     (
         flowcore::model::flow_manifest::FlowManifest,
         Vec<(usize, usize)>,
+        Option<String>,
     ),
 >;
 
@@ -153,7 +156,7 @@ impl Executor {
             .write()
             .map_err(|_| "Could not gain write access to subflow manifests")?;
         info!("Sub-flow manifest registered at '{subflow_url}'");
-        manifests.insert(subflow_url, (manifest, input_map));
+        manifests.insert(subflow_url, (manifest, input_map, None));
         Ok(())
     }
 
@@ -535,25 +538,34 @@ fn get_or_load_implementation(
                     let manifests = loaded_subflow_manifests
                         .read()
                         .map_err(|_| "Could not read subflow manifests")?;
-                    let (manifest, input_map) =
+                    let (manifest, input_map, peer_address) =
                         manifests.get(&payload.implementation_url).ok_or_else(|| {
                             format!(
                                 "Sub-flow manifest not registered: {}",
                                 payload.implementation_url
                             )
                         })?;
-                    let interface_inputs = input_map
+                    let interface_inputs: Vec<crate::subflow::InterfaceInput> = input_map
                         .iter()
                         .map(|(dest_id, dest_io)| crate::subflow::InterfaceInput {
                             destination_id: *dest_id,
                             destination_io_number: *dest_io,
                         })
                         .collect();
-                    Arc::new(crate::subflow::SubFlowImplementation::new(
-                        manifest.clone(),
-                        provider.clone(),
-                        interface_inputs,
-                    ))
+                    if let Some(addr) = peer_address {
+                        info!("Creating remote sub-flow implementation for peer at {addr}");
+                        Arc::new(crate::subflow::RemoteSubFlowImplementation::new(
+                            manifest.clone(),
+                            interface_inputs,
+                            addr.clone(),
+                        )) as Arc<dyn Implementation>
+                    } else {
+                        Arc::new(crate::subflow::SubFlowImplementation::new(
+                            manifest.clone(),
+                            provider.clone(),
+                            interface_inputs,
+                        )) as Arc<dyn Implementation>
+                    }
                 }
                 _ => bail!("Unsupported scheme on implementation_url"),
             };

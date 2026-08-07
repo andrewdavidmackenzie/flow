@@ -727,9 +727,7 @@ fn client(
             }
         }
         if let Some((flow_id, count)) = best {
-            info!(
-                "Will delegate sub-flow #{flow_id} ({count} functions) via SubFlowImplementation"
-            );
+            info!("Will delegate sub-flow #{flow_id} ({count} functions)");
             delegate_flow_id = Some(flow_id);
         }
     }
@@ -746,6 +744,21 @@ fn client(
             .map(std::string::ToString::to_string),
     );
     submission.delegate_flow_id = delegate_flow_id;
+
+    // If delegating, try to discover a peer coordinator for remote execution
+    if delegate_flow_id.is_some() {
+        match flowrlib::peer_discovery::discover_peer_coordinators(Duration::from_secs(3), None) {
+            Ok(peers) => {
+                if let Some(addr) = peers.into_iter().next() {
+                    info!("Discovered peer coordinator at {addr} — will delegate remotely");
+                    submission.peer_address = Some(addr);
+                } else {
+                    info!("No peer coordinators found — will delegate locally");
+                }
+            }
+            Err(e) => info!("Peer discovery failed ({e}) — will delegate locally"),
+        }
+    }
 
     trace!("Creating CliRuntimeClient");
     let client = CliRuntimeClient::new(

@@ -276,6 +276,23 @@ impl<'a> Coordinator<'a> {
         Ok(state)
     }
 
+    /// Connect to a peer coordinator if a peer address is available on the
+    /// submission and no peer client is already set.
+    fn connect_to_peer(&mut self, peer_addr: &str) {
+        if self.peer_client.is_none() {
+            let zmq_ctx = zmq::Context::new();
+            match crate::peer_client::PeerClient::connect(&zmq_ctx, peer_addr) {
+                Ok(client) => {
+                    info!("Connected to peer coordinator at {peer_addr}");
+                    self.set_peer_client(client);
+                }
+                Err(e) => {
+                    error!("Could not connect to peer at {peer_addr}: {e} — will delegate locally");
+                }
+            }
+        }
+    }
+
     /// Execute a flow by looping while there are jobs to be processed.
     ///
     /// The outer loop exists for the debugger: it allows resetting all state and restarting
@@ -286,6 +303,11 @@ impl<'a> Coordinator<'a> {
     /// Returns an error if the execution of the flow did not complete normally.
     #[allow(unused_variables, unused_mut)]
     pub fn execute_flow(&mut self, mut submission: Submission) -> Result<()> {
+        // Connect to a discovered peer coordinator if one was found
+        if let Some(ref peer_addr) = submission.peer_address.clone() {
+            self.connect_to_peer(peer_addr);
+        }
+
         // Handle sub-flow delegation if requested
         if let Some(flow_id) = submission.delegate_flow_id.take() {
             let registry = self
@@ -306,7 +328,15 @@ impl<'a> Coordinator<'a> {
                 "Registered sub-flow #{flow_id} with {} functions",
                 extracted.functions().len()
             );
-            manifests.insert(subflow_url, (extracted, input_map));
+            let peer_addr = self.peer_client.as_ref().map(|c| c.address().to_string());
+            if peer_addr.is_some() {
+                info!("Sub-flow #{flow_id} will be executed on remote peer");
+            }
+            // Preserve the extracted manifest for possible reconstitution
+            submission
+                .extracted_subflows
+                .insert(flow_id, extracted.clone());
+            manifests.insert(subflow_url, (extracted, input_map, peer_addr));
         }
 
         self.job_timeout = submission.job_timeout;

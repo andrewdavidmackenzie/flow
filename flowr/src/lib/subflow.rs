@@ -169,6 +169,85 @@ impl Implementation for SubFlowImplementation {
     }
 }
 
+/// An `Implementation` that executes a sub-flow on a remote peer coordinator.
+///
+/// When `run()` is called, it connects to the peer via ZMQ, sends the
+/// sub-flow manifest with input values, and receives boundary outputs.
+pub struct RemoteSubFlowImplementation {
+    manifest: FlowManifest,
+    interface_inputs: Vec<InterfaceInput>,
+    peer_address: String,
+}
+
+impl RemoteSubFlowImplementation {
+    /// Create a new remote sub-flow implementation.
+    #[must_use]
+    pub fn new(
+        manifest: FlowManifest,
+        interface_inputs: Vec<InterfaceInput>,
+        peer_address: String,
+    ) -> Self {
+        RemoteSubFlowImplementation {
+            manifest,
+            interface_inputs,
+            peer_address,
+        }
+    }
+}
+
+impl Implementation for RemoteSubFlowImplementation {
+    fn run(&self, inputs: &[Value]) -> flowcore::errors::Result<(Option<Value>, RunAgain)> {
+        info!(
+            "RemoteSubFlowImplementation: sending sub-flow with {} inputs to peer at {}",
+            inputs.len(),
+            self.peer_address
+        );
+
+        // Build input triples: (dest_func_id, dest_io_number, value)
+        let input_triples: Vec<(usize, usize, Value)> = self
+            .interface_inputs
+            .iter()
+            .enumerate()
+            .filter_map(|(i, iface)| {
+                inputs
+                    .get(i)
+                    .map(|v| (iface.destination_id, iface.destination_io_number, v.clone()))
+            })
+            .collect();
+
+        // Connect to peer and submit
+        let zmq_context = zmq::Context::new();
+        let client = crate::peer_client::PeerClient::connect(&zmq_context, &self.peer_address)
+            .map_err(|e| format!("Could not connect to peer at {}: {e}", self.peer_address))?;
+
+        let boundary_outputs = client
+            .submit_subflow(self.manifest.clone(), input_triples)
+            .map_err(|e| format!("Peer sub-flow execution failed: {e}"))?;
+
+        info!(
+            "RemoteSubFlowImplementation: received {} boundary outputs from peer",
+            boundary_outputs.len()
+        );
+
+        if boundary_outputs.is_empty() {
+            Ok((None, RUN_AGAIN))
+        } else {
+            // Package boundary outputs in the same JSON format as SubFlowImplementation
+            let outputs: Vec<Value> = boundary_outputs
+                .into_iter()
+                .map(|bo| {
+                    serde_json::json!({
+                        "destination_id": bo.connection.destination_id,
+                        "destination_io_number": bo.connection.destination_io_number,
+                        "value": bo.value,
+                    })
+                })
+                .collect();
+            Ok((Some(Value::Array(outputs)), RUN_AGAIN))
+        }
+    }
+}
+
 // --- No-op handlers for sub-flow coordinator ---
 
 #[cfg(feature = "submission")]
