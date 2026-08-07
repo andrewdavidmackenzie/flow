@@ -122,7 +122,7 @@ impl SubmissionHandler for PeerSubmissionHandler {
 
         match request {
             PeerRequest::Submit(submission) => {
-                let manifest = submission.manifest;
+                let mut manifest = submission.manifest;
                 let inputs = submission.inputs;
                 info!(
                     "Peer coordinator received sub-flow with {} functions, {} inputs",
@@ -130,7 +130,21 @@ impl SubmissionHandler for PeerSubmissionHandler {
                     inputs.len()
                 );
 
-                // TODO: inject inputs into the manifest's boundary functions
+                // Inject inputs as Once initializers on boundary functions
+                for (dest_func_id, dest_io_number, value) in &inputs {
+                    let func = manifest
+                        .get_functions()
+                        .get_mut(dest_func_id)
+                        .ok_or_else(|| {
+                            format!(
+                                "Input destination function #{dest_func_id} not found in sub-flow"
+                            )
+                        })?;
+                    func.set_flow_initializer(
+                        *dest_io_number,
+                        flowcore::model::input::InputInitializer::Once(value.clone()),
+                    );
+                }
 
                 let mut submission = Submission::new(
                     manifest,

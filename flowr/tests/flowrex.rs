@@ -311,6 +311,7 @@ fn flowrex_peer_coordinator_end_to_end() {
         // Clean up and skip — mDNS may not be working in this environment
         flowrex.kill().ok();
         flowrex.wait().ok();
+        thread::sleep(Duration::from_secs(3));
         eprintln!("No peer coordinators discovered — skipping test");
         return;
     }
@@ -393,6 +394,9 @@ fn flowrex_peer_coordinator_end_to_end() {
     drop(client);
     flowrex.kill().ok();
     flowrex.wait().ok();
+
+    // Allow mDNS goodbye packets to propagate
+    thread::sleep(Duration::from_secs(3));
 }
 
 /// Test `delegate_subflow` with a real flowrex peer coordinator.
@@ -525,4 +529,152 @@ fn delegate_subflow_to_peer() {
         Some(&serde_json::json!(10)),
         "Boundary output should be 10 (7+3)"
     );
+
+    // Allow mDNS goodbye packets to propagate
+    thread::sleep(Duration::from_secs(3));
+}
+
+/// End-to-end test: `flowrcli --delegate` delegates a sub-flow to a running
+/// flowrex peer coordinator, producing correct output.
+///
+/// 1. Compiles the mandlebrot example
+/// 2. Starts flowrex as a peer coordinator (--threads 0)
+/// 3. Runs flowrcli --delegate with the mandlebrot manifest
+/// 4. Verifies the output PNG matches the expected file
+/// 5. Confirms delegation happened remotely (log mentions "remote peer")
+///
+/// NOTE: This test is ignored because `flowrcli --delegate` discovers peers
+/// via mDNS which can find stale entries from previous tests, causing hangs.
+/// Run manually with: `cargo test --test flowrex test_delegate_to_remote -- --ignored`
+#[cfg_attr(target_os = "windows", ignore)]
+#[test]
+#[serial]
+#[ignore = "mDNS stale entries from prior tests cause hangs — run manually"]
+#[allow(clippy::too_many_lines)]
+fn test_delegate_to_remote_flowrex() {
+    use std::io::Read;
+    use std::process::{Command, Stdio};
+    use std::thread;
+    use std::time::Duration;
+
+    let manifest_dir = std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+    let project_root = manifest_dir.parent().expect("Could not find project root");
+
+    let example_dir = project_root
+        .join("flowr")
+        .join("examples")
+        .join("mandlebrot");
+
+    // Compile the mandlebrot example
+    let compile_status = Command::new("flowc")
+        .args(["-d", "-g", "-c", "-O", "-r", "flowrcli"])
+        .arg(example_dir.to_str().expect("path"))
+        .stdout(Stdio::null())
+        .stderr(Stdio::null())
+        .status()
+        .expect("Could not run flowc");
+    assert!(compile_status.success(), "flowc compilation failed");
+
+    // Start flowrex as peer coordinator (no executor threads)
+    let mut flowrex = Command::new("flowrex")
+        .args(["--threads", "0", "-v", "info"])
+        .stdout(Stdio::null())
+        .stderr(Stdio::null())
+        .spawn()
+        .expect("Could not spawn flowrex");
+
+    // Wait for mDNS from previous tests to clear and for
+    // this flowrex to advertise its peer-coordinator service.
+    thread::sleep(Duration::from_secs(8));
+
+    // Create a temp file for the output
+    let output_file = std::env::temp_dir().join("flowrex_delegate_test.png");
+
+    // Run flowrcli --delegate
+    let mut coordinator = Command::new("flowrcli")
+        .args([
+            "-n",
+            "-v",
+            "info",
+            "--delegate",
+            "manifest.json",
+            "--",
+            output_file.to_str().expect("temp path"),
+            "[20,15]",
+            "[[-1.20,0.35],[-1,0.20]]",
+        ])
+        .current_dir(
+            example_dir
+                .canonicalize()
+                .expect("Could not canonicalize path"),
+        )
+        .stdin(Stdio::null())
+        .stdout(Stdio::piped())
+        .stderr(Stdio::piped())
+        .spawn()
+        .expect("Could not spawn flowrcli");
+
+    // Wait with timeout
+    let deadline = std::time::Instant::now() + Duration::from_mins(2);
+    let exit_status = loop {
+        if std::time::Instant::now() > deadline {
+            // Read stderr before killing for debugging
+            let mut stderr_output = String::new();
+            if let Some(mut err) = coordinator.stderr.take() {
+                err.read_to_string(&mut stderr_output).ok();
+            }
+            coordinator.kill().ok();
+            flowrex.kill().ok();
+            coordinator.wait().ok();
+            flowrex.wait().ok();
+            panic!(
+                "flowrcli --delegate did not finish within 2 minutes.\nstderr:\n{stderr_output}"
+            );
+        }
+        match coordinator.try_wait().expect("Could not check coordinator") {
+            Some(status) => break status,
+            None => thread::sleep(Duration::from_secs(1)),
+        }
+    };
+
+    // Read stderr to verify remote delegation
+    let mut stderr_output = String::new();
+    if let Some(mut err) = coordinator.stderr.take() {
+        err.read_to_string(&mut stderr_output).ok();
+    }
+
+    // Clean up flowrex
+    flowrex.kill().ok();
+    flowrex.wait().ok();
+
+    assert!(
+        exit_status.success(),
+        "flowrcli --delegate failed.\nstderr:\n{stderr_output}"
+    );
+
+    // Verify the output was delegated to a remote peer
+    assert!(
+        stderr_output.contains("will be executed on remote peer")
+            || stderr_output.contains("delegate remotely"),
+        "Expected remote delegation in log.\nstderr:\n{stderr_output}"
+    );
+
+    // Verify output file matches expected
+    let expected_file = example_dir.join("expected.file");
+    let expected = std::fs::read(&expected_file).expect("Could not read expected.file");
+    let actual = std::fs::read(&output_file).expect("Could not read output file");
+
+    assert_eq!(
+        expected,
+        actual,
+        "Delegated output does not match expected.file (expected {} bytes, got {} bytes)",
+        expected.len(),
+        actual.len()
+    );
+
+    // Clean up
+    std::fs::remove_file(&output_file).ok();
+
+    // Allow mDNS goodbye packets to propagate
+    thread::sleep(Duration::from_secs(3));
 }
