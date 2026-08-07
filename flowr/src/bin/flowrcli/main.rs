@@ -677,6 +677,11 @@ fn client(
 ) -> Result<()> {
     let override_args = Arc::new(Mutex::new(Vec::<String>::new()));
 
+    // Start peer coordinator so this instance can accept delegated sub-flows
+    // from other coordinators. The port is used for self-avoidance in peer discovery.
+    #[cfg(feature = "submission")]
+    let own_peer_port = flowrlib::peer_coordinator::start_peer_coordinator().ok();
+
     let flow_manifest_url = parse_flow_url(matches)?;
     let provider = MetaProvider::new(lib_search_path, PathBuf::default());
     let (flow_manifest, _) = FlowManifest::load(&provider, &flow_manifest_url)?;
@@ -746,7 +751,14 @@ fn client(
 
     // Only delegate if a peer coordinator is available — otherwise run normally
     if let Some(flow_id) = delegate_flow_id {
-        match flowrlib::peer_discovery::discover_peer_coordinators(Duration::from_secs(3), None) {
+        #[cfg(feature = "submission")]
+        let self_port = own_peer_port;
+        #[cfg(not(feature = "submission"))]
+        let self_port: Option<u16> = None;
+        match flowrlib::peer_discovery::discover_peer_coordinators(
+            Duration::from_secs(3),
+            self_port,
+        ) {
             Ok(peers) => {
                 if let Some(addr) = peers.into_iter().next() {
                     info!("Discovered peer coordinator at {addr} — delegating sub-flow #{flow_id}");

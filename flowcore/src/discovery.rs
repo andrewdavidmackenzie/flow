@@ -282,6 +282,57 @@ pub fn discover_services(name: &str, timeout: Duration) -> Result<Vec<(String, u
     Ok(results)
 }
 
+/// Discover all mDNS services whose instance name starts with the given prefix.
+///
+/// Unlike [`discover_services`] which requires an exact instance name match,
+/// this function matches any instance whose name starts with `prefix`.
+/// This supports multiple instances of the same service type on different
+/// machines or processes (each with a unique suffix like PID or port).
+///
+/// # Errors
+///
+/// Returns an error if the mDNS daemon cannot be created or browsing fails.
+pub fn discover_services_by_prefix(prefix: &str, timeout: Duration) -> Result<Vec<(String, u16)>> {
+    let mdns = ServiceDaemon::new().map_err(|e| format!("Could not create mDNS daemon: {e}"))?;
+
+    let receiver = mdns
+        .browse(FLOW_SERVICE_TYPE)
+        .map_err(|e| format!("Could not browse for mDNS services: {e}"))?;
+
+    let full_name_suffix = format!(".{FLOW_SERVICE_TYPE}");
+    let start = Instant::now();
+    let mut results = Vec::new();
+
+    loop {
+        if start.elapsed() > timeout {
+            break;
+        }
+
+        if let Ok(ServiceEvent::ServiceResolved(info)) =
+            receiver.recv_timeout(Duration::from_millis(500))
+        {
+            let instance = info
+                .get_fullname()
+                .strip_suffix(&full_name_suffix)
+                .unwrap_or(info.get_fullname());
+
+            if instance.starts_with(prefix) {
+                let port = info.get_port();
+                if let Some(addr) = info.get_addresses_v4().into_iter().next() {
+                    let address = format!("{addr}:{port}");
+                    if !results.iter().any(|(a, _): &(String, u16)| *a == address) {
+                        info!("Discovered mDNS service '{instance}' at {address}");
+                        results.push((address, port));
+                    }
+                }
+            }
+        }
+    }
+
+    mdns.shutdown().ok();
+    Ok(results)
+}
+
 #[cfg(test)]
 #[allow(clippy::unwrap_used)]
 mod test {
