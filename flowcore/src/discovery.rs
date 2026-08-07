@@ -308,9 +308,13 @@ pub fn discover_services_by_prefix(prefix: &str, timeout: Duration) -> Result<Ve
             break;
         }
 
-        if let Ok(ServiceEvent::ServiceResolved(info)) =
-            receiver.recv_timeout(Duration::from_millis(500))
-        {
+        let remaining = timeout.saturating_sub(start.elapsed());
+        let recv_timeout = remaining.min(Duration::from_millis(500));
+        if recv_timeout.is_zero() {
+            break;
+        }
+
+        if let Ok(ServiceEvent::ServiceResolved(info)) = receiver.recv_timeout(recv_timeout) {
             let instance = info
                 .get_fullname()
                 .strip_suffix(&full_name_suffix)
@@ -318,7 +322,7 @@ pub fn discover_services_by_prefix(prefix: &str, timeout: Duration) -> Result<Ve
 
             if instance.starts_with(prefix) {
                 let port = info.get_port();
-                if let Some(addr) = info.get_addresses_v4().into_iter().next() {
+                for addr in info.get_addresses_v4() {
                     let address = format!("{addr}:{port}");
                     if !results.iter().any(|(a, _): &(String, u16)| *a == address) {
                         info!("Discovered mDNS service '{instance}' at {address}");
@@ -380,5 +384,20 @@ mod test {
         });
         assert_eq!(result.unwrap(), "127.0.0.1:9090");
         assert_eq!(attempt.get(), 3); // called 3 times: 2 timeouts + 1 success
+    }
+
+    #[test]
+    fn discover_by_prefix_zero_timeout_returns_empty() {
+        use std::time::Duration;
+        let results = super::discover_services_by_prefix("nonexistent-service", Duration::ZERO);
+        assert!(results.unwrap().is_empty());
+    }
+
+    #[test]
+    fn discover_by_prefix_short_timeout_returns_empty() {
+        use std::time::Duration;
+        let results =
+            super::discover_services_by_prefix("nonexistent-service", Duration::from_millis(100));
+        assert!(results.unwrap().is_empty());
     }
 }

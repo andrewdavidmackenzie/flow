@@ -106,7 +106,12 @@ fn run() -> Result<()> {
 #[cfg(feature = "submission")]
 fn run_peer_coordinator() -> Result<()> {
     let peer_port = portpicker::pick_unused_port().ok_or("No ports free for peer coordinator")?;
-    flowrlib::peer_coordinator::run_peer_coordinator(peer_port)
+    let instance_name = format!(
+        "{}-{}-{peer_port}",
+        flowcore::services::PEER_COORDINATOR_SERVICE_NAME,
+        std::process::id()
+    );
+    flowrlib::peer_coordinator::run_peer_coordinator(peer_port, &instance_name)
 }
 
 fn start_executors(num_threads: usize) -> Result<()> {

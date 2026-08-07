@@ -680,7 +680,13 @@ fn client(
     // Start peer coordinator so this instance can accept delegated sub-flows
     // from other coordinators. The port is used for self-avoidance in peer discovery.
     #[cfg(feature = "submission")]
-    let own_peer_port = flowrlib::peer_coordinator::start_peer_coordinator().ok();
+    let own_peer_instance = match flowrlib::peer_coordinator::start_peer_coordinator() {
+        Ok(name) => Some(name),
+        Err(e) => {
+            log::warn!("Could not start peer coordinator: {e}");
+            None
+        }
+    };
 
     let flow_manifest_url = parse_flow_url(matches)?;
     let provider = MetaProvider::new(lib_search_path, PathBuf::default());
@@ -752,12 +758,12 @@ fn client(
     // Only delegate if a peer coordinator is available — otherwise run normally
     if let Some(flow_id) = delegate_flow_id {
         #[cfg(feature = "submission")]
-        let self_port = own_peer_port;
+        let self_instance = own_peer_instance.as_deref();
         #[cfg(not(feature = "submission"))]
-        let self_port: Option<u16> = None;
+        let self_instance: Option<&str> = None;
         match flowrlib::peer_discovery::discover_peer_coordinators(
             Duration::from_secs(3),
-            self_port,
+            self_instance,
         ) {
             Ok(peers) => {
                 if let Some(addr) = peers.into_iter().next() {

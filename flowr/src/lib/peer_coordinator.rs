@@ -26,21 +26,25 @@ use crate::executor::Executor;
 use crate::peer_submission_handler::PeerSubmissionHandler;
 use crate::services::PEER_COORDINATOR_SERVICE_NAME;
 use crate::wasm_server::WasmServer;
-/// Start a peer coordinator in the background. Returns the port it is
-/// listening on so the caller can filter it from peer discovery.
+/// Start a peer coordinator in the background. Returns the mDNS instance
+/// name so the caller can filter it from peer discovery.
 ///
 /// # Errors
 ///
 /// Returns an error if the port cannot be allocated.
-pub fn start_peer_coordinator() -> Result<u16> {
+pub fn start_peer_coordinator() -> Result<String> {
     let port = portpicker::pick_unused_port().ok_or("No ports free for peer coordinator")?;
-    let port_copy = port;
+    let instance_name = format!(
+        "{PEER_COORDINATOR_SERVICE_NAME}-{}-{port}",
+        std::process::id()
+    );
+    let name_copy = instance_name.clone();
     std::thread::spawn(move || {
-        if let Err(e) = run_peer_coordinator(port_copy) {
+        if let Err(e) = run_peer_coordinator(port, &name_copy) {
             log::error!("Peer coordinator error: {e}");
         }
     });
-    Ok(port)
+    Ok(instance_name)
 }
 
 /// Run a peer coordinator that accepts sub-flow submissions from parent
@@ -53,18 +57,12 @@ pub fn start_peer_coordinator() -> Result<u16> {
 ///
 /// Returns an error if the coordinator cannot be set up or if the submission
 /// loop encounters a fatal error.
-pub fn run_peer_coordinator(peer_port: u16) -> Result<()> {
+pub fn run_peer_coordinator(peer_port: u16, instance_name: &str) -> Result<()> {
     let bind_address = format!("tcp://*:{peer_port}");
 
     let mdns = create_service_daemon()?;
-    // Use a unique instance name (PID + port) so multiple peer coordinators
-    // on the same machine don't collide in mDNS.
-    let instance_name = format!(
-        "{PEER_COORDINATOR_SERVICE_NAME}-{}-{peer_port}",
-        std::process::id()
-    );
-    let fullname = register_service(&mdns, &instance_name, peer_port)?;
-    info!("Peer coordinator advertised on port {peer_port}");
+    let fullname = register_service(&mdns, instance_name, peer_port)?;
+    info!("Peer coordinator '{instance_name}' advertised on port {peer_port}");
 
     let zmq_context = zmq::Context::new();
     let mut peer_handler = PeerSubmissionHandler::new(&zmq_context, &bind_address)?;
@@ -109,7 +107,13 @@ pub fn run_peer_coordinator(peer_port: u16) -> Result<()> {
     );
 
     // Start WASM server for sub-flow WASM files
-    let _wasm_server = WasmServer::start(std::path::Path::new("/")).ok();
+    let _wasm_server = match WasmServer::start(std::path::Path::new("/")) {
+        Ok(server) => Some(server),
+        Err(e) => {
+            log::warn!("Could not start WASM server for peer coordinator: {e}");
+            None
+        }
+    };
 
     #[cfg(feature = "debugger")]
     let mut debug_handler = crate::subflow::NoOpDebugHandler;
