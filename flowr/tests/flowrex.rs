@@ -543,16 +543,11 @@ fn delegate_subflow_to_peer() {
 /// 4. Verifies the output PNG matches the expected file
 /// 5. Confirms delegation happened remotely (log mentions "remote peer")
 ///
-/// NOTE: This test is ignored because `flowrcli --delegate` discovers peers
-/// via mDNS which can find stale entries from previous tests, causing hangs.
-/// Run manually with: `cargo test --test flowrex test_delegate_to_remote -- --ignored`
 #[cfg_attr(target_os = "windows", ignore)]
 #[test]
 #[serial]
-#[ignore = "mDNS stale entries from prior tests cause hangs — run manually"]
 #[allow(clippy::too_many_lines)]
 fn test_delegate_to_remote_flowrex() {
-    use std::io::Read;
     use std::process::{Command, Stdio};
     use std::thread;
     use std::time::Duration;
@@ -609,8 +604,14 @@ fn test_delegate_to_remote_flowrex() {
                 .expect("Could not canonicalize path"),
         )
         .stdin(Stdio::null())
-        .stdout(Stdio::piped())
-        .stderr(Stdio::piped())
+        .stdout(Stdio::null())
+        .stderr({
+            let f = std::fs::File::create(
+                std::env::temp_dir().join("flowrex_delegate_test_stderr.log"),
+            )
+            .expect("Could not create stderr log file");
+            Stdio::from(f)
+        })
         .spawn()
         .expect("Could not spawn flowrcli");
 
@@ -618,15 +619,12 @@ fn test_delegate_to_remote_flowrex() {
     let deadline = std::time::Instant::now() + Duration::from_mins(2);
     let exit_status = loop {
         if std::time::Instant::now() > deadline {
-            // Read stderr before killing for debugging
-            let mut stderr_output = String::new();
-            if let Some(mut err) = coordinator.stderr.take() {
-                err.read_to_string(&mut stderr_output).ok();
-            }
             coordinator.kill().ok();
             flowrex.kill().ok();
             coordinator.wait().ok();
             flowrex.wait().ok();
+            let stderr_log = std::env::temp_dir().join("flowrex_delegate_test_stderr.log");
+            let stderr_output = std::fs::read_to_string(&stderr_log).unwrap_or_default();
             panic!(
                 "flowrcli --delegate did not finish within 2 minutes.\nstderr:\n{stderr_output}"
             );
@@ -637,11 +635,9 @@ fn test_delegate_to_remote_flowrex() {
         }
     };
 
-    // Read stderr to verify remote delegation
-    let mut stderr_output = String::new();
-    if let Some(mut err) = coordinator.stderr.take() {
-        err.read_to_string(&mut stderr_output).ok();
-    }
+    // Read stderr from log file to verify remote delegation
+    let stderr_log = std::env::temp_dir().join("flowrex_delegate_test_stderr.log");
+    let stderr_output = std::fs::read_to_string(&stderr_log).unwrap_or_default();
 
     // Clean up flowrex
     flowrex.kill().ok();
@@ -674,6 +670,7 @@ fn test_delegate_to_remote_flowrex() {
 
     // Clean up
     std::fs::remove_file(&output_file).ok();
+    std::fs::remove_file(&stderr_log).ok();
 
     // Allow mDNS goodbye packets to propagate
     thread::sleep(Duration::from_secs(3));
