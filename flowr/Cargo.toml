@@ -21,7 +21,6 @@ identifier = "net.mackenzie-serres.flowr"
 binaries = [
     { path = "flowrcli", main = true },
     { path = "flowrgui" },
-    { path = "flowrex" },
     { path = "flowrdb" },
 ]
 icons = ["assets/icons/flowrcli/icon.png", "assets/icons/flowrcli/icon.icns", "assets/icons/flowrcli/icon.ico"]
@@ -46,10 +45,6 @@ path = "src/bin/flowrcli/main.rs"
 [[bin]]
 name = "flowrgui"
 path = "src/bin/flowrgui/main.rs"
-
-[[bin]]
-name = "flowrex"
-path = "src/bin/flowrex/main.rs"
 
 [[bin]]
 name = "flowrdb"

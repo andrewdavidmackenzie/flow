@@ -613,10 +613,25 @@ impl RunState {
     ) -> Result<(DebugAction, Job)> {
         let mut action = DebugAction::Continue;
 
-        let mut job = self
+        // For streaming sub-flow results (RUN_AGAIN), keep the job in
+        // running_jobs and clone it for processing. Only remove on the
+        // final result (DONT_RUN_AGAIN).
+        let is_subflow_intermediate = self
             .running_jobs
-            .remove(&job_id)
-            .ok_or_else(|| format!("Could not find Job#{job_id} to retire it"))?;
+            .get(&job_id)
+            .is_some_and(|j| j.payload.implementation_url.scheme() == "subflow")
+            && matches!(&result, Ok((_, run_again)) if *run_again);
+
+        let mut job = if is_subflow_intermediate {
+            self.running_jobs
+                .get(&job_id)
+                .ok_or_else(|| format!("Could not find Job#{job_id} to retire it"))?
+                .clone()
+        } else {
+            self.running_jobs
+                .remove(&job_id)
+                .ok_or_else(|| format!("Could not find Job#{job_id} to retire it"))?
+        };
 
         match &result {
             Ok((output_value, function_can_run_again)) => {
@@ -724,7 +739,7 @@ impl RunState {
                 #[cfg(feature = "metrics")]
                 let create_start = std::time::Instant::now();
 
-                if *function_can_run_again {
+                if *function_can_run_again && !is_subflow_intermediate {
                     let function = self.get_mut(job.process_id).ok_or("No such function")?;
 
                     // Refill any inputs with function initializers
@@ -793,6 +808,7 @@ impl RunState {
 
         action = self.update_flow_busy_state(
             &job,
+            is_subflow_intermediate,
             #[cfg(feature = "debugger")]
             debugger,
         )?;
@@ -807,8 +823,13 @@ impl RunState {
             AtomicOrdering::Relaxed,
         );
 
+        // Skip invariant checks for sub-flow intermediate results — the
+        // proxy job stays in running_jobs while destination jobs complete,
+        // which temporarily violates the "running implies parent busy" invariant.
         #[cfg(debug_assertions)]
-        checks::check_invariants(self, job.payload.job_id)?;
+        if !is_subflow_intermediate {
+            checks::check_invariants(self, job.payload.job_id)?;
+        }
 
         trace!(
             "Job #{}: Completed-----------------------",
@@ -1114,9 +1135,14 @@ impl RunState {
     fn update_flow_busy_state(
         &mut self,
         job: &Job,
+        skip_remove: bool,
         #[cfg(feature = "debugger")] debugger: &mut Debugger,
     ) -> Result<DebugAction> {
-        self.remove_from_busy(job.process_id, job.parent_id);
+        // For streaming sub-flow intermediate results, the proxy job
+        // is still running — don't decrement its busy count.
+        if !skip_remove {
+            self.remove_from_busy(job.process_id, job.parent_id);
+        }
         self.handle_idle_flows(
             job,
             #[cfg(feature = "debugger")]

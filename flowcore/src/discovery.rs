@@ -282,6 +282,61 @@ pub fn discover_services(name: &str, timeout: Duration) -> Result<Vec<(String, u
     Ok(results)
 }
 
+/// Discover all mDNS services whose instance name starts with the given prefix.
+///
+/// Unlike [`discover_services`] which requires an exact instance name match,
+/// this function matches any instance whose name starts with `prefix`.
+/// This supports multiple instances of the same service type on different
+/// machines or processes (each with a unique suffix like PID or port).
+///
+/// # Errors
+///
+/// Returns an error if the mDNS daemon cannot be created or browsing fails.
+pub fn discover_services_by_prefix(prefix: &str, timeout: Duration) -> Result<Vec<(String, u16)>> {
+    let mdns = ServiceDaemon::new().map_err(|e| format!("Could not create mDNS daemon: {e}"))?;
+
+    let receiver = mdns
+        .browse(FLOW_SERVICE_TYPE)
+        .map_err(|e| format!("Could not browse for mDNS services: {e}"))?;
+
+    let full_name_suffix = format!(".{FLOW_SERVICE_TYPE}");
+    let start = Instant::now();
+    let mut results = Vec::new();
+
+    loop {
+        if start.elapsed() > timeout {
+            break;
+        }
+
+        let remaining = timeout.saturating_sub(start.elapsed());
+        let recv_timeout = remaining.min(Duration::from_millis(500));
+        if recv_timeout.is_zero() {
+            break;
+        }
+
+        if let Ok(ServiceEvent::ServiceResolved(info)) = receiver.recv_timeout(recv_timeout) {
+            let instance = info
+                .get_fullname()
+                .strip_suffix(&full_name_suffix)
+                .unwrap_or(info.get_fullname());
+
+            if instance.starts_with(prefix) {
+                let port = info.get_port();
+                for addr in info.get_addresses_v4() {
+                    let address = format!("{addr}:{port}");
+                    if !results.iter().any(|(a, _): &(String, u16)| *a == address) {
+                        info!("Discovered mDNS service '{instance}' at {address}");
+                        results.push((address, port));
+                    }
+                }
+            }
+        }
+    }
+
+    mdns.shutdown().ok();
+    Ok(results)
+}
+
 #[cfg(test)]
 #[allow(clippy::unwrap_used)]
 mod test {
@@ -329,5 +384,20 @@ mod test {
         });
         assert_eq!(result.unwrap(), "127.0.0.1:9090");
         assert_eq!(attempt.get(), 3); // called 3 times: 2 timeouts + 1 success
+    }
+
+    #[test]
+    fn discover_by_prefix_zero_timeout_returns_empty() {
+        use std::time::Duration;
+        let results = super::discover_services_by_prefix("nonexistent-service", Duration::ZERO);
+        assert!(results.unwrap().is_empty());
+    }
+
+    #[test]
+    fn discover_by_prefix_short_timeout_returns_empty() {
+        use std::time::Duration;
+        let results =
+            super::discover_services_by_prefix("nonexistent-service", Duration::from_millis(100));
+        assert!(results.unwrap().is_empty());
     }
 }

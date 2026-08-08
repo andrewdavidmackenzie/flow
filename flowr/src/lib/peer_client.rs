@@ -117,6 +117,58 @@ impl PeerClient {
         Ok(boundary_outputs)
     }
 
+    /// Submit a sub-flow and invoke a callback for each boundary output
+    /// as it arrives, rather than collecting them all.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the submission fails, a response cannot be
+    /// parsed, or the callback returns an error.
+    pub fn submit_subflow_streaming<F>(
+        &self,
+        manifest: FlowManifest,
+        inputs: Vec<(usize, usize, Value)>,
+        mut on_boundary_output: F,
+    ) -> Result<()>
+    where
+        F: FnMut(BoundaryOutput) -> Result<()>,
+    {
+        let request = PeerRequest::Submit(Box::new(SubflowSubmission { manifest, inputs }));
+        let json = serde_json::to_string(&request)
+            .map_err(|e| format!("Could not serialize peer request: {e}"))?;
+
+        self.socket
+            .send(json.as_bytes(), 0)
+            .map_err(|e| format!("Could not send to peer: {e}"))?;
+
+        loop {
+            let msg = self
+                .socket
+                .recv_msg(0)
+                .map_err(|e| format!("Could not receive from peer: {e}"))?;
+            let msg_str = msg
+                .as_str()
+                .ok_or("Could not convert peer response to string")?;
+            let response: PeerResponse = serde_json::from_str(msg_str)
+                .map_err(|e| format!("Could not deserialize peer response: {e}"))?;
+
+            match response {
+                PeerResponse::BoundaryOutput { connection, value } => {
+                    on_boundary_output(BoundaryOutput { connection, value })?;
+                    self.socket
+                        .send("ack".as_bytes(), 0)
+                        .map_err(|e| format!("Could not send ack: {e}"))?;
+                }
+                PeerResponse::Idle | PeerResponse::DoneAck => break,
+                PeerResponse::Error(msg) => {
+                    return Err(format!("Peer coordinator error: {msg}").into());
+                }
+            }
+        }
+
+        Ok(())
+    }
+
     /// Signal the peer coordinator that the parent flow is done.
     ///
     /// # Errors

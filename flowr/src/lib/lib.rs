@@ -108,6 +108,10 @@ pub mod peer_discovery;
 /// Sub-flow delegation logic for the parent coordinator
 pub mod delegation;
 
+/// Peer coordinator for accepting delegated sub-flow submissions
+#[cfg(feature = "submission")]
+pub mod peer_coordinator;
+
 /// `wasmtime` module contains a number of implementations of the wasm execution
 mod wasm;
 

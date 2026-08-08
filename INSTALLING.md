@@ -23,7 +23,6 @@ or you can install using
 From [latest GitHub release](https://github.com/andrewdavidmackenzie/flow/releases/latest) download and manually install the executables for your target system:
 - `flowc`
 - `flowrcli`
-- `flowrex`
 - `flowrgui`
 
 Then download the portable WASM `flowstdlib` and expand to the directory `$HOME/.flow/lib/flowstdlib`
@@ -39,7 +38,6 @@ That will:
 * install the binaries:
    * `flowc`
    * `flowrcli`
-   * `flowrex`
    * `flowrgui`
 - install the portable `flowstdlib` WASM library into `$HOME/.flow/lib`
 - install the context definition of `flowrcli` flow runner into `$HOME/.flow/runner`

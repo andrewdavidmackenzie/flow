@@ -2,7 +2,7 @@
 extern crate serial_test;
 
 fn main() {
-    utilities::run_example(file!(), "flowrcli", false, true);
+    utilities::run_example(file!(), "flowrcli", true);
 }
 
 #[cfg(test)]

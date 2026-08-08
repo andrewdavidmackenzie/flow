@@ -1,6 +1,6 @@
 //! FFT example — Fast Fourier Transform of a signal
 fn main() {
-    utilities::run_example(file!(), "flowrcli", false, true);
+    utilities::run_example(file!(), "flowrcli", true);
 }
 
 #[cfg(test)]

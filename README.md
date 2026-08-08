@@ -105,17 +105,6 @@ and function inspection.
 
 ---
 
-### flowrex — Remote Job Executor
-
-Headless executor that can be discovered on the local network by a runner
-and used to distribute job execution across machines.
-
-```bash
-flowrex                        # start and advertise via mDNS
-```
-
----
-
 ### <img src="flowedit/assets/icons/flowedit/icon.png" width="48" align="left"> flowedit — Visual Flow Editor
 
 WYSIWYG editor for creating and editing flow definitions. Drag-and-drop

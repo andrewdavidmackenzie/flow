@@ -44,7 +44,7 @@ const EXPECTED_FILE_FILENAME: &str = "expected.file";
 const TEST_ARGS_FILENAME: &str = "test.args";
 
 /// Run one specific flow example
-pub fn run_example(source_file: &str, runner: &str, flowrex: bool, native: bool) {
+pub fn run_example(source_file: &str, runner: &str, native: bool) {
     let mut sample_dir = PathBuf::from(source_file);
     sample_dir.pop();
 
@@ -83,19 +83,6 @@ pub fn run_example(source_file: &str, runner: &str, flowrex: bool, native: bool)
     if runner == "flowrgui" {
         runner_args.push("--auto".into());
     }
-
-    let flowrex_child = if flowrex {
-        // set 0 executor threads in flowr coordinator, so that all job execution is done in flowrex
-        runner_args.push("--threads".into());
-        runner_args.push("0".into());
-        Some(
-            Command::new("flowrex")
-                .spawn()
-                .expect("Could not spawn flowrex"),
-        )
-    } else {
-        None
-    };
 
     runner_args.push("manifest.json".into());
     runner_args.append(&mut args(&sample_dir).expect("Could not get flow args"));
@@ -165,17 +152,10 @@ pub fn run_example(source_file: &str, runner: &str, flowrex: bool, native: bool)
     if verbose {
         eprintln!("[FLOW_TEST] run_example: runner exited");
     }
-
-    // If flowrex was started - then kill it
-    if let Some(mut child) = flowrex_child {
-        println!("Killing 'flowrex'");
-        child.kill().expect("Failed to kill server child process");
-        child.wait().expect("Failed to wait for child to exit");
-    }
 }
 
 /// Run an example and check the output matches the expected
-pub fn test_example(source_file: &str, runner: &str, flowrex: bool, native: bool) {
+pub fn test_example(source_file: &str, runner: &str, native: bool) {
     let _ = env::set_current_dir(
         PathBuf::from(env!("CARGO_MANIFEST_DIR"))
             .parent()
@@ -184,7 +164,7 @@ pub fn test_example(source_file: &str, runner: &str, flowrex: bool, native: bool
             .expect("Could not cd into flow directory"),
     );
 
-    run_example(source_file, runner, flowrex, native);
+    run_example(source_file, runner, native);
     check_test_output(source_file);
 }
 

@@ -1,121 +1,101 @@
-## Distributed execution of jobs with `flowrcli` and `flowrex`
+## Distributed Execution of Sub-flows
 
-### Job Dispatch and Job Execution
-The `flowrlib` that is used by flow runner applications to execute a flow has two important functions:
-- job dispatch - that managers the state of the flow, the dispatch of jobs for execution, and distribution
-of results received back, passing those results onto other functions in the flow etc.
-- job execution - this is the execution of "pure" functions, receiving a set of input data, a reference
-to the function's implementation. It executes it with the provided input, and returns the job including
-the results.
+### Overview
 
-Job dispatch is done by the server thread running the coordinator, responsible for maintaining a consistent 
-state for the flow and it's functions and coordinating the distribution of results and enabling of
-new functions to be run.
+`flowrcli` can distribute sub-flow execution across multiple machines. When a flow
+contains a sub-flow whose functions are all library functions (`lib://`), that
+sub-flow can be delegated to another `flowrcli` instance running on the same
+machine or on a remote machine.
 
-Additional threads are started for job execution, allowing many jobs to be executed concurrently, and
-in parallel on a multi-core machine. Job execution on "pure" functions can run in isolation, just needing
-the input data and the function implementation.
+The delegating `flowrcli` extracts the sub-flow from the manifest, creates a
+proxy function in its place, and sends the sub-flow manifest to the peer for
+execution. Boundary outputs from the sub-flow stream back to the parent
+coordinator as they are produced, and are routed to the destination functions
+in the parent flow.
 
-### Normal Execution
-Normally, the `flowrcli` process runs the coordinator in one thread and a number of executors in additional
-threads.
+### How It Works
 
-However, due to the "pure" nature of the job execution, it can be done anywhere, including in additional 
-processes, or on processes in additional machines.
+1. Start a second `flowrcli` instance in server mode (`--server`). This instance
+   advertises itself as a peer coordinator via mDNS and waits for sub-flow
+   submissions.
 
-### `flowrex` executor binary
-`florex` is an additional small binary that is built. 
-It cannot coordinate the execution of a flow but it can execute (just library for now) jobs.
+2. Run your flow with `flowrcli --delegate`. The `--delegate` flag tells
+   `flowrcli` to look for a peer coordinator on the network. If one is found,
+   the largest eligible sub-flow is extracted and sent to the peer for execution.
 
-Additional instances of `flowrex` can be started in other processes on the same machine and have it 
-execute some of the jobs, increasing compute resources and concurrency/parallelism of flow execution.
+3. If no peer is found, the flow runs normally without delegation.
 
-It is possible to start `flowrcli` with 0 executor threads and force `flowrex` to execute all the 
-(library) jobs.
+### Which Sub-flows Are Eligible
 
-It can also be ran on another node, even one with a different architecture such as ARM, on the network and have job 
-execution done entirely by it or shared with flowr.
+A sub-flow is eligible for delegation when **every function** in its subtree
+(including nested sub-flows) uses a `lib://` implementation. This means:
 
-How many jobs are done in one process/machine or another depends on the number of executors and network and cpu speed.
+- Standard library functions (`lib://flowstdlib/*`) — eligible
+- WASM functions (`file://`) — not eligible (yet)
+- Context functions (`context://`) — not eligible (they interact with the local environment)
 
-The `flowrcli` flow runner and the `flowrex` job executor discover each other using mDNS
-and then jobs are distributed out over the network and results are sent back
-to the coordinator running in `flowrcli` also over the network.
+The sub-flow with the largest number of eligible functions is selected.
 
-### Dynamic Executor Addition
+### Example: Two Terminals on the Same Machine
 
-Executors can join and leave during flow execution. The ZMQ PUSH/PULL architecture
-distributes jobs automatically to all connected executors via round-robin, so
-adding executors mid-run immediately increases parallelism.
+#### Terminal 1 — start a peer coordinator
 
-#### Flexible startup order
+```
+flowrcli --peer -v info
+```
 
-`flowrex` retries service discovery on timeout, so it can be started **before**
-the coordinator. It will wait until `flowrcli` advertises its services, then connect
-and start processing jobs. Only discovery timeouts are retried — other errors
-(e.g., mDNS daemon failure) are reported immediately. This means startup order
-does not matter.
+This starts `flowrcli` in server mode. It advertises itself via mDNS and
+waits for sub-flow submissions.
 
-#### Mid-run scaling
+#### Terminal 2 — compile and run a flow with delegation
 
-Starting additional `flowrex` instances while a flow is running works immediately:
-1. The new instance discovers the coordinator's services via mDNS
-2. It connects to the job and results ZMQ sockets
-3. ZMQ round-robins new jobs across all connected executors (including the new one)
-4. No coordinator restart or reconfiguration needed
+```
+flowc -c -O flowr/examples/mandlebrot
+flowrcli --delegate -v info flowr/examples/mandlebrot/manifest.json -- output.png '[200,150]' '[[-1.20,0.35],[-1,0.20]]'
+```
 
-#### Graceful shutdown
+The `--delegate` flag causes `flowrcli` to:
+1. Discover the peer coordinator started in Terminal 1
+2. Extract the `generate_pixels` sub-flow (6 functions, all `lib://`)
+3. Send the sub-flow to the peer for execution
+4. Receive boundary outputs (pixel coordinates) as they are produced
+5. Continue local execution (pixel-to-point, escapes, image rendering)
 
-Executor threads use a poll timeout to detect when the coordinator has disappeared.
-If no jobs or control messages are received for 60 seconds, executor threads exit
-gracefully and `flowrex` loops back to wait for a new coordinator.
+The resulting image is identical to running without `--delegate`.
 
-### TODO
-It is pending to allow `flowrex` to also execute provided functions, by distributing
-the architecture-neutral WASM function implementations to other nodes and hence allow
-them to load and run those functions also.
+### Cross-Machine Execution
 
-### Example of distributed execution
-This can be done in two terminals on the same machine, or across two machines of the same or different CPU architecture.
+The same approach works across machines. Start `flowrcli --peer` on a remote
+machine on the same network. The mDNS discovery protocol will find it
+automatically — no configuration needed.
 
-#### Starting flowrex first (new: flexible startup order)
+```
+# Machine A (peer coordinator)
+flowrcli --peer -v info
 
-Terminal 1 — start `flowrex` (it will wait for the coordinator):
+# Machine B (run the flow)
+flowrcli --delegate -v info flowr/examples/mandlebrot/manifest.json -- output.png '[200,150]' '[[-1.20,0.35],[-1,0.20]]'
+```
 
-`> flowrex -v info`
+### No Peer Available
 
-The output will show:
+If `--delegate` is specified but no peer coordinator is found on the network,
+the flow runs normally without any delegation overhead. A log message indicates
+that no peers were discovered.
 
-`INFO    - Waiting for coordinator to advertise 'jobs' service...`
+### Dynamic Peer Addition
 
-Terminal 2 — compile and run a flow:
+Peers can be started at any time. The `--delegate` flag discovers peers at
+startup. Future versions may support discovering peers mid-execution.
 
-`>  flowc -c -C flowr/src/bin/flowrcli flowr/examples/fibonacci`
+### Architecture
 
-`> flowrcli -t 0 flowr/examples/fibonacci`
+Each `flowrcli --peer` instance runs its own coordinator with:
+- A ZMQ REP socket for receiving sub-flow submissions
+- Its own dispatcher and executor pool for running received sub-flows
+- mDNS advertisement so parent coordinators can discover it
 
-Terminal 1 will show `flowrex` discovering the services and executing jobs.
-
-#### Starting coordinator first (classic order)
-
-Terminal 1 — compile and run a flow with zero local executors:
-
-`> flowrcli -t 0 flowr/examples/fibonacci`
-
-Terminal 2 — start `flowrex` to execute the jobs:
-
-`> flowrex -v debug`
-
-`flowrex` discovers the coordinator, connects, and begins executing jobs.
-
-#### Adding a second executor mid-run
-
-While a flow is already running with one `flowrex` instance, start another in a
-third terminal:
-
-`> flowrex -v info`
-
-It will discover the same coordinator services and join the job pool immediately.
-ZMQ distributes subsequent jobs across both executor instances.
-
-
+The parent coordinator communicates with the peer using the peer protocol:
+- `PeerRequest::Submit` sends the sub-flow manifest and input values
+- `PeerResponse::BoundaryOutput` streams each boundary output back
+- `PeerResponse::Idle` signals sub-flow completion

@@ -1,6 +1,6 @@
 //! Weather station example — sensor data processing
 fn main() {
-    utilities::run_example(file!(), "flowrcli", false, true);
+    utilities::run_example(file!(), "flowrcli", true);
 }
 
 #[cfg(test)]

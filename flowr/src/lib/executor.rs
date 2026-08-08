@@ -605,6 +605,12 @@ fn execute_job(
     loaded_lib_manifests: &Arc<RwLock<HashMap<Url, (LibraryManifest, Url)>>>,
     loaded_subflow_manifests: &SubflowRegistry,
 ) -> Result<bool> {
+    // Sub-flow jobs stream results back individually via run_streaming,
+    // bypassing the normal single-result path.
+    if payload.implementation_url.scheme() == "subflow" {
+        return execute_subflow_job(payload, results_sink, executor_id, loaded_subflow_manifests);
+    }
+
     let implementation = get_or_load_implementation(
         provider,
         payload,
@@ -629,6 +635,54 @@ fn execute_job(
             0,
         )
         .map_err(|_| "Could not send result of Job")?;
+
+    Ok(true)
+}
+
+/// Execute a sub-flow job by streaming boundary outputs back individually.
+fn execute_subflow_job(
+    payload: &Payload,
+    results_sink: &zmq::Socket,
+    executor_id: &str,
+    loaded_subflow_manifests: &SubflowRegistry,
+) -> Result<bool> {
+    let manifests = loaded_subflow_manifests
+        .read()
+        .map_err(|_| "Could not read subflow manifests")?;
+    let (manifest, input_map, peer_address) =
+        manifests.get(&payload.implementation_url).ok_or_else(|| {
+            format!(
+                "Sub-flow manifest not registered: {}",
+                payload.implementation_url
+            )
+        })?;
+    let addr = peer_address.as_ref().ok_or_else(|| {
+        format!(
+            "Sub-flow {} has no peer address — delegation requires a remote peer",
+            payload.implementation_url
+        )
+    })?;
+    let interface_inputs: Vec<crate::subflow::InterfaceInput> = input_map
+        .iter()
+        .map(|(dest_id, dest_io)| crate::subflow::InterfaceInput {
+            destination_id: *dest_id,
+            destination_io_number: *dest_io,
+        })
+        .collect();
+    let remote = crate::subflow::RemoteSubFlowImplementation::new(
+        manifest.clone(),
+        interface_inputs,
+        addr.clone(),
+    );
+    // Drop the read lock before blocking on the peer
+    drop(manifests);
+
+    remote.run_streaming(
+        &payload.input_set,
+        payload.job_id,
+        executor_id,
+        results_sink,
+    )?;
 
     Ok(true)
 }

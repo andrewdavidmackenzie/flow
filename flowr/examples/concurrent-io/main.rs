@@ -8,7 +8,7 @@
 //! Currently this fails because the coordinator serializes context function
 //! communication through a single ZMQ socket.
 fn main() {
-    utilities::run_example(file!(), "flowrgui", false, true);
+    utilities::run_example(file!(), "flowrgui", true);
 }
 
 #[cfg(test)]

@@ -37,11 +37,11 @@ pub struct DelegationResult {
 pub fn delegate_subflow(
     manifest: &FlowManifest,
     flow_id: usize,
-    own_address: Option<&str>,
+    own_instance: Option<&str>,
     inputs: Vec<(usize, usize, Value)>,
 ) -> Result<Option<DelegationResult>> {
     // Discover peer coordinators
-    let peers = discover_peer_coordinators(Duration::from_secs(3), own_address)?;
+    let peers = discover_peer_coordinators(Duration::from_secs(3), own_instance)?;
 
     if peers.is_empty() {
         info!("No peer coordinators available for delegation");

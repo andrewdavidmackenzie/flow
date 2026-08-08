@@ -195,6 +195,93 @@ impl RemoteSubFlowImplementation {
     }
 }
 
+impl RemoteSubFlowImplementation {
+    /// Execute the sub-flow on the remote peer, streaming each boundary output
+    /// back to the parent coordinator's results socket individually.
+    ///
+    /// Each boundary output is sent as a separate result with `RUN_AGAIN`.
+    /// A final result with `DONT_RUN_AGAIN` signals the proxy job is complete.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the peer connection or sub-flow execution fails.
+    pub(crate) fn run_streaming(
+        &self,
+        inputs: &[Value],
+        job_id: usize,
+        executor_id: &str,
+        results_sink: &zmq::Socket,
+    ) -> flowcore::errors::Result<()> {
+        info!(
+            "RemoteSubFlowImplementation: streaming sub-flow with {} inputs to peer at {}",
+            inputs.len(),
+            self.peer_address
+        );
+
+        let input_triples: Vec<(usize, usize, Value)> = self
+            .interface_inputs
+            .iter()
+            .enumerate()
+            .filter_map(|(i, iface)| {
+                inputs
+                    .get(i)
+                    .map(|v| (iface.destination_id, iface.destination_io_number, v.clone()))
+            })
+            .collect();
+
+        let zmq_context = zmq::Context::new();
+        let client = crate::peer_client::PeerClient::connect(&zmq_context, &self.peer_address)
+            .map_err(|e| format!("Could not connect to peer at {}: {e}", self.peer_address))?;
+
+        let mut output_count = 0usize;
+        let stream_result = client.submit_subflow_streaming(
+            self.manifest.clone(),
+            input_triples,
+            |boundary_output| {
+                let bo_value = serde_json::json!({
+                    "destination_id": boundary_output.connection.destination_id,
+                    "destination_io_number": boundary_output.connection.destination_io_number,
+                    "value": boundary_output.value,
+                });
+                let result: flowcore::errors::Result<(Option<Value>, flowcore::RunAgain)> =
+                    Ok((Some(Value::Array(vec![bo_value])), flowcore::RUN_AGAIN));
+                let msg = serde_json::to_string(&(job_id, executor_id, result))
+                    .map_err(|e| format!("Could not serialize boundary output: {e}"))?;
+                results_sink
+                    .send(msg.as_bytes(), 0)
+                    .map_err(|e| format!("Could not send boundary output result: {e}"))?;
+                output_count += 1;
+                Ok(())
+            },
+        );
+
+        // On error, send an error result to terminate the proxy job
+        // so it doesn't stay in running_jobs forever.
+        if let Err(ref e) = stream_result {
+            error!("Peer sub-flow streaming failed: {e}");
+            let err_result: flowcore::errors::Result<(Option<Value>, flowcore::RunAgain)> =
+                Err(format!("Peer sub-flow failed: {e}").into());
+            if let Ok(msg) = serde_json::to_string(&(job_id, executor_id, err_result)) {
+                let _ = results_sink.send(msg.as_bytes(), 0);
+            }
+            return stream_result;
+        }
+
+        info!("RemoteSubFlowImplementation: streamed {output_count} boundary outputs from peer");
+
+        // Send final "complete" result
+        let final_result: flowcore::errors::Result<(Option<Value>, flowcore::RunAgain)> =
+            Ok((None, flowcore::DONT_RUN_AGAIN));
+        let msg = serde_json::to_string(&(job_id, executor_id, final_result))
+            .map_err(|e| format!("Could not serialize final result: {e}"))?;
+        results_sink
+            .send(msg.as_bytes(), 0)
+            .map_err(|e| format!("Could not send final result: {e}"))?;
+
+        Ok(())
+    }
+}
+
 impl Implementation for RemoteSubFlowImplementation {
     fn run(&self, inputs: &[Value]) -> flowcore::errors::Result<(Option<Value>, RunAgain)> {
         info!(
