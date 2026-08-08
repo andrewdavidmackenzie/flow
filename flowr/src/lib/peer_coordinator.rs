@@ -5,7 +5,7 @@
 //! for sub-flow submissions from parent coordinators via a ZMQ REP socket
 //! advertised over mDNS.
 //!
-//! Used by both `flowrcli` and `flowrex` to act as peer coordinators.
+//! Used by `flowrcli` (via `--server`) to act as a peer coordinator.
 
 use std::path::PathBuf;
 use std::sync::Arc;

@@ -151,6 +151,8 @@ fn run() -> Result<()> {
         )?;
     } else if matches.get_flag("server") {
         coordinator_only(num_threads, lib_search_path, native_flowstdlib)?;
+    } else if matches.get_flag("peer") {
+        peer_only()?;
     } else {
         client_and_coordinator(
             num_threads,
@@ -163,6 +165,23 @@ fn run() -> Result<()> {
     }
 
     Ok(())
+}
+
+/// Start a peer coordinator that accepts delegated sub-flow submissions
+/// from other coordinators on the network.
+fn peer_only() -> Result<()> {
+    let peer_port = portpicker::pick_unused_port().chain_err(|| "No ports free")?;
+    let instance_name = format!(
+        "{}-{}-{peer_port}",
+        flowcore::services::PEER_COORDINATOR_SERVICE_NAME,
+        std::process::id()
+    );
+
+    // Signal to the parent process (e.g. test harness) that the server is ready
+    println!("ready");
+
+    info!("Starting peer coordinator on port {peer_port}");
+    flowrlib::peer_coordinator::run_peer_coordinator(peer_port, &instance_name)
 }
 
 /// Start just a [Coordinator][flowrlib::coordinator::Coordinator] in the calling thread.
@@ -792,6 +811,7 @@ fn num_threads(matches: &ArgMatches) -> usize {
 }
 
 /// Parse the command line arguments using clap
+#[allow(clippy::too_many_lines)]
 fn get_matches() -> ArgMatches {
     let app = Command::new(env!("CARGO_PKG_NAME")).version(env!("CARGO_PKG_VERSION"));
 
@@ -828,15 +848,21 @@ fn get_matches() -> ArgMatches {
              .short('s')
              .long("server")
              .action(clap::ArgAction::SetTrue)
-             .conflicts_with("client")
+             .conflicts_with_all(["client", "peer"])
              .help("Launch only a Coordinator (no client)"),
         )
         .arg(Arg::new("client")
              .short('c')
              .long("client")
              .action(clap::ArgAction::SetTrue)
-             .conflicts_with("server")
+             .conflicts_with_all(["server", "peer"])
              .help("Launch only a client (no coordinator) to connect to a remote coordinator"),
+        )
+        .arg(Arg::new("peer")
+             .long("peer")
+             .action(clap::ArgAction::SetTrue)
+             .conflicts_with_all(["server", "client"])
+             .help("Run as a peer coordinator accepting delegated sub-flows from the network"),
         )
         .arg(Arg::new("jobs")
             .short('j')

@@ -5,8 +5,6 @@
 `flowr` includes a number of "runner" applications (built using the `flowrlib` library) for running flows:
 - `flowrcli`to run flows from the command line
 - `flowrgui`a flow runner with a graphical user interface (GUI) built using Iced
-- `flowrex` a binary that only executes jobs (does not coordinate flow execution) and can be used over the network 
-  by a coordinator as a way to have more execution resources executing a flow's jobs
 
 They handle the execution of `Functions` forming a `Flow` according to the defined semantics.
 
@@ -42,6 +40,6 @@ Those functions are organized into the following modules, each with multiple fun
 * [image](src/bin/flowrcli/context/image/image.md) - used to create image files
 * [stdio](src/bin/flowrcli/context/stdio/stdio.md) - used to interact with stdio
 
-## `flowrex`
-You can find more details about how to use it in running flows in the [distributed](../book/running/distributed.md)
-section.
+## Distributed Execution
+`flowrcli --server` can act as a peer coordinator, accepting delegated sub-flows from other coordinators
+over the network. See the [distributed](../book/running/distributed.md) section for details.

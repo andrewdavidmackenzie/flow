@@ -34,8 +34,3 @@ Examples
 number of features that, if activated, active corresponding features in `flowcore` (`flowr` "debugger"
 feature actives "flowcore/debugger" feature.) and it depends on `flowrlib` (above) that in turn activates
 features
-- `flowrex` compiles `flowcore` with the default set of features (which is the minimal set in the case
-of `flowcore` as it does not provide ant `context functions` ("context" feature), nor does it coordinate flow
-running and provide a debugger ("debugger" feature), nor does it have the need for running "online_tests",
-and lastly it does not fetch content via any of the various "providers" ("meta_provider", "file_provider",
-and "http_provider" features).

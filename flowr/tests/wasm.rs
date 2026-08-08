@@ -7,5 +7,5 @@ fn test_fibonacci_wasm_example() {
         .join("examples")
         .join("fibonacci")
         .join("main.rs");
-    utilities::test_example(source.to_str().expect("path"), "flowrcli", false, false);
+    utilities::test_example(source.to_str().expect("path"), "flowrcli", false);
 }

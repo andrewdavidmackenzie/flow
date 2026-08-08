@@ -1,6 +1,6 @@
 //! A runner for the Image Analysis example using flowrcli
 fn main() {
-    utilities::run_example(file!(), "flowrcli", false, true);
+    utilities::run_example(file!(), "flowrcli", true);
 }
 
 #[cfg(test)]
