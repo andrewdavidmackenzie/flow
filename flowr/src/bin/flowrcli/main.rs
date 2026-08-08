@@ -148,12 +148,14 @@ fn run() -> Result<()> {
             lib_search_path,
             #[cfg(feature = "debugger")]
             debug_this_flow,
-        )?;
+        )
     } else if matches.get_flag("server") {
-        coordinator_only(num_threads, lib_search_path, native_flowstdlib)?;
-    } else if matches.get_flag("peer") {
-        peer_only()?;
+        coordinator_only(num_threads, lib_search_path, native_flowstdlib)
     } else {
+        #[cfg(feature = "submission")]
+        if matches.get_flag("peer") {
+            return peer_only();
+        }
         client_and_coordinator(
             num_threads,
             lib_search_path,
@@ -161,14 +163,13 @@ fn run() -> Result<()> {
             &matches,
             #[cfg(feature = "debugger")]
             debug_this_flow,
-        )?;
+        )
     }
-
-    Ok(())
 }
 
 /// Start a peer coordinator that accepts delegated sub-flow submissions
 /// from other coordinators on the network.
+#[cfg(feature = "submission")]
 fn peer_only() -> Result<()> {
     let peer_port = portpicker::pick_unused_port().chain_err(|| "No ports free")?;
     let instance_name = format!(
