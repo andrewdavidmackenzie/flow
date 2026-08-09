@@ -27,6 +27,9 @@ pub struct SubflowSubmission {
     /// Initial input values mapped to boundary function inputs.
     /// Each entry is (`destination_function_id`, `destination_io_number`, value).
     pub inputs: Vec<(usize, usize, Value)>,
+    /// Base URL of the parent's WASM HTTP server, so the peer can fetch
+    /// WASM modules that were rewritten from `file://` to `http://` URLs.
+    pub wasm_base_url: Option<String>,
 }
 
 /// Messages sent from peer coordinator back to parent coordinator.

@@ -717,7 +717,7 @@ fn peer_coordinator_executes_subflow() {
     let client = PeerClient::connect(&zmq_context, &peer_address).expect("connect");
 
     let outputs = client
-        .submit_subflow(manifest, vec![])
+        .submit_subflow(manifest, vec![], None)
         .expect("submit failed");
 
     // Should have boundary output: add(7,3)=10 -> #10:0
@@ -887,7 +887,7 @@ fn peer_coordinator_streams_boundary_outputs() {
 
     let mut streamed_outputs = Vec::new();
     client
-        .submit_subflow_streaming(manifest, vec![], |bo| {
+        .submit_subflow_streaming(manifest, vec![], None, |bo| {
             streamed_outputs.push(bo);
             Ok(())
         })

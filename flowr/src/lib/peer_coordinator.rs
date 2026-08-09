@@ -106,9 +106,14 @@ pub fn run_peer_coordinator(peer_port: u16, instance_name: &str) -> Result<()> {
         &connect_addrs.3,
     );
 
-    // Start WASM server for sub-flow WASM files
-    let _wasm_server = match WasmServer::start(std::path::Path::new("/")) {
-        Ok(server) => Some(server),
+    // Start WASM server so this peer's executors can fetch WASM modules
+    // over HTTP (e.g. when the delegated sub-flow contains file:// WASMs
+    // that were rewritten to http:// by the parent coordinator)
+    let wasm_server = match WasmServer::start(std::path::Path::new("/")) {
+        Ok(server) => {
+            info!("Peer WASM server at {}", server.base_url());
+            Some(server)
+        }
         Err(e) => {
             log::warn!("Could not start WASM server for peer coordinator: {e}");
             None
@@ -125,6 +130,14 @@ pub fn run_peer_coordinator(peer_port: u16, instance_name: &str) -> Result<()> {
         #[cfg(feature = "debugger")]
         &mut debug_handler,
     );
+
+    // Set the WASM base URL so the peer coordinator can rewrite file:// URLs
+    // for its own executors (and for further delegation if supported)
+    if let Some(ref server) = wasm_server {
+        if let Ok(url) = Url::parse(server.base_url()) {
+            coordinator.set_wasm_base_url(url);
+        }
+    }
 
     info!("Peer coordinator entering submission loop");
     let result = coordinator.submission_loop(true);

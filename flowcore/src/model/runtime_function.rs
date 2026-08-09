@@ -314,6 +314,25 @@ impl RuntimeFunction {
         &self.implementation_url
     }
 
+    /// Rewrite a `file://` implementation URL to an `http://` URL using the
+    /// given base URL (from a WASM HTTP server). Returns `true` if the URL
+    /// was rewritten.
+    ///
+    /// This is used when delegating a sub-flow to a peer coordinator: the peer
+    /// cannot access `file://` paths on the root machine, so we rewrite them
+    /// to point at the root's WASM HTTP server.
+    pub fn rewrite_file_url_to_http(&mut self, wasm_base_url: &Url) -> bool {
+        if self.implementation_url.scheme() == "file" {
+            let path = self.implementation_url.path();
+            if let Ok(http_url) = wasm_base_url.join(path) {
+                self.implementation_url = http_url.clone();
+                self.implementation_location = http_url.to_string();
+                return true;
+            }
+        }
+        false
+    }
+
     fn location_to_url(manifest_url: &Url, location: &str) -> Result<Url> {
         Url::parse(location)
             .or_else(|_| manifest_url.clone().join(location))
@@ -432,6 +451,7 @@ impl RuntimeFunction {
 mod test {
     use serde_json::json;
     use serde_json::value::Value;
+    use url::Url;
 
     use crate::model::input::Input;
     use crate::model::output_connection::OutputConnection;
@@ -847,5 +867,61 @@ mod test {
         );
         func.send_internal(0, json!(1)).unwrap();
         assert!(!func.would_consume_external_on_internal_input());
+    }
+
+    #[test]
+    fn rewrite_file_url_to_http_rewrites() {
+        let mut func = RuntimeFunction::new(
+            #[cfg(feature = "debugger")]
+            "wasm",
+            #[cfg(feature = "debugger")]
+            "/wasm",
+            "file:///path/to/module.wasm",
+            vec![],
+            0,
+            0,
+            &[],
+            false,
+        );
+        let base = Url::parse("file:///").unwrap();
+        func.set_implementation_url(&base).unwrap();
+        assert_eq!(func.get_implementation_url().scheme(), "file");
+
+        let wasm_base = Url::parse("http://192.168.1.1:12345").unwrap();
+        assert!(func.rewrite_file_url_to_http(&wasm_base));
+        assert_eq!(func.get_implementation_url().scheme(), "http");
+        assert!(func
+            .get_implementation_url()
+            .as_str()
+            .contains("module.wasm"));
+        assert!(func.get_implementation_location().starts_with("http://"));
+    }
+
+    #[test]
+    fn rewrite_file_url_to_http_skips_lib() {
+        let mut func = RuntimeFunction::new(
+            #[cfg(feature = "debugger")]
+            "lib",
+            #[cfg(feature = "debugger")]
+            "/lib",
+            "lib://flowstdlib/math/add",
+            vec![],
+            0,
+            0,
+            &[],
+            false,
+        );
+        // Resolve the implementation URL from the location string
+        let base = Url::parse("file:///").unwrap();
+        func.set_implementation_url(&base).unwrap();
+        // lib:// URLs parse directly, not as file:// URLs
+        assert_eq!(func.get_implementation_url().scheme(), "lib");
+
+        let wasm_base = Url::parse("http://192.168.1.1:12345").unwrap();
+        assert!(!func.rewrite_file_url_to_http(&wasm_base));
+        assert_eq!(
+            func.get_implementation_location(),
+            "lib://flowstdlib/math/add"
+        );
     }
 }

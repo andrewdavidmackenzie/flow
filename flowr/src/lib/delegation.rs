@@ -58,7 +58,7 @@ pub fn delegate_subflow(
     let zmq_context = zmq::Context::new();
     let client = PeerClient::connect(&zmq_context, peer_address)?;
 
-    let boundary_outputs = client.submit_subflow(extracted.clone(), inputs)?;
+    let boundary_outputs = client.submit_subflow(extracted.clone(), inputs, None)?;
 
     info!(
         "Peer returned {} boundary outputs for sub-flow #{flow_id}",

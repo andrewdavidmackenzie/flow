@@ -124,6 +124,9 @@ impl SubmissionHandler for PeerSubmissionHandler {
             PeerRequest::Submit(submission) => {
                 let mut manifest = submission.manifest;
                 let inputs = submission.inputs;
+                if let Some(ref wasm_url) = submission.wasm_base_url {
+                    info!("Parent WASM server at {wasm_url}");
+                }
                 info!(
                     "Peer coordinator received sub-flow with {} functions, {} inputs",
                     manifest.functions().len(),

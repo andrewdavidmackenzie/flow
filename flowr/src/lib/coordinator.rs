@@ -318,35 +318,7 @@ impl<'a> Coordinator<'a> {
 
         // Handle sub-flow delegation if requested
         if let Some(flow_id) = submission.delegate_flow_id.take() {
-            let registry = self
-                .subflow_registry
-                .as_ref()
-                .ok_or("Sub-flow delegation requested but no sub-flow registry is configured")?;
-            info!("Delegating sub-flow #{flow_id}");
-            let (extracted, input_map) = submission
-                .manifest
-                .delegate_subflow(flow_id)
-                .map_err(|e| format!("Could not delegate sub-flow #{flow_id}: {e}"))?;
-            let subflow_url = url::Url::parse(&format!("subflow://{flow_id}"))
-                .map_err(|e| format!("Invalid subflow URL: {e}"))?;
-            let mut manifests = registry
-                .write()
-                .map_err(|_| "Could not gain write access to the sub-flow registry")?;
-            info!(
-                "Registered sub-flow #{flow_id} with {} functions",
-                extracted.functions().len()
-            );
-            let peer_addr = self
-                .peer_client
-                .as_ref()
-                .map(|c| c.address().to_string())
-                .ok_or("Sub-flow delegation requires a connected peer coordinator")?;
-            info!("Sub-flow #{flow_id} will be executed on remote peer at {peer_addr}");
-            // Preserve the extracted manifest for possible reconstitution
-            submission
-                .extracted_subflows
-                .insert(flow_id, extracted.clone());
-            manifests.insert(subflow_url, (extracted, input_map, Some(peer_addr)));
+            self.setup_delegation(flow_id, &mut submission)?;
         }
 
         self.job_timeout = submission.job_timeout;
@@ -432,6 +404,52 @@ impl<'a> Coordinator<'a> {
         self.submission_handler.flow_execution_ended(&state)?;
 
         flow_result
+    }
+
+    /// Extract a sub-flow from the submission, rewrite WASM URLs for remote
+    /// access, and register it in the sub-flow registry for delegation to
+    /// a peer coordinator.
+    fn setup_delegation(&self, flow_id: usize, submission: &mut Submission) -> Result<()> {
+        let registry = self
+            .subflow_registry
+            .as_ref()
+            .ok_or("Sub-flow delegation requested but no sub-flow registry is configured")?;
+        info!("Delegating sub-flow #{flow_id}");
+        let (mut extracted, input_map) = submission
+            .manifest
+            .delegate_subflow(flow_id)
+            .map_err(|e| format!("Could not delegate sub-flow #{flow_id}: {e}"))?;
+
+        // Rewrite file:// WASM URLs to http:// so the peer can fetch them
+        // from this coordinator's WASM HTTP server
+        if let Some(ref base_url) = self.wasm_base_url {
+            let rewritten = extracted.rewrite_wasm_urls(base_url);
+            if rewritten > 0 {
+                info!("Rewrote {rewritten} file:// WASM URL(s) to http:// for peer delegation");
+            }
+        }
+
+        let subflow_url = url::Url::parse(&format!("subflow://{flow_id}"))
+            .map_err(|e| format!("Invalid subflow URL: {e}"))?;
+        let mut manifests = registry
+            .write()
+            .map_err(|_| "Could not gain write access to the sub-flow registry")?;
+        info!(
+            "Registered sub-flow #{flow_id} with {} functions",
+            extracted.functions().len()
+        );
+        let peer_addr = self
+            .peer_client
+            .as_ref()
+            .map(|c| c.address().to_string())
+            .ok_or("Sub-flow delegation requires a connected peer coordinator")?;
+        info!("Sub-flow #{flow_id} will be executed on remote peer at {peer_addr}");
+        // Preserve the extracted manifest for possible reconstitution
+        submission
+            .extracted_subflows
+            .insert(flow_id, extracted.clone());
+        manifests.insert(subflow_url, (extracted, input_map, Some(peer_addr)));
+        Ok(())
     }
 
     /// Run the inner dispatch/retire loop until no more jobs remain or the debugger

@@ -237,6 +237,7 @@ impl RemoteSubFlowImplementation {
         let stream_result = client.submit_subflow_streaming(
             self.manifest.clone(),
             input_triples,
+            None,
             |boundary_output| {
                 let bo_value = serde_json::json!({
                     "destination_id": boundary_output.connection.destination_id,
@@ -308,7 +309,7 @@ impl Implementation for RemoteSubFlowImplementation {
             .map_err(|e| format!("Could not connect to peer at {}: {e}", self.peer_address))?;
 
         let boundary_outputs = client
-            .submit_subflow(self.manifest.clone(), input_triples)
+            .submit_subflow(self.manifest.clone(), input_triples, None)
             .map_err(|e| format!("Peer sub-flow execution failed: {e}"))?;
 
         info!(
