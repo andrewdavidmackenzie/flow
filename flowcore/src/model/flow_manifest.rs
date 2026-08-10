@@ -570,6 +570,11 @@ impl FlowManifest {
                 .get(&flow_id)
                 .is_some_and(|f| f.parent_id.is_none());
             if is_root {
+                // Clear any score that may have been inherited (e.g. from
+                // extract_subflow cloning a non-root FlowInfo as the new root)
+                if let Some(info) = self.flows.get_mut(&flow_id) {
+                    info.delegation_score = None;
+                }
                 continue; // root flow is never delegated
             }
 

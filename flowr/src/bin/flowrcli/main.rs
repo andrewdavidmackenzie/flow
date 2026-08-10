@@ -31,7 +31,7 @@ use std::{env, thread};
 
 use clap::{Arg, ArgMatches, Command};
 use env_logger::Builder;
-use log::{error, info, trace, LevelFilter};
+use log::{error, info, trace, warn, LevelFilter};
 use portpicker::pick_unused_port;
 use simpath::Simpath;
 use url::Url;
@@ -729,22 +729,23 @@ fn client(
                 info!("No sub-flows with positive delegation scores — running locally");
             }
         } else if let Ok(flow_id) = delegate_arg.parse::<usize>() {
-            // Explicit flow ID — force delegation
-            if flow_manifest.flows().contains_key(&flow_id) {
-                let score = flow_manifest
-                    .flows()
-                    .get(&flow_id)
-                    .and_then(|info| info.delegation_score);
+            // Explicit flow ID — force delegation (must be a non-root sub-flow)
+            let flow_info = flow_manifest
+                .flows()
+                .get(&flow_id)
+                .filter(|info| info.parent_id.is_some());
+            if let Some(info) = flow_info {
+                let score = info.delegation_score;
                 info!(
                     "Forcing delegation of sub-flow #{flow_id} (score: {})",
                     score.map_or_else(|| "none".to_string(), |s| format!("{s:.2}"))
                 );
                 delegate_flow_id = Some(flow_id);
             } else {
-                info!("Sub-flow #{flow_id} not found in manifest — running locally");
+                warn!("#{flow_id} is not a delegatable sub-flow — running locally");
             }
         } else {
-            info!("Invalid --delegate argument '{delegate_arg}' — running locally");
+            warn!("Invalid --delegate argument '{delegate_arg}' — expected a flow ID; running locally");
         }
     }
 
