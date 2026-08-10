@@ -125,14 +125,14 @@ impl Dispatcher {
     // Send a `Job` for execution to executors.
     //
     // Jobs are routed to two executor pools:
-    // - `lib_job_socket`: library functions (lib://), WASM functions (file://),
-    //   and sub-flow functions (subflow://) — these run on the multi-threaded
-    //   executor pool for parallelism
+    // - `lib_job_socket`: library functions (lib://), WASM functions (file://,
+    //   http://, https://), and sub-flow functions (subflow://) — these run on
+    //   the multi-threaded executor pool for parallelism
     // - `general_job_socket`: context functions (context://) — these interact with
     //   the environment and run on a dedicated executor with spawn support
     pub(crate) fn send_job_for_execution(&mut self, payload: &Payload) -> Result<()> {
         let scheme = payload.implementation_url.scheme();
-        if scheme == "lib" || scheme == "file" || scheme == "subflow" {
+        if matches!(scheme, "lib" | "file" | "http" | "https" | "subflow") {
             self.lib_job_socket
                 .send(serde_json::to_string(payload)?.as_bytes(), 0)
                 .map_err(|e| format!("Could not send Job for execution: {e}"))?;
@@ -219,6 +219,33 @@ mod test {
             .is_ok());
     }
 
+    /// Helper: connect PULL sockets to both the lib (ports.0) and context
+    /// (ports.1) dispatcher queues so tests can observe routing.
+    fn connect_both_queues(
+        context: &zmq::Context,
+        ports: (u16, u16, u16, u16),
+    ) -> (zmq::Socket, zmq::Socket) {
+        let lib_socket = context
+            .socket(zmq::PULL)
+            .expect("Could not create lib PULL socket");
+        lib_socket
+            .connect(&format!("tcp://127.0.0.1:{}", ports.0))
+            .expect("Could not connect to lib job socket");
+        lib_socket
+            .set_rcvtimeo(1000)
+            .expect("Could not set timeout");
+
+        let ctx_socket = context
+            .socket(zmq::PULL)
+            .expect("Could not create context PULL socket");
+        ctx_socket
+            .connect(&format!("tcp://127.0.0.1:{}", ports.1))
+            .expect("Could not connect to context job socket");
+        ctx_socket.set_rcvtimeo(100).expect("Could not set timeout");
+
+        (lib_socket, ctx_socket)
+    }
+
     #[test]
     #[serial]
     fn send_lib_job() {
@@ -230,16 +257,21 @@ mod test {
         };
 
         let (mut dispatcher, ports) = new_dispatcher();
-
         let context = zmq::Context::new();
-        let job_source = context
-            .socket(zmq::PULL)
-            .expect("Could not create PULL end of job socket");
-        job_source
-            .connect(&format!("tcp://127.0.0.1:{}", ports.0))
-            .expect("Could not bind to PULL end of job socket");
+        let (lib_socket, ctx_socket) = connect_both_queues(&context, ports);
 
         assert!(dispatcher.send_job_for_execution(&payload).is_ok());
+
+        let msg = lib_socket
+            .recv_msg(0)
+            .expect("lib:// job should arrive on lib socket");
+        let received: Payload = serde_json::from_str(msg.as_str().unwrap()).unwrap();
+        assert_eq!(received.implementation_url.scheme(), "lib");
+
+        assert!(
+            ctx_socket.recv_msg(0).is_err(),
+            "lib:// job should not be routed to context socket"
+        );
     }
 
     #[test]
@@ -252,16 +284,23 @@ mod test {
         };
 
         let (mut dispatcher, ports) = new_dispatcher();
-
         let context = zmq::Context::new();
-        let context_job_source = context
-            .socket(zmq::PULL)
-            .expect("Could not create PULL end of context-job socket");
-        context_job_source
-            .connect(&format!("tcp://127.0.0.1:{}", ports.1))
-            .expect("Could not bind to PULL end of job-source socket");
+        let (lib_socket, ctx_socket) = connect_both_queues(&context, ports);
 
         assert!(dispatcher.send_job_for_execution(&payload).is_ok());
+
+        // Context timeout is 100ms; bump it so we can receive
+        ctx_socket.set_rcvtimeo(1000).expect("set timeout");
+        let msg = ctx_socket
+            .recv_msg(0)
+            .expect("context:// job should arrive on context socket");
+        let received: Payload = serde_json::from_str(msg.as_str().unwrap()).unwrap();
+        assert_eq!(received.implementation_url.scheme(), "context");
+
+        assert!(
+            lib_socket.recv_msg(0).is_err(),
+            "context:// job should not be routed to lib socket"
+        );
     }
 
     #[test]
@@ -274,18 +313,49 @@ mod test {
         };
 
         let (mut dispatcher, ports) = new_dispatcher();
-
-        // subflow:// jobs should be routed to the lib job socket (ports.0),
-        // not the context job socket (ports.1).
         let context = zmq::Context::new();
-        let job_source = context
-            .socket(zmq::PULL)
-            .expect("Could not create PULL end of job socket");
-        job_source
-            .connect(&format!("tcp://127.0.0.1:{}", ports.0))
-            .expect("Could not bind to PULL end of job socket");
+        let (lib_socket, ctx_socket) = connect_both_queues(&context, ports);
 
         assert!(dispatcher.send_job_for_execution(&payload).is_ok());
+
+        let msg = lib_socket
+            .recv_msg(0)
+            .expect("subflow:// job should arrive on lib socket");
+        let received: Payload = serde_json::from_str(msg.as_str().unwrap()).unwrap();
+        assert_eq!(received.implementation_url.scheme(), "subflow");
+
+        assert!(
+            ctx_socket.recv_msg(0).is_err(),
+            "subflow:// job should not be routed to context socket"
+        );
+    }
+
+    #[test]
+    #[serial]
+    fn send_http_wasm_job() {
+        let payload = Payload {
+            job_id: 0,
+            input_set: vec![],
+            implementation_url: Url::parse("http://192.168.1.1:12345/path/to/module.wasm")
+                .expect("Could not parse Url"),
+        };
+
+        let (mut dispatcher, ports) = new_dispatcher();
+        let context = zmq::Context::new();
+        let (lib_socket, ctx_socket) = connect_both_queues(&context, ports);
+
+        assert!(dispatcher.send_job_for_execution(&payload).is_ok());
+
+        let msg = lib_socket
+            .recv_msg(0)
+            .expect("http:// WASM job should arrive on lib socket");
+        let received: Payload = serde_json::from_str(msg.as_str().unwrap()).unwrap();
+        assert_eq!(received.implementation_url.scheme(), "http");
+
+        assert!(
+            ctx_socket.recv_msg(0).is_err(),
+            "http:// job should not be routed to context socket"
+        );
     }
 
     #[test]

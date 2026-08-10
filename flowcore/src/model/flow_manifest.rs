@@ -489,6 +489,24 @@ impl FlowManifest {
         Ok(manifest)
     }
 
+    /// Rewrite all `file://` implementation URLs in this manifest to `http://`
+    /// URLs using the given WASM server base URL.
+    ///
+    /// This is used before sending a sub-flow manifest to a peer coordinator:
+    /// the peer cannot access `file://` paths on the root machine, so the URLs
+    /// are rewritten to point at the root's WASM HTTP server.
+    ///
+    /// Returns the number of URLs that were rewritten.
+    pub fn rewrite_wasm_urls(&mut self, wasm_base_url: &Url) -> usize {
+        let mut count = 0;
+        for func in self.functions.values_mut() {
+            if func.rewrite_file_url_to_http(wasm_base_url) {
+                count += 1;
+            }
+        }
+        count
+    }
+
     /// Collect all descendant flow IDs (including the given flow itself).
     /// Uses an iterative work list to avoid stack overflow on deep hierarchies
     /// and skips already-visited IDs to handle cycles safely.
@@ -970,5 +988,105 @@ mod test {
         assert_eq!(conn.destination_id, 1);
         assert_eq!(conn.destination_io_number, 0);
         assert!(!conn.internal);
+    }
+
+    #[test]
+    fn rewrite_wasm_urls_rewrites_file_to_http() {
+        use super::FlowInfo;
+
+        let mut manifest = FlowManifest::new(test_meta_data());
+        manifest.add_flow_info(FlowInfo {
+            process_id: 0,
+            parent_id: None,
+            sub_flow_ids: vec![],
+            #[cfg(feature = "debugger")]
+            name: "root".into(),
+            #[cfg(feature = "debugger")]
+            route: "/root".into(),
+        });
+
+        // Add a file:// WASM function
+        let mut func = RuntimeFunction::new(
+            #[cfg(feature = "debugger")]
+            "wasm_func",
+            #[cfg(feature = "debugger")]
+            "/root/wasm_func",
+            "file:///path/to/module.wasm",
+            vec![],
+            1,
+            0,
+            &[],
+            false,
+        );
+        let base = Url::parse("file:///").unwrap();
+        func.set_implementation_url(&base).unwrap();
+        manifest.add_function(func);
+
+        // Add a lib:// function (should not be rewritten)
+        let mut lib_func = RuntimeFunction::new(
+            #[cfg(feature = "debugger")]
+            "lib_func",
+            #[cfg(feature = "debugger")]
+            "/root/lib_func",
+            "lib://flowstdlib/math/add",
+            vec![],
+            2,
+            0,
+            &[],
+            false,
+        );
+        lib_func.set_implementation_url(&base).unwrap();
+        manifest.add_function(lib_func);
+
+        let wasm_base = Url::parse("http://192.168.1.1:12345").unwrap();
+        let count = manifest.rewrite_wasm_urls(&wasm_base);
+
+        assert_eq!(count, 1, "Should have rewritten exactly one URL");
+
+        // The file:// function should now have an http:// URL
+        let wasm_func = manifest.functions().get(&1).unwrap();
+        assert_eq!(wasm_func.get_implementation_url().scheme(), "http");
+        assert!(
+            wasm_func
+                .get_implementation_url()
+                .as_str()
+                .contains("module.wasm"),
+            "Rewritten URL should contain the original path"
+        );
+        assert!(
+            wasm_func
+                .get_implementation_location()
+                .starts_with("http://"),
+            "implementation_location should also be rewritten"
+        );
+
+        // The lib:// function should be unchanged
+        let lib_func = manifest.functions().get(&2).unwrap();
+        assert_eq!(lib_func.get_implementation_url().scheme(), "lib");
+    }
+
+    #[test]
+    fn rewrite_wasm_urls_no_file_urls_returns_zero() {
+        let mut manifest = FlowManifest::new(test_meta_data());
+
+        let mut lib_func = RuntimeFunction::new(
+            #[cfg(feature = "debugger")]
+            "lib_func",
+            #[cfg(feature = "debugger")]
+            "/root/lib_func",
+            "lib://flowstdlib/math/add",
+            vec![],
+            1,
+            0,
+            &[],
+            false,
+        );
+        let base = Url::parse("file:///").unwrap();
+        lib_func.set_implementation_url(&base).unwrap();
+        manifest.add_function(lib_func);
+
+        let wasm_base = Url::parse("http://192.168.1.1:12345").unwrap();
+        let count = manifest.rewrite_wasm_urls(&wasm_base);
+        assert_eq!(count, 0, "No file:// URLs to rewrite");
     }
 }

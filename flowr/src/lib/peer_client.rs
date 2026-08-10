@@ -56,6 +56,9 @@ impl PeerClient {
     /// Submit a sub-flow for execution on the peer coordinator.
     /// Returns the boundary outputs produced by the sub-flow.
     ///
+    /// `wasm_base_url` is the base URL of the parent's WASM HTTP server,
+    /// passed to the peer for potential further delegation.
+    ///
     /// # Errors
     ///
     /// Returns an error if the submission cannot be sent or the response
@@ -64,8 +67,13 @@ impl PeerClient {
         &self,
         manifest: FlowManifest,
         inputs: Vec<(usize, usize, Value)>,
+        wasm_base_url: Option<String>,
     ) -> Result<Vec<BoundaryOutput>> {
-        let request = PeerRequest::Submit(Box::new(SubflowSubmission { manifest, inputs }));
+        let request = PeerRequest::Submit(Box::new(SubflowSubmission {
+            manifest,
+            inputs,
+            wasm_base_url,
+        }));
         let json = serde_json::to_string(&request)
             .map_err(|e| format!("Could not serialize peer request: {e}"))?;
 
@@ -120,6 +128,9 @@ impl PeerClient {
     /// Submit a sub-flow and invoke a callback for each boundary output
     /// as it arrives, rather than collecting them all.
     ///
+    /// `wasm_base_url` is the base URL of the parent's WASM HTTP server,
+    /// passed to the peer for potential further delegation.
+    ///
     /// # Errors
     ///
     /// Returns an error if the submission fails, a response cannot be
@@ -128,12 +139,17 @@ impl PeerClient {
         &self,
         manifest: FlowManifest,
         inputs: Vec<(usize, usize, Value)>,
+        wasm_base_url: Option<String>,
         mut on_boundary_output: F,
     ) -> Result<()>
     where
         F: FnMut(BoundaryOutput) -> Result<()>,
     {
-        let request = PeerRequest::Submit(Box::new(SubflowSubmission { manifest, inputs }));
+        let request = PeerRequest::Submit(Box::new(SubflowSubmission {
+            manifest,
+            inputs,
+            wasm_base_url,
+        }));
         let json = serde_json::to_string(&request)
             .map_err(|e| format!("Could not serialize peer request: {e}"))?;
 

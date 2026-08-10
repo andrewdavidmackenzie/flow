@@ -709,8 +709,10 @@ fn client(
         .get_one::<u64>("job-timeout")
         .map(|secs| Duration::from_secs(*secs));
     // If --delegate is set, find the best sub-flow to delegate.
-    // We pick the sub-flow with the largest function subtree whose entire
-    // descendant tree uses only lib:// implementations.
+    // We pick the sub-flow with the largest function subtree whose functions
+    // use only lib:// or file:// (WASM) implementations. Sub-flows containing
+    // context:// functions cannot be delegated (they interact with the local
+    // environment).
     let mut delegate_flow_id = None;
     if matches.get_flag("delegate") {
         let mut best: Option<(usize, usize)> = None; // (flow_id, function_count)
@@ -730,16 +732,16 @@ fn client(
                 }
                 idx += 1;
             }
-            // Check all functions in the subtree
+            // Check all functions in the subtree — reject context:// functions
             let subtree_funcs: Vec<_> = flow_manifest
                 .functions()
                 .values()
                 .filter(|f| descendant_flows.contains(&f.get_parent_id()))
                 .collect();
-            let all_lib = subtree_funcs
+            let no_context = subtree_funcs
                 .iter()
-                .all(|f| f.get_implementation_location().starts_with("lib://"));
-            if all_lib && !subtree_funcs.is_empty() {
+                .all(|f| !f.get_implementation_location().starts_with("context://"));
+            if no_context && !subtree_funcs.is_empty() {
                 let count = subtree_funcs.len();
                 if best.is_none_or(|(_, best_count)| count > best_count) {
                     best = Some((flow_id, count));
