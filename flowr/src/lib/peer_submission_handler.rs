@@ -49,27 +49,22 @@ impl PeerSubmissionHandler {
         Ok(())
     }
 
-    /// Send boundary outputs back to the parent coordinator.
+    /// Send all boundary outputs to the parent coordinator in a single
+    /// `Completed` message, avoiding per-output ZMQ round-trip overhead.
+    /// This also signals that the sub-flow execution is complete (idle).
     ///
     /// # Errors
     ///
-    /// Returns an error if any output cannot be serialized or sent.
-    pub fn relay_boundary_outputs(&self, outputs: &[BoundaryOutput]) -> Result<()> {
-        for output in outputs {
-            self.send_response(&PeerResponse::BoundaryOutput {
-                connection: output.connection.clone(),
-                value: output.value.clone(),
-            })?;
-            // After each send on REP, we need to receive before sending again.
-            // REP socket requires strict recv-send-recv-send alternation.
-            // For streaming, we'd need DEALER/ROUTER instead.
-            // For now, the parent must acknowledge each output.
-            let _ack = self
-                .socket
-                .recv_msg(0)
-                .map_err(|e| format!("Could not receive ack: {e}"))?;
-        }
-        Ok(())
+    /// Returns an error if the message cannot be serialized or sent.
+    fn send_completed(&self, outputs: &[BoundaryOutput]) -> Result<()> {
+        let batch: Vec<crate::peer_protocol::BoundaryOutputEntry> = outputs
+            .iter()
+            .map(|o| crate::peer_protocol::BoundaryOutputEntry {
+                connection: o.connection.clone(),
+                value: o.value.clone(),
+            })
+            .collect();
+        self.send_response(&PeerResponse::Completed(batch))
     }
 }
 
@@ -91,18 +86,13 @@ impl SubmissionHandler for PeerSubmissionHandler {
     ) -> Result<()> {
         debug!("Peer coordinator: flow execution ended");
 
-        // Relay boundary outputs to parent before signaling idle
+        // Send all boundary outputs + completion signal in a single message
         let outputs = state.boundary_outputs();
-        if !outputs.is_empty() {
-            info!(
-                "Peer coordinator relaying {} boundary outputs",
-                outputs.len()
-            );
-            self.relay_boundary_outputs(outputs)?;
-        }
-
-        // Signal idle to parent
-        self.send_response(&PeerResponse::Idle)?;
+        info!(
+            "Peer coordinator completed with {} boundary outputs",
+            outputs.len()
+        );
+        self.send_completed(outputs)?;
         Ok(())
     }
 
