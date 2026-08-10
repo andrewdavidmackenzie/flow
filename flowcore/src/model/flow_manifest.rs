@@ -33,7 +33,7 @@ pub struct Cargo {
     pub package: MetaData,
 }
 
-#[derive(Deserialize, Serialize, Clone, PartialEq, Eq, Debug)]
+#[derive(Deserialize, Serialize, Clone, Debug)]
 /// Describes a flow's direct children: which sub-flow IDs it contains
 pub struct FlowInfo {
     /// The unique process ID of this flow
@@ -42,6 +42,12 @@ pub struct FlowInfo {
     pub parent_id: Option<usize>,
     /// IDs of direct child sub-flows
     pub sub_flow_ids: Vec<usize>,
+    /// Compiler-computed delegation score. `Some(score)` means this sub-flow
+    /// is a candidate for delegation — higher is better. `None` means it
+    /// cannot be delegated (e.g. contains `context://` functions).
+    /// This is a hint: the runtime may follow or ignore it.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub delegation_score: Option<f64>,
     #[cfg(feature = "debugger")]
     #[serde(default, skip_serializing_if = "String::is_empty")]
     /// The name of this flow (for debugging display)
@@ -51,6 +57,16 @@ pub struct FlowInfo {
     /// The route of this flow (for debugging display)
     pub route: String,
 }
+
+impl PartialEq for FlowInfo {
+    fn eq(&self, other: &Self) -> bool {
+        self.process_id == other.process_id
+            && self.parent_id == other.parent_id
+            && self.sub_flow_ids == other.sub_flow_ids
+    }
+}
+
+impl Eq for FlowInfo {}
 
 #[derive(Deserialize, Serialize, Clone, PartialEq, Eq, Debug)]
 /// A `flows` `Manifest` describes it and describes all the `Functions` it uses as well as
@@ -507,6 +523,131 @@ impl FlowManifest {
         count
     }
 
+    /// Compute delegation scores for all sub-flows in this manifest.
+    ///
+    /// The score reflects how beneficial it would be to delegate each sub-flow
+    /// to a peer coordinator, considering compute weight, balance between root
+    /// and peer, boundary I/O overhead, and nested sub-flow serialization.
+    ///
+    /// Sub-flows containing `context://` functions get `None` (not delegatable).
+    /// Sub-flows with a non-positive score also get `None`.
+    /// The root flow always gets `None`.
+    ///
+    /// This is intended to be called by the compiler after the manifest is
+    /// fully constructed, storing results as hints for the runtime.
+    #[allow(clippy::cast_precision_loss)] // counts are small, precision loss is irrelevant
+    pub fn compute_delegation_scores(&mut self) {
+        // Weight constants (initial values, tunable)
+        const LOOPBACK_MULTIPLIER: f64 = 2.0;
+        const BOUNDARY_WEIGHT: f64 = 0.5;
+        const NESTING_WEIGHT: f64 = 1.0;
+
+        // Compute total flow weight: sum of (1 + loopback_count * multiplier)
+        // for every function in the manifest
+        let total_weight: f64 = self
+            .functions
+            .values()
+            .map(|f| {
+                let loopbacks = f
+                    .get_output_connections()
+                    .iter()
+                    .filter(|c| c.destination_id == f.id())
+                    .count();
+                1.0 + loopbacks as f64 * LOOPBACK_MULTIPLIER
+            })
+            .sum();
+
+        if total_weight <= 0.0 {
+            return;
+        }
+
+        // Collect flow IDs to score (snapshot to avoid borrow conflict)
+        let flow_ids: Vec<usize> = self.flows.keys().copied().collect();
+
+        for flow_id in flow_ids {
+            let is_root = self
+                .flows
+                .get(&flow_id)
+                .is_some_and(|f| f.parent_id.is_none());
+            if is_root {
+                continue; // root flow is never delegated
+            }
+
+            // Collect all descendant flow IDs
+            let mut descendant_flows = HashSet::new();
+            Self::collect_descendant_flows(flow_id, &self.flows, &mut descendant_flows);
+
+            // Gather functions in this sub-flow's descendant tree
+            let subtree_funcs: Vec<&RuntimeFunction> = self
+                .functions
+                .values()
+                .filter(|f| descendant_flows.contains(&f.get_parent_id()))
+                .collect();
+
+            if subtree_funcs.is_empty() {
+                if let Some(info) = self.flows.get_mut(&flow_id) {
+                    info.delegation_score = None;
+                }
+                continue;
+            }
+
+            // Check for context:// functions — cannot delegate
+            let has_context = subtree_funcs
+                .iter()
+                .any(|f| f.get_implementation_location().starts_with("context://"));
+            if has_context {
+                if let Some(info) = self.flows.get_mut(&flow_id) {
+                    info.delegation_score = None;
+                }
+                continue;
+            }
+
+            // Compute peer weight (functions + loopback bonus)
+            let peer_weight: f64 = subtree_funcs
+                .iter()
+                .map(|f| {
+                    let loopbacks = f
+                        .get_output_connections()
+                        .iter()
+                        .filter(|c| c.destination_id == f.id())
+                        .count();
+                    1.0 + loopbacks as f64 * LOOPBACK_MULTIPLIER
+                })
+                .sum();
+
+            // Balance quality: 1.0 at 50/50, 0.0 at 100/0
+            let balance_ratio = peer_weight / total_weight;
+            let balance_quality = 1.0 - 2.0 * (balance_ratio - 0.5).abs();
+
+            // Boundary connections: outputs targeting functions outside the sub-flow
+            let func_ids: HashSet<usize> = subtree_funcs.iter().map(|f| f.id()).collect();
+            let boundary_count: usize = subtree_funcs
+                .iter()
+                .flat_map(|f| f.get_output_connections().iter())
+                .filter(|c| !func_ids.contains(&c.destination_id))
+                .count()
+                + self
+                    .functions
+                    .values()
+                    .filter(|f| !func_ids.contains(&f.id()))
+                    .flat_map(|f| f.get_output_connections().iter())
+                    .filter(|c| func_ids.contains(&c.destination_id))
+                    .count();
+
+            // Nested sub-flow count (excluding the flow itself)
+            let nested_subflows = descendant_flows.len().saturating_sub(1);
+
+            // Compute score
+            let score = peer_weight * balance_quality
+                - boundary_count as f64 * BOUNDARY_WEIGHT
+                - nested_subflows as f64 * NESTING_WEIGHT;
+
+            if let Some(info) = self.flows.get_mut(&flow_id) {
+                info.delegation_score = if score > 0.0 { Some(score) } else { None };
+            }
+        }
+    }
+
     /// Collect all descendant flow IDs (including the given flow itself).
     /// Uses an iterative work list to avoid stack overflow on deep hierarchies
     /// and skips already-visited IDs to handle cycles safely.
@@ -686,6 +827,7 @@ mod test {
             process_id: 0,
             parent_id: None,
             sub_flow_ids: vec![1],
+            delegation_score: None,
             #[cfg(feature = "debugger")]
             name: "root".into(),
             #[cfg(feature = "debugger")]
@@ -695,6 +837,7 @@ mod test {
             process_id: 1,
             parent_id: Some(0),
             sub_flow_ids: vec![],
+            delegation_score: None,
             #[cfg(feature = "debugger")]
             name: "child".into(),
             #[cfg(feature = "debugger")]
@@ -826,6 +969,7 @@ mod test {
             process_id: 0,
             parent_id: None,
             sub_flow_ids: vec![1],
+            delegation_score: None,
             #[cfg(feature = "debugger")]
             name: "a".into(),
             #[cfg(feature = "debugger")]
@@ -835,6 +979,7 @@ mod test {
             process_id: 1,
             parent_id: Some(0),
             sub_flow_ids: vec![0], // cycle back to root
+            delegation_score: None,
             #[cfg(feature = "debugger")]
             name: "b".into(),
             #[cfg(feature = "debugger")]
@@ -861,6 +1006,7 @@ mod test {
             process_id: 0,
             parent_id: None,
             sub_flow_ids: vec![1],
+            delegation_score: None,
             #[cfg(feature = "debugger")]
             name: "root".into(),
             #[cfg(feature = "debugger")]
@@ -870,6 +1016,7 @@ mod test {
             process_id: 1,
             parent_id: Some(0),
             sub_flow_ids: vec![],
+            delegation_score: None,
             #[cfg(feature = "debugger")]
             name: "child".into(),
             #[cfg(feature = "debugger")]
@@ -999,6 +1146,7 @@ mod test {
             process_id: 0,
             parent_id: None,
             sub_flow_ids: vec![],
+            delegation_score: None,
             #[cfg(feature = "debugger")]
             name: "root".into(),
             #[cfg(feature = "debugger")]
@@ -1088,5 +1236,281 @@ mod test {
         let wasm_base = Url::parse("http://192.168.1.1:12345").unwrap();
         let count = manifest.rewrite_wasm_urls(&wasm_base);
         assert_eq!(count, 0, "No file:// URLs to rewrite");
+    }
+
+    #[test]
+    fn delegation_score_context_is_none() {
+        use super::FlowInfo;
+
+        let mut manifest = FlowManifest::new(test_meta_data());
+
+        // Root flow with one child sub-flow
+        manifest.add_flow_info(FlowInfo {
+            process_id: 0,
+            parent_id: None,
+            sub_flow_ids: vec![1],
+            delegation_score: None,
+            #[cfg(feature = "debugger")]
+            name: "root".into(),
+            #[cfg(feature = "debugger")]
+            route: "/root".into(),
+        });
+        manifest.add_flow_info(FlowInfo {
+            process_id: 1,
+            parent_id: Some(0),
+            sub_flow_ids: vec![],
+            delegation_score: None,
+            #[cfg(feature = "debugger")]
+            name: "child".into(),
+            #[cfg(feature = "debugger")]
+            route: "/root/child".into(),
+        });
+
+        // Root has a lib function
+        manifest.add_function(RuntimeFunction::new(
+            #[cfg(feature = "debugger")]
+            "root_fn",
+            #[cfg(feature = "debugger")]
+            "/root/root_fn",
+            "lib://flowstdlib/math/add",
+            vec![],
+            10,
+            0,
+            &[],
+            false,
+        ));
+
+        // Child sub-flow has a context:// function — should NOT be delegatable
+        manifest.add_function(RuntimeFunction::new(
+            #[cfg(feature = "debugger")]
+            "ctx_fn",
+            #[cfg(feature = "debugger")]
+            "/root/child/ctx_fn",
+            "context://stdio/stdout",
+            vec![],
+            20,
+            1,
+            &[],
+            false,
+        ));
+
+        manifest.compute_delegation_scores();
+
+        // Root should have no score
+        assert_eq!(manifest.flows().get(&0).unwrap().delegation_score, None);
+        // Child with context:// should have no score
+        assert_eq!(manifest.flows().get(&1).unwrap().delegation_score, None);
+    }
+
+    #[test]
+    fn delegation_score_balanced_subflow() {
+        use super::FlowInfo;
+
+        let mut manifest = FlowManifest::new(test_meta_data());
+
+        // Root with child sub-flow
+        manifest.add_flow_info(FlowInfo {
+            process_id: 0,
+            parent_id: None,
+            sub_flow_ids: vec![1],
+            delegation_score: None,
+            #[cfg(feature = "debugger")]
+            name: "root".into(),
+            #[cfg(feature = "debugger")]
+            route: "/root".into(),
+        });
+        manifest.add_flow_info(FlowInfo {
+            process_id: 1,
+            parent_id: Some(0),
+            sub_flow_ids: vec![],
+            delegation_score: None,
+            #[cfg(feature = "debugger")]
+            name: "child".into(),
+            #[cfg(feature = "debugger")]
+            route: "/root/child".into(),
+        });
+
+        // 3 lib functions in root, 3 lib functions in child — perfect 50/50 balance
+        for i in 0..3 {
+            manifest.add_function(RuntimeFunction::new(
+                #[cfg(feature = "debugger")]
+                format!("root_fn_{i}"),
+                #[cfg(feature = "debugger")]
+                format!("/root/root_fn_{i}"),
+                "lib://flowstdlib/math/add",
+                vec![],
+                10 + i,
+                0,
+                &[],
+                false,
+            ));
+            manifest.add_function(RuntimeFunction::new(
+                #[cfg(feature = "debugger")]
+                format!("child_fn_{i}"),
+                #[cfg(feature = "debugger")]
+                format!("/root/child/child_fn_{i}"),
+                "lib://flowstdlib/math/add",
+                vec![],
+                20 + i,
+                1,
+                &[],
+                false,
+            ));
+        }
+
+        manifest.compute_delegation_scores();
+
+        // Child sub-flow should have a positive score (balanced, no context)
+        let score = manifest.flows().get(&1).unwrap().delegation_score;
+        assert!(
+            score.is_some_and(|s| s > 0.0),
+            "Balanced sub-flow should have positive score, got {score:?}"
+        );
+    }
+
+    #[test]
+    fn delegation_score_picks_best_balanced() {
+        use super::FlowInfo;
+
+        let mut manifest = FlowManifest::new(test_meta_data());
+
+        // Root with two child sub-flows
+        manifest.add_flow_info(FlowInfo {
+            process_id: 0,
+            parent_id: None,
+            sub_flow_ids: vec![1, 2],
+            delegation_score: None,
+            #[cfg(feature = "debugger")]
+            name: "root".into(),
+            #[cfg(feature = "debugger")]
+            route: "/root".into(),
+        });
+        // Sub-flow 1: small (1 function out of 10 total) — unbalanced
+        manifest.add_flow_info(FlowInfo {
+            process_id: 1,
+            parent_id: Some(0),
+            sub_flow_ids: vec![],
+            delegation_score: None,
+            #[cfg(feature = "debugger")]
+            name: "small".into(),
+            #[cfg(feature = "debugger")]
+            route: "/root/small".into(),
+        });
+        // Sub-flow 2: medium (5 functions out of 10 total) — well balanced
+        manifest.add_flow_info(FlowInfo {
+            process_id: 2,
+            parent_id: Some(0),
+            sub_flow_ids: vec![],
+            delegation_score: None,
+            #[cfg(feature = "debugger")]
+            name: "balanced".into(),
+            #[cfg(feature = "debugger")]
+            route: "/root/balanced".into(),
+        });
+
+        // 4 functions at root level
+        for i in 0..4 {
+            manifest.add_function(RuntimeFunction::new(
+                #[cfg(feature = "debugger")]
+                format!("root_fn_{i}"),
+                #[cfg(feature = "debugger")]
+                format!("/root/root_fn_{i}"),
+                "lib://flowstdlib/math/add",
+                vec![],
+                100 + i,
+                0,
+                &[],
+                false,
+            ));
+        }
+        // 1 function in sub-flow 1
+        manifest.add_function(RuntimeFunction::new(
+            #[cfg(feature = "debugger")]
+            "small_fn",
+            #[cfg(feature = "debugger")]
+            "/root/small/small_fn",
+            "lib://flowstdlib/math/add",
+            vec![],
+            10,
+            1,
+            &[],
+            false,
+        ));
+        // 5 functions in sub-flow 2
+        for i in 0..5 {
+            manifest.add_function(RuntimeFunction::new(
+                #[cfg(feature = "debugger")]
+                format!("balanced_fn_{i}"),
+                #[cfg(feature = "debugger")]
+                format!("/root/balanced/balanced_fn_{i}"),
+                "lib://flowstdlib/math/add",
+                vec![],
+                20 + i,
+                2,
+                &[],
+                false,
+            ));
+        }
+
+        manifest.compute_delegation_scores();
+
+        let score1 = manifest.flows().get(&1).unwrap().delegation_score;
+        let score2 = manifest.flows().get(&2).unwrap().delegation_score;
+
+        // Sub-flow 2 (5/10 = 50%) should score higher than sub-flow 1 (1/10 = 10%)
+        assert!(
+            score2 > score1,
+            "Balanced sub-flow should score higher: small={score1:?}, balanced={score2:?}"
+        );
+    }
+
+    #[test]
+    fn delegation_score_empty_subflow_is_none() {
+        use super::FlowInfo;
+
+        let mut manifest = FlowManifest::new(test_meta_data());
+
+        manifest.add_flow_info(FlowInfo {
+            process_id: 0,
+            parent_id: None,
+            sub_flow_ids: vec![1],
+            delegation_score: None,
+            #[cfg(feature = "debugger")]
+            name: "root".into(),
+            #[cfg(feature = "debugger")]
+            route: "/root".into(),
+        });
+        manifest.add_flow_info(FlowInfo {
+            process_id: 1,
+            parent_id: Some(0),
+            sub_flow_ids: vec![],
+            delegation_score: None,
+            #[cfg(feature = "debugger")]
+            name: "empty".into(),
+            #[cfg(feature = "debugger")]
+            route: "/root/empty".into(),
+        });
+
+        // Root has one function, sub-flow has none
+        manifest.add_function(RuntimeFunction::new(
+            #[cfg(feature = "debugger")]
+            "root_fn",
+            #[cfg(feature = "debugger")]
+            "/root/root_fn",
+            "lib://flowstdlib/math/add",
+            vec![],
+            10,
+            0,
+            &[],
+            false,
+        ));
+
+        manifest.compute_delegation_scores();
+
+        assert_eq!(
+            manifest.flows().get(&1).unwrap().delegation_score,
+            None,
+            "Empty sub-flow should have no delegation score"
+        );
     }
 }
