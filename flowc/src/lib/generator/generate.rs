@@ -61,6 +61,9 @@ pub fn create_manifest(
     #[cfg(feature = "debugger")]
     manifest.set_source_urls(source_urls);
 
+    // Compute delegation scores as hints for the runtime
+    manifest.compute_delegation_scores();
+
     Ok(manifest)
 }
 
@@ -82,6 +85,7 @@ fn emit_flow_hierarchy(
         process_id: flow.id,
         parent_id,
         sub_flow_ids,
+        delegation_score: None, // computed after hierarchy is built
         #[cfg(feature = "debugger")]
         name: flow.name.clone(),
         #[cfg(feature = "debugger")]

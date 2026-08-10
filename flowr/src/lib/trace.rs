@@ -173,6 +173,7 @@ mod test {
             process_id: 0,
             parent_id: None,
             sub_flow_ids: vec![],
+            delegation_score: None,
             #[cfg(feature = "debugger")]
             name: "root".to_string(),
             #[cfg(feature = "debugger")]

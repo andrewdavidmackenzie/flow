@@ -420,6 +420,21 @@ impl<'a> Coordinator<'a> {
             .delegate_subflow(flow_id)
             .map_err(|e| format!("Could not delegate sub-flow #{flow_id}: {e}"))?;
 
+        // Reject sub-flows containing context:// functions — these interact
+        // with the local environment and cannot run on a remote peer.
+        let context_count = extracted
+            .functions()
+            .values()
+            .filter(|f| f.get_implementation_location().starts_with("context://"))
+            .count();
+        if context_count > 0 {
+            return Err(format!(
+                "Cannot delegate sub-flow #{flow_id}: it contains {context_count} context:// \
+                 function(s) that must run locally"
+            )
+            .into());
+        }
+
         // Rewrite file:// WASM URLs to http:// so the peer can fetch them
         // from this coordinator's WASM HTTP server
         if let Some(ref base_url) = self.wasm_base_url {

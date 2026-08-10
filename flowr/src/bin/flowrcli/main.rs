@@ -31,7 +31,7 @@ use std::{env, thread};
 
 use clap::{Arg, ArgMatches, Command};
 use env_logger::Builder;
-use log::{error, info, trace, LevelFilter};
+use log::{error, info, trace, warn, LevelFilter};
 use portpicker::pick_unused_port;
 use simpath::Simpath;
 use url::Url;
@@ -708,49 +708,44 @@ fn client(
     let job_timeout = matches
         .get_one::<u64>("job-timeout")
         .map(|secs| Duration::from_secs(*secs));
-    // If --delegate is set, find the best sub-flow to delegate.
-    // We pick the sub-flow with the largest function subtree whose functions
-    // use only lib:// or file:// (WASM) implementations. Sub-flows containing
-    // context:// functions cannot be delegated (they interact with the local
-    // environment).
+    // If --delegate is set, select a sub-flow to delegate.
+    // With a flow ID argument: force delegation of that specific sub-flow.
+    // Without an argument: use compiler-computed delegation scores from the
+    // manifest to pick the best candidate.
     let mut delegate_flow_id = None;
-    if matches.get_flag("delegate") {
-        let mut best: Option<(usize, usize)> = None; // (flow_id, function_count)
-        for (&flow_id, flow_info) in flow_manifest.flows() {
-            if flow_info.parent_id.is_none() {
-                continue; // skip root
-            }
-            // Collect all descendant flow IDs (including this one)
-            let mut descendant_flows = vec![flow_id];
-            let mut idx = 0;
-            while let Some(&parent) = descendant_flows.get(idx) {
-                for (&child_id, child_info) in flow_manifest.flows() {
-                    if child_info.parent_id == Some(parent) && !descendant_flows.contains(&child_id)
-                    {
-                        descendant_flows.push(child_id);
-                    }
-                }
-                idx += 1;
-            }
-            // Check all functions in the subtree — reject context:// functions
-            let subtree_funcs: Vec<_> = flow_manifest
-                .functions()
-                .values()
-                .filter(|f| descendant_flows.contains(&f.get_parent_id()))
-                .collect();
-            let no_context = subtree_funcs
+    if let Some(delegate_arg) = matches.get_one::<String>("delegate") {
+        if delegate_arg.is_empty() {
+            // No flow ID specified — use manifest scores
+            let best = flow_manifest
+                .flows()
                 .iter()
-                .all(|f| !f.get_implementation_location().starts_with("context://"));
-            if no_context && !subtree_funcs.is_empty() {
-                let count = subtree_funcs.len();
-                if best.is_none_or(|(_, best_count)| count > best_count) {
-                    best = Some((flow_id, count));
-                }
+                .filter(|(_, info)| info.parent_id.is_some()) // skip root
+                .filter_map(|(&id, info)| info.delegation_score.map(|s| (id, s)))
+                .max_by(|(_, a), (_, b)| a.partial_cmp(b).unwrap_or(std::cmp::Ordering::Equal));
+            if let Some((flow_id, score)) = best {
+                info!("Will delegate sub-flow #{flow_id} (score: {score:.2})");
+                delegate_flow_id = Some(flow_id);
+            } else {
+                info!("No sub-flows with positive delegation scores — running locally");
             }
-        }
-        if let Some((flow_id, count)) = best {
-            info!("Will delegate sub-flow #{flow_id} ({count} functions)");
-            delegate_flow_id = Some(flow_id);
+        } else if let Ok(flow_id) = delegate_arg.parse::<usize>() {
+            // Explicit flow ID — force delegation (must be a non-root sub-flow)
+            let flow_info = flow_manifest
+                .flows()
+                .get(&flow_id)
+                .filter(|info| info.parent_id.is_some());
+            if let Some(info) = flow_info {
+                let score = info.delegation_score;
+                info!(
+                    "Forcing delegation of sub-flow #{flow_id} (score: {})",
+                    score.map_or_else(|| "none".to_string(), |s| format!("{s:.2}"))
+                );
+                delegate_flow_id = Some(flow_id);
+            } else {
+                warn!("#{flow_id} is not a delegatable sub-flow — running locally");
+            }
+        } else {
+            warn!("Invalid --delegate argument '{delegate_arg}' — expected a flow ID; running locally");
         }
     }
 
@@ -920,8 +915,15 @@ fn get_matches() -> ArgMatches {
     let app = app.arg(
         Arg::new("delegate")
             .long("delegate")
-            .action(clap::ArgAction::SetTrue)
-            .help("Delegate sub-flows to peer coordinators on the network"),
+            .num_args(0..=1)
+            .default_missing_value("")
+            .require_equals(true)
+            .value_name("FLOW_ID")
+            .help(
+                "Delegate a sub-flow to a peer coordinator. Without an argument, \
+                   selects the best sub-flow using compiler-computed scores. \
+                   With --delegate=<flow_id>, forces delegation of that specific sub-flow.",
+            ),
     );
 
     app.get_matches()

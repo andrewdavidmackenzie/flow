@@ -260,6 +260,7 @@ fn subflow_implementation_executes() {
         process_id: 0,
         parent_id: None,
         sub_flow_ids: vec![],
+        delegation_score: None,
         #[cfg(feature = "debugger")]
         name: "test".into(),
         #[cfg(feature = "debugger")]
@@ -334,6 +335,7 @@ fn subflow_implementation_with_injected_inputs() {
         process_id: 0,
         parent_id: None,
         sub_flow_ids: vec![],
+        delegation_score: None,
         #[cfg(feature = "debugger")]
         name: "test".into(),
         #[cfg(feature = "debugger")]
@@ -419,6 +421,7 @@ fn subflow_captures_boundary_outputs() {
         process_id: 0,
         parent_id: None,
         sub_flow_ids: vec![1],
+        delegation_score: None,
         #[cfg(feature = "debugger")]
         name: "root".into(),
         #[cfg(feature = "debugger")]
@@ -428,6 +431,7 @@ fn subflow_captures_boundary_outputs() {
         process_id: 1,
         parent_id: Some(0),
         sub_flow_ids: vec![],
+        delegation_score: None,
         #[cfg(feature = "debugger")]
         name: "child".into(),
         #[cfg(feature = "debugger")]
@@ -558,6 +562,7 @@ fn executor_registers_subflow_manifest() {
         process_id: 0,
         parent_id: None,
         sub_flow_ids: vec![],
+        delegation_score: None,
         #[cfg(feature = "debugger")]
         name: "test".into(),
         #[cfg(feature = "debugger")]
@@ -591,6 +596,7 @@ fn peer_coordinator_executes_subflow() {
         process_id: 0,
         parent_id: None,
         sub_flow_ids: vec![],
+        delegation_score: None,
         #[cfg(feature = "debugger")]
         name: "subflow".into(),
         #[cfg(feature = "debugger")]
@@ -766,6 +772,7 @@ fn peer_coordinator_streams_boundary_outputs() {
         process_id: 0,
         parent_id: None,
         sub_flow_ids: vec![],
+        delegation_score: None,
         #[cfg(feature = "debugger")]
         name: "subflow".into(),
         #[cfg(feature = "debugger")]
@@ -954,6 +961,7 @@ fn peer_coordinator_executes_wasm_subflow() {
         process_id: 0,
         parent_id: None,
         sub_flow_ids: vec![],
+        delegation_score: None,
         #[cfg(feature = "debugger")]
         name: "wasm_subflow".into(),
         #[cfg(feature = "debugger")]
