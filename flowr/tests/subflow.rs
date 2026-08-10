@@ -702,10 +702,11 @@ fn peer_coordinator_executes_subflow() {
             &mut debug_handler,
         );
 
-        // Run one submission then exit
-        let _ = coordinator.submission_loop(false);
+        // Run one submission then exit, propagating any error
+        let loop_result = coordinator.submission_loop(false);
         let _ = coordinator.send_done();
         executor.wait();
+        loop_result
     });
 
     // Give peer coordinator time to start
@@ -735,11 +736,13 @@ fn peer_coordinator_executes_subflow() {
     );
 
     // Peer exits after one submission (loop_forever = false), no need to signal done.
-    // Drop the client to close the socket.
     drop(client);
 
-    // Wait for peer thread
-    let _ = peer_thread.join();
+    let peer_result = peer_thread.join().expect("peer thread panicked");
+    assert!(
+        peer_result.is_ok(),
+        "peer coordinator failed: {peer_result:?}"
+    );
 }
 
 /// Test streaming boundary outputs from a peer coordinator.
@@ -873,9 +876,10 @@ fn peer_coordinator_streams_boundary_outputs() {
             &mut debug_handler,
         );
 
-        let _ = coordinator.submission_loop(false);
+        let loop_result = coordinator.submission_loop(false);
         let _ = coordinator.send_done();
         executor.wait();
+        loop_result
     });
 
     std::thread::sleep(std::time::Duration::from_millis(200));
@@ -904,7 +908,11 @@ fn peer_coordinator_streams_boundary_outputs() {
     assert_eq!(bo.connection.destination_id, 10);
 
     drop(client);
-    let _ = peer_thread.join();
+    let peer_result = peer_thread.join().expect("peer thread panicked");
+    assert!(
+        peer_result.is_ok(),
+        "peer coordinator failed: {peer_result:?}"
+    );
 }
 
 /// End-to-end test: delegate a sub-flow containing a WASM function (`add.wasm`)
@@ -1089,10 +1097,11 @@ fn peer_coordinator_executes_wasm_subflow() {
             &mut debug_handler,
         );
 
-        // Run one submission then exit
-        let _ = coordinator.submission_loop(false);
+        // Run one submission then exit, propagating any error
+        let loop_result = coordinator.submission_loop(false);
         let _ = coordinator.send_done();
         executor.wait();
+        loop_result
     });
 
     // Give peer coordinator time to start
@@ -1133,7 +1142,11 @@ fn peer_coordinator_executes_wasm_subflow() {
     // If the WASM had run locally, we wouldn't have boundary outputs from the peer.
 
     drop(client);
-    let _ = peer_thread.join();
+    let peer_result = peer_thread.join().expect("peer thread panicked");
+    assert!(
+        peer_result.is_ok(),
+        "peer coordinator failed: {peer_result:?}"
+    );
     // WasmServer is dropped here, stopping the background HTTP thread
 }
 

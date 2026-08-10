@@ -427,6 +427,21 @@ impl<'a> Coordinator<'a> {
             if rewritten > 0 {
                 info!("Rewrote {rewritten} file:// WASM URL(s) to http:// for peer delegation");
             }
+        } else {
+            // If no WASM server is running, check whether the extracted manifest
+            // contains file:// URLs that the peer would not be able to access.
+            let file_count = extracted
+                .functions()
+                .values()
+                .filter(|f| f.get_implementation_url().scheme() == "file")
+                .count();
+            if file_count > 0 {
+                return Err(format!(
+                    "Cannot delegate sub-flow #{flow_id}: it contains {file_count} file:// WASM \
+                     function(s) but no WASM server is running to serve them"
+                )
+                .into());
+            }
         }
 
         let subflow_url = url::Url::parse(&format!("subflow://{flow_id}"))
