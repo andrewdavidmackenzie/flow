@@ -81,11 +81,24 @@ impl PeerClient {
             .send(json.as_bytes(), 0)
             .map_err(|e| format!("Could not send to peer: {e}"))?;
 
+        // The Completed response arrives only after the whole sub-flow has
+        // executed, so disable the receive timeout for this call. The
+        // 30-second timeout set in connect() is kept for signal_done().
+        self.socket
+            .set_rcvtimeo(-1)
+            .map_err(|e| format!("Could not clear receive timeout: {e}"))?;
+
         // Receive the single Completed response with all boundary outputs
         let msg = self
             .socket
             .recv_msg(0)
             .map_err(|e| format!("Could not receive from peer: {e}"))?;
+
+        // Restore the 30-second timeout for subsequent operations
+        self.socket
+            .set_rcvtimeo(30_000)
+            .map_err(|e| format!("Could not restore receive timeout: {e}"))?;
+
         let msg_str = msg
             .as_str()
             .ok_or("Could not convert peer response to string")?;
@@ -107,12 +120,16 @@ impl PeerClient {
                     .collect())
             }
             PeerResponse::Error(msg) => Err(format!("Peer coordinator error: {msg}").into()),
-            PeerResponse::DoneAck => Ok(Vec::new()),
+            PeerResponse::DoneAck => {
+                Err("Peer returned DoneAck in response to Submit; protocol out of step".into())
+            }
         }
     }
 
-    /// Submit a sub-flow and invoke a callback for each boundary output
-    /// as it arrives, rather than collecting them all.
+    /// Submit a sub-flow for execution and invoke a callback for each
+    /// boundary output. The peer executes the sub-flow and returns all
+    /// boundary outputs in a single batched `Completed` message. The
+    /// callback is invoked once per output from the batch.
     ///
     /// `wasm_base_url` is the base URL of the parent's WASM HTTP server,
     /// passed to the peer for potential further delegation.
@@ -121,7 +138,7 @@ impl PeerClient {
     ///
     /// Returns an error if the submission fails, a response cannot be
     /// parsed, or the callback returns an error.
-    pub fn submit_subflow_streaming<F>(
+    pub fn submit_subflow_for_each<F>(
         &self,
         manifest: FlowManifest,
         inputs: Vec<(usize, usize, Value)>,
@@ -143,11 +160,22 @@ impl PeerClient {
             .send(json.as_bytes(), 0)
             .map_err(|e| format!("Could not send to peer: {e}"))?;
 
-        // Receive the single Completed response with all boundary outputs
+        // The Completed response arrives only after the whole sub-flow has
+        // executed, so disable the receive timeout for this call.
+        self.socket
+            .set_rcvtimeo(-1)
+            .map_err(|e| format!("Could not clear receive timeout: {e}"))?;
+
         let msg = self
             .socket
             .recv_msg(0)
             .map_err(|e| format!("Could not receive from peer: {e}"))?;
+
+        // Restore the 30-second timeout for subsequent operations
+        self.socket
+            .set_rcvtimeo(30_000)
+            .map_err(|e| format!("Could not restore receive timeout: {e}"))?;
+
         let msg_str = msg
             .as_str()
             .ok_or("Could not convert peer response to string")?;
@@ -162,14 +190,13 @@ impl PeerClient {
                         value: entry.value,
                     })?;
                 }
+                Ok(())
             }
-            PeerResponse::DoneAck => {}
-            PeerResponse::Error(msg) => {
-                return Err(format!("Peer coordinator error: {msg}").into());
+            PeerResponse::Error(msg) => Err(format!("Peer coordinator error: {msg}").into()),
+            PeerResponse::DoneAck => {
+                Err("Peer returned DoneAck in response to Submit; protocol out of step".into())
             }
         }
-
-        Ok(())
     }
 
     /// Signal the peer coordinator that the parent flow is done.

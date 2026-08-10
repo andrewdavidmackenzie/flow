@@ -234,7 +234,7 @@ impl RemoteSubFlowImplementation {
             .map_err(|e| format!("Could not connect to peer at {}: {e}", self.peer_address))?;
 
         let mut output_count = 0usize;
-        let stream_result = client.submit_subflow_streaming(
+        let stream_result = client.submit_subflow_for_each(
             self.manifest.clone(),
             input_triples,
             None,
