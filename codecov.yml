@@ -11,7 +11,9 @@ coverage:
       default:
         target: auto
         threshold: 20%
+        after_n_builds: 3
     patch:
       default:
         target: auto
         threshold: 20%
+        after_n_builds: 3

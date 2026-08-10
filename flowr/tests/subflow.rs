@@ -907,6 +907,236 @@ fn peer_coordinator_streams_boundary_outputs() {
     let _ = peer_thread.join();
 }
 
+/// End-to-end test: delegate a sub-flow containing a WASM function (`add.wasm`)
+/// to a peer coordinator, verifying that:
+/// 1. The root coordinator rewrites the `file://` WASM URL to `http://`
+/// 2. The peer coordinator fetches the WASM module over HTTP from the root's `WasmServer`
+/// 3. The WASM function executes correctly on the peer (not the root)
+/// 4. The boundary outputs are correct
+#[cfg_attr(target_os = "windows", ignore)]
+#[test]
+#[allow(clippy::too_many_lines)]
+fn peer_coordinator_executes_wasm_subflow() {
+    use flowcore::meta_provider::MetaProvider;
+    use flowcore::model::flow_manifest::FlowInfo;
+    use flowcore::model::input::{Input, InputInitializer};
+    use flowcore::model::metadata::MetaData;
+    use flowcore::model::output_connection::{OutputConnection, Source};
+    use flowcore::model::runtime_function::RuntimeFunction;
+    use flowrlib::peer_client::PeerClient;
+    use flowrlib::wasm_server::WasmServer;
+    use simpath::Simpath;
+    use std::path::PathBuf;
+    use std::sync::Arc;
+
+    // Locate add.wasm in the tests directory
+    let manifest_dir = std::path::Path::new(env!("CARGO_MANIFEST_DIR"));
+    let wasm_path = manifest_dir.join("tests").join("add.wasm");
+    assert!(
+        wasm_path.exists(),
+        "add.wasm must exist at {}",
+        wasm_path.display()
+    );
+
+    // Build a sub-flow manifest with a WASM function: add(7, 3) -> 10
+    // The function uses a file:// URL pointing to the real add.wasm
+    let wasm_url = url::Url::from_file_path(&wasm_path).expect("wasm URL");
+    let mut manifest = FlowManifest::new(MetaData::default());
+    manifest.add_flow_info(FlowInfo {
+        process_id: 0,
+        parent_id: None,
+        sub_flow_ids: vec![],
+        #[cfg(feature = "debugger")]
+        name: "wasm_subflow".into(),
+        #[cfg(feature = "debugger")]
+        route: "/wasm_subflow".into(),
+    });
+
+    let mut func = RuntimeFunction::new(
+        #[cfg(feature = "debugger")]
+        "add",
+        #[cfg(feature = "debugger")]
+        "/wasm_subflow/add",
+        wasm_url.as_str(),
+        vec![
+            Input::new(
+                #[cfg(feature = "debugger")]
+                "i1",
+                0,
+                false,
+                Some(InputInitializer::Once(serde_json::json!(7))),
+                None,
+            ),
+            Input::new(
+                #[cfg(feature = "debugger")]
+                "i2",
+                0,
+                false,
+                Some(InputInitializer::Once(serde_json::json!(3))),
+                None,
+            ),
+        ],
+        1,
+        0,
+        &[OutputConnection::new(
+            Source::default(),
+            10, // boundary destination (outside sub-flow)
+            0,
+            0,
+            false,
+            String::new(),
+            #[cfg(feature = "debugger")]
+            String::new(),
+        )],
+        false,
+    );
+    let dummy_base = url::Url::parse("file:///dummy/manifest.json").expect("URL");
+    func.set_implementation_url(&dummy_base).expect("set URL");
+    manifest.add_function(func);
+
+    // Verify the function currently has a file:// URL
+    let func_before = manifest.functions().get(&1).expect("function 1");
+    assert_eq!(
+        func_before.get_implementation_url().scheme(),
+        "file",
+        "Before rewriting, URL should be file://"
+    );
+
+    // Start a WasmServer on the root side to serve the WASM file.
+    // Use "/" as root so the absolute path in the file:// URL can be resolved.
+    let wasm_server =
+        WasmServer::start(std::path::Path::new("/")).expect("Could not start WasmServer");
+    let wasm_base_url =
+        url::Url::parse(wasm_server.base_url()).expect("Could not parse WasmServer base URL");
+
+    // Rewrite file:// URLs to http:// (this is what the root coordinator does)
+    let rewritten = manifest.rewrite_wasm_urls(&wasm_base_url);
+    assert_eq!(rewritten, 1, "Should rewrite exactly one file:// URL");
+
+    // Verify the URL was rewritten to http://
+    let func_after = manifest.functions().get(&1).expect("function 1");
+    assert_eq!(
+        func_after.get_implementation_url().scheme(),
+        "http",
+        "After rewriting, URL should be http://"
+    );
+    assert!(
+        func_after
+            .get_implementation_url()
+            .as_str()
+            .contains("add.wasm"),
+        "Rewritten URL should still reference add.wasm"
+    );
+
+    // Start a peer coordinator in a background thread.
+    // Use MetaProvider (not TestProvider) so HTTP URLs can be fetched.
+    let peer_port = portpicker::pick_unused_port().expect("port");
+    let bind_address = format!("tcp://*:{peer_port}");
+    let peer_thread = std::thread::spawn(move || {
+        let zmq_context = zmq::Context::new();
+        let mut handler = flowrlib::peer_submission_handler::PeerSubmissionHandler::new(
+            &zmq_context,
+            &bind_address,
+        )
+        .expect("handler");
+
+        let ports = (
+            portpicker::pick_unused_port().expect("port"),
+            portpicker::pick_unused_port().expect("port"),
+            portpicker::pick_unused_port().expect("port"),
+            portpicker::pick_unused_port().expect("port"),
+        );
+        let bind_addrs = (
+            format!("tcp://*:{}", ports.0),
+            format!("tcp://*:{}", ports.1),
+            format!("tcp://*:{}", ports.2),
+            format!("tcp://*:{}", ports.3),
+        );
+        let connect_addrs = (
+            format!("tcp://127.0.0.1:{}", ports.0),
+            format!("tcp://127.0.0.1:{}", ports.1),
+            format!("tcp://127.0.0.1:{}", ports.2),
+            format!("tcp://127.0.0.1:{}", ports.3),
+        );
+
+        let dispatcher = flowrlib::dispatcher::Dispatcher::new(&bind_addrs).expect("dispatcher");
+
+        // Use MetaProvider so the executor can fetch http:// WASM URLs
+        let provider = Arc::new(MetaProvider::new(Simpath::new(""), PathBuf::default()))
+            as Arc<dyn flowcore::provider::Provider>;
+
+        let mut executor = flowrlib::executor::Executor::new();
+        // Do NOT add flowstdlib — we want to prove the WASM function runs,
+        // not a native lib function
+        executor.start(
+            &provider,
+            1,
+            &connect_addrs.0,
+            &connect_addrs.2,
+            &connect_addrs.3,
+        );
+
+        std::thread::sleep(std::time::Duration::from_millis(100));
+
+        #[cfg(feature = "debugger")]
+        let mut debug_handler = flowrlib::subflow::NoOpDebugHandler;
+
+        let mut coordinator = flowrlib::coordinator::Coordinator::new(
+            dispatcher,
+            #[cfg(feature = "submission")]
+            &mut handler,
+            #[cfg(feature = "debugger")]
+            &mut debug_handler,
+        );
+
+        // Run one submission then exit
+        let _ = coordinator.submission_loop(false);
+        let _ = coordinator.send_done();
+        executor.wait();
+    });
+
+    // Give peer coordinator time to start
+    std::thread::sleep(std::time::Duration::from_millis(200));
+
+    // Connect as parent and submit the sub-flow with the rewritten http:// URLs
+    let zmq_context = zmq::Context::new();
+    let peer_address = format!("127.0.0.1:{peer_port}");
+    let client = PeerClient::connect(&zmq_context, &peer_address).expect("connect");
+
+    let outputs = client
+        .submit_subflow(manifest, vec![], Some(wasm_server.base_url().to_string()))
+        .expect("submit failed");
+
+    // The WASM add(7,3) should produce 10 as a boundary output to #10:0
+    assert!(
+        !outputs.is_empty(),
+        "Should have boundary outputs from peer executing WASM"
+    );
+    assert_eq!(
+        outputs.first().map(|o| &o.value),
+        Some(&serde_json::json!(10)),
+        "WASM add(7,3) should return 10"
+    );
+    assert_eq!(
+        outputs.first().map(|o| o.connection.destination_id),
+        Some(10),
+        "Boundary output should target function #10"
+    );
+    assert_eq!(
+        outputs.first().map(|o| o.connection.destination_io_number),
+        Some(0),
+        "Boundary output should target input 0"
+    );
+
+    // The root never ran an executor — the WASM was executed entirely on the peer.
+    // The WasmServer served the file; the peer fetched and ran it.
+    // If the WASM had run locally, we wouldn't have boundary outputs from the peer.
+
+    drop(client);
+    let _ = peer_thread.join();
+    // WasmServer is dropped here, stopping the background HTTP thread
+}
+
 /// Minimal provider that reads files from the filesystem.
 struct TestProvider;
 
