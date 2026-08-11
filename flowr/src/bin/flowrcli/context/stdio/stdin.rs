@@ -2,8 +2,8 @@ use flowcore::errors::Result;
 use flowcore::{Implementation, RunAgain, DONT_RUN_AGAIN, RUN_AGAIN};
 use serde_json::Value;
 
-use crate::cli::coordinator_message::{ClientMessage, CoordinatorMessage};
 use crate::context::ContextIO;
+use flowrlib::client_protocol::{ClientMessage, CoordinatorMessage};
 
 /// `Implementation` struct for the `Stdin` function
 pub struct Stdin {
@@ -43,8 +43,8 @@ mod test {
     use serde_json::json;
     use serde_json::Value;
 
-    use crate::cli::coordinator_message::{ClientMessage, CoordinatorMessage};
     use crate::context::ContextIO;
+    use flowrlib::client_protocol::{ClientMessage, CoordinatorMessage};
 
     use super::Stdin;
 

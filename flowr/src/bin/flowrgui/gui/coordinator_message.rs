@@ -5,7 +5,8 @@ use serde_derive::{Deserialize, Serialize};
 use flowcore::errors::Result;
 use flowcore::model::metrics::Metrics;
 
-use crate::gui::client_message::ClientMessage;
+use flowrlib::client_protocol::BoundaryOutputEntry;
+use flowrlib::client_protocol::ClientMessage;
 
 /// An Message sent from the runtime server to a `runtime_client`
 #[derive(Serialize, Deserialize, Debug, Clone)]
@@ -24,7 +25,7 @@ pub enum CoordinatorMessage {
     /// A flow has started executing
     FlowStart,
     /// A flow has stopped executing
-    FlowEnd(Metrics),
+    FlowEnd(Vec<BoundaryOutputEntry>, Metrics),
     /// Coordinator is exiting, with a result (OK, or Err)
     CoordinatorExiting(Result<()>),
 
@@ -65,7 +66,7 @@ impl fmt::Display for CoordinatorMessage {
             match self {
                 CoordinatorMessage::Connected(..) => "Connected",
                 CoordinatorMessage::Disconnected(_) => "Disconnected",
-                CoordinatorMessage::FlowEnd(_) => "FlowEnd",
+                CoordinatorMessage::FlowEnd(..) => "FlowEnd",
                 CoordinatorMessage::FlowStart => "FlowStart",
                 CoordinatorMessage::CoordinatorExiting(_) => "CoordinatorExiting",
                 CoordinatorMessage::Stdout(_) => "Stdout",

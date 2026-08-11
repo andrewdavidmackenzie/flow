@@ -4,8 +4,8 @@ use flowcore::errors::Result;
 use flowcore::{Implementation, RunAgain, DONT_RUN_AGAIN};
 
 use crate::context::ContextIO;
-use crate::gui::client_message::ClientMessage;
 use crate::gui::coordinator_message::CoordinatorMessage;
+use flowrlib::client_protocol::ClientMessage;
 
 /// `Implementation` struct for the `get` function
 pub struct Get {
@@ -53,8 +53,8 @@ mod test {
     use flowcore::{Implementation, DONT_RUN_AGAIN};
 
     use crate::context::ContextIO;
-    use crate::gui::client_message::ClientMessage;
     use crate::gui::coordinator_message::CoordinatorMessage;
+    use flowrlib::client_protocol::ClientMessage;
 
     use super::Get;
 

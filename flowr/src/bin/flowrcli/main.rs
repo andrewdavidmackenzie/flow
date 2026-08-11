@@ -16,8 +16,8 @@
 //! or the [`cli::cli_client`] in the main thread (where the interaction with STDIO and
 //! File System happens) or both. They communicate via network messages using the
 //! [`SubmissionHandler`][flowrlib::submission_handler::SubmissionHandler] to submit flows for execution,
-//! and interchanging [`ClientMessages`][crate::cli::coordinator_message::ClientMessage]
-//! and [`CoordinatorMessages`][crate::cli::coordinator_message::CoordinatorMessage] for execution of context
+//! and interchanging [`ClientMessages`][flowrlib::client_protocol::ClientMessage]
+//! and [`CoordinatorMessages`][flowrlib::client_protocol::CoordinatorMessage] for execution of context
 //! interaction in the client, as requested by functions running in the coordinator's
 //! [`Executors`][flowrlib::executor::Executor]
 
@@ -39,13 +39,13 @@ use url::Url;
 use cli::cli_client::CliRuntimeClient;
 #[cfg(feature = "submission")]
 use cli::cli_submission_handler::CLISubmissionHandler;
-use cli::coordinator_message::ClientMessage;
 use flowcore::errors::{Result, ResultExt};
 use flowcore::meta_provider::MetaProvider;
 use flowcore::model::flow_manifest::FlowManifest;
 use flowcore::model::submission::Submission;
 use flowcore::provider::Provider;
 use flowcore::url_helper::url_from_string;
+use flowrlib::client_protocol::ClientMessage;
 use flowrlib::connections::{ClientConnection, CoordinatorConnection};
 use flowrlib::coordinator::Coordinator;
 #[cfg(feature = "debugger")]
@@ -483,7 +483,7 @@ fn blocking_io_bridge(
     mut connection: CoordinatorConnection,
     blocking_rx: std::sync::mpsc::Receiver<context::ContextRequest>,
 ) {
-    use crate::cli::coordinator_message::{ClientMessage, CoordinatorMessage};
+    use flowrlib::client_protocol::{ClientMessage, CoordinatorMessage};
     use flowrlib::connections::WAIT;
     use log::debug;
 
@@ -576,7 +576,7 @@ fn coordinator_bridge(
     context_rx: std::sync::mpsc::Receiver<context::ContextRequest>,
     submission_tx: std::sync::mpsc::Sender<flowcore::model::submission::Submission>,
 ) {
-    use crate::cli::coordinator_message::{ClientMessage, CoordinatorMessage};
+    use flowrlib::client_protocol::{ClientMessage, CoordinatorMessage};
     use flowrlib::connections::WAIT;
     use log::debug;
 

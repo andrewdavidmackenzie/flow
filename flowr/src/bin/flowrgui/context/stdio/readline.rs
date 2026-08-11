@@ -3,8 +3,8 @@ use flowcore::{Implementation, RunAgain, DONT_RUN_AGAIN, RUN_AGAIN};
 use serde_json::Value;
 
 use crate::context::ContextIO;
-use crate::gui::client_message::ClientMessage;
 use crate::gui::coordinator_message::CoordinatorMessage;
+use flowrlib::client_protocol::ClientMessage;
 
 /// `Implementation` struct for the `readline` function
 pub struct Readline {
@@ -44,8 +44,8 @@ mod test {
     use serde_json::json;
 
     use crate::context::ContextIO;
-    use crate::gui::client_message::ClientMessage;
     use crate::gui::coordinator_message::CoordinatorMessage;
+    use flowrlib::client_protocol::ClientMessage;
 
     use super::Readline;
 

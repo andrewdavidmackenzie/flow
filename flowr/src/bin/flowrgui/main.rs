@@ -16,7 +16,7 @@
 //! connects to an already running coordinator in another process.
 //! Application and Coordinator (thread or process) communicate via network messages using the
 //! [`SubmissionHandler`][flowrlib::submission_handler::SubmissionHandler] to submit flows for execution,
-//! and interchanging [`ClientMessages`][crate::gui::client_message::ClientMessage]
+//! and interchanging [`ClientMessages`][flowrlib::client_protocol::ClientMessage]
 //! and [`CoordinatorMessages`][crate::gui::coordinator_message::CoordinatorMessage] for execution of context
 //! interaction in the client, as requested by functions running in the coordinator's
 //! [`Executors`][flowrlib::executor::Executor]
@@ -51,9 +51,9 @@ use flowcore::url_helper::url_from_string;
 use flowrlib::debug_client::DebugClient;
 use flowrlib::info as flowrlib_info;
 
-use crate::gui::client_message::ClientMessage;
 use crate::gui::coordinator_message::CoordinatorMessage;
 use crate::tabs::TabSet;
+use flowrlib::client_protocol::ClientMessage;
 
 /// Include the module that implements the context functions
 mod context;
@@ -3542,7 +3542,7 @@ impl FlowrGui {
                 }
                 self.send(ClientMessage::Ack);
             }
-            CoordinatorMessage::FlowEnd(metrics) => {
+            CoordinatorMessage::FlowEnd(_, metrics) => {
                 self.running = false;
                 self.submitted = false;
                 self.pending_getline = false;
@@ -4334,6 +4334,7 @@ mod test {
         gui.submitted = true;
         drop(
             gui.update(Message::CoordinatorSent(CoordinatorMessage::FlowEnd(
+                vec![],
                 Metrics::new(0, 0),
             ))),
         );
@@ -4386,6 +4387,7 @@ mod test {
         gui.running = true;
         drop(
             gui.update(Message::CoordinatorSent(CoordinatorMessage::FlowEnd(
+                vec![],
                 Metrics::new(0, 0),
             ))),
         );

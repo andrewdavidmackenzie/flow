@@ -11,7 +11,7 @@ use tokio::sync::mpsc;
 
 use flowcore::errors::Result;
 
-use crate::cli::coordinator_message::{ClientMessage, CoordinatorMessage};
+use flowrlib::client_protocol::{ClientMessage, CoordinatorMessage};
 use flowrlib::connections::ClientConnection;
 
 const DEFAULT_NAME: &str = "unknown";
@@ -237,7 +237,7 @@ impl CliRuntimeClient {
     fn process_coordinator_message(&mut self, message: CoordinatorMessage) -> ClientMessage {
         match message {
             #[cfg(feature = "metrics")]
-            CoordinatorMessage::FlowEnd(metrics) => {
+            CoordinatorMessage::FlowEnd(_, metrics) => {
                 debug!("=========================== Flow execution ended ======================================");
                 if self.display_metrics {
                     println!("\nMetrics: \n{metrics}");
@@ -247,7 +247,7 @@ impl CliRuntimeClient {
                 ClientMessage::ClientExiting(Ok(()))
             }
             #[cfg(not(feature = "metrics"))]
-            CoordinatorMessage::FlowEnd => {
+            CoordinatorMessage::FlowEnd(_) => {
                 debug!("=========================== Flow execution ended ======================================");
                 self.flush_image_buffers();
                 ClientMessage::ClientExiting(Ok(()))
@@ -477,7 +477,7 @@ mod test {
     #[cfg(feature = "metrics")]
     use flowcore::model::metrics::Metrics;
 
-    use crate::cli::coordinator_message::{ClientMessage, CoordinatorMessage};
+    use flowrlib::client_protocol::{ClientMessage, CoordinatorMessage};
 
     use super::CliRuntimeClient;
 
@@ -600,9 +600,9 @@ mod test {
         }
 
         #[cfg(not(feature = "metrics"))]
-        client.process_coordinator_message(CoordinatorMessage::FlowEnd);
+        client.process_coordinator_message(CoordinatorMessage::FlowEnd(vec![]));
         #[cfg(feature = "metrics")]
-        client.process_coordinator_message(CoordinatorMessage::FlowEnd(Metrics::new(1, 1)));
+        client.process_coordinator_message(CoordinatorMessage::FlowEnd(vec![], Metrics::new(1, 1)));
 
         assert!(path.exists(), "Image file was not created");
     }
@@ -647,10 +647,13 @@ mod test {
         ));
 
         #[cfg(not(feature = "metrics"))]
-        event_tx.send(CoordinatorMessage::FlowEnd).await.unwrap();
+        event_tx
+            .send(CoordinatorMessage::FlowEnd(vec![]))
+            .await
+            .unwrap();
         #[cfg(feature = "metrics")]
         event_tx
-            .send(CoordinatorMessage::FlowEnd(Metrics::new(1, 1)))
+            .send(CoordinatorMessage::FlowEnd(vec![], Metrics::new(1, 1)))
             .await
             .unwrap();
 

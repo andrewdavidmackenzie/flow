@@ -18,11 +18,11 @@ use flowrlib::executor::Executor;
 use flowrlib::services::{CONTROL_SERVICE_NAME, JOB_SERVICE_NAME, RESULTS_JOB_SERVICE_NAME};
 
 use crate::errors::{Result, ResultExt};
-use crate::gui::client_message::ClientMessage;
 use crate::gui::coordinator_message::CoordinatorMessage;
 #[cfg(feature = "submission")]
 use crate::gui::submission_handler::CLISubmissionHandler;
 use crate::{context, CoordinatorSettings, Message, ServerSettings};
+use flowrlib::client_protocol::ClientMessage;
 use flowrlib::connections::ClientConnection;
 use flowrlib::connections::CoordinatorConnection;
 #[cfg(feature = "debugger")]
@@ -334,7 +334,7 @@ async fn handle_running(
         )));
     })?;
 
-    let is_flow_end = matches!(&coordinator_message, &CoordinatorMessage::FlowEnd(_));
+    let is_flow_end = matches!(&coordinator_message, &CoordinatorMessage::FlowEnd(..));
 
     if app_sender.send(coordinator_message).await.is_err() {
         error!("Could not forward coordinator message to app");
@@ -633,8 +633,8 @@ fn blocking_io_bridge(
     mut connection: CoordinatorConnection,
     blocking_rx: std::sync::mpsc::Receiver<context::ContextRequest>,
 ) {
-    use crate::gui::client_message::ClientMessage;
     use crate::gui::coordinator_message::CoordinatorMessage;
+    use flowrlib::client_protocol::ClientMessage;
     use flowrlib::connections::WAIT;
 
     debug!("[BLOCKING BRIDGE] started");
@@ -718,8 +718,8 @@ fn coordinator_bridge(
     context_rx: std::sync::mpsc::Receiver<context::ContextRequest>,
     submission_tx: std::sync::mpsc::Sender<flowcore::model::submission::Submission>,
 ) {
-    use crate::gui::client_message::ClientMessage;
     use crate::gui::coordinator_message::CoordinatorMessage;
+    use flowrlib::client_protocol::ClientMessage;
     use flowrlib::connections::WAIT;
 
     debug!("[BRIDGE] started");

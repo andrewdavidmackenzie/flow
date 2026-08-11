@@ -3,8 +3,8 @@ use serde_json::{json, Value};
 use flowcore::errors::Result;
 use flowcore::{Implementation, RunAgain, DONT_RUN_AGAIN};
 
-use crate::cli::coordinator_message::{ClientMessage, CoordinatorMessage};
 use crate::context::ContextIO;
+use flowrlib::client_protocol::{ClientMessage, CoordinatorMessage};
 
 /// `Implementation` struct for the `get` function
 pub struct Get {
@@ -50,8 +50,8 @@ mod test {
 
     use flowcore::{Implementation, DONT_RUN_AGAIN};
 
-    use crate::cli::coordinator_message::{ClientMessage, CoordinatorMessage};
     use crate::context::ContextIO;
+    use flowrlib::client_protocol::{ClientMessage, CoordinatorMessage};
 
     use super::Get;
 

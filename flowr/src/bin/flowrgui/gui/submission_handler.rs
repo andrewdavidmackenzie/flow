@@ -66,7 +66,7 @@ impl SubmissionHandler for CLISubmissionHandler {
         // next ClientSubmission on re-run.
         #[cfg(feature = "metrics")]
         self.context_io
-            .send_no_reply(CoordinatorMessage::FlowEnd(metrics))?;
+            .send_no_reply(CoordinatorMessage::FlowEnd(vec![], metrics))?;
         debug!("{state}");
         Ok(())
     }
@@ -131,7 +131,7 @@ mod test {
 
         let request = context_rx.try_recv().unwrap();
         assert!(
-            matches!(request.message, CoordinatorMessage::FlowEnd(_)),
+            matches!(request.message, CoordinatorMessage::FlowEnd(..)),
             "Expected FlowEnd message"
         );
         assert!(

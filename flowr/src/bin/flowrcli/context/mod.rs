@@ -9,7 +9,7 @@ use flowcore::model::lib_manifest::LibraryManifest;
 use flowcore::model::metadata::MetaData;
 use url::Url;
 
-use crate::cli::coordinator_message::{ClientMessage, CoordinatorMessage};
+use flowrlib::client_protocol::{ClientMessage, CoordinatorMessage};
 
 mod args;
 mod file;
@@ -171,7 +171,7 @@ pub fn get_manifest(context_io: ContextIO) -> Result<LibraryManifest> {
 #[allow(clippy::unwrap_used, clippy::expect_used)]
 mod test {
     use super::{ContextIO, ContextRequest};
-    use crate::cli::coordinator_message::{ClientMessage, CoordinatorMessage};
+    use flowrlib::client_protocol::{ClientMessage, CoordinatorMessage};
 
     /// `send_and_receive` should deliver the request through the non-blocking channel.
     #[test]

@@ -9,8 +9,8 @@ use flowcore::model::lib_manifest::LibraryManifest;
 use flowcore::model::metadata::MetaData;
 use url::Url;
 
-use crate::gui::client_message::ClientMessage;
 use crate::gui::coordinator_message::CoordinatorMessage;
+use flowrlib::client_protocol::ClientMessage;
 
 mod args;
 mod file;

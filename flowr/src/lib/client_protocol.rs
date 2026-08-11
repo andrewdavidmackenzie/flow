@@ -175,7 +175,7 @@ impl From<String> for ClientMessage {
 /// and returned in `CoordinatorMessage::FlowEnd`.
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct BoundaryOutputEntry {
-    /// The output connection (destination_id, destination_io_number, etc.)
+    /// The output connection (`destination_id`, `destination_io_number`, etc.)
     pub connection: OutputConnection,
     /// The value produced
     pub value: Value,

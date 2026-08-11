@@ -9,8 +9,8 @@ use flowcore::model::submission::Submission;
 use flowrlib::run_state::RunState;
 use flowrlib::submission_handler::SubmissionHandler;
 
-use crate::cli::coordinator_message::CoordinatorMessage;
 use crate::context::ContextIO;
+use flowrlib::client_protocol::CoordinatorMessage;
 
 /// A [`SubmissionHandler`] for the CLI runner.
 ///
@@ -46,7 +46,7 @@ impl SubmissionHandler for CLISubmissionHandler {
     #[cfg(feature = "metrics")]
     fn flow_execution_ended(&mut self, state: &RunState, metrics: Metrics) -> Result<()> {
         self.context_io
-            .send_and_receive(CoordinatorMessage::FlowEnd(metrics))?;
+            .send_and_receive(CoordinatorMessage::FlowEnd(vec![], metrics))?;
         debug!("{state}");
         Ok(())
     }
@@ -54,7 +54,7 @@ impl SubmissionHandler for CLISubmissionHandler {
     #[cfg(not(feature = "metrics"))]
     fn flow_execution_ended(&mut self, state: &RunState) -> Result<()> {
         self.context_io
-            .send_and_receive(CoordinatorMessage::FlowEnd)?;
+            .send_and_receive(CoordinatorMessage::FlowEnd(vec![]))?;
         debug!("{}", state);
         Ok(())
     }

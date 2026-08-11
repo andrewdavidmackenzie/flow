@@ -4,8 +4,8 @@ use image::ImageReader;
 use serde_json::{json, Value};
 use std::io::Cursor;
 
-use crate::cli::coordinator_message::{ClientMessage, CoordinatorMessage};
 use crate::context::ContextIO;
+use flowrlib::client_protocol::{ClientMessage, CoordinatorMessage};
 
 /// `Implementation` struct for the `image_read` function
 pub struct ImageRead {
