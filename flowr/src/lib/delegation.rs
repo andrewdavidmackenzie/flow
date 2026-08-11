@@ -7,19 +7,21 @@ use std::time::Duration;
 
 use flowcore::errors::Result;
 use flowcore::model::flow_manifest::FlowManifest;
+use flowcore::model::input::InputInitializer;
+use flowcore::model::submission::Submission;
 use log::info;
 use serde_json::Value;
 
-use crate::peer_client::PeerClient;
+use crate::client_protocol::{BoundaryOutputEntry, ClientMessage, CoordinatorMessage};
+use crate::connections::ClientConnection;
 use crate::peer_discovery::discover_peer_coordinators;
-use crate::run_state::BoundaryOutput;
 
 /// Result of attempting to delegate a sub-flow to a peer coordinator.
 pub struct DelegationResult {
     /// The extracted sub-flow manifest (for reference)
     pub subflow_manifest: FlowManifest,
     /// Boundary outputs received from the peer
-    pub boundary_outputs: Vec<BoundaryOutput>,
+    pub boundary_outputs: Vec<BoundaryOutputEntry>,
     /// The flow ID that was delegated
     pub flow_id: usize,
     /// The address of the peer that executed it
@@ -52,13 +54,52 @@ pub fn delegate_subflow(
     info!("Delegating sub-flow #{flow_id} to peer at {peer_address}");
 
     // Extract the sub-flow
-    let extracted = manifest.extract_subflow(flow_id)?;
+    let mut extracted = manifest.extract_subflow(flow_id)?;
 
-    // Connect to the peer and submit
-    let zmq_context = zmq::Context::new();
-    let client = PeerClient::connect(&zmq_context, peer_address)?;
+    // Inject inputs as Once initializers on boundary functions
+    for (dest_func_id, dest_io_number, value) in &inputs {
+        if let Some(func) = extracted.get_functions().get_mut(dest_func_id) {
+            func.set_flow_initializer(*dest_io_number, InputInitializer::Once(value.clone()));
+        }
+    }
 
-    let boundary_outputs = client.submit_subflow(extracted.clone(), inputs, None)?;
+    // Build a sub-flow submission
+    let mut submission = Submission::new(
+        extracted.clone(),
+        None,
+        None,
+        #[cfg(feature = "debugger")]
+        false,
+        #[cfg(feature = "trace")]
+        None,
+    );
+    submission.is_subflow = true;
+
+    // Connect to the peer and submit using the unified protocol
+    let connection = ClientConnection::new(peer_address)?;
+    connection.set_receive_timeout(-1)?; // sub-flow may take a while
+
+    connection.send(ClientMessage::ClientSubmission(Box::new(submission)))?;
+
+    let response: CoordinatorMessage = connection.receive()?;
+
+    #[cfg(feature = "metrics")]
+    let boundary_outputs = match response {
+        CoordinatorMessage::FlowEnd(outputs, _) => outputs,
+        CoordinatorMessage::CoordinatorExiting(result) => {
+            return Err(format!("Peer coordinator exited: {result:?}").into());
+        }
+        other => return Err(format!("Unexpected response from peer: {other}").into()),
+    };
+
+    #[cfg(not(feature = "metrics"))]
+    let boundary_outputs = match response {
+        CoordinatorMessage::FlowEnd(outputs) => outputs,
+        CoordinatorMessage::CoordinatorExiting(result) => {
+            return Err(format!("Peer coordinator exited: {result:?}").into());
+        }
+        other => return Err(format!("Unexpected response from peer: {other}").into()),
+    };
 
     info!(
         "Peer returned {} boundary outputs for sub-flow #{flow_id}",
