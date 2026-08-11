@@ -52,6 +52,9 @@ pub mod run_state;
 /// ZMQ-based connections for client-coordinator communication
 pub mod connections;
 
+/// Unified protocol messages for client-coordinator communication
+pub mod client_protocol;
+
 /// Re-export well-known service names from flowcore
 pub use flowcore::services;
 
