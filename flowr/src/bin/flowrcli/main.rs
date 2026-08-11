@@ -588,9 +588,11 @@ fn coordinator_bridge(
 
         if wait_for_submission {
             debug!("[BRIDGE] waiting for submission on ZMQ...");
+            let is_subflow;
             loop {
                 match connection.receive::<ClientMessage>(WAIT) {
                     Ok(ClientMessage::ClientSubmission(submission)) => {
+                        is_subflow = submission.is_subflow;
                         if submission_tx.send(*submission).is_err() {
                             return;
                         }
@@ -609,6 +611,29 @@ fn coordinator_bridge(
                     }
                 }
             }
+
+            if is_subflow {
+                // Sub-flow from a peer coordinator: skip the interactive
+                // FlowStart/Ack protocol. Wait for the coordinator to finish
+                // and send FlowEnd directly as the REP response.
+                debug!("[BRIDGE] sub-flow submission — waiting for completion");
+                if let Some(response_tx) = request.response_tx {
+                    let _ = response_tx.send(ClientMessage::Ack);
+                }
+                // Wait for FlowEnd from the handler
+                if let Ok(end_request) = context_rx.recv() {
+                    debug!("[BRIDGE] sending sub-flow result on ZMQ");
+                    if let Err(e) = connection.send(end_request.message) {
+                        error!("Bridge: failed to send sub-flow result: {e}");
+                    }
+                    // Ack the handler
+                    if let Some(response_tx) = end_request.response_tx {
+                        let _ = response_tx.send(ClientMessage::Ack);
+                    }
+                }
+                continue;
+            }
+
             if let Some(response_tx) = request.response_tx {
                 let _ = response_tx.send(ClientMessage::Ack);
             }

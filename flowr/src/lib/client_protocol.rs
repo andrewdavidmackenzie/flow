@@ -126,7 +126,7 @@ pub enum ClientMessage {
     Invalid,
     /// Contents read from a file
     FileContents(String, Vec<u8>),
-    /// Client is exiting (internal, not sent over the wire)
+    /// Client is exiting
     ClientExiting(Result<()>),
 }
 

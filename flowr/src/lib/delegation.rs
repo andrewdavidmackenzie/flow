@@ -58,9 +58,15 @@ pub fn delegate_subflow(
 
     // Inject inputs as Once initializers on boundary functions
     for (dest_func_id, dest_io_number, value) in inputs {
-        if let Some(func) = extracted.get_functions().get_mut(dest_func_id) {
-            func.set_flow_initializer(*dest_io_number, InputInitializer::Once(value.clone()));
-        }
+        let func = extracted
+            .get_functions()
+            .get_mut(dest_func_id)
+            .ok_or_else(|| {
+                format!(
+                    "Input destination function #{dest_func_id} not found in extracted sub-flow"
+                )
+            })?;
+        func.set_flow_initializer(*dest_io_number, InputInitializer::Once(value.clone()));
     }
 
     // Build a sub-flow submission
@@ -77,7 +83,10 @@ pub fn delegate_subflow(
 
     // Connect to the peer and submit using the unified protocol
     let connection = ClientConnection::new(peer_address)?;
-    connection.set_receive_timeout(-1)?; // sub-flow may take a while
+    // Sub-flow execution may take much longer than the default 30s.
+    // Use 5 minutes — long enough for real workloads, finite enough to
+    // avoid hanging forever if the peer exits unexpectedly.
+    connection.set_receive_timeout(300_000)?;
 
     connection.send(ClientMessage::ClientSubmission(Box::new(submission)))?;
 

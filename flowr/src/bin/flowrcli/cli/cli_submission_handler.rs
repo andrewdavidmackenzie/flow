@@ -14,11 +14,16 @@ use crate::context::ContextIO;
 
 /// A [`SubmissionHandler`] for the CLI runner.
 ///
-/// Uses channel-based `ContextIO` to communicate with the bridge thread that
-/// owns the ZMQ `CoordinatorConnection`. No mutex needed.
+/// Handles both interactive client submissions (root flows with context
+/// function I/O) and non-interactive peer submissions (sub-flows delegated
+/// from other coordinators). The `is_subflow` flag tracks which mode the
+/// current submission is in.
 pub(crate) struct CLISubmissionHandler {
     context_io: ContextIO,
     submission_rx: mpsc::Receiver<Submission>,
+    /// Whether the current submission is a sub-flow from a peer coordinator.
+    /// Sub-flow submissions skip the interactive FlowStart/FlowEnd protocol.
+    is_subflow: bool,
 }
 
 impl CLISubmissionHandler {
@@ -26,12 +31,18 @@ impl CLISubmissionHandler {
         CLISubmissionHandler {
             context_io,
             submission_rx,
+            is_subflow: false,
         }
     }
 }
 
 impl SubmissionHandler for CLISubmissionHandler {
     fn flow_execution_starting(&mut self) -> Result<()> {
+        if self.is_subflow {
+            // Sub-flow submissions from peer coordinators don't participate
+            // in the interactive FlowStart/Ack protocol
+            return Ok(());
+        }
         let _ = self
             .context_io
             .send_and_receive(CoordinatorMessage::FlowStart)?;
@@ -53,6 +64,8 @@ impl SubmissionHandler for CLISubmissionHandler {
                 value: bo.value.clone(),
             })
             .collect();
+        // For both root flows and sub-flows, send FlowEnd through the bridge.
+        // The bridge handles the protocol difference (interactive vs direct).
         self.context_io
             .send_and_receive(CoordinatorMessage::FlowEnd(boundary_outputs, metrics))?;
         debug!("{state}");
@@ -83,6 +96,7 @@ impl SubmissionHandler for CLISubmissionHandler {
         match self.submission_rx.recv() {
             Ok(submission) => {
                 info!("Coordinator received a submission for execution");
+                self.is_subflow = submission.is_subflow;
                 trace!("\n{submission}");
                 Ok(Some(submission))
             }

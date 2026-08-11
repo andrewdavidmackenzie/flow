@@ -235,7 +235,7 @@ impl RemoteSubFlowImplementation {
 
         // Disable receive timeout — sub-flow execution may take longer than 30s
         connection
-            .set_receive_timeout(-1)
+            .set_receive_timeout(300_000)
             .map_err(|e| format!("Could not clear receive timeout: {e}"))?;
 
         connection
