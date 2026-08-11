@@ -753,7 +753,7 @@ fn peer_coordinator_executes_subflow() {
 
 /// Test streaming boundary outputs from a peer coordinator.
 /// Same setup as `peer_coordinator_executes_subflow` but uses
-/// `submit_subflow_streaming` to verify results arrive individually.
+/// `submit_subflow_for_each` to verify results are delivered via callback.
 #[cfg_attr(target_os = "windows", ignore)]
 #[test]
 #[allow(clippy::too_many_lines)]
@@ -898,7 +898,7 @@ fn peer_coordinator_streams_boundary_outputs() {
 
     let mut streamed_outputs = Vec::new();
     client
-        .submit_subflow_streaming(manifest, vec![], None, |bo| {
+        .submit_subflow_for_each(manifest, vec![], None, |bo| {
             streamed_outputs.push(bo);
             Ok(())
         })

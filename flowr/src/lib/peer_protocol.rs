@@ -35,23 +35,24 @@ pub struct SubflowSubmission {
 /// Messages sent from peer coordinator back to parent coordinator.
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub enum PeerResponse {
-    /// A value produced at a boundary connection, destined for a function
-    /// in the parent flow.
-    BoundaryOutput {
-        /// The output connection that produced this value (contains
-        /// `destination_id`, `destination_io_number`, etc.)
-        connection: OutputConnection,
-        /// The value produced
-        value: Value,
-    },
-
-    /// The sub-flow has processed all current inputs and is idle.
-    /// The parent can send more inputs or signal Done.
-    Idle,
+    /// The sub-flow has completed and produced boundary outputs.
+    /// All outputs are batched in a single message to avoid per-output
+    /// ZMQ round-trip overhead. An empty vec means no boundary outputs.
+    Completed(Vec<BoundaryOutputEntry>),
 
     /// An error occurred during sub-flow execution.
     Error(String),
 
     /// Acknowledgement that the peer received the Done signal.
     DoneAck,
+}
+
+/// A single boundary output entry within a batch.
+#[derive(Serialize, Deserialize, Clone, Debug)]
+pub struct BoundaryOutputEntry {
+    /// The output connection that produced this value (contains
+    /// `destination_id`, `destination_io_number`, etc.)
+    pub connection: OutputConnection,
+    /// The value produced
+    pub value: Value,
 }
