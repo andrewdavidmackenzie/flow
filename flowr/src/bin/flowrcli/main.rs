@@ -622,13 +622,15 @@ fn coordinator_bridge(
                 }
                 // Wait for FlowEnd from the handler
                 if let Ok(end_request) = context_rx.recv() {
-                    debug!("[BRIDGE] sending sub-flow result on ZMQ");
-                    if let Err(e) = connection.send(end_request.message) {
-                        error!("Bridge: failed to send sub-flow result: {e}");
-                    }
-                    // Ack the handler
-                    if let Some(response_tx) = end_request.response_tx {
-                        let _ = response_tx.send(ClientMessage::Ack);
+                    let response = match connection.send(end_request.message) {
+                        Ok(()) => ClientMessage::Ack,
+                        Err(e) => {
+                            error!("Bridge: failed to send sub-flow result: {e}");
+                            ClientMessage::Error(format!("{e}"))
+                        }
+                    };
+                    if let Some(tx) = end_request.response_tx {
+                        let _ = tx.send(response);
                     }
                 }
                 continue;

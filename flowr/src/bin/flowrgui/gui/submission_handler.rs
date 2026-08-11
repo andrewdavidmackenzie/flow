@@ -76,6 +76,9 @@ impl SubmissionHandler for CLISubmissionHandler {
         #[cfg(feature = "metrics")]
         self.context_io
             .send_no_reply(CoordinatorMessage::FlowEnd(boundary_outputs, metrics))?;
+        #[cfg(not(feature = "metrics"))]
+        self.context_io
+            .send_no_reply(CoordinatorMessage::FlowEnd(boundary_outputs))?;
         debug!("{state}");
         Ok(())
     }
