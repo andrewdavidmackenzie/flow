@@ -6,11 +6,11 @@ use flowcore::errors::Result;
 #[cfg(feature = "metrics")]
 use flowcore::model::metrics::Metrics;
 use flowcore::model::submission::Submission;
+use flowrlib::client_protocol::{BoundaryOutputEntry, CoordinatorMessage};
 use flowrlib::run_state::RunState;
 use flowrlib::submission_handler::SubmissionHandler;
 
 use crate::context::ContextIO;
-use flowrlib::client_protocol::CoordinatorMessage;
 
 /// A [`SubmissionHandler`] for the CLI runner.
 ///
@@ -45,16 +45,32 @@ impl SubmissionHandler for CLISubmissionHandler {
 
     #[cfg(feature = "metrics")]
     fn flow_execution_ended(&mut self, state: &RunState, metrics: Metrics) -> Result<()> {
+        let boundary_outputs: Vec<BoundaryOutputEntry> = state
+            .boundary_outputs()
+            .iter()
+            .map(|bo| BoundaryOutputEntry {
+                connection: bo.connection.clone(),
+                value: bo.value.clone(),
+            })
+            .collect();
         self.context_io
-            .send_and_receive(CoordinatorMessage::FlowEnd(vec![], metrics))?;
+            .send_and_receive(CoordinatorMessage::FlowEnd(boundary_outputs, metrics))?;
         debug!("{state}");
         Ok(())
     }
 
     #[cfg(not(feature = "metrics"))]
     fn flow_execution_ended(&mut self, state: &RunState) -> Result<()> {
+        let boundary_outputs: Vec<BoundaryOutputEntry> = state
+            .boundary_outputs()
+            .iter()
+            .map(|bo| BoundaryOutputEntry {
+                connection: bo.connection.clone(),
+                value: bo.value.clone(),
+            })
+            .collect();
         self.context_io
-            .send_and_receive(CoordinatorMessage::FlowEnd(vec![]))?;
+            .send_and_receive(CoordinatorMessage::FlowEnd(boundary_outputs))?;
         debug!("{}", state);
         Ok(())
     }

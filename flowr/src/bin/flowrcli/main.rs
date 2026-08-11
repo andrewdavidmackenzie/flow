@@ -61,7 +61,7 @@ use flowrlib::info as flowrlib_info;
 use flowrlib::services::DEBUG_SERVICE_NAME;
 use flowrlib::services::{
     BLOCKING_IO_SERVICE_NAME, CONTROL_SERVICE_NAME, COORDINATOR_SERVICE_NAME, JOB_SERVICE_NAME,
-    RESULTS_JOB_SERVICE_NAME,
+    PEER_COORDINATOR_SERVICE_NAME, RESULTS_JOB_SERVICE_NAME,
 };
 
 /// Include the module that implements the context functions
@@ -152,10 +152,6 @@ fn run() -> Result<()> {
     } else if matches.get_flag("server") {
         coordinator_only(num_threads, lib_search_path, native_flowstdlib)
     } else {
-        #[cfg(feature = "submission")]
-        if matches.get_flag("peer") {
-            return peer_only();
-        }
         client_and_coordinator(
             num_threads,
             lib_search_path,
@@ -165,24 +161,6 @@ fn run() -> Result<()> {
             debug_this_flow,
         )
     }
-}
-
-/// Start a peer coordinator that accepts delegated sub-flow submissions
-/// from other coordinators on the network.
-#[cfg(feature = "submission")]
-fn peer_only() -> Result<()> {
-    let peer_port = portpicker::pick_unused_port().chain_err(|| "No ports free")?;
-    let instance_name = format!(
-        "{}-{}-{peer_port}",
-        flowcore::services::PEER_COORDINATOR_SERVICE_NAME,
-        std::process::id()
-    );
-
-    // Signal to the parent process (e.g. test harness) that the server is ready
-    println!("ready");
-
-    info!("Starting peer coordinator on port {peer_port}");
-    flowrlib::peer_coordinator::run_peer_coordinator(peer_port, &instance_name)
 }
 
 /// Start just a [Coordinator][flowrlib::coordinator::Coordinator] in the calling thread.
@@ -196,11 +174,20 @@ fn coordinator_only(
     let coordinator_port = pick_unused_port().chain_err(|| "No ports free")?;
     let coordinator_connection =
         CoordinatorConnection::new(COORDINATOR_SERVICE_NAME, coordinator_port)?;
-    let mut fullnames = vec![register_service(
-        &mdns,
-        COORDINATOR_SERVICE_NAME,
-        coordinator_port,
-    )?];
+    let mut fullnames = vec![
+        register_service(&mdns, COORDINATOR_SERVICE_NAME, coordinator_port)?,
+        // Also register under the peer coordinator service name so other
+        // coordinators can discover us for sub-flow delegation
+        register_service(
+            &mdns,
+            &format!(
+                "{}-{}-{coordinator_port}",
+                PEER_COORDINATOR_SERVICE_NAME,
+                std::process::id()
+            ),
+            coordinator_port,
+        )?,
+    ];
 
     let blocking_io_port = pick_unused_port().chain_err(|| "No ports free")?;
     let blocking_io_connection =
@@ -263,11 +250,19 @@ fn client_and_coordinator(
     let coordinator_connection =
         CoordinatorConnection::new(COORDINATOR_SERVICE_NAME, runtime_port)?;
 
-    let mut fullnames = vec![register_service(
-        &mdns,
-        COORDINATOR_SERVICE_NAME,
-        runtime_port,
-    )?];
+    let mut fullnames = vec![
+        register_service(&mdns, COORDINATOR_SERVICE_NAME, runtime_port)?,
+        // Also register under peer coordinator service name so other
+        // coordinators can discover us for sub-flow delegation
+        register_service(
+            &mdns,
+            &format!(
+                "{PEER_COORDINATOR_SERVICE_NAME}-{}-{runtime_port}",
+                std::process::id()
+            ),
+            runtime_port,
+        )?,
+    ];
 
     let blocking_io_port = pick_unused_port().chain_err(|| "No ports free")?;
     let blocking_io_connection =
@@ -846,21 +841,16 @@ fn get_matches() -> ArgMatches {
              .short('s')
              .long("server")
              .action(clap::ArgAction::SetTrue)
-             .conflicts_with_all(["client", "peer"])
-             .help("Launch only a Coordinator (no client)"),
+             .conflicts_with("client")
+             .help("Launch only a Coordinator (no client). Accepts both client \
+                    submissions and sub-flow delegations from other coordinators."),
         )
         .arg(Arg::new("client")
              .short('c')
              .long("client")
              .action(clap::ArgAction::SetTrue)
-             .conflicts_with_all(["server", "peer"])
+             .conflicts_with("server")
              .help("Launch only a client (no coordinator) to connect to a remote coordinator"),
-        )
-        .arg(Arg::new("peer")
-             .long("peer")
-             .action(clap::ArgAction::SetTrue)
-             .conflicts_with_all(["server", "client"])
-             .help("Run as a peer coordinator accepting delegated sub-flows from the network"),
         )
         .arg(Arg::new("jobs")
             .short('j')
