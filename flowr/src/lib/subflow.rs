@@ -197,7 +197,7 @@ impl RemoteSubFlowImplementation {
 
     /// Build a `Submission` from the manifest and input values, with inputs
     /// injected as `Once` initializers on the boundary functions.
-    fn build_submission(&self, inputs: &[Value]) -> flowcore::errors::Result<Submission> {
+    fn build_submission(&self, inputs: &[Value]) -> Submission {
         let mut manifest = self.manifest.clone();
         for (i, iface) in self.interface_inputs.iter().enumerate() {
             if let Some(value) = inputs.get(i) {
@@ -219,7 +219,7 @@ impl RemoteSubFlowImplementation {
             None,
         );
         submission.is_subflow = true;
-        Ok(submission)
+        submission
     }
 
     /// Submit to a remote coordinator and return boundary outputs.
@@ -282,7 +282,7 @@ impl RemoteSubFlowImplementation {
             self.peer_address
         );
 
-        let submission = self.build_submission(inputs)?;
+        let submission = self.build_submission(inputs);
 
         let submit_result = self.submit_to_peer(submission);
 
@@ -340,7 +340,7 @@ impl Implementation for RemoteSubFlowImplementation {
             self.peer_address
         );
 
-        let submission = self.build_submission(inputs)?;
+        let submission = self.build_submission(inputs);
         let boundary_outputs = self
             .submit_to_peer(submission)
             .map_err(|e| format!("Peer sub-flow execution failed: {e}"))?;

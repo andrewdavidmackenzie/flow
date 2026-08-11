@@ -40,7 +40,7 @@ pub fn delegate_subflow(
     manifest: &FlowManifest,
     flow_id: usize,
     own_instance: Option<&str>,
-    inputs: Vec<(usize, usize, Value)>,
+    inputs: &[(usize, usize, Value)],
 ) -> Result<Option<DelegationResult>> {
     // Discover peer coordinators
     let peers = discover_peer_coordinators(Duration::from_secs(3), own_instance)?;
@@ -57,7 +57,7 @@ pub fn delegate_subflow(
     let mut extracted = manifest.extract_subflow(flow_id)?;
 
     // Inject inputs as Once initializers on boundary functions
-    for (dest_func_id, dest_io_number, value) in &inputs {
+    for (dest_func_id, dest_io_number, value) in inputs {
         if let Some(func) = extracted.get_functions().get_mut(dest_func_id) {
             func.set_flow_initializer(*dest_io_number, InputInitializer::Once(value.clone()));
         }

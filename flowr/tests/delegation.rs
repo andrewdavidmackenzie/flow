@@ -39,11 +39,11 @@ fn test_delegate_to_peer_flowrcli() {
 
     // Start a second flowrcli as a peer coordinator
     let mut peer = Command::new("flowrcli")
-        .args(["--peer", "-v", "info"])
+        .args(["--server", "-v", "info"])
         .stdout(Stdio::piped())
         .stderr(Stdio::null())
         .spawn()
-        .expect("Could not spawn flowrcli --peer");
+        .expect("Could not spawn flowrcli --server");
 
     // Wait for the peer to start and advertise via mDNS
     thread::sleep(Duration::from_secs(8));
