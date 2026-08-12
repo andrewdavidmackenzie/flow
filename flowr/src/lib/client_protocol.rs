@@ -180,3 +180,95 @@ pub struct BoundaryOutputEntry {
     /// The value produced
     pub value: Value,
 }
+
+#[cfg(test)]
+#[allow(clippy::unwrap_used)]
+mod test {
+    use super::*;
+
+    #[test]
+    fn coordinator_message_display() {
+        assert!(format!("{}", CoordinatorMessage::FlowStart).contains("FlowStart"));
+        assert!(format!("{}", CoordinatorMessage::GetArgs).contains("GetArgs"));
+        assert!(format!("{}", CoordinatorMessage::Invalid).contains("Invalid"));
+        assert!(format!("{}", CoordinatorMessage::Stdout("hello".into())).contains("Stdout"));
+        assert!(format!("{}", CoordinatorMessage::Stderr("err".into())).contains("Stderr"));
+        assert!(format!("{}", CoordinatorMessage::GetStdin).contains("GetStdIn"));
+        assert!(format!("{}", CoordinatorMessage::GetLine("prompt".into())).contains("GetLine"));
+        assert!(format!("{}", CoordinatorMessage::Read("file".into())).contains("Read"));
+        assert!(format!("{}", CoordinatorMessage::Write("f".into(), vec![])).contains("Write"));
+        assert!(format!("{}", CoordinatorMessage::StdoutEof).contains("StdOutEof"));
+        assert!(format!("{}", CoordinatorMessage::StderrEof).contains("StdErrEof"));
+    }
+
+    #[test]
+    fn coordinator_message_roundtrip() {
+        let msg = CoordinatorMessage::Stdout("test".into());
+        let json: String = msg.into();
+        let back: CoordinatorMessage = json.into();
+        assert!(format!("{back}").contains("Stdout"));
+    }
+
+    #[test]
+    fn coordinator_message_invalid_json() {
+        let back: CoordinatorMessage = "not valid json".to_string().into();
+        assert!(format!("{back}").contains("Invalid"));
+    }
+
+    #[test]
+    fn client_message_display() {
+        assert!(format!("{}", ClientMessage::Ack).contains("Ack"));
+        assert!(format!("{}", ClientMessage::Invalid).contains("Invalid"));
+        assert!(format!("{}", ClientMessage::Stdin("text".into())).contains("Stdin"));
+        assert!(format!("{}", ClientMessage::Line("line".into())).contains("Line"));
+        assert!(format!("{}", ClientMessage::Args(vec!["a".into()])).contains("Args"));
+        assert!(format!("{}", ClientMessage::Error("e".into())).contains("Error"));
+        assert!(format!("{}", ClientMessage::GetStdinEof).contains("GetStdinEof"));
+        assert!(format!("{}", ClientMessage::GetLineEof).contains("GetLineEof"));
+        assert!(format!("{}", ClientMessage::EnterDebugger).contains("EnterDebugger"));
+        assert!(
+            format!("{}", ClientMessage::FileContents("f".into(), vec![])).contains("FileContents")
+        );
+    }
+
+    #[test]
+    fn client_message_roundtrip() {
+        let msg = ClientMessage::Ack;
+        let json: String = msg.into();
+        let back: ClientMessage = json.into();
+        assert!(format!("{back}").contains("Ack"));
+    }
+
+    #[test]
+    fn client_message_invalid_json() {
+        let back: ClientMessage = "garbage".to_string().into();
+        assert!(format!("{back}").contains("Invalid"));
+    }
+
+    #[test]
+    fn flow_end_display() {
+        #[cfg(feature = "metrics")]
+        {
+            use flowcore::model::metrics::Metrics;
+            let msg = CoordinatorMessage::FlowEnd(vec![], Metrics::new(0, 0));
+            assert!(format!("{msg}").contains("FlowEnd"));
+        }
+        #[cfg(not(feature = "metrics"))]
+        {
+            let msg = CoordinatorMessage::FlowEnd(vec![]);
+            assert!(format!("{msg}").contains("FlowEnd"));
+        }
+    }
+
+    #[test]
+    fn coordinator_exiting_display() {
+        let msg = CoordinatorMessage::CoordinatorExiting(Ok(()));
+        assert!(format!("{msg}").contains("CoordinatorExiting"));
+    }
+
+    #[test]
+    fn client_exiting_display() {
+        let msg = ClientMessage::ClientExiting(Ok(()));
+        assert!(format!("{msg}").contains("ClientExiting"));
+    }
+}
