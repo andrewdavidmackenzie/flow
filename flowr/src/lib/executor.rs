@@ -1715,4 +1715,70 @@ mod test {
         // Wait for the thread to exit
         executor.wait();
     }
+
+    /// Test that executor threads handle RECONNECT messages without crashing
+    /// and continue to respond to DONE after reconnection.
+    #[test]
+    #[serial]
+    fn executor_handles_reconnect() {
+        let mut executor = Executor::new();
+        let provider = Arc::new(TestProvider { test_content: "" }) as Arc<dyn Provider>;
+
+        let ports = (
+            pick_unused_port().expect("no port"),
+            pick_unused_port().expect("no port"),
+            pick_unused_port().expect("no port"),
+            pick_unused_port().expect("no port"),
+        );
+
+        let new_job_port = pick_unused_port().expect("no port");
+        let new_results_port = pick_unused_port().expect("no port");
+
+        let context = zmq::Context::new();
+
+        // Bind dispatcher sockets
+        let _job_socket = {
+            let s = context.socket(zmq::PUSH).expect("PUSH");
+            s.bind(&format!("tcp://*:{}", ports.0)).expect("bind");
+            s
+        };
+        let _results_socket = {
+            let s = context.socket(zmq::PULL).expect("PULL");
+            s.bind(&format!("tcp://*:{}", ports.2)).expect("bind");
+            s
+        };
+        let control_socket = context.socket(zmq::PUB).expect("PUB");
+        control_socket
+            .bind(&format!("tcp://*:{}", ports.3))
+            .expect("bind");
+
+        executor.start(
+            &provider,
+            1,
+            &format!("tcp://127.0.0.1:{}", ports.0),
+            &format!("tcp://127.0.0.1:{}", ports.2),
+            &format!("tcp://127.0.0.1:{}", ports.3),
+        );
+
+        // Give the thread time to connect
+        std::thread::sleep(std::time::Duration::from_millis(200));
+
+        // Send RECONNECT — executor should process it without crashing
+        let reconnect_msg = format!(
+            "RECONNECT:lib:tcp://127.0.0.1:{new_job_port}:tcp://127.0.0.1:{new_results_port}"
+        );
+        control_socket
+            .send(reconnect_msg.as_bytes(), 0)
+            .expect("send RECONNECT");
+
+        // Give executor time to process RECONNECT
+        std::thread::sleep(std::time::Duration::from_millis(200));
+
+        // Executor should still be alive and respond to DONE
+        control_socket
+            .send("DONE".as_bytes(), 0)
+            .expect("send DONE");
+        executor.wait();
+        // If we get here, the executor handled RECONNECT and DONE correctly
+    }
 }

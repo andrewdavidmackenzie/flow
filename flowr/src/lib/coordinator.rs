@@ -1302,4 +1302,59 @@ mod test {
             "Delegation without a valid sub-flow should fail"
         );
     }
+
+    #[test]
+    #[serial]
+    fn remote_reconnection_state_tracking() {
+        let dispatcher = test_dispatcher();
+        #[cfg(feature = "submission")]
+        let mut submission_handler = DummySubmissionHandler;
+        #[cfg(feature = "debugger")]
+        let mut debug_server = DummyDebugServer {
+            exit_immediately: false,
+        };
+
+        let mut coordinator = Coordinator::new(
+            dispatcher,
+            #[cfg(feature = "submission")]
+            &mut submission_handler,
+            #[cfg(feature = "debugger")]
+            &mut debug_server,
+        );
+
+        // Initially not remote
+        assert!(!coordinator.executors_remote);
+
+        // Without remote addresses configured, connect_to_remote is a no-op
+        assert!(coordinator.connect_executors_to_remote().is_ok());
+        assert!(!coordinator.executors_remote);
+
+        // Without local addresses, connect_to_local is a no-op
+        assert!(coordinator.connect_executors_to_local().is_ok());
+        assert!(!coordinator.executors_remote);
+
+        // Configure remote addresses
+        coordinator.set_remote_addresses(
+            "tcp://10.0.0.1:5555".to_string(),
+            "tcp://10.0.0.1:5556".to_string(),
+        );
+        assert!(coordinator.connect_executors_to_remote().is_ok());
+        assert!(coordinator.executors_remote);
+
+        // Second call is a no-op (already remote)
+        assert!(coordinator.connect_executors_to_remote().is_ok());
+        assert!(coordinator.executors_remote);
+
+        // Configure local addresses and reconnect back
+        coordinator.set_local_addresses(
+            "tcp://127.0.0.1:6666".to_string(),
+            "tcp://127.0.0.1:6667".to_string(),
+        );
+        assert!(coordinator.connect_executors_to_local().is_ok());
+        assert!(!coordinator.executors_remote);
+
+        // Second call is a no-op (already local)
+        assert!(coordinator.connect_executors_to_local().is_ok());
+        assert!(!coordinator.executors_remote);
+    }
 }

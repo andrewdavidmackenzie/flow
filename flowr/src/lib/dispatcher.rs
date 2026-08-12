@@ -406,4 +406,46 @@ mod test {
         assert_eq!(job_id, 0);
         assert_eq!(executor_id, "test-executor");
     }
+
+    #[test]
+    #[serial]
+    fn send_reconnect_delivers_to_control_socket() {
+        let (mut dispatcher, ports) = new_dispatcher();
+
+        let context = zmq::Context::new();
+        let control_sub = context
+            .socket(zmq::SUB)
+            .expect("Could not create SUB socket");
+        control_sub
+            .connect(&format!("tcp://127.0.0.1:{}", ports.3))
+            .expect("Could not connect to control socket");
+        control_sub.set_subscribe(&[]).expect("Could not subscribe");
+        control_sub
+            .set_rcvtimeo(1000)
+            .expect("Could not set timeout");
+
+        // Give ZMQ time to establish the subscription
+        std::thread::sleep(std::time::Duration::from_millis(100));
+
+        assert!(dispatcher
+            .send_reconnect("tcp://10.0.0.1:5555", "tcp://10.0.0.1:5556")
+            .is_ok());
+
+        let msg = control_sub
+            .recv_msg(0)
+            .expect("Should receive RECONNECT on control socket");
+        let msg_str = msg.as_str().expect("Should be valid UTF-8");
+        assert!(
+            msg_str.starts_with("RECONNECT:lib:"),
+            "RECONNECT should have lib: prefix, got: {msg_str}"
+        );
+        assert!(
+            msg_str.contains("tcp://10.0.0.1:5555"),
+            "Should contain job address"
+        );
+        assert!(
+            msg_str.contains("tcp://10.0.0.1:5556"),
+            "Should contain results address"
+        );
+    }
 }
