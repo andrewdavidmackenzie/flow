@@ -799,15 +799,28 @@ fn client(
             own_peer_instance,
         ) {
             Ok(peers) => {
-                if peers.is_empty() {
+                // Deduplicate peers by port — a peer on multiple network
+                // interfaces shows up as multiple addresses with the same port
+                let mut seen_ports = std::collections::HashSet::new();
+                let unique_peers: Vec<&String> = peers
+                    .iter()
+                    .filter(|addr| {
+                        let port = addr
+                            .rsplit_once(':')
+                            .and_then(|(_, p)| p.parse::<u16>().ok());
+                        port.is_some_and(|p| seen_ports.insert(p))
+                    })
+                    .collect();
+
+                if unique_peers.is_empty() {
                     info!("No peer coordinators found — running flow normally");
                 } else {
                     // Assign sub-flows to peers: one per peer, up to the
                     // number of available peers or candidates (whichever is smaller)
-                    for (flow_id, addr) in delegate_flow_ids.iter().zip(peers.iter()) {
+                    for (flow_id, addr) in delegate_flow_ids.iter().zip(unique_peers.iter()) {
                         info!("Will delegate sub-flow #{flow_id} to peer at {addr}");
                         submission.delegate_flow_ids.push(*flow_id);
-                        submission.peer_addresses.insert(*flow_id, addr.clone());
+                        submission.peer_addresses.insert(*flow_id, (*addr).clone());
                     }
                     info!(
                         "Delegating {} sub-flow(s) to {} peer(s)",

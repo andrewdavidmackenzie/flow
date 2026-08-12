@@ -288,10 +288,11 @@ impl<'a> Coordinator<'a> {
         let flow_ids = std::mem::take(&mut submission.delegate_flow_ids);
         let peer_addrs = std::mem::take(&mut submission.peer_addresses);
         for flow_id in &flow_ids {
-            if let Some(peer_addr) = peer_addrs.get(flow_id) {
-                info!("Delegating sub-flow #{flow_id} to peer at {peer_addr}");
-                self.setup_delegation(*flow_id, peer_addr, &mut submission)?;
-            }
+            let peer_addr = peer_addrs.get(flow_id).ok_or_else(|| {
+                format!("Sub-flow #{flow_id} requested for delegation but no peer address assigned")
+            })?;
+            info!("Delegating sub-flow #{flow_id} to peer at {peer_addr}");
+            self.setup_delegation(*flow_id, peer_addr, &mut submission)?;
         }
 
         self.job_timeout = submission.job_timeout;
