@@ -25,7 +25,11 @@ pub enum CoordinatorMessage {
     /// A flow has started executing
     FlowStart,
     /// A flow has stopped executing
+    #[cfg(feature = "metrics")]
     FlowEnd(Vec<BoundaryOutputEntry>, Metrics),
+    /// A flow has stopped executing
+    #[cfg(not(feature = "metrics"))]
+    FlowEnd(Vec<BoundaryOutputEntry>),
     /// Coordinator is exiting, with a result (OK, or Err)
     CoordinatorExiting(Result<()>),
 

@@ -3542,6 +3542,7 @@ impl FlowrGui {
                 }
                 self.send(ClientMessage::Ack);
             }
+            #[cfg(feature = "metrics")]
             CoordinatorMessage::FlowEnd(_, metrics) => {
                 self.running = false;
                 self.submitted = false;
@@ -3552,6 +3553,19 @@ impl FlowrGui {
                 // No Ack response — the coordinator uses send_no_reply for FlowEnd,
                 // so the ZMQ REP socket stays in "must-recv" state, ready for the
                 // next ClientSubmission on re-run.
+                if self.ui_settings.auto_exit {
+                    self.info("Auto exiting on flow completion");
+                    let _ = std::io::stdout().flush();
+                    process::exit(0);
+                }
+            }
+            #[cfg(not(feature = "metrics"))]
+            CoordinatorMessage::FlowEnd(_) => {
+                self.running = false;
+                self.submitted = false;
+                self.pending_getline = false;
+                connection_manager::set_job_count(0);
+                self.tab_set.stdin_tab.waiting_for_input = false;
                 if self.ui_settings.auto_exit {
                     self.info("Auto exiting on flow completion");
                     let _ = std::io::stdout().flush();
