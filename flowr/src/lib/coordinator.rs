@@ -45,8 +45,7 @@ pub struct Coordinator<'a> {
     /// URLs in job payloads are rewritten to `http://` URLs so remote executors
     /// can fetch WASM modules.
     wasm_base_url: Option<url::Url>,
-    /// Address of the peer coordinator for delegated sub-flow communication.
-    peer_address: Option<String>,
+
     /// Shared sub-flow manifest registry from the executor.
     subflow_registry: Option<crate::executor::SubflowRegistry>,
     #[cfg(feature = "debugger")]
@@ -191,7 +190,7 @@ impl<'a> Coordinator<'a> {
             dispatcher,
             job_timeout: None,
             wasm_base_url: None,
-            peer_address: None,
+
             subflow_registry: None,
             #[cfg(feature = "debugger")]
             debugger: Debugger::new(debug_server),
@@ -205,11 +204,6 @@ impl<'a> Coordinator<'a> {
     /// remote executors can fetch WASM modules.
     pub fn set_wasm_base_url(&mut self, base_url: url::Url) {
         self.wasm_base_url = Some(base_url);
-    }
-
-    /// Set the peer address for delegated sub-flow communication.
-    pub fn set_peer_address(&mut self, address: String) {
-        self.peer_address = Some(address);
     }
 
     /// Set the sub-flow registry shared with the executor.
@@ -280,14 +274,6 @@ impl<'a> Coordinator<'a> {
         Ok(state)
     }
 
-    /// Record the peer coordinator address for delegation.
-    fn record_peer_address(&mut self, peer_addr: &str) {
-        if self.peer_address.as_deref() != Some(peer_addr) {
-            info!("Will delegate sub-flows to peer at {peer_addr}");
-            self.peer_address = Some(peer_addr.to_string());
-        }
-    }
-
     /// Execute a flow by looping while there are jobs to be processed.
     ///
     /// The outer loop exists for the debugger: it allows resetting all state and restarting
@@ -298,14 +284,14 @@ impl<'a> Coordinator<'a> {
     /// Returns an error if the execution of the flow did not complete normally.
     #[allow(unused_variables, unused_mut)]
     pub fn execute_flow(&mut self, mut submission: Submission) -> Result<()> {
-        // Record the discovered peer coordinator address for delegation
-        if let Some(ref peer_addr) = submission.peer_address.clone() {
-            self.record_peer_address(peer_addr);
-        }
-
-        // Handle sub-flow delegation if requested
-        if let Some(flow_id) = submission.delegate_flow_id.take() {
-            self.setup_delegation(flow_id, &mut submission)?;
+        // Handle sub-flow delegation for each flow_id/peer pair
+        let flow_ids = std::mem::take(&mut submission.delegate_flow_ids);
+        let peer_addrs = std::mem::take(&mut submission.peer_addresses);
+        for flow_id in &flow_ids {
+            if let Some(peer_addr) = peer_addrs.get(flow_id) {
+                info!("Delegating sub-flow #{flow_id} to peer at {peer_addr}");
+                self.setup_delegation(*flow_id, peer_addr, &mut submission)?;
+            }
         }
 
         self.job_timeout = submission.job_timeout;
@@ -396,7 +382,12 @@ impl<'a> Coordinator<'a> {
     /// Extract a sub-flow from the submission, rewrite WASM URLs for remote
     /// access, and register it in the sub-flow registry for delegation to
     /// a peer coordinator.
-    fn setup_delegation(&self, flow_id: usize, submission: &mut Submission) -> Result<()> {
+    fn setup_delegation(
+        &self,
+        flow_id: usize,
+        peer_addr: &str,
+        submission: &mut Submission,
+    ) -> Result<()> {
         let registry = self
             .subflow_registry
             .as_ref()
@@ -455,16 +446,15 @@ impl<'a> Coordinator<'a> {
             "Registered sub-flow #{flow_id} with {} functions",
             extracted.functions().len()
         );
-        let peer_addr = self
-            .peer_address
-            .clone()
-            .ok_or("Sub-flow delegation requires a peer coordinator address")?;
         info!("Sub-flow #{flow_id} will be executed on remote peer at {peer_addr}");
         // Preserve the extracted manifest for possible reconstitution
         submission
             .extracted_subflows
             .insert(flow_id, extracted.clone());
-        manifests.insert(subflow_url, (extracted, input_map, Some(peer_addr)));
+        manifests.insert(
+            subflow_url,
+            (extracted, input_map, Some(peer_addr.to_string())),
+        );
         Ok(())
     }
 
@@ -540,7 +530,7 @@ impl<'a> Coordinator<'a> {
 
             // Send any values destined for delegated functions to the peer
             // and receive boundary outputs back into the local flow
-            if self.peer_address.is_some() {
+            if state.has_delegated_functions() {
                 let peer_outputs = state.drain_peer_outputs();
                 if !peer_outputs.is_empty() {
                     info!("Sending {} values to peer coordinator", peer_outputs.len());
@@ -1182,10 +1172,12 @@ mod test {
             &mut debug_server,
         );
 
-        // Set peer_address but no subflow_registry → should fail
+        // Set peer_addresses but no subflow_registry → should fail
         let mut submission = test_submission(vec![]);
-        submission.delegate_flow_id = Some(1);
-        submission.peer_address = Some("127.0.0.1:9999".to_string());
+        submission.delegate_flow_ids = vec![1];
+        submission
+            .peer_addresses
+            .insert(1, "127.0.0.1:9999".to_string());
         let result = coordinator.execute_flow(submission);
         assert!(
             result.is_err(),
@@ -1218,10 +1210,12 @@ mod test {
         coordinator.set_subflow_registry(executor.subflow_registry());
 
         let mut submission = test_submission(vec![]);
-        submission.delegate_flow_id = Some(1);
-        // No peer_address set → connect_to_peer not called
+        submission.delegate_flow_ids = vec![1];
+        submission
+            .peer_addresses
+            .insert(1, "127.0.0.1:9999".to_string());
         // delegate_subflow will fail because flow_id 1 doesn't exist
-        // in the empty manifest, but that's the first error hit
+        // in the empty manifest
         let result = coordinator.execute_flow(submission);
         assert!(
             result.is_err(),
