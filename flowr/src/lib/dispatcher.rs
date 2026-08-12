@@ -159,6 +159,23 @@ impl Dispatcher {
             .send("DONE".as_bytes(), DONTWAIT)
             .chain_err(|| "Could not send 'DONE' message")
     }
+
+    /// Send a "RECONNECT" message to executor threads, telling them to
+    /// disconnect from their current job/results sockets and reconnect
+    /// to new addresses. The control socket itself is not reconnected.
+    ///
+    /// Format: `RECONNECT:<job_address>:<results_address>`
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the message cannot be sent.
+    pub fn send_reconnect(&mut self, job_address: &str, results_address: &str) -> Result<()> {
+        let msg = format!("RECONNECT:{job_address}:{results_address}");
+        debug!("Dispatcher announcing {msg}");
+        self.control_socket
+            .send(msg.as_bytes(), DONTWAIT)
+            .chain_err(|| "Could not send RECONNECT message")
+    }
 }
 
 impl Drop for Dispatcher {

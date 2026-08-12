@@ -292,6 +292,10 @@ fn execution_loop(
         .connect(&results_service)
         .map_err(|e| format!("Could not connect to PUSH end of results socket: {e}"))?;
 
+    // Track current addresses for reconnection support
+    let mut current_job_addr = job_service;
+    let mut current_results_addr = results_service;
+
     let control_socket = context
         .socket(zmq::SocketType::SUB)
         .map_err(|e| format!("Could not create SUB end of control socket: {e}"))?;
@@ -421,6 +425,34 @@ fn execution_loop(
                         Ok("DONE") => {
                             trace!("'DONE' message received in executor");
                             return Ok(());
+                        }
+                        Ok(ctrl_msg) if ctrl_msg.starts_with("RECONNECT:") => {
+                            // Format: RECONNECT:<job_addr>:<results_addr>
+                            // The job_addr contains a colon (tcp://host:port)
+                            // so split from the end to get the two addresses
+                            let payload = &ctrl_msg["RECONNECT:".len()..];
+                            if let Some(sep) = payload.rfind("tcp://") {
+                                if sep > 0 {
+                                    let new_job = &payload[..sep - 1]; // strip trailing ':'
+                                    let new_results = &payload[sep..];
+                                    info!(
+                                        "Executor '{name}' reconnecting: jobs={new_job} results={new_results}"
+                                    );
+                                    // Disconnect from current and connect to new
+                                    let _ = job_source.disconnect(&current_job_addr);
+                                    job_source
+                                        .connect(new_job)
+                                        .map_err(|e| format!("Reconnect job failed: {e}"))?;
+                                    let _ = results_sink.disconnect(&current_results_addr);
+                                    results_sink
+                                        .connect(new_results)
+                                        .map_err(|e| format!("Reconnect results failed: {e}"))?;
+                                    current_job_addr = new_job.to_string();
+                                    current_results_addr = new_results.to_string();
+                                    // Reset idle timer
+                                    last_activity = std::time::Instant::now();
+                                }
+                            }
                         }
                         Ok(_) => error!("Unexpected Control message"),
                         _ => error!("Error parsing Control message"),
