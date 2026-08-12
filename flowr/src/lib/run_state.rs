@@ -336,6 +336,12 @@ impl RunState {
         self.delegated_functions = func_ids;
     }
 
+    /// Returns true if any functions have been delegated to peer coordinators.
+    #[must_use]
+    pub fn has_delegated_functions(&self) -> bool {
+        !self.delegated_functions.is_empty()
+    }
+
     /// Drain values destined for delegated functions, to be sent to the peer.
     pub fn drain_peer_outputs(&mut self) -> Vec<BoundaryOutput> {
         std::mem::take(&mut self.peer_outputs)

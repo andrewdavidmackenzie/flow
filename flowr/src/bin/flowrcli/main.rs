@@ -311,6 +311,10 @@ fn client_and_coordinator(
     let blocking_io_client_connection =
         ClientConnection::new(&format!("localhost:{blocking_io_port}"))?;
 
+    let own_peer_instance = format!(
+        "{PEER_COORDINATOR_SERVICE_NAME}-{}-{runtime_port}",
+        std::process::id()
+    );
     let result = client(
         matches,
         lib_search_path,
@@ -318,6 +322,7 @@ fn client_and_coordinator(
         blocking_io_client_connection,
         #[cfg(feature = "debugger")]
         debug_this_flow,
+        Some(&own_peer_instance),
     );
 
     let _ = coordinator_handle.join();
@@ -705,6 +710,7 @@ fn client_only(
         blocking_io_connection,
         #[cfg(feature = "debugger")]
         debug_this_flow,
+        None, // no local coordinator to filter from peer discovery
     )
 }
 
@@ -716,6 +722,7 @@ fn client(
     client_connection: ClientConnection,
     blocking_io_connection: ClientConnection,
     #[cfg(feature = "debugger")] debug_this_flow: bool,
+    own_peer_instance: Option<&str>,
 ) -> Result<()> {
     let override_args = Arc::new(Mutex::new(Vec::<String>::new()));
 
@@ -730,25 +737,27 @@ fn client(
     let job_timeout = matches
         .get_one::<u64>("job-timeout")
         .map(|secs| Duration::from_secs(*secs));
-    // If --delegate is set, select a sub-flow to delegate.
+    // If --delegate is set, select sub-flow(s) to delegate.
     // With a flow ID argument: force delegation of that specific sub-flow.
     // Without an argument: use compiler-computed delegation scores from the
-    // manifest to pick the best candidate.
-    let mut delegate_flow_id = None;
+    // manifest to pick candidates, up to the number of available peers.
+    let mut delegate_flow_ids: Vec<usize> = Vec::new();
     if let Some(delegate_arg) = matches.get_one::<String>("delegate") {
         if delegate_arg.is_empty() {
-            // No flow ID specified — use manifest scores
-            let best = flow_manifest
+            // No flow ID specified — collect all candidates sorted by score (descending)
+            let mut candidates: Vec<(usize, f64)> = flow_manifest
                 .flows()
                 .iter()
                 .filter(|(_, info)| info.parent_id.is_some()) // skip root
                 .filter_map(|(&id, info)| info.delegation_score.map(|s| (id, s)))
-                .max_by(|(_, a), (_, b)| a.partial_cmp(b).unwrap_or(std::cmp::Ordering::Equal));
-            if let Some((flow_id, score)) = best {
-                info!("Will delegate sub-flow #{flow_id} (score: {score:.2})");
-                delegate_flow_id = Some(flow_id);
-            } else {
+                .collect();
+            candidates
+                .sort_by(|(_, a), (_, b)| b.partial_cmp(a).unwrap_or(std::cmp::Ordering::Equal));
+            delegate_flow_ids = candidates.iter().map(|(id, _)| *id).collect();
+            if delegate_flow_ids.is_empty() {
                 info!("No sub-flows with positive delegation scores — running locally");
+            } else {
+                info!("Found {} delegation candidate(s)", delegate_flow_ids.len());
             }
         } else if let Ok(flow_id) = delegate_arg.parse::<usize>() {
             // Explicit flow ID — force delegation (must be a non-root sub-flow)
@@ -762,7 +771,7 @@ fn client(
                     "Forcing delegation of sub-flow #{flow_id} (score: {})",
                     score.map_or_else(|| "none".to_string(), |s| format!("{s:.2}"))
                 );
-                delegate_flow_id = Some(flow_id);
+                delegate_flow_ids.push(flow_id);
             } else {
                 warn!("#{flow_id} is not a delegatable sub-flow — running locally");
             }
@@ -783,16 +792,41 @@ fn client(
             .map(std::string::ToString::to_string),
     );
 
-    // Only delegate if a peer coordinator is available — otherwise run normally
-    if let Some(flow_id) = delegate_flow_id {
-        match flowrlib::peer_discovery::discover_peer_coordinators(Duration::from_secs(3), None) {
+    // Discover peers and assign sub-flows to them (one sub-flow per peer)
+    if !delegate_flow_ids.is_empty() {
+        match flowrlib::peer_discovery::discover_peer_coordinators(
+            Duration::from_secs(3),
+            own_peer_instance,
+        ) {
             Ok(peers) => {
-                if let Some(addr) = peers.into_iter().next() {
-                    info!("Discovered peer coordinator at {addr} — delegating sub-flow #{flow_id}");
-                    submission.delegate_flow_id = Some(flow_id);
-                    submission.peer_address = Some(addr);
-                } else {
+                // Deduplicate peers by port — a peer on multiple network
+                // interfaces shows up as multiple addresses with the same port
+                let mut seen_ports = std::collections::HashSet::new();
+                let unique_peers: Vec<&String> = peers
+                    .iter()
+                    .filter(|addr| {
+                        let port = addr
+                            .rsplit_once(':')
+                            .and_then(|(_, p)| p.parse::<u16>().ok());
+                        port.is_some_and(|p| seen_ports.insert(p))
+                    })
+                    .collect();
+
+                if unique_peers.is_empty() {
                     info!("No peer coordinators found — running flow normally");
+                } else {
+                    // Assign sub-flows to peers: one per peer, up to the
+                    // number of available peers or candidates (whichever is smaller)
+                    for (flow_id, addr) in delegate_flow_ids.iter().zip(unique_peers.iter()) {
+                        info!("Will delegate sub-flow #{flow_id} to peer at {addr}");
+                        submission.delegate_flow_ids.push(*flow_id);
+                        submission.peer_addresses.insert(*flow_id, (*addr).clone());
+                    }
+                    info!(
+                        "Delegating {} sub-flow(s) to {} peer(s)",
+                        submission.delegate_flow_ids.len(),
+                        peers.len()
+                    );
                 }
             }
             Err(e) => info!("Peer discovery failed ({e}) — running flow normally"),

@@ -28,16 +28,16 @@ pub struct Submission {
     /// Function IDs that have been delegated to a peer coordinator.
     #[serde(default)]
     pub delegated_functions: std::collections::HashSet<usize>,
-    /// Sub-flow ID to delegate via `SubFlowImplementation`.
+    /// Sub-flow IDs to delegate to peer coordinators.
     #[serde(default)]
-    pub delegate_flow_id: Option<usize>,
+    pub delegate_flow_ids: Vec<usize>,
     /// Preserved extracted sub-flow manifests, keyed by flow ID.
     /// These are kept so the original manifest can be reconstituted if needed.
     #[serde(default)]
     pub extracted_subflows: std::collections::HashMap<usize, FlowManifest>,
-    /// Address of a discovered peer coordinator for remote sub-flow delegation.
+    /// Peer coordinator addresses for delegation, keyed by flow ID.
     #[serde(default)]
-    pub peer_address: Option<String>,
+    pub peer_addresses: std::collections::HashMap<usize, String>,
 }
 
 impl Submission {
@@ -66,9 +66,9 @@ impl Submission {
             trace_file,
             is_subflow: false,
             delegated_functions: std::collections::HashSet::new(),
-            delegate_flow_id: None,
+            delegate_flow_ids: Vec::new(),
             extracted_subflows: std::collections::HashMap::new(),
-            peer_address: None,
+            peer_addresses: std::collections::HashMap::new(),
         }
     }
 }
