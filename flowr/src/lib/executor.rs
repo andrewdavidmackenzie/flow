@@ -427,10 +427,14 @@ fn execution_loop(
                             return Ok(());
                         }
                         Ok(ctrl_msg) if ctrl_msg.starts_with("RECONNECT:") => {
-                            // Format: RECONNECT:<job_addr>:<results_addr>
-                            // The job_addr contains a colon (tcp://host:port)
-                            // so split from the end to get the two addresses
-                            let payload = &ctrl_msg["RECONNECT:".len()..];
+                            // Format: RECONNECT:lib:<job_addr>:<results_addr>
+                            // Context executors (name starts with "ctx:") ignore
+                            // this message to stay on the context job queue.
+                            if name.starts_with("ctx:") {
+                                trace!("Context executor '{name}' ignoring RECONNECT");
+                                continue;
+                            }
+                            let payload = &ctrl_msg["RECONNECT:lib:".len()..];
                             if let Some(sep) = payload.rfind("tcp://") {
                                 if sep > 0 {
                                     let new_job = &payload[..sep - 1]; // strip trailing ':'

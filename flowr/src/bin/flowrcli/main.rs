@@ -492,10 +492,11 @@ fn discover_and_set_remote_coordinator(coordinator: &mut Coordinator, local_job_
         return;
     };
 
-    // Find a remote job service (different port from ours)
+    // Find a remote job service — exclude our own by matching the exact local endpoint
+    let local_endpoint = format!("127.0.0.1:{local_job_port}");
     let Some((remote_job_addr, _)) = job_services
         .iter()
-        .find(|(_, port)| *port != local_job_port)
+        .find(|(addr, _)| *addr != local_endpoint)
     else {
         return;
     };
@@ -504,12 +505,14 @@ fn discover_and_set_remote_coordinator(coordinator: &mut Coordinator, local_job_
         return;
     };
 
-    // Find the results service on the same host/port range
-    let remote_job_host = remote_job_addr.split(':').next().unwrap_or("");
-    if let Some((remote_results_addr, _)) = result_services
-        .iter()
-        .find(|(addr, _)| addr.starts_with(remote_job_host))
-    {
+    // Find the results service from the same coordinator (same host)
+    let remote_host = remote_job_addr
+        .rsplit_once(':')
+        .map_or("", |(host, _)| host);
+    if let Some((remote_results_addr, _)) = result_services.iter().find(|(addr, _)| {
+        addr.rsplit_once(':')
+            .is_some_and(|(host, _)| host == remote_host)
+    }) {
         info!(
             "Discovered remote coordinator: jobs={remote_job_addr} results={remote_results_addr}"
         );

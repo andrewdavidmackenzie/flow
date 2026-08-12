@@ -160,17 +160,20 @@ impl Dispatcher {
             .chain_err(|| "Could not send 'DONE' message")
     }
 
-    /// Send a "RECONNECT" message to executor threads, telling them to
-    /// disconnect from their current job/results sockets and reconnect
-    /// to new addresses. The control socket itself is not reconnected.
+    /// Send a "RECONNECT" message to normal executor threads (not context
+    /// executors), telling them to disconnect from their current job/results
+    /// sockets and reconnect to new addresses.
     ///
-    /// Format: `RECONNECT:<job_address>:<results_address>`
+    /// Format: `RECONNECT:lib:<job_address>:<results_address>`
+    ///
+    /// Context executors (whose names start with `"ctx:"`) ignore this
+    /// message and stay connected to the context job queue.
     ///
     /// # Errors
     ///
     /// Returns an error if the message cannot be sent.
     pub fn send_reconnect(&mut self, job_address: &str, results_address: &str) -> Result<()> {
-        let msg = format!("RECONNECT:{job_address}:{results_address}");
+        let msg = format!("RECONNECT:lib:{job_address}:{results_address}");
         debug!("Dispatcher announcing {msg}");
         self.control_socket
             .send(msg.as_bytes(), DONTWAIT)

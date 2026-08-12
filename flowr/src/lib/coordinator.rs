@@ -260,8 +260,11 @@ impl<'a> Coordinator<'a> {
             info!("Reconnecting executors to local dispatcher: jobs={job} results={results}");
             self.dispatcher.send_reconnect(job, results)?;
             self.executors_remote = false;
-            // Give executors time to process the reconnection
-            std::thread::sleep(std::time::Duration::from_millis(50));
+            // Give executors time to process the reconnection.
+            // Executors poll the control socket every 100-5000ms depending on mode.
+            // This sleep is best-effort; a proper ack mechanism would be more robust
+            // but significantly more complex for marginal benefit.
+            std::thread::sleep(std::time::Duration::from_millis(100));
         }
         Ok(())
     }
