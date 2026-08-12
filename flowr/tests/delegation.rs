@@ -37,8 +37,12 @@ fn test_delegate_to_peer_flowrcli() {
         .expect("Could not run flowc");
     assert!(compile_status.success(), "flowc compilation failed");
 
+    // Use the binary from the current cargo build (same target directory as this test).
+    // This ensures coverage instrumentation is captured when running under cargo llvm-cov.
+    let flowrcli = env!("CARGO_BIN_EXE_flowrcli");
+
     // Start a second flowrcli as a peer coordinator
-    let mut peer = Command::new("flowrcli")
+    let mut peer = Command::new(flowrcli)
         .args(["--server", "-v", "info"])
         .stdout(Stdio::piped())
         .stderr(Stdio::null())
@@ -53,7 +57,7 @@ fn test_delegate_to_peer_flowrcli() {
 
     // Run flowrcli --delegate
     let stderr_log = std::env::temp_dir().join("delegate_to_peer_test_stderr.log");
-    let mut coordinator = Command::new("flowrcli")
+    let mut coordinator = Command::new(flowrcli)
         .args([
             "-n",
             "-v",
