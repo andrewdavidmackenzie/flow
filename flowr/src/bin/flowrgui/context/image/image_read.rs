@@ -26,7 +26,7 @@ impl Implementation for ImageRead {
             .send_and_receive(CoordinatorMessage::Read(filename.to_string()));
 
         match response {
-            Ok(crate::gui::client_message::ClientMessage::FileContents(_path, bytes)) => {
+            Ok(flowrlib::client_protocol::ClientMessage::FileContents(_path, bytes)) => {
                 let img = ImageReader::new(Cursor::new(bytes))
                     .with_guessed_format()
                     .map_err(|e| format!("Could not guess image format: {e}"))?

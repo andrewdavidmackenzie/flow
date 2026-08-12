@@ -2,8 +2,8 @@ use flowcore::errors::Result;
 use flowcore::{Implementation, RunAgain, RUN_AGAIN};
 use serde_json::Value;
 
-use crate::cli::coordinator_message::CoordinatorMessage;
 use crate::context::ContextIO;
+use flowrlib::client_protocol::CoordinatorMessage;
 
 /// `Implementation` struct for the `image_write` function
 pub struct ImageWrite {

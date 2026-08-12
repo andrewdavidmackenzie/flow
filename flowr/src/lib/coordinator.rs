@@ -45,8 +45,8 @@ pub struct Coordinator<'a> {
     /// URLs in job payloads are rewritten to `http://` URLs so remote executors
     /// can fetch WASM modules.
     wasm_base_url: Option<url::Url>,
-    /// Peer client for delegated sub-flow communication.
-    peer_client: Option<crate::peer_client::PeerClient>,
+    /// Address of the peer coordinator for delegated sub-flow communication.
+    peer_address: Option<String>,
     /// Shared sub-flow manifest registry from the executor.
     subflow_registry: Option<crate::executor::SubflowRegistry>,
     #[cfg(feature = "debugger")]
@@ -191,7 +191,7 @@ impl<'a> Coordinator<'a> {
             dispatcher,
             job_timeout: None,
             wasm_base_url: None,
-            peer_client: None,
+            peer_address: None,
             subflow_registry: None,
             #[cfg(feature = "debugger")]
             debugger: Debugger::new(debug_server),
@@ -207,9 +207,9 @@ impl<'a> Coordinator<'a> {
         self.wasm_base_url = Some(base_url);
     }
 
-    /// Set the peer client for delegated sub-flow communication.
-    pub fn set_peer_client(&mut self, client: crate::peer_client::PeerClient) {
-        self.peer_client = Some(client);
+    /// Set the peer address for delegated sub-flow communication.
+    pub fn set_peer_address(&mut self, address: String) {
+        self.peer_address = Some(address);
     }
 
     /// Set the sub-flow registry shared with the executor.
@@ -280,25 +280,12 @@ impl<'a> Coordinator<'a> {
         Ok(state)
     }
 
-    /// Connect to a peer coordinator at the given address.
-    /// If already connected to a different peer, reconnects to the new one.
-    ///
-    /// # Errors
-    ///
-    /// Returns an error if the connection cannot be established.
-    fn connect_to_peer(&mut self, peer_addr: &str) -> Result<()> {
-        let needs_connect = self
-            .peer_client
-            .as_ref()
-            .is_none_or(|client| client.address() != peer_addr);
-        if needs_connect {
-            let zmq_ctx = zmq::Context::new();
-            let client = crate::peer_client::PeerClient::connect(&zmq_ctx, peer_addr)
-                .map_err(|e| format!("Could not connect to peer at {peer_addr}: {e}"))?;
-            info!("Connected to peer coordinator at {peer_addr}");
-            self.set_peer_client(client);
+    /// Record the peer coordinator address for delegation.
+    fn record_peer_address(&mut self, peer_addr: &str) {
+        if self.peer_address.as_deref() != Some(peer_addr) {
+            info!("Will delegate sub-flows to peer at {peer_addr}");
+            self.peer_address = Some(peer_addr.to_string());
         }
-        Ok(())
     }
 
     /// Execute a flow by looping while there are jobs to be processed.
@@ -311,9 +298,9 @@ impl<'a> Coordinator<'a> {
     /// Returns an error if the execution of the flow did not complete normally.
     #[allow(unused_variables, unused_mut)]
     pub fn execute_flow(&mut self, mut submission: Submission) -> Result<()> {
-        // Connect to a discovered peer coordinator if one was found
+        // Record the discovered peer coordinator address for delegation
         if let Some(ref peer_addr) = submission.peer_address.clone() {
-            self.connect_to_peer(peer_addr)?;
+            self.record_peer_address(peer_addr);
         }
 
         // Handle sub-flow delegation if requested
@@ -469,10 +456,9 @@ impl<'a> Coordinator<'a> {
             extracted.functions().len()
         );
         let peer_addr = self
-            .peer_client
-            .as_ref()
-            .map(|c| c.address().to_string())
-            .ok_or("Sub-flow delegation requires a connected peer coordinator")?;
+            .peer_address
+            .clone()
+            .ok_or("Sub-flow delegation requires a peer coordinator address")?;
         info!("Sub-flow #{flow_id} will be executed on remote peer at {peer_addr}");
         // Preserve the extracted manifest for possible reconstitution
         submission
@@ -554,7 +540,7 @@ impl<'a> Coordinator<'a> {
 
             // Send any values destined for delegated functions to the peer
             // and receive boundary outputs back into the local flow
-            if self.peer_client.is_some() {
+            if self.peer_address.is_some() {
                 let peer_outputs = state.drain_peer_outputs();
                 if !peer_outputs.is_empty() {
                     info!("Sending {} values to peer coordinator", peer_outputs.len());
@@ -1227,7 +1213,7 @@ mod test {
         );
 
         // Set up registry but no peer_address → delegate_flow_id is set
-        // but connect_to_peer is never called, so peer_client is None
+        // but no peer address is set, so peer_address is None
         let executor = crate::executor::Executor::new();
         coordinator.set_subflow_registry(executor.subflow_registry());
 

@@ -107,8 +107,8 @@ mod test {
     use serde_json::json;
 
     use crate::context::ContextIO;
-    use crate::gui::client_message::ClientMessage;
     use crate::gui::coordinator_message::CoordinatorMessage;
+    use flowrlib::client_protocol::ClientMessage;
 
     use super::ImageBuffer;
 

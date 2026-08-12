@@ -221,6 +221,15 @@ mod test {
         (status_code, body)
     }
 
+    /// Build a localhost URL for the server, replacing the network IP
+    /// with 127.0.0.1. The server binds to 0.0.0.0 so it accepts localhost
+    /// connections. Using localhost avoids flakiness when `local_ip()`
+    /// returns a network IP that is unreachable during parallel test runs.
+    fn localhost_url(server: &WasmServer) -> String {
+        let url = url::Url::parse(server.base_url()).unwrap();
+        format!("http://127.0.0.1:{}", url.port().unwrap())
+    }
+
     #[test]
     fn serves_wasm_file() {
         let dir = tempfile::TempDir::new().unwrap();
@@ -234,7 +243,7 @@ mod test {
         let server = WasmServer::start(dir.path()).unwrap();
         std::thread::sleep(std::time::Duration::from_millis(100));
 
-        let (status, body) = http_get(&format!("{}/test.wasm", server.base_url()));
+        let (status, body) = http_get(&format!("{}/test.wasm", localhost_url(&server)));
         assert_eq!(status, 200);
         assert_eq!(body, wasm_content);
     }
@@ -245,7 +254,7 @@ mod test {
         let server = WasmServer::start(dir.path()).unwrap();
         std::thread::sleep(std::time::Duration::from_millis(100));
 
-        let (status, _) = http_get(&format!("{}/nonexistent.wasm", server.base_url()));
+        let (status, _) = http_get(&format!("{}/nonexistent.wasm", localhost_url(&server)));
         assert_eq!(status, 404);
     }
 }

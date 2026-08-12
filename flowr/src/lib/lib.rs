@@ -52,6 +52,9 @@ pub mod run_state;
 /// ZMQ-based connections for client-coordinator communication
 pub mod connections;
 
+/// Unified protocol messages for client-coordinator communication
+pub mod client_protocol;
+
 /// Re-export well-known service names from flowcore
 pub use flowcore::services;
 
@@ -91,26 +94,8 @@ mod debugger;
 /// Sub-flow execution: run an extracted sub-flow through a nested coordinator
 pub mod subflow;
 
-/// Protocol messages for peer coordinator communication
-pub mod peer_protocol;
-
-/// [`SubmissionHandler`][submission_handler::SubmissionHandler] for receiving
-/// sub-flow submissions from a parent coordinator
-#[cfg(feature = "submission")]
-pub mod peer_submission_handler;
-
-/// Client for connecting to peer coordinators and delegating sub-flows
-pub mod peer_client;
-
 /// Discovery of peer coordinators on the network
 pub mod peer_discovery;
-
-/// Sub-flow delegation logic for the parent coordinator
-pub mod delegation;
-
-/// Peer coordinator for accepting delegated sub-flow submissions
-#[cfg(feature = "submission")]
-pub mod peer_coordinator;
 
 /// `wasmtime` module contains a number of implementations of the wasm execution
 mod wasm;

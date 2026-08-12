@@ -16,8 +16,8 @@
 //! or the [`cli::cli_client`] in the main thread (where the interaction with STDIO and
 //! File System happens) or both. They communicate via network messages using the
 //! [`SubmissionHandler`][flowrlib::submission_handler::SubmissionHandler] to submit flows for execution,
-//! and interchanging [`ClientMessages`][crate::cli::coordinator_message::ClientMessage]
-//! and [`CoordinatorMessages`][crate::cli::coordinator_message::CoordinatorMessage] for execution of context
+//! and interchanging [`ClientMessages`][flowrlib::client_protocol::ClientMessage]
+//! and [`CoordinatorMessages`][flowrlib::client_protocol::CoordinatorMessage] for execution of context
 //! interaction in the client, as requested by functions running in the coordinator's
 //! [`Executors`][flowrlib::executor::Executor]
 
@@ -39,13 +39,13 @@ use url::Url;
 use cli::cli_client::CliRuntimeClient;
 #[cfg(feature = "submission")]
 use cli::cli_submission_handler::CLISubmissionHandler;
-use cli::coordinator_message::ClientMessage;
 use flowcore::errors::{Result, ResultExt};
 use flowcore::meta_provider::MetaProvider;
 use flowcore::model::flow_manifest::FlowManifest;
 use flowcore::model::submission::Submission;
 use flowcore::provider::Provider;
 use flowcore::url_helper::url_from_string;
+use flowrlib::client_protocol::ClientMessage;
 use flowrlib::connections::{ClientConnection, CoordinatorConnection};
 use flowrlib::coordinator::Coordinator;
 #[cfg(feature = "debugger")]
@@ -61,7 +61,7 @@ use flowrlib::info as flowrlib_info;
 use flowrlib::services::DEBUG_SERVICE_NAME;
 use flowrlib::services::{
     BLOCKING_IO_SERVICE_NAME, CONTROL_SERVICE_NAME, COORDINATOR_SERVICE_NAME, JOB_SERVICE_NAME,
-    RESULTS_JOB_SERVICE_NAME,
+    PEER_COORDINATOR_SERVICE_NAME, RESULTS_JOB_SERVICE_NAME,
 };
 
 /// Include the module that implements the context functions
@@ -152,10 +152,6 @@ fn run() -> Result<()> {
     } else if matches.get_flag("server") {
         coordinator_only(num_threads, lib_search_path, native_flowstdlib)
     } else {
-        #[cfg(feature = "submission")]
-        if matches.get_flag("peer") {
-            return peer_only();
-        }
         client_and_coordinator(
             num_threads,
             lib_search_path,
@@ -165,24 +161,6 @@ fn run() -> Result<()> {
             debug_this_flow,
         )
     }
-}
-
-/// Start a peer coordinator that accepts delegated sub-flow submissions
-/// from other coordinators on the network.
-#[cfg(feature = "submission")]
-fn peer_only() -> Result<()> {
-    let peer_port = portpicker::pick_unused_port().chain_err(|| "No ports free")?;
-    let instance_name = format!(
-        "{}-{}-{peer_port}",
-        flowcore::services::PEER_COORDINATOR_SERVICE_NAME,
-        std::process::id()
-    );
-
-    // Signal to the parent process (e.g. test harness) that the server is ready
-    println!("ready");
-
-    info!("Starting peer coordinator on port {peer_port}");
-    flowrlib::peer_coordinator::run_peer_coordinator(peer_port, &instance_name)
 }
 
 /// Start just a [Coordinator][flowrlib::coordinator::Coordinator] in the calling thread.
@@ -196,11 +174,20 @@ fn coordinator_only(
     let coordinator_port = pick_unused_port().chain_err(|| "No ports free")?;
     let coordinator_connection =
         CoordinatorConnection::new(COORDINATOR_SERVICE_NAME, coordinator_port)?;
-    let mut fullnames = vec![register_service(
-        &mdns,
-        COORDINATOR_SERVICE_NAME,
-        coordinator_port,
-    )?];
+    let mut fullnames = vec![
+        register_service(&mdns, COORDINATOR_SERVICE_NAME, coordinator_port)?,
+        // Also register under the peer coordinator service name so other
+        // coordinators can discover us for sub-flow delegation
+        register_service(
+            &mdns,
+            &format!(
+                "{}-{}-{coordinator_port}",
+                PEER_COORDINATOR_SERVICE_NAME,
+                std::process::id()
+            ),
+            coordinator_port,
+        )?,
+    ];
 
     let blocking_io_port = pick_unused_port().chain_err(|| "No ports free")?;
     let blocking_io_connection =
@@ -263,11 +250,19 @@ fn client_and_coordinator(
     let coordinator_connection =
         CoordinatorConnection::new(COORDINATOR_SERVICE_NAME, runtime_port)?;
 
-    let mut fullnames = vec![register_service(
-        &mdns,
-        COORDINATOR_SERVICE_NAME,
-        runtime_port,
-    )?];
+    let mut fullnames = vec![
+        register_service(&mdns, COORDINATOR_SERVICE_NAME, runtime_port)?,
+        // Also register under peer coordinator service name so other
+        // coordinators can discover us for sub-flow delegation
+        register_service(
+            &mdns,
+            &format!(
+                "{PEER_COORDINATOR_SERVICE_NAME}-{}-{runtime_port}",
+                std::process::id()
+            ),
+            runtime_port,
+        )?,
+    ];
 
     let blocking_io_port = pick_unused_port().chain_err(|| "No ports free")?;
     let blocking_io_connection =
@@ -483,7 +478,7 @@ fn blocking_io_bridge(
     mut connection: CoordinatorConnection,
     blocking_rx: std::sync::mpsc::Receiver<context::ContextRequest>,
 ) {
-    use crate::cli::coordinator_message::{ClientMessage, CoordinatorMessage};
+    use flowrlib::client_protocol::{ClientMessage, CoordinatorMessage};
     use flowrlib::connections::WAIT;
     use log::debug;
 
@@ -576,7 +571,7 @@ fn coordinator_bridge(
     context_rx: std::sync::mpsc::Receiver<context::ContextRequest>,
     submission_tx: std::sync::mpsc::Sender<flowcore::model::submission::Submission>,
 ) {
-    use crate::cli::coordinator_message::{ClientMessage, CoordinatorMessage};
+    use flowrlib::client_protocol::{ClientMessage, CoordinatorMessage};
     use flowrlib::connections::WAIT;
     use log::debug;
 
@@ -593,9 +588,11 @@ fn coordinator_bridge(
 
         if wait_for_submission {
             debug!("[BRIDGE] waiting for submission on ZMQ...");
+            let is_subflow;
             loop {
                 match connection.receive::<ClientMessage>(WAIT) {
                     Ok(ClientMessage::ClientSubmission(submission)) => {
+                        is_subflow = submission.is_subflow;
                         if submission_tx.send(*submission).is_err() {
                             return;
                         }
@@ -614,6 +611,31 @@ fn coordinator_bridge(
                     }
                 }
             }
+
+            if is_subflow {
+                // Sub-flow from a peer coordinator: skip the interactive
+                // FlowStart/Ack protocol. Wait for the coordinator to finish
+                // and send FlowEnd directly as the REP response.
+                debug!("[BRIDGE] sub-flow submission — waiting for completion");
+                if let Some(response_tx) = request.response_tx {
+                    let _ = response_tx.send(ClientMessage::Ack);
+                }
+                // Wait for FlowEnd from the handler
+                if let Ok(end_request) = context_rx.recv() {
+                    let response = match connection.send(end_request.message) {
+                        Ok(()) => ClientMessage::Ack,
+                        Err(e) => {
+                            error!("Bridge: failed to send sub-flow result: {e}");
+                            ClientMessage::Error(format!("{e}"))
+                        }
+                    };
+                    if let Some(tx) = end_request.response_tx {
+                        let _ = tx.send(response);
+                    }
+                }
+                continue;
+            }
+
             if let Some(response_tx) = request.response_tx {
                 let _ = response_tx.send(ClientMessage::Ack);
             }
@@ -846,21 +868,16 @@ fn get_matches() -> ArgMatches {
              .short('s')
              .long("server")
              .action(clap::ArgAction::SetTrue)
-             .conflicts_with_all(["client", "peer"])
-             .help("Launch only a Coordinator (no client)"),
+             .conflicts_with("client")
+             .help("Launch only a Coordinator (no client). Accepts both client \
+                    submissions and sub-flow delegations from other coordinators."),
         )
         .arg(Arg::new("client")
              .short('c')
              .long("client")
              .action(clap::ArgAction::SetTrue)
-             .conflicts_with_all(["server", "peer"])
+             .conflicts_with("server")
              .help("Launch only a client (no coordinator) to connect to a remote coordinator"),
-        )
-        .arg(Arg::new("peer")
-             .long("peer")
-             .action(clap::ArgAction::SetTrue)
-             .conflicts_with_all(["server", "client"])
-             .help("Run as a peer coordinator accepting delegated sub-flows from the network"),
         )
         .arg(Arg::new("jobs")
             .short('j')

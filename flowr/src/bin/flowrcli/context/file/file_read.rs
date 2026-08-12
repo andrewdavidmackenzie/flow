@@ -2,8 +2,8 @@ use flowcore::errors::Result;
 use flowcore::{Implementation, RunAgain, DONT_RUN_AGAIN, RUN_AGAIN};
 use serde_json::{json, Value};
 
-use crate::cli::coordinator_message::{ClientMessage, CoordinatorMessage};
 use crate::context::ContextIO;
+use flowrlib::client_protocol::{ClientMessage, CoordinatorMessage};
 
 /// `Implementation` struct for the `file_read` function
 pub struct FileRead {
@@ -38,8 +38,8 @@ mod test {
     use flowcore::{Implementation, RUN_AGAIN};
     use serde_json::{json, Value};
 
-    use crate::cli::coordinator_message::{ClientMessage, CoordinatorMessage};
     use crate::context::ContextIO;
+    use flowrlib::client_protocol::{ClientMessage, CoordinatorMessage};
 
     use super::FileRead;
 

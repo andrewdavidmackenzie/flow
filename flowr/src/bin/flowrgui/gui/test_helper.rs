@@ -5,7 +5,7 @@ pub mod test {
 
     use flowrlib::connections::CoordinatorConnection;
 
-    use crate::gui::client_message::ClientMessage;
+    use flowrlib::client_protocol::ClientMessage;
     use crate::gui::coordinator_message::CoordinatorMessage;
 
     pub fn wait_for_then_send(

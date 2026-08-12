@@ -2,8 +2,8 @@ use flowcore::errors::Result;
 use flowcore::{Implementation, RunAgain, RUN_AGAIN};
 use serde_json::Value;
 
-use crate::cli::coordinator_message::CoordinatorMessage;
 use crate::context::ContextIO;
+use flowrlib::client_protocol::CoordinatorMessage;
 
 /// `Implementation` struct for the `file_write` function
 pub struct FileWrite {
@@ -38,8 +38,8 @@ mod test {
     use flowcore::{Implementation, RUN_AGAIN};
     use serde_json::json;
 
-    use crate::cli::coordinator_message::{ClientMessage, CoordinatorMessage};
     use crate::context::ContextIO;
+    use flowrlib::client_protocol::{ClientMessage, CoordinatorMessage};
 
     use super::FileWrite;
 
