@@ -542,7 +542,7 @@ impl FlowManifest {
         const LOOPBACK_MULTIPLIER: f64 = 2.0;
         const BOUNDARY_WEIGHT: f64 = 0.5;
         const NESTING_WEIGHT: f64 = 1.0;
-        const CONTEXT_PENALTY: f64 = 3.0;
+        const CONTEXT_PENALTY: f64 = 10.0;
 
         // Compute total flow weight: sum of (1 + loopback_count * multiplier)
         // for every function in the manifest

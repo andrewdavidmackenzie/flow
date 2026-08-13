@@ -267,13 +267,21 @@ impl RemoteSubFlowImplementation {
                     return Err(format!("Peer coordinator exited: {result:?}").into());
                 }
                 context_msg => {
-                    // Relay the context request through our ContextIO
+                    // Relay the context request through our ContextIO.
+                    // GetStdin/GetLine use the blocking channel since they
+                    // may block waiting for user input.
                     let client_response = if let Some(ref cio) = self.context_io {
-                        cio.send_and_receive(context_msg)
-                            .unwrap_or(ClientMessage::Error("ContextIO relay failed".into()))
+                        let result = match &context_msg {
+                            CoordinatorMessage::GetStdin | CoordinatorMessage::GetLine(_) => {
+                                cio.send_and_receive_blocking(context_msg)
+                            }
+                            _ => cio.send_and_receive(context_msg),
+                        };
+                        result.unwrap_or(ClientMessage::Error("ContextIO relay failed".into()))
                     } else {
-                        info!("No ContextIO available — acking context message");
-                        ClientMessage::Ack
+                        return Err("Context function in delegated sub-flow but no ContextIO \
+                             configured — cannot proxy"
+                            .into());
                     };
                     // Send the client's response back to the peer
                     connection

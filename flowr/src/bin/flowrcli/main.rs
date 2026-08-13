@@ -451,6 +451,8 @@ fn coordinator(
 
     // Share the executor's sub-flow registry with the coordinator
     coordinator.set_subflow_registry(executor.subflow_registry());
+    // Mark that the executor has context proxy capability
+    coordinator.set_has_context_proxy();
 
     // Set local addresses for reconnection after remote executor mode
     coordinator.set_local_addresses(job_source_name.clone(), results_sink.clone());
