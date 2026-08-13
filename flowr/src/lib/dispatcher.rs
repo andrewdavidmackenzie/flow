@@ -172,7 +172,11 @@ impl Dispatcher {
     /// # Errors
     ///
     /// Returns an error if the message cannot be sent.
-    pub fn send_reconnect(&mut self, job_address: &str, results_address: &str) -> Result<()> {
+    pub(crate) fn send_reconnect(
+        &mut self,
+        job_address: &str,
+        results_address: &str,
+    ) -> Result<()> {
         let msg = format!("RECONNECT:lib:{job_address}:{results_address}");
         debug!("Dispatcher announcing {msg}");
         self.control_socket

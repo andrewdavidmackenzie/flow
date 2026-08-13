@@ -492,11 +492,11 @@ fn discover_and_set_remote_coordinator(coordinator: &mut Coordinator, local_job_
         return;
     };
 
-    // Find a remote job service — exclude our own by matching the exact local endpoint
-    let local_endpoint = format!("127.0.0.1:{local_job_port}");
+    // Find a remote job service — exclude our own by port number
+    // (our port is unique on this machine regardless of which IP it's discovered under)
     let Some((remote_job_addr, _)) = job_services
         .iter()
-        .find(|(addr, _)| *addr != local_endpoint)
+        .find(|(_, port)| *port != local_job_port)
     else {
         return;
     };
