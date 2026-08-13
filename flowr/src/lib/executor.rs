@@ -599,6 +599,7 @@ fn get_or_load_implementation(
                         manifest.clone(),
                         interface_inputs,
                         addr.clone(),
+                        None, // TODO: pass ContextIO for context proxying
                     )) as Arc<dyn Implementation>
                 }
                 _ => bail!("Unsupported scheme on implementation_url"),
@@ -709,6 +710,7 @@ fn execute_subflow_job(
         manifest.clone(),
         interface_inputs,
         addr.clone(),
+        None, // TODO: pass ContextIO for context proxying
     );
     // Drop the read lock before blocking on the peer
     drop(manifests);

@@ -178,6 +178,9 @@ pub(crate) struct RemoteSubFlowImplementation {
     manifest: FlowManifest,
     interface_inputs: Vec<InterfaceInput>,
     peer_address: String,
+    /// Optional `ContextIO` for relaying context function requests from the
+    /// peer back to the origin coordinator's client.
+    context_io: Option<crate::context_io::ContextIO>,
 }
 
 impl RemoteSubFlowImplementation {
@@ -187,11 +190,13 @@ impl RemoteSubFlowImplementation {
         manifest: FlowManifest,
         interface_inputs: Vec<InterfaceInput>,
         peer_address: String,
+        context_io: Option<crate::context_io::ContextIO>,
     ) -> Self {
         RemoteSubFlowImplementation {
             manifest,
             interface_inputs,
             peer_address,
+            context_io,
         }
     }
 
@@ -223,6 +228,11 @@ impl RemoteSubFlowImplementation {
     }
 
     /// Submit to a remote coordinator and return boundary outputs.
+    ///
+    /// If the sub-flow contains context functions, the peer sends context
+    /// requests as intermediate messages before `FlowEnd`. This method
+    /// relays them through the origin's `ContextIO` and sends the responses
+    /// back to the peer.
     fn submit_to_peer(
         &self,
         submission: Submission,
@@ -233,28 +243,44 @@ impl RemoteSubFlowImplementation {
         let connection = ClientConnection::new(&self.peer_address)
             .map_err(|e| format!("Could not connect to peer at {}: {e}", self.peer_address))?;
 
-        // Disable receive timeout — sub-flow execution may take longer than 30s
         connection
             .set_receive_timeout(300_000)
-            .map_err(|e| format!("Could not clear receive timeout: {e}"))?;
+            .map_err(|e| format!("Could not set receive timeout: {e}"))?;
 
         connection
             .send(ClientMessage::ClientSubmission(Box::new(submission)))
             .map_err(|e| format!("Could not send submission to peer: {e}"))?;
 
-        let response: CoordinatorMessage = connection
-            .receive()
-            .map_err(|e| format!("Could not receive from peer: {e}"))?;
+        // Loop receiving messages from the peer. Context function requests
+        // are relayed through ContextIO; FlowEnd terminates the loop.
+        loop {
+            let response: CoordinatorMessage = connection
+                .receive()
+                .map_err(|e| format!("Could not receive from peer: {e}"))?;
 
-        match response {
-            #[cfg(feature = "metrics")]
-            CoordinatorMessage::FlowEnd(boundary_outputs, _) => Ok(boundary_outputs),
-            #[cfg(not(feature = "metrics"))]
-            CoordinatorMessage::FlowEnd(boundary_outputs) => Ok(boundary_outputs),
-            CoordinatorMessage::CoordinatorExiting(result) => {
-                Err(format!("Peer coordinator exited: {result:?}").into())
+            match response {
+                #[cfg(feature = "metrics")]
+                CoordinatorMessage::FlowEnd(boundary_outputs, _) => return Ok(boundary_outputs),
+                #[cfg(not(feature = "metrics"))]
+                CoordinatorMessage::FlowEnd(boundary_outputs) => return Ok(boundary_outputs),
+                CoordinatorMessage::CoordinatorExiting(result) => {
+                    return Err(format!("Peer coordinator exited: {result:?}").into());
+                }
+                context_msg => {
+                    // Relay the context request through our ContextIO
+                    let client_response = if let Some(ref cio) = self.context_io {
+                        cio.send_and_receive(context_msg)
+                            .unwrap_or(ClientMessage::Error("ContextIO relay failed".into()))
+                    } else {
+                        info!("No ContextIO available — acking context message");
+                        ClientMessage::Ack
+                    };
+                    // Send the client's response back to the peer
+                    connection
+                        .send(client_response)
+                        .map_err(|e| format!("Could not send context response to peer: {e}"))?;
+                }
             }
-            other => Err(format!("Unexpected response from peer: {other}").into()),
         }
     }
 }
