@@ -1,6 +1,5 @@
 //! Module of context functions for Cli Flowr Runner
 
-use std::sync::mpsc;
 use std::sync::Arc;
 
 use flowcore::errors::{Result, ResultExt};
@@ -9,86 +8,14 @@ use flowcore::model::lib_manifest::LibraryManifest;
 use flowcore::model::metadata::MetaData;
 use url::Url;
 
-use flowrlib::client_protocol::{ClientMessage, CoordinatorMessage};
+// Re-export from library
+pub use flowrlib::context_io::{ContextIO, ContextRequest};
 
 mod args;
 mod file;
 mod image;
 mod stdio;
 mod time;
-
-/// A request sent from a context function to the ZMQ bridge thread.
-pub struct ContextRequest {
-    /// The message to send to the client
-    pub message: CoordinatorMessage,
-    /// If `Some`, the bridge sends the client's response back on this channel.
-    /// If `None`, the message is fire-and-forget (no response expected).
-    pub response_tx: Option<mpsc::Sender<ClientMessage>>,
-}
-
-/// Channel-based IO handle for context functions, replacing `Arc<Mutex<CoordinatorConnection>>`.
-///
-/// Uses two channels: one for non-blocking IO (stdout, stderr, file, image, args)
-/// and one for blocking IO (readline, stdin). This allows blocking IO to be
-/// handled on a separate ZMQ socket so it doesn't block non-blocking IO.
-#[derive(Clone)]
-pub struct ContextIO {
-    /// Channel for non-blocking context function requests (stdout, stderr, etc.)
-    tx: mpsc::Sender<ContextRequest>,
-    /// Channel for blocking context function requests (readline, stdin)
-    blocking_tx: mpsc::Sender<ContextRequest>,
-}
-
-impl ContextIO {
-    /// Create a new `ContextIO` backed by the given channel senders.
-    pub fn new(
-        tx: mpsc::Sender<ContextRequest>,
-        blocking_tx: mpsc::Sender<ContextRequest>,
-    ) -> Self {
-        ContextIO { tx, blocking_tx }
-    }
-
-    /// Send a message on the non-blocking channel and wait for the client's response.
-    pub fn send_and_receive(&self, message: CoordinatorMessage) -> Result<ClientMessage> {
-        let (response_tx, response_rx) = mpsc::channel();
-        self.tx
-            .send(ContextRequest {
-                message,
-                response_tx: Some(response_tx),
-            })
-            .map_err(|e| format!("Could not send to bridge: {e}"))?;
-        response_rx
-            .recv()
-            .map_err(|e| format!("Could not receive from bridge: {e}").into())
-    }
-
-    /// Send a message on the blocking IO channel and wait for the client's response.
-    /// Used by context functions that may block for user input (readline, stdin).
-    pub fn send_and_receive_blocking(&self, message: CoordinatorMessage) -> Result<ClientMessage> {
-        let (response_tx, response_rx) = mpsc::channel();
-        self.blocking_tx
-            .send(ContextRequest {
-                message,
-                response_tx: Some(response_tx),
-            })
-            .map_err(|e| format!("Could not send to blocking bridge: {e}"))?;
-        response_rx
-            .recv()
-            .map_err(|e| format!("Could not receive from blocking bridge: {e}").into())
-    }
-
-    /// Send a message without waiting for a response (fire-and-forget).
-    /// The bridge thread still completes the ZMQ round-trip.
-    #[allow(dead_code)]
-    pub fn send_no_reply(&self, message: CoordinatorMessage) -> Result<()> {
-        self.tx
-            .send(ContextRequest {
-                message,
-                response_tx: None,
-            })
-            .map_err(|e| format!("Could not send to bridge: {e}").into())
-    }
-}
 
 /// Return a `LibraryManifest` for the context functions
 pub fn get_manifest(context_io: ContextIO) -> Result<LibraryManifest> {

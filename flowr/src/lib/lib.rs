@@ -55,6 +55,9 @@ pub mod connections;
 /// Unified protocol messages for client-coordinator communication
 pub mod client_protocol;
 
+/// Channel-based IO handle for context functions and context proxying
+pub mod context_io;
+
 /// Re-export well-known service names from flowcore
 pub use flowcore::services;
 
