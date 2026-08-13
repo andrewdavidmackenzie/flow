@@ -45,7 +45,16 @@ pub struct Coordinator<'a> {
     /// URLs in job payloads are rewritten to `http://` URLs so remote executors
     /// can fetch WASM modules.
     wasm_base_url: Option<url::Url>,
-
+    /// Local job/results addresses for the executor threads.
+    /// Used to reconnect executors back to local after helping a remote coordinator.
+    local_job_address: Option<String>,
+    local_results_address: Option<String>,
+    /// Remote job/results addresses discovered via mDNS.
+    /// When set, executors connect to these while idle (no local flow running).
+    remote_job_address: Option<String>,
+    remote_results_address: Option<String>,
+    /// Whether executor threads are currently connected to a remote coordinator
+    executors_remote: bool,
     /// Shared sub-flow manifest registry from the executor.
     subflow_registry: Option<crate::executor::SubflowRegistry>,
     #[cfg(feature = "debugger")]
@@ -190,7 +199,11 @@ impl<'a> Coordinator<'a> {
             dispatcher,
             job_timeout: None,
             wasm_base_url: None,
-
+            local_job_address: None,
+            local_results_address: None,
+            remote_job_address: None,
+            remote_results_address: None,
+            executors_remote: false,
             subflow_registry: None,
             #[cfg(feature = "debugger")]
             debugger: Debugger::new(debug_server),
@@ -204,6 +217,56 @@ impl<'a> Coordinator<'a> {
     /// remote executors can fetch WASM modules.
     pub fn set_wasm_base_url(&mut self, base_url: url::Url) {
         self.wasm_base_url = Some(base_url);
+    }
+
+    /// Configure local executor addresses (for reconnecting back after remote mode).
+    pub fn set_local_addresses(&mut self, job_address: String, results_address: String) {
+        self.local_job_address = Some(job_address);
+        self.local_results_address = Some(results_address);
+    }
+
+    /// Configure remote executor addresses (for helping other coordinators when idle).
+    pub fn set_remote_addresses(&mut self, job_address: String, results_address: String) {
+        self.remote_job_address = Some(job_address);
+        self.remote_results_address = Some(results_address);
+    }
+
+    /// Reconnect executor threads to remote job/results sockets (idle mode).
+    /// Only sends RECONNECT if remote addresses are configured and executors
+    /// are not already connected to remote.
+    fn connect_executors_to_remote(&mut self) -> Result<()> {
+        if self.executors_remote {
+            return Ok(()); // already remote
+        }
+        if let (Some(ref job), Some(ref results)) =
+            (&self.remote_job_address, &self.remote_results_address)
+        {
+            info!("Connecting executors to remote coordinator: jobs={job} results={results}");
+            self.dispatcher.send_reconnect(job, results)?;
+            self.executors_remote = true;
+        }
+        Ok(())
+    }
+
+    /// Reconnect executor threads back to local job/results sockets (busy mode).
+    /// Only sends RECONNECT if executors are currently in remote mode.
+    fn connect_executors_to_local(&mut self) -> Result<()> {
+        if !self.executors_remote {
+            return Ok(()); // already local
+        }
+        if let (Some(ref job), Some(ref results)) =
+            (&self.local_job_address, &self.local_results_address)
+        {
+            info!("Reconnecting executors to local dispatcher: jobs={job} results={results}");
+            self.dispatcher.send_reconnect(job, results)?;
+            self.executors_remote = false;
+            // Give executors time to process the reconnection.
+            // Executors poll the control socket every 100-5000ms depending on mode.
+            // This sleep is best-effort; a proper ack mechanism would be more robust
+            // but significantly more complex for marginal benefit.
+            std::thread::sleep(std::time::Duration::from_millis(100));
+        }
+        Ok(())
     }
 
     /// Set the sub-flow registry shared with the executor.
@@ -230,7 +293,23 @@ impl<'a> Coordinator<'a> {
     #[cfg(feature = "submission")]
     pub fn submission_loop(&mut self, loop_forever: bool) -> Result<()> {
         let mut last_result: Result<()> = Ok(());
-        while let Some(submission) = self.submission_handler.wait_for_submission()? {
+
+        loop {
+            // While idle, connect executors to remote coordinator (if configured)
+            if let Err(e) = self.connect_executors_to_remote() {
+                info!("Could not connect to remote coordinator: {e}");
+            }
+
+            let submission = self.submission_handler.wait_for_submission()?;
+            let Some(submission) = submission else {
+                break;
+            };
+
+            // Reconnect executors to local dispatcher before executing
+            if let Err(e) = self.connect_executors_to_local() {
+                error!("Could not reconnect executors to local: {e}");
+            }
+
             last_result = self.execute_flow(submission);
             if let Err(ref e) = last_result {
                 error!("Flow execution failed: {e}");
@@ -1222,5 +1301,60 @@ mod test {
             result.is_err(),
             "Delegation without a valid sub-flow should fail"
         );
+    }
+
+    #[test]
+    #[serial]
+    fn remote_reconnection_state_tracking() {
+        let dispatcher = test_dispatcher();
+        #[cfg(feature = "submission")]
+        let mut submission_handler = DummySubmissionHandler;
+        #[cfg(feature = "debugger")]
+        let mut debug_server = DummyDebugServer {
+            exit_immediately: false,
+        };
+
+        let mut coordinator = Coordinator::new(
+            dispatcher,
+            #[cfg(feature = "submission")]
+            &mut submission_handler,
+            #[cfg(feature = "debugger")]
+            &mut debug_server,
+        );
+
+        // Initially not remote
+        assert!(!coordinator.executors_remote);
+
+        // Without remote addresses configured, connect_to_remote is a no-op
+        assert!(coordinator.connect_executors_to_remote().is_ok());
+        assert!(!coordinator.executors_remote);
+
+        // Without local addresses, connect_to_local is a no-op
+        assert!(coordinator.connect_executors_to_local().is_ok());
+        assert!(!coordinator.executors_remote);
+
+        // Configure remote addresses
+        coordinator.set_remote_addresses(
+            "tcp://10.0.0.1:5555".to_string(),
+            "tcp://10.0.0.1:5556".to_string(),
+        );
+        assert!(coordinator.connect_executors_to_remote().is_ok());
+        assert!(coordinator.executors_remote);
+
+        // Second call is a no-op (already remote)
+        assert!(coordinator.connect_executors_to_remote().is_ok());
+        assert!(coordinator.executors_remote);
+
+        // Configure local addresses and reconnect back
+        coordinator.set_local_addresses(
+            "tcp://127.0.0.1:6666".to_string(),
+            "tcp://127.0.0.1:6667".to_string(),
+        );
+        assert!(coordinator.connect_executors_to_local().is_ok());
+        assert!(!coordinator.executors_remote);
+
+        // Second call is a no-op (already local)
+        assert!(coordinator.connect_executors_to_local().is_ok());
+        assert!(!coordinator.executors_remote);
     }
 }

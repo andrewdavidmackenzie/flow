@@ -159,6 +159,30 @@ impl Dispatcher {
             .send("DONE".as_bytes(), DONTWAIT)
             .chain_err(|| "Could not send 'DONE' message")
     }
+
+    /// Send a "RECONNECT" message to normal executor threads (not context
+    /// executors), telling them to disconnect from their current job/results
+    /// sockets and reconnect to new addresses.
+    ///
+    /// Format: `RECONNECT:lib:<job_address>:<results_address>`
+    ///
+    /// Context executors (whose names start with `"ctx:"`) ignore this
+    /// message and stay connected to the context job queue.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the message cannot be sent.
+    pub(crate) fn send_reconnect(
+        &mut self,
+        job_address: &str,
+        results_address: &str,
+    ) -> Result<()> {
+        let msg = format!("RECONNECT:lib:{job_address}:{results_address}");
+        debug!("Dispatcher announcing {msg}");
+        self.control_socket
+            .send(msg.as_bytes(), DONTWAIT)
+            .chain_err(|| "Could not send RECONNECT message")
+    }
 }
 
 impl Drop for Dispatcher {
@@ -385,5 +409,47 @@ mod test {
         let (job_id, executor_id, _) = received.unwrap();
         assert_eq!(job_id, 0);
         assert_eq!(executor_id, "test-executor");
+    }
+
+    #[test]
+    #[serial]
+    fn send_reconnect_delivers_to_control_socket() {
+        let (mut dispatcher, ports) = new_dispatcher();
+
+        let context = zmq::Context::new();
+        let control_sub = context
+            .socket(zmq::SUB)
+            .expect("Could not create SUB socket");
+        control_sub
+            .connect(&format!("tcp://127.0.0.1:{}", ports.3))
+            .expect("Could not connect to control socket");
+        control_sub.set_subscribe(&[]).expect("Could not subscribe");
+        control_sub
+            .set_rcvtimeo(1000)
+            .expect("Could not set timeout");
+
+        // Give ZMQ time to establish the subscription
+        std::thread::sleep(std::time::Duration::from_millis(100));
+
+        assert!(dispatcher
+            .send_reconnect("tcp://10.0.0.1:5555", "tcp://10.0.0.1:5556")
+            .is_ok());
+
+        let msg = control_sub
+            .recv_msg(0)
+            .expect("Should receive RECONNECT on control socket");
+        let msg_str = msg.as_str().expect("Should be valid UTF-8");
+        assert!(
+            msg_str.starts_with("RECONNECT:lib:"),
+            "RECONNECT should have lib: prefix, got: {msg_str}"
+        );
+        assert!(
+            msg_str.contains("tcp://10.0.0.1:5555"),
+            "Should contain job address"
+        );
+        assert!(
+            msg_str.contains("tcp://10.0.0.1:5556"),
+            "Should contain results address"
+        );
     }
 }

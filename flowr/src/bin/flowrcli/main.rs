@@ -449,6 +449,15 @@ fn coordinator(
     // Share the executor's sub-flow registry with the coordinator
     coordinator.set_subflow_registry(executor.subflow_registry());
 
+    // Set local addresses for reconnection after remote executor mode
+    coordinator.set_local_addresses(job_source_name.clone(), results_sink.clone());
+
+    // If FLOW_REMOTE_EXECUTORS is set, try to discover a remote coordinator
+    // to help while idle (dynamic executor sharing). Only for --server mode.
+    if loop_forever && std::env::var("FLOW_REMOTE_EXECUTORS").is_ok() {
+        discover_and_set_remote_coordinator(&mut coordinator, ports.0);
+    }
+
     #[cfg(feature = "submission")]
     let result = coordinator.submission_loop(loop_forever);
     #[cfg(not(feature = "submission"))]
@@ -468,6 +477,50 @@ fn coordinator(
     drop(blocking_bridge_handle);
 
     result
+}
+
+/// Try to discover a remote coordinator's job/results services via mDNS.
+/// If found (and it's a different coordinator), configure the coordinator
+/// to reconnect its executors to the remote when idle.
+fn discover_and_set_remote_coordinator(coordinator: &mut Coordinator, local_job_port: u16) {
+    use flowcore::discovery::discover_services;
+
+    // Use a short timeout — this is best-effort discovery at startup
+    let timeout = Duration::from_secs(3);
+
+    let Ok(job_services) = discover_services(JOB_SERVICE_NAME, timeout) else {
+        return;
+    };
+
+    // Find a remote job service — exclude our own by port number
+    // (our port is unique on this machine regardless of which IP it's discovered under)
+    let Some((remote_job_addr, _)) = job_services
+        .iter()
+        .find(|(_, port)| *port != local_job_port)
+    else {
+        return;
+    };
+
+    let Ok(result_services) = discover_services(RESULTS_JOB_SERVICE_NAME, timeout) else {
+        return;
+    };
+
+    // Find the results service from the same coordinator (same host)
+    let remote_host = remote_job_addr
+        .rsplit_once(':')
+        .map_or("", |(host, _)| host);
+    if let Some((remote_results_addr, _)) = result_services.iter().find(|(addr, _)| {
+        addr.rsplit_once(':')
+            .is_some_and(|(host, _)| host == remote_host)
+    }) {
+        info!(
+            "Discovered remote coordinator: jobs={remote_job_addr} results={remote_results_addr}"
+        );
+        coordinator.set_remote_addresses(
+            format!("tcp://{remote_job_addr}"),
+            format!("tcp://{remote_results_addr}"),
+        );
+    }
 }
 
 /// Bridge thread for blocking IO (readline/stdin) on a separate ZMQ socket.

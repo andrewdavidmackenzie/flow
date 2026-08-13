@@ -292,6 +292,10 @@ fn execution_loop(
         .connect(&results_service)
         .map_err(|e| format!("Could not connect to PUSH end of results socket: {e}"))?;
 
+    // Track current addresses for reconnection support
+    let mut current_job_addr = job_service;
+    let mut current_results_addr = results_service;
+
     let control_socket = context
         .socket(zmq::SocketType::SUB)
         .map_err(|e| format!("Could not create SUB end of control socket: {e}"))?;
@@ -421,6 +425,38 @@ fn execution_loop(
                         Ok("DONE") => {
                             trace!("'DONE' message received in executor");
                             return Ok(());
+                        }
+                        Ok(ctrl_msg) if ctrl_msg.starts_with("RECONNECT:") => {
+                            // Format: RECONNECT:lib:<job_addr>:<results_addr>
+                            // Context executors (name starts with "ctx:") ignore
+                            // this message to stay on the context job queue.
+                            if name.starts_with("ctx:") {
+                                trace!("Context executor '{name}' ignoring RECONNECT");
+                                continue;
+                            }
+                            let payload = &ctrl_msg["RECONNECT:lib:".len()..];
+                            if let Some(sep) = payload.rfind("tcp://") {
+                                if sep > 0 {
+                                    let new_job = &payload[..sep - 1]; // strip trailing ':'
+                                    let new_results = &payload[sep..];
+                                    info!(
+                                        "Executor '{name}' reconnecting: jobs={new_job} results={new_results}"
+                                    );
+                                    // Disconnect from current and connect to new
+                                    let _ = job_source.disconnect(&current_job_addr);
+                                    job_source
+                                        .connect(new_job)
+                                        .map_err(|e| format!("Reconnect job failed: {e}"))?;
+                                    let _ = results_sink.disconnect(&current_results_addr);
+                                    results_sink
+                                        .connect(new_results)
+                                        .map_err(|e| format!("Reconnect results failed: {e}"))?;
+                                    current_job_addr = new_job.to_string();
+                                    current_results_addr = new_results.to_string();
+                                    // Reset idle timer
+                                    last_activity = std::time::Instant::now();
+                                }
+                            }
                         }
                         Ok(_) => error!("Unexpected Control message"),
                         _ => error!("Error parsing Control message"),
@@ -1677,6 +1713,120 @@ mod test {
             .expect("send DONE");
 
         // Wait for the thread to exit
+        executor.wait();
+    }
+
+    /// Test that executor threads handle RECONNECT messages by switching
+    /// to new job/results sockets, executing jobs there, and then
+    /// responding to DONE.
+    #[cfg(feature = "flowstdlib")]
+    #[test]
+    #[serial]
+    fn executor_handles_reconnect() {
+        let mut executor = Executor::new();
+        let provider = Arc::new(TestProvider { test_content: "" }) as Arc<dyn Provider>;
+
+        // Add flowstdlib so the executor can handle lib:// jobs
+        executor
+            .add_lib(
+                flowstdlib::manifest::get().expect("flowstdlib"),
+                Url::parse("memory://").expect("url"),
+            )
+            .expect("add_lib");
+
+        let ports = (
+            pick_unused_port().expect("no port"),
+            pick_unused_port().expect("no port"),
+            pick_unused_port().expect("no port"),
+            pick_unused_port().expect("no port"),
+        );
+
+        let new_job_port = pick_unused_port().expect("no port");
+        let new_results_port = pick_unused_port().expect("no port");
+
+        let context = zmq::Context::new();
+
+        // Bind original dispatcher sockets
+        let _job_socket = {
+            let s = context.socket(zmq::PUSH).expect("PUSH");
+            s.bind(&format!("tcp://*:{}", ports.0)).expect("bind");
+            s
+        };
+        let _results_socket = {
+            let s = context.socket(zmq::PULL).expect("PULL");
+            s.bind(&format!("tcp://*:{}", ports.2)).expect("bind");
+            s
+        };
+        let control_socket = context.socket(zmq::PUB).expect("PUB");
+        control_socket
+            .bind(&format!("tcp://*:{}", ports.3))
+            .expect("bind");
+
+        // Bind new target sockets
+        let new_job_socket = context.socket(zmq::PUSH).expect("PUSH");
+        new_job_socket
+            .bind(&format!("tcp://*:{new_job_port}"))
+            .expect("bind new job");
+        let new_results_socket = context.socket(zmq::PULL).expect("PULL");
+        new_results_socket
+            .bind(&format!("tcp://*:{new_results_port}"))
+            .expect("bind new results");
+
+        executor.start(
+            &provider,
+            1,
+            &format!("tcp://127.0.0.1:{}", ports.0),
+            &format!("tcp://127.0.0.1:{}", ports.2),
+            &format!("tcp://127.0.0.1:{}", ports.3),
+        );
+
+        // Give the thread time to connect
+        std::thread::sleep(std::time::Duration::from_millis(200));
+
+        // Send RECONNECT to switch to new addresses
+        let reconnect_msg = format!(
+            "RECONNECT:lib:tcp://127.0.0.1:{new_job_port}:tcp://127.0.0.1:{new_results_port}"
+        );
+        control_socket
+            .send(reconnect_msg.as_bytes(), 0)
+            .expect("send RECONNECT");
+
+        // Give executor time to process RECONNECT
+        std::thread::sleep(std::time::Duration::from_millis(200));
+
+        // Send a job on the NEW job socket — executor should execute it there
+        let payload = Payload {
+            job_id: 42,
+            input_set: vec![serde_json::json!(7), serde_json::json!(3)],
+            implementation_url: Url::parse("lib://flowstdlib/math/add").expect("url"),
+        };
+        new_job_socket
+            .send(
+                serde_json::to_string(&payload)
+                    .expect("serialize")
+                    .as_bytes(),
+                0,
+            )
+            .expect("send job on new socket");
+
+        // Receive result on the NEW results socket
+        new_results_socket.set_rcvtimeo(5000).expect("set timeout");
+        let result_msg = new_results_socket
+            .recv_msg(0)
+            .expect("Should receive result on new results socket after RECONNECT");
+        let (job_id, _, result): (
+            usize,
+            String,
+            Result<(Option<serde_json::Value>, flowcore::RunAgain)>,
+        ) = serde_json::from_str(result_msg.as_str().expect("utf8")).expect("deserialize");
+        assert_eq!(job_id, 42, "Job ID should match");
+        let (value, _) = result.expect("Job should succeed");
+        assert_eq!(value, Some(serde_json::json!(10)), "add(7,3) should be 10");
+
+        // Send DONE to clean up
+        control_socket
+            .send("DONE".as_bytes(), 0)
+            .expect("send DONE");
         executor.wait();
     }
 }
