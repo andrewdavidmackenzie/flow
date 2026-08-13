@@ -529,8 +529,9 @@ impl FlowManifest {
     /// to a peer coordinator, considering compute weight, balance between root
     /// and peer, boundary I/O overhead, and nested sub-flow serialization.
     ///
-    /// Sub-flows containing `context://` functions get `None` (not delegatable).
-    /// Sub-flows with a non-positive score also get `None`.
+    /// Sub-flows containing `context://` functions get a heavy penalty
+    /// (each context call incurs a network round-trip when proxied).
+    /// Sub-flows with a non-positive score get `None`.
     /// The root flow always gets `None`.
     ///
     /// This is intended to be called by the compiler after the manifest is
@@ -541,6 +542,7 @@ impl FlowManifest {
         const LOOPBACK_MULTIPLIER: f64 = 2.0;
         const BOUNDARY_WEIGHT: f64 = 0.5;
         const NESTING_WEIGHT: f64 = 1.0;
+        const CONTEXT_PENALTY: f64 = 3.0;
 
         // Compute total flow weight: sum of (1 + loopback_count * multiplier)
         // for every function in the manifest
@@ -596,16 +598,12 @@ impl FlowManifest {
                 continue;
             }
 
-            // Check for context:// functions — cannot delegate
-            let has_context = subtree_funcs
+            // Count context:// functions — each incurs a network round-trip
+            // penalty when delegated (proxied back to origin)
+            let context_count = subtree_funcs
                 .iter()
-                .any(|f| f.get_implementation_location().starts_with("context://"));
-            if has_context {
-                if let Some(info) = self.flows.get_mut(&flow_id) {
-                    info.delegation_score = None;
-                }
-                continue;
-            }
+                .filter(|f| f.get_implementation_location().starts_with("context://"))
+                .count();
 
             // Compute peer weight (functions + loopback bonus)
             let peer_weight: f64 = subtree_funcs
@@ -642,10 +640,12 @@ impl FlowManifest {
             // Nested sub-flow count (excluding the flow itself)
             let nested_subflows = descendant_flows.len().saturating_sub(1);
 
-            // Compute score
+            // Compute score — context functions add heavy penalty since each
+            // invocation incurs a network round-trip for proxying
             let score = peer_weight * balance_quality
                 - boundary_count as f64 * BOUNDARY_WEIGHT
-                - nested_subflows as f64 * NESTING_WEIGHT;
+                - nested_subflows as f64 * NESTING_WEIGHT
+                - context_count as f64 * CONTEXT_PENALTY;
 
             if let Some(info) = self.flows.get_mut(&flow_id) {
                 info.delegation_score = if score > 0.0 { Some(score) } else { None };

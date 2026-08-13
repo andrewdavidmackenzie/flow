@@ -389,6 +389,9 @@ fn coordinator(
         get_connect_addresses(ports);
 
     let mut executor = Executor::new();
+    // Give the executor a ContextIO handle so delegated sub-flows can
+    // proxy context function calls back to the origin coordinator's client
+    executor.set_context_io(context_io.clone());
     #[cfg(feature = "flowstdlib")]
     if native_flowstdlib {
         executor.add_lib(
