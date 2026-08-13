@@ -84,6 +84,9 @@ pub struct Executor {
     // input_map: [(dest_func_id, dest_io_number)] maps proxy inputs to sub-flow inputs.
     loaded_subflow_manifests: SubflowRegistry,
     executors: Vec<JoinHandle<()>>,
+    // Optional ContextIO for relaying context function requests from delegated
+    // sub-flows back to the origin coordinator's client.
+    context_io: Option<crate::context_io::ContextIO>,
 }
 
 impl Default for Executor {
@@ -102,7 +105,14 @@ impl Executor {
             )),
             loaded_subflow_manifests: Arc::new(RwLock::new(HashMap::new())),
             executors: vec![],
+            context_io: None,
         }
+    }
+
+    /// Set the `ContextIO` for relaying context function requests from
+    /// delegated sub-flows back to the origin coordinator's client.
+    pub fn set_context_io(&mut self, context_io: crate::context_io::ContextIO) {
+        self.context_io = Some(context_io);
     }
 
     /// Add a library manifest so that it can be used later on to load implementations that are
@@ -228,6 +238,7 @@ impl Executor {
             let results_sink = results_service.into();
             let job_source = job_service.into();
             let control_address = control_service.into();
+            let thread_context_io = self.context_io.clone();
             let executor_id = if spawn_jobs {
                 format!("ctx:{}", make_executor_id())
             } else {
@@ -246,6 +257,7 @@ impl Executor {
                     results_sink,
                     control_address,
                     spawn_jobs,
+                    thread_context_io,
                 ) {
                     error!("Execution loop error: {e}");
                 }
@@ -274,6 +286,7 @@ fn execution_loop(
     results_service: String,
     control_address: String,
     spawn_jobs: bool,
+    context_io: Option<crate::context_io::ContextIO>,
 ) -> Result<()> {
     // After this many seconds of silence, assume the coordinator is gone and exit.
     const IDLE_EXIT_SECS: u64 = 60;
@@ -385,12 +398,21 @@ fn execution_loop(
                         let si = loaded_implementations.clone();
                         let sm = loaded_lib_manifests.clone();
                         let ssm = loaded_subflow_manifests.clone();
+                        let scio = context_io.clone();
                         let stx = spawn_result_tx
                             .as_ref()
                             .map(|(tx, _)| tx.clone())
                             .ok_or("spawn_result_tx missing")?;
                         thread::spawn(move || {
-                            match execute_job_to_string(&sp, &payload, &sn, &si, &sm, &ssm) {
+                            match execute_job_to_string(
+                                &sp,
+                                &payload,
+                                &sn,
+                                &si,
+                                &sm,
+                                &ssm,
+                                scio.as_ref(),
+                            ) {
                                 Ok(serialized) => {
                                     let _ = stx.send(serialized);
                                 }
@@ -406,6 +428,7 @@ fn execution_loop(
                             &loaded_implementations.clone(),
                             &loaded_lib_manifests.clone(),
                             &loaded_subflow_manifests.clone(),
+                            context_io.as_ref(),
                         ) {
                             Ok(keep_processing) => process_jobs = keep_processing,
                             Err(e) => error!("{e}"),
@@ -481,6 +504,7 @@ fn execute_job_to_string(
     loaded_implementations: &Arc<RwLock<HashMap<Url, Arc<dyn Implementation>>>>,
     loaded_lib_manifests: &Arc<RwLock<HashMap<Url, (LibraryManifest, Url)>>>,
     loaded_subflow_manifests: &SubflowRegistry,
+    context_io: Option<&crate::context_io::ContextIO>,
 ) -> Result<String> {
     let implementation = get_or_load_implementation(
         provider,
@@ -488,6 +512,7 @@ fn execute_job_to_string(
         loaded_implementations,
         loaded_lib_manifests,
         loaded_subflow_manifests,
+        context_io,
     )?;
 
     trace!(
@@ -526,6 +551,7 @@ fn get_or_load_implementation(
     loaded_implementations: &Arc<RwLock<HashMap<Url, Arc<dyn Implementation>>>>,
     loaded_lib_manifests: &Arc<RwLock<HashMap<Url, (LibraryManifest, Url)>>>,
     loaded_subflow_manifests: &SubflowRegistry,
+    context_io: Option<&crate::context_io::ContextIO>,
 ) -> Result<Arc<dyn Implementation>> {
     // Always reload subflow:// — registry may change between submissions.
     let needs_load = payload.implementation_url.scheme() == "subflow" || {
@@ -599,6 +625,7 @@ fn get_or_load_implementation(
                         manifest.clone(),
                         interface_inputs,
                         addr.clone(),
+                        context_io.cloned(),
                     )) as Arc<dyn Implementation>
                 }
                 _ => bail!("Unsupported scheme on implementation_url"),
@@ -632,6 +659,7 @@ fn get_or_load_implementation(
 }
 
 // Return Ok(keep_processing) flag as true or false to keep processing
+#[allow(clippy::too_many_arguments)]
 fn execute_job(
     provider: &Arc<dyn Provider>,
     payload: &Payload,
@@ -640,11 +668,18 @@ fn execute_job(
     loaded_implementations: &Arc<RwLock<HashMap<Url, Arc<dyn Implementation>>>>,
     loaded_lib_manifests: &Arc<RwLock<HashMap<Url, (LibraryManifest, Url)>>>,
     loaded_subflow_manifests: &SubflowRegistry,
+    context_io: Option<&crate::context_io::ContextIO>,
 ) -> Result<bool> {
     // Sub-flow jobs stream results back individually via run_streaming,
     // bypassing the normal single-result path.
     if payload.implementation_url.scheme() == "subflow" {
-        return execute_subflow_job(payload, results_sink, executor_id, loaded_subflow_manifests);
+        return execute_subflow_job(
+            payload,
+            results_sink,
+            executor_id,
+            loaded_subflow_manifests,
+            context_io,
+        );
     }
 
     let implementation = get_or_load_implementation(
@@ -653,6 +688,7 @@ fn execute_job(
         loaded_implementations,
         loaded_lib_manifests,
         loaded_subflow_manifests,
+        context_io,
     )?;
 
     trace!(
@@ -681,6 +717,7 @@ fn execute_subflow_job(
     results_sink: &zmq::Socket,
     executor_id: &str,
     loaded_subflow_manifests: &SubflowRegistry,
+    context_io: Option<&crate::context_io::ContextIO>,
 ) -> Result<bool> {
     let manifests = loaded_subflow_manifests
         .read()
@@ -709,6 +746,7 @@ fn execute_subflow_job(
         manifest.clone(),
         interface_inputs,
         addr.clone(),
+        context_io.cloned(),
     );
     // Drop the read lock before blocking on the peer
     drop(manifests);
@@ -1043,6 +1081,7 @@ mod test {
             &loaded_implementations,
             &loaded_lib_manifests,
             &empty_subflow_manifests(),
+            None,
         );
 
         assert!(result.is_err(), "Unsupported scheme should return an error");
@@ -1098,6 +1137,7 @@ mod test {
             &loaded_implementations,
             &loaded_lib_manifests,
             &empty_subflow_manifests(),
+            None,
         );
 
         assert!(
@@ -1155,6 +1195,7 @@ mod test {
             &loaded_implementations,
             &loaded_lib_manifests,
             &empty_subflow_manifests(),
+            None,
         );
 
         assert!(
@@ -1209,6 +1250,7 @@ mod test {
             &loaded_implementations,
             &loaded_lib_manifests,
             &empty_subflow_manifests(),
+            None,
         );
 
         assert!(
@@ -1400,6 +1442,7 @@ mod test {
                 &loaded_implementations,
                 &loaded_lib_manifests,
                 &empty_subflow_manifests(),
+                None,
             )
             .is_err());
         }
@@ -1453,6 +1496,7 @@ mod test {
             &loaded_impls,
             &loaded_manifests,
             &empty_subflow_manifests(),
+            None,
         )
         .expect("first get_or_load failed");
 
@@ -1463,6 +1507,7 @@ mod test {
             &loaded_impls,
             &loaded_manifests,
             &empty_subflow_manifests(),
+            None,
         )
         .expect("second get_or_load failed");
 
@@ -1487,6 +1532,7 @@ mod test {
             &loaded_impls,
             &loaded_manifests,
             &empty_subflow_manifests(),
+            None,
         )
         .expect("execute_job_to_string failed");
 
@@ -1518,6 +1564,7 @@ mod test {
             &loaded_impls,
             &loaded_manifests,
             &empty_subflow_manifests(),
+            None,
         );
         assert!(result.is_err(), "should fail for unknown implementation");
     }
@@ -1557,6 +1604,7 @@ mod test {
             &loaded_impls,
             &loaded_manifests,
             &empty_subflow_manifests(),
+            None,
         )
         .expect("first load from manifest failed");
 
@@ -1573,6 +1621,7 @@ mod test {
             &loaded_impls,
             &loaded_manifests,
             &empty_subflow_manifests(),
+            None,
         )
         .expect("second load (cached) failed");
 
@@ -1622,6 +1671,7 @@ mod test {
             &loaded_impls,
             &loaded_manifests,
             &empty_subflow_manifests(),
+            None,
         )
         .expect("execute_job should succeed");
 
@@ -1659,6 +1709,7 @@ mod test {
             &loaded_impls,
             &loaded_manifests,
             &empty_subflow_manifests(),
+            None,
         );
         assert!(
             result.is_err(),

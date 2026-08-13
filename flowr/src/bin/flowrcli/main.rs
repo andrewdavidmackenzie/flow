@@ -389,6 +389,9 @@ fn coordinator(
         get_connect_addresses(ports);
 
     let mut executor = Executor::new();
+    // Give the executor a ContextIO handle so delegated sub-flows can
+    // proxy context function calls back to the origin coordinator's client
+    executor.set_context_io(context_io.clone());
     #[cfg(feature = "flowstdlib")]
     if native_flowstdlib {
         executor.add_lib(
@@ -448,6 +451,8 @@ fn coordinator(
 
     // Share the executor's sub-flow registry with the coordinator
     coordinator.set_subflow_registry(executor.subflow_registry());
+    // Mark that the executor has context proxy capability
+    coordinator.set_has_context_proxy();
 
     // Set local addresses for reconnection after remote executor mode
     coordinator.set_local_addresses(job_source_name.clone(), results_sink.clone());
@@ -523,10 +528,53 @@ fn discover_and_set_remote_coordinator(coordinator: &mut Coordinator, local_job_
     }
 }
 
-/// Bridge thread for blocking IO (readline/stdin) on a separate ZMQ socket.
-///
-/// Protocol:
-/// 1. Wait for a blocking IO request from a context function via `blocking_rx`
+/// Relay context function messages from a delegated sub-flow back to the
+/// origin coordinator. Loops until `FlowEnd` is received.
+fn subflow_context_relay(
+    connection: &mut CoordinatorConnection,
+    context_rx: &std::sync::mpsc::Receiver<context::ContextRequest>,
+) {
+    use flowrlib::client_protocol::{ClientMessage, CoordinatorMessage};
+    use flowrlib::connections::WAIT;
+
+    while let Ok(ctx_request) = context_rx.recv() {
+        let is_flow_end = matches!(ctx_request.message, CoordinatorMessage::FlowEnd(..));
+
+        // Send the message as the ZMQ REP response
+        if let Err(e) = connection.send(ctx_request.message) {
+            error!("Bridge: failed to send sub-flow context message: {e}");
+            if let Some(tx) = ctx_request.response_tx {
+                let _ = tx.send(ClientMessage::Error(format!("{e}")));
+            }
+            return;
+        }
+
+        if is_flow_end {
+            // FlowEnd is the final message — ack the handler and exit
+            if let Some(tx) = ctx_request.response_tx {
+                let _ = tx.send(ClientMessage::Ack);
+            }
+            return;
+        }
+
+        // Receive the origin's context result as the next ZMQ REQ
+        match connection.receive::<ClientMessage>(WAIT) {
+            Ok(response) => {
+                if let Some(tx) = ctx_request.response_tx {
+                    let _ = tx.send(response);
+                }
+            }
+            Err(e) => {
+                error!("Bridge: failed to receive context result: {e}");
+                if let Some(tx) = ctx_request.response_tx {
+                    let _ = tx.send(ClientMessage::Error(format!("{e}")));
+                }
+                return;
+            }
+        }
+    }
+}
+
 /// 2. Wait for the client's `Ack` on ZMQ (client polls this socket)
 /// 3. Send the blocking IO request (GetLine/GetStdin) to the client
 /// 4. Wait for the client's response (Line/Stdin/etc.)
@@ -671,26 +719,14 @@ fn coordinator_bridge(
             }
 
             if is_subflow {
-                // Sub-flow from a peer coordinator: skip the interactive
-                // FlowStart/Ack protocol. Wait for the coordinator to finish
-                // and send FlowEnd directly as the REP response.
-                debug!("[BRIDGE] sub-flow submission — waiting for completion");
+                // Sub-flow from a peer coordinator: relay context messages
+                // back to the origin as ZMQ REP responses, receive context
+                // results as the next ZMQ REQ, until FlowEnd arrives.
+                debug!("[BRIDGE] sub-flow submission — entering context relay loop");
                 if let Some(response_tx) = request.response_tx {
                     let _ = response_tx.send(ClientMessage::Ack);
                 }
-                // Wait for FlowEnd from the handler
-                if let Ok(end_request) = context_rx.recv() {
-                    let response = match connection.send(end_request.message) {
-                        Ok(()) => ClientMessage::Ack,
-                        Err(e) => {
-                            error!("Bridge: failed to send sub-flow result: {e}");
-                            ClientMessage::Error(format!("{e}"))
-                        }
-                    };
-                    if let Some(tx) = end_request.response_tx {
-                        let _ = tx.send(response);
-                    }
-                }
+                subflow_context_relay(&mut connection, &context_rx);
                 continue;
             }
 

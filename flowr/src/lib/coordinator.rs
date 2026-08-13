@@ -55,6 +55,8 @@ pub struct Coordinator<'a> {
     remote_results_address: Option<String>,
     /// Whether executor threads are currently connected to a remote coordinator
     executors_remote: bool,
+    /// Whether the executor has `ContextIO` configured for context proxying
+    has_context_proxy: bool,
     /// Shared sub-flow manifest registry from the executor.
     subflow_registry: Option<crate::executor::SubflowRegistry>,
     #[cfg(feature = "debugger")]
@@ -204,6 +206,7 @@ impl<'a> Coordinator<'a> {
             remote_job_address: None,
             remote_results_address: None,
             executors_remote: false,
+            has_context_proxy: false,
             subflow_registry: None,
             #[cfg(feature = "debugger")]
             debugger: Debugger::new(debug_server),
@@ -267,6 +270,12 @@ impl<'a> Coordinator<'a> {
             std::thread::sleep(std::time::Duration::from_millis(100));
         }
         Ok(())
+    }
+
+    /// Mark that the executor has `ContextIO` configured, enabling
+    /// delegation of sub-flows containing context:// functions.
+    pub fn set_has_context_proxy(&mut self) {
+        self.has_context_proxy = true;
     }
 
     /// Set the sub-flow registry shared with the executor.
@@ -478,19 +487,25 @@ impl<'a> Coordinator<'a> {
             .delegate_subflow(flow_id)
             .map_err(|e| format!("Could not delegate sub-flow #{flow_id}: {e}"))?;
 
-        // Reject sub-flows containing context:// functions — these interact
-        // with the local environment and cannot run on a remote peer.
+        // Check for context functions — they require proxy capability
         let context_count = extracted
             .functions()
             .values()
             .filter(|f| f.get_implementation_location().starts_with("context://"))
             .count();
         if context_count > 0 {
-            return Err(format!(
-                "Cannot delegate sub-flow #{flow_id}: it contains {context_count} context:// \
-                 function(s) that must run locally"
-            )
-            .into());
+            if self.has_context_proxy {
+                info!(
+                    "Sub-flow #{flow_id} contains {context_count} context:// function(s) — \
+                     will be proxied back to origin during execution"
+                );
+            } else {
+                return Err(format!(
+                    "Cannot delegate sub-flow #{flow_id}: it contains {context_count} context:// \
+                     function(s) but no context proxy is configured"
+                )
+                .into());
+            }
         }
 
         // Rewrite file:// WASM URLs to http:// so the peer can fetch them
@@ -1356,5 +1371,30 @@ mod test {
         // Second call is a no-op (already local)
         assert!(coordinator.connect_executors_to_local().is_ok());
         assert!(!coordinator.executors_remote);
+    }
+
+    #[test]
+    #[serial]
+    fn context_proxy_flag_default_false() {
+        let dispatcher = test_dispatcher();
+        #[cfg(feature = "submission")]
+        let mut submission_handler = DummySubmissionHandler;
+        #[cfg(feature = "debugger")]
+        let mut debug_server = DummyDebugServer {
+            exit_immediately: false,
+        };
+
+        let mut coordinator = Coordinator::new(
+            dispatcher,
+            #[cfg(feature = "submission")]
+            &mut submission_handler,
+            #[cfg(feature = "debugger")]
+            &mut debug_server,
+        );
+
+        assert!(!coordinator.has_context_proxy);
+
+        coordinator.set_has_context_proxy();
+        assert!(coordinator.has_context_proxy);
     }
 }
