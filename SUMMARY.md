@@ -73,7 +73,7 @@
 - [Exceptions and Panics](book/running/panics.md)
 - [Running Flows using `flowr`](book/running/flowr.md)
 - [Running a flow in client/server mode of `flowr`](book/running/client_server.md)
-- [Distributed execution with `flowrcli --server`](book/running/distributed.md)
+- [Distributed execution with `flowrcli`](book/running/distributed.md)
 
 # Debugging Flows
 - [The Debugger](book/debugging/debugger.md)

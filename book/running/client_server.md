@@ -51,9 +51,10 @@ flowr/examples/fibonacci/manifest.json
 ```
 
 In Terminal 1, lets start the server that will wait for a flow to be submitted for execution,
-using `flowrcli` with debug logging verbosity level to be able to see what it's doing.
+using `flowrcli` with no flow manifest argument and debug logging verbosity level to be able
+to see what it's doing.
 
-`> flowrcli -n -s -v debug`
+`> flowrcli -n -v debug`
 
 which will log some lines, ending with:
 
