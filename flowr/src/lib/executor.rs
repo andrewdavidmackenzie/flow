@@ -553,8 +553,7 @@ fn get_or_load_implementation(
     loaded_subflow_manifests: &SubflowRegistry,
     context_io: Option<&crate::context_io::ContextIO>,
 ) -> Result<Arc<dyn Implementation>> {
-    // Always reload subflow:// — registry may change between submissions.
-    let needs_load = payload.implementation_url.scheme() == "subflow" || {
+    let needs_load = {
         let implementations = loaded_implementations
             .read()
             .map_err(|_| "Could not gain read access to loaded implementations map")?;
@@ -630,11 +629,6 @@ fn get_or_load_implementation(
                 }
                 _ => bail!("Unsupported scheme on implementation_url"),
             };
-            // Don't cache subflow:// implementations — the registry entry
-            // may change between submissions (different manifest or peer).
-            if payload.implementation_url.scheme() == "subflow" {
-                return Ok(impl_arc);
-            }
             implementations.insert(payload.implementation_url.clone(), impl_arc);
             trace!(
                 "Implementation '{}' added to executor",

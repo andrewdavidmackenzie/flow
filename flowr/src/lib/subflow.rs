@@ -4,7 +4,7 @@
 //! by creating a nested coordinator with its own dispatcher and executor
 //! threads.
 
-use std::sync::Arc;
+use std::sync::{Arc, Mutex};
 
 use flowcore::model::flow_manifest::FlowManifest;
 use flowcore::model::submission::Submission;
@@ -181,6 +181,9 @@ pub(crate) struct RemoteSubFlowImplementation {
     /// Optional `ContextIO` for relaying context function requests from the
     /// peer back to the origin coordinator's client.
     context_io: Option<crate::context_io::ContextIO>,
+    /// Cached connection to the peer coordinator, reused across invocations.
+    /// The peer's bridge loops back after `FlowEnd`, ready for the next submission.
+    cached_connection: Mutex<Option<crate::connections::ClientConnection>>,
 }
 
 impl RemoteSubFlowImplementation {
@@ -197,6 +200,7 @@ impl RemoteSubFlowImplementation {
             interface_inputs,
             peer_address,
             context_io,
+            cached_connection: Mutex::new(None),
         }
     }
 
@@ -240,12 +244,24 @@ impl RemoteSubFlowImplementation {
         use crate::client_protocol::{ClientMessage, CoordinatorMessage};
         use crate::connections::ClientConnection;
 
-        let connection = ClientConnection::new(&self.peer_address)
-            .map_err(|e| format!("Could not connect to peer at {}: {e}", self.peer_address))?;
-
-        connection
-            .set_receive_timeout(300_000)
-            .map_err(|e| format!("Could not set receive timeout: {e}"))?;
+        // Reuse the cached connection if available, otherwise create a new one.
+        // The peer's bridge loops back after FlowEnd, ready for the next submission.
+        let connection = {
+            let mut cached = self
+                .cached_connection
+                .lock()
+                .map_err(|_| "Could not lock cached connection")?;
+            if let Some(conn) = cached.take() {
+                conn
+            } else {
+                let conn = ClientConnection::new(&self.peer_address).map_err(|e| {
+                    format!("Could not connect to peer at {}: {e}", self.peer_address)
+                })?;
+                conn.set_receive_timeout(300_000)
+                    .map_err(|e| format!("Could not set receive timeout: {e}"))?;
+                conn
+            }
+        };
 
         connection
             .send(ClientMessage::ClientSubmission(Box::new(submission)))
@@ -260,10 +276,22 @@ impl RemoteSubFlowImplementation {
 
             match response {
                 #[cfg(feature = "metrics")]
-                CoordinatorMessage::FlowEnd(boundary_outputs, _) => return Ok(boundary_outputs),
+                CoordinatorMessage::FlowEnd(boundary_outputs, _) => {
+                    // Cache the connection for the next invocation
+                    if let Ok(mut cached) = self.cached_connection.lock() {
+                        *cached = Some(connection);
+                    }
+                    return Ok(boundary_outputs);
+                }
                 #[cfg(not(feature = "metrics"))]
-                CoordinatorMessage::FlowEnd(boundary_outputs) => return Ok(boundary_outputs),
+                CoordinatorMessage::FlowEnd(boundary_outputs) => {
+                    if let Ok(mut cached) = self.cached_connection.lock() {
+                        *cached = Some(connection);
+                    }
+                    return Ok(boundary_outputs);
+                }
                 CoordinatorMessage::CoordinatorExiting(result) => {
+                    // Don't cache — the peer exited
                     return Err(format!("Peer coordinator exited: {result:?}").into());
                 }
                 context_msg => {
