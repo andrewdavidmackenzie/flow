@@ -381,8 +381,8 @@ pub fn execute_flow_client_server(example_name: &str, manifest: PathBuf) {
 
     let mut server_command = Command::new("flowrcli");
 
-    // separate 'flowr' server process args: -n for native libs, -s to get a server process
-    let server_args = vec!["-n", "-s"];
+    // No manifest argument = coordinator-only mode; -n for native libs
+    let server_args = vec!["-n"];
 
     println!(
         "Starting 'flowrcli' as server with command line: 'flowrcli {}'",

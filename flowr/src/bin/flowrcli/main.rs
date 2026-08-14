@@ -149,7 +149,9 @@ fn run() -> Result<()> {
             #[cfg(feature = "debugger")]
             debug_this_flow,
         )
-    } else if matches.get_flag("server") {
+    } else if matches.get_one::<String>("flow-manifest").is_none() {
+        // No flow manifest provided — start as a coordinator-only server,
+        // waiting for client submissions and peer sub-flow delegations
         coordinator_only(num_threads, lib_search_path, native_flowstdlib)
     } else {
         client_and_coordinator(
@@ -458,7 +460,7 @@ fn coordinator(
     coordinator.set_local_addresses(job_source_name.clone(), results_sink.clone());
 
     // If FLOW_REMOTE_EXECUTORS is set, try to discover a remote coordinator
-    // to help while idle (dynamic executor sharing). Only for --server mode.
+    // to help while idle (dynamic executor sharing). Only for coordinator-only mode.
     if loop_forever && std::env::var("FLOW_REMOTE_EXECUTORS").is_ok() {
         discover_and_set_remote_coordinator(&mut coordinator, ports.0);
     }
@@ -987,19 +989,10 @@ fn get_matches() -> ArgMatches {
     );
 
     let app = app
-        .arg(Arg::new("server")
-             .short('s')
-             .long("server")
-             .action(clap::ArgAction::SetTrue)
-             .conflicts_with("client")
-             .help("Launch only a Coordinator (no client). Accepts both client \
-                    submissions and sub-flow delegations from other coordinators."),
-        )
         .arg(Arg::new("client")
              .short('c')
              .long("client")
              .action(clap::ArgAction::SetTrue)
-             .conflicts_with("server")
              .help("Launch only a client (no coordinator) to connect to a remote coordinator"),
         )
         .arg(Arg::new("jobs")
@@ -1037,7 +1030,9 @@ fn get_matches() -> ArgMatches {
             .help("Set verbosity level for output (trace, debug, info, warn, error(default), off)"))
         .arg(Arg::new("flow-manifest")
             .num_args(1)
-            .help("the file path of the 'flow' manifest file"))
+            .required(false)
+            .help("the file path of the 'flow' manifest file. If omitted (and --client is not set), \
+                   starts in coordinator-only mode, waiting for submissions."))
         .arg(Arg::new("flow_args")
             .num_args(0..)
             .trailing_var_arg(true)

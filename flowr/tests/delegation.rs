@@ -3,10 +3,10 @@
 use serial_test::serial;
 
 /// End-to-end test: `flowrcli --delegate` delegates a sub-flow to a second
-/// `flowrcli --server` instance acting as a peer coordinator.
+/// `flowrcli` instance (no manifest, coordinator-only mode) acting as a peer.
 ///
 /// 1. Compiles the mandlebrot example
-/// 2. Starts `flowrcli --server` as the peer coordinator
+/// 2. Starts `flowrcli` (no manifest) as the peer coordinator
 /// 3. Runs `flowrcli --delegate` with the mandlebrot manifest
 /// 4. Verifies the output PNG matches the expected file
 /// 5. Confirms delegation happened remotely via log
@@ -41,13 +41,13 @@ fn test_delegate_to_peer_flowrcli() {
     // This ensures coverage instrumentation is captured when running under cargo llvm-cov.
     let flowrcli = env!("CARGO_BIN_EXE_flowrcli");
 
-    // Start a second flowrcli as a peer coordinator
+    // Start a second flowrcli as a peer coordinator (no manifest = coordinator-only mode)
     let mut peer = Command::new(flowrcli)
-        .args(["--server", "-v", "info"])
+        .args(["-v", "info"])
         .stdout(Stdio::piped())
         .stderr(Stdio::null())
         .spawn()
-        .expect("Could not spawn flowrcli --server");
+        .expect("Could not spawn flowrcli peer");
 
     // Wait for the peer to start and advertise via mDNS
     thread::sleep(Duration::from_secs(8));

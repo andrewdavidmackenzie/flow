@@ -15,9 +15,9 @@ in the parent flow.
 
 ### How It Works
 
-1. Start a second `flowrcli` instance in server mode (`--server`). This instance
-   advertises itself as a peer coordinator via mDNS and waits for sub-flow
-   submissions.
+1. Start a second `flowrcli` instance with no flow manifest argument. This starts
+   in coordinator-only mode, advertising itself as a peer coordinator via mDNS
+   and waiting for sub-flow submissions.
 
 2. Run your flow with `flowrcli --delegate`. The `--delegate` flag tells
    `flowrcli` to look for a peer coordinator on the network. If one is found,
@@ -41,11 +41,11 @@ The sub-flow with the largest number of eligible functions is selected.
 #### Terminal 1 — start a peer coordinator
 
 ```
-flowrcli --peer -v info
+flowrcli -v info
 ```
 
-This starts `flowrcli` in server mode. It advertises itself via mDNS and
-waits for sub-flow submissions.
+This starts `flowrcli` in coordinator-only mode (no flow manifest provided).
+It advertises itself via mDNS and waits for sub-flow submissions.
 
 #### Terminal 2 — compile and run a flow with delegation
 
@@ -65,13 +65,13 @@ The resulting image is identical to running without `--delegate`.
 
 ### Cross-Machine Execution
 
-The same approach works across machines. Start `flowrcli --peer` on a remote
-machine on the same network. The mDNS discovery protocol will find it
+The same approach works across machines. Start `flowrcli` (with no manifest) on a
+remote machine on the same network. The mDNS discovery protocol will find it
 automatically — no configuration needed.
 
-```
+```shell
 # Machine A (peer coordinator)
-flowrcli --peer -v info
+flowrcli -v info
 
 # Machine B (run the flow)
 flowrcli --delegate -v info flowr/examples/mandlebrot/manifest.json -- output.png '[200,150]' '[[-1.20,0.35],[-1,0.20]]'
@@ -90,7 +90,7 @@ startup. Future versions may support discovering peers mid-execution.
 
 ### Architecture
 
-Each `flowrcli --peer` instance runs its own coordinator with:
+Each `flowrcli` peer instance runs its own coordinator with:
 - A ZMQ REP socket for receiving sub-flow submissions
 - Its own dispatcher and executor pool for running received sub-flows
 - mDNS advertisement so parent coordinators can discover it
