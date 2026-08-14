@@ -69,7 +69,7 @@ The same approach works across machines. Start `flowrcli` (with no manifest) on 
 remote machine on the same network. The mDNS discovery protocol will find it
 automatically — no configuration needed.
 
-```
+```shell
 # Machine A (peer coordinator)
 flowrcli -v info
 

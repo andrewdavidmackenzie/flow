@@ -41,6 +41,6 @@ Those functions are organized into the following modules, each with multiple fun
 * [stdio](src/bin/flowrcli/context/stdio/stdio.md) - used to interact with stdio
 
 ## Distributed Execution
-`flowrcli` (with no flow manifest argument) starts in coordinator-only mode, acting as a peer
-coordinator that accepts delegated sub-flows from other coordinators over the network.
+`flowrcli` (with no flow manifest argument and without `--client`) starts in coordinator-only mode,
+acting as a peer coordinator that accepts delegated sub-flows from other coordinators over the network.
 See the [distributed](../book/running/distributed.md) section for details.

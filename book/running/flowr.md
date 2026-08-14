@@ -45,8 +45,8 @@ environment variable, or using one or more instance of the `-L, --libdir <LIB_DI
 After the Options you can supply an optional field for where to load the root flow from. This can be a relative or 
 absolute path when no Url scheme is used, an absolute path if the `file://` scheme is used or a web resources if
 either the `http` or `https` scheme is used.
-* If no argument is supplied, `flowrcli` starts in coordinator-only mode, waiting for client submissions 
-  and peer sub-flow delegations (see [distributed execution](distributed.md))
+* If no argument is supplied (and `--client` is not set), `flowrcli` starts in coordinator-only mode,
+  waiting for client submissions and peer sub-flow delegations (see [distributed execution](distributed.md))
 * If it's a directory then it attempts to load "root.toml" from within the directory
 * If it's a file then it attempts to load the root flow from that file
 
