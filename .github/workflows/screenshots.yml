@@ -12,7 +12,6 @@ on:
 
 env:
   CARGO_TERM_COLOR: always
-  ICED_TEST_BACKEND: tiny-skia
 
 jobs:
   screenshots:
@@ -51,17 +50,24 @@ jobs:
         if: steps.check_bot.outputs.skip != 'true' && github.event_name == 'pull_request'
         run: |
           mkdir -p /tmp/baseline
-          git show origin/master:assets/screenshots/ 2>/dev/null | while read f; do
-            git show "origin/master:assets/screenshots/$f" > "/tmp/baseline/$f" 2>/dev/null || true
-          done
-          ls /tmp/baseline/ || echo "No baseline screenshots found"
+          git fetch --no-tags --depth=1 origin master
+          if git ls-tree --name-only origin/master:assets/screenshots/ >/tmp/baseline-files 2>/dev/null; then
+            while IFS= read -r f; do
+              case "$f" in
+                *.png)
+                  git show "origin/master:assets/screenshots/$f" > "/tmp/baseline/$f"
+                  ;;
+              esac
+            done < /tmp/baseline-files
+          fi
+          ls -la /tmp/baseline/ || echo "No baseline screenshots found"
 
       - name: Generate screenshots
         if: steps.check_bot.outputs.skip != 'true'
         run: |
           rm -f assets/screenshots/*.png
-          cargo test -p flowedit screenshot_ -- --test-threads=1
-          cargo test -p flowr --bin flowrgui screenshot_ -- --test-threads=1
+          cargo test -p flowedit screenshot_ -- --ignored --test-threads=1
+          cargo test -p flowr --bin flowrgui screenshot_ -- --ignored --test-threads=1
           echo "Generated screenshots:"
           ls -la assets/screenshots/*.png
 
@@ -109,12 +115,17 @@ jobs:
       - name: Post PR comment
         if: steps.check_bot.outputs.skip != 'true' && github.event_name == 'pull_request'
         uses: actions/github-script@v7
+        env:
+          CHANGED: ${{ steps.compare.outputs.changed }}
+          NEW: ${{ steps.compare.outputs.new }}
+          REMOVED: ${{ steps.compare.outputs.removed }}
+          HAS_CHANGES: ${{ steps.compare.outputs.has_changes }}
         with:
           script: |
-            const changed = '${{ steps.compare.outputs.changed }}'.trim().split(/\s+/).filter(Boolean);
-            const added = '${{ steps.compare.outputs.new }}'.trim().split(/\s+/).filter(Boolean);
-            const removed = '${{ steps.compare.outputs.removed }}'.trim().split(/\s+/).filter(Boolean);
-            const hasChanges = '${{ steps.compare.outputs.has_changes }}' === 'true';
+            const changed = (process.env.CHANGED || '').trim().split(/\s+/).filter(Boolean);
+            const added = (process.env.NEW || '').trim().split(/\s+/).filter(Boolean);
+            const removed = (process.env.REMOVED || '').trim().split(/\s+/).filter(Boolean);
+            const hasChanges = process.env.HAS_CHANGES === 'true';
             const runUrl = `${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`;
 
             let body = '## Screenshot Comparison\n\n';

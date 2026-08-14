@@ -1,7 +1,7 @@
 # Screenshots
 
-Automatically generated screenshots of flow's GUI and CLI tools.
-These images are updated on every push to `main` via the screenshots workflow.
+Automatically generated screenshots of flow's GUI tools (`flowedit` and `flowrgui`).
+These images are updated on every push to `master` via the screenshots workflow.
 
 ## Flow Editor (`flowedit`)
 

@@ -1,5 +1,12 @@
 #![allow(clippy::indexing_slicing, clippy::unwrap_used, clippy::expect_used)]
 
+//! Screenshot tests for `flowedit`.
+//!
+//! These are `#[ignore = "screenshot tests only run via make screenshots"]`d by default and only run via `make screenshots`
+//! or `cargo test -- --ignored --test-threads=1`. They generate PNG
+//! screenshots into `assets/screenshots/` using the headless `tiny-skia`
+//! renderer and compare against existing gold standard images.
+
 use super::*;
 use crate::library_panel::{self, LibraryTree};
 use flowcore::model::flow_definition::FlowDefinition;
@@ -120,6 +127,7 @@ fn sample_flow() -> FlowDefinition {
 }
 
 #[test]
+#[ignore = "screenshot tests only run via make screenshots"]
 fn screenshot_startup() {
     force_tiny_skia();
     let (app, win_id) = screenshot_app_with_flow(FlowDefinition::default());
@@ -134,6 +142,7 @@ fn screenshot_startup() {
 }
 
 #[test]
+#[ignore = "screenshot tests only run via make screenshots"]
 fn screenshot_fibonacci() {
     force_tiny_skia();
     let (app, win_id) = screenshot_app_with_flow(sample_flow());
@@ -148,6 +157,7 @@ fn screenshot_fibonacci() {
 }
 
 #[test]
+#[ignore = "screenshot tests only run via make screenshots"]
 fn screenshot_node_selected() {
     force_tiny_skia();
     let (mut app, win_id) = screenshot_app_with_flow(sample_flow());
@@ -166,6 +176,7 @@ fn screenshot_node_selected() {
 }
 
 #[test]
+#[ignore = "screenshot tests only run via make screenshots"]
 fn screenshot_metadata_panel() {
     force_tiny_skia();
     let flow = FlowDefinition {

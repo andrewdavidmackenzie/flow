@@ -4496,6 +4496,7 @@ mod test {
     }
 
     #[test]
+    #[ignore = "screenshot tests only run via make screenshots"]
     fn screenshot_startup() {
         use iced_test::simulator::simulator;
         force_tiny_skia();
@@ -4511,6 +4512,7 @@ mod test {
     }
 
     #[test]
+    #[ignore = "screenshot tests only run via make screenshots"]
     fn screenshot_submitted_stdout() {
         use iced_test::simulator::simulator;
         force_tiny_skia();
@@ -4534,6 +4536,7 @@ mod test {
     }
 
     #[test]
+    #[ignore = "screenshot tests only run via make screenshots"]
     fn screenshot_stderr_tab() {
         use iced_test::simulator::simulator;
         force_tiny_skia();
@@ -4557,6 +4560,7 @@ mod test {
     }
 
     #[test]
+    #[ignore = "screenshot tests only run via make screenshots"]
     fn screenshot_settings_panel() {
         use iced_test::simulator::simulator;
         force_tiny_skia();
@@ -4573,6 +4577,7 @@ mod test {
     }
 
     #[test]
+    #[ignore = "screenshot tests only run via make screenshots"]
     fn screenshot_metrics_panel() {
         use flowcore::model::metrics::Metrics;
         use iced_test::simulator::simulator;
