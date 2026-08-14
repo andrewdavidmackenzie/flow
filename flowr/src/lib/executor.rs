@@ -671,6 +671,7 @@ fn execute_job(
             payload,
             results_sink,
             executor_id,
+            loaded_implementations,
             loaded_subflow_manifests,
             context_io,
         );
@@ -705,14 +706,35 @@ fn execute_job(
     Ok(true)
 }
 
-/// Execute a sub-flow job by streaming boundary outputs back individually.
+/// Execute a sub-flow job. If a cached implementation exists (from a
+/// previous invocation), reuses it (and its cached connection).
 fn execute_subflow_job(
     payload: &Payload,
     results_sink: &zmq::Socket,
     executor_id: &str,
+    loaded_implementations: &Arc<RwLock<HashMap<Url, Arc<dyn Implementation>>>>,
     loaded_subflow_manifests: &SubflowRegistry,
     context_io: Option<&crate::context_io::ContextIO>,
 ) -> Result<bool> {
+    // Check if we already have a cached implementation (with its connection)
+    let cached = {
+        let impls = loaded_implementations
+            .read()
+            .map_err(|_| "Could not read loaded implementations")?;
+        impls.get(&payload.implementation_url).cloned()
+    };
+    if let Some(impl_arc) = cached {
+        // Reuse cached implementation — connection stays alive
+        let result = impl_arc.run(&payload.input_set);
+        results_sink
+            .send(
+                serde_json::to_string(&(payload.job_id, executor_id, result))?.as_bytes(),
+                0,
+            )
+            .map_err(|_| "Could not send result of Job")?;
+        return Ok(true);
+    }
+
     let manifests = loaded_subflow_manifests
         .read()
         .map_err(|_| "Could not read subflow manifests")?;
@@ -736,21 +758,27 @@ fn execute_subflow_job(
             destination_io_number: *dest_io,
         })
         .collect();
-    let remote = crate::subflow::RemoteSubFlowImplementation::new(
+    let remote = Arc::new(crate::subflow::RemoteSubFlowImplementation::new(
         manifest.clone(),
         interface_inputs,
         addr.clone(),
         context_io.cloned(),
-    );
+    ));
     // Drop the read lock before blocking on the peer
     drop(manifests);
 
+    // First invocation uses run_streaming for backward compatibility
     remote.run_streaming(
         &payload.input_set,
         payload.job_id,
         executor_id,
         results_sink,
     )?;
+
+    // Cache for subsequent invocations (which will use run() via the cache path)
+    if let Ok(mut impls) = loaded_implementations.write() {
+        impls.insert(payload.implementation_url.clone(), remote);
+    }
 
     Ok(true)
 }

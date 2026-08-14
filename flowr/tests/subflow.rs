@@ -791,6 +791,246 @@ fn peer_coordinator_executes_subflow() {
     );
 }
 
+/// Test that multiple sub-flow submissions work on the same peer coordinator,
+/// verifying that the peer's bridge loops back correctly after each `FlowEnd`.
+#[cfg_attr(target_os = "windows", ignore)]
+#[test]
+#[allow(clippy::too_many_lines)]
+fn peer_handles_multiple_submissions() {
+    use flowcore::model::flow_manifest::FlowInfo;
+    use flowcore::model::input::{Input, InputInitializer};
+    use flowcore::model::metadata::MetaData;
+    use flowcore::model::output_connection::{OutputConnection, Source};
+    use flowcore::model::runtime_function::RuntimeFunction;
+    use flowrlib::client_protocol::{ClientMessage, CoordinatorMessage};
+    use flowrlib::connections::{ClientConnection, CoordinatorConnection, WAIT};
+    use std::sync::Arc;
+
+    // Build a sub-flow: add(a,b) with boundary output to #10:0
+    let build_manifest = |a: i64, b: i64| {
+        let mut manifest = FlowManifest::new(MetaData::default());
+        manifest.add_flow_info(FlowInfo {
+            process_id: 0,
+            parent_id: None,
+            sub_flow_ids: vec![],
+            delegation_score: None,
+            #[cfg(feature = "debugger")]
+            name: "subflow".into(),
+            #[cfg(feature = "debugger")]
+            route: "/subflow".into(),
+        });
+
+        let mut func = RuntimeFunction::new(
+            #[cfg(feature = "debugger")]
+            "add",
+            #[cfg(feature = "debugger")]
+            "/subflow/add",
+            "lib://flowstdlib/math/add",
+            vec![
+                Input::new(
+                    #[cfg(feature = "debugger")]
+                    "i1",
+                    0,
+                    false,
+                    Some(InputInitializer::Once(serde_json::json!(a))),
+                    None,
+                ),
+                Input::new(
+                    #[cfg(feature = "debugger")]
+                    "i2",
+                    0,
+                    false,
+                    Some(InputInitializer::Once(serde_json::json!(b))),
+                    None,
+                ),
+            ],
+            1,
+            0,
+            &[OutputConnection::new(
+                Source::default(),
+                10,
+                0,
+                0,
+                false,
+                String::new(),
+                #[cfg(feature = "debugger")]
+                String::new(),
+            )],
+            false,
+        );
+        let dummy_url = url::Url::parse("file:///dummy/manifest.json").expect("URL");
+        func.set_implementation_url(&dummy_url).expect("set URL");
+        manifest.add_function(func);
+        manifest
+    };
+
+    let peer_port = portpicker::pick_unused_port().expect("port");
+
+    // Peer coordinator that accepts TWO submissions
+    let peer_thread = std::thread::spawn(move || {
+        let mut conn = CoordinatorConnection::new("peer", peer_port).expect("conn");
+
+        let ports = (
+            portpicker::pick_unused_port().expect("port"),
+            portpicker::pick_unused_port().expect("port"),
+            portpicker::pick_unused_port().expect("port"),
+            portpicker::pick_unused_port().expect("port"),
+        );
+        let bind_addrs = (
+            format!("tcp://*:{}", ports.0),
+            format!("tcp://*:{}", ports.1),
+            format!("tcp://*:{}", ports.2),
+            format!("tcp://*:{}", ports.3),
+        );
+        let connect_addrs = (
+            format!("tcp://127.0.0.1:{}", ports.0),
+            format!("tcp://127.0.0.1:{}", ports.1),
+            format!("tcp://127.0.0.1:{}", ports.2),
+            format!("tcp://127.0.0.1:{}", ports.3),
+        );
+
+        let dispatcher = flowrlib::dispatcher::Dispatcher::new(&bind_addrs).expect("dispatcher");
+        let provider = Arc::new(TestProvider) as Arc<dyn flowcore::provider::Provider>;
+
+        let mut executor = flowrlib::executor::Executor::new();
+        #[cfg(feature = "flowstdlib")]
+        executor
+            .add_lib(
+                flowstdlib::manifest::get().expect("flowstdlib"),
+                url::Url::parse("memory://").expect("url"),
+            )
+            .expect("add_lib");
+        executor.start(
+            &provider,
+            1,
+            &connect_addrs.0,
+            &connect_addrs.2,
+            &connect_addrs.3,
+        );
+
+        std::thread::sleep(std::time::Duration::from_millis(100));
+
+        #[cfg(feature = "debugger")]
+        let mut debug_handler = flowrlib::subflow::NoOpDebugHandler;
+        #[cfg(feature = "submission")]
+        let mut no_op = flowrlib::subflow::NoOpSubmissionHandler;
+
+        let mut coordinator = flowrlib::coordinator::Coordinator::new(
+            dispatcher,
+            #[cfg(feature = "submission")]
+            &mut no_op,
+            #[cfg(feature = "debugger")]
+            &mut debug_handler,
+        );
+
+        // Process TWO submissions sequentially
+        let mut results = Vec::new();
+        for _ in 0..2 {
+            let msg: ClientMessage = conn.receive(WAIT).expect("receive submission");
+            if let ClientMessage::ClientSubmission(submission) = msg {
+                let state = coordinator
+                    .execute_subflow(*submission)
+                    .expect("execute subflow");
+                let boundary_outputs: Vec<flowrlib::client_protocol::BoundaryOutputEntry> = state
+                    .boundary_outputs()
+                    .iter()
+                    .map(|bo| flowrlib::client_protocol::BoundaryOutputEntry {
+                        connection: bo.connection.clone(),
+                        value: bo.value.clone(),
+                    })
+                    .collect();
+                #[cfg(feature = "metrics")]
+                let flow_end = CoordinatorMessage::FlowEnd(
+                    boundary_outputs.clone(),
+                    flowcore::model::metrics::Metrics::new(0, 0),
+                );
+                #[cfg(not(feature = "metrics"))]
+                let flow_end = CoordinatorMessage::FlowEnd(boundary_outputs.clone());
+                conn.send(flow_end).expect("send FlowEnd");
+                results.push(boundary_outputs);
+            }
+        }
+
+        let _ = coordinator.send_done();
+        executor.wait();
+        results
+    });
+
+    std::thread::sleep(std::time::Duration::from_millis(200));
+
+    // Submit TWO sub-flows on the SAME connection
+    let peer_address = format!("127.0.0.1:{peer_port}");
+    let connection = ClientConnection::new(&peer_address).expect("connect");
+    connection.set_receive_timeout(300_000).expect("timeout");
+
+    // First submission: add(7, 3) = 10
+    let manifest1 = build_manifest(7, 3);
+    let mut sub1 = Submission::new(
+        manifest1,
+        None,
+        None,
+        #[cfg(feature = "debugger")]
+        false,
+        #[cfg(feature = "trace")]
+        None,
+    );
+    sub1.is_subflow = true;
+    connection
+        .send(ClientMessage::ClientSubmission(Box::new(sub1)))
+        .expect("send sub1");
+    let resp1: CoordinatorMessage = connection.receive().expect("receive resp1");
+
+    // Second submission: add(100, 200) = 300
+    let manifest2 = build_manifest(100, 200);
+    let mut sub2 = Submission::new(
+        manifest2,
+        None,
+        None,
+        #[cfg(feature = "debugger")]
+        false,
+        #[cfg(feature = "trace")]
+        None,
+    );
+    sub2.is_subflow = true;
+    connection
+        .send(ClientMessage::ClientSubmission(Box::new(sub2)))
+        .expect("send sub2");
+    let resp2: CoordinatorMessage = connection.receive().expect("receive resp2");
+
+    // Extract boundary outputs from FlowEnd responses
+    #[cfg(feature = "metrics")]
+    let get_outputs = |msg: CoordinatorMessage| match msg {
+        CoordinatorMessage::FlowEnd(outputs, _) => outputs,
+        other => panic!("Expected FlowEnd, got: {other}"),
+    };
+    #[cfg(not(feature = "metrics"))]
+    let get_outputs = |msg: CoordinatorMessage| match msg {
+        CoordinatorMessage::FlowEnd(outputs) => outputs,
+        other => panic!("Expected FlowEnd, got: {other}"),
+    };
+    let outputs1 = get_outputs(resp1);
+    let outputs2 = get_outputs(resp2);
+
+    assert_eq!(
+        outputs1.first().map(|o| &o.value),
+        Some(&serde_json::json!(10)),
+        "First invocation: add(7,3) should be 10"
+    );
+    assert_eq!(
+        outputs2.first().map(|o| &o.value),
+        Some(&serde_json::json!(300)),
+        "Second invocation: add(100,200) should be 300"
+    );
+
+    drop(connection);
+    let peer_results = peer_thread.join().expect("peer thread panicked");
+    assert_eq!(
+        peer_results.len(),
+        2,
+        "Peer should have processed 2 submissions"
+    );
+}
+
 /// End-to-end test: delegate a sub-flow containing a WASM function (`add.wasm`)
 /// to a coordinator, verifying that:
 /// 1. The root coordinator rewrites the `file://` WASM URL to `http://`
