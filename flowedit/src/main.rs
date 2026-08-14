@@ -48,6 +48,9 @@ pub(crate) use window_state::{InitializerEditor, WindowKind, WindowState};
 #[cfg(test)]
 mod ui_test;
 
+#[cfg(test)]
+mod screenshot_test;
+
 /// Entry point for the `flowedit` application.
 ///
 /// Parses CLI arguments, loads the flow definition, and launches the iced GUI.

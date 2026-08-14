@@ -122,6 +122,15 @@ endif
 	cargo test
 	cargo test --examples
 
+.PHONY: screenshots
+screenshots: build
+	@echo "screenshots<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<"
+	@rm -f assets/screenshots/*.png
+	ICED_TEST_BACKEND=tiny-skia cargo test -p flowedit screenshot_ -- --test-threads=1
+	ICED_TEST_BACKEND=tiny-skia cargo test -p flowr --bin flowrgui screenshot_ -- --test-threads=1
+	@echo "Screenshots written to assets/screenshots/"
+	@ls assets/screenshots/*.png
+
 .PHONY: tla
 tla: build check-binary-paths
 	@echo "tla<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<"
