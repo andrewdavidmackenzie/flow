@@ -15,3 +15,6 @@ coverage:
       default:
         target: auto
         threshold: 20%
+
+ignore:
+  - "flowedit/src/screenshot_test.rs"
