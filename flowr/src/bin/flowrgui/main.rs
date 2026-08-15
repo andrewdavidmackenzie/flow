@@ -4485,6 +4485,15 @@ mod test {
         std::env::set_var("ICED_TEST_BACKEND", "tiny-skia");
     }
 
+    /// Create a test GUI with a Connected coordinator state (dummy channels).
+    fn test_gui_connected() -> FlowrGui {
+        let (sender, _rx) = tokio::sync::mpsc::channel(1);
+        let (blocking_sender, _brx) = tokio::sync::mpsc::channel(1);
+        let mut gui = test_gui();
+        gui.coordinator_state = CoordinatorState::Connected(sender, blocking_sender);
+        gui
+    }
+
     /// Return the path to `assets/screenshots/` relative to the project root.
     fn screenshot_path(name: &str) -> std::path::PathBuf {
         std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR"))
@@ -4516,7 +4525,7 @@ mod test {
     fn screenshot_submitted_stdout() {
         use iced_test::simulator::simulator;
         force_tiny_skia();
-        let mut gui = test_gui();
+        let mut gui = test_gui_connected();
         gui.submitted = true;
         gui.running = true;
         gui.submission_settings.flow_manifest_url = "flowr/examples/fibonacci".into();
@@ -4540,7 +4549,7 @@ mod test {
     fn screenshot_stderr_tab() {
         use iced_test::simulator::simulator;
         force_tiny_skia();
-        let mut gui = test_gui();
+        let mut gui = test_gui_connected();
         gui.submitted = true;
         gui.running = true;
         drop(
@@ -4582,7 +4591,7 @@ mod test {
         use flowcore::model::metrics::Metrics;
         use iced_test::simulator::simulator;
         force_tiny_skia();
-        let mut gui = test_gui();
+        let mut gui = test_gui_connected();
         gui.active_panel = Some(PanelKind::Metrics);
         gui.submitted = true;
         let mut metrics = Metrics::new(3, 3);

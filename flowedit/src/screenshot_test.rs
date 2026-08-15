@@ -2,13 +2,14 @@
 
 //! Screenshot tests for `flowedit`.
 //!
-//! These are `#[ignore = "screenshot tests only run via make screenshots"]`d by default and only run via `make screenshots`
+//! These are ignored by default and only run via `make screenshots`
 //! or `cargo test -- --ignored --test-threads=1`. They generate PNG
 //! screenshots into `assets/screenshots/` using the headless `tiny-skia`
 //! renderer and compare against existing gold standard images.
 
 use super::*;
 use crate::library_panel::{self, LibraryTree};
+use flowcore::model::connection::Connection;
 use flowcore::model::flow_definition::FlowDefinition;
 use flowcore::model::name::Name;
 use flowcore::model::process_reference::ProcessReference;
@@ -33,6 +34,86 @@ fn screenshot_path(name: &str) -> std::path::PathBuf {
         .join(name)
 }
 
+/// Build the full flowstdlib library tree with all 6 categories.
+fn full_library_tree() -> LibraryTree {
+    LibraryTree {
+        libraries: vec![library_panel::LibraryEntry {
+            name: "flowstdlib".into(),
+            categories: vec![
+                library_panel::CategoryEntry {
+                    name: "charts".into(),
+                    function_urls: vec![
+                        Url::parse("lib://flowstdlib/charts/histogram").expect("url"),
+                        Url::parse("lib://flowstdlib/charts/time_series").expect("url"),
+                    ],
+                    expanded: false,
+                },
+                library_panel::CategoryEntry {
+                    name: "control".into(),
+                    function_urls: vec![
+                        Url::parse("lib://flowstdlib/control/compare_switch").expect("url"),
+                        Url::parse("lib://flowstdlib/control/index").expect("url"),
+                        Url::parse("lib://flowstdlib/control/join").expect("url"),
+                        Url::parse("lib://flowstdlib/control/route").expect("url"),
+                        Url::parse("lib://flowstdlib/control/select").expect("url"),
+                        Url::parse("lib://flowstdlib/control/tap").expect("url"),
+                    ],
+                    expanded: false,
+                },
+                library_panel::CategoryEntry {
+                    name: "data".into(),
+                    function_urls: vec![
+                        Url::parse("lib://flowstdlib/data/accumulate").expect("url"),
+                        Url::parse("lib://flowstdlib/data/append").expect("url"),
+                        Url::parse("lib://flowstdlib/data/count").expect("url"),
+                        Url::parse("lib://flowstdlib/data/duplicate").expect("url"),
+                        Url::parse("lib://flowstdlib/data/enumerate").expect("url"),
+                        Url::parse("lib://flowstdlib/data/info").expect("url"),
+                        Url::parse("lib://flowstdlib/data/max").expect("url"),
+                        Url::parse("lib://flowstdlib/data/min").expect("url"),
+                        Url::parse("lib://flowstdlib/data/sort").expect("url"),
+                        Url::parse("lib://flowstdlib/data/split").expect("url"),
+                        Url::parse("lib://flowstdlib/data/zip").expect("url"),
+                    ],
+                    expanded: false,
+                },
+                library_panel::CategoryEntry {
+                    name: "fmt".into(),
+                    function_urls: vec![
+                        Url::parse("lib://flowstdlib/fmt/reverse").expect("url"),
+                        Url::parse("lib://flowstdlib/fmt/to_json").expect("url"),
+                        Url::parse("lib://flowstdlib/fmt/to_string").expect("url"),
+                    ],
+                    expanded: false,
+                },
+                library_panel::CategoryEntry {
+                    name: "math".into(),
+                    function_urls: vec![
+                        Url::parse("lib://flowstdlib/math/add").expect("url"),
+                        Url::parse("lib://flowstdlib/math/compare").expect("url"),
+                        Url::parse("lib://flowstdlib/math/divide").expect("url"),
+                        Url::parse("lib://flowstdlib/math/multiply").expect("url"),
+                        Url::parse("lib://flowstdlib/math/sqrt").expect("url"),
+                        Url::parse("lib://flowstdlib/math/subtract").expect("url"),
+                    ],
+                    expanded: true,
+                },
+                library_panel::CategoryEntry {
+                    name: "matrix".into(),
+                    function_urls: vec![
+                        Url::parse("lib://flowstdlib/matrix/compose_matrix").expect("url"),
+                        Url::parse("lib://flowstdlib/matrix/duplicate_rows").expect("url"),
+                        Url::parse("lib://flowstdlib/matrix/multiply_row").expect("url"),
+                        Url::parse("lib://flowstdlib/matrix/transpose").expect("url"),
+                    ],
+                    expanded: false,
+                },
+            ],
+            expanded: true,
+        }],
+    }
+}
+
 fn screenshot_app_with_flow(flow: FlowDefinition) -> (FlowEdit, window::Id) {
     let win_id = window::Id::unique();
     let win_state = WindowState {
@@ -45,37 +126,7 @@ fn screenshot_app_with_flow(flow: FlowDefinition) -> (FlowEdit, window::Id) {
         root_flow: flow,
         root_window: Some(win_id),
         focused_window: Some(win_id),
-        library_tree: LibraryTree {
-            libraries: vec![library_panel::LibraryEntry {
-                name: "flowstdlib".into(),
-                categories: vec![
-                    library_panel::CategoryEntry {
-                        name: "control".into(),
-                        function_urls: vec![Url::parse("lib://flowstdlib/control/compare_switch")
-                            .expect("valid url")],
-                        expanded: false,
-                    },
-                    library_panel::CategoryEntry {
-                        name: "math".into(),
-                        function_urls: vec![
-                            Url::parse("lib://flowstdlib/math/add").expect("valid url"),
-                            Url::parse("lib://flowstdlib/math/subtract").expect("valid url"),
-                            Url::parse("lib://flowstdlib/math/multiply").expect("valid url"),
-                        ],
-                        expanded: true,
-                    },
-                    library_panel::CategoryEntry {
-                        name: "data".into(),
-                        function_urls: vec![
-                            Url::parse("lib://flowstdlib/data/append").expect("valid url"),
-                            Url::parse("lib://flowstdlib/data/count").expect("valid url"),
-                        ],
-                        expanded: false,
-                    },
-                ],
-                expanded: true,
-            }],
-        },
+        library_tree: full_library_tree(),
         ..Default::default()
     };
     (app, win_id)
@@ -121,6 +172,12 @@ fn sample_flow() -> FlowDefinition {
                 width: Some(180.0),
                 height: Some(120.0),
             },
+        ],
+        connections: vec![
+            Connection::new("add", "compare"),
+            Connection::new_named("next value", "add", "stdout"),
+            Connection::new("compare", "const_1"),
+            Connection::new("const_1", "add"),
         ],
         ..FlowDefinition::default()
     }
