@@ -37,6 +37,12 @@ jobs:
       - name: Install stable toolchain
         if: steps.check_bot.outputs.skip != 'true'
         uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: wasm32-unknown-unknown
+
+      - name: Setup PATH
+        if: steps.check_bot.outputs.skip != 'true'
+        run: echo "PATH=$GITHUB_WORKSPACE/target/debug:$PATH" >> "$GITHUB_ENV"
 
       - name: Install system dependencies
         if: steps.check_bot.outputs.skip != 'true'
@@ -45,6 +51,10 @@ jobs:
       - name: Cache cargo registry and build
         if: steps.check_bot.outputs.skip != 'true'
         uses: Swatinem/rust-cache@v2
+
+      - name: Build (including flowstdlib)
+        if: steps.check_bot.outputs.skip != 'true'
+        run: make build
 
       - name: Save baseline screenshots from main
         if: steps.check_bot.outputs.skip != 'true' && github.event_name == 'pull_request'
