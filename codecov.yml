@@ -18,3 +18,4 @@ coverage:
 
 ignore:
   - "flowedit/src/screenshot_test.rs"
+  - "flowr/src/bin/flowrgui/screenshot_test.rs"
