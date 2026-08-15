@@ -52,7 +52,7 @@ jobs:
         if: steps.check_bot.outputs.skip != 'true'
         run: |
           FREEZE_VERSION="0.2.2"
-          curl -fsSL "https://github.com/charmbracelet/freeze/releases/download/v${FREEZE_VERSION}/freeze_${FREEZE_VERSION}_Linux_x86_64.tar.gz" | tar xz -C /usr/local/bin freeze
+          curl -fsSL "https://github.com/charmbracelet/freeze/releases/download/v${FREEZE_VERSION}/freeze_${FREEZE_VERSION}_Linux_x86_64.tar.gz" | tar xz --strip-components=1 -C /usr/local/bin "freeze_${FREEZE_VERSION}_Linux_x86_64/freeze"
           freeze --version
 
       - name: Cache cargo registry and build
