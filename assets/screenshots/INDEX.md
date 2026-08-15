@@ -8,7 +8,8 @@ These images are updated on every push to `master` via the screenshots workflow.
 | Screenshot | Description |
 |---|---|
 | ![flowedit-startup](flowedit-startup-tiny-skia.png) | Empty editor on startup |
-| ![flowedit-fibonacci](flowedit-fibonacci-tiny-skia.png) | Fibonacci flow loaded in the editor |
+| ![flowedit-fibonacci](flowedit-fibonacci-tiny-skia.png) | Fibonacci flow with nodes, connections, and ports |
+| ![flowedit-mandlebrot](flowedit-mandlebrot-tiny-skia.png) | Mandlebrot flow (complex graph with sub-flows) |
 | ![flowedit-node-selected](flowedit-node-selected-tiny-skia.png) | A node selected in the canvas |
 | ![flowedit-metadata-panel](flowedit-metadata-panel-tiny-skia.png) | Metadata panel showing flow information |
 
