@@ -3259,8 +3259,10 @@ impl FlowrGui {
             if data.width != width || data.height != height {
                 data.width = width;
                 data.height = height;
-                data.data = RgbaImage::new(width, height);
             }
+            // Always recreate the buffer so shorter rows don't retain
+            // stale pixels from a previous frame
+            data.data = RgbaImage::new(width, height);
             let buf_width = data.width as usize;
             let buf = data.data.as_mut();
             for (y, row) in grid.iter().enumerate() {
@@ -4522,5 +4524,33 @@ mod test {
         assert_eq!(img.width, 2);
         assert_eq!(img.data.get_pixel(0, 1), &Rgba([30, 30, 30, 255]));
         assert_eq!(img.data.get_pixel(1, 1), &Rgba([40, 40, 40, 255]));
+    }
+
+    #[test]
+    fn image_write_shorter_row_clears_stale_pixels() {
+        let mut gui = test_gui();
+        gui.running = true;
+        // First write: full 3x2 grid
+        let grid1 = vec![vec![10, 20, 30], vec![40, 50, 60]];
+        drop(
+            gui.update(Message::CoordinatorSent(CoordinatorMessage::ImageWrite(
+                grid1,
+                "test.png".into(),
+            ))),
+        );
+        gui.flush_pending_grids();
+        // Second write: same dimensions but shorter second row
+        let grid2 = vec![vec![1, 2, 3], vec![4]];
+        drop(
+            gui.update(Message::CoordinatorSent(CoordinatorMessage::ImageWrite(
+                grid2,
+                "test.png".into(),
+            ))),
+        );
+        gui.flush_pending_grids();
+        let img = gui.tab_set.images_tab.images.get("test.png").unwrap();
+        // Trailing pixels should be zero (cleared), not stale from grid1
+        assert_eq!(img.data.get_pixel(1, 1), &Rgba([0, 0, 0, 0]));
+        assert_eq!(img.data.get_pixel(2, 1), &Rgba([0, 0, 0, 0]));
     }
 }

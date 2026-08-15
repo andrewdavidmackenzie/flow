@@ -758,6 +758,7 @@ impl Tab for ImageTab {
 
     fn clear(&mut self) {
         self.images = HashMap::default();
+        self.pending_grids.clear();
     }
 }
 
