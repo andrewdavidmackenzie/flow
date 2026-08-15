@@ -112,8 +112,19 @@ jobs:
             echo "has_changes=false" >> "$GITHUB_OUTPUT"
           fi
 
-      - name: Commit screenshots to PR branch
+      - name: Check if fork PR
         if: steps.check_bot.outputs.skip != 'true' && github.event_name == 'pull_request'
+        id: fork_check
+        run: |
+          if [ "${{ github.event.pull_request.head.repo.full_name }}" != "${{ github.repository }}" ]; then
+            echo "is_fork=true" >> "$GITHUB_OUTPUT"
+            echo "Skipping commit and inline images for fork PR"
+          else
+            echo "is_fork=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Commit screenshots to PR branch
+        if: steps.check_bot.outputs.skip != 'true' && github.event_name == 'pull_request' && steps.fork_check.outputs.is_fork != 'true'
         id: pr_commit
         run: |
           git config user.name "github-actions[bot]"
@@ -138,12 +149,14 @@ jobs:
           REMOVED: ${{ steps.compare.outputs.removed }}
           HAS_CHANGES: ${{ steps.compare.outputs.has_changes }}
           PR_BRANCH: ${{ github.head_ref }}
+          IS_FORK: ${{ steps.fork_check.outputs.is_fork }}
         with:
           script: |
             const changed = (process.env.CHANGED || '').trim().split(/\s+/).filter(Boolean);
             const added = (process.env.NEW || '').trim().split(/\s+/).filter(Boolean);
             const removed = (process.env.REMOVED || '').trim().split(/\s+/).filter(Boolean);
             const hasChanges = process.env.HAS_CHANGES === 'true';
+            const isFork = process.env.IS_FORK === 'true';
             const branch = process.env.PR_BRANCH;
             const runUrl = `${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`;
             const rawBase = `https://raw.githubusercontent.com/${context.repo.owner}/${context.repo.repo}`;
@@ -156,22 +169,32 @@ jobs:
               if (changed.length > 0) {
                 body += '### Changed\n\n';
                 for (const name of changed) {
-                  const mainUrl = `${rawBase}/master/assets/screenshots/${name}`;
-                  const prUrl = `${rawBase}/${branch}/assets/screenshots/${name}`;
-                  body += `<details><summary><code>${name}</code></summary>\n\n`;
-                  body += `| master | this PR |\n|---|---|\n`;
-                  body += `| <img src="${mainUrl}" width="500"> | <img src="${prUrl}" width="500"> |\n\n`;
-                  body += `</details>\n\n`;
+                  if (isFork) {
+                    body += `- \`${name}\`\n`;
+                  } else {
+                    const mainUrl = `${rawBase}/master/assets/screenshots/${name}`;
+                    const prUrl = `${rawBase}/${branch}/assets/screenshots/${name}`;
+                    body += `<details><summary><code>${name}</code></summary>\n\n`;
+                    body += `| master | this PR |\n|---|---|\n`;
+                    body += `| <img src="${mainUrl}" width="500"> | <img src="${prUrl}" width="500"> |\n\n`;
+                    body += `</details>\n\n`;
+                  }
                 }
+                if (isFork) body += '\n';
               }
               if (added.length > 0) {
                 body += '### New\n\n';
                 for (const name of added) {
-                  const prUrl = `${rawBase}/${branch}/assets/screenshots/${name}`;
-                  body += `<details><summary><code>${name}</code></summary>\n\n`;
-                  body += `<img src="${prUrl}" width="500">\n\n`;
-                  body += `</details>\n\n`;
+                  if (isFork) {
+                    body += `- \`${name}\`\n`;
+                  } else {
+                    const prUrl = `${rawBase}/${branch}/assets/screenshots/${name}`;
+                    body += `<details><summary><code>${name}</code></summary>\n\n`;
+                    body += `<img src="${prUrl}" width="500">\n\n`;
+                    body += `</details>\n\n`;
+                  }
                 }
+                if (isFork) body += '\n';
               }
               if (removed.length > 0) {
                 body += '### Removed\n\n';
@@ -179,6 +202,9 @@ jobs:
                   body += `- \`${name}\`\n`;
                 }
                 body += '\n';
+              }
+              if (isFork) {
+                body += '_Note: inline images unavailable for fork PRs. Download the artifacts to compare._\n\n';
               }
             }
             body += `\n[View workflow run](${runUrl})\n`;

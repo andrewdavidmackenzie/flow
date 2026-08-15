@@ -6,16 +6,16 @@
 //! or `cargo test -- --ignored --test-threads=1`. They generate PNG
 //! screenshots into `assets/screenshots/` using the headless `tiny-skia`
 //! renderer and compare against existing gold standard images.
+//!
+//! All screenshots load real flow definitions from flowr/examples/ via the
+//! compiler parser, so nodes have proper subprocesses, ports, colors, and
+//! connections — matching what users actually see in the editor.
 
 use super::*;
 use crate::library_panel::{self, LibraryTree};
-use flowcore::model::connection::Connection;
-use flowcore::model::flow_definition::FlowDefinition;
-use flowcore::model::name::Name;
-use flowcore::model::process_reference::ProcessReference;
 use iced::window;
 use iced_test::simulator::simulator;
-use std::collections::{BTreeMap, HashMap};
+use std::collections::HashMap;
 use url::Url;
 
 /// Force the tiny-skia backend for deterministic cross-platform screenshots.
@@ -34,7 +34,7 @@ fn screenshot_path(name: &str) -> std::path::PathBuf {
         .join(name)
 }
 
-/// Build the full flowstdlib library tree with all 6 categories.
+/// Build a representative flowstdlib library tree with all 6 categories.
 fn full_library_tree() -> LibraryTree {
     LibraryTree {
         libraries: vec![library_panel::LibraryEntry {
@@ -67,10 +67,7 @@ fn full_library_tree() -> LibraryTree {
                         Url::parse("lib://flowstdlib/data/append").expect("url"),
                         Url::parse("lib://flowstdlib/data/count").expect("url"),
                         Url::parse("lib://flowstdlib/data/duplicate").expect("url"),
-                        Url::parse("lib://flowstdlib/data/enumerate").expect("url"),
                         Url::parse("lib://flowstdlib/data/info").expect("url"),
-                        Url::parse("lib://flowstdlib/data/max").expect("url"),
-                        Url::parse("lib://flowstdlib/data/min").expect("url"),
                         Url::parse("lib://flowstdlib/data/sort").expect("url"),
                         Url::parse("lib://flowstdlib/data/split").expect("url"),
                         Url::parse("lib://flowstdlib/data/zip").expect("url"),
@@ -114,7 +111,36 @@ fn full_library_tree() -> LibraryTree {
     }
 }
 
-fn screenshot_app_with_flow(flow: FlowDefinition) -> (FlowEdit, window::Id) {
+/// Load a real flow definition from flowr/examples/ and build a `FlowEdit` app.
+fn load_example_flow(example_name: &str) -> (FlowEdit, window::Id) {
+    // Ensure default lib dir is on FLOW_LIB_PATH so lib:// URLs resolve.
+    if let Some(default_lib) = flowcore::dirs::lib_dir() {
+        if default_lib.exists() {
+            let current = std::env::var("FLOW_LIB_PATH").unwrap_or_default();
+            let default_str = default_lib.to_string_lossy();
+            if !current.contains(default_str.as_ref()) {
+                let new_val = if current.is_empty() {
+                    default_str.to_string()
+                } else {
+                    format!("{current},{default_str}")
+                };
+                std::env::set_var("FLOW_LIB_PATH", new_val);
+            }
+        }
+    }
+
+    let path = std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+        .parent()
+        .expect("project root")
+        .join("flowr")
+        .join("examples")
+        .join(example_name)
+        .join("root.toml");
+
+    let flow = file_ops::load_flow(&path).unwrap_or_else(|e| {
+        panic!("Could not load {example_name} flow: {e}");
+    });
+
     let win_id = window::Id::unique();
     let win_state = WindowState {
         is_root: true,
@@ -132,62 +158,22 @@ fn screenshot_app_with_flow(flow: FlowDefinition) -> (FlowEdit, window::Id) {
     (app, win_id)
 }
 
-fn sample_flow() -> FlowDefinition {
-    FlowDefinition {
-        name: Name::from("fibonacci"),
-        process_refs: vec![
-            ProcessReference {
-                alias: Name::from("add"),
-                source: "lib://flowstdlib/math/add".into(),
-                initializations: BTreeMap::new(),
-                x: Some(100.0),
-                y: Some(80.0),
-                width: Some(180.0),
-                height: Some(120.0),
-            },
-            ProcessReference {
-                alias: Name::from("compare"),
-                source: "lib://flowstdlib/control/compare_switch".into(),
-                initializations: BTreeMap::new(),
-                x: Some(350.0),
-                y: Some(80.0),
-                width: Some(180.0),
-                height: Some(120.0),
-            },
-            ProcessReference {
-                alias: Name::from("stdout"),
-                source: "context://stdio/stdout".into(),
-                initializations: BTreeMap::new(),
-                x: Some(600.0),
-                y: Some(80.0),
-                width: Some(180.0),
-                height: Some(120.0),
-            },
-            ProcessReference {
-                alias: Name::from("const_1"),
-                source: "lib://flowstdlib/data/append".into(),
-                initializations: BTreeMap::new(),
-                x: Some(100.0),
-                y: Some(280.0),
-                width: Some(180.0),
-                height: Some(120.0),
-            },
-        ],
-        connections: vec![
-            Connection::new("add", "compare"),
-            Connection::new_named("next value", "add", "stdout"),
-            Connection::new("compare", "const_1"),
-            Connection::new("const_1", "add"),
-        ],
-        ..FlowDefinition::default()
-    }
-}
-
 #[test]
 #[ignore = "screenshot tests only run via make screenshots"]
 fn screenshot_startup() {
     force_tiny_skia();
-    let (app, win_id) = screenshot_app_with_flow(FlowDefinition::default());
+    let win_id = window::Id::unique();
+    let win_state = WindowState {
+        is_root: true,
+        ..Default::default()
+    };
+    let app = FlowEdit {
+        windows: HashMap::from([(win_id, win_state)]),
+        root_window: Some(win_id),
+        focused_window: Some(win_id),
+        library_tree: full_library_tree(),
+        ..Default::default()
+    };
     let view = app.view(win_id);
     let mut ui = simulator(view);
     let snapshot = ui
@@ -202,7 +188,7 @@ fn screenshot_startup() {
 #[ignore = "screenshot tests only run via make screenshots"]
 fn screenshot_fibonacci() {
     force_tiny_skia();
-    let (app, win_id) = screenshot_app_with_flow(sample_flow());
+    let (app, win_id) = load_example_flow("fibonacci");
     let view = app.view(win_id);
     let mut ui = simulator(view);
     let snapshot = ui
@@ -215,10 +201,24 @@ fn screenshot_fibonacci() {
 
 #[test]
 #[ignore = "screenshot tests only run via make screenshots"]
+fn screenshot_mandlebrot() {
+    force_tiny_skia();
+    let (app, win_id) = load_example_flow("mandlebrot");
+    let view = app.view(win_id);
+    let mut ui = simulator(view);
+    let snapshot = ui
+        .snapshot(&iced::Theme::CatppuccinMocha)
+        .expect("snapshot");
+    assert!(snapshot
+        .matches_image(screenshot_path("flowedit-mandlebrot"))
+        .expect("write/compare"));
+}
+
+#[test]
+#[ignore = "screenshot tests only run via make screenshots"]
 fn screenshot_node_selected() {
     force_tiny_skia();
-    let (mut app, win_id) = screenshot_app_with_flow(sample_flow());
-    // Select the first node
+    let (mut app, win_id) = load_example_flow("fibonacci");
     if let Some(ws) = app.windows.get_mut(&win_id) {
         ws.selected_node = Some(0);
     }
@@ -236,17 +236,7 @@ fn screenshot_node_selected() {
 #[ignore = "screenshot tests only run via make screenshots"]
 fn screenshot_metadata_panel() {
     force_tiny_skia();
-    let flow = FlowDefinition {
-        name: Name::from("fibonacci"),
-        metadata: flowcore::model::metadata::MetaData {
-            name: "fibonacci".into(),
-            version: "1.0.0".into(),
-            description: "Calculate the Fibonacci series".into(),
-            authors: vec!["Andrew Mackenzie".into()],
-        },
-        ..FlowDefinition::default()
-    };
-    let (mut app, win_id) = screenshot_app_with_flow(flow);
+    let (mut app, win_id) = load_example_flow("fibonacci");
     if let Some(ws) = app.windows.get_mut(&win_id) {
         ws.show_metadata = true;
     }
