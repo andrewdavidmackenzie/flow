@@ -3237,6 +3237,62 @@ impl FlowrGui {
         }
     }
 
+    /// Materialize a single pending grid into the rendered image buffer.
+    /// Called before `PixelWrite` operations on the same image to preserve
+    /// message ordering.
+    fn materialize_pending_grid(&mut self, name: &str) {
+        if let Some(grid) = self.tab_set.images_tab.pending_grids.remove(name) {
+            let height = u32::try_from(grid.len()).unwrap_or(0);
+            let width = grid
+                .first()
+                .map_or(0, |row| u32::try_from(row.len()).unwrap_or(0));
+            let data = self
+                .tab_set
+                .images_tab
+                .images
+                .entry(name.to_string())
+                .or_insert_with(|| ImageReference {
+                    width,
+                    height,
+                    data: RgbaImage::new(width, height),
+                });
+            if data.width != width || data.height != height {
+                data.width = width;
+                data.height = height;
+                data.data = RgbaImage::new(width, height);
+            }
+            let buf_width = data.width as usize;
+            let buf = data.data.as_mut();
+            for (y, row) in grid.iter().enumerate() {
+                let row_offset = y * buf_width * 4;
+                for (x, &val) in row.iter().take(buf_width).enumerate() {
+                    let offset = row_offset + x * 4;
+                    if let Some([r, g, b, a]) = buf.get_mut(offset..offset + 4) {
+                        *r = val;
+                        *g = val;
+                        *b = val;
+                        *a = 255;
+                    }
+                }
+            }
+        }
+    }
+
+    /// Materialize all pending grids. Called on `FlowEnd` to ensure the
+    /// final frame of every image is rendered.
+    fn flush_pending_grids(&mut self) {
+        let names: Vec<String> = self
+            .tab_set
+            .images_tab
+            .pending_grids
+            .keys()
+            .cloned()
+            .collect();
+        for name in names {
+            self.materialize_pending_grid(&name);
+        }
+    }
+
     /// Send a response for a blocking IO request (GetLine/GetStdin) via the
     /// dedicated blocking IO channel.
     fn send_blocking(&mut self, msg: ClientMessage) {
@@ -3547,6 +3603,7 @@ impl FlowrGui {
             }
             #[cfg(feature = "metrics")]
             CoordinatorMessage::FlowEnd(_, metrics) => {
+                self.flush_pending_grids();
                 self.running = false;
                 self.submitted = false;
                 self.pending_getline = false;
@@ -3564,6 +3621,7 @@ impl FlowrGui {
             }
             #[cfg(not(feature = "metrics"))]
             CoordinatorMessage::FlowEnd(_) => {
+                self.flush_pending_grids();
                 self.running = false;
                 self.submitted = false;
                 self.pending_getline = false;
@@ -3768,6 +3826,9 @@ impl FlowrGui {
                 (width, height),
                 ref name,
             ) => {
+                // Materialize any pending grid for this image before applying
+                // pixel writes, preserving message ordering.
+                self.materialize_pending_grid(name);
                 if self.tab_set.images_tab.images.is_empty() {
                     let data = RgbaImage::new(width, height);
                     self.tab_set.images_tab.images.insert(
@@ -3793,41 +3854,13 @@ impl FlowrGui {
                 self.send(ClientMessage::Ack);
             }
             CoordinatorMessage::ImageWrite(grid, ref name) => {
-                let height = u32::try_from(grid.len()).unwrap_or(0);
-                let width = grid
-                    .first()
-                    .map_or(0, |row| u32::try_from(row.len()).unwrap_or(0));
-                let data = self
-                    .tab_set
+                // Store the latest grid — rendering is deferred to FlowEnd.
+                // This avoids per-pixel rendering on every frame; only the
+                // final frame for each image name is materialized.
+                self.tab_set
                     .images_tab
-                    .images
-                    .entry(name.clone())
-                    .or_insert_with(|| ImageReference {
-                        width,
-                        height,
-                        data: RgbaImage::new(width, height),
-                    });
-                // Recreate the buffer when dimensions change
-                if data.width != width || data.height != height {
-                    data.width = width;
-                    data.height = height;
-                    data.data = RgbaImage::new(width, height);
-                }
-                // Use buffer width for row stride, not grid row length
-                let buf_width = data.width as usize;
-                let buf = data.data.as_mut();
-                for (y, row) in grid.iter().enumerate() {
-                    let row_offset = y * buf_width * 4;
-                    for (x, &val) in row.iter().take(buf_width).enumerate() {
-                        let offset = row_offset + x * 4;
-                        if let Some([r, g, b, a]) = buf.get_mut(offset..offset + 4) {
-                            *r = val;
-                            *g = val;
-                            *b = val;
-                            *a = 255;
-                        }
-                    }
-                }
+                    .pending_grids
+                    .insert(name.clone(), grid);
                 if self.tab_set.active_tab != 3 {
                     self.tab_set.images_tab.new_activity = true;
                 }
@@ -4413,7 +4446,7 @@ mod test {
     }
 
     #[test]
-    fn image_write_stores_pixels() {
+    fn image_write_stores_pending_grid() {
         let mut gui = test_gui();
         gui.running = true;
         let grid = vec![vec![255, 0], vec![0, 128]];
@@ -4423,22 +4456,33 @@ mod test {
                 "test.png".into(),
             ))),
         );
+        // Grid should be pending, not yet rendered
+        assert!(
+            gui.tab_set
+                .images_tab
+                .pending_grids
+                .contains_key("test.png"),
+            "Grid should be stored in pending_grids"
+        );
+        assert!(
+            !gui.tab_set.images_tab.images.contains_key("test.png"),
+            "Image should not be rendered yet"
+        );
+        // Flush materializes the grid
+        gui.flush_pending_grids();
         let img = gui.tab_set.images_tab.images.get("test.png").unwrap();
         assert_eq!(img.width, 2);
         assert_eq!(img.height, 2);
-        // Top-left pixel should be (255,255,255,255)
         assert_eq!(img.data.get_pixel(0, 0), &Rgba([255, 255, 255, 255]));
-        // Top-right pixel should be (0,0,0,255)
         assert_eq!(img.data.get_pixel(1, 0), &Rgba([0, 0, 0, 255]));
-        // Bottom-right pixel should be (128,128,128,255)
         assert_eq!(img.data.get_pixel(1, 1), &Rgba([128, 128, 128, 255]));
     }
 
     #[test]
-    fn image_write_recreates_on_dimension_change() {
+    fn image_write_latest_frame_wins() {
         let mut gui = test_gui();
         gui.running = true;
-        // First write: 2x1
+        // First write
         let grid1 = vec![vec![10, 20]];
         drop(
             gui.update(Message::CoordinatorSent(CoordinatorMessage::ImageWrite(
@@ -4446,10 +4490,7 @@ mod test {
                 "test.png".into(),
             ))),
         );
-        let img = gui.tab_set.images_tab.images.get("test.png").unwrap();
-        assert_eq!(img.width, 2);
-        assert_eq!(img.height, 1);
-        // Second write: 3x2 — should recreate the buffer
+        // Second write with different dimensions — should replace
         let grid2 = vec![vec![1, 2, 3], vec![4, 5, 6]];
         drop(
             gui.update(Message::CoordinatorSent(CoordinatorMessage::ImageWrite(
@@ -4457,6 +4498,8 @@ mod test {
                 "test.png".into(),
             ))),
         );
+        // Only the latest grid should be pending
+        gui.flush_pending_grids();
         let img = gui.tab_set.images_tab.images.get("test.png").unwrap();
         assert_eq!(img.width, 3);
         assert_eq!(img.height, 2);
@@ -4467,7 +4510,6 @@ mod test {
     fn image_write_truncates_long_rows() {
         let mut gui = test_gui();
         gui.running = true;
-        // Grid with a row longer than the first row — should truncate
         let grid = vec![vec![10, 20], vec![30, 40, 50]];
         drop(
             gui.update(Message::CoordinatorSent(CoordinatorMessage::ImageWrite(
@@ -4475,9 +4517,9 @@ mod test {
                 "test.png".into(),
             ))),
         );
+        gui.flush_pending_grids();
         let img = gui.tab_set.images_tab.images.get("test.png").unwrap();
         assert_eq!(img.width, 2);
-        // Only first 2 values of the second row should be written
         assert_eq!(img.data.get_pixel(0, 1), &Rgba([30, 30, 30, 255]));
         assert_eq!(img.data.get_pixel(1, 1), &Rgba([40, 40, 40, 255]));
     }

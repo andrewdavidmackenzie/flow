@@ -658,6 +658,10 @@ impl Tab for StdOutTab {
 pub(crate) struct ImageTab {
     name: String,
     pub images: HashMap<String, ImageReference>,
+    /// Grids waiting to be rendered — only the latest grid per image name
+    /// is kept. Rendering is deferred until `FlowEnd` or a `PixelWrite` on
+    /// the same image, so intermediate frames are naturally skipped.
+    pub pending_grids: HashMap<String, Vec<Vec<u8>>>,
     pub new_activity: bool,
 }
 
@@ -666,6 +670,7 @@ impl ImageTab {
         Self {
             name: name.to_owned(),
             images: HashMap::default(),
+            pending_grids: HashMap::default(),
             new_activity: false,
         }
     }
