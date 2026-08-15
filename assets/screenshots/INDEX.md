@@ -1,6 +1,6 @@
 # Screenshots
 
-Automatically generated screenshots of flow's GUI tools (`flowedit` and `flowrgui`).
+Automatically generated screenshots of flow's GUI and CLI tools.
 These images are updated on every push to `master` via the screenshots workflow.
 
 ## Flow Editor (`flowedit`)
@@ -22,3 +22,12 @@ These images are updated on every push to `master` via the screenshots workflow.
 | ![flowrgui-stderr-tab](flowrgui-stderr-tab-tiny-skia.png) | Stderr tab showing log output |
 | ![flowrgui-settings](flowrgui-settings-tiny-skia.png) | Settings panel open |
 | ![flowrgui-metrics](flowrgui-metrics-tiny-skia.png) | Metrics panel showing execution stats |
+
+## CLI Tools
+
+| Screenshot | Description |
+|---|---|
+| ![flowc-help](flowc-help.png) | `flowc` compiler help text |
+| ![flowrcli-help](flowrcli-help.png) | `flowrcli` runner help text |
+| ![fibonacci-output](fibonacci-output.png) | Fibonacci example output |
+| ![fft-output](fft-output.png) | FFT example bar chart output |

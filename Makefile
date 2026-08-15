@@ -61,6 +61,7 @@ else ifneq ($(APTGET),)
 else ifneq ($(BREW),)
 	@echo "Installing dependencies using $(BREW)"
 	@brew install --quiet zmq binaryen lcov
+	@brew install --quiet charmbracelet/tap/freeze
 endif
 	@echo "Installing grcov using cargo"
 	@cargo install grcov
@@ -123,11 +124,17 @@ endif
 	cargo test --examples
 
 .PHONY: screenshots
-screenshots: build
+screenshots: build check-binary-paths
 	@echo "screenshots<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<"
 	@rm -f assets/screenshots/*.png
 	cargo test -p flowedit screenshot_ -- --ignored --test-threads=1
 	cargo test -p flowr --bin flowrgui screenshot_ -- --ignored --test-threads=1
+	@echo "Generating CLI screenshots with freeze..."
+	@which freeze > /dev/null || (echo "ERROR: freeze not installed. Run: brew install charmbracelet/tap/freeze"; exit 1)
+	@flowc --help 2>&1 | freeze -o assets/screenshots/flowc-help.png --window --language ansi
+	@flowrcli --help 2>&1 | freeze -o assets/screenshots/flowrcli-help.png --window --language ansi
+	@cat flowr/examples/fibonacci/expected.stdout | freeze -o assets/screenshots/fibonacci-output.png --window --language ansi
+	@cat flowr/examples/fft/expected.stdout | freeze -o assets/screenshots/fft-output.png --window --language ansi
 	@echo "Screenshots written to assets/screenshots/"
 	@ls assets/screenshots/*.png
 
