@@ -133,8 +133,8 @@ screenshots: build check-binary-paths
 	@which freeze > /dev/null || (echo "ERROR: freeze not installed. Run: brew install charmbracelet/tap/freeze"; exit 1)
 	@flowc --help 2>&1 > /tmp/flowc-help.txt && freeze -o assets/screenshots/flowc-help.png --window --language ansi < /tmp/flowc-help.txt
 	@flowrcli --help 2>&1 > /tmp/flowrcli-help.txt && freeze -o assets/screenshots/flowrcli-help.png --window --language ansi < /tmp/flowrcli-help.txt
-	@flowrcli -n flowr/examples/fibonacci/manifest.json > /tmp/fibonacci-output.txt && freeze -o assets/screenshots/fibonacci-output.png --window --language ansi < /tmp/fibonacci-output.txt
-	@flowrcli -n flowr/examples/fft/manifest.json > /tmp/fft-output.txt && freeze -o assets/screenshots/fft-output.png --window --language ansi < /tmp/fft-output.txt
+	@freeze -o assets/screenshots/fibonacci-output.png --window --language ansi < flowr/examples/fibonacci/expected.stdout
+	@freeze -o assets/screenshots/fft-output.png --window --language ansi < flowr/examples/fft/expected.stdout
 	@echo "Screenshots written to assets/screenshots/"
 	@ls assets/screenshots/*.png
 
