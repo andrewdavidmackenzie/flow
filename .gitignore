@@ -21,3 +21,4 @@ flowr/**/*.cfg
 flowstdlib/**/*.tla
 flowstdlib/**/*.cfg
 flow_trace.json
+fft_spectrum.png
