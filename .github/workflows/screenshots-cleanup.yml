@@ -1,0 +1,89 @@
+name: Cleanup Screenshot Artifacts
+
+on:
+  pull_request:
+    types: [closed]
+    branches: [master]
+  schedule:
+    # Run daily at 03:00 UTC to clean up old artifacts
+    - cron: '0 3 * * *'
+
+permissions:
+  actions: write
+
+jobs:
+  cleanup-pr:
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
+    steps:
+      - name: Delete PR screenshot artifacts
+        uses: actions/github-script@v9
+        with:
+          script: |
+            const owner = context.repo.owner;
+            const repo = context.repo.repo;
+            const pr = context.payload.pull_request.number;
+            const prefix = `screenshots-pr-${pr}`;
+
+            const { data } = await github.rest.actions.listArtifactsForRepo({
+              owner, repo, per_page: 100,
+            });
+            const artifacts = data.artifacts || [];
+
+            let deleted = 0;
+            for (const artifact of artifacts) {
+              if (artifact.name === prefix || artifact.name.startsWith(prefix)) {
+                try {
+                  await github.rest.actions.deleteArtifact({ owner, repo, artifact_id: artifact.id });
+                  console.log(`Deleted ${artifact.name} (${artifact.id})`);
+                  deleted++;
+                } catch (e) {
+                  console.log(`Failed to delete ${artifact.name}: ${e.message}`);
+                }
+              }
+            }
+            console.log(`Deleted ${deleted} artifact(s) for PR #${pr}`);
+
+  cleanup-old:
+    runs-on: ubuntu-latest
+    if: github.event_name == 'schedule'
+    steps:
+      - name: Delete old screenshot artifacts
+        uses: actions/github-script@v9
+        with:
+          script: |
+            const owner = context.repo.owner;
+            const repo = context.repo.repo;
+
+            let page = 1;
+            let allArtifacts = [];
+            while (true) {
+              const { data } = await github.rest.actions.listArtifactsForRepo({
+                owner, repo, per_page: 100, page,
+              });
+              if (!data.artifacts || data.artifacts.length === 0) break;
+              allArtifacts = allArtifacts.concat(data.artifacts);
+              if (allArtifacts.length >= data.total_count) break;
+              page++;
+            }
+
+            const now = new Date();
+            const maxAge = 3 * 24 * 60 * 60 * 1000; // 3 days
+            let deleted = 0;
+            let kept = 0;
+
+            for (const artifact of allArtifacts) {
+              if (!artifact.name.startsWith('screenshots-')) continue;
+              const age = now - new Date(artifact.created_at);
+              if (age > maxAge) {
+                try {
+                  await github.rest.actions.deleteArtifact({ owner, repo, artifact_id: artifact.id });
+                  deleted++;
+                } catch (e) {
+                  console.log(`Failed to delete ${artifact.name}: ${e.message}`);
+                }
+              } else {
+                kept++;
+              }
+            }
+            console.log(`Deleted ${deleted} old screenshot artifacts, kept ${kept}`);

@@ -98,7 +98,7 @@ jobs:
         with:
           name: screenshots-${{ github.event_name == 'pull_request' && format('pr-{0}', github.event.pull_request.number) || 'main' }}
           path: assets/screenshots/*.png
-          retention-days: 90
+          retention-days: 7
 
       - name: Compare screenshots (PR only)
         if: steps.check_bot.outputs.skip != 'true' && github.event_name == 'pull_request'
