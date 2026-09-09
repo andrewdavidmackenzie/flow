@@ -9,12 +9,14 @@ use flowcore::model::flow_manifest::FlowManifest;
 use flowcore::model::submission::Submission;
 use flowcore::provider::Provider;
 use flowrlib::run_state::RunState;
+use serial_test::serial;
 
 /// Test that a sub-flow can be extracted from a compiled manifest,
 /// wrapped in a `Submission`, and used to construct a `RunState` that
 /// initializes correctly.
 #[cfg_attr(target_os = "windows", ignore)]
 #[test]
+#[serial]
 #[allow(clippy::too_many_lines)]
 fn extract_and_init_subflow() {
     let manifest_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
@@ -169,6 +171,7 @@ fn extract_and_init_subflow() {
 /// crossing a sub-flow's boundary.
 #[cfg_attr(target_os = "windows", ignore)]
 #[test]
+#[serial]
 fn subflow_interface_identifies_boundary_connections() {
     let manifest_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
     let project_root = manifest_dir.parent().expect("Could not find project root");
@@ -244,6 +247,7 @@ fn subflow_interface_identifies_boundary_connections() {
 /// initializers, so it can run to completion without external inputs.
 #[cfg_attr(target_os = "windows", ignore)]
 #[test]
+#[serial]
 fn subflow_implementation_executes() {
     use flowcore::model::flow_manifest::FlowInfo;
     use flowcore::model::input::{Input, InputInitializer};
@@ -319,6 +323,7 @@ fn subflow_implementation_executes() {
 /// Test that `SubFlowImplementation` can receive injected inputs through the interface.
 #[cfg_attr(target_os = "windows", ignore)]
 #[test]
+#[serial]
 fn subflow_implementation_with_injected_inputs() {
     use flowcore::model::flow_manifest::FlowInfo;
     use flowcore::model::input::Input;
@@ -401,6 +406,7 @@ fn subflow_implementation_with_injected_inputs() {
 /// output on a connection targeting a function outside the sub-flow.
 #[cfg_attr(target_os = "windows", ignore)]
 #[test]
+#[serial]
 #[allow(clippy::too_many_lines)]
 fn subflow_captures_boundary_outputs() {
     use flowcore::model::flow_manifest::FlowInfo;
@@ -581,6 +587,7 @@ fn executor_registers_subflow_manifest() {
 /// verify boundary outputs come back.
 #[cfg_attr(target_os = "windows", ignore)]
 #[test]
+#[serial]
 #[allow(clippy::too_many_lines)]
 fn peer_coordinator_executes_subflow() {
     use flowcore::model::flow_manifest::FlowInfo;
@@ -795,6 +802,7 @@ fn peer_coordinator_executes_subflow() {
 /// verifying that the peer's bridge loops back correctly after each `FlowEnd`.
 #[cfg_attr(target_os = "windows", ignore)]
 #[test]
+#[serial]
 #[allow(clippy::too_many_lines)]
 fn peer_handles_multiple_submissions() {
     use flowcore::model::flow_manifest::FlowInfo;
@@ -1039,6 +1047,7 @@ fn peer_handles_multiple_submissions() {
 /// 4. The boundary outputs are correct
 #[cfg_attr(target_os = "windows", ignore)]
 #[test]
+#[serial]
 #[allow(clippy::too_many_lines)]
 fn peer_coordinator_executes_wasm_subflow() {
     use flowcore::meta_provider::MetaProvider;
