@@ -699,7 +699,7 @@ fn peer_coordinator_executes_subflow() {
             &connect_addrs.3,
         );
 
-        std::thread::sleep(std::time::Duration::from_millis(100));
+        std::thread::sleep(std::time::Duration::from_secs(1));
 
         #[cfg(feature = "submission")]
         let mut no_op_handler = flowrlib::subflow::NoOpSubmissionHandler;
@@ -748,7 +748,7 @@ fn peer_coordinator_executes_subflow() {
     });
 
     // Give coordinator time to start
-    std::thread::sleep(std::time::Duration::from_millis(200));
+    std::thread::sleep(std::time::Duration::from_secs(2));
 
     // Connect as parent and submit the sub-flow
     let peer_address = format!("127.0.0.1:{peer_port}");
@@ -916,7 +916,7 @@ fn peer_handles_multiple_submissions() {
             &connect_addrs.3,
         );
 
-        std::thread::sleep(std::time::Duration::from_millis(100));
+        std::thread::sleep(std::time::Duration::from_secs(1));
 
         #[cfg(feature = "debugger")]
         let mut debug_handler = flowrlib::subflow::NoOpDebugHandler;
@@ -964,12 +964,12 @@ fn peer_handles_multiple_submissions() {
         results
     });
 
-    std::thread::sleep(std::time::Duration::from_millis(200));
+    std::thread::sleep(std::time::Duration::from_secs(2));
 
     // Submit TWO sub-flows on the SAME connection
     let peer_address = format!("127.0.0.1:{peer_port}");
     let connection = ClientConnection::new(&peer_address).expect("connect");
-    connection.set_receive_timeout(300_000).expect("timeout");
+    connection.set_receive_timeout(30_000).expect("timeout");
 
     // First submission: add(7, 3) = 10
     let manifest1 = build_manifest(7, 3);
@@ -1206,7 +1206,7 @@ fn peer_coordinator_executes_wasm_subflow() {
             &connect_addrs.3,
         );
 
-        std::thread::sleep(std::time::Duration::from_millis(100));
+        std::thread::sleep(std::time::Duration::from_secs(1));
 
         #[cfg(feature = "submission")]
         let mut no_op_handler = flowrlib::subflow::NoOpSubmissionHandler;
@@ -1255,7 +1255,7 @@ fn peer_coordinator_executes_wasm_subflow() {
     });
 
     // Give coordinator time to start
-    std::thread::sleep(std::time::Duration::from_millis(200));
+    std::thread::sleep(std::time::Duration::from_secs(2));
 
     // Connect as parent and submit the sub-flow with the rewritten http:// URLs
     let peer_address = format!("127.0.0.1:{peer_port}");
