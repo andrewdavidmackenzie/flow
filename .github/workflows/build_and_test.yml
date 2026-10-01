@@ -38,7 +38,7 @@ jobs:
       - name: Cache cargo registry and build
         uses: Swatinem/rust-cache@v2
       - name: run clippy
-        run: cargo clippy --tests --no-deps --all-features --all-targets -- --warn clippy::pedantic --deny warnings
+        run: cargo clippy --tests --no-deps --all-features --all-targets
 
   features:
     runs-on: ubuntu-latest

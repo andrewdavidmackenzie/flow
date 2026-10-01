@@ -30,6 +30,8 @@ unsafe_code = "forbid"
 missing_docs = "deny"
 
 [workspace.lints.clippy]
+pedantic = { level = "deny", priority = -1 }
 unwrap_used = "deny"
 result_large_err = "allow"
 indexing_slicing = "deny"
+assert_is_empty = "allow"

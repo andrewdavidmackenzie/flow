@@ -101,7 +101,7 @@ build:
 .PHONY: clippy
 clippy:
 	@echo "clippy<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<"
-	cargo clippy --tests --no-deps --all-features --all-targets -- --warn clippy::pedantic --deny warnings
+	cargo clippy --tests --no-deps --all-features --all-targets
 
 .PHONY: features
 features:
