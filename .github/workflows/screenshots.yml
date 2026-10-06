@@ -13,7 +13,6 @@ on:
 permissions:
   contents: write
   pull-requests: write
-  actions: write
 
 env:
   CARGO_TERM_COLOR: always
@@ -210,6 +209,7 @@ jobs:
           PUBLISHED: ${{ steps.publish.outputs.published }}
           DIFF_BRANCH: ${{ steps.publish.outputs.branch }}
         with:
+          github-token: ${{ secrets.PAT_SCREENSHOT_BOT || github.token }}
           script: |
             const changed = (process.env.CHANGED || '').trim().split(/\s+/).filter(Boolean);
             const added = (process.env.NEW || '').trim().split(/\s+/).filter(Boolean);

@@ -49,7 +49,7 @@ jobs:
 
             let deleted = 0;
             for (const artifact of artifacts) {
-              if (prefixes.some(p => artifact.name === p || artifact.name.startsWith(p))) {
+              if (prefixes.some(p => artifact.name === p)) {
                 try {
                   await github.rest.actions.deleteArtifact({ owner, repo, artifact_id: artifact.id });
                   console.log(`Deleted ${artifact.name} (${artifact.id})`);
@@ -118,11 +118,18 @@ jobs:
               ref: 'heads/screenshots-diff-pr-',
             });
 
-            // Get open PRs to avoid deleting branches for active PRs
-            const { data: openPRs } = await github.rest.pulls.list({
-              owner, repo, state: 'open', per_page: 100,
-            });
-            const openPRNumbers = new Set(openPRs.map(pr => pr.number));
+            // Get all open PRs (paginated) to avoid deleting branches for active PRs
+            let openPRNumbers = new Set();
+            let prPage = 1;
+            while (true) {
+              const { data: openPRs } = await github.rest.pulls.list({
+                owner, repo, state: 'open', per_page: 100, page: prPage,
+              });
+              if (openPRs.length === 0) break;
+              for (const pr of openPRs) openPRNumbers.add(pr.number);
+              if (openPRs.length < 100) break;
+              prPage++;
+            }
 
             let deleted = 0;
             for (const ref of refs) {
