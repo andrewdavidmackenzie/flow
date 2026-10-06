@@ -9,6 +9,7 @@ on:
     - cron: '0 3 * * *'
 
 permissions:
+  contents: write
   actions: write
 
 jobs:
@@ -16,6 +17,22 @@ jobs:
     runs-on: ubuntu-latest
     if: github.event_name == 'pull_request'
     steps:
+      - name: Delete screenshot comparison branch
+        uses: actions/github-script@v9
+        with:
+          script: |
+            const branch = `screenshots-diff-pr-${context.payload.pull_request.number}`;
+            try {
+              await github.rest.git.deleteRef({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                ref: `heads/${branch}`,
+              });
+              console.log(`Deleted branch ${branch}`);
+            } catch (e) {
+              console.log(`No branch to delete: ${e.message}`);
+            }
+
       - name: Delete PR screenshot artifacts
         uses: actions/github-script@v9
         with:
@@ -23,7 +40,7 @@ jobs:
             const owner = context.repo.owner;
             const repo = context.repo.repo;
             const pr = context.payload.pull_request.number;
-            const prefix = `screenshots-pr-${pr}`;
+            const prefixes = [`screenshots-pr-${pr}`, `screenshots-changed-pr-${pr}`];
 
             const { data } = await github.rest.actions.listArtifactsForRepo({
               owner, repo, per_page: 100,
@@ -32,7 +49,7 @@ jobs:
 
             let deleted = 0;
             for (const artifact of artifacts) {
-              if (artifact.name === prefix || artifact.name.startsWith(prefix)) {
+              if (prefixes.some(p => artifact.name === p)) {
                 try {
                   await github.rest.actions.deleteArtifact({ owner, repo, artifact_id: artifact.id });
                   console.log(`Deleted ${artifact.name} (${artifact.id})`);
@@ -87,3 +104,48 @@ jobs:
               }
             }
             console.log(`Deleted ${deleted} old screenshot artifacts, kept ${kept}`);
+
+      - name: Delete old screenshot diff branches
+        uses: actions/github-script@v9
+        with:
+          script: |
+            const owner = context.repo.owner;
+            const repo = context.repo.repo;
+
+            // List all branches matching the screenshot diff pattern
+            const { data: refs } = await github.rest.git.listMatchingRefs({
+              owner, repo,
+              ref: 'heads/screenshots-diff-pr-',
+            });
+
+            // Get all open PRs (paginated) to avoid deleting branches for active PRs
+            let openPRNumbers = new Set();
+            let prPage = 1;
+            while (true) {
+              const { data: openPRs } = await github.rest.pulls.list({
+                owner, repo, state: 'open', per_page: 100, page: prPage,
+              });
+              if (openPRs.length === 0) break;
+              for (const pr of openPRs) openPRNumbers.add(pr.number);
+              if (openPRs.length < 100) break;
+              prPage++;
+            }
+
+            let deleted = 0;
+            for (const ref of refs) {
+              const branch = ref.ref.replace('refs/heads/', '');
+              const match = branch.match(/^screenshots-diff-pr-(\d+)$/);
+              if (match) {
+                const prNum = parseInt(match[1]);
+                if (!openPRNumbers.has(prNum)) {
+                  try {
+                    await github.rest.git.deleteRef({ owner, repo, ref: `heads/${branch}` });
+                    console.log(`Deleted stale branch ${branch}`);
+                    deleted++;
+                  } catch (e) {
+                    console.log(`Failed to delete ${branch}: ${e.message}`);
+                  }
+                }
+              }
+            }
+            console.log(`Deleted ${deleted} stale screenshot diff branch(es)`);

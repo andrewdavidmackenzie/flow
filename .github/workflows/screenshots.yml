@@ -10,6 +10,10 @@ on:
     paths-ignore:
       - 'assets/screenshots/**'
 
+permissions:
+  contents: write
+  pull-requests: write
+
 env:
   CARGO_TERM_COLOR: always
 
@@ -18,7 +22,7 @@ jobs:
     runs-on: ubuntu-24.04
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           ref: ${{ github.head_ref || github.ref }}
           token: ${{ secrets.PAT_SCREENSHOT_BOT || github.token }}
@@ -94,11 +98,13 @@ jobs:
 
       - name: Upload screenshots artifact
         if: steps.check_bot.outputs.skip != 'true'
+        continue-on-error: true
         uses: actions/upload-artifact@v4
         with:
           name: screenshots-${{ github.event_name == 'pull_request' && format('pr-{0}', github.event.pull_request.number) || 'main' }}
           path: assets/screenshots/*.png
           retention-days: 7
+          overwrite: true
 
       - name: Compare screenshots (PR only)
         if: steps.check_bot.outputs.skip != 'true' && github.event_name == 'pull_request'
@@ -124,9 +130,11 @@ jobs:
               REMOVED="$REMOVED $name"
             fi
           done
-          echo "changed=$CHANGED" >> "$GITHUB_OUTPUT"
-          echo "new=$NEW" >> "$GITHUB_OUTPUT"
-          echo "removed=$REMOVED" >> "$GITHUB_OUTPUT"
+          echo "changed=$(echo $CHANGED | xargs)" >> "$GITHUB_OUTPUT"
+          echo "new=$(echo $NEW | xargs)" >> "$GITHUB_OUTPUT"
+          echo "removed=$(echo $REMOVED | xargs)" >> "$GITHUB_OUTPUT"
+          TOTAL_CHANGED=$(echo "$CHANGED $NEW $REMOVED" | wc -w | tr -d ' ')
+          echo "total_changed=$TOTAL_CHANGED" >> "$GITHUB_OUTPUT"
           if [ -n "$CHANGED" ] || [ -n "$NEW" ] || [ -n "$REMOVED" ]; then
             echo "has_changes=true" >> "$GITHUB_OUTPUT"
           else
@@ -146,6 +154,7 @@ jobs:
 
       - name: Commit screenshots to PR branch
         if: steps.check_bot.outputs.skip != 'true' && github.event_name == 'pull_request' && steps.fork_check.outputs.is_fork != 'true'
+        continue-on-error: true
         id: pr_commit
         run: |
           git config user.name "github-actions[bot]"
@@ -161,9 +170,35 @@ jobs:
             echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
           fi
 
+      - name: Publish PR screenshots to comparison branch
+        if: steps.check_bot.outputs.skip != 'true' && github.event_name == 'pull_request' && steps.fork_check.outputs.is_fork != 'true' && steps.compare.outputs.has_changes == 'true'
+        continue-on-error: true
+        id: publish
+        env:
+          DIFF_BRANCH: screenshots-diff-pr-${{ github.event.pull_request.number }}
+        run: |
+          PR="${{ github.event.pull_request.number }}"
+          TMP_DIR="$(mktemp -d)"
+          mkdir -p "${TMP_DIR}/assets/screenshots"
+          cp assets/screenshots/*.png "${TMP_DIR}/assets/screenshots/"
+          cd "${TMP_DIR}"
+          git init -q -b "${{ env.DIFF_BRANCH }}"
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add .
+          git commit -q -m "Screenshots for PR #${PR}"
+          git remote add origin "https://x-access-token:${{ secrets.PAT_SCREENSHOT_BOT || github.token }}@github.com/${{ github.repository }}.git"
+          if git push -q --force origin "HEAD:${{ env.DIFF_BRANCH }}"; then
+            echo "published=true" >> "$GITHUB_OUTPUT"
+            echo "branch=${{ env.DIFF_BRANCH }}" >> "$GITHUB_OUTPUT"
+          else
+            echo "published=false" >> "$GITHUB_OUTPUT"
+          fi
+
       - name: Post PR comment
         if: steps.check_bot.outputs.skip != 'true' && github.event_name == 'pull_request'
-        uses: actions/github-script@v7
+        continue-on-error: true
+        uses: actions/github-script@v9
         env:
           CHANGED: ${{ steps.compare.outputs.changed }}
           NEW: ${{ steps.compare.outputs.new }}
@@ -171,7 +206,10 @@ jobs:
           HAS_CHANGES: ${{ steps.compare.outputs.has_changes }}
           PR_BRANCH: ${{ github.head_ref }}
           IS_FORK: ${{ steps.fork_check.outputs.is_fork }}
+          PUBLISHED: ${{ steps.publish.outputs.published }}
+          DIFF_BRANCH: ${{ steps.publish.outputs.branch }}
         with:
+          github-token: ${{ secrets.PAT_SCREENSHOT_BOT || github.token }}
           script: |
             const changed = (process.env.CHANGED || '').trim().split(/\s+/).filter(Boolean);
             const added = (process.env.NEW || '').trim().split(/\s+/).filter(Boolean);
@@ -179,22 +217,38 @@ jobs:
             const hasChanges = process.env.HAS_CHANGES === 'true';
             const isFork = process.env.IS_FORK === 'true';
             const branch = process.env.PR_BRANCH;
+            const published = process.env.PUBLISHED === 'true';
+            const diffBranch = process.env.DIFF_BRANCH;
             const runUrl = `${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`;
             const rawBase = `https://raw.githubusercontent.com/${context.repo.owner}/${context.repo.repo}`;
+            const prNumber = context.issue.number;
+
+            const blobUrl = (ref, file) =>
+              `https://github.com/${context.repo.owner}/${context.repo.repo}/blob/${ref}/assets/screenshots/${file}?raw=true`;
 
             let body = '## Screenshot Comparison\n\n';
             if (!hasChanges) {
               body += 'No screenshot changes detected.\n';
             } else {
               body += `**${changed.length}** changed, **${added.length}** new, **${removed.length}** removed\n\n`;
+
+              if (!published && !isFork) {
+                body += `Screenshots are not committed to the PR branch. Download the `;
+                body += `\`screenshots-pr-${prNumber}\` artifact from the workflow run to compare.\n\n`;
+              }
+
               if (changed.length > 0) {
                 body += '### Changed\n\n';
                 for (const name of changed) {
                   if (isFork) {
                     body += `- \`${name}\`\n`;
                   } else {
-                    const mainUrl = `${rawBase}/master/assets/screenshots/${name}`;
-                    const prUrl = `${rawBase}/${branch}/assets/screenshots/${name}`;
+                    const mainUrl = published
+                      ? blobUrl('master', name)
+                      : `${rawBase}/master/assets/screenshots/${name}`;
+                    const prUrl = published
+                      ? blobUrl(diffBranch, name)
+                      : `${rawBase}/${branch}/assets/screenshots/${name}`;
                     body += `<details><summary><code>${name}</code></summary>\n\n`;
                     body += `| master | this PR |\n|---|---|\n`;
                     body += `| <img src="${mainUrl}" width="500"> | <img src="${prUrl}" width="500"> |\n\n`;
@@ -208,6 +262,10 @@ jobs:
                 for (const name of added) {
                   if (isFork) {
                     body += `- \`${name}\`\n`;
+                  } else if (published) {
+                    body += `<details><summary><code>${name}</code></summary>\n\n`;
+                    body += `<img src="${blobUrl(diffBranch, name)}" width="500">\n\n`;
+                    body += `</details>\n\n`;
                   } else {
                     const prUrl = `${rawBase}/${branch}/assets/screenshots/${name}`;
                     body += `<details><summary><code>${name}</code></summary>\n\n`;
