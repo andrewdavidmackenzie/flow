@@ -86,13 +86,33 @@ jobs:
       - name: Generate screenshots
         if: steps.check_bot.outputs.skip != 'true'
         run: |
+          # freeze (charmbracelet/freeze) has a known intermittent crash:
+          # "runtime: split stack overflow" (upstream issue #222).
+          # Retry each invocation up to 3 times to work around it.
+          run_freeze() {
+            local input_file="$1"
+            shift
+            local attempts=3
+            for i in $(seq 1 $attempts); do
+              if freeze "$@" < "$input_file"; then
+                return 0
+              fi
+              echo "freeze attempt $i/$attempts failed, retrying..."
+              sleep 1
+            done
+            echo "freeze failed after $attempts attempts"
+            return 1
+          }
+
           rm -f assets/screenshots/*.png
           cargo test -p flowedit screenshot_ -- --ignored --test-threads=1
           cargo test -p flowr --bin flowrgui screenshot_ -- --ignored --test-threads=1
-          flowc --help 2>&1 > /tmp/flowc-help.txt && freeze -o assets/screenshots/flowc-help.png --window --language ansi < /tmp/flowc-help.txt
-          flowrcli --help 2>&1 > /tmp/flowrcli-help.txt && freeze -o assets/screenshots/flowrcli-help.png --window --language ansi < /tmp/flowrcli-help.txt
-          freeze -o assets/screenshots/fibonacci-output.png --window --language ansi < flowr/examples/fibonacci/expected.stdout
-          freeze -o assets/screenshots/fft-output.png --window --language ansi < flowr/examples/fft/expected.stdout
+          flowc --help 2>&1 > /tmp/flowc-help.txt
+          run_freeze /tmp/flowc-help.txt -o assets/screenshots/flowc-help.png --window --language ansi
+          flowrcli --help 2>&1 > /tmp/flowrcli-help.txt
+          run_freeze /tmp/flowrcli-help.txt -o assets/screenshots/flowrcli-help.png --window --language ansi
+          run_freeze flowr/examples/fibonacci/expected.stdout -o assets/screenshots/fibonacci-output.png --window --language ansi
+          run_freeze flowr/examples/fft/expected.stdout -o assets/screenshots/fft-output.png --window --language ansi
           echo "Generated screenshots:"
           ls -la assets/screenshots/*.png
 
