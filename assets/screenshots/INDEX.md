@@ -27,7 +27,6 @@ These images are updated on every push to `master` via the screenshots workflow.
 
 | Screenshot | Description |
 |---|---|
-| ![flowc-help](flowc-help.png) | `flowc` compiler help text |
 | ![flowrcli-help](flowrcli-help.png) | `flowrcli` runner help text |
 | ![fibonacci-output](fibonacci-output.png) | Fibonacci example output |
 | ![fft-output](fft-output.png) | FFT example bar chart output |
