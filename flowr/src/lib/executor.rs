@@ -416,7 +416,20 @@ fn execution_loop(
                                 Ok(serialized) => {
                                     let _ = stx.send(serialized);
                                 }
-                                Err(e) => error!("{e}"),
+                                Err(e) => {
+                                    error!("Spawned job #{} failed on '{sn}': {e}", payload.job_id);
+                                    // Send the error back so the coordinator
+                                    // does not block forever.
+                                    let error_result: flowcore::errors::Result<(
+                                        Option<serde_json::Value>,
+                                        flowcore::RunAgain,
+                                    )> = Err(e);
+                                    if let Ok(serialized) =
+                                        serde_json::to_string(&(payload.job_id, &sn, &error_result))
+                                    {
+                                        let _ = stx.send(serialized);
+                                    }
+                                }
                             }
                         });
                     } else {
@@ -431,7 +444,23 @@ fn execution_loop(
                             context_io.as_ref(),
                         ) {
                             Ok(keep_processing) => process_jobs = keep_processing,
-                            Err(e) => error!("{e}"),
+                            Err(e) => {
+                                error!("Job #{} failed on '{name}': {e}", payload.job_id);
+                                // Send the error back as a job result so the
+                                // coordinator does not block forever waiting for
+                                // a result that will never arrive.
+                                let error_result: flowcore::errors::Result<(
+                                    Option<serde_json::Value>,
+                                    flowcore::RunAgain,
+                                )> = Err(e);
+                                if let Ok(serialized) =
+                                    serde_json::to_string(&(payload.job_id, name, &error_result))
+                                {
+                                    results_sink
+                                        .send(serialized.as_bytes(), 0)
+                                        .map_err(|_| "Could not send error result of Job")?;
+                                }
+                            }
                         }
                     }
                 }

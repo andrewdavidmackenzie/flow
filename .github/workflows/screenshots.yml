@@ -107,8 +107,6 @@ jobs:
           rm -f assets/screenshots/*.png
           cargo test -p flowedit screenshot_ -- --ignored --test-threads=1
           cargo test -p flowr --bin flowrgui screenshot_ -- --ignored --test-threads=1
-          flowc --help 2>&1 > /tmp/flowc-help.txt
-          run_freeze /tmp/flowc-help.txt -o assets/screenshots/flowc-help.png --window --language ansi
           flowrcli --help 2>&1 > /tmp/flowrcli-help.txt
           run_freeze /tmp/flowrcli-help.txt -o assets/screenshots/flowrcli-help.png --window --language ansi
           run_freeze flowr/examples/fibonacci/expected.stdout -o assets/screenshots/fibonacci-output.png --window --language ansi
