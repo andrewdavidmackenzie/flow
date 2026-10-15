@@ -456,7 +456,9 @@ fn execution_loop(
                                 if let Ok(serialized) =
                                     serde_json::to_string(&(payload.job_id, name, &error_result))
                                 {
-                                    let _ = results_sink.send(serialized.as_bytes(), 0);
+                                    results_sink
+                                        .send(serialized.as_bytes(), 0)
+                                        .map_err(|_| "Could not send error result of Job")?;
                                 }
                             }
                         }
