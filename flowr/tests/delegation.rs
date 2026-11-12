@@ -146,8 +146,10 @@ fn test_delegate_to_peer_flowrcli() {
         coordinator.id()
     );
 
-    // Wait with timeout — poll every second and log progress
-    let deadline = Instant::now() + Duration::from_mins(2);
+    // Wait with timeout — use 90s to catch cases where the process is slow
+    // to exit (e.g. executor idle timeout). The original 2-minute timeout was
+    // too close to CI step limits and masked the underlying timing issue.
+    let deadline = Instant::now() + Duration::from_secs(90);
     let mut last_log = Instant::now();
     let exit_status = loop {
         if Instant::now() > deadline {

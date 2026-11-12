@@ -341,13 +341,25 @@ fn client_and_coordinator(
         Some(&own_peer_instance),
     );
 
+    info!("client_and_coordinator: client returned, joining coordinator thread...");
+    let join_start = std::time::Instant::now();
     let _ = coordinator_handle.join();
+    info!(
+        "client_and_coordinator: coordinator thread joined in {:.2}s",
+        join_start.elapsed().as_secs_f64()
+    );
 
     // Both the client (this thread) and the coordinator (now joined) are done using
     // the daemon - unregister our services (send "goodbye" packets) and shut it down.
+    info!("client_and_coordinator: shutting down mDNS daemon...");
+    let mdns_start = std::time::Instant::now();
     if let Err(e) = shutdown_service_daemon(&mdns, &fullnames) {
         error!("Could not shut down mDNS daemon: {e}");
     }
+    info!(
+        "client_and_coordinator: mDNS shutdown took {:.2}s",
+        mdns_start.elapsed().as_secs_f64()
+    );
 
     result
 }
@@ -355,7 +367,7 @@ fn client_and_coordinator(
 /// Create a new `Coordinator`, preload any libraries in native format that we want to have before
 /// loading a flow, and it's library references, then enter the `submission_loop()` accepting and
 /// executing flows submitted for execution, executing each one using the `Coordinator`
-#[allow(clippy::too_many_arguments)]
+#[allow(clippy::too_many_arguments, clippy::too_many_lines)]
 fn coordinator(
     mdns: &ServiceDaemon,
     num_threads: usize,
@@ -487,16 +499,25 @@ fn coordinator(
     // Unregister our job/results/control services (send "goodbye" packets). The daemon
     // itself is shared with the caller, which is responsible for shutting it down once
     // it has also unregistered its own (runtime/debug) services.
+    info!("coordinator: unregistering mDNS services");
     for fullname in &fullnames {
         unregister_service(mdns, fullname);
     }
 
+    info!("coordinator: joining bridge thread...");
+    let bridge_join_start = std::time::Instant::now();
     let _ = bridge_handle.join();
+    info!(
+        "coordinator: bridge thread joined in {:.2}s",
+        bridge_join_start.elapsed().as_secs_f64()
+    );
+
     // The blocking IO bridge thread is not joined — it may be stuck waiting
     // for a blocking IO request that never arrives (e.g. when no readline/stdin
     // context function is used). It will exit when the process exits.
     drop(blocking_bridge_handle);
 
+    info!("coordinator: function returning, locals will be dropped (Dispatcher sends DONE)");
     result
 }
 
