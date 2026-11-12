@@ -482,9 +482,8 @@ impl<'a> Coordinator<'a> {
         self.submission_handler.flow_execution_ended(&state)?;
 
         info!(
-            "execute_flow: total execution took {:.2}s, jobs_created={}",
-            exec_start.elapsed().as_secs_f64(),
-            state.get_number_of_jobs_created()
+            "execute_flow: total execution took {:.2}s",
+            exec_start.elapsed().as_secs_f64()
         );
 
         flow_result

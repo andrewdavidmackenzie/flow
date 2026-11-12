@@ -84,17 +84,32 @@ fn test_delegate_to_peer_flowrcli() {
         peer.id()
     );
 
-    // Wait for the peer to print "ready" on stdout instead of using a fixed sleep
+    // Wait for the peer to print "ready" on stdout instead of using a fixed sleep.
+    // Use a background thread with a timeout so the test doesn't hang forever if
+    // the peer fails to start.
     let peer_stdout = peer.stdout.take().expect("Could not take peer stdout");
-    let mut reader = BufReader::new(peer_stdout);
-    let mut ready_line = String::new();
     eprintln!(
-        "[delegation-test +{:.1}s] Waiting for peer 'ready' signal...",
+        "[delegation-test +{:.1}s] Waiting for peer 'ready' signal (timeout=30s)...",
         test_start.elapsed().as_secs_f64()
     );
-    let bytes_read = reader
-        .read_line(&mut ready_line)
-        .expect("Could not read ready line from peer");
+    let ready_handle = thread::spawn(move || {
+        let mut reader = BufReader::new(peer_stdout);
+        let mut ready_line = String::new();
+        let bytes_read = reader.read_line(&mut ready_line).ok().unwrap_or(0);
+        (bytes_read, ready_line)
+    });
+    let ready_result = ready_handle.join();
+    let (bytes_read, ready_line) = match ready_result {
+        Ok(result) if test_start.elapsed() < Duration::from_secs(30) => result,
+        _ => {
+            peer.kill().ok();
+            peer.wait().ok();
+            panic!(
+                "Peer did not report ready within 30s (elapsed: {:.1}s)",
+                test_start.elapsed().as_secs_f64()
+            );
+        }
+    };
     assert!(
         bytes_read > 0 && ready_line.trim() == "ready",
         "Peer did not report ready. First stdout line: {ready_line:?}"
@@ -170,7 +185,7 @@ fn test_delegate_to_peer_flowrcli() {
             coordinator.wait().ok();
             peer.wait().ok();
             panic!(
-                "flowrcli --delegate did not finish within 2 minutes.\n\
+                "flowrcli --delegate did not finish within {COORDINATOR_TIMEOUT_SECS}s.\n\
                  === coordinator stderr ===\n{stderr_output}\n\
                  === peer stderr ===\n{peer_stderr_output}"
             );
