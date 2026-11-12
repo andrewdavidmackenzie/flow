@@ -171,25 +171,35 @@ fn coordinator_only(
     lib_search_path: Simpath,
     native_flowstdlib: bool,
 ) -> Result<()> {
+    let startup_start = std::time::Instant::now();
+    info!("coordinator_only: creating mDNS daemon...");
     let mdns = create_service_daemon()?;
+    info!(
+        "coordinator_only: mDNS daemon created in {:.2}s",
+        startup_start.elapsed().as_secs_f64()
+    );
 
     let coordinator_port = pick_unused_port().chain_err(|| "No ports free")?;
     let coordinator_connection =
         CoordinatorConnection::new(COORDINATOR_SERVICE_NAME, coordinator_port)?;
+    let peer_service_name = format!(
+        "{}-{}-{coordinator_port}",
+        PEER_COORDINATOR_SERVICE_NAME,
+        std::process::id()
+    );
+    info!(
+        "coordinator_only: registering services on port {coordinator_port} (peer name: {peer_service_name})"
+    );
     let mut fullnames = vec![
         register_service(&mdns, COORDINATOR_SERVICE_NAME, coordinator_port)?,
         // Also register under the peer coordinator service name so other
         // coordinators can discover us for sub-flow delegation
-        register_service(
-            &mdns,
-            &format!(
-                "{}-{}-{coordinator_port}",
-                PEER_COORDINATOR_SERVICE_NAME,
-                std::process::id()
-            ),
-            coordinator_port,
-        )?,
+        register_service(&mdns, &peer_service_name, coordinator_port)?,
     ];
+    info!(
+        "coordinator_only: mDNS services registered in {:.2}s",
+        startup_start.elapsed().as_secs_f64()
+    );
 
     let blocking_io_port = pick_unused_port().chain_err(|| "No ports free")?;
     let blocking_io_connection =
@@ -210,6 +220,10 @@ fn coordinator_only(
     #[cfg(feature = "debugger")]
     eprintln!("Debug server listening on port {debug_port}. Connect with: flowrdb --address localhost:{debug_port}");
 
+    info!(
+        "coordinator_only: startup complete in {:.2}s, signaling ready",
+        startup_start.elapsed().as_secs_f64()
+    );
     // Signal to the parent process (e.g. test harness) that the server is ready
     println!("ready");
 
@@ -885,11 +899,23 @@ fn client(
 
     // Discover peers and assign sub-flows to them (one sub-flow per peer)
     if !delegate_flow_ids.is_empty() {
+        let discovery_start = std::time::Instant::now();
+        info!(
+            "Starting peer discovery with {}s timeout for {} candidate(s)...",
+            3,
+            delegate_flow_ids.len()
+        );
         match flowrlib::peer_discovery::discover_peer_coordinators(
             Duration::from_secs(3),
             own_peer_instance,
         ) {
             Ok(peers) => {
+                info!(
+                    "Peer discovery completed in {:.2}s — found {} raw peer address(es): {:?}",
+                    discovery_start.elapsed().as_secs_f64(),
+                    peers.len(),
+                    peers
+                );
                 // Deduplicate peers by port — a peer on multiple network
                 // interfaces shows up as multiple addresses with the same port
                 let mut seen_ports = std::collections::HashSet::new();
@@ -904,8 +930,13 @@ fn client(
                     .collect();
 
                 if unique_peers.is_empty() {
-                    info!("No peer coordinators found — running flow normally");
+                    info!("No peer coordinators found after dedup — running flow normally");
                 } else {
+                    info!(
+                        "{} unique peer(s) after dedup: {:?}",
+                        unique_peers.len(),
+                        unique_peers
+                    );
                     // Assign sub-flows to peers: one per peer, up to the
                     // number of available peers or candidates (whichever is smaller)
                     for (flow_id, addr) in delegate_flow_ids.iter().zip(unique_peers.iter()) {
@@ -920,7 +951,10 @@ fn client(
                     );
                 }
             }
-            Err(e) => info!("Peer discovery failed ({e}) — running flow normally"),
+            Err(e) => info!(
+                "Peer discovery failed after {:.2}s ({e}) — running flow normally",
+                discovery_start.elapsed().as_secs_f64()
+            ),
         }
     }
 
@@ -935,10 +969,12 @@ fn client(
     info!("Client sending submission to coordinator");
     client_connection.send(ClientMessage::ClientSubmission(Box::new(submission)))?;
 
-    trace!("Entering client event loop");
+    info!("Client entering event loop");
     let rt = tokio::runtime::Runtime::new()
         .map_err(|e| format!("Could not create tokio runtime: {e}"))?;
-    rt.block_on(client.event_loop(client_connection, blocking_io_connection))
+    let result = rt.block_on(client.event_loop(client_connection, blocking_io_connection));
+    info!("Client event loop finished");
+    result
 }
 
 /// Determine the number of threads to use to execute flows
