@@ -92,6 +92,7 @@ fn test_delegate_to_peer_flowrcli() {
         "[delegation-test +{:.1}s] Waiting for peer 'ready' signal (timeout=30s)...",
         test_start.elapsed().as_secs_f64()
     );
+    let peer_wait_start = Instant::now();
     let ready_handle = thread::spawn(move || {
         let mut reader = BufReader::new(peer_stdout);
         let mut ready_line = String::new();
@@ -100,13 +101,13 @@ fn test_delegate_to_peer_flowrcli() {
     });
     let ready_result = ready_handle.join();
     let (bytes_read, ready_line) = match ready_result {
-        Ok(result) if test_start.elapsed() < Duration::from_secs(30) => result,
+        Ok(result) if peer_wait_start.elapsed() < Duration::from_secs(30) => result,
         _ => {
             peer.kill().ok();
             peer.wait().ok();
             panic!(
-                "Peer did not report ready within 30s (elapsed: {:.1}s)",
-                test_start.elapsed().as_secs_f64()
+                "Peer did not report ready within 30s (waited {:.1}s)",
+                peer_wait_start.elapsed().as_secs_f64()
             );
         }
     };
