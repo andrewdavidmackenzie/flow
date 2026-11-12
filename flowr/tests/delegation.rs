@@ -147,10 +147,15 @@ fn test_delegate_to_peer_flowrcli() {
         coordinator.id()
     );
 
-    // Wait with timeout — use 90s to catch cases where the process is slow
-    // to exit (e.g. executor idle timeout). The original 2-minute timeout was
-    // too close to CI step limits and masked the underlying timing issue.
-    let deadline = Instant::now() + Duration::from_secs(90);
+    // Wait with timeout — use 60s (plus a small buffer) to catch cases where
+    // the process is slow to exit (e.g. executor idle timeout of 60s).
+    // The original 2-minute timeout was too close to CI step limits.
+    const COORDINATOR_TIMEOUT_SECS: u64 = 75;
+    eprintln!(
+        "[delegation-test +{:.1}s] Waiting up to {COORDINATOR_TIMEOUT_SECS}s for coordinator...",
+        test_start.elapsed().as_secs_f64()
+    );
+    let deadline = Instant::now() + Duration::from_secs(COORDINATOR_TIMEOUT_SECS);
     let mut last_log = Instant::now();
     let exit_status = loop {
         if Instant::now() > deadline {
