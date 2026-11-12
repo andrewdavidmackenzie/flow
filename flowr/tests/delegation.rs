@@ -22,9 +22,10 @@ fn test_delegate_to_peer_flowrcli() {
     use std::time::{Duration, Instant};
 
     // Timeout for waiting for the coordinator process to exit.
-    // On CI this should be generous enough for the flow execution but
-    // short enough to catch hangs (e.g. executor idle timeout of 60s).
-    const COORDINATOR_TIMEOUT_SECS: u64 = 30;
+    // The coordinator itself takes ~5-30s on CI (mDNS discovery + flow
+    // execution + shutdown). A 60s timeout provides ample headroom while
+    // still catching genuine hangs much faster than the CI step timeout.
+    const COORDINATOR_TIMEOUT_SECS: u64 = 60;
 
     let test_start = Instant::now();
 
