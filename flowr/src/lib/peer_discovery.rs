@@ -20,7 +20,20 @@ pub fn discover_peer_coordinators(
     timeout: Duration,
     own_instance: Option<&str>,
 ) -> Result<Vec<String>> {
+    info!(
+        "discover_peer_coordinators: scanning for '{}' prefix (timeout={:.1}s, own_instance={:?})",
+        PEER_COORDINATOR_SERVICE_NAME,
+        timeout.as_secs_f64(),
+        own_instance
+    );
+    let discovery_start = std::time::Instant::now();
     let services = discover_services_by_prefix(PEER_COORDINATOR_SERVICE_NAME, timeout)?;
+    info!(
+        "discover_peer_coordinators: mDNS scan returned {} service(s) in {:.2}s: {:?}",
+        services.len(),
+        discovery_start.elapsed().as_secs_f64(),
+        services
+    );
 
     // discover_services_by_prefix returns (address, port) pairs.
     // We need the instance name to filter. Re-discover with names.
@@ -29,6 +42,7 @@ pub fn discover_peer_coordinators(
         name.rsplit_once('-')
             .and_then(|(_, p)| p.parse::<u16>().ok())
     });
+    info!("discover_peer_coordinators: own_port={own_port:?}");
 
     let peers: Vec<String> = services
         .into_iter()
@@ -45,9 +59,13 @@ pub fn discover_peer_coordinators(
         .collect();
 
     if peers.is_empty() {
-        info!("No peer coordinators discovered");
+        info!("No peer coordinators discovered (after filtering own port)");
     } else {
-        info!("Discovered {} peer coordinator(s)", peers.len());
+        info!(
+            "Discovered {} peer coordinator(s): {:?}",
+            peers.len(),
+            peers
+        );
     }
 
     Ok(peers)

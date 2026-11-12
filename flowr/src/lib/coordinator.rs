@@ -372,20 +372,35 @@ impl<'a> Coordinator<'a> {
     /// Returns an error if the execution of the flow did not complete normally.
     #[allow(unused_variables, unused_mut)]
     pub fn execute_flow(&mut self, mut submission: Submission) -> Result<()> {
+        let exec_start = std::time::Instant::now();
         // Handle sub-flow delegation for each flow_id/peer pair
         let flow_ids = std::mem::take(&mut submission.delegate_flow_ids);
         let peer_addrs = std::mem::take(&mut submission.peer_addresses);
+        info!(
+            "execute_flow: {} sub-flow(s) to delegate, {} functions in manifest",
+            flow_ids.len(),
+            submission.manifest.functions().len()
+        );
         for flow_id in &flow_ids {
             let peer_addr = peer_addrs.get(flow_id).ok_or_else(|| {
                 format!("Sub-flow #{flow_id} requested for delegation but no peer address assigned")
             })?;
             info!("Delegating sub-flow #{flow_id} to peer at {peer_addr}");
+            let delegation_start = std::time::Instant::now();
             self.setup_delegation(*flow_id, peer_addr, &mut submission)?;
+            info!(
+                "setup_delegation for #{flow_id} took {:.2}s",
+                delegation_start.elapsed().as_secs_f64()
+            );
         }
 
         self.job_timeout = submission.job_timeout;
         self.dispatcher
             .set_results_timeout(submission.job_timeout)?;
+        info!(
+            "execute_flow: delegation setup took {:.2}s, creating RunState",
+            exec_start.elapsed().as_secs_f64()
+        );
         let mut state = RunState::new(submission);
 
         #[cfg(feature = "metrics")]
@@ -405,6 +420,7 @@ impl<'a> Coordinator<'a> {
         self.debugger_start(&state);
 
         // Outer loop: allows the debugger to restart execution from scratch
+        info!("execute_flow: entering run_jobs loop");
         let flow_result = loop {
             state.init()?;
             #[cfg(feature = "metrics")]
@@ -464,6 +480,11 @@ impl<'a> Coordinator<'a> {
             .flow_execution_ended(&state, metrics)?;
         #[cfg(all(feature = "submission", not(feature = "metrics")))]
         self.submission_handler.flow_execution_ended(&state)?;
+
+        info!(
+            "execute_flow: total execution took {:.2}s",
+            exec_start.elapsed().as_secs_f64()
+        );
 
         flow_result
     }

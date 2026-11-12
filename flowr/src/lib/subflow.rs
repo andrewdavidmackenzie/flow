@@ -237,12 +237,19 @@ impl RemoteSubFlowImplementation {
     /// requests as intermediate messages before `FlowEnd`. This method
     /// relays them through the origin's `ContextIO` and sends the responses
     /// back to the peer.
+    #[allow(clippy::too_many_lines)]
     fn submit_to_peer(
         &self,
         submission: Submission,
     ) -> flowcore::errors::Result<Vec<crate::client_protocol::BoundaryOutputEntry>> {
         use crate::client_protocol::{ClientMessage, CoordinatorMessage};
         use crate::connections::ClientConnection;
+
+        let peer_start = std::time::Instant::now();
+        info!(
+            "submit_to_peer: connecting to peer at {}",
+            self.peer_address
+        );
 
         // Reuse the cached connection if available, otherwise create a new one.
         // The peer's bridge loops back after FlowEnd, ready for the next submission.
@@ -252,31 +259,54 @@ impl RemoteSubFlowImplementation {
                 .lock()
                 .map_err(|_| "Could not lock cached connection")?;
             if let Some(conn) = cached.take() {
+                info!("submit_to_peer: reusing cached connection");
                 conn
             } else {
+                info!(
+                    "submit_to_peer: creating new connection to {}",
+                    self.peer_address
+                );
                 let conn = ClientConnection::new(&self.peer_address).map_err(|e| {
                     format!("Could not connect to peer at {}: {e}", self.peer_address)
                 })?;
                 conn.set_receive_timeout(300_000)
                     .map_err(|e| format!("Could not set receive timeout: {e}"))?;
+                info!(
+                    "submit_to_peer: connected in {:.2}s",
+                    peer_start.elapsed().as_secs_f64()
+                );
                 conn
             }
         };
 
+        info!("submit_to_peer: sending submission to peer");
         connection
             .send(ClientMessage::ClientSubmission(Box::new(submission)))
             .map_err(|e| format!("Could not send submission to peer: {e}"))?;
+        info!("submit_to_peer: submission sent, waiting for response (timeout=300s)...");
 
         // Loop receiving messages from the peer. Context function requests
         // are relayed through ContextIO; FlowEnd terminates the loop.
+        let mut context_msg_count: u32 = 0;
         loop {
             let response: CoordinatorMessage = connection
                 .receive()
-                .map_err(|e| format!("Could not receive from peer: {e}"))?;
+                .map_err(|e| {
+                    format!(
+                        "Could not receive from peer after {:.2}s ({context_msg_count} context msgs): {e}",
+                        peer_start.elapsed().as_secs_f64()
+                    )
+                })?;
 
             match response {
                 #[cfg(feature = "metrics")]
                 CoordinatorMessage::FlowEnd(boundary_outputs, _) => {
+                    info!(
+                        "submit_to_peer: received FlowEnd with {} boundary output(s) after {:.2}s \
+                         ({context_msg_count} context msgs relayed)",
+                        boundary_outputs.len(),
+                        peer_start.elapsed().as_secs_f64()
+                    );
                     // Cache the connection for the next invocation
                     if let Ok(mut cached) = self.cached_connection.lock() {
                         *cached = Some(connection);
@@ -285,16 +315,27 @@ impl RemoteSubFlowImplementation {
                 }
                 #[cfg(not(feature = "metrics"))]
                 CoordinatorMessage::FlowEnd(boundary_outputs) => {
+                    info!(
+                        "submit_to_peer: received FlowEnd with {} boundary output(s) after {:.2}s \
+                         ({context_msg_count} context msgs relayed)",
+                        boundary_outputs.len(),
+                        peer_start.elapsed().as_secs_f64()
+                    );
                     if let Ok(mut cached) = self.cached_connection.lock() {
                         *cached = Some(connection);
                     }
                     return Ok(boundary_outputs);
                 }
                 CoordinatorMessage::CoordinatorExiting(result) => {
+                    info!(
+                        "submit_to_peer: peer exited after {:.2}s: {result:?}",
+                        peer_start.elapsed().as_secs_f64()
+                    );
                     // Don't cache — the peer exited
                     return Err(format!("Peer coordinator exited: {result:?}").into());
                 }
                 context_msg => {
+                    context_msg_count += 1;
                     // Relay the context request through our ContextIO.
                     // GetStdin/GetLine use the blocking channel since they
                     // may block waiting for user input.
