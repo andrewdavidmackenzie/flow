@@ -1,4 +1,5 @@
 #![allow(missing_docs)]
+// Force recompile: diagnostic logging for CI flake investigation
 
 use serial_test::serial;
 
