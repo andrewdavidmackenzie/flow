@@ -21,6 +21,11 @@ fn test_delegate_to_peer_flowrcli() {
     use std::thread;
     use std::time::{Duration, Instant};
 
+    // Timeout for waiting for the coordinator process to exit.
+    // On CI this should be generous enough for the flow execution but
+    // short enough to catch hangs (e.g. executor idle timeout of 60s).
+    const COORDINATOR_TIMEOUT_SECS: u64 = 30;
+
     let test_start = Instant::now();
 
     let manifest_dir = std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR"));
@@ -147,12 +152,8 @@ fn test_delegate_to_peer_flowrcli() {
         coordinator.id()
     );
 
-    // Wait with timeout — use 30s to force a timeout on CI (where the coordinator
-    // consistently takes 60-130s to exit). This will trigger the panic path which
-    // dumps all captured diagnostic logs.
-    const COORDINATOR_TIMEOUT_SECS: u64 = 30;
     eprintln!(
-        "[delegation-test +{:.1}s] Waiting up to {COORDINATOR_TIMEOUT_SECS}s for coordinator (v2)...",
+        "[delegation-test +{:.1}s] Waiting up to {COORDINATOR_TIMEOUT_SECS}s for coordinator...",
         test_start.elapsed().as_secs_f64()
     );
     let deadline = Instant::now() + Duration::from_secs(COORDINATOR_TIMEOUT_SECS);

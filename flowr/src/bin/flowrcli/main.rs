@@ -496,6 +496,16 @@ fn coordinator(
     #[cfg(not(feature = "submission"))]
     let result: Result<()> = Ok(());
 
+    // Signal executor threads to exit immediately rather than waiting for
+    // the idle timeout (IDLE_EXIT_SECS = 60s). This must happen before we
+    // join the bridge thread, because the bridge blocks on context_rx.recv()
+    // which only returns when all ContextIO senders are dropped — including
+    // those held by executor threads.
+    info!("coordinator: sending DONE to executor threads");
+    if let Err(e) = coordinator.send_done() {
+        error!("coordinator: could not send DONE: {e}");
+    }
+
     // Unregister our job/results/control services (send "goodbye" packets). The daemon
     // itself is shared with the caller, which is responsible for shutting it down once
     // it has also unregistered its own (runtime/debug) services.
@@ -517,7 +527,6 @@ fn coordinator(
     // context function is used). It will exit when the process exits.
     drop(blocking_bridge_handle);
 
-    info!("coordinator: function returning, locals will be dropped (Dispatcher sends DONE)");
     result
 }
 
