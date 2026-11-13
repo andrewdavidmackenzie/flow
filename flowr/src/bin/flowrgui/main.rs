@@ -3001,7 +3001,10 @@ impl FlowrGui {
 
             let lib_search_path = FlowrGui::lib_search_path(&lib_dirs);
 
+            #[cfg(feature = "flowstdlib")]
             let native_flowstdlib = matches.get_flag("native");
+            #[cfg(not(feature = "flowstdlib"))]
+            let native_flowstdlib = false;
 
             let num_threads = FlowrGui::num_threads(&matches);
 

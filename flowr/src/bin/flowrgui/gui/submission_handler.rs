@@ -1,6 +1,7 @@
 use std::sync::mpsc;
 
 use flowcore::errors::Result;
+#[cfg(feature = "metrics")]
 use flowcore::model::metrics::Metrics;
 use flowcore::model::submission::Submission;
 use flowrlib::run_state::RunState;
@@ -138,7 +139,11 @@ mod test {
         );
         let state = RunState::new(submission);
         handler
-            .flow_execution_ended(&state, Metrics::new(0, 0))
+            .flow_execution_ended(
+                &state,
+                #[cfg(feature = "metrics")]
+                Metrics::new(0, 0),
+            )
             .unwrap();
 
         let request = context_rx.try_recv().unwrap();

@@ -129,7 +129,10 @@ fn run() -> Result<()> {
 
     #[cfg(feature = "debugger")]
     let debug_this_flow = matches.get_flag("debugger");
+    #[cfg(feature = "flowstdlib")]
     let native_flowstdlib = matches.get_flag("native");
+    #[cfg(not(feature = "flowstdlib"))]
+    let native_flowstdlib = false;
     let lib_dirs = if matches.contains_id("lib_dir") {
         matches
             .get_many::<String>("lib_dir")
