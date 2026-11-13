@@ -402,6 +402,7 @@ fn copy_definitions(root_path: &PathBuf, output_dir: &Path) -> Result<()> {
     Flow definitions are described in .toml format and can be at multiple levels in
     a library's directory structure.
 */
+#[cfg_attr(not(feature = "graph"), allow(unused_variables))]
 fn compile_flows(
     lib_root_path: &PathBuf,
     options: &Options,

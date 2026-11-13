@@ -40,6 +40,7 @@ mod source_arg;
 pub(crate) struct Options {
     source_url: Url,
     flow_args: Vec<String>,
+    #[cfg_attr(not(feature = "graph"), allow(dead_code))]
     graphs: bool,
     execution_metrics: bool,
     wasm_execution: bool,
