@@ -1657,14 +1657,13 @@ impl WindowState {
         let alias = flow_def
             .process_refs
             .get(editor.node_index)
-            .map(|pr| {
+            .map_or_default(|pr| {
                 if pr.alias.is_empty() {
                     derive_short_name(&pr.source)
                 } else {
                     pr.alias.clone()
                 }
-            })
-            .unwrap_or_default();
+            });
 
         let old_init = flow_def
             .process_refs

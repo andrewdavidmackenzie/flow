@@ -86,8 +86,7 @@ pub(crate) fn load_library_catalogs(
                         if func_path.extension().and_then(|e| e.to_str()) == Some("toml") {
                             let func_name = func_path
                                 .file_stem()
-                                .map(|s| s.to_string_lossy().to_string())
-                                .unwrap_or_default();
+                                .map_or_default(|s| s.to_string_lossy().to_string());
                             if !func_name.is_empty() {
                                 let ctx_url_str = format!("context://{cat_name}/{func_name}");
                                 if let Ok(ctx_url) = Url::parse(&ctx_url_str) {

@@ -138,16 +138,14 @@ fn median_ordering(
     for _pass in 0..3 {
         // Forward pass: sort each column by median position of incoming neighbors
         for col in 1..=max_col {
-            let prev_order: HashMap<String, usize> = columns
-                .get(&(col - 1))
-                .map(|nodes| {
+            let prev_order: HashMap<String, usize> =
+                columns.get(&(col - 1)).map_or_default(|nodes| {
                     nodes
                         .iter()
                         .enumerate()
                         .map(|(i, a)| (a.clone(), i))
                         .collect()
-                })
-                .unwrap_or_default();
+                });
 
             if let Some(col_nodes) = columns.get_mut(&col) {
                 col_nodes.sort_by(|a, b| {
@@ -160,16 +158,14 @@ fn median_ordering(
 
         // Backward pass: sort each column by median position of outgoing neighbors
         for col in (0..max_col).rev() {
-            let next_order: HashMap<String, usize> = columns
-                .get(&(col + 1))
-                .map(|nodes| {
+            let next_order: HashMap<String, usize> =
+                columns.get(&(col + 1)).map_or_default(|nodes| {
                     nodes
                         .iter()
                         .enumerate()
                         .map(|(i, a)| (a.clone(), i))
                         .collect()
-                })
-                .unwrap_or_default();
+                });
 
             if let Some(col_nodes) = columns.get_mut(&col) {
                 col_nodes.sort_by(|a, b| {
@@ -188,15 +184,12 @@ fn median_neighbor_pos(
     adjacency: &HashMap<String, Vec<String>>,
     order: &HashMap<String, usize>,
 ) -> f32 {
-    let mut positions: Vec<usize> = adjacency
-        .get(node)
-        .map(|neighbors| {
-            neighbors
-                .iter()
-                .filter_map(|n| order.get(n).copied())
-                .collect()
-        })
-        .unwrap_or_default();
+    let mut positions: Vec<usize> = adjacency.get(node).map_or_default(|neighbors| {
+        neighbors
+            .iter()
+            .filter_map(|n| order.get(n).copied())
+            .collect()
+    });
 
     if positions.is_empty() {
         return f32::MAX;

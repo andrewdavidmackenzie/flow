@@ -798,8 +798,7 @@ impl FlowEdit {
                 let route = self
                     .windows
                     .get(&win_id)
-                    .map(|w| w.route.clone())
-                    .unwrap_or_default();
+                    .map_or_default(|w| w.route.clone());
                 let flow_def = resolve_flow_for_window(
                     &mut self.root_flow,
                     &mut self.library_flows,
@@ -900,8 +899,7 @@ impl FlowEdit {
         let route = self
             .windows
             .get(&win_id)
-            .map(|w| w.route.clone())
-            .unwrap_or_default();
+            .map_or_default(|w| w.route.clone());
         let flow_def =
             resolve_flow_for_window(&mut self.root_flow, &mut self.library_flows, win_id, &route);
         let Some(win) = self.windows.get_mut(&win_id) else {
@@ -945,8 +943,7 @@ impl FlowEdit {
                 let route = self
                     .windows
                     .get(&win_id)
-                    .map(|w| w.route.clone())
-                    .unwrap_or_default();
+                    .map_or_default(|w| w.route.clone());
                 let flow_def = resolve_flow_for_window(
                     &mut self.root_flow,
                     &mut self.library_flows,
@@ -972,8 +969,7 @@ impl FlowEdit {
             let route = self
                 .windows
                 .get(&target_id)
-                .map(|w| w.route.clone())
-                .unwrap_or_default();
+                .map_or_default(|w| w.route.clone());
             let flow_def = resolve_flow_for_window(
                 &mut self.root_flow,
                 &mut self.library_flows,
@@ -1770,11 +1766,7 @@ impl FlowEdit {
         let mut input_col = Column::new().spacing(6);
         for (i, io) in viewer.func_def.inputs.iter().enumerate() {
             let port_name = io.name().clone();
-            let dtype = io
-                .datatypes()
-                .first()
-                .map(ToString::to_string)
-                .unwrap_or_default();
+            let dtype = io.datatypes().first().map_or_default(ToString::to_string);
             let mut name_widget = text_input("name", &port_name).size(13).padding(3).width(90);
             let mut type_widget = text_input("type", &dtype).size(11).padding(3).width(75);
             if editable {
@@ -1827,11 +1819,7 @@ impl FlowEdit {
         let mut output_col = Column::new().spacing(6).align_x(iced::Alignment::End);
         for (i, io) in viewer.func_def.outputs.iter().enumerate() {
             let port_name = io.name().clone();
-            let dtype = io
-                .datatypes()
-                .first()
-                .map(ToString::to_string)
-                .unwrap_or_default();
+            let dtype = io.datatypes().first().map_or_default(ToString::to_string);
             let mut type_widget = text_input("type", &dtype).size(11).padding(3).width(75);
             let mut name_widget = text_input("name", &port_name).size(13).padding(3).width(90);
             if editable {
@@ -2488,8 +2476,7 @@ impl FlowEdit {
             let route = self
                 .windows
                 .get(&win_id)
-                .map(|w| w.route.clone())
-                .unwrap_or_default();
+                .map_or_default(|w| w.route.clone());
             let flow_def = resolve_flow_for_window(
                 &mut self.root_flow,
                 &mut self.library_flows,

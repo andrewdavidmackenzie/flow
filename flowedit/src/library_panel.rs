@@ -355,11 +355,10 @@ fn func_name_from_url(url: &Url) -> String {
 fn func_description_from_definitions(url: &Url, all_definitions: &HashMap<Url, Process>) -> String {
     all_definitions
         .get(url)
-        .map(|process| match process {
+        .map_or_default(|process| match process {
             Process::FlowProcess(flow_def) => flow_def.description.clone(),
             Process::FunctionProcess(func_def) => func_def.description.clone(),
         })
-        .unwrap_or_default()
 }
 
 /// Build category entries from a manifest's locator map.
