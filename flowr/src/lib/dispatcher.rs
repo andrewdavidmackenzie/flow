@@ -172,6 +172,7 @@ impl Dispatcher {
     /// # Errors
     ///
     /// Returns an error if the message cannot be sent.
+    #[cfg_attr(not(feature = "submission"), allow(dead_code))]
     pub(crate) fn send_reconnect(
         &mut self,
         job_address: &str,

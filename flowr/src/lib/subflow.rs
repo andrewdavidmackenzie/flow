@@ -12,6 +12,7 @@ use flowcore::provider::Provider;
 use flowcore::{Implementation, RunAgain, RUN_AGAIN};
 use log::{error, info};
 use serde_json::Value;
+#[cfg(feature = "flowstdlib")]
 use url::Url;
 
 use crate::coordinator::Coordinator;

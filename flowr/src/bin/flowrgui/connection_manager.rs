@@ -21,7 +21,9 @@ use crate::errors::{Result, ResultExt};
 use crate::gui::coordinator_message::CoordinatorMessage;
 #[cfg(feature = "submission")]
 use crate::gui::submission_handler::CLISubmissionHandler;
-use crate::{context, CoordinatorSettings, Message, ServerSettings};
+#[cfg(feature = "debugger")]
+use crate::Message;
+use crate::{context, CoordinatorSettings, ServerSettings};
 use flowrlib::client_protocol::ClientMessage;
 use flowrlib::connections::ClientConnection;
 use flowrlib::connections::CoordinatorConnection;
@@ -84,6 +86,7 @@ pub fn request_stop() {
 }
 
 /// Check and clear the stop request flag
+#[cfg(feature = "submission")]
 pub fn take_stop_request() -> bool {
     STOP_REQUESTED.swap(false, Ordering::Relaxed)
 }
@@ -446,6 +449,7 @@ fn start_server(coordinator_settings: ServerSettings) -> Result<()> {
 }
 
 #[allow(clippy::too_many_arguments)]
+#[cfg_attr(not(feature = "submission"), allow(unused_variables))]
 fn coordinator(
     mdns: &ServiceDaemon,
     coordinator_settings: ServerSettings,
@@ -528,6 +532,8 @@ fn coordinator(
 
     #[cfg(feature = "submission")]
     let mut submitter = CLISubmissionHandler::new(context_io, submission_rx);
+    #[cfg(not(feature = "submission"))]
+    drop(submission_rx);
 
     let mut coordinator = Coordinator::new(
         dispatcher,
@@ -2321,6 +2327,7 @@ mod test {
 
     use super::*;
 
+    #[cfg(feature = "submission")]
     #[test]
     #[serial]
     fn stop_request_default_is_false() {
@@ -2329,6 +2336,7 @@ mod test {
         assert!(!take_stop_request());
     }
 
+    #[cfg(feature = "submission")]
     #[test]
     #[serial]
     fn stop_request_roundtrip() {

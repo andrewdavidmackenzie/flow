@@ -54,6 +54,7 @@ pub struct Coordinator<'a> {
     remote_job_address: Option<String>,
     remote_results_address: Option<String>,
     /// Whether executor threads are currently connected to a remote coordinator
+    #[cfg_attr(not(feature = "submission"), allow(dead_code))]
     executors_remote: bool,
     /// Whether the executor has `ContextIO` configured for context proxying
     has_context_proxy: bool,
@@ -237,6 +238,7 @@ impl<'a> Coordinator<'a> {
     /// Reconnect executor threads to remote job/results sockets (idle mode).
     /// Only sends RECONNECT if remote addresses are configured and executors
     /// are not already connected to remote.
+    #[cfg_attr(not(feature = "submission"), allow(dead_code))]
     fn connect_executors_to_remote(&mut self) -> Result<()> {
         if self.executors_remote {
             return Ok(()); // already remote
@@ -253,6 +255,7 @@ impl<'a> Coordinator<'a> {
 
     /// Reconnect executor threads back to local job/results sockets (busy mode).
     /// Only sends RECONNECT if executors are currently in remote mode.
+    #[cfg_attr(not(feature = "submission"), allow(dead_code))]
     fn connect_executors_to_local(&mut self) -> Result<()> {
         if !self.executors_remote {
             return Ok(()); // already local
@@ -773,6 +776,7 @@ impl<'a> Coordinator<'a> {
     /// Processes results in a tight loop: first blocking for one result if nothing
     /// else is ready, then draining all immediately available results before
     /// returning to the dispatch/retire outer loop.
+    #[cfg_attr(not(feature = "metrics"), allow(unused_variables))]
     fn retire_jobs(
         &mut self,
         state: &mut RunState,
