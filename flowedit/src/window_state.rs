@@ -1654,16 +1654,17 @@ impl WindowState {
         flow_def: &mut FlowDefinition,
         editor: &InitializerEditor,
     ) {
-        let alias = flow_def
-            .process_refs
-            .get(editor.node_index)
-            .map_or_default(|pr| {
-                if pr.alias.is_empty() {
-                    derive_short_name(&pr.source)
-                } else {
-                    pr.alias.clone()
-                }
-            });
+        let alias =
+            flow_def
+                .process_refs
+                .get(editor.node_index)
+                .map_or_else(Default::default, |pr| {
+                    if pr.alias.is_empty() {
+                        derive_short_name(&pr.source)
+                    } else {
+                        pr.alias.clone()
+                    }
+                });
 
         let old_init = flow_def
             .process_refs

@@ -1645,14 +1645,19 @@ fn format_run_state(run_state: &flowrlib::run_state::RunState) -> Vec<crate::Deb
         }
 
         // Collect all children: sub-flows first, then functions
-        let sub_ids = manifest.flows().get(&flow_id).map_or_default(|fi| {
-            let mut ids = fi.sub_flow_ids.clone();
-            ids.sort_unstable();
-            ids
-        });
+        let sub_ids = manifest
+            .flows()
+            .get(&flow_id)
+            .map_or_else(Default::default, |fi| {
+                let mut ids = fi.sub_flow_ids.clone();
+                ids.sort_unstable();
+                ids
+            });
         let func_children: Vec<_> = by_parent
             .get(&flow_id)
-            .map_or_default(|children| children.iter().filter(|c| c.id() != flow_id).collect());
+            .map_or_else(Default::default, |children| {
+                children.iter().filter(|c| c.id() != flow_id).collect()
+            });
         let total_children = sub_ids.len() + func_children.len();
 
         // Emit sub-flows

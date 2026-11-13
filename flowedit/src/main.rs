@@ -105,7 +105,9 @@ pub(crate) fn parse_cli_args() -> CliArgs {
     let lib_dirs: Vec<String> = if matches.contains_id("lib_dir") {
         matches
             .get_many::<String>("lib_dir")
-            .map_or_default(|dirs| dirs.map(std::string::ToString::to_string).collect())
+            .map_or_else(Default::default, |dirs| {
+                dirs.map(std::string::ToString::to_string).collect()
+            })
     } else {
         vec![]
     };

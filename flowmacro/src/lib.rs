@@ -70,7 +70,7 @@ fn generate_function_definition(ast: &ItemFn, source_file: &Path) -> FunctionDef
 
     let source = source_file
         .file_name()
-        .map_or_default(|f| f.to_string_lossy().to_string());
+        .map_or_else(Default::default, |f| f.to_string_lossy().to_string());
 
     // Extract description from doc comments
     let description = ast
@@ -102,7 +102,7 @@ fn generate_function_definition(ast: &ItemFn, source_file: &Path) -> FunctionDef
     let docs = if docs_path.exists() {
         docs_path
             .file_name()
-            .map_or_default(|f| f.to_string_lossy().to_string())
+            .map_or_else(Default::default, |f| f.to_string_lossy().to_string())
     } else {
         String::new()
     };
