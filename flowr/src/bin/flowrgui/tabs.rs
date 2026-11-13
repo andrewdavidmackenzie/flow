@@ -388,6 +388,7 @@ impl TabSet {
 
     #[allow(unused_variables)]
     #[allow(clippy::too_many_lines)]
+    #[cfg_attr(not(feature = "debugger"), allow(unused_mut))]
     pub(crate) fn view(&self, cached_functions: &[crate::CachedFunction]) -> Element<'_, Message> {
         let mut tab_labels: Vec<(usize, String)> = vec![
             (0, self.stdout_tab.label_text()),

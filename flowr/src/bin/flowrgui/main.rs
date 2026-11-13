@@ -822,6 +822,7 @@ struct FlowrGui {
     show_coordinator_picker: bool,
     discovered_services: Vec<(String, String)>,
     discovering: bool,
+    #[cfg_attr(not(feature = "debugger"), allow(dead_code))]
     selected_debug_address: Option<String>,
 }
 
@@ -1013,6 +1014,7 @@ impl FlowrGui {
                 self.show_coordinator_picker = true;
                 self.discovering = true;
                 self.discovered_services.clear();
+                #[cfg(feature = "debugger")]
                 let discover_debug = self.submission_settings.debug_this_flow;
                 return Task::perform(
                     async move {
@@ -1255,6 +1257,7 @@ impl FlowrGui {
     }
 
     #[allow(clippy::too_many_lines)]
+    #[cfg_attr(not(feature = "debugger"), allow(unused_mut))]
     fn view(&self) -> Element<'_, Message> {
         let mut main_content = Column::new().spacing(4).push(self.command_row());
 
@@ -2932,6 +2935,7 @@ impl FlowrGui {
     }
 
     #[allow(clippy::too_many_lines)]
+    #[cfg_attr(not(feature = "debugger"), allow(unused_mut))]
     fn initial_settings() -> (SubmissionSettings, CoordinatorSettings, UiSettings) {
         let matches = Self::parse_cli_args();
 
@@ -2997,7 +3001,10 @@ impl FlowrGui {
 
             let lib_search_path = FlowrGui::lib_search_path(&lib_dirs);
 
+            #[cfg(feature = "flowstdlib")]
             let native_flowstdlib = matches.get_flag("native");
+            #[cfg(not(feature = "flowstdlib"))]
+            let native_flowstdlib = false;
 
             let num_threads = FlowrGui::num_threads(&matches);
 

@@ -854,6 +854,7 @@ impl RunState {
 
     // Send a value produced as part of an output of running a job to a destination function on
     // a specific input, update the metrics and potentially enter the debugger
+    #[cfg_attr(not(feature = "debugger"), allow(unused_mut))]
     fn send_a_value(
         &mut self,
         source_id: usize,

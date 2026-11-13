@@ -129,7 +129,10 @@ fn run() -> Result<()> {
 
     #[cfg(feature = "debugger")]
     let debug_this_flow = matches.get_flag("debugger");
+    #[cfg(feature = "flowstdlib")]
     let native_flowstdlib = matches.get_flag("native");
+    #[cfg(not(feature = "flowstdlib"))]
+    let native_flowstdlib = false;
     let lib_dirs = if matches.contains_id("lib_dir") {
         matches
             .get_many::<String>("lib_dir")
@@ -368,6 +371,7 @@ fn client_and_coordinator(
 /// loading a flow, and it's library references, then enter the `submission_loop()` accepting and
 /// executing flows submitted for execution, executing each one using the `Coordinator`
 #[allow(clippy::too_many_arguments, clippy::too_many_lines)]
+#[cfg_attr(not(feature = "flowstdlib"), allow(unused_variables))]
 fn coordinator(
     mdns: &ServiceDaemon,
     num_threads: usize,
@@ -454,6 +458,8 @@ fn coordinator(
 
     #[cfg(feature = "submission")]
     let mut submitter = CLISubmissionHandler::new(context_io, submission_rx);
+    #[cfg(not(feature = "submission"))]
+    drop(submission_rx);
 
     let mut coordinator = Coordinator::new(
         dispatcher,

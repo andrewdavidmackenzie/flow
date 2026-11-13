@@ -28,9 +28,9 @@ tag-name = "v{{version}}"
 [workspace.lints.rust]
 unsafe_code = "forbid"
 missing_docs = "deny"
+warnings = { level = "deny", priority = -2 }
 
 [workspace.lints.clippy]
-warnings = { level = "deny", priority = -2 }
 pedantic = { level = "deny", priority = -1 }
 unwrap_used = "deny"
 result_large_err = "allow"

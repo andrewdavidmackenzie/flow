@@ -794,8 +794,7 @@ fn click_build_with_saved_flow() {
     let status = app
         .windows
         .get(&win_id)
-        .map(|w| w.status.clone())
-        .unwrap_or_default();
+        .map_or_else(Default::default, |w| w.status.clone());
     // Should show compile result (success or error)
     assert!(
         status.contains("Compiled") || status.contains("error") || status.contains("Parse"),

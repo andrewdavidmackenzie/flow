@@ -3,6 +3,7 @@ use std::fmt;
 use serde_derive::{Deserialize, Serialize};
 
 use flowcore::errors::Result;
+#[cfg(feature = "metrics")]
 use flowcore::model::metrics::Metrics;
 
 use flowrlib::client_protocol::BoundaryOutputEntry;

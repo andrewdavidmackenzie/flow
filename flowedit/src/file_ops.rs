@@ -400,8 +400,7 @@ pub(crate) fn save_function_definition(viewer: &FunctionViewer) -> Result<(), St
         let dtype = input
             .datatypes()
             .first()
-            .map(ToString::to_string)
-            .unwrap_or_default();
+            .map_or_else(Default::default, ToString::to_string);
         let name = input.name();
         if name.is_empty() || name == "input" || name == "name" {
             let _ = write!(toml, "\n[[input]]\ntype = \"{dtype}\"\n");
@@ -413,8 +412,7 @@ pub(crate) fn save_function_definition(viewer: &FunctionViewer) -> Result<(), St
         let dtype = output
             .datatypes()
             .first()
-            .map(ToString::to_string)
-            .unwrap_or_default();
+            .map_or_else(Default::default, ToString::to_string);
         let name = output.name();
         if name.is_empty() || name == "output" || name == "name" {
             let _ = write!(toml, "\n[[output]]\ntype = \"{dtype}\"\n");
